@@ -48,3 +48,12 @@ instructions per guest instruction against about 27 for the translation
 7. **The Switch:** cross-compile with devkitA64, reuse `switch/` (Aurora, shim, NRO, SD, logs).
 
 Each phase lands as its own commits; this file records decisions and measured results as they come.
+
+## Phase 1 log
+
+- **scaffold:** CMake project under `native/` (Ninja, arm64, C11/C++20), `cos_game_headers` with
+  `TARGET_PC=1`, `VERSION=2`, `NDEBUG=1` and the force-included `native/include/pc/cos_pc_config.h`
+  (portable `__cntlzw`, `__rlwimi`, `__dcbz`, `__sync`, `__fres`, `__frsqrte`; MSL's float math in
+  `std::`), MSL header-name shims, 14 module targets covering all 840 in-scope units (off by
+  default), `cos_defer()` list (empty). `s32`/`u32` are `int` under `TARGET_PC` and the intrinsic
+  declarations in `global.h` are original-target only. Check target: 2/2 units, 0 deferred.

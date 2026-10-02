@@ -3,11 +3,20 @@
 
 typedef signed char s8;
 typedef signed short s16;
+#if TARGET_PC
+// long is 64-bit on LP64 hosts; s32/u32 must stay 32-bit (same as Dusklight).
+typedef signed int s32;
+#else
 typedef signed long s32;
+#endif
 typedef signed long long s64;
 typedef unsigned char u8;
 typedef unsigned short u16;
+#if TARGET_PC
+typedef unsigned int u32;
+#else
 typedef unsigned long u32;
+#endif
 typedef unsigned long long u64;
 
 typedef volatile u8 vu8;
@@ -87,8 +96,10 @@ typedef unsigned int uint;
 #include "stddef.h" // IWYU pragma: export
 #include "stdint.h" // IWYU pragma: export
 
+#if !TARGET_PC
 #define INT32_MAX (0x7fffffff)
 #define UINT32_MAX (0xffffffff)
+#endif
 
 #define FLOAT_MIN (1.175494351e-38f)
 #define FLOAT_MAX (3.40282346638528860e+38f)

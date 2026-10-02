@@ -49,10 +49,14 @@
 #endif
 
 // Intrinsics
+#if !TARGET_PC
 extern int __cntlzw(uint);
 extern int __rlwimi(int, int, int, int, int);
 extern void __dcbz(void*, int);
 extern void __sync();
+#else
+// The native build defines portable versions in native/include/pc/cos_pc_config.h.
+#endif
 
 #define VERSION_DEMO 0
 #define VERSION_JPN 1
