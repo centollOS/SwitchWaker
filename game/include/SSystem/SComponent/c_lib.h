@@ -36,6 +36,37 @@ s16 cLib_targetAngleX(cXyz*, cXyz*);
 void cLib_offsetPos(cXyz* pDest, cXyz* pSrc, s16 angle, cXyz* vec);
 s32 cLib_distanceAngleS(s16 x, s16 y);
 
+#if TARGET_PC
+/*
+ * The bit argument is not deduced: the game passes u32 fields with 0x..UL literals, which
+ * deduce one T on the original target (u32 is unsigned long there) but conflict on the host,
+ * where u32 is unsigned int. Taking T from the value alone gives the same T and result.
+ */
+template <typename T>
+struct cLib_bitArg {
+    typedef T type;
+};
+
+template <typename T>
+inline void cLib_offBit(T& value, typename cLib_bitArg<T>::type bit) {
+    value = static_cast<T>(value & ~bit);
+}
+
+template <typename T>
+inline void cLib_onBit(T& value, typename cLib_bitArg<T>::type bit) {
+    value = static_cast<T>(value | bit);
+}
+
+template <typename T>
+inline T cLib_checkBit(T value, typename cLib_bitArg<T>::type bit) {
+    return static_cast<T>(value & bit);
+}
+
+template <typename T>
+inline void cLib_setBit(T& value, typename cLib_bitArg<T>::type bit) {
+    value = bit;
+}
+#else
 template <typename T>
 inline void cLib_offBit(T& value, T bit) {
     value = static_cast<T>(value & ~bit);
@@ -55,6 +86,7 @@ template <typename T>
 inline void cLib_setBit(T& value, T bit) {
     value = bit;
 }
+#endif
 
 template <typename T>
 inline T cLib_minMaxLimit(T val, T min, T max) {

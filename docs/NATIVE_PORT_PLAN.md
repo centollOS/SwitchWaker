@@ -104,3 +104,12 @@ Each phase lands as its own commits; this file records decisions and measured re
   stack walks and address checks in `m_Do_printf.cpp` (`OSGetCallerPC`, `search_partial_address`,
   `convert_partial_address`, `OSPanic`) cast pointers through `uintptr_t` under `TARGET_PC`
   (`TODO(native phase 4)`).
+- **d-core:** 136/136 units (top level of `src/d`) compile, 0 deferred; on by default.
+  `cLib_onBit`/`offBit`/`checkBit`/`setBit` (`c_lib.h`) take a non-deduced bit argument under
+  `TARGET_PC` (u32 fields with `0x..UL` literals deduce one `T` only where `u32` is
+  `unsigned long`). The compat header predefines the generated display-list macro block
+  (`LOAD_BP_REG` & co., same text) with `IMAGE_ADDR` through `uintptr_t`
+  (`TODO(native phase 2)`: Aurora GX must resolve DL texture references). `d_meter.cpp`'s global
+  `clock[3]` is renamed by macro to `dMeter_clock` under `TARGET_PC` (host `::clock()`). Offset
+  relocations in `d_stage`, `d_s_menu`, `d_s_actor_data_mng`, `d_resorce` and the recollection
+  buffers in `d_com_inf_game` go through `uintptr_t` under `TARGET_PC` (`TODO(native phase 4)`).

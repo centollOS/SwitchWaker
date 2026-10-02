@@ -86,6 +86,23 @@ COS_PC_INTRINSIC double __frsqrte(double value) {
 #define RAD_TO_DEG(radians) (radians * (180.0f / COS_MSL_M_PI + 0.000005f))
 #endif
 
+/* ---- Generated display-list asset headers ------------------------------------------------ */
+/*
+ * The asset headers generated from the disc (assets/l_matDL__*.h, g_*MatDL.h, ...) define these
+ * helpers under #ifndef LOAD_BP_REG and use them in static u8 display lists. Same text as the
+ * generated block, except IMAGE_ADDR, which casts the texture's address through uintptr_t: the
+ * original (u32)(addr) is a hard error with 64-bit pointers.
+ * TODO(native phase 2): the GX image register keeps only a 32-bit physical address >> 5; the
+ * Aurora GX layer has to resolve these display-list texture references itself.
+ */
+#define U32_AS_U8(v) (((v) >> 24) & 0xFF), (((v) >> 16) & 0xFF), (((v) >> 8) & 0xFF), (((v) >> 0) & 0xFF)
+#define U24_AS_U8(v) (((v) >> 16) & 0xFF), (((v) >> 8) & 0xFF), (((v) >> 0) & 0xFF)
+#define U16_AS_U8(v) (((v) >> 8) & 0xFF), (((v) >> 0) & 0xFF)
+#define IMAGE_ADDR(addr) (u32)(uintptr_t)(addr) >> 5
+#define LOAD_BP_REG(reg, value) GX_CMD_LOAD_BP_REG, reg, U24_AS_U8(value)
+#define LOAD_XF_REG(reg, num_args, ...) GX_CMD_LOAD_XF_REG, U16_AS_U8(num_args-1), U16_AS_U8(reg), __VA_ARGS__
+#define LOAD_CP_REG(reg, value) GX_CMD_LOAD_CP_REG, reg, U32_AS_U8(value)
+
 /* ---- MSL's <cmath> -------------------------------------------------------------------------- */
 #ifdef __cplusplus
 /*

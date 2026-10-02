@@ -1575,7 +1575,12 @@ void dComIfGs_setPlayerRecollectionData() {
 #else
     // TODO: This matches but could probably be cleaned up somehow.
     dSv_player_status_c_c* stts = dComIfGs_getpPlayerStatusC(tbl);
+#if TARGET_PC
+    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+    uintptr_t buffer = (uintptr_t)dComIfGp_getPlayerInfoBuffer();
+#else
     u32 buffer = (u32)dComIfGp_getPlayerInfoBuffer();
+#endif
     memcpy((void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectStatusA)),       dComIfGs_getpPlayerStatusA(),             sizeof(stts->mRecollectStatusA));
     memcpy((void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectItem)),          dComIfGs_getpItem(),                      sizeof(stts->mRecollectItem));
     memcpy((void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectItemRecord)),    &dComIfGs_getpItemRecord()->mItemRecord2, sizeof(stts->mRecollectItemRecord));
@@ -1701,7 +1706,12 @@ void dComIfGs_revPlayerRecollectionData() {
     memcpy(dComIfGs_getpCollect(), buffer, sizeof(dSv_player_collect_c));
 #else
     // TODO: This matches but could probably be cleaned up somehow.
+#if TARGET_PC
+    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+    uintptr_t buffer = (uintptr_t)dComIfGp_getPlayerInfoBuffer();
+#else
     u32 buffer = (u32)dComIfGp_getPlayerInfoBuffer();
+#endif
     memcpy(dComIfGs_getpPlayerStatusA(),             (void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectStatusA)),       sizeof(dSv_player_status_c_c().mRecollectStatusA));
     memcpy(dComIfGs_getpItem(),                      (void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectItem)),          sizeof(dSv_player_status_c_c().mRecollectItem));
     memcpy(&dComIfGs_getpItemRecord()->mItemRecord2, (void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectItemRecord)),    sizeof(dSv_player_status_c_c().mRecollectItemRecord));

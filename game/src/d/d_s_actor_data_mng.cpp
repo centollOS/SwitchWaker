@@ -112,7 +112,12 @@ void dADM::SetData(void* pData) {
 
     u32 *pHeader = (u32*)mpData;
     for (s32 i = 0; i < mBlockCount; i++) {
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        pHeader[2] = pHeader[2] + (u32)(uintptr_t)pData;
+#else
         pHeader[2] = pHeader[2] + (u32)pData;
+#endif
         pHeader += 3;
     }
 
@@ -131,5 +136,10 @@ void dADM::SetData(void* pData) {
     }
 
     JUT_ASSERT(202, row * name == dat_size);
+#if TARGET_PC
+    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+    mCharTbl.SetData((u32)(uintptr_t)pData, row, rowOffs, name, nameOffs, dat_size, dataOffs);
+#else
     mCharTbl.SetData((u32)pData, row, rowOffs, name, nameOffs, dat_size, dataOffs);
+#endif
 }

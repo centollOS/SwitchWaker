@@ -77,6 +77,11 @@ mapCtrlDisp_c dMeter_mMapCtrlDisp;
 dDlst_2DMETER1_c meter1;
 dDlst_2DMETER2_c meter2;
 dDlst_2Dm_c tekari;
+#if TARGET_PC
+// The host C library declares ::clock() (and would export the same symbol at link time), so this
+// unit's global array gets its own name; every use below goes through the macro, unchanged.
+#define clock dMeter_clock
+#endif
 dDlst_2Dm_c clock[3];
 
 static void dummy(f32* m, u32 p2, s32 p3) {

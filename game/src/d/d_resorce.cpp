@@ -324,7 +324,12 @@ int dRes_info_c::loadResource() {
                 JUTDataFileHeader* fileHeader = (JUTDataFileHeader*)pRes;
                 void *pBasData;
                 if (fileHeader->mSeAnmOffset != -1)
+#if TARGET_PC
+                    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+                    pBasData = (char*)fileHeader->mSeAnmOffset + (uintptr_t)pRes;
+#else
                     pBasData = (char*)fileHeader->mSeAnmOffset + (u32)pRes;
+#endif
                 else
                     pBasData = NULL;
 
