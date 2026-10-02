@@ -79,7 +79,8 @@ from the Album gives applets far less memory than the game needs. Open **BlueWak
 
 The headless build:
 
-- shows no picture;
+- shows no game picture: the screen shows its log as text, the same lines as `host.log` and the
+  live USB log;
 - runs about one minute of game time (`BLUEWAKE_MAX_RETRACES=3600`) and then writes
   `[switch] host returned …`;
 - exits with **+**.
