@@ -71,8 +71,7 @@ fi
 for target in "$@"; do
     case $target in
         host) script=build_host.sh nro=build/switch-host/BlueWakeSwitch.nro ;;
-        # Same file name on the console: one of the two builds is installed at a time.
-        host-aurora) script='' nro=build/switch-host-aurora/BlueWakeSwitch.nro ;;
+        host-aurora) script='' nro=${SWITCH_HOST_BUILD_DIR:-build/switch-host-aurora}/BlueWakeSwitchAurora.nro ;;
         dawn) script=build_dawn_probe.sh nro=build/switch-dawn-probe/BlueWakeDawnOffscreenProbe.nro ;;
         gles) script=build_gles_probe.sh nro=build/switch-gles-probe/BlueWakeGlesProbe.nro ;;
         boot) script=build_probe.sh nro=build/switch-probe/BlueWakeSwitchProbe.nro ;;
