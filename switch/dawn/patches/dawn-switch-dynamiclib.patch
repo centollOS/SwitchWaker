@@ -1,0 +1,57 @@
+diff --git a/src/dawn/common/DynamicLib.cpp b/src/dawn/common/DynamicLib.cpp
+--- a/src/dawn/common/DynamicLib.cpp
++++ b/src/dawn/common/DynamicLib.cpp
+@@ -38,7 +38,7 @@
+ #include "src/dawn/common/WindowsUtils.h"
+ #endif
+-#elif DAWN_PLATFORM_IS(POSIX)
++#elif DAWN_PLATFORM_IS(POSIX) && !DAWN_PLATFORM_IS(SWITCH)
+ #include <dlfcn.h>
+-#else
++#elif !DAWN_PLATFORM_IS(SWITCH)
+ #error "Unsupported platform for DynamicLib"
+ #endif
+@@ -103,9 +103,9 @@
+-#elif DAWN_PLATFORM_IS(POSIX)
++#elif DAWN_PLATFORM_IS(POSIX) && !DAWN_PLATFORM_IS(SWITCH)
+     mHandle = dlopen(filename.c_str(), RTLD_NOW);
+ 
+     if (mHandle == nullptr && error != nullptr) {
+         *error = dlerror();
+     }
+-#else
++#elif !DAWN_PLATFORM_IS(SWITCH)
+ #error "Unsupported platform for DynamicLib"
+ #endif
+@@ -127,9 +127,9 @@
+-#elif DAWN_PLATFORM_IS(POSIX)
++#elif DAWN_PLATFORM_IS(POSIX) && !DAWN_PLATFORM_IS(SWITCH)
+     mHandle = dlopen(filename.c_str(), RTLD_NOW | RTLD_NOLOAD);
+ 
+     if (mHandle == nullptr && error != nullptr) {
+         *error = dlerror();
+     }
+-#else
++#elif !DAWN_PLATFORM_IS(SWITCH)
+ #error "Unsupported platform for DynamicLib"
+ #endif
+@@ -168,5 +168,5 @@
+-#elif DAWN_PLATFORM_IS(POSIX)
++#elif DAWN_PLATFORM_IS(POSIX) && !DAWN_PLATFORM_IS(SWITCH)
+         dlclose(mHandle);
+-#else
++#elif !DAWN_PLATFORM_IS(SWITCH)
+ #error "Unsupported platform for DynamicLib"
+ #endif
+@@ -188,9 +188,9 @@
+-#elif DAWN_PLATFORM_IS(POSIX)
++#elif DAWN_PLATFORM_IS(POSIX) && !DAWN_PLATFORM_IS(SWITCH)
+     proc = reinterpret_cast<void*>(dlsym(mHandle, procName.c_str()));
+ 
+     if (proc == nullptr && error != nullptr) {
+         *error = dlerror();
+     }
+-#else
++#elif !DAWN_PLATFORM_IS(SWITCH)
+ #error "Unsupported platform for DynamicLib"
+ #endif

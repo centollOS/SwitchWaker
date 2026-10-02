@@ -1,0 +1,14 @@
+diff --git a/src/dawn/native/opengl/BackendGL.cpp b/src/dawn/native/opengl/BackendGL.cpp
+--- a/src/dawn/native/opengl/BackendGL.cpp
++++ b/src/dawn/native/opengl/BackendGL.cpp
+@@ -97,8 +97,12 @@
+         if (!display->egl->HasExt(EGLExt::FenceSync) &&
+             !display->egl->HasExt(EGLExt::ReusableSync) &&
+             !display->egl->HasExt(EGLExt::NativeFenceSync)) {
++#if defined(__SWITCH__)
++            // Diagnostic-only fallback: QueueGL uses glFinish for every submission.
++#else
+             return DAWN_INTERNAL_ERROR(
+                 "EGL_KHR_fence_sync or EGL_KHR_reusable_sync must be supported");
++#endif
+         }

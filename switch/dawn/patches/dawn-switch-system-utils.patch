@@ -1,0 +1,28 @@
+diff --git a/src/dawn/common/SystemUtils.cpp b/src/dawn/common/SystemUtils.cpp
+--- a/src/dawn/common/SystemUtils.cpp
++++ b/src/dawn/common/SystemUtils.cpp
+@@ -51,1 +51,2 @@
++#include <cstdlib>
+ #include <array>
+@@ -152,6 +154,10 @@
+ std::optional<std::string> GetExecutablePath() {
+     return {};
+ }
++#elif DAWN_PLATFORM_IS(SWITCH)
++std::optional<std::string> GetExecutablePath() {
++    return {};
++}
+ #else
+ #error "Implement GetExecutablePath for your platform."
+ #endif
+@@ -206,6 +212,10 @@
+ std::optional<std::string> GetModulePath() {
+     return {};
+ }
++#elif DAWN_PLATFORM_IS(SWITCH)
++std::optional<std::string> GetModulePath() {
++    return {};
++}
+ #else
+ #error "Implement GetModulePath for your platform."
+ #endif

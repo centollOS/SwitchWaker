@@ -1,0 +1,6 @@
+diff --git a/absl/debugging/internal/elf_mem_image.h b/absl/debugging/internal/elf_mem_image.h
+--- a/absl/debugging/internal/elf_mem_image.h
++++ b/absl/debugging/internal/elf_mem_image.h
+@@ -38 +38 @@
+-    !defined(__XTENSA__)
++    !defined(__XTENSA__) && !defined(__SWITCH__)

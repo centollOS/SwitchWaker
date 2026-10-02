@@ -1,0 +1,23 @@
+diff --git a/src/dawn/utils/SystemUtils.cpp b/src/dawn/utils/SystemUtils.cpp
+--- a/src/dawn/utils/SystemUtils.cpp
++++ b/src/dawn/utils/SystemUtils.cpp
+@@ -34,3 +34,5 @@
+-#elif DAWN_PLATFORM_IS(POSIX)
++#elif DAWN_PLATFORM_IS(POSIX) && !DAWN_PLATFORM_IS(SWITCH)
+ #include <unistd.h>
++#elif DAWN_PLATFORM_IS(SWITCH)
++#include <switch.h>
+ #else
+@@ -46,7 +48,11 @@
+-#elif DAWN_PLATFORM_IS(POSIX)
++#elif DAWN_PLATFORM_IS(POSIX) && !DAWN_PLATFORM_IS(SWITCH)
+ void USleep(unsigned int usecs) {
+     usleep(usecs);
+ }
++#elif DAWN_PLATFORM_IS(SWITCH)
++void USleep(unsigned int usecs) {
++    svcSleepThread(static_cast<s64>(usecs) * 1000);
++}
+ #else
+ #error "Implement USleep for your platform."
+ #endif

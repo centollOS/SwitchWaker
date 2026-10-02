@@ -1,0 +1,19 @@
+diff --git a/src/utils/platform.h b/src/utils/platform.h
+--- a/src/utils/platform.h
++++ b/src/utils/platform.h
+@@ -90,1 +90,5 @@
++#elif defined(__SWITCH__)
++#define DAWN_PLATFORM_IS_POSIX 1
++#define DAWN_PLATFORM_IS_SWITCH 1
++
+ #elif defined(__EMSCRIPTEN__)
+@@ -226,6 +230,9 @@
+ #if !defined(DAWN_PLATFORM_IS_FUCHSIA)
+ #define DAWN_PLATFORM_IS_FUCHSIA 0
+ #endif
++#if !defined(DAWN_PLATFORM_IS_SWITCH)
++#define DAWN_PLATFORM_IS_SWITCH 0
++#endif
+ #if !defined(DAWN_PLATFORM_IS_EMSCRIPTEN)
+ #define DAWN_PLATFORM_IS_EMSCRIPTEN 0
+ #endif

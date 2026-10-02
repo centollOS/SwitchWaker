@@ -1,0 +1,10 @@
+diff --git a/src/dawn/native/opengl/BackendGL.cpp b/src/dawn/native/opengl/BackendGL.cpp
+--- a/src/dawn/native/opengl/BackendGL.cpp
++++ b/src/dawn/native/opengl/BackendGL.cpp
+@@ -94,4 +94,3 @@
+-        if (!display->egl->HasExt(EGLExt::CreateContextRobustness)) {
+-            return DAWN_VALIDATION_ERROR("EGL_EXT_create_context_robustness is required.");
+-        }
++        // Switch diagnostic only: device creation explicitly disables Dawn buffer robustness.
++        // Do not reuse this bypass for a production or untrusted-shader build.
+         if (!display->egl->HasExt(EGLExt::FenceSync) &&

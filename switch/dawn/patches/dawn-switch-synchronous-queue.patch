@@ -1,0 +1,42 @@
+diff --git a/src/dawn/native/opengl/QueueGL.cpp b/src/dawn/native/opengl/QueueGL.cpp
+--- a/src/dawn/native/opengl/QueueGL.cpp
++++ b/src/dawn/native/opengl/QueueGL.cpp
+@@ -74,4 +74,9 @@
+         mEGLSyncType = EGL_SYNC_REUSABLE_KHR;
+     } else {
++#if defined(__SWITCH__)
++        // Diagnostic-only fallback for Mesa builds without EGL sync extensions.
++        mEGLSyncType = EGL_NONE;
++#else
+         DAWN_UNREACHABLE();
++#endif
+     }
+@@ -233,6 +238,13 @@
+     Device* device = ToBackend(GetDevice());
+     return device->EnqueueAndFlushGL(
+         SubmitMode::Passive, [&](const OpenGLFunctions& gl) -> MaybeError {
++            if (mEGLSyncType == EGL_NONE) {
++                // Drain GL work before advancing Dawn's execution serial.
++                DAWN_GL_TRY(gl, Finish());
++                IncrementLastSubmittedCommandSerial();
++                mHasPendingUnsignaledCommands = false;
++                return {};
++            }
+             Ref<WrappedEGLSync> sync;
+             DisplayEGL* display = ToBackend(device->GetPhysicalDevice())->GetDisplay();
+             DAWN_TRY_ASSIGN(sync, WrappedEGLSync::Create(display, gl, mEGLSyncType, nullptr));
+@@ -254,3 +266,7 @@
+ ResultOrError<Ref<SharedFence>> Queue::GetOrCreateSharedFence(ExecutionSerial lastUsageSerial,
+                                                               wgpu::SharedFenceType type) {
++    if (mEGLSyncType == EGL_NONE) {
++        return DAWN_UNIMPLEMENTED_ERROR(
++            "Shared EGL fences are unavailable in the Switch diagnostic fallback.");
++    }
+     Ref<WrappedEGLSync> sync;
+@@ -313,3 +329,7 @@
+ ResultOrError<ExecutionSerial> Queue::CheckAndUpdateCompletedSerials() {
++    if (mEGLSyncType == EGL_NONE) {
++        // SubmitFenceSync synchronously drained every submitted serial with glFinish.
++        return GetLastSubmittedCommandSerial();
++    }
+     // TODO(crbug.com/40643114): Revisit whether this lock is needed for this backend.

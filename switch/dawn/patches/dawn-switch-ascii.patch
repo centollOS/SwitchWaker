@@ -1,0 +1,9 @@
+diff --git a/src/tint/utils/text_generator/text_generator.cc b/src/tint/utils/text_generator/text_generator.cc
+--- a/src/tint/utils/text_generator/text_generator.cc
++++ b/src/tint/utils/text_generator/text_generator.cc
+@@ -119,1 +119,4 @@
+-    auto is_ident_char = [](char c) { return std::isalnum(c) || c == '_' || !isascii(c); };
++    auto is_ident_char = [](char c) {
++        const auto byte = static_cast<unsigned char>(c);
++        return std::isalnum(byte) || c == '_' || byte >= 0x80;
++    };

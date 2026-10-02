@@ -1,0 +1,10 @@
+diff --git a/src/dawn/native/utils/WGPUHelpers.cpp b/src/dawn/native/utils/WGPUHelpers.cpp
+--- a/src/dawn/native/utils/WGPUHelpers.cpp
++++ b/src/dawn/native/utils/WGPUHelpers.cpp
+@@ -239,1 +239,5 @@
+-    return std::string_view(in.data, DAWN_UNSAFE_TODO(strnlen(in.data, in.length)));
++    size_t length = 0;
++    while (length < in.length && in.data[length] != '\0') {
++        ++length;
++    }
++    return std::string_view(in.data, length);
