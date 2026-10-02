@@ -147,8 +147,10 @@ Which SDK headers the game compiles against is the cache variable `COS_SDK_HEADE
 `cos_sdk_header_check` compiles `check/sdk_headers.cpp`, which includes every SDK header name the
 decomp has, in either mode. In aurora mode, `cos_sdk_shadow_check` runs
 `check/check_sdk_shadow.sh`: it fails if any dependency of that unit resolves under
-`game/include/dolphin`, or if a name there is missing from the unit. The names whose
-forwarders are step 2.4 are still compiled in decomp mode only and reported as pending.
+`game/include/dolphin`, or if a name there is missing from the unit. Since step 2.4 every
+one of the 82 names has a forwarder or an Aurora header, and none is pending. game-only GF
+declarations (`GFLoadPosMtxImm`, `GFSetArray`, `GFBegin`...) live in
+`native/include/sdk/cos_gf_extras.h`, which the `GF.h` and `GFTransform.h` forwarders include.
 
 ```sh
 cmake -S native -B build/native-mac -G Ninja -DCOS_WITH_AURORA=ON -DCOS_SDK_HEADERS=aurora

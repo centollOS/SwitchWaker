@@ -185,3 +185,16 @@ Each phase lands as its own commits; this file records decisions and measured re
   `<>` under `TARGET_PC`: a quoted include there is looked up next to the header first, i.e. in
   `game/include/dolphin`, whatever the `-I` order. `cos_sdk_header_check` builds in both
   modes; `cos_sdk_shadow_check` (`check/check_sdk_shadow.sh`) passes for 55 names, 27 pending 2.4.
+- **2.4 Remaining forwarders:** the 27 game-only GX, GF, DVD, AR, AI, SI, EXI, GBA, DB and amcstubs
+  names (GD has none: all three the game GD names are Aurora's). Each includes Aurora's header and adds
+  once what Aurora lacks: `GXColor3x8/4x8` (over `GXColor3u8/4u8`), `GXSetDrawSync`, `GXCopyMode`,
+  the GX bit-field macros, `DVDDirectory`/`DVDDirectoryEntry` (= Aurora's `DVDDir`/`DVDDirEntry`;
+  field names left to 2.7), `DVDGetLength`, the SI API beyond `SIProbe`, `EXI_STATE_*`, the GBA
+  private state, AMC EXI2 and DB link functions, and SDK-internal `__DVD*`/`__GX*` prototypes. game-only
+  GF declarations go in `native/include/sdk/cos_gf_extras.h` (C++ linkage, register macros taken from
+  Aurora's GD headers). Left out on purpose: `GXFIFO` and the macros that write it (J3D moves to
+  `GXCmd1u*` in 2.7, so it fails to compile rather than write to 0xCC008000), `GXData`/`gx` and
+  the CP/PE/PI registers, `__DIRegs`/`__EXIRegs`/`__SIRegs`, and the `DVDState`/`DVDResult`/
+  `ARamType` enums whose enumerators are Aurora macros (Aurora's `DVD_RESULT_CANCELED` is -6, the
+  decomp's -3). `native/include/sdk/types.h` forwards the bare `<types.h>` Aurora's `gba.h` includes.
+  `cos_sdk_shadow_check`: 82 names checked, 0 pending.

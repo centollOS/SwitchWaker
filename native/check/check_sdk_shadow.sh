@@ -7,7 +7,7 @@
 #      dependency list, written to <build>/sdk_headers.deps),
 #   2. fails if any dependency resolves under game/include/dolphin,
 #   3. fails if a header name under game/include/dolphin is missing from sdk_headers.cpp,
-#   4. lists the names still pending (between COS_SDK_PENDING_BEGIN/END, forwarders of step 2.4).
+#   4. lists the names still pending (between COS_SDK_PENDING_BEGIN/END; none since step 2.4).
 #
 # Usage: native/check/check_sdk_shadow.sh [build-dir]     (default: build/native-mac)
 # The build directory must be configured with -DCOS_WITH_AURORA=ON -DCOS_SDK_HEADERS=aurora.
@@ -93,5 +93,5 @@ print("check_sdk_shadow: ok: %d names checked, %d pending, %d dependencies, %d f
       "native/include/sdk, none under game/include/dolphin"
       % (len(names) - len(pending), len(pending), len(deps), forwarded))
 if pending:
-    print("  pending (step 2.4): " + " ".join(pending))
+    print("  pending (no forwarder yet): " + " ".join(pending))
 PY
