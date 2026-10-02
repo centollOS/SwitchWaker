@@ -58,10 +58,18 @@ void JKRMemArchive::fixedInit(s32 param_1) {
 
 /* 802B9740-802B9810       .text mountFixed__13JKRMemArchiveFPv15JKRMemBreakFlag */
 bool JKRMemArchive::mountFixed(void* param_1, JKRMemBreakFlag param_2) {
+#if TARGET_PC
+    if (check_mount_already((intptr_t)param_1)) {
+#else
     if (check_mount_already((s32)param_1)) {
+#endif
         return false;
     }
+#if TARGET_PC
+    fixedInit((intptr_t)param_1);
+#else
     fixedInit((s32)param_1);
+#endif
     if (!open(param_1, 0xffff, param_2)) {
         return false;
     }
@@ -120,7 +128,11 @@ bool JKRMemArchive::open(s32 entryNum, JKRArchive::EMountDirection mountDirectio
         mStringTable = (char *)((u8 *)&mArcInfoBlock->num_nodes + mArcInfoBlock->string_table_offset);
 
         mArchiveData =
+#if TARGET_PC
+            (u8 *)((uintptr_t)mArcHeader + mArcHeader->header_length + mArcHeader->file_data_offset);
+#else
             (u8 *)((u32)mArcHeader + mArcHeader->header_length + mArcHeader->file_data_offset);
+#endif
         mIsOpen = true;
     }
     if (mMountMode == 0) {
@@ -138,7 +150,11 @@ bool JKRMemArchive::open(void* buffer, u32 bufferSize, JKRMemBreakFlag flag) {
     mNodes = (SDIDirEntry *)((u8 *)&mArcInfoBlock->num_nodes + mArcInfoBlock->node_offset);
     mFiles = (SDIFileEntry *)((u8 *)&mArcInfoBlock->num_nodes + mArcInfoBlock->file_entry_offset);
     mStringTable = (char *)((u8 *)&mArcInfoBlock->num_nodes + mArcInfoBlock->string_table_offset);
+#if TARGET_PC
+    mArchiveData = (u8 *)(((uintptr_t)mArcHeader + mArcHeader->header_length) + mArcHeader->file_data_offset);
+#else
     mArchiveData = (u8 *)(((u32)mArcHeader + mArcHeader->header_length) + mArcHeader->file_data_offset);
+#endif
     mIsOpen = (flag == JKRMEMBREAK_FLAG_UNKNOWN1) ? true : false; // mIsOpen might be u8
     mHeap = JKRHeap::findFromRoot(buffer);
     mCompression = COMPRESSION_NONE;

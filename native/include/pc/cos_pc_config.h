@@ -99,6 +99,17 @@ using ::sqrtf;
 using ::tanf;
 } // namespace std
 
+/* ---- MSL's C library in namespace std ------------------------------------------------------ */
+/*
+ * MSL's C headers (string.h, ctype.h, stdlib.h, stdio.h) declare their functions in std and
+ * re-export them globally, so the game calls both strrchr and std::strrchr, tolower and
+ * std::tolower. The host <string.h> etc. do not declare the std:: names; the <c...> headers do.
+ */
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 /* ---- MSL's <stdarg.h> ----------------------------------------------------------------------- */
 /*
  * MSL wraps va_list in std::__tag_va_List (same definition as MSL_Common/Include/stdarg.h);

@@ -362,8 +362,13 @@ void waitForTick(u32 p1, u16 p2) {
             if (!OSReceiveMessage(JUTVideo::getManager()->getMessageQueue(), &msg, OS_MESSAGE_BLOCK)) {
                 msg = 0;
             }
+#if TARGET_PC
+        } while (((intptr_t)msg - (int)nextCount) < 0);
+        nextCount = (intptr_t)msg + uVar1;
+#else
         } while (((int)msg - (int)nextCount) < 0);
         nextCount = (int)msg + uVar1;
+#endif
     }
 }
 

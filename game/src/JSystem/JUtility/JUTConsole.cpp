@@ -37,7 +37,11 @@ JUTConsole* JUTConsole::create(uint param_0, uint maxLines, JKRHeap* p_heap) {
 JUTConsole* JUTConsole::create(uint param_0, void* buffer, u32 bufferSize) {
     JUTConsoleManager* pManager = JUTConsoleManager::getManager();
     JUT_ASSERT(59, pManager != NULL);
+#if TARGET_PC
+    JUT_ASSERT(62, ( (uintptr_t)buffer & 0x3 ) == 0);
+#else
     JUT_ASSERT(62, ( (u32)buffer & 0x3 ) == 0);
+#endif
     u32 maxLines = getLineFromObjectSize(bufferSize, param_0);
 
     JUTConsole* newConsole = new (buffer) JUTConsole(param_0, maxLines, false);

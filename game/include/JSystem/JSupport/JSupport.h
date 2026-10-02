@@ -1,6 +1,26 @@
 #ifndef JSUPPORT_H
 #define JSUPPORT_H
 
+#if TARGET_PC
+// TODO(native phase 4): offsets in disc data are 32-bit; pointers here are 64-bit.
+template <typename T>
+T* JSUConvertOffsetToPtr(const void* ptr, u32 offset) {
+    if (offset == NULL) {
+        return NULL;
+    } else {
+        return (T*)((intptr_t)ptr + offset);
+    }
+}
+
+template <typename T>
+T* JSUConvertOffsetToPtr(const void* ptr, const void* offset) {
+    if (offset == NULL) {
+        return NULL;
+    } else {
+        return (T*)((intptr_t)ptr + (intptr_t)offset);
+    }
+}
+#else
 template <typename T>
 T* JSUConvertOffsetToPtr(const void* ptr, u32 offset) {
     if (offset == NULL) {
@@ -18,6 +38,7 @@ T* JSUConvertOffsetToPtr(const void* ptr, const void* offset) {
         return (T*)((s32)ptr + (s32)offset);
     }
 }
+#endif
 
 inline u8 JSULoNibble(u8 param_0) { return param_0 & 0x0f; }
 inline u8 JSUHiNibble(u8 param_0) {return (param_0 & 0xff) >> 4; }

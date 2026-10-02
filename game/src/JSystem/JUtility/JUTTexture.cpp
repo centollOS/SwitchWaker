@@ -26,10 +26,18 @@ void JUTTexture::storeTIMG(const ResTIMG* pTimg, u8 param_1) {
 
     if (pTimg && param_1 < 0x10) {
         mTexInfo = pTimg;
+#if TARGET_PC
+        mTexData = (void*)((intptr_t)mTexInfo + mTexInfo->imageOffset);
+#else
         mTexData = (void*)((int)mTexInfo + mTexInfo->imageOffset);
+#endif
 
         if (mTexInfo->imageOffset == 0) {
+#if TARGET_PC
+            mTexData = (void*)((intptr_t)mTexInfo + 0x20);
+#else
             mTexData = (void*)((int)mTexInfo + 0x20);
+#endif
         }
 
         if (getEmbPaletteDelFlag()) {

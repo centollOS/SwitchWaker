@@ -142,8 +142,13 @@ void* JKRExpHeap::allocFromHead(u32 size, int align) {
     CMemBlock* newUsedBlock = NULL;
 
     for (CMemBlock* block = mHeadFreeList; block; block = block->mNext) {
+#if TARGET_PC
+        u32 alignedContent = ALIGN_NEXT((uintptr_t)block->getContent(), align);
+        u32 offset = alignedContent - (uintptr_t)block->getContent();
+#else
         u32 alignedContent = ALIGN_NEXT((u32)block->getContent(), align);
         u32 offset = alignedContent - (u32)block->getContent();
+#endif
         if (block->size < size + offset) {
             continue;
         }
@@ -200,7 +205,11 @@ void* JKRExpHeap::allocFromHead(u32 size, int align) {
                 CMemBlock* prev = foundBlock->mPrev;
                 CMemBlock* next = foundBlock->mNext;
                 removeFreeBlock(foundBlock);
+#if TARGET_PC
+                newUsedBlock = (CMemBlock*)((uintptr_t)foundBlock + foundOffset);
+#else
                 newUsedBlock = (CMemBlock*)((u32)foundBlock + foundOffset);
+#endif
                 newUsedBlock->size = foundBlock->size - foundOffset;
                 newFreeBlock =
                     newUsedBlock->allocFore(size, mCurrentGroupId, (u8)foundOffset, 0, 0);
@@ -273,8 +282,13 @@ void* JKRExpHeap::allocFromTail(u32 size, int align) {
     u32 start;
 
     for (CMemBlock* block = mTailFreeList; block; block = block->mPrev) {
+#if TARGET_PC
+        start = ALIGN_PREV((uintptr_t)block->getContent() + block->size - size, align);
+        usedSize = (uintptr_t)block->getContent() + block->size - start;
+#else
         start = ALIGN_PREV((u32)block->getContent() + block->size - size, align);
         usedSize = (u32)block->getContent() + block->size - start;
+#endif
         if (block->size >= usedSize) {
             foundBlock = block;
             offset = block->size - usedSize;
@@ -407,7 +421,11 @@ s32 JKRExpHeap::do_resize(void* ptr, u32 size) {
     if (size > block->size) {
         CMemBlock* foundBlock = NULL;
         for (CMemBlock* freeBlock = mHeadFreeList; freeBlock; freeBlock = freeBlock->mNext) {
+#if TARGET_PC
+            if (freeBlock == (CMemBlock*)((uintptr_t)(block + 1) + block->size)) {
+#else
             if (freeBlock == (CMemBlock*)((u32)(block + 1) + block->size)) {
+#endif
                 foundBlock = freeBlock;
                 break;
             }
@@ -666,10 +684,19 @@ void JKRExpHeap::recycleFreeBlock(CMemBlock* block) {
 
 /* 802B27D0-802B291C       .text joinTwoBlocks__10JKRExpHeapFPQ210JKRExpHeap9CMemBlock */
 void JKRExpHeap::joinTwoBlocks(CMemBlock* block) {
+#if TARGET_PC
+    u32 curBlock = (uintptr_t)block; // Fakematch?
+    u32 endAddr = (uintptr_t)(block + 1) + block->size;
+#else
     u32 curBlock = (u32)block; // Fakematch?
     u32 endAddr = (u32)(block + 1) + block->size;
+#endif
     CMemBlock* next = block->mNext;
+#if TARGET_PC
+    u32 nextAddr = (uintptr_t)next - (next->mFlags & 0x7f);
+#else
     u32 nextAddr = (u32)next - (next->mFlags & 0x7f);
+#endif
     if (endAddr > nextAddr) {
         JUTWarningConsole_f(":::Heap may be broken. (block = %x)", block);
         OSReport(":::block = %x\n", curBlock);
@@ -731,7 +758,11 @@ bool JKRExpHeap::check() {
                                     block->mNext->mPrev);
             }
 
+#if TARGET_PC
+            if ((uintptr_t)block + block->size + sizeof(CMemBlock) > (uintptr_t)block->mNext) {
+#else
             if ((u32)block + block->size + sizeof(CMemBlock) > (u32)block->mNext) {
+#endif
                 ok = false;
                 JUTWarningConsole_f(":::addr %08x: bad block size (%08x)\n", block, block->size);
             }
@@ -947,7 +978,11 @@ JKRExpHeap::CMemBlock* JKRExpHeap::CMemBlock::allocFore(u32 size, u8 groupId1, u
     mGroupId = groupId1;
     mFlags = alignment1;
     if (getSize() >= size + sizeof(CMemBlock)) {
+#if TARGET_PC
+        block = (CMemBlock*)(size + (uintptr_t)this);
+#else
         block = (CMemBlock*)(size + (u32)this);
+#endif
         block[1].mGroupId = groupId2;
         block[1].mFlags = alignment2;
         block[1].size = this->size - (size + sizeof(CMemBlock));
@@ -961,7 +996,11 @@ JKRExpHeap::CMemBlock* JKRExpHeap::CMemBlock::allocFore(u32 size, u8 groupId1, u
 JKRExpHeap::CMemBlock* JKRExpHeap::CMemBlock::allocBack(u32 size, u8 groupId1, u8 alignment1, u8 groupId2, u8 alignment2) {
     CMemBlock* newblock = NULL;
     if (getSize() >= size + sizeof(CMemBlock)) {
+#if TARGET_PC
+        newblock = (CMemBlock*)((uintptr_t)this + getSize() - size);
+#else
         newblock = (CMemBlock*)((u32)this + getSize() - size);
+#endif
         newblock->mGroupId = groupId2;
         newblock->mFlags = alignment2 | 0x80;
         newblock->size = size;
@@ -1023,10 +1062,18 @@ void JKRExpHeap::state_register(TState* p, u32 param_1) const {
         if (param_1 <= 0xff) {
             u8 groupId = block->getGroupId();
             if (groupId == param_1) {
+#if TARGET_PC
+                checkCode += (uintptr_t)block * 3;
+#else
                 checkCode += (u32)block * 3;
+#endif
             }
         } else {
+#if TARGET_PC
+            checkCode += (uintptr_t)block * 3;
+#else
             checkCode += (u32)block * 3;
+#endif
         }
     }
     setState_u32CheckCode_(p, checkCode);

@@ -16,9 +16,14 @@ public:
     JGadget_outMessage(MessageFunc fn, const char* file, int line);
     ~JGadget_outMessage();
 
+#if !TARGET_PC
+    // s32/u32 are int/unsigned int under TARGET_PC, so these would redeclare the s32/u32 overloads.
     JGadget_outMessage& operator<<(int param_1) { return *this << (s32)param_1; }
+#endif
     JGadget_outMessage& operator<<(u16 param_1) { return *this << (u32)param_1; }
+#if !TARGET_PC
     JGadget_outMessage& operator<<(uint param_1) { return *this << (u32)param_1; }
+#endif
     JGadget_outMessage& operator<<(u8);
     JGadget_outMessage& operator<<(const char* str);
     JGadget_outMessage& operator<<(char);

@@ -22,7 +22,8 @@ set(COS_MODULES
 
 # Modules whose every unit compiles (or is deferred); their options default to ON.
 set(COS_MODULES_READY
-        SSystem)
+        SSystem
+        JSystem-core)
 
 set(COS_ACTOR_CHUNKS 6)
 

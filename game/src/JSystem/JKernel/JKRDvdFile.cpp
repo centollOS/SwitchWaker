@@ -139,7 +139,11 @@ s32 JKRDvdFile::sync() {
     OSReceiveMessage(&mMessageQueue2, &message, 1);
     mOSThread = NULL;
     OSUnlockMutex(&mMutex1);
+#if TARGET_PC
+    return (intptr_t)message;
+#else
     return (int)message;
+#endif
 }
 
 /* 802BCC78-802BCCAC       .text doneProcess__10JKRDvdFileFlP11DVDFileInfo */

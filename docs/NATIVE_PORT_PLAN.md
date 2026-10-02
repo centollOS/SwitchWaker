@@ -61,3 +61,12 @@ Each phase lands as its own commits; this file records decisions and measured re
   MSL's `std::__tag_va_List` added to the compat header; pointer-to-integer casts in
   `JKRExpHeap::CMemBlock::getBlock` and `cBgS::ConvDzb` go through `uintptr_t` under `TARGET_PC`
   (`TODO(native phase 4)`: 0x10 block header and 32-bit dzb offsets).
+- **JSystem-core:** 59/59 units (JKernel, JSupport, JUtility, JMath, JGadget, JFramework,
+  JRenderer) compile, 0 deferred; on by default. Compat header: `<cctype>`, `<cstdio>`,
+  `<cstdlib>`, `<cstring>` so MSL's `std::strrchr`/`std::tolower` resolve; MSL shim
+  `msl_memory.h` (host `<memory>`). `JGadget_outMessage`'s `int`/`uint` overloads are
+  original-target only (they redeclare the `s32`/`u32` ones when those are `int`).
+  Pointer-to-integer casts (about 100, mostly JKernel heaps and archives, `JSUConvertOffsetToPtr`,
+  `OSRoundUp32B`/`OSRoundUpPtr`/`OSRoundDownPtr`) go through `uintptr_t`/`intptr_t` under
+  `TARGET_PC`; values still stored in `u32` fields/locals are phase 4 (`TODO(native phase 4)`
+  on `TVector::size`'s `/ 4`).

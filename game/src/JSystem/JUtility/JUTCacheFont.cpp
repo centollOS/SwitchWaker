@@ -222,7 +222,11 @@ bool JUTCacheFont::allocArea(void* cacheBuffer, u32 param_1, JKRHeap* heap) {
     }
 
     if (cacheBuffer != NULL) {
+#if TARGET_PC
+        JUT_ASSERT(351, ( (uintptr_t)cacheBuffer & 0x1f ) == 0);
+#else
         JUT_ASSERT(351, ( (u32)cacheBuffer & 0x1f ) == 0);
+#endif
         mCacheBuffer = static_cast<u8*>(cacheBuffer);
         field_0xb0 = 0;
     } else {
@@ -364,7 +368,11 @@ void JUTCacheFont::getGlyphFromAram(TGlyphCacheInfo* param_0, TCachePage* pCache
     *param_3 = iVar2;
     *param_2 -= iVar2 * iVar3;
     u8* result =
+#if TARGET_PC
+        JKRAramToMainRam((uintptr_t)param_0->mPrev + pGylphCacheInfo->field_0x10 * iVar2, (u8*)(pCachePage + 1),
+#else
         JKRAramToMainRam((u32)param_0->mPrev + pGylphCacheInfo->field_0x10 * iVar2, (u8*)(pCachePage + 1),
+#endif
                          pGylphCacheInfo->field_0x10, EXPAND_SWITCH_UNKNOWN0, 0, NULL, 0xffffffff, NULL);
     JUT_ASSERT(623, result);
     GXInitTexObj(&pCachePage->mTexObj, pCachePage + 1, pGylphCacheInfo->mWidth, pGylphCacheInfo->mHeight,
@@ -437,18 +445,34 @@ void JUTCacheFont::invalidiateAllCache() {
         if (uVar2 == 0) {
             iVar1 = 0;
         } else {
+#if TARGET_PC
+            iVar1 = (intptr_t)piVar3 - field_0x94;
+#else
             iVar1 = (int)piVar3 - field_0x94;
+#endif
         }
         *piVar3 = iVar1;
         if (uVar2 == mCachePage - 1) {
             iVar1 = 0;
         } else {
+#if TARGET_PC
+            iVar1 = (intptr_t)piVar3 + field_0x94;
+#else
             iVar1 = (int)piVar3 + field_0x94;
+#endif
         }
         piVar3[1] = iVar1;
+#if TARGET_PC
+        piVar3 = (int*)((intptr_t)piVar3 + field_0x94);
+#else
         piVar3 = (int*)((int)piVar3 + field_0x94);
+#endif
     }
+#if TARGET_PC
+    field_0xa8 = (intptr_t)piVar3 - field_0x94;
+#else
     field_0xa8 = (int)piVar3 - field_0x94;
+#endif
     field_0xa4 = (TGlyphCacheInfo*)mCacheBuffer;
     field_0x9c = NULL;
     field_0xa0 = NULL;

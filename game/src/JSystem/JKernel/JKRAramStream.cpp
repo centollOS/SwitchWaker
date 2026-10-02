@@ -113,7 +113,11 @@ s32 JKRAramStream::writeToAram(JKRAramStreamCommand* command) {
                 break;
             }
 
+#if TARGET_PC
+            JKRAramPcs(0, (uintptr_t)buffer, destination, length, NULL);
+#else
             JKRAramPcs(0, (u32)buffer, destination, length, NULL);
+#endif
             dstSize -= length;
             writtenLength += length;
             destination += length;
@@ -184,7 +188,11 @@ void JKRAramStream::setTransBuffer(u8* buffer, u32 bufferSize, JKRHeap* heap) {
     transHeap = NULL;
 
     if (buffer) {
+#if TARGET_PC
+        transBuffer = (u8*)ALIGN_NEXT((uintptr_t)buffer, 0x20);
+#else
         transBuffer = (u8*)ALIGN_NEXT((u32)buffer, 0x20);
+#endif
     }
 
     if (bufferSize) {

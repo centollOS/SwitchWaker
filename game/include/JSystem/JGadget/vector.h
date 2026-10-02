@@ -196,7 +196,12 @@ struct TVector {
         if (begin() == NULL) {
             return 0;
         }
+#if TARGET_PC
+        // TODO(native phase 4): the / 4 assumes 4-byte elements (32-bit pointers).
+        return ((intptr_t)mEnd - (intptr_t)mBegin) / 4;
+#else
         return ((int)mEnd - (int)mBegin) / 4;
+#endif
     }
 
     void DestroyElement_(T* pFirst, T* pLast)

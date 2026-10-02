@@ -26,14 +26,28 @@ typedef s32 OSHeapHandle;
 
 extern volatile s32 __OSCurrHeap;
 
+#if TARGET_PC
+// Pointers are 64-bit on the host: round them through uintptr_t (as Dusklight's dolphin/os.h).
+#define OSRoundUp32B(x) (((uintptr_t)(x) + 0x1F) & ~(0x1F))
+#define OSRoundDown32B(x) (((uintptr_t)(x)) & ~(0x1F))
+#else
 #define OSRoundUp32B(x) (((u32)(x) + 0x1F) & ~(0x1F))
 #define OSRoundDown32B(x) (((u32)(x)) & ~(0x1F))
+#endif
 
 #define OSRoundUp(x, align) (((x) + (align)-1) & (-(align)))
+#if TARGET_PC
+#define OSRoundUpPtr(x, align) ((void*)((((uintptr_t)(x)) + (align)-1) & (~((align)-1))))
+#else
 #define OSRoundUpPtr(x, align) ((void*)((((u32)(x)) + (align)-1) & (~((align)-1))))
+#endif
 
 #define OSRoundDown(x, align) ((x) & (-(align)))
+#if TARGET_PC
+#define OSRoundDownPtr(x, align) ((void*)(((uintptr_t)(x)) & (~((align)-1))))
+#else
 #define OSRoundDownPtr(x, align) ((void*)(((u32)(x)) & (~((align)-1))))
+#endif
 
 static OSHeapCell* DLInsert(OSHeapCell* list, OSHeapCell* child);
 void* OSAllocFromHeap(OSHeapHandle handle, u32 size);

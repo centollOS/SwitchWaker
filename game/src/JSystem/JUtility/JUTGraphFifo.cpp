@@ -22,7 +22,11 @@ JUTGraphFifo::JUTGraphFifo(u32 size) {
         GXInitFifoPtrs(mFifo, mBase, mBase);
     } else {
         mBase = JKRAllocFromSysHeap(0xA0 + mSize, 0x20); // TODO: What struct is 0xA0 bytes in size?
+#if TARGET_PC
+        mBase = (void*)((intptr_t)mBase + 0x1F & ~0x1F);
+#else
         mBase = (void*)((int)mBase + 0x1F & ~0x1F);
+#endif
         mFifo = GXInit(mBase, mSize);
         sInitiated = true;
         sCurrentFifo = this;
