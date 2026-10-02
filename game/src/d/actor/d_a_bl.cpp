@@ -884,7 +884,13 @@ void action_dousa(bl_class* i_this) {
     switch (i_this->m306) {
     case 0:
         i_this->m304 = 0;
+#if TARGET_PC
+        // A case label below jumps past this declaration; clang rejects jumping past an initializer.
+        f32 limit0;
+        limit0 = 1000.0f;
+#else
         f32 limit0 = 1000.0f;
+#endif
         if (fopAcM_searchActorDistance(actor, dComIfGp_getPlayer(0)) > limit0) {
             break;
         }
@@ -1608,7 +1614,13 @@ void action_normal_skull(bl_class* i_this) {
         }
         i_this->mSph.OnCoSetBit();
         actor->gravity = -3.0f;
+#if TARGET_PC
+        // A case label below jumps past this declaration; clang rejects jumping past an initializer.
+        f32 speedF;
+        speedF = actor->speedF;
+#else
         f32 speedF = actor->speedF;
+#endif
         if (speedF > 0.0f) {
             actor->speed.y = 25.0f;
             actor->speedF = 35.0f;
@@ -1877,7 +1889,12 @@ static BOOL useHeapInit(fopAc_ac_c* i_this) {
         return FALSE;
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    a_this->mpMorf->getModel()->setUserArea((uintptr_t)a_this);
+#else
     a_this->mpMorf->getModel()->setUserArea((u32)a_this);
+#endif
     return a_this->mInvisModel.create(a_this->mpMorf->getModel()) != 0 ? TRUE : FALSE;
 }
 

@@ -25,7 +25,12 @@ public:
     void proc();
     bool _draw();
     u32 getMsg();
+#if TARGET_PC
+    // u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+    u16 next_msgStatus(u32*);
+#else
     u16 next_msgStatus(unsigned long*);
+#endif
 
     static void init() {
         mNowDaizaNum = 0;

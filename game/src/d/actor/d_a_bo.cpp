@@ -805,7 +805,13 @@ void bo_move(bo_class* i_this) {
 
     switch (i_this->m2C5) {
     case 0:
+#if TARGET_PC
+        // A case label below jumps past this declaration; clang rejects jumping past an initializer.
+        f32 dist;
+        dist = 600.0f;
+#else
         f32 dist = 600.0f;
+#endif
         if (fopAcM_searchActorDistance(actor, player) < dist) {
             i_this->mBodyCyl.OnTgSetBit();
             i_this->mHeadSph.OnTgSetBit();
@@ -873,7 +879,13 @@ void bo_move(bo_class* i_this) {
         } else {
             i_this->m3D0->setGlobalRTMatrix(i_this->mpMorfUP->getModel()->getAnmMtx(BO_UE1_JNT_J_BOKOBABA_AGO_e));
         }
+#if TARGET_PC
+        // A case label below jumps past this declaration; clang rejects jumping past an initializer.
+        f32 atEndFrame;
+        atEndFrame = 39.0f;
+#else
         f32 atEndFrame = 39.0f;
+#endif
         if (i_this->mpMorfUP->getFrame() > atEndFrame) {
             i_this->mHeadSph.SetAtSpl(dCcG_At_Spl_UNK0);
             i_this->mHeadSph.OffAtSetBit();
@@ -1011,7 +1023,13 @@ void bo_move(bo_class* i_this) {
         if (i_this->m340.y == 0 && i_this->m340.z == 0) {
             i_this->m376++;
         }
+#if TARGET_PC
+        // A case label below jumps past this declaration; clang rejects jumping past an initializer.
+        s16 lim;
+        lim = 0x1E;
+#else
         s16 lim = 0x1E;
+#endif
         if (i_this->m376 > lim) {
             wait_initial(i_this);
             i_this->m376 = 0;
@@ -1168,7 +1186,13 @@ void bo2_move(bo_class* i_this) {
             i_this->m368 = 0x1E;
         }
         i_this->m376++;
+#if TARGET_PC
+        // A case label below jumps past this declaration; clang rejects jumping past an initializer.
+        s16 lim;
+        lim = 0x78;
+#else
         s16 lim = 0x78;
+#endif
         if (i_this->m376 > lim) {
             i_this->m376 = 0;
             anm_init(i_this, dRes_INDEX_BO_BCK_HAKIDASU1_e, 5.0f, J3DFrameCtrl::EMode_NONE, 1.0f, -1, 0);
@@ -1672,7 +1696,12 @@ static BOOL useHeapInit(fopAc_ac_c* i_this) {
         return FALSE;
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    a_this->mpMorfUP->getModel()->setUserArea((uintptr_t)a_this);
+#else
     a_this->mpMorfUP->getModel()->setUserArea((u32)a_this);
+#endif
     for (u16 i = 0; i < a_this->mpMorfUP->getModel()->getModelData()->getJointNum(); i++) {
         a_this->mpMorfUP->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_UP);
     }
@@ -1704,7 +1733,12 @@ static BOOL useHeapInit(fopAc_ac_c* i_this) {
             return FALSE;
         }
 
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        a_this->mpMorfDW->getModel()->setUserArea((uintptr_t)a_this);
+#else
         a_this->mpMorfDW->getModel()->setUserArea((u32)a_this);
+#endif
         for (u16 i = 0; i < a_this->mpMorfDW->getModel()->getModelData()->getJointNum(); i++) {
             a_this->mpMorfDW->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_DW);
         }

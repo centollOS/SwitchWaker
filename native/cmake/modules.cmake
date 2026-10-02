@@ -29,7 +29,8 @@ set(COS_MODULES_READY
         JSystem-studio
         framework
         m_Do
-        d-core)
+        d-core
+        actors-1)
 
 set(COS_ACTOR_CHUNKS 6)
 

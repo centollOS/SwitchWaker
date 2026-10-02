@@ -124,7 +124,12 @@ BOOL daDaiocta_Eye_c::_createHeap() {
         return FALSE;
     }
     
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpModel->setUserArea((uintptr_t)this);
+#else
     mpModel->setUserArea((u32)this);
+#endif
 
     mpBrk = static_cast<J3DAnmTevRegKey *>(dComIfG_getObjectRes(m_arc_name, dRes_INDEX_DAIOCTA_BRK_DAMAGE_EYE_A1_e));
 

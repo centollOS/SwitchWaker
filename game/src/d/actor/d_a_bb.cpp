@@ -2720,7 +2720,12 @@ static cPhs_State daBb_Create(fopAc_ac_c* a_this) {
             }
         }
 
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        model->setUserArea(reinterpret_cast<uintptr_t>(i_this));
+#else
         model->setUserArea(reinterpret_cast<u32>(i_this));
+#endif
 
         if (i_this->unk_2DA != 0xFF) {
             i_this->ppd = dPath_GetRoomPath(i_this->unk_2DA, fopAcM_GetRoomNo(a_this));

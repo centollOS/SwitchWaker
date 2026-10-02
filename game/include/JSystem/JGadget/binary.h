@@ -151,7 +151,13 @@ struct TValueIterator_raw : public TValueIterator<TParseValue_raw<T>, sizeof(T)>
     }
 
     friend bool operator!=(TValueIterator<TParseValue_raw<T>, sizeof(T)> a, TValueIterator<TParseValue_raw<T>, sizeof(T)> b) {
+#if TARGET_PC
+        // The operator== above is a hidden friend of the derived iterator, which ADL on these
+        // base-class arguments cannot find (MWCC found it); compare the positions directly.
+        return !(a.mBegin == b.mBegin);
+#else
         return !operator==(a, b);
+#endif
     }
 
     friend TValueIterator<TParseValue_raw<T>, sizeof(T)> operator+(TValueIterator<TParseValue_raw<T>, sizeof(T)> a, s32 b) {
@@ -181,7 +187,13 @@ struct TValueIterator_misaligned : public TValueIterator<TParseValue_misaligned<
     }
 
     friend bool operator!=(TValueIterator<TParseValue_misaligned<T>, sizeof(T)> a, TValueIterator<TParseValue_misaligned<T>, sizeof(T)> b) {
+#if TARGET_PC
+        // The operator== above is a hidden friend of the derived iterator, which ADL on these
+        // base-class arguments cannot find (MWCC found it); compare the positions directly.
+        return !(a.mBegin == b.mBegin);
+#else
         return !operator==(a, b);
+#endif
     }
 
     friend TValueIterator<TParseValue_misaligned<T>, sizeof(T)> operator+(TValueIterator<TParseValue_misaligned<T>, sizeof(T)> a, s32 b) {

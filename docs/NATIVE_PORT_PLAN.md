@@ -113,3 +113,10 @@ Each phase lands as its own commits; this file records decisions and measured re
   `clock[3]` is renamed by macro to `dMeter_clock` under `TARGET_PC` (host `::clock()`). Offset
   relocations in `d_stage`, `d_s_menu`, `d_s_actor_data_mng`, `d_resorce` and the recollection
   buffers in `d_com_inf_game` go through `uintptr_t` under `TARGET_PC` (`TODO(native phase 4)`).
+- **actors-1:** 74/74 units (`d_a_acorn_leaf` .. `d_a_fan`) compile, 0 deferred; on by default.
+  `J3DModel::setUserArea((u32)this)` passes the pointer as `(uintptr_t)` under `TARGET_PC`
+  (`TODO(native phase 4)`: `mUserArea` is still a u32). Locals initialised inside a `switch` and
+  bypassed by a later `case` (`d_a_bo`, `d_a_bl`) are declared then assigned under `TARGET_PC`.
+  `next_msgStatus(unsigned long*)` (`d_a_dai.h`, `d_a_bigelf`) takes `u32*` under `TARGET_PC`.
+  `JGadget::binary` iterators' `operator!=` compares `mBegin` directly under `TARGET_PC`: the
+  hidden-friend `operator==` is not found by ADL on the base-class arguments.

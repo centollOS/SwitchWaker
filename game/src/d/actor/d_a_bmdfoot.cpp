@@ -707,7 +707,12 @@ static int useHeapInit(bmdfoot_class* i_this) {
     }
 #endif
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    model->setUserArea((uintptr_t)i_this);
+#else
     model->setUserArea((u32)i_this);
+#endif
     for (u16 i = 0; i < model->getModelData()->getJointNum(); i++) {
         model->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack);
     }

@@ -736,7 +736,12 @@ void daBigelf_c::setAnmStatus() {
 }
 
 /* 00002030-000021A4       .text next_msgStatus__10daBigelf_cFPUl */
+#if TARGET_PC
+// u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+u16 daBigelf_c::next_msgStatus(u32* pMsgNo) {
+#else
 u16 daBigelf_c::next_msgStatus(unsigned long* pMsgNo) {
+#endif
     u16 status = fopMsgStts_MSG_CONTINUES_e;
     switch (*pMsgNo) {
     case 0x2EE8:
@@ -1208,7 +1213,12 @@ BOOL daBigelf_c::CreateHeap() {
             mpMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Bigelf);
         }
     }
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpMorf->getModel()->setUserArea((u32)this);
+#endif
 
     J3DModelData* flModelData = (J3DModelData*)dComIfG_getObjectRes("bigelf", dRes_INDEX_BIGELF_BDL_DY_FL_e);
     JUT_ASSERT(DEMO_SELECT(0x831, 0x842), flModelData);
