@@ -1,0 +1,1802 @@
+#ifndef D_A_PLAYER_HIO_H
+#define D_A_PLAYER_HIO_H
+
+#include "dolphin/types.h"
+
+class daPy_HIO_basic_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+};  // Size: 0x20
+
+class daPy_HIO_basic_c0 {
+public:
+    static daPy_HIO_basic_c1 const m;
+};
+
+class daPy_HIO_move_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ s16 field_0xC;
+    /* 0x0E */ s16 field_0xE;
+    /* 0x10 */ s16 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54;
+    /* 0x58 */ f32 field_0x58;
+    /* 0x5C */ f32 field_0x5C;
+    /* 0x60 */ f32 field_0x60;
+    /* 0x64 */ f32 field_0x64;
+    /* 0x68 */ f32 field_0x68;
+    /* 0x6C */ f32 field_0x6C;
+    /* 0x70 */ f32 field_0x70;
+    /* 0x74 */ f32 field_0x74;
+    /* 0x78 */ f32 field_0x78;
+    /* 0x7C */ f32 field_0x7C;
+    /* 0x80 */ f32 field_0x80;
+    /* 0x84 */ f32 field_0x84;
+};  // Size: 0x88
+
+class daPy_HIO_move_c0 {
+public:
+    static daPy_HIO_move_c1 const m;
+};
+
+class daPy_HIO_atnMove_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+};  // Size: 0x30
+
+class daPy_HIO_atnMove_c0 {
+public:
+    static daPy_HIO_atnMove_c1 const m;
+};
+
+class daPy_HIO_atnMoveB_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+};  // Size: 0x34
+
+class daPy_HIO_atnMoveB_c0 {
+public:
+    static daPy_HIO_atnMoveB_c1 const m;
+};
+
+class daPy_HIO_turn_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6; // 0x4
+    /* 0x08 */ s16 field_0x8; // 0x1000
+    /* 0x0A */ s16 field_0xA; // 0x200
+    /* 0x0C */ s16 field_0xC;
+    /* 0x0E */ s16 field_0xE;
+    /* 0x10 */ s16 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+};  // Size: 0x40
+
+class daPy_HIO_turn_c0 {
+public:
+    static daPy_HIO_turn_c1 const m;
+};
+
+class daPy_HIO_cutA_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+};  // Size: 0x34
+
+class daPy_HIO_cutA_c0 {
+public:
+    static daPy_HIO_cutA_c1 const m;
+};
+
+class daPy_HIO_cutF_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+};  // Size: 0x34
+
+class daPy_HIO_cutF_c0 {
+public:
+    static daPy_HIO_cutF_c1 const m;
+};
+
+class daPy_HIO_cutR_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+};  // Size: 0x34
+
+class daPy_HIO_cutR_c0 {
+public:
+    static daPy_HIO_cutR_c1 const m;
+};
+
+class daPy_HIO_cutL_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+};  // Size: 0x34
+
+class daPy_HIO_cutL_c0 {
+public:
+    static daPy_HIO_cutL_c1 const m;
+};
+
+class daPy_HIO_cutEA_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+};  // Size: 0x30
+
+class daPy_HIO_cutEA_c0 {
+public:
+    static daPy_HIO_cutEA_c1 const m;
+};
+
+class daPy_HIO_cutEB_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+};  // Size: 0x30
+
+class daPy_HIO_cutEB_c0 {
+public:
+    static daPy_HIO_cutEB_c1 const m;
+};
+
+class daPy_HIO_cutExA_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+};  // Size: 0x20
+
+class daPy_HIO_cutExA_c0 {
+public:
+    static daPy_HIO_cutExA_c1 const m;
+};
+
+class daPy_HIO_cutExB_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+};  // Size: 0x18
+
+class daPy_HIO_cutExB_c0 {
+public:
+    static daPy_HIO_cutExB_c1 const m;
+};
+
+class daPy_HIO_cutExMJ_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+};  // Size: 0x28
+
+class daPy_HIO_cutExMJ_c0 {
+public:
+    static daPy_HIO_cutExMJ_c1 const m;
+};
+
+class daPy_HIO_cutKesa_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+};  // Size: 0x1C
+
+class daPy_HIO_cutKesa_c0 {
+public:
+    static daPy_HIO_cutKesa_c1 const m;
+};
+
+class daPy_HIO_cutTurn_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54;
+    /* 0x58 */ f32 field_0x58;
+    /* 0x5C */ f32 field_0x5C;
+    /* 0x60 */ f32 field_0x60;
+    /* 0x64 */ f32 field_0x64;
+    /* 0x68 */ f32 field_0x68;
+    /* 0x6C */ f32 field_0x6C;
+    /* 0x70 */ f32 field_0x70;
+    /* 0x74 */ f32 field_0x74;
+};  // Size: 0x78
+
+class daPy_HIO_cutTurn_c0 {
+public:
+    static daPy_HIO_cutTurn_c1 const m;
+};
+
+class daPy_HIO_cutTurnR_c1 {
+public:
+    /* 0x00 */ u8 field_0x0;
+    /* 0x01 */ u8 field_0x1;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+};  // Size: 0x2C
+
+class daPy_HIO_cutTurnR_c0 {
+public:
+    static daPy_HIO_cutTurnR_c1 const m;
+};
+
+class daPy_HIO_cutRoll_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+};  // Size: 0x28
+
+class daPy_HIO_cutRoll_c0 {
+public:
+    static daPy_HIO_cutRoll_c1 const m;
+};
+
+class daPy_HIO_cutJump_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+};  // Size: 0x50
+
+class daPy_HIO_cutJump_c0 {
+public:
+    static daPy_HIO_cutJump_c1 const m;
+};
+
+class daPy_HIO_cutBoko_c1 {
+public:
+    /* 0x00 */ f32 field_0x0;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ s16 field_0xC;
+    /* 0x0E */ s16 field_0xE;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54;
+    /* 0x58 */ f32 field_0x58;
+    /* 0x5C */ f32 field_0x5C;
+    /* 0x60 */ f32 field_0x60;
+    /* 0x64 */ f32 field_0x64;
+    /* 0x68 */ f32 field_0x68;
+    /* 0x6C */ f32 field_0x6C;
+    /* 0x70 */ f32 field_0x70;
+    /* 0x74 */ f32 field_0x74;
+    /* 0x78 */ f32 field_0x78;
+    /* 0x7C */ f32 field_0x7C;
+    /* 0x80 */ f32 field_0x80;
+};  // Size: 0x84
+
+class daPy_HIO_cutBoko_c0 {
+public:
+    static daPy_HIO_cutBoko_c1 const m;
+};
+
+class daPy_HIO_cut_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54;
+    /* 0x58 */ f32 field_0x58;
+    /* 0x5C */ f32 field_0x5C;
+    /* 0x60 */ f32 field_0x60;
+    /* 0x64 */ f32 field_0x64;
+    /* 0x68 */ f32 field_0x68;
+};  // Size: 0x6C
+
+class daPy_HIO_cut_c0 {
+public:
+    static daPy_HIO_cutA_c0 const mCutA;
+    static daPy_HIO_cutF_c0 const mCutF;
+    static daPy_HIO_cutR_c0 const mCutR;
+    static daPy_HIO_cutL_c0 const mCutL;
+    static daPy_HIO_cutEA_c0 const mCutEA;
+    static daPy_HIO_cutEB_c0 const mCutEB;
+    static daPy_HIO_cutExA_c0 const mCutExA;
+    static daPy_HIO_cutExB_c0 const mCutExB;
+    static daPy_HIO_cutExMJ_c0 const mCutExMJ;
+    static daPy_HIO_cutKesa_c0 const mCutKesa;
+    static daPy_HIO_cutTurn_c0 const mCutTurn;
+    static daPy_HIO_cutTurnR_c0 const mCutTurnR;
+    static daPy_HIO_cutRoll_c0 const mCutRoll;
+    static daPy_HIO_cutJump_c0 const mCutJump;
+    static daPy_HIO_cutBoko_c0 const mCutBoko;
+    static daPy_HIO_cut_c1 const m;
+};
+
+class daPy_HIO_roll_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+};  // Size: 0x48
+
+class daPy_HIO_roll_c0 {
+public:
+    static daPy_HIO_roll_c1 const m;
+};
+
+class daPy_HIO_backJump_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+};  // Size: 0x34
+
+class daPy_HIO_backJump_c0 {
+public:
+    static daPy_HIO_backJump_c1 const m;
+};
+
+class daPy_HIO_slip_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+};  // Size: 0x24
+
+class daPy_HIO_slip_c0 {
+public:
+    static daPy_HIO_slip_c1 const m;
+};
+
+class daPy_HIO_slide_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+};  // Size: 0x4C
+
+class daPy_HIO_slide_c0 {
+public:
+    static daPy_HIO_slide_c1 const m;
+};
+
+class daPy_HIO_autoJump_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+};  // Size: 0x44
+
+class daPy_HIO_autoJump_c0 {
+public:
+    static daPy_HIO_autoJump_c1 const m;
+};
+
+class daPy_HIO_fall_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ s16 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+};  // Size: 0x54
+
+class daPy_HIO_fall_c0 {
+public:
+    static daPy_HIO_fall_c1 const m;
+};
+
+class daPy_HIO_swim_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;  // 0x18
+    /* 0x02 */ s16 field_0x2;  // 0x91A
+    /* 0x04 */ s16 field_0x4;  // 0x1388
+    /* 0x06 */ s16 field_0x6;  // 0x4B0
+    /* 0x08 */ s16 field_0x8;  // 0x11
+    /* 0x0C */ f32 field_0xC;  // 18.0f
+    /* 0x10 */ f32 field_0x10; // 1.0f
+    /* 0x14 */ f32 field_0x14; // -50.0f
+    /* 0x18 */ f32 field_0x18; // 0.02f
+    /* 0x1C */ f32 field_0x1C; // 2.0f
+    /* 0x20 */ f32 field_0x20; // 0.5f
+    /* 0x24 */ f32 field_0x24; // 90.0f
+    /* 0x28 */ f32 field_0x28; // 15.0f
+    /* 0x2C */ f32 field_0x2C; // 0.7f
+    /* 0x30 */ f32 field_0x30; // 0.0f
+    /* 0x34 */ f32 field_0x34; // 19.0f
+    /* 0x38 */ f32 field_0x38; // 3.0f
+    /* 0x3C */ f32 field_0x3C; // 0.0f
+    /* 0x40 */ f32 field_0x40; // 0.5f
+    /* 0x44 */ f32 field_0x44; // 18.0f
+    /* 0x48 */ f32 field_0x48; // 1.0f
+    /* 0x4C */ f32 field_0x4C; // 5.0f
+    /* 0x50 */ f32 field_0x50; // 0.6f
+    /* 0x54 */ f32 field_0x54; // 1.1f
+    /* 0x58 */ f32 field_0x58; // 5.3f
+    /* 0x5C */ f32 field_0x5C; // 0.0f
+    /* 0x60 */ f32 field_0x60; // 0.4f
+    /* 0x64 */ f32 field_0x64; // 6.0f
+    /* 0x68 */ f32 field_0x68; // 9.5f
+    /* 0x6C */ f32 field_0x6C;
+    /* 0x70 */ f32 field_0x70; // 2.5f
+    /* 0x74 */ f32 field_0x74; // 1.0f
+    /* 0x78 */ f32 field_0x78; // 30.0f
+    /* 0x7C */ f32 field_0x7C;
+};  // Size: 0x80
+
+class daPy_HIO_swim_c0 {
+public:
+    static daPy_HIO_swim_c1 const m;
+};
+
+class daPy_HIO_b_jump_c1 {
+public:
+    /* 0x00 */ u8 field_0x0;
+    /* 0x01 */ u8 field_0x1;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+};  // Size: 0x4C
+
+class daPy_HIO_b_jump_c0 {
+public:
+    static daPy_HIO_b_jump_c1 const m;
+};
+
+class daPy_HIO_b_roll_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+};  // Size: 0x3C
+
+class daPy_HIO_b_roll_c0 {
+public:
+    static daPy_HIO_b_roll_c1 const m;
+};
+
+class daPy_HIO_b_slide_c1 {
+public:
+    /* 0x00 */ f32 field_0x0;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+};  // Size: 0x10
+
+class daPy_HIO_b_slide_c0 {
+public:
+    static daPy_HIO_b_slide_c1 const m;
+};
+
+class daPy_HIO_b_verJump_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+};  // Size: 0x44
+
+class daPy_HIO_b_verJump_c0 {
+public:
+    static daPy_HIO_b_verJump_c1 const m;
+};
+
+class daPy_HIO_battle_c1 {
+public:
+    /* 0x00 */ f32 field_0x0;
+    /* 0x04 */ f32 field_0x4;
+};
+
+class daPy_HIO_battle_c0 {
+public:
+    static daPy_HIO_b_jump_c0 const mBJump;
+    static daPy_HIO_b_roll_c0 const mBRoll;
+    static daPy_HIO_b_slide_c0 const mBSlide;
+    static daPy_HIO_b_verJump_c0 const mBVerJump;
+    static daPy_HIO_battle_c1 const m;
+};
+
+class daPy_HIO_wall_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54;
+    /* 0x58 */ f32 field_0x58;
+    /* 0x5C */ f32 field_0x5C;
+    /* 0x60 */ f32 field_0x60;
+    /* 0x64 */ f32 field_0x64;
+};  // Size: 0x68
+
+class daPy_HIO_wall_c0 {
+public:
+    static daPy_HIO_wall_c1 const m;
+};
+
+class daPy_HIO_smallJump_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+};  // Size: 0x1C
+
+class daPy_HIO_smallJump_c0 {
+public:
+    static daPy_HIO_smallJump_c1 const m;
+};
+
+class daPy_HIO_wallCatch_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54; // 6.0f
+};  // Size: 0x58
+
+class daPy_HIO_wallCatch_c0 {
+public:
+    static daPy_HIO_wallCatch_c1 const m;
+};
+
+class daPy_HIO_hang_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+};  // Size: 0x34
+
+class daPy_HIO_hang_c0 {
+public:
+    static daPy_HIO_hang_c1 const m;
+};
+
+class daPy_HIO_guard_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+};  // Size: 0x28
+
+class daPy_HIO_guard_c0 {
+public:
+    static daPy_HIO_guard_c1 const m;
+};
+
+class daPy_HIO_nockback_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+};  // Size: 0x3C
+
+class daPy_HIO_nockback_c0 {
+public:
+    static daPy_HIO_nockback_c1 const m;
+};
+
+class daPy_HIO_iceSlip_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ s16 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54;
+    /* 0x58 */ f32 field_0x58;
+    /* 0x5C */ f32 field_0x5C;
+    /* 0x60 */ f32 field_0x60;
+    /* 0x64 */ f32 field_0x64;
+    /* 0x68 */ f32 field_0x68;
+    /* 0x6C */ f32 field_0x6C;
+    /* 0x70 */ f32 field_0x70;
+};  // Size: 0x74
+
+class daPy_HIO_iceSlip_c0 {
+public:
+    static daPy_HIO_iceSlip_c1 const m;
+};
+
+class daPy_HIO_damage_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+};  // Size: 0x3C
+
+class daPy_HIO_damage_c0 {
+public:
+    static daPy_HIO_damage_c1 const m;
+};
+
+class daPy_HIO_laDamage_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ s16 field_0xC;
+    /* 0x0E */ s16 field_0xE;
+    /* 0x10 */ s16 field_0x10;
+    /* 0x12 */ s16 field_0x12;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54;
+    /* 0x58 */ f32 field_0x58;
+    /* 0x5C */ f32 field_0x5C;
+    /* 0x60 */ f32 field_0x60;
+    /* 0x64 */ f32 field_0x64;
+    /* 0x68 */ f32 field_0x68;
+    /* 0x6C */ f32 field_0x6C;
+    /* 0x70 */ f32 field_0x70;
+    /* 0x74 */ f32 field_0x74;
+    /* 0x78 */ f32 field_0x78;
+    /* 0x7C */ f32 field_0x7C;
+    /* 0x80 */ f32 field_0x80;
+    /* 0x84 */ f32 field_0x84;
+    /* 0x88 */ f32 field_0x88;
+    /* 0x8C */ f32 field_0x8C;
+    /* 0x90 */ f32 field_0x90;
+    /* 0x94 */ f32 field_0x94;
+};  // Size: 0x98
+
+class daPy_HIO_laDamage_c0 {
+public:
+    static daPy_HIO_laDamage_c1 const m;
+};
+
+class daPy_HIO_huDamage_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ s16 field_0xC;
+    /* 0x0E */ s16 field_0xE;
+    /* 0x10 */ s16 field_0x10;
+    /* 0x12 */ s16 field_0x12;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54;
+    /* 0x58 */ f32 field_0x58;
+    /* 0x5C */ f32 field_0x5C;
+    /* 0x60 */ f32 field_0x60;
+    /* 0x64 */ f32 field_0x64;
+    /* 0x68 */ f32 field_0x68;
+    /* 0x6C */ f32 field_0x6C;
+    /* 0x70 */ f32 field_0x70;
+    /* 0x74 */ f32 field_0x74;
+    /* 0x78 */ f32 field_0x78;
+    /* 0x7C */ f32 field_0x7C;
+    /* 0x80 */ f32 field_0x80;
+    /* 0x84 */ f32 field_0x84;
+    /* 0x88 */ f32 field_0x88;
+    /* 0x8C */ f32 field_0x8C;
+    /* 0x90 */ f32 field_0x90;
+    /* 0x94 */ f32 field_0x94;
+};  // Size: 0x98
+
+class daPy_HIO_huDamage_c0 {
+public:
+    static daPy_HIO_huDamage_c1 const m;
+};
+
+class daPy_HIO_elecDamage_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+};  // Size: 0xC
+
+class daPy_HIO_elecDamage_c0 {
+public:
+    static daPy_HIO_elecDamage_c1 const m;
+};
+
+class daPy_HIO_dam_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+};
+
+class daPy_HIO_dam_c0 {
+public:
+    static daPy_HIO_damage_c0 const mDamage;
+    static daPy_HIO_laDamage_c0 const mLaDamage;
+    static daPy_HIO_huDamage_c0 const mHuDamage;
+    static daPy_HIO_elecDamage_c0 const mElecDamage;
+    static daPy_HIO_dam_c1 const m;
+};
+
+class daPy_HIO_slowJump_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+};  // Size: 0x3C
+
+class daPy_HIO_slowJump_c0 {
+public:
+    static daPy_HIO_slowJump_c1 const m;
+};
+
+class daPy_HIO_sideStep_c1 {
+public:
+    /* 0x00 */ u8 field_0x0;
+    /* 0x01 */ u8 field_0x1;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+};  // Size: 0x34
+
+class daPy_HIO_sideStep_c0 {
+public:
+    static daPy_HIO_sideStep_c1 const m;
+};
+
+class daPy_HIO_grab_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ s16 field_0xC;
+    /* 0x0E */ s16 field_0xE;
+    /* 0x10 */ s16 field_0x10;
+    /* 0x12 */ s16 field_0x12;
+    /* 0x14 */ s16 field_0x14;
+    /* 0x16 */ s16 field_0x16;
+    /* 0x18 */ s16 field_0x18;
+    /* 0x1A */ s16 field_0x1A;
+    /* 0x1C */ s16 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54;
+    /* 0x58 */ f32 field_0x58;
+    /* 0x5C */ f32 field_0x5C;
+    /* 0x60 */ f32 field_0x60;
+    /* 0x64 */ f32 field_0x64;
+    /* 0x68 */ f32 field_0x68;
+    /* 0x6C */ f32 field_0x6C;
+    /* 0x70 */ f32 field_0x70;
+    /* 0x74 */ f32 field_0x74;
+    /* 0x78 */ f32 field_0x78;
+    /* 0x7C */ f32 field_0x7C;
+    /* 0x80 */ f32 field_0x80;
+    /* 0x84 */ f32 field_0x84;
+    /* 0x88 */ f32 field_0x88;
+    /* 0x8C */ f32 field_0x8C;
+    /* 0x90 */ f32 field_0x90;
+    /* 0x94 */ f32 field_0x94;
+    /* 0x98 */ f32 field_0x98;
+    /* 0x9C */ f32 field_0x9C;
+    /* 0xA0 */ f32 field_0xA0;
+    /* 0xA4 */ f32 field_0xA4;
+    /* 0xA8 */ f32 field_0xA8;
+};  // Size: 0xAC
+
+class daPy_HIO_grab_c0 {
+public:
+    static daPy_HIO_grab_c1 const m;
+};
+
+class daPy_HIO_ladder_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+};  // Size: 0x44
+
+class daPy_HIO_ladder_c0 {
+public:
+    static daPy_HIO_ladder_c1 const m;
+};
+
+class daPy_HIO_crouch_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ s16 field_0xC;
+    /* 0x0E */ s16 field_0xE;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+};  // Size: 0x50
+
+class daPy_HIO_crouch_c0 {
+public:
+    static daPy_HIO_crouch_c1 const m;
+};
+
+class daPy_HIO_pushpull_c1 {
+public:
+    /* 0x00 */ f32 field_0x0;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+};  // Size: 0x18
+
+class daPy_HIO_pushpull_c0 {
+public:
+    static daPy_HIO_pushpull_c1 const m;
+};
+
+class daPy_HIO_rope_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54;
+    /* 0x58 */ f32 field_0x58;
+    /* 0x5C */ f32 field_0x5C;
+    /* 0x60 */ f32 field_0x60;
+    /* 0x64 */ f32 field_0x64;
+};  // Size: 0x68
+
+class daPy_HIO_rope_c0 {
+public:
+    static daPy_HIO_rope_c1 const m;
+};
+
+class daPy_HIO_boom_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+};  // Size: 0x30
+
+class daPy_HIO_boom_c0 {
+public:
+    static daPy_HIO_boom_c1 const m;
+};
+
+class daPy_HIO_fan_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54;
+    /* 0x58 */ f32 field_0x58;
+};  // Size: 0x5C
+
+class daPy_HIO_fan_c0 {
+public:
+    static daPy_HIO_fan_c1 const m;
+};
+
+class daPy_HIO_tact_c1 {
+public:
+    /* 0x00 */ f32 mAnmRate;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 mRightArmAnmRate;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+};  // Size: 0x1C
+
+class daPy_HIO_tact_c0 {
+public:
+    static daPy_HIO_tact_c1 const m;
+};
+
+class daPy_HIO_ham_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+};  // Size: 0x44
+
+class daPy_HIO_ham_c0 {
+public:
+    static daPy_HIO_ham_c1 const m;
+};
+
+class daPy_HIO_boots_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+};  // Size: 0x14
+
+class daPy_HIO_boots_c0 {
+public:
+    static daPy_HIO_boots_c1 const m;
+};
+
+class daPy_HIO_bottle_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ s16 field_0xC;
+    /* 0x0E */ s16 field_0xE;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54;
+    /* 0x58 */ f32 field_0x58;
+    /* 0x5C */ f32 field_0x5C;
+    /* 0x60 */ f32 field_0x60;
+    /* 0x64 */ f32 field_0x64;
+    /* 0x68 */ f32 field_0x68;
+    /* 0x6C */ f32 field_0x6C;
+};  // Size: 0x70
+
+class daPy_HIO_bottle_c0 {
+public:
+    static daPy_HIO_bottle_c1 const m;
+};
+
+class daPy_HIO_bow_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+};  // Size: 0x1C
+
+class daPy_HIO_bow_c0 {
+public:
+    static daPy_HIO_bow_c1 const m;
+};
+
+class daPy_HIO_food_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+};  // Size: 0x1C
+
+class daPy_HIO_food_c0 {
+public:
+    static daPy_HIO_food_c1 const m;
+};
+
+class daPy_HIO_magicShield_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+};
+
+class daPy_HIO_magicShield_c0 {
+public:
+    static daPy_HIO_magicShield_c1 const m;
+};
+
+class daPy_HIO_item_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+};  // Size: 0x34
+
+class daPy_HIO_item_c0 {
+public:
+    static daPy_HIO_rope_c0 const mRope;
+    static daPy_HIO_boom_c0 const mBoom;
+    static daPy_HIO_fan_c0 const mFan;
+    static daPy_HIO_tact_c0 const mTact;
+    static daPy_HIO_ham_c0 const mHam;
+    static daPy_HIO_boots_c0 const mBoots;
+    static daPy_HIO_bottle_c0 const mBottle;
+    static daPy_HIO_bow_c0 const mBow;
+    static daPy_HIO_food_c0 const mFood;
+    static daPy_HIO_magicShield_c0 const mMagicShield;
+    static daPy_HIO_item_c1 const m;
+};
+
+class daPy_HIO_ship_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+};  // Size: 0x18
+
+class daPy_HIO_ship_c0 {
+public:
+    static daPy_HIO_ship_c1 const m;
+};
+
+class daPy_HIO_restart_c1 {
+public:
+    /* 0x00 */ f32 field_0x0;
+    /* 0x04 */ f32 field_0x4;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+};  // Size: 0x18
+
+class daPy_HIO_restart_c0 {
+public:
+    static daPy_HIO_restart_c1 const m;
+};
+
+class daPy_HIO_holdup_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0A */ s16 field_0xA;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+    /* 0x40 */ f32 field_0x40;
+    /* 0x44 */ f32 field_0x44;
+    /* 0x48 */ f32 field_0x48;
+    /* 0x4C */ f32 field_0x4C;
+    /* 0x50 */ f32 field_0x50;
+    /* 0x54 */ f32 field_0x54;
+};  // Size: 0x58
+
+class daPy_HIO_holdup_c0 {
+public:
+    static daPy_HIO_holdup_c1 const m;
+};
+
+class daPy_HIO_vomit_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ s16 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+    /* 0x1C */ f32 field_0x1C;
+    /* 0x20 */ f32 field_0x20;
+    /* 0x24 */ f32 field_0x24;
+    /* 0x28 */ f32 field_0x28;
+    /* 0x2C */ f32 field_0x2C;
+    /* 0x30 */ f32 field_0x30;
+    /* 0x34 */ f32 field_0x34;
+    /* 0x38 */ f32 field_0x38;
+    /* 0x3C */ f32 field_0x3C;
+};  // Size: 0x40
+
+class daPy_HIO_vomit_c0 {
+public:
+    static daPy_HIO_vomit_c1 const m;
+};
+
+class daPy_HIO_warp_c1 {
+public:
+    /* 0x00 */ s16 field_0x0;
+    /* 0x02 */ s16 field_0x2;
+    /* 0x04 */ s16 field_0x4;
+    /* 0x06 */ s16 field_0x6;
+    /* 0x08 */ f32 field_0x8;
+    /* 0x0C */ f32 field_0xC;
+    /* 0x10 */ f32 field_0x10;
+    /* 0x14 */ f32 field_0x14;
+    /* 0x18 */ f32 field_0x18;
+};  // Size: 0x1C
+
+class daPy_HIO_warp_c0 {
+public:
+    static daPy_HIO_warp_c1 const m;
+};
+
+#endif /* D_A_PLAYER_HIO_H */

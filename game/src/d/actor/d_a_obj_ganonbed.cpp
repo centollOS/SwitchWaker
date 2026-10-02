@@ -1,0 +1,213 @@
+/**
+ * d_a_obj_ganonbed.cpp
+ * Object - Bed (Puppet Ganon intro cutscene)
+ */
+
+#include "d/dolzel_rel.h" // IWYU pragma: keep
+#include "d/actor/d_a_obj_ganonbed.h"
+#include "res/Object/Gbed.h"
+#include "f_op/f_op_actor_mng.h"
+#include "JSystem/JUtility/JUTAssert.h"
+#include "d/d_bg_w.h"
+#include "d/d_com_inf_game.h"
+#include "m_Do/m_Do_ext.h"
+#include "m_Do/m_Do_mtx.h"
+
+namespace {
+    static const char l_arcname[] = "Gbed";
+};
+
+#if VERSION == VERSION_DEMO
+class daObjGbed_HIO_c : public JORReflexible {
+public:
+    daObjGbed_HIO_c();
+    virtual ~daObjGbed_HIO_c() {}
+
+    void genMessage(JORMContext*) {}
+
+public:
+    /* 0x04 */ s8 mNo;
+    /* 0x05 */ u8 field_0x5;
+    /* 0x06 */ u8 field_0x6;
+};
+
+static daObjGbed_HIO_c l_HIO;
+
+daObjGbed_HIO_c::daObjGbed_HIO_c() {
+    mNo = -1;
+    field_0x5 = 0;
+    field_0x6 = 0;
+}
+#endif
+
+/* 00000078-00000100       .text init_mtx__11daObjGbed_cFv */
+void daObjGbed_c::init_mtx() {
+    mpModel->setBaseScale(scale);
+    mDoMtx_stack_c::transS(current.pos);
+    mDoMtx_stack_c::XYZrotM(shape_angle);
+    mpModel->setBaseTRMtx(mDoMtx_stack_c::get());
+}
+
+/* 00000100-00000124       .text solidHeapCB__11daObjGbed_cFP10fopAc_ac_c */
+BOOL daObjGbed_c::solidHeapCB(fopAc_ac_c* i_this) {
+    return ((daObjGbed_c*)i_this)->create_heap();
+}
+
+/* 00000124-00000224       .text create_heap__11daObjGbed_cFv */
+bool daObjGbed_c::create_heap() {
+    bool ret = true;
+
+    J3DModelData* pModelData = static_cast<J3DModelData*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_GBED_BDL_K_GBED_e));
+
+    if (!pModelData) {
+        JUT_ASSERT(DEMO_SELECT(173, 177), FALSE);
+        ret = false;
+    } else {
+        mpModel = mDoExt_J3DModel__create(pModelData, 0x80000, 0x11000022);
+        mpBgW = dBgW_NewSet((cBgD_t*)dComIfG_getObjectRes(l_arcname, dRes_INDEX_GBED_DZB_K_GBED_e), cBgW::MOVE_BG_e, &mpModel->getBaseTRMtx());
+
+        if (!mpModel || !mpBgW)
+            ret = false;
+    }
+
+    return ret;
+}
+
+/* 00000224-000002F8       .text _create__11daObjGbed_cFv */
+cPhs_State daObjGbed_c::_create() {
+    fopAcM_ct(this, daObjGbed_c);
+
+    cPhs_State ret = dComIfG_resLoad(&mPhs, l_arcname);
+
+    if (ret == cPhs_COMPLEATE_e) {
+        if (fopAcM_entrySolidHeap(this, solidHeapCB, 0x13e0)) {
+            if (dComIfG_Bgsp()->Regist(mpBgW, this)) {
+                ret = cPhs_ERROR_e;
+            } else {
+                fopAcM_SetMtx(this, mpModel->getBaseTRMtx());
+                init_mtx();
+            }
+        } else {
+            ret = cPhs_ERROR_e;
+        }
+    }
+
+#if VERSION == VERSION_DEMO
+    if (l_HIO.mNo < 0) {
+        l_HIO.mNo = mDoHIO_createChild("ガノンベッド", &l_HIO); // "Ganon bed"
+    }
+#endif
+
+    return ret;
+}
+
+/* 000002F8-0000038C       .text _delete__11daObjGbed_cFv */
+bool daObjGbed_c::_delete() {
+    dComIfG_resDelete(&mPhs, l_arcname);
+
+    if (
+#if VERSION > VERSION_DEMO
+        heap != NULL &&
+#endif
+        mpBgW != NULL
+    ) {
+        if (mpBgW->ChkUsed()) {
+            dComIfG_Bgsp()->Release(mpBgW);
+        }
+
+#if VERSION > VERSION_DEMO
+        mpBgW = NULL;
+#endif
+}
+
+#if VERSION == VERSION_DEMO
+    if (l_HIO.mNo >= 0) {
+        mDoHIO_deleteChild(l_HIO.mNo);
+        l_HIO.mNo = -1;
+    }
+#endif
+
+    return true;
+}
+
+/* 0000038C-000003E4       .text _execute__11daObjGbed_cFv */
+bool daObjGbed_c::_execute() {
+    if (mpBgW != NULL && mpBgW->ChkUsed()) {
+        mpBgW->Move();
+    }
+
+#if VERSION == VERSION_DEMO
+    if (l_HIO.field_0x5 == 1) {
+        fopAcM_delete(this);
+    }
+#endif
+
+    return true;
+}
+
+/* 000003E4-00000444       .text _draw__11daObjGbed_cFv */
+bool daObjGbed_c::_draw() {
+#if VERSION == VERSION_DEMO
+    if (l_HIO.field_0x6 == 1) {
+        g_env_light.settingTevStruct(TEV_TYPE_BG0, &current.pos, &tevStr);
+    } else {
+        g_env_light.settingTevStruct(TEV_TYPE_ACTOR, &current.pos, &tevStr);
+    }
+#else
+    g_env_light.settingTevStruct(TEV_TYPE_ACTOR, &current.pos, &tevStr);
+#endif
+    g_env_light.setLightTevColorType(mpModel, &tevStr);
+    mDoExt_modelUpdateDL(mpModel);
+    return true;
+}
+
+/* 00000444-00000464       .text daObjGbed_Create__FP10fopAc_ac_c */
+static cPhs_State daObjGbed_Create(fopAc_ac_c* i_this) {
+    return ((daObjGbed_c*)i_this)->_create();
+}
+
+/* 00000464-00000488       .text daObjGbed_Delete__FP11daObjGbed_c */
+static BOOL daObjGbed_Delete(daObjGbed_c* i_this) {
+    return i_this->_delete();
+}
+
+/* 00000488-000004AC       .text daObjGbed_Execute__FP11daObjGbed_c */
+static BOOL daObjGbed_Execute(daObjGbed_c* i_this) {
+    return i_this->_execute();
+}
+
+/* 000004AC-000004D0       .text daObjGbed_Draw__FP11daObjGbed_c */
+static BOOL daObjGbed_Draw(daObjGbed_c* i_this) {
+    return i_this->_draw();
+}
+
+/* 000004D0-000004D8       .text daObjGbed_IsDelete__FP11daObjGbed_c */
+static BOOL daObjGbed_IsDelete(daObjGbed_c* i_this) {
+    UNUSED(i_this);
+    return TRUE;
+}
+
+static actor_method_class l_daObjGbed_Method = {
+    (process_method_func)daObjGbed_Create,
+    (process_method_func)daObjGbed_Delete,
+    (process_method_func)daObjGbed_Execute,
+    (process_method_func)daObjGbed_IsDelete,
+    (process_method_func)daObjGbed_Draw,
+};
+
+actor_process_profile_definition g_profile_Obj_Gbed = {
+    /* Layer ID     */ fpcLy_CURRENT_e,
+    /* List ID      */ 0x0003,
+    /* List Prio    */ fpcPi_CURRENT_e,
+    /* Proc Name    */ fpcNm_Obj_Gbed_e,
+    /* Proc SubMtd  */ &g_fpcLf_Method.base,
+    /* Size         */ sizeof(daObjGbed_c),
+    /* Size Other   */ 0,
+    /* Parameters   */ 0,
+    /* Leaf SubMtd  */ &g_fopAc_Method.base,
+    /* Draw Prio    */ fpcDwPi_Obj_Gbed_e,
+    /* Actor SubMtd */ &l_daObjGbed_Method,
+    /* Status       */ fopAcStts_UNK40000_e,
+    /* Group        */ fopAc_ACTOR_e,
+    /* Cull Type    */ fopAc_CULLBOX_CUSTOM_e,
+};

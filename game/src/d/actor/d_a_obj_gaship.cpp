@@ -1,0 +1,164 @@
+/**
+ * d_a_obj_gaship.cpp
+ * Object - Ganon Room exterior (Forsaken Fortress)
+ */
+
+#include "d/dolzel_rel.h" // IWYU pragma: keep
+#include "d/actor/d_a_obj_gaship.h"
+#include "d/d_com_inf_game.h"
+#include "m_Do/m_Do_ext.h"
+#include "m_Do/m_Do_mtx.h"
+#include "res/Object/GaShip.h"
+
+const char daObjGaship::Act_c::M_arcname[7] = "GaShip";
+
+/* 000000EC-000002DC       .text birth_flag__Q211daObjGaship5Act_cFv */
+void daObjGaship::Act_c::birth_flag() {
+    for (s32 i = 0; i < 2; i++) {
+        if (!birthFlag[i]) {
+            static cXyz flag_offset[2] = {
+                cXyz(-5700.0f, 17140.0f, -5580.0f),
+                cXyz(-7870.0f, 15560.0f, -5530.0f),
+            };
+
+            static csXyz flag_angle[2] = {
+                csXyz(0x0222, 0x0000, 0x0AAA),
+                csXyz(-0x038E, 0x0000, 0x0CCC),
+            };
+
+            cXyz offset;
+            mDoMtx_multVec(mtx, &flag_offset[i], &offset);
+            csXyz angle(flag_angle[i]);
+            fpc_ProcID pid = fopAcM_create(fpcNm_MAJUU_FLAG_e, 0x01, &offset, fopAcM_GetRoomNo(this), &angle);
+            if (pid != fpcM_ERROR_PROCESS_ID_e)
+                birthFlag[i] = true;
+        }
+    }
+}
+
+/* 00000354-00000378       .text solidHeapCB__Q211daObjGaship5Act_cFP10fopAc_ac_c */
+BOOL daObjGaship::Act_c::solidHeapCB(fopAc_ac_c* i_this) {
+    return ((daObjGaship::Act_c*)i_this)->create_heap();
+}
+
+/* 00000378-00000448       .text create_heap__Q211daObjGaship5Act_cFv */
+bool daObjGaship::Act_c::create_heap() {
+    J3DModelData* mdl_data = static_cast<J3DModelData*>(dComIfG_getObjectRes(M_arcname, dRes_INDEX_GASHIP_BDL_GASHIP_e));
+    JUT_ASSERT(140, mdl_data != NULL);
+#if VERSION > VERSION_DEMO
+    if (mdl_data != NULL)
+#endif
+    {
+        mModel = mDoExt_J3DModel__create(mdl_data, 0, 0x11000002);
+    }
+
+    set_mtx();
+
+#if VERSION == VERSION_DEMO
+    return mdl_data != NULL ? TRUE : FALSE;
+#else
+    return mdl_data != NULL && mModel != NULL;
+#endif
+}
+
+/* 00000448-000004F8       .text _create__Q211daObjGaship5Act_cFv */
+cPhs_State daObjGaship::Act_c::_create() {
+    fopAcM_ct(this, Act_c);
+
+    cPhs_State ret = dComIfG_resLoad(&mPhs, M_arcname);
+    if (ret == cPhs_COMPLEATE_e) {
+        if (fopAcM_entrySolidHeap(this, solidHeapCB, 0x0)) {
+            fopAcM_SetMtx(this, mModel->getBaseTRMtx());
+        } else {
+            ret = cPhs_ERROR_e;
+        }
+    }
+
+    return ret;
+}
+
+/* 000004F8-00000528       .text _delete__Q211daObjGaship5Act_cFv */
+bool daObjGaship::Act_c::_delete() {
+    dComIfG_resDelete(&mPhs, M_arcname);
+    return true;
+}
+
+/* 00000528-000005D4       .text set_mtx__Q211daObjGaship5Act_cFv */
+void daObjGaship::Act_c::set_mtx() {
+    mModel->setBaseScale(scale);
+    mDoMtx_stack_c::transS(current.pos);
+    mDoMtx_stack_c::ZXYrotM(shape_angle);
+    mModel->setBaseTRMtx(mDoMtx_stack_c::get());
+    mDoMtx_copy(mDoMtx_stack_c::get(), mtx);
+    mModel->calc();
+}
+
+/* 000005D4-0000060C       .text _execute__Q211daObjGaship5Act_cFv */
+bool daObjGaship::Act_c::_execute() {
+    set_mtx();
+    birth_flag();
+    return true;
+}
+
+/* 0000060C-0000066C       .text _draw__Q211daObjGaship5Act_cFv */
+bool daObjGaship::Act_c::_draw() {
+    g_env_light.settingTevStruct(TEV_TYPE_BG0, &current.pos, &tevStr);
+    g_env_light.setLightTevColorType(mModel, &tevStr);
+    mDoExt_modelUpdateDL(mModel);
+    return true;
+}
+
+namespace daObjGaship {
+namespace {
+/* 0000066C-0000068C       .text Mthd_Create__Q211daObjGaship28@unnamed@d_a_obj_gaship_cpp@FPv */
+cPhs_State Mthd_Create(void* i_this) {
+    return ((daObjGaship::Act_c*)i_this)->_create();
+}
+
+/* 0000068C-000006B0       .text Mthd_Delete__Q211daObjGaship28@unnamed@d_a_obj_gaship_cpp@FPv */
+BOOL Mthd_Delete(void* i_this) {
+    return ((daObjGaship::Act_c*)i_this)->_delete();
+}
+
+/* 000006B0-000006D4       .text Mthd_Execute__Q211daObjGaship28@unnamed@d_a_obj_gaship_cpp@FPv */
+BOOL Mthd_Execute(void* i_this) {
+    return ((daObjGaship::Act_c*)i_this)->_execute();
+}
+
+/* 000006D4-000006F8       .text Mthd_Draw__Q211daObjGaship28@unnamed@d_a_obj_gaship_cpp@FPv */
+BOOL Mthd_Draw(void* i_this) {
+    return ((daObjGaship::Act_c*)i_this)->_draw();
+}
+
+/* 000006F8-00000700       .text Mthd_IsDelete__Q211daObjGaship28@unnamed@d_a_obj_gaship_cpp@FPv */
+BOOL Mthd_IsDelete(void* i_this) {
+    UNUSED(i_this);
+    return TRUE;
+}
+
+static actor_method_class Mthd_Table = {
+    (process_method_func)Mthd_Create,
+    (process_method_func)Mthd_Delete,
+    (process_method_func)Mthd_Execute,
+    (process_method_func)Mthd_IsDelete,
+    (process_method_func)Mthd_Draw,
+};
+}; // namespace
+}; // namespace daObjGaship
+
+actor_process_profile_definition g_profile_Obj_Gaship = {
+    /* Layer ID     */ fpcLy_CURRENT_e,
+    /* List ID      */ 0x0003,
+    /* List Prio    */ fpcPi_CURRENT_e,
+    /* Proc Name    */ fpcNm_Obj_Gaship_e,
+    /* Proc SubMtd  */ &g_fpcLf_Method.base,
+    /* Size         */ sizeof(daObjGaship::Act_c),
+    /* Size Other   */ 0,
+    /* Parameters   */ 0,
+    /* Leaf SubMtd  */ &g_fopAc_Method.base,
+    /* Draw Prio    */ fpcDwPi_Obj_Gaship_e,
+    /* Actor SubMtd */ &daObjGaship::Mthd_Table,
+    /* Status       */ fopAcStts_UNK40000_e,
+    /* Group        */ fopAc_ACTOR_e,
+    /* Cull Type    */ fopAc_CULLBOX_0_e,
+};

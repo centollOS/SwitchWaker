@@ -1,0 +1,63 @@
+#ifndef C_MATH_H
+#define C_MATH_H
+
+#include "JSystem/JMath/JMATrigonometric.h"
+#include "SSystem/SComponent/c_angle.h"
+
+s16 cM_rad2s(float rad);
+u16 U_GetAtanTable(float, float);
+s16 cM_atan2s(float y, float x);
+float cM_atan2f(float y, float x);
+void cM_initRnd(int, int, int);
+
+/**
+ * Returns a pseudo-random float between 0.0f and 1.0f.
+ */
+float cM_rnd(void);
+
+/**
+ * Returns a pseudo-random float between 0.0f and max.
+ * @param max The maximum value
+ */
+float cM_rndF(float max);
+
+/**
+ * Returns a pseudo-random float between -max and max.
+ * @param max The maximum value
+ */
+float cM_rndFX(float max);
+
+void cM_initRnd2(int, int, int);
+float cM_rnd2(void);
+float cM_rndF2(float);
+float cM_rndFX2(float);
+
+inline f32 cM_scos(s16 x) {
+    return JMASCos(x);
+}
+
+inline f32 cM_ssin(s16 x) {
+    return JMASSin(x);
+}
+
+inline s16 cM_deg2s(f32 deg) {
+    return DEG2S(deg);
+}
+
+inline f32 cM_fcos(f32 x) {
+    return JMASCos(cM_rad2s(x));
+}
+
+inline f32 cM_fsin(f32 x) {
+    return JMASSin(cM_rad2s(x));
+}
+
+inline f32 cM_sht2d(f32 v) {
+    return S2DEG(v);
+}
+
+inline f32 cM_s2rad(s16 x) {
+    return S2RAD(x);
+}
+
+#endif /* C_MATH_H */

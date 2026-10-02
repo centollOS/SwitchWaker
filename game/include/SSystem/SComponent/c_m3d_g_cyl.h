@@ -1,0 +1,76 @@
+#ifndef C_M3D_G_CYL_H
+#define C_M3D_G_CYL_H
+
+#include "SSystem/SComponent/c_xyz.h"
+#include "SSystem/SComponent/c_m3d_g_cps.h"
+#include "global.h"
+
+// Cylinder
+struct cM3dGCylS {
+    /* 0x00 */ Vec mCenter;
+    /* 0x0C */ f32 mRadius;
+    /* 0x10 */ f32 mHeight;
+};  // Size = 0x14
+
+class cM3dGSph;
+
+class cM3dGCyl {
+public:
+    /* 0x00 */ cXyz mCenter;
+    /* 0x0C */ f32 mRadius;
+    /* 0x10 */ f32 mHeight;
+    /* 0x14 */ /* vtable */
+
+public:
+    cM3dGCyl() {}
+    cM3dGCyl(const cXyz*, f32, f32);
+    virtual ~cM3dGCyl() {}
+#if VERSION == VERSION_DEMO
+    void SetC(const cXyz& pos) { mCenter = pos; }
+    void SetH(f32 h) { mHeight = h; }
+    void SetR(f32 r) { mRadius = r; }
+#else
+    void SetC(const cXyz& pos);
+    void SetH(f32 h);
+    void SetR(f32 r);
+#endif
+    void Set(const cM3dGCylS & src) {
+#if VERSION == VERSION_DEMO
+        mCenter = src.mCenter;
+        mRadius = src.mRadius;
+        mHeight = src.mHeight;
+#else
+        SetC(src.mCenter);
+        SetR(src.mRadius);
+        SetH(src.mHeight);
+#endif
+    }
+    void Set(const cXyz& center, f32 radius, f32 height) {
+#if VERSION == VERSION_DEMO
+        mCenter = center;
+        mRadius = radius;
+        mHeight = height;
+#else
+        SetC(center);
+        SetR(radius);
+        SetH(height);
+#endif
+    }
+    bool cross(const cM3dGSph*, cXyz*) const;
+    bool cross(const cM3dGCyl*, cXyz*) const;
+    bool cross(const cM3dGSph*, f32*) const;
+    bool cross(const cM3dGCyl*, f32*) const;
+    bool Cross(const cM3dGCps* cps, cXyz* dst) const { return cM3d_Cross_CpsCyl(*cps, *this, dst); }
+    bool Cross(const cM3dGTri& tri, cXyz* dst) const { return cM3d_Cross_CylTri(this, &tri, dst); }
+    cXyz& GetC() { return mCenter; }
+    const cXyz& GetC() const { return mCenter; }
+    cXyz* GetCP() { return &mCenter; }
+    const cXyz* GetCP() const { return &mCenter; }
+    f32 GetR() const { return mRadius; }
+    f32* GetRP() { return &mRadius; }
+    f32 GetH() const { return mHeight; }
+};  // Size = 0x18
+
+STATIC_ASSERT(0x18 == sizeof(cM3dGCyl));
+
+#endif /* C_M3D_G_CYL_H */
