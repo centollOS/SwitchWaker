@@ -1,5 +1,8 @@
 // SDL 3 file I/O and paths for the Switch shim, over newlib stdio and the
-// SD card. Aurora's base and preference paths are the app's data directory.
+// SD card. Aurora's base and preference paths are the app's data directory,
+// written without the "sdmc:" device: an NRO started from the SD card has it
+// as the default device, and sqlite (Aurora's caches) treats a path not
+// starting with '/' as relative and prepends the working directory.
 #include <SDL3/SDL.h>
 #include <errno.h>
 #include <stdio.h>
@@ -10,7 +13,7 @@
 
 #include "sdl3_shim.h"
 
-#define DATA_ROOT "sdmc:/switch/centollos/"
+#define DATA_ROOT "/switch/centollos/"
 
 struct SDL_IOStream {
     FILE* file;
