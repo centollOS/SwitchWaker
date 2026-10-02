@@ -918,7 +918,12 @@ BOOL daPy_lk_c::procRopeHangWait() {
 int daPy_lk_c::specialRopeHangUp() {
     if (DEMO_SELECT(!strcmp(dComIfGp_getStartStageName(), "GanonK"), checkSpecialRope())) {
         u32 uVar1 = shape_angle.y >= 0x4000 ? 0 : 1;
+#if TARGET_PC
+        // MSL only has abs(int); with the host's abs overloads a u32 argument is ambiguous.
+        int iVar2 = abs((int)uVar1);
+#else
         int iVar2 = abs(uVar1);
+#endif
         if (iVar2 != 0) {
             current.pos.z = -15.8f;
             shape_angle.y = 0;

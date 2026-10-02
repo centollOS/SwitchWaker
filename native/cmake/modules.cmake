@@ -33,7 +33,8 @@ set(COS_MODULES_READY
         actors-1
         actors-2
         actors-3
-        actors-4)
+        actors-4
+        actors-5)
 
 set(COS_ACTOR_CHUNKS 6)
 

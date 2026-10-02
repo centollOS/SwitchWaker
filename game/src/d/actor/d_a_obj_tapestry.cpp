@@ -357,8 +357,16 @@ public:
 
 STATIC_ASSERT(sizeof(daObjTapestry_HIO_c) == 0x6C);
 
+#if TARGET_PC
+// Inside the anonymous namespace, uses of l_HIO at file scope are ambiguous with the global
+// class l_HIO (f_op_actor_mng.h) in standard C++. A file-scope static keeps the same internal
+// linkage and hides the class name.
+static daObjTapestry_HIO_c l_HIO;
+namespace {
+#else
 namespace {
 static daObjTapestry_HIO_c l_HIO;
+#endif
 
 inline daObjTapestry_Attr_c attr() {
     return l_HIO.mAttr;
@@ -493,7 +501,11 @@ void daObjTapestryDrawData_c::ct_dl() {
     for (int i = 0; i < 0x20; i++) {
         m_dl[now++] = 0;
     }
+#if TARGET_PC
+    JUT_ASSERT(0x25A, (reinterpret_cast<uintptr_t>(m_dl) & 0x1f) == 0);
+#else
     JUT_ASSERT(0x25A, (reinterpret_cast<u32>(m_dl) & 0x1f) == 0);
+#endif
     JUT_ASSERT(0x25B, now == l_dl_size);
 }
 
@@ -554,7 +566,12 @@ daObjTapestryPacket_c::daObjTapestryPacket_c() {
 /* 00000CC0-00000F3C       .text init__21daObjTapestryPacket_cFP15daObjTapestry_c */
 void daObjTapestryPacket_c::init(daObjTapestry_c* actor) {
     static cXyz base_z_rev(0.0f, 0.0f, -1.0f);
+#if TARGET_PC
+    // TODO(native phase 4): J3DPacket::setUserArea takes a u32; it cannot hold a 64-bit pointer.
+    setUserArea((uintptr_t)actor);
+#else
     setUserArea((u32)actor);
+#endif
     cXyz nrm = cXyz::BaseZ;
     cXyz back = base_z_rev;
     mDoMtx_stack_c::transS(-100.0f, -297.0f, 10.0f);

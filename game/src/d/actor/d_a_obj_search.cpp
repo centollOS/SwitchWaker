@@ -819,7 +819,12 @@ void daObj_Search::Act_c::CreateInit() {
 
     set_mtx_base();
     set_moveBG_mtx_base();
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpModel->setUserArea((uintptr_t)this);
+#else
     mpModel->setUserArea((u32)this);
+#endif
     J3DModelData* modelData = mpModel->getModelData();
     for (u16 i = 0; i < modelData->getJointNum(); i++) {
         switch (i) {
@@ -1349,7 +1354,13 @@ BOOL daObj_Search::Act_c::_draw() {
         mDoExt_modelUpdateDL(mpBeamModel[0]);
         if (m77E > 0x80) {
             dComIfGd_setAlphaModel(dDlst_alphaModel_c::TYPE_SEARCHLIGHT, mAlphaMtx[0], 0x20);
+#if TARGET_PC
+            // dComIfGd_setAlphaModelColor takes a non-const reference, which cannot bind a temporary.
+            GXColor color = {m82C, m82D};
+            dComIfGd_setAlphaModelColor(color);
+#else
             dComIfGd_setAlphaModelColor((GXColor){m82C, m82D});
+#endif
         }
     }
 
@@ -1357,7 +1368,13 @@ BOOL daObj_Search::Act_c::_draw() {
         mDoExt_modelUpdateDL(mpBeamModel[1]);
         if (m77E > 0x80) {
             dComIfGd_setAlphaModel(dDlst_alphaModel_c::TYPE_SEARCHLIGHT, mAlphaMtx[1], 0x20);
+#if TARGET_PC
+            // dComIfGd_setAlphaModelColor takes a non-const reference, which cannot bind a temporary.
+            GXColor color = {m82C, m82D};
+            dComIfGd_setAlphaModelColor(color);
+#else
             dComIfGd_setAlphaModelColor((GXColor){m82C, m82D});
+#endif
         }
     }
 

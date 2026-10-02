@@ -143,7 +143,12 @@ BOOL daObj_Pfall_c::CreateHeap() {
     if(mpMorf == NULL || mpMorf->getModel() == NULL) {
         return FALSE;
     }
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpMorf->getModel()->setUserArea((u32)this);
+#endif
     set_mtx();
     mpMorf->calc();
     mpBgW = new dBgW();

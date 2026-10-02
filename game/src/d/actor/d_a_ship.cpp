@@ -4574,7 +4574,12 @@ cPhs_State daShip_c::create() {
         pModel = mpBodyAnm->getModel();
         pModelData = pModel->getModelData();
         
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        pModel->setUserArea(reinterpret_cast<uintptr_t>(this));
+#else
         pModel->setUserArea(reinterpret_cast<u32>(this));
+#endif
         
         fopAcM_SetMtx(this, pModel->getBaseTRMtx());
         
@@ -4602,7 +4607,12 @@ cPhs_State daShip_c::create() {
         pModel = mpHeadAnm->getModel();
         pModelData = pModel->getModelData();
         
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        pModel->setUserArea(reinterpret_cast<uintptr_t>(this));
+#else
         pModel->setUserArea(reinterpret_cast<u32>(this));
+#endif
         
         for (u16 jno = 0; jno < pModelData->getJointNum(); jno++) {
             if (jno == FN_HEAD_H_JNT_J_FN_ATAMA_e || jno == FN_HEAD_H_JNT_J_FN_AGO2_e) {
@@ -4622,14 +4632,24 @@ cPhs_State daShip_c::create() {
             }
         }
         
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        mpCannonModel->setUserArea(reinterpret_cast<uintptr_t>(this));
+#else
         mpCannonModel->setUserArea(reinterpret_cast<u32>(this));
+#endif
         
         pModelData = mpCannonModel->getModelData();
         
         pModelData->getJointNodePointer(VFNCN_JNT_CANON1_e)->setCallBack(daShip_cannonJointCallBack);
         pModelData->getJointNodePointer(VFNCN_JNT_CANON2_e)->setCallBack(daShip_cannonJointCallBack);
         
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        mpSalvageArmModel->setUserArea(reinterpret_cast<uintptr_t>(this));
+#else
         mpSalvageArmModel->setUserArea(reinterpret_cast<u32>(this));
+#endif
         mpSalvageArmModel->getModelData()->getJointNodePointer(VFNCR_JNT_V_CRANE_ROTATION_e)->setCallBack(daShip_craneJointCallBack);
         
         m034B = fopAcM_GetParam(this);

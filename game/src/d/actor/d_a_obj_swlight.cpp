@@ -71,7 +71,12 @@ bool Act_c::create_heap() {
         modelData->getJointNodePointer(MSUSW_JNT_AFTER_FIRE2_e)->setCallBack(jnodeCB_moon);
         modelData->getJointNodePointer(MSUSW_JNT_BEFORE_FACE_e)->setCallBack(jnodeCB_moon);
         modelData->getJointNodePointer(MSUSW_JNT_BEFORE_MIRROR_e)->setCallBack(jnodeCB_moon);
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        m298->setUserArea((uintptr_t)this);
+#else
         m298->setUserArea((u32)this);
+#endif
     }
 
     J3DAnmTextureSRTKey* btk = static_cast<J3DAnmTextureSRTKey*>(dComIfG_getObjectRes(M_arcname, dRes_INDEX_MMIRROR_BTK_MSUSW_e));

@@ -118,7 +118,12 @@ BOOL daObjSwhammer::Act_c::CreateHeap() {
     mpModel = mDoExt_J3DModel__create(modelData, 0x80000, 0x11000022);
     if (mpModel) {
         modelData->getJointNodePointer(MHMRSW_JNT_HIT_e)->setCallBack(jnodeCB);
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        mpModel->setUserArea((uintptr_t)this);
+#else
         mpModel->setUserArea((u32) this);
+#endif
     }
     return mpModel != NULL;
 }

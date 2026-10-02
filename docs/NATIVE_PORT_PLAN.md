@@ -142,3 +142,12 @@ Each phase lands as its own commits; this file records decisions and measured re
   `setUserArea` casts through `uintptr_t` (11 sites in 9 files, one of them a `J3DPacket` in
   `d_a_obj_buoyflag`, `TODO(native phase 4)`); `d_a_obj_doguu.h`'s `next_msgStatus` takes `u32*`
   under `TARGET_PC`; `d_a_obj_hcbh`'s case-bypassed `actor` local is declared then assigned.
+- **actors-5:** 74/74 units (`d_a_obj_ohatch` .. `d_a_ship`, sorted indices 296-369) compile,
+  0 deferred; on by default. 57 errors in 19 units: `setUserArea` casts through `uintptr_t`
+  (30 sites in 21 files, one a `J3DPacket` in `d_a_obj_tapestry`, `TODO(native phase 4)`);
+  `d_a_player_main` carves its animation buffers and the rock-mark image data by address
+  arithmetic on `uintptr_t`; `d_a_obj_tapestry`'s alignment assert uses `uintptr_t`, and its
+  `l_HIO` is a file-scope static instead of an anonymous-namespace one (ambiguous with the
+  global class `l_HIO`); `d_a_ph`'s two case-bypassed `speed` locals are declared then assigned;
+  `d_a_obj_search` passes a named `GXColor` to `dComIfGd_setAlphaModelColor(GXColor&)`;
+  `d_a_player_rope.inc` calls `abs((int)u32)`, since only MSL's `abs(int)` made it unambiguous.

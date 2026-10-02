@@ -1024,7 +1024,13 @@ void ph_fly_sea_move(ph_class* i_this) {
             i_this->m0346 = 0;
             break;
         }
+#if TARGET_PC
+        // A later case label jumps past this declaration; clang rejects jumping past an initializer.
+        f32 speed;
+        speed = 98.0f;
+#else
         f32 speed = 98.0f;
+#endif
         cLib_addCalc2(&actor->speedF, speed, 1.0f, 10.0f);
         if (i_this->m0364[1] == 0) {
             i_this->m0364[1] = 0xF;
@@ -1909,7 +1915,13 @@ void ph_water_move(ph_class* i_this) {
         {
             cLib_addCalcAngleS2(&actor->shape_angle.y, actor->current.angle.y, 1, 0x700);
         }
+#if TARGET_PC
+        // A later case label jumps past this declaration; clang rejects jumping past an initializer.
+        f32 speed;
+        speed = 30.0f;
+#else
         f32 speed = 30.0f;
+#endif
         cLib_addCalc2(&actor->speedF, speed, 1.0f, 10.0f);
         {
             u32 vol = (u32)(3.4f * actor->speedF);
@@ -2345,7 +2357,12 @@ static BOOL useHeapInit(fopAc_ac_c* a_this) {
         return FALSE;
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    i_this->mpPropellerMorf->getModel()->setUserArea((uintptr_t)i_this);
+#else
     i_this->mpPropellerMorf->getModel()->setUserArea((u32)i_this);
+#endif
     for (u16 i = 0; i < i_this->mpPropellerMorf->getModel()->getModelData()->getJointNum(); i++) {
         i_this->mpPropellerMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_UP);
     }
@@ -2370,7 +2387,12 @@ static BOOL useHeapInit(fopAc_ac_c* a_this) {
         return FALSE;
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    i_this->mpBodyMorf->getModel()->setUserArea((uintptr_t)i_this);
+#else
     i_this->mpBodyMorf->getModel()->setUserArea((u32)i_this);
+#endif
     for (u16 i = 0; i < i_this->mpBodyMorf->getModel()->getModelData()->getJointNum(); i++) {
         i_this->mpBodyMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_DW);
     }

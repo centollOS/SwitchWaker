@@ -974,7 +974,12 @@ BOOL daOship_c::_createHeap() {
         return FALSE;
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpModel->setUserArea((uintptr_t)this);
+#else
     mpModel->setUserArea((u32) this);
+#endif
     for (u16 i = 0; i < modelData->getJointNum(); i++) {
         switch (i) {
             case VBTSP_JNT_HEAD_e:

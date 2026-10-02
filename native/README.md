@@ -34,7 +34,7 @@ ninja -C build/native-mac cos_scaffold_check       # toolchain + base headers sa
 ```
 
 Each module is an `OBJECT` library behind an option, off until it compiles; the modules listed
-in `COS_MODULES_READY` (`cmake/modules.cmake`) compile and default to on (currently `SSystem`, `JSystem-core`, `JSystem-J3D`, `JSystem-2D-particle`, `JSystem-studio`, `framework`, `m_Do`, `d-core`, `actors-1`, `actors-2`, `actors-3`, `actors-4`):
+in `COS_MODULES_READY` (`cmake/modules.cmake`) compile and default to on (currently `SSystem`, `JSystem-core`, `JSystem-J3D`, `JSystem-2D-particle`, `JSystem-studio`, `framework`, `m_Do`, `d-core`, `actors-1`, `actors-2`, `actors-3`, `actors-4`, `actors-5`):
 
 | Target | Option | Sources (`game/src/...`) |
 | --- | --- | --- |

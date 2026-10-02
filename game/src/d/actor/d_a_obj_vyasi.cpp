@@ -401,7 +401,12 @@ cPhs_State daObjVyasi::Act_c::_create() {
             }
             J3DModel* model = mpMorf->getModel();
             J3DModelData* data = model->getModelData();
+#if TARGET_PC
+            // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+            model->setUserArea((uintptr_t)this);
+#else
             model->setUserArea((u32)this);
+#endif
             for (u16 i = 0; i < model->getModelData()->getJointNum(); i++) {
                 data->getJointNodePointer(i)->setCallBack(JointNodeCallBack);
             }

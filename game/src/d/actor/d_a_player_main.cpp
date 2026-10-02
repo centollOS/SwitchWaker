@@ -12124,8 +12124,18 @@ void daPy_lk_c::playerInit() {
     
     fopAcM_SetMtx(this, mpCLModel->getBaseTRMtx());
     
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpCLModel->setUserArea(reinterpret_cast<uintptr_t>(this));
+#else
     mpCLModel->setUserArea(reinterpret_cast<u32>(this));
+#endif
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpYmgcs00Model->setUserArea(reinterpret_cast<uintptr_t>(this));
+#else
     mpYmgcs00Model->setUserArea(reinterpret_cast<u32>(this));
+#endif
     for (u16 jnt_no = 0; jnt_no < mpYmgcs00Model->getModelData()->getJointNum(); jnt_no++) {
         mpYmgcs00Model->getModelData()->getJointNodePointer(jnt_no)->setCallBack(daPy_auraCallback);
     }
@@ -12140,10 +12150,20 @@ void daPy_lk_c::playerInit() {
     mpCLModelData->getJointNodePointer(CL_JNT_LINK_ROOT_e)->setCallBack(daPy_jointCallback0);
     mpCLModelData->getJointNodePointer(CL_JNT_RTOE_JNT_e)->setCallBack(daPy_jointCallback1);
     
+#if TARGET_PC
+    // TODO(native phase 4): the calc's user area is a u32; it cannot hold a 64-bit pointer.
+    m_pbCalc[PART_UNDER_e]->setUserArea(reinterpret_cast<uintptr_t>(this));
+#else
     m_pbCalc[PART_UNDER_e]->setUserArea(reinterpret_cast<u32>(this));
+#endif
     m_pbCalc[PART_UNDER_e]->setBeforeCalc(daPy_jointBeforeCallback);
     m_pbCalc[PART_UNDER_e]->setAfterCalc(daPy_jointAfterCallback);
+#if TARGET_PC
+    // TODO(native phase 4): the calc's user area is a u32; it cannot hold a 64-bit pointer.
+    m_pbCalc[PART_UPPER_e]->setUserArea(reinterpret_cast<uintptr_t>(this));
+#else
     m_pbCalc[PART_UPPER_e]->setUserArea(reinterpret_cast<u32>(this));
+#endif
     m_pbCalc[PART_UPPER_e]->setBeforeCalc(daPy_jointBeforeCallback);
     m_pbCalc[PART_UPPER_e]->setAfterCalc(daPy_jointAfterCallback);
     
@@ -12183,6 +12203,18 @@ void daPy_lk_c::playerInit() {
         handsModelData->getJointNodePointer(jnt_no)->getMesh()->getShape()->hide();
     }
     
+#if TARGET_PC
+    // The buffers are carved out of one allocation by address arithmetic; it must be done on a
+    // pointer-sized integer to yield a valid pointer.
+    uintptr_t buffer_start = reinterpret_cast<uintptr_t>(m_anm_heap_under[UNDER_MOVE0_e].m_buffer) + 0x2400;
+    m_anm_heap_under[UNDER_MOVE1_e].m_buffer = reinterpret_cast<void*>(buffer_start);
+    buffer_start = reinterpret_cast<uintptr_t>(m_anm_heap_under[UNDER_MOVE0_e].m_buffer) + 0x4800;
+    m_anm_heap_upper[UPPER_MOVE0_e].m_buffer = reinterpret_cast<void*>(buffer_start);
+    for (int i = UPPER_MOVE1_e; i <= UPPER_MOVE2_e; i++) {
+        buffer_start = reinterpret_cast<uintptr_t>(m_anm_heap_upper[UPPER_MOVE0_e].m_buffer) + i*0x2400;
+        m_anm_heap_upper[i].m_buffer = reinterpret_cast<void*>(buffer_start);
+    }
+#else
     u32 buffer_start = reinterpret_cast<u32>(m_anm_heap_under[UNDER_MOVE0_e].m_buffer) + 0x2400;
     m_anm_heap_under[UNDER_MOVE1_e].m_buffer = reinterpret_cast<void*>(buffer_start);
     buffer_start = reinterpret_cast<u32>(m_anm_heap_under[UNDER_MOVE0_e].m_buffer) + 0x4800;
@@ -12191,6 +12223,7 @@ void daPy_lk_c::playerInit() {
         buffer_start = reinterpret_cast<u32>(m_anm_heap_upper[UPPER_MOVE0_e].m_buffer) + i*0x2400;
         m_anm_heap_upper[i].m_buffer = reinterpret_cast<void*>(buffer_start);
     }
+#endif
     
     mAcch.Set(fopAcM_GetPosition_p(this), fopAcM_GetOldPosition_p(this),  this, ARRAY_SIZE(mAcchCir), mAcchCir, fopAcM_GetSpeed_p(this), fopAcM_GetAngle_p(this), fopAcM_GetShapeAngle_p(this));
     mAcch.ClrWaterNone();
@@ -12302,7 +12335,12 @@ void daPy_lk_c::playerInit() {
     mSightPacket.setSightTex(tmp_tex);
     ResTIMG* tmp_img = (ResTIMG*)dComIfG_getObjectRes(l_arcName, dRes_INDEX_LINK_BTI_ROCK_MARK_e);
     JUT_ASSERT(VERSION_SELECT(21506, 21613, 21693, 21693), tmp_img != NULL);
+#if TARGET_PC
+    // TODO(native phase 4): ResTIMG fields are big-endian in the archive.
+    void* tmp_img_data = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(tmp_img) + tmp_img->imageOffset);
+#else
     void* tmp_img_data = reinterpret_cast<void*>(reinterpret_cast<u32>(tmp_img) + tmp_img->imageOffset);
+#endif
     mSightPacket.setLockTex(tmp_img_data);
     mSightPacket.setImage(tmp_img);
     
