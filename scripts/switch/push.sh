@@ -3,11 +3,16 @@
 #
 #   scripts/switch/push.sh [--build] [dawn|gles|boot|FILE.nro]...   (default: dawn)
 #   scripts/switch/push.sh --logs
+#   scripts/switch/push.sh --game DISC.iso
 #
 # Enable USB file transfer on the console first (Horizon's own, haze or DBI).
 # Files go to sdmc:/switch/centollos/, are read back, and must match
 # the local SHA-256. --build runs each probe's build script first. --logs
-# copies the probes' *.log files into build/switch-logs/. Needs libmtp
+# copies the probes' *.log files into build/switch-logs/. --game copies the
+# headless host's inputs from the player's own disc: the disc image as
+# GZLE01.iso, the DSP ROMs, and main.dol and the 415 RELs extracted by
+# scripts/builder/build.sh --source-only (build/device/game); files already
+# on the console with the same size are skipped. Needs libmtp
 # (macOS: brew install libmtp); runs on the host, not in a container.
 set -euo pipefail
 
@@ -27,9 +32,27 @@ if [[ ! -x $tool || $source -nt $tool ]]; then
     cc -O2 -Wall -o "$tool" "$source" $flags
 fi
 
+if [[ ${1:-} == --game ]]; then
+    disc=${2:?usage: push.sh --game DISC.iso}
+    game="$root/build/device/game"
+    if [[ ! -f $game/main.dol || ! -d $game/rels ]]; then
+        echo "push: run scripts/builder/build.sh DISC.iso --source-only first" >&2
+        exit 1
+    fi
+    staging=$(mktemp -d)
+    trap 'rm -rf "$staging"' EXIT
+    # Name the disc as the host expects without copying 1.4 GB.
+    ln -s "$(cd "$(dirname "$disc")" && pwd)/$(basename "$disc")" "$staging/GZLE01.iso"
+    "$tool" push-many "$remote_dir" "$staging/GZLE01.iso" \
+        "$root/ref/recompcore/Data/Sys/GC/dsp_rom.bin" "$root/ref/recompcore/Data/Sys/GC/dsp_coef.bin"
+    "$tool" push-many "$remote_dir/game" "$game/main.dol"
+    "$tool" push-many "$remote_dir/game/rels" "$game"/rels/*
+    exit 0
+fi
+
 if [[ ${1:-} == --logs ]]; then
     mkdir -p "$root/build/switch-logs"
-    for log in boot-probe.log gles-probe.log dawn-probe.log; do
+    for log in boot-probe.log gles-probe.log dawn-probe.log host.log; do
         status=0
         "$tool" pull "$remote_dir" "$log" "$root/build/switch-logs/$log" || status=$?
         # 3: that probe has not written a log yet.
