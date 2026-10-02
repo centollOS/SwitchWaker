@@ -17,6 +17,19 @@ struct TExpandStride_<s32> {
     static s32 get(s32 n) { return n << 3; }
 };
 
+#if TARGET_PC
+// The host's iterator difference_type (ptrdiff_t) is long / long long, not s32.
+template <>
+struct TExpandStride_<long> {
+    static long get(long n) { return n << 3; }
+};
+
+template <>
+struct TExpandStride_<long long> {
+    static long long get(long long n) { return n << 3; }
+};
+#endif
+
 }  // namespace search
 
 //! @todo: mangled name isn't correct, fix this

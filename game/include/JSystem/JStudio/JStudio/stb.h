@@ -73,8 +73,14 @@ public:
     const void* getSequence() const { return pSequence; }
     void setSequence_(const void* arg1) { pSequence = arg1; }
     const void* getSequence_offset(s32 i_no) const {
+#if TARGET_PC
+        // TODO(native phase 4): address arithmetic at host pointer width; offsets come from 32-bit data.
+        intptr_t s32Val = (intptr_t)getSequence();
+        return (const void*)(s32Val + i_no);
+#else
         int s32Val = (s32)getSequence();
         return (const void*)(s32Val + i_no);
+#endif
     }
     const void* getSequence_next() const { return pSequence_next; }
     void setSequence_next(const void* seq) { pSequence_next = seq; }

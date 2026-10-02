@@ -146,7 +146,12 @@ void JStudio::TAdaptor::adaptor_setVariableValue_n(JStudio::TObject* pObject, co
     JGadget::TEnumerator<const u32*> enumerator(param_2, param_2 + param_3);
     while (enumerator) {
         (*pcVar6)(this, pObject, **enumerator, param_5, iVar7);
+#if TARGET_PC
+        // TODO(native phase 4): address arithmetic at host pointer width; offsets come from 32-bit data.
+        param_5 = (const void*)((intptr_t)param_5 + iVar7);
+#else
         param_5 = (const void*)((int)param_5 + iVar7);
+#endif
     }
 }
 

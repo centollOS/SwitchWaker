@@ -235,7 +235,12 @@ void TObject::process_paragraph_reserved_(u32 arg1, const void* pContent, u32 uS
         data::TParse_TParagraph_dataID dataID(pContent);
         const void* temp = dataID.getContent();
         on_data(dataID.get_ID(), dataID.get_IDSize(), temp,
+#if TARGET_PC
+                // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+                uSize - ((u32)(uintptr_t)temp - (u32)(uintptr_t)dataID.getRaw()));
+#else
                 uSize - ((u32)temp - (u32)dataID.getRaw()));
+#endif
         break;
     }
     case 0x82:

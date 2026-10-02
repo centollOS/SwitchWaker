@@ -174,7 +174,12 @@ private:
 class TFunctionValue_composite : public TFunctionValue, public TFunctionValueAttribute_refer {
 public:
     struct TData {
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        TData(void* data) : uintdata((u32)(uintptr_t)data) {}
+#else
         TData(void* data) : uintdata((u32)data) {}
+#endif
         TData(unsigned int data) : uintdata(data) {}
         TData(f64 data) : f64data(data) {}
 

@@ -22,12 +22,22 @@ void TParse_TSequence::getData(TParse_TSequence::TData* pData) const {
     pData->type = type;
     pData->param = param;
     if (type != 0) {
+#if TARGET_PC
+        // TODO(native phase 4): address arithmetic at host pointer width; offsets come from 32-bit data.
+        const void* next = (const void*)((uintptr_t)getRaw() + 4);
+#else
         const void* next = (const void*)((int)getRaw() + 4);
+#endif
         if (type <= 0x7f) {
             pData->next = next;
         } else {
             pData->content = next;
+#if TARGET_PC
+            // TODO(native phase 4): address arithmetic at host pointer width; offsets come from 32-bit data.
+            pData->next = (const void*)((uintptr_t)next + param);
+#else
             pData->next = (const void*)((int)next + param);
+#endif
         }
     }
 }
@@ -43,7 +53,12 @@ void TParse_TParagraph::getData(TParse_TParagraph::TData* pData) const {
         pData->next = next;
     } else {
         pData->content = next;
+#if TARGET_PC
+        // TODO(native phase 4): address arithmetic at host pointer width; offsets come from 32-bit data.
+        pData->next = (const void*)((uintptr_t)next + align_roundUp(result, 4));
+#else
         pData->next = (const void*)((int)next + align_roundUp(result, 4));
+#endif
     }
 }
 

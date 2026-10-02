@@ -82,3 +82,11 @@ Each phase lands as its own commits; this file records decisions and measured re
   pointer differences compared as `u32` in `parse` and the hex-length checks of
   `getNumberS32`/`getNumberF32` cast each pointer through `uintptr_t` under `TARGET_PC`
   (`TODO(native phase 4)`); modulo-2^32 subtraction gives the original distance.
+- **JSystem-studio:** 37/37 units (JStudio with all its adaptor subdirectories, JStage,
+  JMessage) compile, 0 deferred; on by default. Compat header gains MSL's `DEG_TO_RAD`/`RAD_TO_DEG`
+  (same text, MSL's float pi as `COS_MSL_M_PI`). `JGadget::search::TExpandStride_` gets
+  `long`/`long long` specializations under `TARGET_PC` (host `ptrdiff_t`); `TLinkList_factory`
+  calls `this->Erase` (dependent base). Pointer casts in `functionvalue`, `stb`,
+  `stb-data-parse`, `jstudio-object` and `object-actor` go through `uintptr_t`/`intptr_t` under
+  `TARGET_PC` (`TODO(native phase 4)`; `TFunctionValue_composite::TData` still stores a pointer in
+  a `u32`).
