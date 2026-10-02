@@ -1,37 +1,10 @@
-// SDL 3 devices the Switch build does not have yet, or ever: audio (silent
-// until a libnx audio sink exists; Aurora tolerates a missing stream), haptic
-// devices, standalone sensors, keyboard and mouse. Each reports absence the
-// way SDL does when the device is missing.
+// SDL 3 devices the Switch build does not have: haptic devices, standalone
+// sensors, keyboard and mouse. Each reports absence the way SDL does when the
+// device is missing.
 #include <SDL3/SDL.h>
 #include <stdlib.h>
 
 #include "sdl3_shim.h"
-
-SDL_AudioStream* SDL_OpenAudioDeviceStream(SDL_AudioDeviceID devid, const SDL_AudioSpec* spec,
-                                           SDL_AudioStreamCallback callback, void* userdata) {
-    (void)devid;
-    (void)spec;
-    (void)callback;
-    (void)userdata;
-    sdl3_shim_set_error("no audio output yet on the Switch");
-    return NULL;
-}
-void SDL_DestroyAudioStream(SDL_AudioStream* stream) { (void)stream; }
-bool SDL_ResumeAudioStreamDevice(SDL_AudioStream* stream) { (void)stream; return false; }
-bool SDL_SetAudioStreamFormat(SDL_AudioStream* stream, const SDL_AudioSpec* src_spec,
-                              const SDL_AudioSpec* dst_spec) {
-    (void)stream;
-    (void)src_spec;
-    (void)dst_spec;
-    return false;
-}
-bool SDL_PutAudioStreamData(SDL_AudioStream* stream, const void* buf, int len) {
-    (void)stream;
-    (void)buf;
-    (void)len;
-    return false;
-}
-int SDL_GetAudioStreamQueued(SDL_AudioStream* stream) { (void)stream; return -1; }
 
 SDL_HapticID* SDL_GetHaptics(int* count) {
     if (count != NULL)

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copy Switch probe NROs to the console over USB (MTP) and pull back their logs.
 #
-#   scripts/switch/push.sh [--build] [host|dawn|gles|boot|FILE.nro]...   (default: dawn)
+#   scripts/switch/push.sh [--build] [host|host-aurora|dawn|gles|boot|FILE.nro]...   (default: dawn)
 #   scripts/switch/push.sh --logs
 #   scripts/switch/push.sh --game DISC.iso
 #
@@ -71,6 +71,8 @@ fi
 for target in "$@"; do
     case $target in
         host) script=build_host.sh nro=build/switch-host/BlueWakeSwitch.nro ;;
+        # Same file name on the console: one of the two builds is installed at a time.
+        host-aurora) script='' nro=build/switch-host-aurora/BlueWakeSwitch.nro ;;
         dawn) script=build_dawn_probe.sh nro=build/switch-dawn-probe/BlueWakeDawnOffscreenProbe.nro ;;
         gles) script=build_gles_probe.sh nro=build/switch-gles-probe/BlueWakeGlesProbe.nro ;;
         boot) script=build_probe.sh nro=build/switch-probe/BlueWakeSwitchProbe.nro ;;
