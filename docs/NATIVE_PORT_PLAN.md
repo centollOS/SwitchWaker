@@ -151,3 +151,7 @@ Each phase lands as its own commits; this file records decisions and measured re
   global class `l_HIO`); `d_a_ph`'s two case-bypassed `speed` locals are declared then assigned;
   `d_a_obj_search` passes a named `GXColor` to `dComIfGd_setAlphaModelColor(GXColor&)`;
   `d_a_player_rope.inc` calls `abs((int)u32)`, since only MSL's `abs(int)` made it unambiguous.
+- **actors-6:** 71/71 units (`d_a_shop_item` .. `d_a_yougan`, sorted indices 370-440) compile,
+  0 deferred; on by default. 15 errors in 13 units, all known idioms: `setUserArea` casts
+  through `uintptr_t` (13 sites in 11 files, `TODO(native phase 4)`); `d_a_tag_hint` and
+  `d_a_tag_island` declare and define `next_msgStatus` with `u32*` under `TARGET_PC`.

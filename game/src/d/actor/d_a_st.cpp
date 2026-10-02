@@ -2877,7 +2877,12 @@ static cPhs_State daSt_Create(fopAc_ac_c* a_this) {
                 i_this->m02B9 = 0xFF;
             }
         }
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        i_this->mpMorf->getModel()->setUserArea((uintptr_t)a_this);
+#else
         i_this->mpMorf->getModel()->setUserArea((u32)a_this);
+#endif
         e_this->initBt(162.5f, 125.0f);
         a_this->attention_info.flags = fopAc_Attn_LOCKON_BATTLE_e;
         fopAcM_OnStatus(a_this, fopAcStts_SHOWMAP_e);

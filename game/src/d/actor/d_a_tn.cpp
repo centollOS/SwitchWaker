@@ -3895,7 +3895,12 @@ static BOOL useHeapInit(fopAc_ac_c* a_this) {
         0x11020203
     );
     model = i_this->mpBodyMorf->getModel();
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    model->setUserArea((uintptr_t)i_this);
+#else
     model->setUserArea((u32)i_this);
+#endif
     int r3;
     for (u16 i = 0; i <= ARRAY_SSIZE(joint_check) - 1; i++) {
         r3 = joint_check[i];
@@ -3924,7 +3929,12 @@ static BOOL useHeapInit(fopAc_ac_c* a_this) {
         0x11020203
     );
     model = i_this->mpShieldMorf->getModel();
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    model->setUserArea((uintptr_t)i_this);
+#else
     model->setUserArea((u32)i_this);
+#endif
     model->getModelData()->getJointNodePointer(TN_MAIN_JNT_J_TN_MUNE1_e)->setCallBack(nodeCallBack_kata);
     i_this->mpBrkAnm = new mDoExt_brkAnm();
     if (i_this->mpBrkAnm == NULL) {

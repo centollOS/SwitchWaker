@@ -2414,7 +2414,12 @@ static BOOL useHeapInit(fopAc_ac_c* i_this) {
         return FALSE;
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    model->setUserArea((uintptr_t)a_this);
+#else
     model->setUserArea((u32)a_this);
+#endif
     for (u16 i = 0; i < a_this->mpMorf->getModel()->getModelData()->getJointNum(); i++) {
         a_this->mpMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack);
     }
@@ -2456,7 +2461,12 @@ static BOOL useHeapInit(fopAc_ac_c* i_this) {
         return FALSE;
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    rodModel->setUserArea((uintptr_t)a_this);
+#else
     rodModel->setUserArea((u32)a_this);
+#endif
     for (u16 i = 0; i < a_this->mpRodMorf->getModel()->getModelData()->getJointNum(); i++) {
         a_this->mpRodMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(rod_nodeCallBack);
     }

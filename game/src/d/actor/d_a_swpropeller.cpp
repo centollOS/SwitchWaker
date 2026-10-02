@@ -70,7 +70,12 @@ BOOL daSwProp_c::CreateHeap() {
     JUT_ASSERT(DEMO_SELECT(255, 257), modelData != NULL);
     mpModel = mDoExt_J3DModel__create(modelData, 0x80000, 0x11000022);
     if (mpModel == NULL) return FALSE;
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpModel->setUserArea((uintptr_t)this);
+#else
     mpModel->setUserArea((u32)this);
+#endif
     return TRUE;
 }
 

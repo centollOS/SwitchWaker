@@ -478,7 +478,12 @@ void daTag_Hint_c::startProc() {
 }
 
 /* 000018A4-000018AC       .text next_msgStatus__12daTag_Hint_cFPUl */
+#if TARGET_PC
+// u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+u16 daTag_Hint_c::next_msgStatus(u32*) {
+#else
 u16 daTag_Hint_c::next_msgStatus(unsigned long*) {
+#endif
     return 16;
 }
 

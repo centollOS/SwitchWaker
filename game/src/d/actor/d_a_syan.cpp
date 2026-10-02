@@ -237,7 +237,12 @@ static cPhs_State daSyan_Create(fopAc_ac_c* i_ac) {
             fopAcM_SetMin(i_this, -1000.0f, -5000.0f, -1000.0f);
             fopAcM_SetMax(i_this, 1000.0f, 5000.0f, 1000.0f);
             fopAcM_SetMtx(i_this, i_this->morf->getModel()->getBaseTRMtx());
+#if TARGET_PC
+            // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+            model->setUserArea((uintptr_t)i_this);
+#else
             model->setUserArea((u32)i_this);
+#endif
             i_this->field_0x2b8 = 200.0f;
 
             static s16 fire_time[] = { 0, 5, 10, 15, 20, 25 };

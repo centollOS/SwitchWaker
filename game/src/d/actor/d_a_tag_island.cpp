@@ -136,7 +136,12 @@ void daTag_Island_c::demoInitProc() {
 }
 
 /* 00000550-00000558       .text next_msgStatus__14daTag_Island_cFPUl */
+#if TARGET_PC
+// u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+int daTag_Island_c::next_msgStatus(u32*) {
+#else
 int daTag_Island_c::next_msgStatus(unsigned long*) {
+#endif
     return fopMsgStts_MSG_ENDS_e;
 }
 

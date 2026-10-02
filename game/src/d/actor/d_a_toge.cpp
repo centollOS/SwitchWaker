@@ -77,7 +77,12 @@ BOOL daToge_c::CreateHeap() {
         return FALSE;
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpModel->setUserArea((uintptr_t)this);
+#else
     mpModel->setUserArea((u32)this);
+#endif
 
     mpBgW1 = dBgW_NewSet((cBgD_t*)dComIfG_getObjectRes(m_arcname, dRes_INDEX_HTOGE1_DZB_HTOGE1A_e), cBgW::MOVE_BG_e, &mtx1);
     mpBgW2 = dBgW_NewSet((cBgD_t*)dComIfG_getObjectRes(m_arcname, dRes_INDEX_HTOGE1_DZB_HTOGE1B_e), cBgW::MOVE_BG_e, &mtx2);
