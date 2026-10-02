@@ -19,7 +19,12 @@ extern "C" void* OSGetCallerPC(int param_0) {
     u32* stack = (u32*)OSGetStackPointer();
     for (u32 i = 0; i <= param_0; i++) {
         stack = (u32*)stack[0];
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; only the low 32 bits are used here.
+        if (stack == 0 || u32(uintptr_t(stack)) == 0xffffffff) {
+#else
         if (stack == 0 || u32(stack) == 0xffffffff) {
+#endif
             return NULL;
         }
     }
@@ -56,13 +61,23 @@ extern "C" int search_partial_address(void* address, int* module_id, int* sectio
         for (i = 0; i < module->numSections; section++, i++) {
             if (section->size != 0) {
                 addr = section->offset & ~0x01;
+#if TARGET_PC
+                // TODO(native phase 4): pointers are 64-bit on the host; only the low 32 bits are used here.
+                if ((addr <= (u32)(uintptr_t)address) && (u32)(uintptr_t)address < (addr + section->size)) {
+#else
                 if ((addr <= (u32)address) && (u32)address < (addr + section->size)) {
+#endif
                     if (module_id != NULL)
                         *module_id = module->id;
                     if (section_id != NULL)
                         *section_id = i;
                     if (section_offset)
+#if TARGET_PC
+                        // TODO(native phase 4): pointers are 64-bit on the host; only the low 32 bits are used here.
+                        *section_offset = (u32)(uintptr_t)address - addr;
+#else
                         *section_offset = (u32)address - addr;
+#endif
                     if (name_offset)
                         *name_offset = module->nameOffset;
                     return 0;
@@ -82,7 +97,12 @@ extern "C" u32 convert_partial_address(void* param_0) {
     if (search_partial_address(param_0, &param_1, &param_2, &param_3, NULL) == 0) {
         return (param_2 << 28) + (param_3 & 0x01FFFFFF);
     } else {
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; only the low 32 bits are used here.
+        return (u32)(uintptr_t)param_0;
+#else
         return (u32)param_0;
+#endif
     }
 }
 
@@ -218,7 +238,12 @@ void OSPanic(const char* file, s32 line, const char* fmt, ...) {
     OSReport(" in \"%s\" on line %d.\n", file, line);
 
     OSReport("\nAddress:      Back Chain    LR Save\n");
+#if TARGET_PC
+    // TODO(native phase 4): pointers are 64-bit on the host; only the low 32 bits are used here.
+    for (i = 0, p = (u32*)OSGetStackPointer(); p && (u32)(uintptr_t)p != 0xFFFFFFFF && i++ < 16; p = (u32*)*p) {
+#else
     for (i = 0, p = (u32*)OSGetStackPointer(); p && (u32)p != 0xFFFFFFFF && i++ < 16; p = (u32*)*p) {
+#endif
         OSReport("0x%08x:   0x%08x    0x%08x\n", p, p[0], p[1]);
     }
 

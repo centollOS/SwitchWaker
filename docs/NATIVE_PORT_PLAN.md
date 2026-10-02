@@ -98,3 +98,9 @@ Each phase lands as its own commits; this file records decisions and measured re
   `uintptr_t` under `TARGET_PC` (`TODO(native phase 3/4)`). Original bugs left for phase 4:
   `-Wfortify-source` strcpy overflows in `f_op_msg_mng.cpp` (Rupee strings) and missing returns
   in its `dummyfloat*` stubs.
+- **m_Do:** 17/17 units compile, 0 deferred; on by default. `print_f` in
+  `m_Do_machine_exception.cpp` runs `va_start`/`va_end` on `args.list` under `TARGET_PC` (MSL
+  allowed them on the `std::__tag_va_List` wrapper). The arena bounds in `mDoMch_Create` and the
+  stack walks and address checks in `m_Do_printf.cpp` (`OSGetCallerPC`, `search_partial_address`,
+  `convert_partial_address`, `OSPanic`) cast pointers through `uintptr_t` under `TARGET_PC`
+  (`TODO(native phase 4)`).

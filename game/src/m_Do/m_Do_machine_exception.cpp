@@ -18,9 +18,15 @@ static JUTConsole* sConsole;
 /* 8001BADC-8001BB68       .text print_f__FPCce */
 void print_f(const char* fmt, ...) {
     std::__tag_va_List args;
+#if TARGET_PC
+    va_start(args.list, fmt);
+    sConsole->print_f_va(fmt, &args);
+    va_end(args.list);
+#else
     va_start(args, fmt);
     sConsole->print_f_va(fmt, &args);
     va_end(args);
+#endif
 }
 
 /* 8001BB68-8001BB90       .text print__FPCc */

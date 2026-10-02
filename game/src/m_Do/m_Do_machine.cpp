@@ -512,13 +512,24 @@ bool mDoMch_Create() {
     JKRHeap::setDefaultDebugFill(mDoMch::mDebugFill);
     JFWSystem::setMaxStdHeap(1);
 
+#if TARGET_PC
+    // TODO(native phase 4): pointers are 64-bit on the host; only the low 32 bits are used here.
+    u32 arenaHi = (u32)(uintptr_t)OSGetArenaHi();
+    u32 arenaLo = (u32)(uintptr_t)OSGetArenaLo();
+#else
     u32 arenaHi = (u32)OSGetArenaHi();
     u32 arenaLo = (u32)OSGetArenaLo();
+#endif
     if (arenaHi > 0x81800000 && arenaHi - 0x1800000 > arenaLo) {
         OSSetArenaHi((void*)(arenaHi - 0x1800000));
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): pointers are 64-bit on the host; only the low 32 bits are used here.
+    u32 arenaSize = ((u32)(uintptr_t)OSGetArenaHi() - (u32)(uintptr_t)OSGetArenaLo()) - 0xF0;
+#else
     u32 arenaSize = ((u32)OSGetArenaHi() - (u32)OSGetArenaLo()) - 0xF0;
+#endif
 #if VERSION != VERSION_PAL
     if (OSGetConsoleSimulatedMemSize() >= 0x3000000) {
         arenaSize -= DEMO_SELECT(0x800000, 0x1000000);
