@@ -360,7 +360,12 @@ BOOL daGy_c::_createHeap() {
         return FALSE;
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpMorf->getModel()->setUserArea((u32)this);
+#endif
 
     if (!m2D8.create(mpMorf->getModel())) {
         return FALSE;
@@ -991,7 +996,13 @@ void daGy_c::modeAttackPlayer() {
         m4EC = l_HIO.mC4;
         mAimSpeedF = l_HIO.m58;
         cLib_addCalcAngleS2(&current.angle.y, cLib_targetAngleY(&current.pos, &player->current.pos), 8, 0x400);
+#if TARGET_PC
+        // A case label below jumps past this declaration; clang rejects jumping past an initializer.
+        f32 dist;
+        dist = (mD08 - player->current.pos).absXZ();
+#else
         f32 dist = (mD08 - player->current.pos).absXZ();
+#endif
         if (dist < l_HIO.m148) {
             mPrmIdx = 0xA;
             m928 += 1;

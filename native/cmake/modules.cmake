@@ -30,7 +30,8 @@ set(COS_MODULES_READY
         framework
         m_Do
         d-core
-        actors-1)
+        actors-1
+        actors-2)
 
 set(COS_ACTOR_CHUNKS 6)
 

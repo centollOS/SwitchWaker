@@ -1525,7 +1525,13 @@ static void defence0(gnd_class* i_this) {
         i_this->m2D0++;
         fopAcM_monsSeStart(actor, JA_SE_CV_GN_DEFENCE_2, 0);
         actor->speed.y = 33.0f + REG0_F(5);
+#if TARGET_PC
+        // A case label below jumps past this declaration; clang rejects jumping past an initializer.
+        f32 jump_speed;
+        jump_speed = 30.0f + REG0_F(6);
+#else
         f32 jump_speed = 30.0f + REG0_F(6);
+#endif
         actor->speedF = jump_speed;
         i_this->m2F8 = jump_speed;
         actor->current.angle.y = cM_atan2s(-actor->current.pos.x, -actor->current.pos.z);

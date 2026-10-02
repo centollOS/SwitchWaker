@@ -26,7 +26,12 @@ BOOL daLwood_c::CreateHeap() {
     if (mModel == NULL)
         return FALSE;
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mModel->setUserArea((uintptr_t)this);
+#else
     mModel->setUserArea((u32)this);
+#endif
     setMoveBGMtx();
     cBgD_t* bgp = (cBgD_t*)dComIfG_getObjectRes(m_arcname, dRes_INDEX_LWOOD_DZB_ALWD_e);
     mpBgW = dBgW_NewSet(bgp, dBgW::MOVE_BG_e, &mtx);

@@ -613,7 +613,12 @@ static cPhs_State daKantera_Create(fopAc_ac_c* a_this) {
 
         fopAcM_SetMtx(a_this, i_this->mpModel1->getBaseTRMtx());
         fopAcM_setCullSizeBox(a_this, -60.0f, -100.0f, -60.0f, 60.0f, 50.0f, 60.0f);
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        model->setUserArea((uintptr_t)a_this);
+#else
         model->setUserArea((u32)a_this);
+#endif
         i_this->m2B0 = (s16)cM_rndF(100.0f);
         i_this->m2B4 = (s16)cM_rndF(100.0f);
         dKy_plight_set(&i_this->mPlight);

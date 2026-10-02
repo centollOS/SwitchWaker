@@ -87,7 +87,12 @@ BOOL daLlift_c::CreateHeap() {
         return FALSE;
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpModel->setUserArea((uintptr_t)this);
+#else
     mpModel->setUserArea((u32)this);
+#endif
     mpBgW = new dBgW();
     if (mpBgW) {
         cBgD_t* pData = (cBgD_t *)dComIfG_getObjectRes(m_arcname, dRes_INDEX_OLIFT_DZB_OLIFT_e);

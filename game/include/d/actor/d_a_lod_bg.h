@@ -22,7 +22,12 @@ public:
     const char* getArcName();
 #else
     void deleteModelData();
+#if TARGET_PC
+    // u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+    BOOL loadModelData(const char*, J3DModelData*&, JKRSolidHeap*&, u32&);
+#else
     BOOL loadModelData(const char*, J3DModelData*&, JKRSolidHeap*&, unsigned long&);
+#endif
     BOOL createModelData();
 #endif
     BOOL execCreateWait();

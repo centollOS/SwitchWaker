@@ -1256,12 +1256,25 @@ void mt_fight(mt_class* i_this) {
             angs[4] = -0x6000;
         }
 
+#if TARGET_PC
+        // Later case labels jump past this reference's initialization, which clang rejects
+        // (MWCC accepts it); scope it to the statement that uses it.
+        {
+            dAttention_c& attn = dComIfGp_getAttention();
+            if (attn.Lockon() && actor == attn.LockonTarget(0)) {
+                mt_count = 0;
+            } else {
+                mt_count++;
+            }
+        }
+#else
         dAttention_c& attn = dComIfGp_getAttention();
         if (attn.Lockon() && actor == attn.LockonTarget(0)) {
             mt_count = 0;
         } else {
             mt_count++;
         }
+#endif
         if (mt_count >= 5) {
             mt_count -= 5;
         }
@@ -2031,7 +2044,15 @@ static BOOL daMt_Execute(mt_class* i_this) {
             if (i_this->m18FA == 0) {
                 i_this->speedF *= 0.1f;
                 i_this->speed.y = 0.0f;
+#if TARGET_PC
+                // clang rejects taking the address of a temporary; name it (same lifetime: this statement).
+                {
+                    cXyz pillar_pos(pos_x, lava_y, pos_z);
+                    fopKyM_createMpillar(&pillar_pos, 0.5f);
+                }
+#else
                 fopKyM_createMpillar(&cXyz(pos_x, lava_y, pos_z), 0.5f);
+#endif
             }
             i_this->m18FA = 1;
             i_this->gravity = -0.5f;
@@ -2604,7 +2625,12 @@ static BOOL CallbackCreateHeap(fopAc_ac_c* i_this) {
             tex_anm_set(actor, 0);
         }
 
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        model->setUserArea((uintptr_t)actor);
+#else
         model->setUserArea((u32)actor);
+#endif
 
         for (u16 jntNo = 0; jntNo < modelData->getJointNum(); jntNo++) {
             if (i == 0) {
@@ -2762,7 +2788,12 @@ static BOOL useHeapInit(mt_class* i_this) {
             tex_anm_set(i_this, 0);
         }
 
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        model->setUserArea((uintptr_t)i_this);
+#else
         model->setUserArea((u32)i_this);
+#endif
 
         for (u16 jntNo = 0; jntNo < modelData->getJointNum(); jntNo++) {
             if (i == 0) {

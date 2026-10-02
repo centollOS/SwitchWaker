@@ -517,7 +517,12 @@ static dCcD_SrcCps l_at_cps_src = {
 cPhs_State daHookshot_c::create() {
     fopAcM_ct(this, daHookshot_c);
     
+#if TARGET_PC
+    // TODO(native phase 4): J3DPacket::setUserArea takes a u32; it cannot hold a 64-bit pointer.
+    mShape.setUserArea(reinterpret_cast<uintptr_t>(this));
+#else
     mShape.setUserArea(reinterpret_cast<u32>(this));
+#endif
     mLinChk.ClrSttsRoofOff();
     procWait_init(FALSE);
     gravity = -5.0f;

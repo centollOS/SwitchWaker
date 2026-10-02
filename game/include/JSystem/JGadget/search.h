@@ -4,6 +4,7 @@
 #include <iterator.h>
 #include <functional.h>
 #include <algorithm.h>
+#include "dolphin/types.h"
 
 namespace JGadget {
 

@@ -578,7 +578,11 @@ static u8 __THPReadHuffmanTableSpecification() {
     u16 length, num_Vij;
 
     __THPHuffmanSizeTab = __THPWorkArea;
+#if TARGET_PC
+    __THPHuffmanCodeTab = (u16*)((uintptr_t)__THPWorkArea + 256 + 1);
+#else
     __THPHuffmanCodeTab = (u16*)((u32)__THPWorkArea + 256 + 1);
+#endif
     length              = (u16)((__THPInfo->c)[0] << 8 | (__THPInfo->c)[1]);
     __THPInfo->c += 2;
     length -= 2;
@@ -681,8 +685,14 @@ static void __THPPrepBitStream() {
     u32* ptr;
     u32 offset, i, j, k;
 
+#if TARGET_PC
+    // Pointer/integer casts through uintptr_t; ~3 is 0xFFFFFFFC on the 32-bit original.
+    ptr    = (u32*)((uintptr_t)__THPInfo->c & ~(uintptr_t)3);
+    offset = (u32)((uintptr_t)__THPInfo->c & 3);
+#else
     ptr    = (u32*)((u32)__THPInfo->c & 0xFFFFFFFC);
     offset = (u32)__THPInfo->c & 3;
+#endif
 
     if (__THPInfo->cnt != 33) {
         __THPInfo->cnt -= (3 - offset) * 8;
@@ -1759,7 +1769,12 @@ static void __THPHuffDecodeDCTCompY(register THPFileInfo* info, THPCoeff* block)
 
             _FailedCheckEnoughBits:
                 cnt += 5;
+#if TARGET_PC
+                // TODO(native phase 4): the address is truncated to 32 bits; it only feeds the PowerPC asm below.
+                maxcodebase = (u32)(uintptr_t) & (h->maxCode);
+#else
                 maxcodebase = (u32) & (h->maxCode);
+#endif
                 // clang-format off
 #ifdef __MWERKS__
                 asm {
@@ -1900,7 +1915,12 @@ static void __THPHuffDecodeDCTCompY(register THPFileInfo* info, THPCoeff* block)
             goto _DoneDecodeTab;
 
         _Read4 : {
+#if TARGET_PC
+            // TODO(native phase 4): the address is truncated to 32 bits; it only feeds the PowerPC asm below.
+            register u32 maxcodebase = (u32)(uintptr_t) & (h->maxCode);
+#else
             register u32 maxcodebase = (u32) & (h->maxCode);
+#endif
             register u32 tmp2;
 
             // clang-format off
@@ -1937,7 +1957,12 @@ static void __THPHuffDecodeDCTCompY(register THPFileInfo* info, THPCoeff* block)
             register u32 tmp2;
             register u32 tmp3;
             code = (s32)(cb & (~mask));
+#if TARGET_PC
+            // TODO(native phase 4): the address is truncated to 32 bits; it only feeds the PowerPC asm below.
+            mask = (u32)(uintptr_t) & (h->maxCode);
+#else
             mask = (u32) & (h->maxCode);
+#endif
 
             // clang-format off
 #ifdef __MWERKS__
@@ -2101,7 +2126,12 @@ _done:
         register u32 tmp2;
 
     _FailedCheckEnoughBits:
+#if TARGET_PC
+        // TODO(native phase 4): the address is truncated to 32 bits; it only feeds the PowerPC asm below.
+        maxcodebase = (u32)(uintptr_t) & (h->maxCode);
+#else
         maxcodebase = (u32) & (h->maxCode);
+#endif
         cnt += 5;
 
         // clang-format off
@@ -2205,7 +2235,12 @@ _FCEB_Done:
     return tmp;
 
 _Read4 : {
+#if TARGET_PC
+    // TODO(native phase 4): the address is truncated to 32 bits; it only feeds the PowerPC asm below.
+    register u32 maxcodebase = (u32)(uintptr_t) & (h->maxCode);
+#else
     register u32 maxcodebase = (u32) & (h->maxCode);
+#endif
     register u32 tmp2;
 
     // clang-format off
@@ -2287,7 +2322,12 @@ _FailedCheckNoBits1:
     register u32 tmp2;
 
     code = (s32)(cb & (~mask));
+#if TARGET_PC
+    // TODO(native phase 4): the address is truncated to 32 bits; it only feeds the PowerPC asm below.
+    mask = (u32)(uintptr_t) & (h->maxCode);
+#else
     mask = (u32) & (h->maxCode);
+#endif
 
     // clang-format off
 #ifdef __MWERKS__
@@ -3780,7 +3820,11 @@ static s32 daMP_WaitUntilPrepare() {
     OSMessage msg;
     OSReceiveMessage(&daMP_PrepareReadyQueue, &msg, 1);
     
+#if TARGET_PC
+    if ((uintptr_t)msg) {
+#else
     if ((u32)msg) {
+#endif
         return TRUE;
     } else {
         return FALSE;

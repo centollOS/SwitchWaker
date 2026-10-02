@@ -408,7 +408,12 @@ static BOOL CallbackCreateHeap(fopAc_ac_c* base) {
     if (actor->mpModel == NULL) {
         return FALSE;
     }
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    actor->mpModel->setUserArea((uintptr_t)actor);
+#else
     actor->mpModel->setUserArea((u32)actor);
+#endif
     for (u16 i = 0; i < data->getJointNum(); ++i) {
         if (i == 1) {
             data->getJointNodePointer(i)->setCallBack(nodeCallBack_main);
@@ -425,7 +430,12 @@ static BOOL CallbackCreateHeap(fopAc_ac_c* base) {
     for (int i = 0; i < 2; ++i) {
         actor->mpPulley[i] = new mDoExt_McaMorf((J3DModelData*)dComIfG_getObjectRes("Klft", dRes_INDEX_KLFT_BDL_VPBOT_00_e), NULL, NULL, NULL, 2, 1.0f, 0, -1, 0, NULL, 0, 0x11020203);
         J3DModel* model = actor->mpPulley[i]->getModel();
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        model->setUserArea((uintptr_t)actor);
+#else
         model->setUserArea((u32)actor);
+#endif
         for (u16 j = 0; j < model->getModelData()->getJointNum(); ++j) {
             if (j == 3) {
                 model->getModelData()->getJointNodePointer(j)->setCallBack(nodeCallBack);

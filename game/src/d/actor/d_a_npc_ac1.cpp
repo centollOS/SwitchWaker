@@ -714,17 +714,32 @@ BOOL daNpc_Ac1_c::CreateHeap() {
             if (i == m_wngL1_jnt_num || i == m_wngR1_jnt_num)
                 mpWingMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Wng);
         }
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        mpWingMorf->getModel()->setUserArea((uintptr_t)this);
+#else
         mpWingMorf->getModel()->setUserArea((u32)this);
+#endif
         for (u16 i = 0; i < arm->getJointNum(); i++) {
             if (i == m_armL1_jnt_num || i == m_armR1_jnt_num)
                 mpArmMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Arm);
         }
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        mpArmMorf->getModel()->setUserArea((uintptr_t)this);
+#else
         mpArmMorf->getModel()->setUserArea((u32)this);
+#endif
         for (u16 i = 0; i < data->getJointNum(); i++) {
             if (i == m_hed_jnt_num || i == m_bbone_jnt_num || i == m_arm_L_jnt_num || i == m_arm_R_jnt_num)
                 mpMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Ac1);
         }
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        mpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
         mpMorf->getModel()->setUserArea((u32)this);
+#endif
         mAcchCir.SetWall(30.0f, 50.0f);
         mObjAcch.Set(fopAcM_GetPosition_p(this), fopAcM_GetOldPosition_p(this), this, 1, &mAcchCir, fopAcM_GetSpeed_p(this), NULL, NULL);
         return TRUE;

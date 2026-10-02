@@ -120,3 +120,13 @@ Each phase lands as its own commits; this file records decisions and measured re
   `next_msgStatus(unsigned long*)` (`d_a_dai.h`, `d_a_bigelf`) takes `u32*` under `TARGET_PC`.
   `JGadget::binary` iterators' `operator!=` compares `mBegin` directly under `TARGET_PC`: the
   hidden-friend `operator==` is not found by ADL on the base-class arguments.
+- **actors-2:** 74/74 units (`d_a_floor` .. `d_a_npc_aj1`, sorted indices 74-147) compile, 0
+  deferred; on by default. Same idioms as actors-1: `setUserArea` casts through `uintptr_t` (24
+  sites, `TODO(native phase 4)`), case-bypassed locals declared then assigned (`d_a_gy`, `d_a_gnd`,
+  `d_a_kamome`; in `d_a_mt` the bypassed `dAttention_c&` is scoped to its one statement),
+  `u32*`/`u32&` instead of `unsigned long` in `d_a_npc_ah.h`, `d_a_npc_aj1.h` and `d_a_lod_bg.h`.
+  `d_a_mt` names the `cXyz` temporary whose address it passes. `JGadget/search.h` includes
+  `dolphin/types.h` (it used `s32` without it). `d_a_movie_player`'s THP decoder casts its
+  addresses through `uintptr_t`; its Huffman/IDCT paths are PowerPC asm under `#ifdef __MWERKS__`
+  with no C fallback in the decomp, so on PC they are still empty. Dusklight replaces that decoder
+  under `TARGET_PC`; that belongs with the SDK work (phase 2), not here.
