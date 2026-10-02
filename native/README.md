@@ -89,3 +89,36 @@ mkdir -p build/native-mac/assets/GZLE01/include
 cp -R <decomp>/assets/GZLE01/res build/native-mac/assets/GZLE01/
 cp -R <decomp>/build/GZLE01/include/assets build/native-mac/assets/GZLE01/include/
 ```
+
+## Aurora (phase 2)
+
+Phase 2 builds the GameCube SDK over [Aurora](https://github.com/encounter/aurora) (MIT), the
+library Dusklight uses: `native/cmake/Aurora.cmake` pulls it in with FetchContent at Dusklight's
+pin, `3227d76`, behind `COS_WITH_AURORA` (off by default until step 2.8 of
+`docs/NATIVE_PORT_PHASE2_3.md`). As in Dusklight, GX, DVD, CARD and THP are on and `aurora_mtx` is
+built with `MTX_USE_PS=1`; RmlUi, Aurora's examples and its tests are off. On darwin-arm64 Dawn and
+nod come from Aurora's prebuilt packages (`AURORA_DAWN_PROVIDER` / `AURORA_NOD_PROVIDER` =
+`package`), so neither a Dawn source build nor Rust is needed.
+
+The first configure needs the network: Aurora (unless a local checkout is given), the Dawn and nod
+packages, SDL3, abseil, fmt, xxhash, imgui and Tracy are fetched into the build directory. Aurora
+takes libpng, Freetype, zlib, SQLite and zstd from the system (Homebrew) when found.
+
+```sh
+cmake -S native -B build/native-mac -G Ninja -DCOS_WITH_AURORA=ON
+ninja -C build/native-mac aurora_core aurora_gx aurora_gd aurora_os aurora_vi aurora_pad \
+    aurora_si aurora_mtx aurora_dvd aurora_card aurora_thp aurora_main
+```
+
+With a local clone of Aurora that contains the pin (such as `ref/aurora`), use CMake's own
+override instead of cloning; the configure warns if that checkout is not at the pin:
+
+```sh
+git -C ref/aurora worktree add --detach "$PWD/build/aurora-3227d76" 3227d76
+cmake -S native -B build/native-mac -G Ninja -DCOS_WITH_AURORA=ON \
+    -DFETCHCONTENT_SOURCE_DIR_AURORA="$PWD/build/aurora-3227d76"
+```
+
+The SDK libraries the game will link are listed in `COS_AURORA_LIBS`. The game flags
+(`TARGET_PC`, `-fno-exceptions`, the force-included PC config header) live on the interface target
+`cos_game_headers` and never reach Aurora.

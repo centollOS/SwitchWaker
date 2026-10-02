@@ -51,6 +51,8 @@ include(cmake/GameConfig.cmake)
 include(cmake/deferred.cmake)
 # One OBJECT library per module, each behind a COS_MODULE_<name> option.
 include(cmake/modules.cmake)
+# Aurora, the GameCube SDK over WebGPU (phase 2), behind COS_WITH_AURORA.
+include(cmake/Aurora.cmake)
 
 # Scaffold check: proves the toolchain, the include paths and the PC config header work.
 add_library(cos_scaffold_check OBJECT

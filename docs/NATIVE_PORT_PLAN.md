@@ -157,3 +157,12 @@ Each phase lands as its own commits; this file records decisions and measured re
   0 deferred; on by default. 15 errors in 13 units, all known idioms: `setUserArea` casts
   through `uintptr_t` (13 sites in 11 files, `TODO(native phase 4)`); `d_a_tag_hint` and
   `d_a_tag_island` declare and define `next_msgStatus` with `u32*` under `TARGET_PC`.
+
+## Phase 2 log
+
+- **2.1 Aurora:** `native/cmake/Aurora.cmake` fetches Aurora at `3227d76` behind `COS_WITH_AURORA`
+  (default OFF), with Dusklight's options (GX, DVD, CARD, THP on; RmlUi off; `aurora_mtx` with
+  `MTX_USE_PS=1`) and prebuilt Dawn/nod packages on darwin-arm64. All Aurora SDK libraries build;
+  MIT notice in `RIGHTS_AND_LICENSES.md`. Deviation: off GEKKO, Aurora's `<dolphin/mtx.h>` maps
+  `PSMTX*` to `C_MTX*` by macro, so `libaurora_mtx.a` exports `_C_MTXConcat`, not `_PSMTXConcat`;
+  the 2.2 smoke test calls `PSMTXConcat` through the header instead of looking for the symbol.
