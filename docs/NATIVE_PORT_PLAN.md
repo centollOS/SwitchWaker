@@ -77,3 +77,8 @@ Each phase lands as its own commits; this file records decisions and measured re
   becomes a pointer again the base is not truncated. `OSCachedToPhysical`/`OSUncachedToPhysical`
   in `OS.h` fixed at the macro. `J3DMaterialFactory_v21::create`'s declaration spells `u32` like
   its definition (was `unsigned long`, MWCC's `u32`).
+- **JSystem-2D-particle:** 26/26 units (J2DGraph 8, JParticle 18; JRenderer already in
+  JSystem-core) compile, 0 deferred; on by default. Only `J2DPrint.cpp` needed changes: the
+  pointer differences compared as `u32` in `parse` and the hex-length checks of
+  `getNumberS32`/`getNumberF32` cast each pointer through `uintptr_t` under `TARGET_PC`
+  (`TODO(native phase 4)`); modulo-2^32 subtraction gives the original distance.
