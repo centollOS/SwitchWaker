@@ -23,56 +23,45 @@ static int fail(const char* what) {
     return 1;
 }
 
-static LIBMTP_folder_t* find_child(LIBMTP_folder_t* first, const char* name) {
-    for (LIBMTP_folder_t* folder = first; folder != NULL; folder = folder->sibling) {
-        if (strcmp(folder->name, name) == 0)
-            return folder;
-    }
-    return NULL;
-}
-
-// Resolves a slash-separated directory from the storage root, creating any
-// missing components when create is set. Returns 0 if it cannot.
-static uint32_t resolve_dir(uint32_t storage, const char* path, int create) {
-    LIBMTP_folder_t* folders = LIBMTP_Get_Folder_List_For_Storage(g_device, storage);
-    LIBMTP_folder_t* level = folders;
-    uint32_t parent = 0;
-    char* copy = strdup(path);
-    for (char* name = strtok(copy, "/"); name != NULL; name = strtok(NULL, "/")) {
-        LIBMTP_folder_t* match = find_child(level, name);
-        if (match != NULL) {
-            parent = match->folder_id;
-            level = match->child;
-            continue;
-        }
-        if (!create) {
-            parent = 0;
-            break;
-        }
-        char* created_name = strdup(name);
-        parent = LIBMTP_Create_Folder(g_device, created_name, parent, storage);
-        free(created_name);
-        if (parent == 0)
-            break;
-        level = NULL;
-    }
-    free(copy);
-    LIBMTP_destroy_folder_t(folders);
-    return parent;
-}
-
-static uint32_t find_file(uint32_t storage, uint32_t dir, const char* name) {
+// Returns the id of the named child of dir (a folder when want_folder is set,
+// a file otherwise), or 0. LIBMTP_FILES_AND_FOLDERS_ROOT lists the storage root.
+static uint32_t find_child(uint32_t storage, uint32_t dir, const char* name, int want_folder) {
     uint32_t id = 0;
     LIBMTP_file_t* files = LIBMTP_Get_Files_And_Folders(g_device, storage, dir);
     for (LIBMTP_file_t* file = files; file != NULL;) {
         LIBMTP_file_t* next = file->next;
-        if (id == 0 && file->filetype != LIBMTP_FILETYPE_FOLDER &&
-            strcmp(file->filename, name) == 0)
+        const int is_folder = file->filetype == LIBMTP_FILETYPE_FOLDER;
+        if (id == 0 && is_folder == want_folder && strcmp(file->filename, name) == 0)
             id = file->item_id;
         LIBMTP_destroy_file_t(file);
         file = next;
     }
     return id;
+}
+
+// Resolves a slash-separated directory from the storage root, creating any
+// missing components when create is set. Returns 0 if it cannot.
+static uint32_t resolve_dir(uint32_t storage, const char* path, int create) {
+    uint32_t dir = LIBMTP_FILES_AND_FOLDERS_ROOT;
+    char* copy = strdup(path);
+    for (char* name = strtok(copy, "/"); name != NULL; name = strtok(NULL, "/")) {
+        uint32_t child = find_child(storage, dir, name, 1);
+        if (child == 0 && create) {
+            char* created_name = strdup(name);
+            const uint32_t parent = dir == LIBMTP_FILES_AND_FOLDERS_ROOT ? 0 : dir;
+            child = LIBMTP_Create_Folder(g_device, created_name, parent, storage);
+            free(created_name);
+        }
+        dir = child;
+        if (dir == 0)
+            break;
+    }
+    free(copy);
+    return dir == LIBMTP_FILES_AND_FOLDERS_ROOT ? 0 : dir;
+}
+
+static uint32_t find_file(uint32_t storage, uint32_t dir, const char* name) {
+    return find_child(storage, dir, name, 0);
 }
 
 static int push(uint32_t storage, const char* local, const char* remote_dir,
@@ -134,7 +123,12 @@ int main(int argc, char** argv) {
         return 2;
     }
     LIBMTP_Init();
-    g_device = LIBMTP_Get_First_Device();
+    // Uncached: libmtp refuses per-folder listings on a cached device.
+    LIBMTP_raw_device_t* raw = NULL;
+    int raw_count = 0;
+    if (LIBMTP_Detect_Raw_Devices(&raw, &raw_count) == LIBMTP_ERROR_NONE && raw_count > 0)
+        g_device = LIBMTP_Open_Raw_Device_Uncached(&raw[0]);
+    free(raw);
     if (g_device == NULL) {
         fprintf(stderr, "switch_mtp: no MTP device; enable USB file transfer on the console\n");
         return 1;
