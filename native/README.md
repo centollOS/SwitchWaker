@@ -34,7 +34,7 @@ ninja -C build/native-mac cos_scaffold_check       # toolchain + base headers sa
 ```
 
 Each module is an `OBJECT` library behind an option, off until it compiles; the modules listed
-in `COS_MODULES_READY` (`cmake/modules.cmake`) compile and default to on (currently `SSystem`, `JSystem-core`, `JSystem-J3D`, `JSystem-2D-particle`, `JSystem-studio`):
+in `COS_MODULES_READY` (`cmake/modules.cmake`) compile and default to on (currently `SSystem`, `JSystem-core`, `JSystem-J3D`, `JSystem-2D-particle`, `JSystem-studio`, `framework`):
 
 | Target | Option | Sources (`game/src/...`) |
 | --- | --- | --- |
@@ -80,3 +80,12 @@ Units including `assets/...` or `res/Object/...` need the headers the decomp's b
 the player's disc. They go under `build/native-mac/assets/GZLE01/` (`include/assets/...` and
 `res/Object/...`, the layout of the decomp's `build/GZLE01/include` and `assets/GZLE01`), never in
 git; `-DCOS_ASSETS_DIR=` points elsewhere.
+
+From `framework` on, most units need them (`d/d_com_inf_game.h` includes `res/Object/Always.h`).
+With a built checkout of the decomp (`python configure.py && ninja` for GZLE01), copy them in:
+
+```sh
+mkdir -p build/native-mac/assets/GZLE01/include
+cp -R <decomp>/assets/GZLE01/res build/native-mac/assets/GZLE01/
+cp -R <decomp>/build/GZLE01/include/assets build/native-mac/assets/GZLE01/include/
+```

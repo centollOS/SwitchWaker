@@ -21,7 +21,12 @@ class JORServer;
 class JORMContext {
 public:
     void genCheckBox(const char* param_1, u8* param_2, u8 param_3, u32 param_4, JOREventListener* param_5, u16 param_6, u16 param_7, u16 param_8, u16 param_9) {
+#if TARGET_PC
+        // TODO(native phase 4): JOR passes the variable's address as a 32-bit value.
+        genCheckBoxSub(0x108, param_1, (u32)(uintptr_t)param_2, param_4, *param_2, param_3, param_5, param_6, param_7, param_8, param_9);
+#else
         genCheckBoxSub(0x108, param_1, (u32)param_2, param_4, *param_2, param_3, param_5, param_6, param_7, param_8, param_9);
+#endif
     }
     void genCheckBoxSub(u32, const char*, u32, u32, u16, u16, JOREventListener*, u16, u16, u16, u16);
 };

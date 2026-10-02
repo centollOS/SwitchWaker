@@ -26,7 +26,8 @@ set(COS_MODULES_READY
         JSystem-core
         JSystem-J3D
         JSystem-2D-particle
-        JSystem-studio)
+        JSystem-studio
+        framework)
 
 set(COS_ACTOR_CHUNKS 6)
 

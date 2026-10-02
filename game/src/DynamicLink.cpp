@@ -407,7 +407,12 @@ BOOL DynamicModuleControl::do_link() {
     if (mModule != NULL) {
         JUT_ASSERT(DEMO_SELECT(501, 613), mModule->info.sectionInfoOffset < 0x80000000);
 #if VERSION > VERSION_DEMO
+#if TARGET_PC
+        // TODO(native phase 3/4): REL modules are linked statically on the host; this checks a GameCube address range.
+        JUT_ASSERT(615, (u32)(uintptr_t)mModule + mModule->fixSize < 0x82000000);
+#else
         JUT_ASSERT(615, (u32)mModule + mModule->fixSize < 0x82000000);
+#endif
 #endif
         OSGetTime();
         OSGetTime();
@@ -415,7 +420,12 @@ BOOL DynamicModuleControl::do_link() {
             u32 fixSizePtr;
             u32 fixSize = mModule->fixSize;
             u32 fixSize2 = (fixSize + 0x1f) & ~0x1f;
+#if TARGET_PC
+            // TODO(native phase 3/4): a 32-bit address; REL loading is replaced by static modules on the host.
+            fixSizePtr = (u32)(uintptr_t)mModule + fixSize2;
+#else
             fixSizePtr = (u32)mModule + fixSize2;
+#endif
             s32 size = JKRGetMemBlockSize(NULL, mModule);
             if (size < 0) {
                 void* bss = JKRAlloc(mModule->bssSize, 0x20);
@@ -556,7 +566,12 @@ extern "C" void ModuleUnresolved() {
     OSReport_Error("Address:      Back Chain    LR Save\n");
     u32 i = 0;
     u32* stackPtr = (u32*)OSGetStackPointer();
+#if TARGET_PC
+    // TODO(native phase 4): walks the PowerPC back chain of 32-bit stack words.
+    while ((stackPtr != NULL) && ((u32)(uintptr_t)stackPtr != 0xFFFFFFFF) && (i++ < 0x10)) {
+#else
     while ((stackPtr != NULL) && ((u32)stackPtr != 0xFFFFFFFF) && (i++ < 0x10)) {
+#endif
         OSReport_Error("0x%08x:   0x%08x    0x%08x\n", stackPtr, *stackPtr, *(stackPtr + 1));
         stackPtr = (u32*)*stackPtr;
     }
