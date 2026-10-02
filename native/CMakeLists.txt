@@ -61,3 +61,17 @@ add_library(cos_scaffold_check OBJECT
         check/pc_check.cpp
         check/pc_check.c)
 target_link_libraries(cos_scaffold_check PRIVATE cos_game_headers)
+
+# SDK header check (phase 2, step 2.3): every SDK header name the decomp has, in one unit, against
+# the configured SDK headers (COS_SDK_HEADERS). In aurora mode, cos_sdk_shadow_check also proves
+# that none of them resolves under game/include/dolphin.
+add_library(cos_sdk_header_check OBJECT check/sdk_headers.cpp)
+target_link_libraries(cos_sdk_header_check PRIVATE cos_game_headers)
+if (COS_SDK_HEADERS STREQUAL "aurora")
+    target_compile_definitions(cos_sdk_header_check PRIVATE COS_SDK_HEADERS_AURORA=1)
+    add_custom_target(cos_sdk_shadow_check
+            COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/check/check_sdk_shadow.sh" "${CMAKE_BINARY_DIR}"
+            DEPENDS cos_sdk_header_check
+            USES_TERMINAL
+            COMMENT "Checking that no SDK header resolves under game/include/dolphin")
+endif ()

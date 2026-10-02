@@ -172,3 +172,16 @@ Each phase lands as its own commits; this file records decisions and measured re
   headless `cos_sdk_smoke`, whose tests self-register by name (`tests/smoke.h`), so 2.6a-f add files
   without touching shared ones. `cos_sdk_smoke` prints `ok` (`basic`: OSInit, OSGetTime,
   PSMTXConcat); Aurora's `OSInit` needs no `aurora_initialize` with the zeroed config.
+- **2.3 SDK header mode:** `COS_SDK_HEADERS=decomp|aurora` in `GameConfig.cmake` (default
+  `decomp` until 2.8; `aurora` needs `COS_WITH_AURORA=ON` and includes `Aurora.cmake` early, which
+  now has an include guard). Aurora order: `native/include` → `native/include/sdk` → Aurora
+  `include` → `game/include`, plus `MTX_USE_PS=1` and the force-included
+  `native/include/sdk/cos_sdk_extras.h` (`uint`, `READU32_BE`, `FLOAT_MIN/MAX`). Forwarders for the
+  16 game-only OS, MTX, VI and PAD names (`base/PPCArch.h` collides, so base needs none); game-only
+  declarations Aurora lacks are added once (`__OSReport_*`, `__OSModuleList`, `SVec`, `MtxP`,
+  `Mtx33`, `PADClampRegion`, `VI_3D`...), hardware registers and boot code left out, and
+  declarations Aurora has with another signature (`OSGetStackPointer`, `OSBootInfo`'s fields) left
+  to Aurora for 2.7. `global.h`, `DynamicLink.h` and `weak_bss_3569.h` include their SDK header with
+  `<>` under `TARGET_PC`: a quoted include there is looked up next to the header first, i.e. in
+  `game/include/dolphin`, whatever the `-I` order. `cos_sdk_header_check` builds in both
+  modes; `cos_sdk_shadow_check` (`check/check_sdk_shadow.sh`) passes for 55 names, 27 pending 2.4.

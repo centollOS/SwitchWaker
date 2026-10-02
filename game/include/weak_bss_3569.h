@@ -14,7 +14,13 @@ static inline void dummy_bss_3569() {
     bss_3569<void*>(); // @3569
 }
 #else
+#if TARGET_PC
+// A quoted include looks next to this file first, so it would reach game/include/dolphin
+// even when the SDK headers come from Aurora (COS_SDK_HEADERS=aurora); <> follows the -I order.
+#include <dolphin/mtx/mtx.h>
+#else
 #include "dolphin/mtx/mtx.h"
+#endif
 
 static inline void dummy_bss_3569() {
     Vec vec = (Vec){0.0f, 0.0f, 0.0f}; // @3569 / @3599

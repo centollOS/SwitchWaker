@@ -10,6 +10,10 @@
 #   cmake ... -DCOS_WITH_AURORA=ON -DFETCHCONTENT_SOURCE_DIR_AURORA=$PWD/build/aurora-3227d76
 # Aurora's own dependencies (Dawn, nod, SDL3, abseil, fmt, ...) are still fetched once into the
 # build directory; Dawn and nod come as prebuilt packages where Aurora publishes them.
+#
+# Included from GameConfig.cmake first when COS_SDK_HEADERS=aurora (it needs Aurora's include
+# directory), then again from CMakeLists.txt: the guard makes the second include a no-op.
+include_guard(GLOBAL)
 
 option(COS_WITH_AURORA "Fetch and build Aurora (the GameCube SDK over WebGPU)" OFF)
 

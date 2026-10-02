@@ -1,7 +1,13 @@
 #ifndef _global_h_
 #define _global_h_
 
+#if TARGET_PC
+// A quoted include looks next to this file first, so it would reach game/include/dolphin
+// even when the SDK headers come from Aurora (COS_SDK_HEADERS=aurora); <> follows the -I order.
+#include <dolphin/types.h>
+#else
 #include "dolphin/types.h"
+#endif
 
 #define ARRAY_SIZE(o) (sizeof(o) / sizeof(o[0]))
 #define ARRAY_SSIZE(o) ((int)(sizeof(o) / sizeof(o[0])))

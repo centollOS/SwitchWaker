@@ -126,3 +126,31 @@ The SDK libraries the game will link are listed in `COS_AURORA_LIBS`. The game f
 `native/sdk` holds the game-specific SDK over Aurora: the static library `cos_sdk` and its headless
 test `cos_sdk_smoke` (`native/cmake/sdk.cmake`, built only with `COS_WITH_AURORA=ON`); see
 `native/sdk/README.md`.
+
+### SDK headers (`COS_SDK_HEADERS`)
+
+Which SDK headers the game compiles against is the cache variable `COS_SDK_HEADERS`
+(`cmake/GameConfig.cmake`, decision D2 of `docs/NATIVE_PORT_PHASE2_3.md`):
+
+- `decomp` (the default until step 2.8): the decomp's own `game/include/dolphin`, as in
+  phase 1.
+- `aurora` (needs `COS_WITH_AURORA=ON`): Aurora's headers are the only SDK headers. The include
+  order is `native/include` → `native/include/sdk` → Aurora's `include` → `game/include`.
+  Aurora wins every header name both have (39 of the decomp's 82), so Aurora's own includes stay
+  consistent. `native/include/sdk/dolphin/**` holds forwarders for the names only the game has
+  (`dolphin/os/OS.h` → `<dolphin/os.h>` plus the game-only declarations Aurora lacks), and
+  `native/include/sdk/cos_sdk_extras.h`, force-included in every game unit, restores what the
+  decomp's `dolphin/types.h` had beyond Aurora's (`uint`, `READU32_BE`, `FLOAT_MIN`/`FLOAT_MAX`).
+  Hardware registers the decomp defines in its headers (`__VIRegs`, `OS_PI_INTR_*`...) are left
+  out on purpose. Until step 2.7 has migrated a module, it does not compile in this mode.
+
+`cos_sdk_header_check` compiles `check/sdk_headers.cpp`, which includes every SDK header name the
+decomp has, in either mode. In aurora mode, `cos_sdk_shadow_check` runs
+`check/check_sdk_shadow.sh`: it fails if any dependency of that unit resolves under
+`game/include/dolphin`, or if a name there is missing from the unit. The names whose
+forwarders are step 2.4 are still compiled in decomp mode only and reported as pending.
+
+```sh
+cmake -S native -B build/native-mac -G Ninja -DCOS_WITH_AURORA=ON -DCOS_SDK_HEADERS=aurora
+ninja -C build/native-mac cos_scaffold_check cos_sdk_header_check cos_sdk_shadow_check
+```

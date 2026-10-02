@@ -20,8 +20,34 @@ set(COS_GAME_COMPILE_DEFS
 # Same order as configure.py's -i list, minus the MSL/Runtime/MetroTRK directories: the host C
 # and C++ libraries replace MSL. native/include/pc/msl holds thin shims for the MSL-only header
 # names the game includes (algorithm.h, new.h...).
+#
+# SDK headers (docs/NATIVE_PORT_PHASE2_3.md, step 2.3, decision D2):
+# - decomp: the decomp's own dolphin/ headers under game/include (phase 1).
+# - aurora: Aurora's headers are the only SDK headers. native/include/sdk holds forwarders for the
+#   SDK header names only the game has (dolphin/os/OS.h -> <dolphin/os.h> + game-only declarations) and
+#   comes before Aurora, which wins every name both have, so Aurora's own includes stay
+#   consistent. game/include/dolphin must never be reached (check/check_sdk_shadow.sh).
+set(COS_SDK_HEADERS decomp CACHE STRING "SDK headers the game compiles against: decomp or aurora")
+set_property(CACHE COS_SDK_HEADERS PROPERTY STRINGS decomp aurora)
+if (COS_SDK_HEADERS STREQUAL "aurora")
+    if (NOT COS_WITH_AURORA)
+        message(FATAL_ERROR "COS_SDK_HEADERS=aurora needs COS_WITH_AURORA=ON")
+    endif ()
+    include(${CMAKE_CURRENT_LIST_DIR}/Aurora.cmake)
+    set(COS_SDK_INCLUDE_DIRS
+            ${COS_NATIVE_ROOT}/include/sdk
+            ${aurora_SOURCE_DIR}/include)
+    # As Dusklight compiles the game (GameABIConfig.cmake): PSMTX* resolve to aurora_mtx's C_MTX*.
+    list(APPEND COS_GAME_COMPILE_DEFS MTX_USE_PS=1)
+elseif (COS_SDK_HEADERS STREQUAL "decomp")
+    set(COS_SDK_INCLUDE_DIRS)
+else ()
+    message(FATAL_ERROR "COS_SDK_HEADERS must be decomp or aurora (got '${COS_SDK_HEADERS}')")
+endif ()
+
 set(COS_GAME_INCLUDE_DIRS
         ${COS_NATIVE_ROOT}/include
+        ${COS_SDK_INCLUDE_DIRS}
         ${COS_ROOT}/include
         ${COS_ASSETS_DIR}/include
         ${COS_ASSETS_DIR}
@@ -65,6 +91,13 @@ set(COS_GAME_COMPILE_OPTIONS
         -Wno-writable-strings
         # 64-bit diagnostics (int-to-pointer-cast, ...) stay visible on purpose: phase 4 input.
         -ferror-limit=50)
+
+if (COS_SDK_HEADERS STREQUAL "aurora")
+    # The game's dolphin/types.h reached every unit through global.h; its names Aurora lacks (uint,
+    # READU32_BE, FLOAT_MIN/MAX) come from this header instead, right after the PC config header.
+    list(APPEND COS_GAME_COMPILE_OPTIONS
+            "SHELL:-include ${COS_NATIVE_ROOT}/include/sdk/cos_sdk_extras.h")
+endif ()
 
 add_library(cos_game_headers INTERFACE)
 target_compile_definitions(cos_game_headers INTERFACE ${COS_GAME_COMPILE_DEFS})
