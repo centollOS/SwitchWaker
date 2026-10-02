@@ -1,10 +1,13 @@
 diff --git a/src/dawn/native/opengl/BackendGL.cpp b/src/dawn/native/opengl/BackendGL.cpp
 --- a/src/dawn/native/opengl/BackendGL.cpp
 +++ b/src/dawn/native/opengl/BackendGL.cpp
-@@ -97,8 +97,12 @@
+@@ -94,9 +94,14 @@
+         // Switch diagnostic only: device creation explicitly disables Dawn buffer robustness.
+         // Do not reuse this bypass for a production or untrusted-shader build.
          if (!display->egl->HasExt(EGLExt::FenceSync) &&
-             !display->egl->HasExt(EGLExt::ReusableSync) &&
-             !display->egl->HasExt(EGLExt::NativeFenceSync)) {
+-            !display->egl->HasExt(EGLExt::ReusableSync)) {
++            !display->egl->HasExt(EGLExt::ReusableSync) &&
++            !display->egl->HasExt(EGLExt::NativeFenceSync)) {
 +#if defined(__SWITCH__)
 +            // Diagnostic-only fallback: QueueGL uses glFinish for every submission.
 +#else
@@ -12,3 +15,5 @@ diff --git a/src/dawn/native/opengl/BackendGL.cpp b/src/dawn/native/opengl/Backe
                  "EGL_KHR_fence_sync or EGL_KHR_reusable_sync must be supported");
 +#endif
          }
+ 
+         Ref<PhysicalDevice> device;

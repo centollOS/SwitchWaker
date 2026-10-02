@@ -1,7 +1,0 @@
-diff --git a/absl/time/internal/cctz/src/time_zone_libc.cc b/absl/time/internal/cctz/src/time_zone_libc.cc
---- a/absl/time/internal/cctz/src/time_zone_libc.cc
-+++ b/absl/time/internal/cctz/src/time_zone_libc.cc
-@@ -63,2 +63,2 @@
- #elif defined(__native_client__) || defined(__myriad2__) || \
--    defined(__EMSCRIPTEN__)
-+    defined(__EMSCRIPTEN__) || defined(__SWITCH__)
