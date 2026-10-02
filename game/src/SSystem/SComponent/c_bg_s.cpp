@@ -153,6 +153,28 @@ void* cBgS::ConvDzb(void* work) {
         return pbgd;
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): offsets in the dzb are 32-bit; pointers here are 64-bit.
+    JUT_ASSERT(0x214, ((uintptr_t)pbgd->m_v_tbl % 4) == 0);
+    JUT_ASSERT(0x215, ((uintptr_t)pbgd->m_t_tbl % 2) == 0);
+    JUT_ASSERT(0x216, ((uintptr_t)pbgd->m_b_tbl % 2) == 0);
+    JUT_ASSERT(0x217, ((uintptr_t)pbgd->m_tree_tbl % 2) == 0);
+    JUT_ASSERT(0x218, ((uintptr_t)pbgd->m_g_tbl % 4) == 0);
+    JUT_ASSERT(0x219, ((uintptr_t)pbgd->m_ti_tbl % 4) == 0);
+
+    if (pbgd->m_v_tbl != NULL)
+        pbgd->m_v_tbl = (cBgD_Vtx_t*)((uintptr_t)pbgd->m_v_tbl + (uintptr_t)pbgd);
+
+    pbgd->m_t_tbl = (cBgD_Tri_t*)((uintptr_t)pbgd->m_t_tbl + (uintptr_t)pbgd);
+    pbgd->m_b_tbl = (cBgD_Blk_t*)((uintptr_t)pbgd->m_b_tbl + (uintptr_t)pbgd);
+    pbgd->m_tree_tbl = (cBgD_Tree_t*)((uintptr_t)pbgd->m_tree_tbl + (uintptr_t)pbgd);
+    pbgd->m_g_tbl = (cBgD_Grp_t*)((uintptr_t)pbgd->m_g_tbl + (uintptr_t)pbgd);
+    pbgd->m_ti_tbl = (cBgD_Ti_t*)((uintptr_t)pbgd->m_ti_tbl + (uintptr_t)pbgd);
+
+    for (s32 i = 0; i < pbgd->m_g_num; i++) {
+        pbgd->m_g_tbl[i].m_name = (char*)((uintptr_t)pbgd + (uintptr_t)pbgd->m_g_tbl[i].m_name);
+    }
+#else
     JUT_ASSERT(0x214, ((int)pbgd->m_v_tbl % 4) == 0);
     JUT_ASSERT(0x215, ((int)pbgd->m_t_tbl % 2) == 0);
     JUT_ASSERT(0x216, ((int)pbgd->m_b_tbl % 2) == 0);
@@ -172,6 +194,7 @@ void* cBgS::ConvDzb(void* work) {
     for (s32 i = 0; i < pbgd->m_g_num; i++) {
         pbgd->m_g_tbl[i].m_name = (char*)((u32)pbgd + (u32)pbgd->m_g_tbl[i].m_name);
     }
+#endif
 
     return pbgd;
 }

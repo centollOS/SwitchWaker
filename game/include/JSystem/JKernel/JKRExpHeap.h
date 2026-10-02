@@ -30,7 +30,12 @@ public:
         CMemBlock* getNextBlock() const { return mNext; }
         u32 getSize() const { return size; }
         u8 getGroupId() const { return mGroupId; }
+#if TARGET_PC
+        // TODO(native phase 4): the header is 0x10 bytes only with 32-bit pointers.
+        static CMemBlock* getBlock(void* data) { return (CMemBlock*)((uintptr_t)data + -0x10); }
+#else
         static CMemBlock* getBlock(void* data) { return (CMemBlock*)((u32)data + -0x10); }
+#endif
 
     private:
         /* 0x0 */ u16 mMagic;

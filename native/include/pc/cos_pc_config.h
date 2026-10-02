@@ -98,6 +98,19 @@ using ::sinf;
 using ::sqrtf;
 using ::tanf;
 } // namespace std
+
+/* ---- MSL's <stdarg.h> ----------------------------------------------------------------------- */
+/*
+ * MSL wraps va_list in std::__tag_va_List (same definition as MSL_Common/Include/stdarg.h);
+ * JSystem passes it by pointer (JUTDirectPrint::printSub, JUTConsole::print_f_va) and reads
+ * ->list. Same layout here over the host's va_list.
+ */
+#include <stdarg.h>
+namespace std {
+struct __tag_va_List {
+    va_list list;
+};
+} // namespace std
 #endif
 
 #endif /* COS_PC_CONFIG_H */

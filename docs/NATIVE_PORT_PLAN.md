@@ -57,3 +57,7 @@ Each phase lands as its own commits; this file records decisions and measured re
   `std::`), MSL header-name shims, 14 module targets covering all 840 in-scope units (off by
   default), `cos_defer()` list (empty). `s32`/`u32` are `int` under `TARGET_PC` and the intrinsic
   declarations in `global.h` are original-target only. Check target: 2/2 units, 0 deferred.
+- **SSystem:** 36/36 units compile, 0 deferred; module on by default (`COS_MODULES_READY`).
+  MSL's `std::__tag_va_List` added to the compat header; pointer-to-integer casts in
+  `JKRExpHeap::CMemBlock::getBlock` and `cBgS::ConvDzb` go through `uintptr_t` under `TARGET_PC`
+  (`TODO(native phase 4)`: 0x10 block header and 32-bit dzb offsets).
