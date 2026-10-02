@@ -122,3 +122,7 @@ cmake -S native -B build/native-mac -G Ninja -DCOS_WITH_AURORA=ON \
 The SDK libraries the game will link are listed in `COS_AURORA_LIBS`. The game flags
 (`TARGET_PC`, `-fno-exceptions`, the force-included PC config header) live on the interface target
 `cos_game_headers` and never reach Aurora.
+
+`native/sdk` holds the game-specific SDK over Aurora: the static library `cos_sdk` and its headless
+test `cos_sdk_smoke` (`native/cmake/sdk.cmake`, built only with `COS_WITH_AURORA=ON`); see
+`native/sdk/README.md`.

@@ -53,6 +53,8 @@ include(cmake/deferred.cmake)
 include(cmake/modules.cmake)
 # Aurora, the GameCube SDK over WebGPU (phase 2), behind COS_WITH_AURORA.
 include(cmake/Aurora.cmake)
+# cos_sdk, the game-specific SDK over Aurora, and its headless test cos_sdk_smoke (with Aurora only).
+include(cmake/sdk.cmake)
 
 # Scaffold check: proves the toolchain, the include paths and the PC config header work.
 add_library(cos_scaffold_check OBJECT
