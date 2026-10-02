@@ -5,8 +5,9 @@ copy it and its data to the console, and read its logs. There are two builds:
 
 - **headless** (the default): the game runs without graphics, sound or controls and reports its
   progress on screen and in a log. It proves the recompiled game code and runtime on the console.
-- **Aurora** (`--aurora`): with the GX renderer, the controller and sound. It is being ported and
-  has not yet run on the console.
+- **Aurora** (`--aurora`): with the GX renderer, the controller, sound and rumble. Aurora itself
+  runs on the console (picture through Dawn's OpenGL ES backend at 60 FPS, the controller through
+  the GameCube PAD API, sound and HD rumble); the game with Aurora has not run yet.
 
 Plan and status:
 [SWITCH_PORT_PLAN.md](SWITCH_PORT_PLAN.md), [SWITCH_IMPLEMENTATION_CHECKLIST.md](SWITCH_IMPLEMENTATION_CHECKLIST.md).
