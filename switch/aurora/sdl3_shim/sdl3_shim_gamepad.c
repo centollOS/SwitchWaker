@@ -1,4 +1,4 @@
-// SDL 3 gamepads for the Switch shim, over libnx HID. The console's main
+// SDL 3 gamepads for the Switch shim, over libnx HID, with HD rumble. The console's main
 // controller (handheld Joy-Cons or player 1: a Pro Controller or paired
 // Joy-Cons) is one SDL gamepad, instance 1. The event pump samples it on the
 // thread that polls events; the getters read that sample, so any thread may
@@ -32,6 +32,13 @@ static Mutex g_lock;
 static u64 g_buttons;
 static HidAnalogStickState g_sticks[2];
 
+// Rumble through HD rumble: handheld Joy-Cons, and player 1's paired
+// Joy-Cons or Pro Controller. The pump stops it when its duration ends.
+#define VIBRATION_TARGETS 3
+static HidVibrationDeviceHandle g_vibration[VIBRATION_TARGETS][2];
+static int g_vibration_count[VIBRATION_TARGETS];
+static u64 g_rumble_until;  // system tick; 0 when not rumbling
+
 static const struct {
     SDL_GamepadButton button;
     u64 mask;
@@ -57,8 +64,25 @@ void sdl3_shim_gamepad_init(void) {
         return;
     padConfigureInput(1, HidNpadStyleSet_NpadStandard);
     padInitializeDefault(&g_pad);
+    static const struct {
+        HidNpadIdType id;
+        HidNpadStyleTag style;
+        int handles;
+    } kTargets[VIBRATION_TARGETS] = {
+        {HidNpadIdType_Handheld, HidNpadStyleTag_NpadHandheld, 2},
+        {HidNpadIdType_No1, HidNpadStyleTag_NpadJoyDual, 2},
+        {HidNpadIdType_No1, HidNpadStyleTag_NpadFullKey, 1},
+    };
+    bool rumble = false;
+    for (int i = 0; i < VIBRATION_TARGETS; ++i) {
+        if (R_SUCCEEDED(hidInitializeVibrationDevices(g_vibration[i], kTargets[i].handles,
+                                                      kTargets[i].id, kTargets[i].style))) {
+            g_vibration_count[i] = kTargets[i].handles;
+            rumble = true;
+        }
+    }
     g_gamepad.properties = SDL_CreateProperties();
-    SDL_SetBooleanProperty(g_gamepad.properties, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, false);
+    SDL_SetBooleanProperty(g_gamepad.properties, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, rumble);
     SDL_SetBooleanProperty(g_gamepad.properties, SDL_PROP_GAMEPAD_CAP_RGB_LED_BOOLEAN, false);
     g_initialized = true;
 }
@@ -73,9 +97,31 @@ static void queue_device_event(Uint32 type) {
     sdl3_shim_queue_event(&event);
 }
 
+// Low band carries the low-frequency motor, high band the high-frequency one,
+// at the frequencies the console maker's own rumble defaults to.
+static void send_rumble(float low, float high) {
+    HidVibrationValue values[2];
+    for (int i = 0; i < 2; ++i) {
+        values[i].amp_low = low;
+        values[i].freq_low = 160.0f;
+        values[i].amp_high = high;
+        values[i].freq_high = 320.0f;
+    }
+    for (int i = 0; i < VIBRATION_TARGETS; ++i) {
+        if (g_vibration_count[i] > 0)
+            hidSendVibrationValues(g_vibration[i], values, g_vibration_count[i]);
+    }
+}
+
 void sdl3_shim_gamepad_pump(void) {
     if (!g_initialized)
         return;
+    mutexLock(&g_lock);
+    if (g_rumble_until != 0 && armGetSystemTick() >= g_rumble_until) {
+        g_rumble_until = 0;
+        send_rumble(0.0f, 0.0f);
+    }
+    mutexUnlock(&g_lock);
     padUpdate(&g_pad);
     const bool connected = padIsConnected(&g_pad);
     mutexLock(&g_lock);
@@ -270,15 +316,23 @@ const char* SDL_GetGamepadStringForAxis(SDL_GamepadAxis axis) {
     return kNames[axis];
 }
 
-// No rumble, LEDs or motion sensors yet.
 bool SDL_RumbleGamepad(SDL_Gamepad* gamepad, Uint16 low_frequency_rumble,
                        Uint16 high_frequency_rumble, Uint32 duration_ms) {
-    (void)gamepad;
-    (void)low_frequency_rumble;
-    (void)high_frequency_rumble;
-    (void)duration_ms;
-    return false;
+    if (gamepad != &g_gamepad)
+        return false;
+    mutexLock(&g_lock);
+    // As in SDL, zero intensity stops and a zero duration rumbles until the
+    // next call (Aurora's PAD_MOTOR_RUMBLE asks for exactly that).
+    send_rumble(low_frequency_rumble / 65535.0f, high_frequency_rumble / 65535.0f);
+    const bool off = low_frequency_rumble == 0 && high_frequency_rumble == 0;
+    g_rumble_until = off || duration_ms == 0
+                         ? 0
+                         : armGetSystemTick() + armNsToTicks((u64)duration_ms * 1000000ULL);
+    mutexUnlock(&g_lock);
+    return true;
 }
+
+// No LEDs or motion sensors yet.
 
 bool SDL_SetGamepadLED(SDL_Gamepad* gamepad, Uint8 red, Uint8 green, Uint8 blue) {
     (void)gamepad;
