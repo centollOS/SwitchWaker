@@ -137,3 +137,8 @@ Each phase lands as its own commits; this file records decisions and measured re
   `d_a_npc_p2` definition), so the virtual ones override `fopNpc_npc_c`'s again; `d_a_npc_ym1`'s
   `area_check` callback takes `u32`; `d_a_npc_bj1`'s `dist_xz`, bypassed by a `goto`, is declared
   then assigned.
+- **actors-4:** 74/74 units (`d_a_obj_barrel2` .. `d_a_obj_nest`, sorted indices 222-295)
+  compile, 0 deferred; on by default. Only 13 errors in 11 units, all known idioms:
+  `setUserArea` casts through `uintptr_t` (11 sites in 9 files, one of them a `J3DPacket` in
+  `d_a_obj_buoyflag`, `TODO(native phase 4)`); `d_a_obj_doguu.h`'s `next_msgStatus` takes `u32*`
+  under `TARGET_PC`; `d_a_obj_hcbh`'s case-bypassed `actor` local is declared then assigned.

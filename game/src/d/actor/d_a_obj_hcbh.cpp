@@ -187,7 +187,13 @@ void daObjHcbh_c::checkCollision() {
                 setup_break_condition(mCyl.GetTgHitAc());
                 break;
             case AT_TYPE_UNK8:
+#if TARGET_PC
+                // The later case label jumps past this declaration; clang rejects jumping past an initializer.
+                fopAc_ac_c* actor;
+                actor = mCyl.GetTgHitAc();
+#else
                 fopAc_ac_c* actor = mCyl.GetTgHitAc();
+#endif
                 if (actor != NULL && fopAcM_GetProfName(actor) == fpcNm_TN_e) {
                     mBreakType = 1;
                     setup_break_condition(mCyl.GetTgHitAc());

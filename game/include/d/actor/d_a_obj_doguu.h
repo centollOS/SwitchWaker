@@ -16,7 +16,12 @@ public:
     BOOL CreateHeap();
     void CreateInit();
     void set_mtx();
+#if TARGET_PC
+    // u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+    u16 next_msgStatus(u32*);
+#else
     u16 next_msgStatus(unsigned long*);
+#endif
     u32 getMsg();
     void setGoal(int);
     void setPlayerAngle(int);

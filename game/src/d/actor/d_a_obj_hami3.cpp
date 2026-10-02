@@ -51,7 +51,12 @@ BOOL daObjHami3::Act_c::CreateHeap() {
                 break;
             }
         }
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        field_0x2D4->setUserArea((uintptr_t)this);
+#else
         field_0x2D4->setUserArea((u32)this);
+#endif
     } else {
         return FALSE;
     }

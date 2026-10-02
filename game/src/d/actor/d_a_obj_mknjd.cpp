@@ -196,7 +196,12 @@ BOOL daObjMknjD::Act_c::CreateHeap() {
             }
         }
 
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        mMainMdl->setUserArea(reinterpret_cast<uintptr_t>(this));
+#else
         mMainMdl->setUserArea(reinterpret_cast<u32>(this));
+#endif
 
         int curTblIdx = 0;
         nameTable = mBreakMdl->getModelData()->getJointName();
@@ -214,7 +219,12 @@ BOOL daObjMknjD::Act_c::CreateHeap() {
             }
         }
 
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        mBreakMdl->setUserArea(reinterpret_cast<uintptr_t>(this));
+#else
         mBreakMdl->setUserArea(reinterpret_cast<u32>(this));
+#endif
         mMainMdlAlpha = 0xFF;
 
         return TRUE;

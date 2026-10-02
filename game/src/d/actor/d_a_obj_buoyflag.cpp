@@ -653,7 +653,12 @@ cPhs_State daObjBuoyflag::Act_c::_create() {
             mCyl.Set(M_cyl_src);
             mCyl.SetStts(&mStts);
         }
+#if TARGET_PC
+        // TODO(native phase 4): J3DPacket::setUserArea takes a u32; it cannot hold a 64-bit pointer.
+        mPacket.setUserArea((uintptr_t)this);
+#else
         mPacket.setUserArea((u32)this);
+#endif
         mPacket.init(this);
         m1124 = 0;
         m1128 = true;

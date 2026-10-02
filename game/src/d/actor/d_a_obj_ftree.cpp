@@ -1065,7 +1065,12 @@ bool daObjFtree::Act_c::create_heap() {
         return false;
     }
     J3DModel* modelS = mpMorf->getModel();
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    modelS->setUserArea((uintptr_t)this);
+#else
     modelS->setUserArea((u32)this);
+#endif
     mdl_dataS->getJointNodePointer(2)->setCallBack(Ftree_NodeCallBack_Effect);
     mdl_dataS->getJointNodePointer(3)->setCallBack(Ftree_NodeCallBack_M);
     mdl_dataS->getJointNodePointer(4)->setCallBack(Ftree_NodeCallBack_M);
@@ -1080,7 +1085,12 @@ bool daObjFtree::Act_c::create_heap() {
     if (mpModel == NULL) {
         return false;
     }
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpModel->setUserArea((uintptr_t)this);
+#else
     mpModel->setUserArea((u32)this);
+#endif
     mdl_dataL->getJointNodePointer(1)->setCallBack(Ftree_NodeCallBack_L);
 
     J3DAnmTevRegKey* brk_data = (J3DAnmTevRegKey*)dComIfG_getObjectRes(M_arcname, dRes_INDEX_VMR_BRK_VMRMZ_e);
