@@ -359,9 +359,19 @@ void J3DAnmFullLoader_v15::setAnmVtxColor(J3DAnmVtxColorFull* dst, const J3DAnmV
     void* indexPtr1 = JSUConvertOffsetToPtr<u16>(data, (void*)data->mVtxColorIndexPointerOffsets[1]);
 
     for (s32 i = 0; i < dst->mAnmTableNum[0]; i++)
+#if TARGET_PC
+        // TODO(native phase 4): mpData holds a 32-bit index from the file in a pointer-sized field.
+        dst->mAnmVtxColorIndexData[0][i].mpData = (void*)((intptr_t)indexPtr0 + (s32)(intptr_t)dst->mAnmVtxColorIndexData[0][i].mpData * 2);
+#else
         dst->mAnmVtxColorIndexData[0][i].mpData = (void*)((s32)indexPtr0 + (s32)dst->mAnmVtxColorIndexData[0][i].mpData * 2);
+#endif
     for (s32 i = 0; i < dst->mAnmTableNum[1]; i++)
+#if TARGET_PC
+        // TODO(native phase 4): mpData holds a 32-bit index from the file in a pointer-sized field.
+        dst->mAnmVtxColorIndexData[1][i].mpData = (void*)((intptr_t)indexPtr1 + (s32)(intptr_t)dst->mAnmVtxColorIndexData[1][i].mpData * 2);
+#else
         dst->mAnmVtxColorIndexData[1][i].mpData = (void*)((s32)indexPtr1 + (s32)dst->mAnmVtxColorIndexData[1][i].mpData * 2);
+#endif
 
     dst->mColorR = JSUConvertOffsetToPtr<u8>(data, (void*)data->mRValuesOffset);
     dst->mColorG = JSUConvertOffsetToPtr<u8>(data, (void*)data->mGValuesOffset);
@@ -609,9 +619,19 @@ void J3DAnmKeyLoader_v15::setAnmVtxColor(J3DAnmVtxColorKey* dst, const J3DAnmVtx
     void* indexPtr1 = JSUConvertOffsetToPtr<u16>(data, (void*)data->mVtxColorIndexPointerOffsets[1]);
 
     for (s32 i = 0; i < dst->mAnmTableNum[0]; i++)
+#if TARGET_PC
+        // TODO(native phase 4): mpData holds a 32-bit index from the file in a pointer-sized field.
+        dst->mAnmVtxColorIndexData[0][i].mpData = (void*)((intptr_t)indexPtr0 + (s32)(intptr_t)dst->mAnmVtxColorIndexData[0][i].mpData * 2);
+#else
         dst->mAnmVtxColorIndexData[0][i].mpData = (void*)((s32)indexPtr0 + (s32)dst->mAnmVtxColorIndexData[0][i].mpData * 2);
+#endif
     for (s32 i = 0; i < dst->mAnmTableNum[1]; i++)
+#if TARGET_PC
+        // TODO(native phase 4): mpData holds a 32-bit index from the file in a pointer-sized field.
+        dst->mAnmVtxColorIndexData[1][i].mpData = (void*)((intptr_t)indexPtr1 + (s32)(intptr_t)dst->mAnmVtxColorIndexData[1][i].mpData * 2);
+#else
         dst->mAnmVtxColorIndexData[1][i].mpData = (void*)((s32)indexPtr1 + (s32)dst->mAnmVtxColorIndexData[1][i].mpData * 2);
+#endif
 
     dst->mColorR = JSUConvertOffsetToPtr<s16>(data, (void*)data->mRValuesOffset);
     dst->mColorG = JSUConvertOffsetToPtr<s16>(data, (void*)data->mGValuesOffset);

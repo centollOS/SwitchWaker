@@ -247,7 +247,12 @@ void J3DJoint::entryIn() {
                 mesh->calc(anmMtx);
             }
             mesh->setCurrentMtx();
+#if TARGET_PC
+            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+            matPacket->setMaterialAnmID((u32)(uintptr_t)mesh->getMaterialAnm());
+#else
             matPacket->setMaterialAnmID((u32)mesh->getMaterialAnm());
+#endif
             matPacket->setShapePacket(shapePacket);
             J3DDrawBuffer* drawBuffer = j3dSys.getDrawBuffer(mesh->isDrawModeOpaTexEdge());
             if ((u8)matPacket->entry(drawBuffer)) {

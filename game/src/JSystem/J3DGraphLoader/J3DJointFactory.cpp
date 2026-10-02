@@ -11,8 +11,14 @@
 
 /* 802FE1A4-802FE1FC       .text __ct__15J3DJointFactoryFRC13J3DJointBlock */
 J3DJointFactory::J3DJointFactory(const J3DJointBlock& jointBlock) {
+#if TARGET_PC
+    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+    mJointInitData = JSUConvertOffsetToPtr<J3DJointInitData>(&jointBlock, (u32)(uintptr_t)jointBlock.mpJointInitData);
+    mIndexTable = JSUConvertOffsetToPtr<u16>(&jointBlock, (u32)(uintptr_t)jointBlock.mpIndexTable);
+#else
     mJointInitData = JSUConvertOffsetToPtr<J3DJointInitData>(&jointBlock, (u32)jointBlock.mpJointInitData);
     mIndexTable = JSUConvertOffsetToPtr<u16>(&jointBlock, (u32)jointBlock.mpIndexTable);
+#endif
 }
 
 /* 802FE1FC-802FE390       .text create__15J3DJointFactoryFi */

@@ -23,7 +23,8 @@ set(COS_MODULES
 # Modules whose every unit compiles (or is deferred); their options default to ON.
 set(COS_MODULES_READY
         SSystem
-        JSystem-core)
+        JSystem-core
+        JSystem-J3D)
 
 set(COS_ACTOR_CHUNKS 6)
 

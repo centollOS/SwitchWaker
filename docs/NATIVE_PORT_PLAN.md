@@ -70,3 +70,10 @@ Each phase lands as its own commits; this file records decisions and measured re
   `OSRoundUp32B`/`OSRoundUpPtr`/`OSRoundDownPtr`) go through `uintptr_t`/`intptr_t` under
   `TARGET_PC`; values still stored in `u32` fields/locals are phase 4 (`TODO(native phase 4)`
   on `TVector::size`'s `/ 4`).
+- **JSystem-J3D:** 31/31 units (J3DGraphBase, J3DGraphAnimator, J3DGraphLoader, J3DU) compile,
+  0 deferred; on by default. About 50 pointer-to-`u32` cast sites (hashes, `mDiffFlag`, file
+  offsets kept in pointer-typed fields, GX array base, vertex counts from pointer differences) go
+  through `uintptr_t`/`intptr_t` under `TARGET_PC` with `TODO(native phase 4)`; where the result
+  becomes a pointer again the base is not truncated. `OSCachedToPhysical`/`OSUncachedToPhysical`
+  in `OS.h` fixed at the macro. `J3DMaterialFactory_v21::create`'s declaration spells `u32` like
+  its definition (was `unsigned long`, MWCC's `u32`).

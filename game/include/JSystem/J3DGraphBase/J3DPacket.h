@@ -111,7 +111,12 @@ public:
     }
 
     void setUserArea(u32 area) { mpUserData = (void*)area; }
+#if TARGET_PC
+    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+    u32 getUserArea() const { return (u32)(uintptr_t)mpUserData; }
+#else
     u32 getUserArea() const { return (u32)mpUserData; }
+#endif
 
     virtual bool isSame(J3DMatPacket*) const;
     virtual int entry(J3DDrawBuffer*);

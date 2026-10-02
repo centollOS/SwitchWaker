@@ -56,7 +56,12 @@ public:
     J3DDisplayListObj* getSharedDisplayListObj() { return mSharedDLObj; }
     J3DIndBlock* getIndBlock() { return mIndBlock; }
     J3DMaterialAnm* getMaterialAnm() {
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        if ((u32)(uintptr_t)mMaterialAnm < 0xC0000000) {
+#else
         if ((u32)mMaterialAnm < 0xC0000000) {
+#endif
             return mMaterialAnm;
         } else {
             return NULL;

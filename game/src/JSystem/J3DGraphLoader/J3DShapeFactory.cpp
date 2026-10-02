@@ -16,6 +16,16 @@
 
 /* 802FE3A8-802FE458       .text __ct__15J3DShapeFactoryFRC13J3DShapeBlock */
 J3DShapeFactory::J3DShapeFactory(const J3DShapeBlock& block) {
+#if TARGET_PC
+    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+    mpShapeInitData = JSUConvertOffsetToPtr<J3DShapeInitData>(&block, (u32)(uintptr_t)block.mpShapeInitData);
+    mpIndexTable = JSUConvertOffsetToPtr<u16>(&block, (u32)(uintptr_t)block.mpIndexTable);
+    mpVtxDescList = JSUConvertOffsetToPtr<GXVtxDescList>(&block, (u32)(uintptr_t)block.mpVtxDescList);
+    mpMtxTable = JSUConvertOffsetToPtr<u16>(&block, (u32)(uintptr_t)block.mpMtxTable);
+    mpDisplayListData = JSUConvertOffsetToPtr<u8>(&block, (u32)(uintptr_t)block.mpDisplayListData);
+    mpMtxInitData = JSUConvertOffsetToPtr<J3DShapeMtxInitData>(&block, (u32)(uintptr_t)block.mpMtxInitData);
+    mpDrawInitData = JSUConvertOffsetToPtr<J3DShapeDrawInitData>(&block, (u32)(uintptr_t)block.mpDrawInitData);
+#else
     mpShapeInitData = JSUConvertOffsetToPtr<J3DShapeInitData>(&block, (u32)block.mpShapeInitData);
     mpIndexTable = JSUConvertOffsetToPtr<u16>(&block, (u32)block.mpIndexTable);
     mpVtxDescList = JSUConvertOffsetToPtr<GXVtxDescList>(&block, (u32)block.mpVtxDescList);
@@ -23,6 +33,7 @@ J3DShapeFactory::J3DShapeFactory(const J3DShapeBlock& block) {
     mpDisplayListData = JSUConvertOffsetToPtr<u8>(&block, (u32)block.mpDisplayListData);
     mpMtxInitData = JSUConvertOffsetToPtr<J3DShapeMtxInitData>(&block, (u32)block.mpMtxInitData);
     mpDrawInitData = JSUConvertOffsetToPtr<J3DShapeDrawInitData>(&block, (u32)block.mpDrawInitData);
+#endif
     mpVcdVatCmdBuffer = NULL;
 }
 

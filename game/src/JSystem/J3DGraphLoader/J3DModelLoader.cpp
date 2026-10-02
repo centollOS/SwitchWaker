@@ -217,9 +217,19 @@ void J3DModelLoader::setupBBoardInfo() {
         J3DMaterial* mesh = mpModelData->getJointNodePointer(i)->getMesh();
         if (mesh != NULL) {
             u16 shape_index = mesh->getShape()->getIndex();
+#if TARGET_PC
+            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+            u16* index_table = JSUConvertOffsetToPtr<u16>(mpShapeBlock, (u32)(uintptr_t)mpShapeBlock->mpIndexTable);
+#else
             u16* index_table = JSUConvertOffsetToPtr<u16>(mpShapeBlock, (u32)mpShapeBlock->mpIndexTable);
+#endif
             J3DShapeInitData* shape_init_data =
+#if TARGET_PC
+                // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+                JSUConvertOffsetToPtr<J3DShapeInitData>(mpShapeBlock, (u32)(uintptr_t)mpShapeBlock->mpShapeInitData);
+#else
                 JSUConvertOffsetToPtr<J3DShapeInitData>(mpShapeBlock, (u32)mpShapeBlock->mpShapeInitData);
+#endif
             J3DJoint* joint;
             switch (shape_init_data[index_table[shape_index]].mShapeMtxType) {
                 case 0:
@@ -312,9 +322,19 @@ void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
     if (vertex_data.mVtxNrmArray == NULL) {
         vertex_data.mNrmNum = 0;
     } else if (nrm_end != NULL) {
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        vertex_data.mNrmNum = ((u32)(uintptr_t)nrm_end - (u32)(uintptr_t)vertex_data.mVtxNrmArray) / nrm_size + 1;
+#else
         vertex_data.mNrmNum = ((u32)nrm_end - (u32)vertex_data.mVtxNrmArray) / nrm_size + 1;
+#endif
     } else {
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        vertex_data.mNrmNum = (i_block->mSize - (u32)(uintptr_t)i_block->mpVtxNrmArray) / nrm_size + 1;
+#else
         vertex_data.mNrmNum = (i_block->mSize - (u32)i_block->mpVtxNrmArray) / nrm_size + 1;
+#endif
     }
 
     void* color0_end = NULL;
@@ -327,15 +347,30 @@ void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
     if (vertex_data.mVtxColorArray[0] == NULL) {
         vertex_data.mColNum = 0;
     } else if (color0_end != NULL) {
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        vertex_data.mColNum = ((u32)(uintptr_t)color0_end - (u32)(uintptr_t)vertex_data.mVtxColorArray[0]) / 4 + 1;
+#else
         vertex_data.mColNum = ((u32)color0_end - (u32)vertex_data.mVtxColorArray[0]) / 4 + 1;
+#endif
     } else {
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        vertex_data.mColNum = (i_block->mSize - (u32)(uintptr_t)i_block->mpVtxColorArray[0]) / 4 + 1;
+#else
         vertex_data.mColNum = (i_block->mSize - (u32)i_block->mpVtxColorArray[0]) / 4 + 1;
+#endif
     }
 
     if (vertex_data.mVtxTexCoordArray[0] == NULL) {
         vertex_data.mTexCoordNum = 0;
     } else {
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        vertex_data.mTexCoordNum = (i_block->mSize - (u32)(uintptr_t)i_block->mpVtxTexCoordArray[0]) / 8 + 1;
+#else
         vertex_data.mTexCoordNum = (i_block->mSize - (u32)i_block->mpVtxTexCoordArray[0]) / 8 + 1;
+#endif
     }
 }
 
@@ -405,7 +440,12 @@ void J3DModelLoader_v26::readMaterial(const J3DMaterialBlock* i_block, u32 i_fla
         for (u16 i = 0; i < mpMaterialTable->mUniqueMatNum; i++) {
             factory.create(&mpMaterialTable->mMaterialBase[i],
                            J3DMaterialFactory::MATERIAL_TYPE_NORMAL, i, i_flags);
+#if TARGET_PC
+            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+            mpMaterialTable->mMaterialBase[i].mDiffFlag = (u32)(uintptr_t)&mpMaterialTable->mMaterialBase[i] >> 4;
+#else
             mpMaterialTable->mMaterialBase[i].mDiffFlag = (u32)&mpMaterialTable->mMaterialBase[i] >> 4;
+#endif
         }
     }
     for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
@@ -414,15 +454,27 @@ void J3DModelLoader_v26::readMaterial(const J3DMaterialBlock* i_block, u32 i_fla
     }
     if (i_flags & 0x200000) {
         for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
+#if TARGET_PC
+            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+            mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
+                (u32)(uintptr_t)&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)] >> 4;
+#else
             mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
                 (u32)&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)] >> 4;
+#endif
             mpMaterialTable->mMaterialNodePointer[i]->mpOrigMaterial =
                 &mpMaterialTable->mMaterialBase[factory.getMaterialID(i)];
         }
     } else {
         for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
+#if TARGET_PC
+            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+            mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
+                ((u32)(uintptr_t)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
+#else
             mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
                 ((u32)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
+#endif
         }
     }
 }
@@ -447,7 +499,12 @@ void J3DModelLoader_v21::readMaterial_v21(const J3DMaterialBlock_v21* i_block, u
     if (i_flags & 0x200000) {
         for (u16 i = 0; i < mpMaterialTable->mUniqueMatNum; i++) {
             factory.create(&mpMaterialTable->mMaterialBase[i], i, i_flags);
+#if TARGET_PC
+            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+            mpMaterialTable->mMaterialBase[i].mDiffFlag = (u32)(uintptr_t)&mpMaterialTable->mMaterialBase[i] >> 4;
+#else
             mpMaterialTable->mMaterialBase[i].mDiffFlag = (u32)&mpMaterialTable->mMaterialBase[i] >> 4;
+#endif
         }
     }
     for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
@@ -455,8 +512,14 @@ void J3DModelLoader_v21::readMaterial_v21(const J3DMaterialBlock_v21* i_block, u
     }
     if (i_flags & 0x200000) {
         for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
+#if TARGET_PC
+            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+            mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
+                (u32)(uintptr_t)&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)] >> 4;
+#else
             mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
                 (u32)&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)] >> 4;
+#endif
             mpMaterialTable->mMaterialNodePointer[i]->mpOrigMaterial =
                 &mpMaterialTable->mMaterialBase[factory.getMaterialID(i)];
         }
@@ -518,8 +581,14 @@ void J3DModelLoader_v26::readMaterialTable(const J3DMaterialBlock* i_block, u32 
             factory.create(NULL, J3DMaterialFactory::MATERIAL_TYPE_NORMAL, i, i_flags);
     }
     for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
+            (u32)(uintptr_t)mpMaterialTable->mMaterialNodePointer + factory.getMaterialID(i);
+#else
         mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
             (u32)mpMaterialTable->mMaterialNodePointer + factory.getMaterialID(i);
+#endif
     }
 }
 
@@ -539,8 +608,14 @@ void J3DModelLoader_v21::readMaterialTable_v21(const J3DMaterialBlock_v21* i_blo
             factory.create(NULL, i, i_flags);
     }
     for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
+            ((u32)(uintptr_t)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
+#else
         mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
             ((u32)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
+#endif
     }
 }
 
@@ -572,8 +647,14 @@ void J3DModelLoader::readPatchedMaterial(const J3DMaterialBlock* i_block, u32 i_
     for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
         mpMaterialTable->mMaterialNodePointer[i] =
             factory.create(NULL, J3DMaterialFactory::MATERIAL_TYPE_PATCHED, i, i_flags);
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
+            ((u32)(uintptr_t)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
+#else
         mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
             ((u32)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
+#endif
     }
 }
 

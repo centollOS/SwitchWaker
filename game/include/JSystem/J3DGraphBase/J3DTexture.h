@@ -46,8 +46,14 @@ public:
     void setResTIMG(u16 index, const ResTIMG& timg) {
         J3D_ASSERT(81, index < mNum, "Error : range over.");
         mpRes[index] = timg;
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        mpRes[index].imageOffset = ((mpRes[index].imageOffset + (u32)(uintptr_t)&timg - (u32)(uintptr_t)(mpRes + index)));
+        mpRes[index].paletteOffset = ((mpRes[index].paletteOffset + (u32)(uintptr_t)&timg - (u32)(uintptr_t)(mpRes + index)));
+#else
         mpRes[index].imageOffset = ((mpRes[index].imageOffset + (u32)&timg - (u32)(mpRes + index)));
         mpRes[index].paletteOffset = ((mpRes[index].paletteOffset + (u32)&timg - (u32)(mpRes + index)));
+#endif
     }
 };
 

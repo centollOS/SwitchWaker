@@ -71,7 +71,12 @@ int J3DDrawBuffer::entryMatSort(J3DMatPacket* pMatPacket) {
     if (texNo == 0xFFFF) {
         hash = 0;
     } else {
+#if TARGET_PC
+        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        hash = ((u32)(uintptr_t)texture->getResTIMG(texNo) + texture->getResTIMG(texNo)->imageOffset) >> 5;
+#else
         hash = ((u32)texture->getResTIMG(texNo) + texture->getResTIMG(texNo)->imageOffset) >> 5;
+#endif
     }
     u32 slot = hash & (mEntryTableSize - 1);
 
@@ -95,7 +100,12 @@ int J3DDrawBuffer::entryMatSort(J3DMatPacket* pMatPacket) {
 /* 802ECA38-802ECAF0       .text entryMatAnmSort__13J3DDrawBufferFP12J3DMatPacket */
 int J3DDrawBuffer::entryMatAnmSort(J3DMatPacket* pMatPacket) {
     J3DMaterialAnm* pMaterialAnm = pMatPacket->mpMaterialAnm;
+#if TARGET_PC
+    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+    u32 slot = (u32)(uintptr_t)pMaterialAnm & (mEntryTableSize - 1);
+#else
     u32 slot = (u32)pMaterialAnm & (mEntryTableSize - 1);
+#endif
 
     if (pMaterialAnm == NULL) {
         return entryMatSort(pMatPacket);
