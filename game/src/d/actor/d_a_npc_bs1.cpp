@@ -2221,7 +2221,12 @@ BOOL daNpc_Bs1_c::CreateHeap() {
             mpMorf->getModel()->getModelData()->getJointNodePointer(jntNo)->setCallBack(nodeCallBack_Bs);
         }
     }
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpMorf->getModel()->setUserArea((u32)this);
+#endif
     mAcchCir.SetWall(30.0f, 0.0f);
     mAcch.Set(fopAcM_GetPosition_p(this), fopAcM_GetOldPosition_p(this),  this, 1, &mAcchCir, fopAcM_GetSpeed_p(this));
     J3DAnmTevRegKey* brk = (J3DAnmTevRegKey*)dComIfG_getObjectRes("Bs", dRes_INDEX_BS_BRK_SHOP_CURSOR01_e);

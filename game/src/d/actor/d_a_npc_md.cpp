@@ -986,7 +986,12 @@ BOOL daNpc_Md_c::createHeap() {
         }
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    getModel()->setUserArea((uintptr_t)this);
+#else
     getModel()->setUserArea((u32)this);
+#endif
 
     modelData = (J3DModelData*)dComIfG_getObjectRes(mModelArcName, "mdarm.bdl");
     JUT_ASSERT(DEMO_SELECT(2016, 2051), modelData != NULL);
@@ -1020,7 +1025,12 @@ BOOL daNpc_Md_c::createHeap() {
     modelData->getJointNodePointer(m_armRloc_jnt_num)->setCallBack(armNodeCallBack);
     modelData->getJointNodePointer(m_armLloc_jnt_num)->setCallBack(armNodeCallBack);
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpArmMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpArmMorf->getModel()->setUserArea((u32)this);
+#endif
 
     if (!isTypeShipRide()) {
         modelData = (J3DModelData*)dComIfG_getObjectRes(mModelArcName, "mdwing.bdl");
@@ -1060,7 +1070,12 @@ BOOL daNpc_Md_c::createHeap() {
         modelData->getJointNodePointer(m_wingRloc_jnt_num)->setCallBack(armNodeCallBack);
         modelData->getJointNodePointer(m_wingLloc_jnt_num)->setCallBack(armNodeCallBack);
 
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        mpWingMorf->getModel()->setUserArea((uintptr_t)this);
+#else
         mpWingMorf->getModel()->setUserArea((u32)this);
+#endif
     }
 
     modelData = (J3DModelData*)dComIfG_getObjectRes(mModelArcName, "md_harp.bdl");

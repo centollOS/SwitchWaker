@@ -194,13 +194,23 @@ int daNpcBmcon_c::createHeap() {
         if (i == m_jnt.getHeadJntNum() || i == m_jnt.getBackboneJntNum() || i == m_nec_jnt_num || i == m_arm_L_jnt_num || i == m_arm_R_jnt_num)
         body->getJointNodePointer(i)->setCallBack(daNpc_Bmcon_nodeCallBack);
     }
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpMorf->getModel()->setUserArea((u32)this);
+#endif
     for (u16 i = 0; i < arm->getJointNum(); i++) {
         if (i == m_armL1_jnt_num || i == m_armR1_jnt_num) {
             arm->getJointNodePointer(i)->setCallBack(daNpc_Arm_nodeCallBack);
         }
     }
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpArmMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpArmMorf->getModel()->setUserArea((u32)this);
+#endif
     mAcchCir.SetWall(30.0f, 30.0f);
     mObjAcch.Set(fopAcM_GetPosition_p(this), fopAcM_GetOldPosition_p(this), this, 1, &mAcchCir, fopAcM_GetSpeed_p(this), fopAcM_GetAngle_p(this), fopAcM_GetShapeAngle_p(this));
     return TRUE;

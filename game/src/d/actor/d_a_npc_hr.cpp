@@ -2210,12 +2210,22 @@ BOOL daNpc_Hr_c::CreateHeap() {
         }
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpHrMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpHrMorf->getModel()->setUserArea((u32)this);
+#endif
 
     for(u16 i = 0; i < antModelData->getJointNum(); i++) {
         mpAntennaMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Ht_ant);
     }
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpAntennaMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpAntennaMorf->getModel()->setUserArea((u32)this);
+#endif
     
     return TRUE;
 }

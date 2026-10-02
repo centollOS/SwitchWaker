@@ -227,7 +227,12 @@ BOOL daNpc_Kg1_c::CreateHeap() {
     for (u16 i = 0; i < data->getJointNum(); i++) {
         if (i == m_jnt.getHeadJntNum() || i == m_jnt.getBackboneJntNum() || i == 8) data->getJointNodePointer(i)->setCallBack(daNpc_Kg1_nodeCallBack);
     }
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpMorf->getModel()->setUserArea((u32)this);
+#endif
     mAcchCir.SetWall(30.0f, 30.0f);
     mObjAcch.Set(fopAcM_GetPosition_p(this), fopAcM_GetOldPosition_p(this), this, 1, &mAcchCir, fopAcM_GetSpeed_p(this), fopAcM_GetAngle_p(this), fopAcM_GetShapeAngle_p(this));
     return TRUE;

@@ -34,7 +34,12 @@ public:
     void ctrlAnmAtr();
     void setAnm_ATR();
     virtual void anmAtr(unsigned short);
+#if TARGET_PC
+    // u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+    virtual u16 next_msgStatus(u32*);
+#else
     virtual u16 next_msgStatus(unsigned long*);
+#endif
     u32 getMsg_GK1_0();
     virtual u32 getMsg();
     void eventOrder();

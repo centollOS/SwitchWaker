@@ -521,7 +521,12 @@ static fpc_ProcID l_msgId;
 static msg_class* l_msg;
 
 /* 00001338-00001534       .text next_msgStatus__10daNpc_P2_cFPUl */
+#if TARGET_PC
+// u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+u16 daNpc_P2_c::next_msgStatus(u32* pMsgNo) {
+#else
 u16 daNpc_P2_c::next_msgStatus(unsigned long* pMsgNo) {
+#endif
     u16 msgStatus = fopMsgStts_MSG_CONTINUES_e;
     switch (*pMsgNo) {
     case 0x1011:
@@ -1552,7 +1557,12 @@ BOOL daNpc_P2_c::_createHeap() {
                 return FALSE;
             }
         }
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        mpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
         mpMorf->getModel()->setUserArea((u32)this);
+#endif
         J3DJointTree& tree = modelData->getJointTree();
         for (u16 i = 0; i < tree.getJointNum(); i++) {
             if (i == 4 || i == 2) {

@@ -52,7 +52,12 @@ public:
     virtual u16 next_msgStatus(u32*);
     virtual u32 getMsg();
     void chkMsg();
+#if TARGET_PC
+    // u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+    void setMessage(u32);
+#else
     void setMessage(unsigned long);
+#endif
     void setAnmFromMsgTag();
     s8 getPrmNpcNo();
     u8 getPrmRailID();

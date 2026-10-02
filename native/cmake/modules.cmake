@@ -31,7 +31,8 @@ set(COS_MODULES_READY
         m_Do
         d-core
         actors-1
-        actors-2)
+        actors-2
+        actors-3)
 
 set(COS_ACTOR_CHUNKS 6)
 

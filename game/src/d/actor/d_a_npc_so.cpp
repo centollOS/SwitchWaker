@@ -337,7 +337,12 @@ BOOL daNpc_So_c::_createHeap() {
     if (mpMorf2 == NULL || mpMorf2->getModel() == NULL) {
         return FALSE;
     }
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpMorf2->getModel()->setUserArea((uintptr_t)this);
+#else
     mpMorf2->getModel()->setUserArea((u32)this);
+#endif
 
 #if VERSION > VERSION_DEMO
     J3DAnmTexPattern* btp = static_cast<J3DAnmTexPattern*>(dComIfG_getObjectRes(m_arc_name, dRes_INDEX_SO_BTP_SO_e));

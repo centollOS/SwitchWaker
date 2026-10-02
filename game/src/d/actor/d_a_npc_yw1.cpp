@@ -1281,7 +1281,12 @@ int daNpc_Yw1_c::bodyCreateHeap() {
     JUT_ASSERT(VERSION_SELECT(0x883, 0x88A, 0x97F, 0x97F), m_bbone_jnt_num >= 0);
     mpMorf->getModel()->getModelData()->getJointNodePointer(m_hed_jnt_num)->setCallBack(nodeCB_Head);
     mpMorf->getModel()->getModelData()->getJointNodePointer(m_bbone_jnt_num)->setCallBack(nodeCB_BackBone);
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpMorf->getModel()->setUserArea((u32) this);
+#endif
     return 1;
 }
 
@@ -1307,7 +1312,12 @@ int daNpc_Yw1_c::headCreateHeap() {
     mpHeadModel->getModelData()->getJointNodePointer(m_hair1)->setCallBack(nodeCB_Hair);
     mpHeadModel->getModelData()->getJointNodePointer(m_hair2)->setCallBack(nodeCB_Hair);
     mpHeadModel->getModelData()->getJointNodePointer(m_hair3)->setCallBack(nodeCB_Hair);
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpHeadModel->setUserArea((uintptr_t)this);
+#else
     mpHeadModel->setUserArea((u32) this);
+#endif
 #endif
     return 1;
 }

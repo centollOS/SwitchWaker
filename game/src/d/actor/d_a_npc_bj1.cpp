@@ -1313,7 +1313,13 @@ s32 daNpc_Bj1_c::bj_movPass(bool i_param) {
         return o_retval;
     }
 
+#if TARGET_PC
+    // The goto above jumps past this declaration; clang rejects jumping past an initializer.
+    f32 dist_xz;
+    dist_xz = (m7D8 - current.pos).absXZ();
+#else
     f32 dist_xz = (m7D8 - current.pos).absXZ();
+#endif
     if (dist_xz <= m81C) {
         o_retval = 1;
         if (mPathRun.isPath()) {
@@ -3039,14 +3045,24 @@ BOOL daNpc_Bj1_c::CreateHeap() {
                 mpPrpMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Prp);
             }
         }
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        mpPrpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
         mpPrpMorf->getModel()->setUserArea((u32)this);
+#endif
 
         for (u16 i = 0; i < a_mdl_dat->getJointNum(); i++) {
             if (i == m_hed_jnt_num || i == m_bbone_jnt_num || i == m_armR2_jnt_num) {
                 mpMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Bj1);
             }
         }
+#if TARGET_PC
+        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+        mpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
         mpMorf->getModel()->setUserArea((u32)this);
+#endif
 
         mAcchCir.SetWall(30.0f, 40.0f);
         mObjAcch.Set(fopAcM_GetPosition_p(this), fopAcM_GetOldPosition_p(this), this, 1, &mAcchCir, fopAcM_GetSpeed_p(this));

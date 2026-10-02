@@ -40,7 +40,12 @@ public:
     bool chk_talk();
     bool chk_partsNotMove();
     void lookBack();
+#if TARGET_PC
+    // u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+    virtual u16 next_msgStatus(u32*);
+#else
     virtual u16 next_msgStatus(unsigned long*);
+#endif
     u32 getMsg_OB1_0();
     u32 getMsg_OB1_1();
     u32 getMsg_OB1_2();

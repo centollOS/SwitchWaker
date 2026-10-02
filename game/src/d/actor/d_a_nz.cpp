@@ -2121,7 +2121,12 @@ static BOOL useHeapInit(fopAc_ac_c* a_this) {
     if ((i_this->mpMorf == NULL) || (i_this->mpMorf->getModel() == NULL)) {
         return FALSE;
     }
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    i_this->mpMorf->getModel()->setUserArea((uintptr_t)i_this);
+#else
     i_this->mpMorf->getModel()->setUserArea((u32)i_this);
+#endif
     for (u16 i = 0; i < i_this->mpMorf->getModel()->getModelData()->getJointNum(); i++) {
         if ((i == NZ_NZ_JNT_HIP_e) || (i == NZ_NZ_JNT_SHIPPO_e)) {
             i_this->mpMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_tail);

@@ -43,9 +43,19 @@ public:
     BOOL eventAttention();
     void eventTurnOkInit();
     u16 talk2(int, fopAc_ac_c*);
+#if TARGET_PC
+    // u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+    virtual u16 next_msgStatus(u32*);
+#else
     virtual u16 next_msgStatus(unsigned long*);
+#endif
     virtual u32 getMsg();
+#if TARGET_PC
+    // u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+    void setMessage(u32);
+#else
     void setMessage(unsigned long);
+#endif
     void setAnmFromMsgTag();
     u8 getPrmNpcNo();
     void setMtx();

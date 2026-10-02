@@ -130,3 +130,10 @@ Each phase lands as its own commits; this file records decisions and measured re
   addresses through `uintptr_t`; its Huffman/IDCT paths are PowerPC asm under `#ifdef __MWERKS__`
   with no C fallback in the decomp, so on PC they are still empty. Dusklight replaces that decoder
   under `TARGET_PC`; that belongs with the SDK work (phase 2), not here.
+- **actors-3:** 74/74 units (`d_a_npc_auction` .. `d_a_obj_barrel`, sorted indices 148-221)
+  compile, 0 deferred; on by default. Same idioms again: `setUserArea` casts through `uintptr_t`
+  (69 sites in 54 files, `TODO(native phase 4)`); `next_msgStatus(unsigned long*)` and
+  `setMessage(unsigned long)` take `u32` under `TARGET_PC` in 16 `d_a_npc_*.h` headers (and the
+  `d_a_npc_p2` definition), so the virtual ones override `fopNpc_npc_c`'s again; `d_a_npc_ym1`'s
+  `area_check` callback takes `u32`; `d_a_npc_bj1`'s `dist_xz`, bypassed by a `goto`, is declared
+  then assigned.

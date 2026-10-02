@@ -35,7 +35,12 @@ daNpc_Ym1_HIO_c::daNpc_Ym1_HIO_c() {
 inline daNpc_Ym1_childHIO_c::~daNpc_Ym1_childHIO_c() {}
 
 /* 00000268-00000290       .text area_check__FP10fopAc_ac_cP4cXyzUl */
+#if TARGET_PC
+// u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+static void area_check(fopAc_ac_c* actor, cXyz*, u32 flag) {
+#else
 static void area_check(fopAc_ac_c* actor, cXyz*, unsigned long flag) {
+#endif
     if (flag == 0) {
         ((daNpc_Ym1_c*)actor)->setKariFlg();
     }
@@ -1483,7 +1488,12 @@ int daNpc_Ym1_c::bodyCreateHeap() {
     JUT_ASSERT(DEMO_SELECT(0x982, 0x985), m_hnd_R_jnt_num >= 0);
     mpMorf->getModel()->getModelData()->getJointNodePointer(m_hed_jnt_num)->setCallBack(nodeCB_Head);
     mpMorf->getModel()->getModelData()->getJointNodePointer(m_bbone_jnt_num)->setCallBack(nodeCB_BackBone);
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpMorf->getModel()->setUserArea((u32)this);
+#endif
     return 1;
 }
 

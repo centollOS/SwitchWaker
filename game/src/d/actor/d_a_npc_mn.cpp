@@ -376,7 +376,12 @@ BOOL daNpcMn_c::createHeap() {
             modelData->getJointTree().getJointNodePointer(jntIdx)->setCallBack(daNpc_Mn_nodeCallBack);
         }
     }
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpMorf->getModel()->setUserArea((u32)this);
+#endif
     mAcchCir.SetWall(30.0f, 30.0f);
     mObjAcch.Set(fopAcM_GetPosition_p(this),
         fopAcM_GetOldPosition_p(this),

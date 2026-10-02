@@ -187,7 +187,12 @@ BOOL daNpc_Nz_c::_createHeap() {
         return false;
     }
 
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpMorf->getModel()->setUserArea((uintptr_t)this);
+#else
     mpMorf->getModel()->setUserArea((u32)this);
+#endif
 
     m_jnt.setHeadJntNum(modelData->getJointName()->getIndex("head"));
     JUT_ASSERT(DEMO_SELECT(0xDB, 0xDA), m_jnt.getHeadJntNum() >= 0);

@@ -1891,7 +1891,12 @@ BOOL daNpc_Tc_c::_createHeap() {
     JUT_ASSERT(DEMO_SELECT(0xA38, 0xA42), m_jnt.getBackboneJntNum() >= 0);
     modelData->getJointNodePointer(TC_JNT_HEAD_e)->setCallBack(nodeCallBack);
     modelData->getJointNodePointer(TC_JNT_BACKBONE_e)->setCallBack(nodeCallBack);
+#if TARGET_PC
+    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
+    mpMorf->getModel()->setUserArea(reinterpret_cast<uintptr_t>(this));
+#else
     mpMorf->getModel()->setUserArea(reinterpret_cast<u32>(this));
+#endif
 
     mTexPatternNum = 0;
     if (!initTexPatternAnm(false)) {

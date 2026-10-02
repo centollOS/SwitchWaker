@@ -39,7 +39,12 @@ public:
     bool chk_partsNotMove();
     bool chk_forceTlkArea();
     void lookBack();
+#if TARGET_PC
+    // u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
+    virtual u16 next_msgStatus(u32*);
+#else
     virtual u16 next_msgStatus(unsigned long*);
+#endif
     u32 getMsg_GP1_0();
     virtual u32 getMsg();
     bool chkAttention();
