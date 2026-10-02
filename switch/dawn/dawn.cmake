@@ -322,4 +322,24 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
                 "${DAWN_STRNLEN_PATCH_OUTPUT}${DAWN_STRNLEN_PATCH_ERROR}")
         endif()
     endif()
+
+    # A window surface on libnx's NWindow, through the Android native window
+    # source and an EGL window surface.
+    set(DAWN_SWAPCHAIN_EGL_SOURCE "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwapChainEGL.cpp")
+    file(READ "${DAWN_SWAPCHAIN_EGL_SOURCE}" DAWN_SWAPCHAIN_EGL_TEXT)
+    if(NOT DAWN_SWAPCHAIN_EGL_TEXT MATCHES "DAWN_PLATFORM_IS\\(SWITCH\\)")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-nwindow-surface.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_NWINDOW_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_NWINDOW_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_NWINDOW_PATCH_ERROR
+        )
+        if(NOT DAWN_NWINDOW_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch NWindow surface patch:\n"
+                "${DAWN_NWINDOW_PATCH_OUTPUT}${DAWN_NWINDOW_PATCH_ERROR}")
+        endif()
+    endif()
 endif()
