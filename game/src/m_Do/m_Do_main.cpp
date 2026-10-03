@@ -27,6 +27,12 @@
 #include "m_Do/m_Do_machine.h"
 #include "m_Do/m_Do_printf.h"
 #include <stdio.h>
+#if TARGET_PC
+// From Dusklight (CC0, ref/dusklight/src/dusk/main.cpp): Aurora's aurora::main library owns the
+// process entry point; <aurora/main.h> renames the game's main below to aurora_main, which it
+// calls. Included last so the macro touches nothing but that definition.
+#include <aurora/main.h>
+#endif
 
 /* 800056E0-80005748       .text version_check__Fv */
 void version_check() {
@@ -530,7 +536,12 @@ OSThread mainThread;
 #endif
 
 /* 80006464-800065DC       .text main */
+#if TARGET_PC
+// Aurora declares extern "C" int aurora_main(int, char*[]); the signature must match it.
+int main(int argc, char* argv[]) {
+#else
 int main(int argc, const char* argv[]) {
+#endif
 #if VERSION == VERSION_DEMO
     OSThread mainThread;
 #endif
@@ -583,7 +594,11 @@ int main(int argc, const char* argv[]) {
 #endif
 
 #if VERSION == VERSION_DEMO
+#if TARGET_PC
+    parse_args(argc, (const char**)argv);
+#else
     parse_args(argc, argv);
+#endif
 #endif
 
     OSPriority priority = OSGetThreadPriority(current_thread);

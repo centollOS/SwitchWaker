@@ -790,3 +790,13 @@ Each phase lands as its own commits; this file records decisions and measured re
   target 0 errors, link census equal to the expected list (REL 1), `unifdef -UTARGET_PC` of both
   touched sources reproduces HEAD, `nm` over all built objects finds no undefined audio symbol, so
   no trap list; census `--dups` clean.
+- **3.8 Executable `centollos`:** new `native/cmake/executable.cmake` (not in `all`) links one generated
+  stub plus every module's objects through `build/native-mac/cos_exe/objects.rsp`, in order: 424
+  main.dol units, the 416 REL units of `rel_units.txt` (`f_pc_profile_lst` + 415 actors), then the
+  74 audio units; with `cos_sdk`, the Aurora libraries and `aurora::main`, `LINKER_LANGUAGE CXX`,
+  no `-undefined dynamic_lookup`. `m_Do_main.cpp` under `TARGET_PC` includes `<aurora/main.h>`
+  (Dusklight CC0 provenance) and takes `char* argv[]` (`unifdef -UTARGET_PC` reproduces HEAD).
+  Step 3.6 not needed (0 deferred units). Reviewed in round 1: fresh relink exits 0, `nm -m -u centollos`
+  binds all undefined symbols to libSystem/libc++/libobjc/libz/libsqlite3, Apple frameworks, and
+  Aurora's Homebrew libpng16/libfreetype (libzstd linked); every default target rc=0, smoke ok,
+  link census equal to the expected list, census `--dups` 0. Not run yet (step 3.9).

@@ -60,6 +60,8 @@ include(cmake/sdk.cmake)
 include(cmake/sdk_gf.cmake)
 # Link census (phase 2): `ninja cos_link_census` lists what the non-REL units still need.
 include(cmake/census.cmake)
+# The game executable (phase 3, step 3.8): `ninja centollos` links every module, cos_sdk and Aurora.
+include(cmake/executable.cmake)
 
 # Scaffold check: proves the toolchain, the include paths and the PC config header work.
 add_library(cos_scaffold_check OBJECT
