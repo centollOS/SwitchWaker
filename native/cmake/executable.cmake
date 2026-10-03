@@ -19,13 +19,28 @@ include_guard(GLOBAL)
 # the static library cos_pc (API: native/include/pc/pc_harness.h). Compiled like the game units
 # (cos_game_headers), since pc_smoke.cpp reads game state. Game units call into it under TARGET_PC,
 # so the link census bundle links it too: its symbols must not show up as unresolved.
-file(GLOB _pc_sources CONFIGURE_DEPENDS "${COS_NATIVE_ROOT}/src/pc/pc_*.cpp")
+# The port helpers' sources (native/src/helpers/*.cpp, step 4.0b: OffsetPtr; headers in
+# native/include/helpers) go into the same library, so the game and cos_pc_tests link one copy.
+file(GLOB _pc_sources CONFIGURE_DEPENDS
+        "${COS_NATIVE_ROOT}/src/pc/pc_*.cpp"
+        "${COS_NATIVE_ROOT}/src/helpers/*.cpp")
 list(SORT _pc_sources)
 add_library(cos_pc STATIC ${_pc_sources})
 target_link_libraries(cos_pc PRIVATE cos_game_headers)
 target_include_directories(cos_pc PRIVATE "${COS_NATIVE_ROOT}/src/pc")
 if (TARGET cos_link_census)
     target_link_libraries(cos_link_census PRIVATE cos_pc)
+endif ()
+
+# cos_pc_tests (step 4.0b): host tests of the port helpers (BE(T), OffsetPtr), compiled like a game
+# unit. Headless; prints "ok":  ninja cos_pc_tests && build/native-mac/cos_pc_tests
+# cos_sdk supplies the SDK functions the helpers call (OSPanic: its default aborts); c_sxyz.cpp (no
+# dependencies) the csXyz constructor that BE<csXyz> converts through.
+if (TARGET cos_sdk)
+    add_executable(cos_pc_tests "${COS_NATIVE_ROOT}/check/pc_tests.cpp"
+            "${COS_ROOT}/src/SSystem/SComponent/c_sxyz.cpp")
+    target_link_libraries(cos_pc_tests PRIVATE cos_game_headers cos_pc cos_sdk)
+    set_target_properties(cos_pc_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endif ()
 
 if (NOT TARGET cos_sdk)

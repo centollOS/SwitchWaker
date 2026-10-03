@@ -933,6 +933,36 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   0 errors, `-fno-strict-aliasing` in all 1170 game compile commands and none of cos_sdk/Aurora;
   smoke ok, shadow check ok, census diff empty, 0 duplicate strong, static-init 0 x3 (502/502).
   Grouping J/K/L beyond finding 1's 255 accepted.
+- **4.0b Helpers:** Dusklight's `endian.h`, `endian_gx.hpp`, `endian_ssystem.h` and `offset_ptr.h`
+  (CC0, 40457c6, provenance in each file) are in `native/include/helpers/`, and
+  `src/helpers/offset_ptr.cpp` is in `native/src/helpers/`, compiled into `cos_pc` (glob
+  `src/helpers/*.cpp`). Changes from Dusklight: `endian.h` stops with an `#error` in C units;
+  `endian_ssystem.h` also includes `c_xyz.h` (for `cXyz`/`cXy`); `offset_ptr.h` spells out
+  `POINTER_ADD`, which the game's `global.h` lacks; `OffsetPtr::setBase` panics through `OSPanic`
+  instead of `JUT_ASSERT` (keeps JSystem out of the helper). One bug fix: the range check now
+  accepts a positive relative offset only up to `0x3FFF'FFFF`. Bit 31 is the relocated flag and
+  the reader takes bit 30 as the sign, so Dusklight's limit of `0x7FFF'FFFF` decoded
+  `[0x4000'0000, 0x7FFF'FFFF]` as negative. The GameCube shims in `game/include/helpers/`
+  (same four names) define `BE(T)`=`T`, `LE(T)`=`T`, `BE_HOST`, `RES_U16/S16/U32/S32` as no-ops,
+  `OFFSET_PTR(T)`=`T*` and `OFFSET_PTR_RAW`=`u32`. They `#error` under `TARGET_PC` and compile
+  as C and C++. `check_sdk_shadow.sh` now also fails if a dependency of `sdk_headers.cpp`
+  resolves under `game/include/helpers`, or if a name there is not included by it
+  (86 names, 4 of them helpers). New `cos_pc_tests` (`native/check/pc_tests.cpp`, built like a
+  game unit plus `c_sxyz.cpp`, linked with `cos_pc` and `cos_sdk`) covers:
+  - byte order and round trips for u16/s16/u32/s32/u64/f32 (including NaN payload and -0),
+    Vec, S16Vec, cXyz, csXyz, cXy, Mtx, the GX enums and vertex lists, `RES_*` and `be_swap`;
+  - constant evaluation, and the disc sizes of the fields;
+  - `|= &= ^= += -= /=` and post-increment/decrement;
+  - `OffsetPtr`: relocation, idempotence (a second `setBase` with the same or another base
+    changes nothing), negative and zero relative offsets, both range ends, and the null and
+    out-of-range panics (in forked children).
+  With the old range check restored, the test fails.
+  Verified: `ninja -C build/native-mac cos_pc_tests && build/native-mac/cos_pc_tests` prints
+  `ok`. Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests` 0 errors, smoke ok, shadow check
+  ok, link census equal to `expected_unresolved_phase2.txt`, `symbol_census.py --all --dups` 0,
+  `run.sh static-init` exit 0 (3 runs), inventory unchanged (263 open).
+  Review (round 1): accepted, including `OSPanic` in place of the game's `JUT_ASSERT` (which always
+  ends in `OSPanic` too); rerun tests ok, range-check mutation fails the test, census equal.
 
 ### Phase 6 render issues
 

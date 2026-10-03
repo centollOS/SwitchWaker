@@ -106,9 +106,22 @@
 #include <dolphin/os/__start.h>
 #include <dolphin/pad/Padclamp.h>
 
+// Port helpers (phase 4, step 4.0b; docs/NATIVE_PORT_PHASE4_6.md): every name under
+// game/include/helpers (the GameCube shims, BE(T) = T) must resolve to the native helpers in
+// native/include/helpers. check/check_sdk_shadow.sh fails if one resolves under
+// game/include/helpers or is missing here.
+#include "helpers/endian.h"
+#include "helpers/endian_gx.hpp"
+#include "helpers/endian_ssystem.h"
+#include "helpers/offset_ptr.h"
+
 // The game-only names the force-included cos_sdk_extras.h restores.
 static_assert(sizeof(uint) == 4, "uint");
 static_assert(FLOAT_MAX > 3.4e38f && FLOAT_MIN < 1.2e-38f, "FLOAT_MIN/FLOAT_MAX");
+
+// The helpers are the native ones (the GameCube shims define BE(T) as T and #error on TARGET_PC).
+static_assert(sizeof(BE(u32)) == 4 && sizeof(OFFSET_PTR(u8)) == 4 && sizeof(BE(cXyz)) == 12,
+              "helpers/endian.h, helpers/offset_ptr.h: native definitions");
 
 int cos_sdk_header_check(const u8* p) {
     u32 v = READU32_BE(p, 0)
@@ -132,3 +145,4 @@ int cos_sdk_header_check_cos_names(DVDFileInfo* fi, Mtx m) {
     return (int)DVDGetLength(fi) + (int)sizeof(dir) + (int)sizeof(entry) + (int)sizeof(packet) +
            (int)copyMode + (EXI_STATE_LOCKED != 0) + GBA_READY + (SIGetType(0) != 0);
 }
+
