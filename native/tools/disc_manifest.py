@@ -103,7 +103,8 @@ GC_MAGIC = b"\xC2\x33\x9F\x3D"
 # 2: "size" is always the stored size (a format's own size field moved to header_size).
 # 3: BMG INF1 message counts and ID digest, BMC colour tables (step 4.6).
 # 4: dzs/dzr records of the room, file and path chunks (step 4.9c).
-MANIFEST_VERSION = 4
+# 5: dzs/dzr records of the environment chunks (step 4.9d).
+MANIFEST_VERSION = 5
 
 EXIT_OK = 0
 EXIT_DIFFERENT = 1
@@ -501,6 +502,17 @@ STAGE_RECORDS = {
                     ("b14", 0x14, "s8", 1), ("args2", 0x15, "u8", 3)]),
     "2DMA": (0x38, [("f", 0x00, "f", 13), ("bytes", 0x34, "u8", 4)]),
     "SOND": (0x1C, [("name", 0x00, "str8", 1), ("pos", 0x08, "f", 3), ("bytes", 0x14, "u8", 7)]),
+    # Step 4.9d: the environment chunks (d_kankyo reads them every frame).
+    "LGHT": (0x1C, [("pos", 0x00, "f", 3), ("radius", 0x0C, "f", 1), ("b10", 0x10, "u8", 8),
+                    ("color", 0x18, "u8", 3), ("fluct", 0x1B, "u8", 1)]),
+    "LGTV": (0x1C, [("pos", 0x00, "f", 3), ("radius", 0x0C, "f", 1), ("b10", 0x10, "u8", 8),
+                    ("b18", 0x18, "u8", 3), ("fluct", 0x1B, "u8", 1)]),
+    "Colo": (0x0C, [("palette", 0x00, "u8", 8), ("change_rate", 0x08, "f", 1)]),
+    "Pale": (0x2C, [("colors", 0x00, "u8", 33), ("virt", 0x21, "u8", 1), ("fog_z", 0x24, "f", 2)]),
+    "Virt": (0x24, [("f00", 0x00, "u32", 4), ("kumo", 0x10, "u8", 4), ("kumo_center", 0x14, "u8", 4),
+                    ("sky", 0x18, "u8", 3), ("uso_umi", 0x1B, "u8", 3),
+                    ("kasumi_mae", 0x1E, "u8", 3)]),
+    "EnvR": (0x08, [("pselect", 0x00, "u8", 8)]),
 }
 for _alias, _tag in (("RPAT", "PATH"), ("RPPN", "PPNT"), ("RCAM", "CAMR"), ("RARO", "AROB"),
                      ("2Dma", "2DMA")):

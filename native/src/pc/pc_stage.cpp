@@ -31,6 +31,9 @@
 // CAMR/RCAM, AROB/RARO, EVNT, 2DMA/2Dma and SOND chunk are read through the struct their chunk
 // loader uses (RTBL after dStage_roomReadInit relocated it), each entry at the file's address,
 // and every field goes to a REC line.
+// Step 4.9d: the same for the environment chunks (LGHT, LGTV, Colo, Pale, Virt, EnvR); then sea_T's
+// stage.dzs goes through the game's environment chunk loaders and its fog distances, colours and
+// indices are printed to the run log and checked against their ranges (checkSeaEnv).
 // <COS_RUN_DIR>/stage_sweep.txt gets what the game read (STG/CHUNK/ACTOR/REC lines in
 // disc_manifest.py's names); native/tools/run.sh compares it with the manifest
 // (disc_manifest.py --check-stage).
@@ -65,6 +68,11 @@ int dStage_ppntInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void* i_f
 int dStage_pathInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void* i_file);
 int dStage_rppnInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void* i_file);
 int dStage_rpatInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void* i_file);
+int dStage_paletInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void* i_file);
+int dStage_pselectInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void* i_file);
+int dStage_envrInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void* i_file);
+int dStage_vrboxInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void* i_file);
+int dStage_plightInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void* i_file);
 
 namespace pc {
 
@@ -77,6 +85,7 @@ using Vector = cos_sdk::HostVector<T>;
 constexpr uint32_t kSweepHeapSize = 16 * 1024 * 1024;
 
 int sErrors = 0;
+bool sSeaEnvChecked = false;
 const char* sWhere = "";
 
 void fail(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
@@ -489,6 +498,15 @@ struct RecLine {
     }
 };
 
+// A u8 array as a comma-separated list.
+void listBytes(RecLine& l, const u8* v, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        char t[8];
+        snprintf(t, sizeof(t), i == 0 ? "%u" : ",%u", v[i]);
+        l.text += t;
+    }
+}
+
 // The entry the game reads must be the file's (its struct the format's size).
 template <class Entry>
 bool entryAt(const Entry* e, const RawFile& raw, const RawChunk& c, int k, uint32_t esize) {
@@ -522,7 +540,9 @@ void checkRecords(const dStage_fileHeader* file, const RawFile& raw, const Strin
         uint32_t esize = is("STAG") ? 0x20 : is("FILI") ? 0x08 : is("MULT", "SCLS") ? 0x0C
                        : is("PATH", "RPAT") ? 0x0C : is("PPNT", "RPPN") ? 0x10
                        : is("CAMR", "RCAM") ? 0x14 : is("AROB", "RARO") ? 0x14
-                       : is("EVNT") ? 0x18 : is("2DMA", "2Dma") ? 0x38 : is("SOND") ? 0x1C : 0;
+                       : is("EVNT") ? 0x18 : is("2DMA", "2Dma") ? 0x38 : is("SOND") ? 0x1C
+                       : is("LGHT", "LGTV") ? 0x1C : is("Colo") ? 0x0C : is("Pale") ? 0x2C
+                       : is("Virt") ? 0x24 : is("EnvR") ? 0x08 : 0;
         if (esize == 0) {
             continue;
         }
@@ -642,10 +662,220 @@ void checkRecords(const dStage_fileHeader* file, const RawFile& raw, const Strin
                 l.floats("pos", pos.x, pos.y, pos.z);
                 l.ints("bytes", e->field_0x14, e->field_0x15, e->field_0x16, e->field_0x17,
                        e->field_0x18, e->field_0x19, e->field_0x1a);
+            } else if (is("LGHT")) {
+                // Step 4.9d: the environment chunks, through the node's offset as
+                // dStage_plightInfoInit, dStage_lgtvInfoInit, dStage_pselectInfoInit,
+                // dStage_paletInfoInit, dStage_vrboxInfoInit and dStage_envrInfoInit read them.
+                const stage_plight_info_class* e =
+                    (const stage_plight_info_class*)(const void*)nodeHdr->m_offset + k;
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                Vec pos = e->position;
+                l.floats("pos", pos.x, pos.y, pos.z);
+                l.floats("radius", e->radius);
+                l.key("b10");
+                listBytes(l, e->field_0x10, sizeof(e->field_0x10));
+                l.ints("color", e->color.r, e->color.g, e->color.b);
+                l.ints("fluct", e->fluctuation);
+            } else if (is("LGTV")) {
+                const stage_lightvec_info_class* e =
+                    (const stage_lightvec_info_class*)(const void*)nodeHdr->m_offset + k;
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                Vec pos = e->position;
+                l.floats("pos", pos.x, pos.y, pos.z);
+                l.floats("radius", e->radius);
+                l.key("b10");
+                listBytes(l, e->field_0x10, sizeof(e->field_0x10));
+                l.key("b18");
+                listBytes(l, e->field_0x18, sizeof(e->field_0x18));
+                l.ints("fluct", e->fluctuation);
+            } else if (is("Colo")) {
+                const stage_pselect_info_class* e =
+                    (const stage_pselect_info_class*)(const void*)nodeHdr->m_offset + k;
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                l.key("palette");
+                listBytes(l, e->palette_id, sizeof(e->palette_id));
+                l.floats("change_rate", e->change_rate);
+            } else if (is("Pale")) {
+                const stage_palet_info_class* e =
+                    (const stage_palet_info_class*)(const void*)nodeHdr->m_offset + k;
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                const color_RGB_class* cols[] = {
+                    &e->mActor_C0, &e->mActor_K0, &e->mBG0_C0, &e->mBG0_K0, &e->mBG1_C0,
+                    &e->mBG1_K0,   &e->mBG2_C0,   &e->mBG2_K0, &e->mBG3_C0, &e->mBG3_K0, &e->mFog};
+                l.key("colors");
+                for (size_t n = 0; n < ARRAY_SIZE(cols); n++) {
+                    char v[16];
+                    snprintf(v, sizeof(v), n == 0 ? "%u,%u,%u" : ",%u,%u,%u", cols[n]->r,
+                             cols[n]->g, cols[n]->b);
+                    l.text += v;
+                }
+                l.ints("virt", e->mVirtIdx);
+                l.floats("fog_z", e->mFogStartZ, e->mFogEndZ);
+            } else if (is("Virt")) {
+                const stage_vrbox_info_class* e =
+                    (const stage_vrbox_info_class*)(const void*)nodeHdr->m_offset + k;
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                l.ints("f00", (u32)e->field_0x00, (u32)e->field_0x04, (u32)e->field_0x08,
+                       (u32)e->field_0x0c);
+                l.ints("kumo", e->mKumoColor.r, e->mKumoColor.g, e->mKumoColor.b,
+                       e->mKumoColor.a);
+                l.ints("kumo_center", e->mKumoCenterColor.r, e->mKumoCenterColor.g,
+                       e->mKumoCenterColor.b, e->mKumoCenterColor.a);
+                l.ints("sky", e->mSkyColor.r, e->mSkyColor.g, e->mSkyColor.b);
+                l.ints("uso_umi", e->mUsoUmiColor.r, e->mUsoUmiColor.g, e->mUsoUmiColor.b);
+                l.ints("kasumi_mae", e->mKasumiMaeColor.r, e->mKasumiMaeColor.g,
+                       e->mKasumiMaeColor.b);
+            } else if (is("EnvR")) {
+                const stage_envr_info_class* e =
+                    (const stage_envr_info_class*)(const void*)nodeHdr->m_offset + k;
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                l.key("pselect");
+                listBytes(l, e->pselect_id, sizeof(e->pselect_id));
             }
             l.write(fd);
         }
     }
+}
+
+// ---- step 4.9d: sea_T's environment as d_kankyo reads it ----------------------------------------
+
+constexpr const char* kSeaTitle = "/res/Stage/sea_T/Stage.arc:dzs/stage.dzs";
+
+bool finiteIn(f32 v, f32 lo, f32 hi) {
+    return v == v && v >= lo && v <= hi;
+}
+
+// 0, or at least `least`: a field read in the wrong byte order gives a tiny denormal-range value
+// (28000.0f read host-order is 1.8e-38), which a plain range check would let through.
+bool zeroOrAtLeast(f32 v, f32 least) {
+    return v == 0.0f || v >= least;
+}
+
+// The title stage's (sea_T, decision 5 of the plan) environment chunks through the game's chunk
+// loaders into a dStage_stageDt_c, then read as envcolor_init/dKy_setLight_init read them: every
+// palette's fog distances and colours, every colour-set and environment entry, printed to the run
+// log. Each value must be in its range: a fog start and end finite with 0 <= start <= end <= 1e6,
+// each 0 or at least 1 (world units)
+// (a fog end may lie past the STAG far plane: sea_T's palette 19 ends at 200000, its far plane is
+// 160000; d_kankyo only clamps the start to the end, and GXSetFog takes it as is); a palette
+// index below the Pale count, a sky index below the Virt count, a colour-set index below the Colo
+// count; a change rate finite in [0, 1000] (seconds), 0 or at least 1/30 (d_kankyo raises a smaller
+// one to 1/30); a light finite.
+void checkSeaEnv(uint8_t* data, const RawFile& raw) {
+    int errorsBefore = sErrors;
+    dStage_stageDt_c dt;
+    dt.init();
+    static FuncTable sEnvTable[] = {
+        {"Pale", dStage_paletInfoInit}, {"Colo", dStage_pselectInfoInit},
+        {"Virt", dStage_vrboxInfoInit}, {"EnvR", dStage_envrInfoInit},
+        {"LGHT", dStage_plightInfoInit},
+    };
+    dStage_dt_c_decode(data, &dt, sEnvTable, ARRAY_SIZE(sEnvTable));
+    auto count = [&](const char* tag) {
+        int i = raw.find(tag);
+        return i < 0 ? 0 : raw.chunks[i].num;
+    };
+    int nPale = count("Pale"), nColo = count("Colo"), nVirt = count("Virt"), nEnvr = count("EnvR");
+    int nLght = count("LGHT");
+    int stag = raw.find("STAG");
+    const stage_palet_info_class* pale = dt.getPaletInfo();
+    const stage_pselect_info_class* psel = dt.getPselectInfo();
+    const stage_vrbox_info_class* vrbox = dt.getVrboxInfo();
+    const stage_envr_info_class* envr = dt.getEnvrInfo();
+    const stage_plight_info_class* plight = dt.getPlightInfo();
+    if (stag < 0 || nPale == 0 || nColo == 0 || nVirt == 0 || nEnvr == 0 || pale == nullptr ||
+        psel == nullptr || vrbox == nullptr || envr == nullptr) {
+        fail("sea_T: STAG %d, Pale %d (%p), Colo %d (%p), Virt %d (%p), EnvR %d (%p)", stag, nPale,
+             (const void*)pale, nColo, (const void*)psel, nVirt, (const void*)vrbox, nEnvr,
+             (const void*)envr);
+        return;
+    }
+    const stage_stag_info_class* stagInfo =
+        (const stage_stag_info_class*)(const void*)((const dStage_fileHeader*)data)
+            ->m_nodes[stag].m_offset;
+    f32 farPlane = stagInfo->mFarPlane;
+    writef(STDERR_FILENO, "[cos] stage-sweep: sea_T env: far plane %.1f, %d palettes, %d colour "
+                          "sets, %d skies, %d environments, %d lights\n",
+           (double)farPlane, nPale, nColo, nVirt, nEnvr, nLght);
+    if (!finiteIn(farPlane, 1.0f, 1.0e7f)) {
+        fail("sea_T: far plane %g", (double)farPlane);
+        return;
+    }
+    constexpr f32 kFogMax = 1.0e6f;
+    f32 fogMin = kFogMax, fogMax = 0.0f;
+    for (int k = 0; k < nPale; k++) {
+        const stage_palet_info_class& p = pale[k];
+        f32 start = p.mFogStartZ, end = p.mFogEndZ;
+        writef(STDERR_FILENO, "[cos] stage-sweep: sea_T Pale %2d fog %.1f..%.1f rgb %u,%u,%u "
+                              "actor %u,%u,%u/%u,%u,%u bg0 %u,%u,%u/%u,%u,%u virt %u\n",
+               k, (double)start, (double)end, p.mFog.r, p.mFog.g, p.mFog.b, p.mActor_C0.r,
+               p.mActor_C0.g, p.mActor_C0.b, p.mActor_K0.r, p.mActor_K0.g, p.mActor_K0.b,
+               p.mBG0_C0.r, p.mBG0_C0.g, p.mBG0_C0.b, p.mBG0_K0.r, p.mBG0_K0.g, p.mBG0_K0.b,
+               p.mVirtIdx);
+        if (!finiteIn(start, 0.0f, kFogMax) || !finiteIn(end, start, kFogMax) ||
+            !zeroOrAtLeast(start, 1.0f) || !zeroOrAtLeast(end, 1.0f) || p.mVirtIdx >= nVirt) {
+            fail("sea_T Pale %d: fog %g..%g (range 0 <= start <= end <= %g), virt %u of %d", k,
+                 (double)start, (double)end, (double)kFogMax, p.mVirtIdx, nVirt);
+        }
+        fogMin = start < fogMin ? start : fogMin;
+        fogMax = end > fogMax ? end : fogMax;
+    }
+    for (int k = 0; k < nColo; k++) {
+        const stage_pselect_info_class& p = psel[k];
+        f32 rate = p.change_rate;
+        writef(STDERR_FILENO, "[cos] stage-sweep: sea_T Colo %d palettes %u %u %u %u %u %u %u %u "
+                              "change %.3f\n",
+               k, p.palette_id[0], p.palette_id[1], p.palette_id[2], p.palette_id[3],
+               p.palette_id[4], p.palette_id[5], p.palette_id[6], p.palette_id[7], (double)rate);
+        if (!finiteIn(rate, 0.0f, 1000.0f) || !zeroOrAtLeast(rate, 0.033333335f)) {
+            fail("sea_T Colo %d: change rate %g", k, (double)rate);
+        }
+        for (u8 id : p.palette_id) {
+            if (id >= nPale) {
+                fail("sea_T Colo %d: palette %u of %d", k, id, nPale);
+            }
+        }
+    }
+    for (int k = 0; k < nVirt; k++) {
+        const stage_vrbox_info_class& v = vrbox[k];
+        writef(STDERR_FILENO, "[cos] stage-sweep: sea_T Virt %2d sky %u,%u,%u kumo %u,%u,%u,%u "
+                              "uso_umi %u,%u,%u kasumi %u,%u,%u\n",
+               k, v.mSkyColor.r, v.mSkyColor.g, v.mSkyColor.b, v.mKumoColor.r, v.mKumoColor.g,
+               v.mKumoColor.b, v.mKumoColor.a, v.mUsoUmiColor.r, v.mUsoUmiColor.g,
+               v.mUsoUmiColor.b, v.mKasumiMaeColor.r, v.mKasumiMaeColor.g, v.mKasumiMaeColor.b);
+    }
+    for (int k = 0; k < nEnvr; k++) {
+        for (u8 id : envr[k].pselect_id) {
+            if (id >= nColo) {
+                fail("sea_T EnvR %d: colour set %u of %d", k, id, nColo);
+            }
+        }
+    }
+    for (int k = 0; k < nLght; k++) {
+        Vec pos = plight[k].position;
+        f32 radius = plight[k].radius;
+        if (!finiteIn(pos.x, -1.0e7f, 1.0e7f) || !finiteIn(pos.y, -1.0e7f, 1.0e7f) ||
+            !finiteIn(pos.z, -1.0e7f, 1.0e7f) || !finiteIn(radius, 0.0f, 1.0e7f)) {
+            fail("sea_T LGHT %d: pos %g %g %g radius %g", k, (double)pos.x, (double)pos.y,
+                 (double)pos.z, (double)radius);
+        }
+    }
+    writef(STDERR_FILENO, "[cos] stage-sweep: sea_T env: fog %.1f..%.1f (range 0..%.0f); %s\n",
+           (double)fogMin, (double)fogMax, (double)kFogMax,
+           sErrors == errorsBefore ? "every value in its range" : "values out of range");
+    sSeaEnvChecked = true;
 }
 
 // The relocating loaders through dStage_dt_c_decode, then their results against the file.
@@ -816,6 +1046,9 @@ void sweepData(const String& name, uint8_t* data, uint32_t size, bool isStage, i
 
     checkActors(file, raw, name, fd);
     checkRecords(file, raw, name, fd);
+    if (name == kSeaTitle) {
+        checkSeaEnv(data, raw);
+    }
     checkRelocs(data, raw, relocs, isStage, name, fd);
     sTotals.rtbl += relocs.rtblEntries.size();
     sTotals.paths += relocs.pathPoints.size() + relocs.rpatPoints.size();
@@ -993,6 +1226,9 @@ void sweepMenu(JKRHeap* heap) {
            sTotals.rtbl, sTotals.paths,
            (unsigned long long)(elapsedMs() - start), sErrors,
            gConfig.runDir != nullptr ? " (report in stage_sweep.txt)" : "");
+    if (!sSeaEnvChecked) {
+        fail("%s: the environment was not checked", kSeaTitle);
+    }
     bool pass = sErrors == 0 && sTotals.archives == archives.size() && sTotals.files > 0;
     pc_exit(pass ? PC_EXIT_REACHED : PC_EXIT_CHECK_FAILED);
 }
