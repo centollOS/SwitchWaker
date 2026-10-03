@@ -1651,6 +1651,51 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   0; sweeps 0; harness tests 13/12/10/11; build 0 errors, smoke and `cos_pc_tests` ok, census
   equal, `--dups` 0, inventory ok (67 open). Next: M7 (`opening`), blocked by the audio-off fault above.
 
+- **4.9a Stage chunk table** (2026-10-03): `COS_SMOKE=stage-sweep` 0 x4; the report equals the
+  manifest (651 dzs/dzr files, 6063 chunks). Group D of the inventory 7 -> 0. Causes, each under
+  `TARGET_PC` (struct fields through the `BE(T)`/`OFFSET_PTR` shims, so the GameCube types are
+  unchanged; `unifdef -UTARGET_PC` of the four .cpp files equals HEAD):
+  - **The chunk table was relocated in place into 32-bit pointers, and read host-order.**
+    `dStage_nodeHeader` is `{u32 m_tag; BE(int) m_entryNum; OFFSET_PTR_RAW m_offset}` and
+    `m_chunkCount` is `BE(int)` (Dusklight's `d_stage.h`). `m_tag` stays raw: `dStage_dt_c_decode`
+    compares it with the FuncTable identifier read the same way. The 19 `{num, pointer}` chunk
+    structs that overlay `{m_entryNum, m_offset}` get `BE(int)` and `OFFSET_PTR(T)` (RTBL:
+    `OFFSET_PTR(OFFSET_PTR(roomRead_data_class))`, `roomRead_data_class::m_rooms`
+    `OFFSET_PTR(u8)`, `dStage_dPnt_c::m_pnt_offset` `OFFSET_PTR_RAW`), and `dPath::m_points` is
+    `OFFSET_PTR(dPnt)`. `dStage_dt_c_offsetToPtr` calls `setBase(i_data)` (0 stays "no data", as
+    the original check), `dStage_roomReadInit` relocates each entry and room list from the file,
+    `dStage_pathInfoInit`/`dStage_rpatInfoInit` each path from its PPNT/RPPN entries. A path's
+    point offset 0 is valid data (225 paths on the disc), so `OffsetPtr` gains
+    `setBaseAllowZero` (provenance note in `offset_ptr.{h,cpp}`, tested in `cos_pc_tests`). The
+    20 entries of `layout_xfail.txt` for these structs and `dPath` are gone. The entries' own
+    fields (actors, rooms, paths, environment) stay for 4.9b-d.
+  - **`createRoomScene` passed its parameter pointer to `fopScnM_CreateReq` as a u32.** On PC
+    `fopScnM_CreateReq`/`fopScnM_ReRequest` take `uintptr_t` (Dusklight's signature).
+  - **`/res/Menu/Menu1.dat`'s two offsets were relocated in place into 32-bit pointers.**
+    `menu_of_scene_class::menu_inf::stage` and `stage_inf::roomPtr` are `OFFSET_PTR`, relocated
+    with `setBase(info)` in `phase_2`; the three structs joined `layout_headers.txt`.
+  - **Harness:** `pc_stage.cpp`. Every .arc under /res/Stage (705) is mounted in main RAM; its
+    stage.dzs or room.dzr is read raw first, then relocated by `dStage_dt_c_offsetToPtr` and read
+    through `dStage_fileHeader` (count, tags, entry counts, each offset resolved); every
+    `{num, pointer}` struct laid over every chunk; `dStage_dt_c_decode` with a recorder per tag
+    (first chunk of the tag, its count, the file); then the game's RTBL/PPNT/PATH/RPPN/RPAT loaders
+    through `dStage_dt_c_decode` into a `dStage_stageDt_c` or `dStage_roomDt_c` (690 RTBL entries
+    and 1881 paths resolved where the file says). Menu1.dat is relocated as `phase_2` does and its
+    40 stages and 468 rooms compared with the file. `disc_manifest.py --check-stage` compares
+    `stage_sweep.txt` (STG/CHUNK lines) with the manifest; `run.sh stage-sweep` runs it.
+    Negative check: with the RPAT relocation removed the sweep reports 1821 errors and exits 1.
+  Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check
+  cos_link_census` 0 errors; smoke ok; `cos_pc_tests` ok; census equal to
+  `expected_unresolved_phase2.txt`; `--all --dups` 0; inventory `--check` ok (60 open, D 0);
+  static-init, aurora-up, heaps, gfx-create, frame-loop, logo-scene, logo-res 0 x3,
+  frame-loop, logo-scene and logo-res `--uncapped` 0; disc-ls, heap, font, arc-sweep, msg-sweep,
+  jpa-sweep 0; crash/panic/timeout/stall-test 13/12/10/11; no disc 14.
+  Reviewed in round 1: `unifdef -UTARGET_PC` equal to HEAD for the four files, layout check
+  (host static asserts and `--gc-verify`, 1021 checks) ok, smoke and `cos_pc_tests` ok, census
+  report equal, `--all --dups` 0, inventory ok (60 open, D 0); stage-sweep 0 x2 (651 files, 6063
+  chunks, 690 RTBL entries, 1881 paths, Menu1.dat 40/468); M0-M6 0, frame-loop/logo-res
+  `--uncapped` 0, disc-ls/heap/font/arc/msg/jpa sweeps 0, crash/panic-test 13/12.
+
 ### Phase 6 render issues
 
 None yet.
