@@ -323,6 +323,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # Counters and timers of the GL replay of a submission (render passes, draws, bind groups,
+    # texture binds, glTexParameteri, uniform uploads, buffer copies; Execute, flush, context
+    # release), read by the native port's perf-switch lines through dawn_switch_gl_cmd_stats.
+    if(NOT EXISTS "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchStatsGL.h")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-command-stats.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_STATS_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_STATS_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_STATS_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_STATS_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL command statistics patch:\n"
+                "${DAWN_GL_STATS_PATCH_OUTPUT}${DAWN_GL_STATS_PATCH_ERROR}")
+        endif()
+    endif()
+
     set(DAWN_WGPU_HELPERS_SOURCE
         "${dawn_SOURCE_DIR}/src/dawn/native/utils/WGPUHelpers.cpp")
     file(READ "${DAWN_WGPU_HELPERS_SOURCE}" DAWN_WGPU_HELPERS_TEXT)

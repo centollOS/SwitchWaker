@@ -251,7 +251,19 @@ Switch patch 0005, the Dawn GL queue patch and the disc reader):
 
 ```
 [cos] perf-switch frames 61-120: begin: events E, slot wait S, staging wait T; queue-full wait Q; render worker B ms/frame busy (encode C, end_frame D: unmap U, acquire A, submit M, present P; events V), N presents/s; gl F fences (I in flight), W waits X ms, G glFinish H ms; pipelines K created, L compiled in Y ms (longest so far Z ms), J queued; tex upload KiB; dvd R reads KiB ms; res loads n; scene NAME
+[cos] perf-switch dawn gl per frame: P passes, D draws, L pipelines, B bind groups, T tex binds, X texparams (Y skipped), U uniform uploads, C buffer copies K KiB, V tex uploads; flush F ms (I items): execute E, other work O, release R
 ```
+
+The second line is Dawn's GL replay of the frame's submission
+(`switch/dawn/patches/dawn-switch-gl-command-stats.patch`): with `gl_defer` every GL call of the
+frame runs inside `Queue::Submit`, so "submit" above is this flush. "execute" is
+`CommandBuffer::Execute` (the frame's passes, draws and copies turned into GL calls, Mesa's driver
+work included); "other work" is the rest of the deferred GL work (buffer map/unmap, object
+creation, buffer and texture writes); "release" is the context release at its end. The counts say
+what the replay issued: draws, pipeline switches (`glUseProgram` plus the pipeline's fixed state),
+bind group applications, sampled-texture binds and the `glTexParameteri` calls made while binding
+them ("skipped" ones were left out because the texture object already had the value),
+`glUniform` uploads of immediates, staging-to-buffer copies.
 
 "begin" of the perf line is `events` (Aurora's event pump) plus `aurora_begin_frame`, which mostly
 waits for a free frame slot (the render worker still has two frames in flight: GPU-bound or
@@ -266,7 +278,8 @@ and time). Every game frame whose busy time is over `COS_HITCH_MS` (50 ms by def
 off) gets one `[cos] hitch frame N: busy ... ms (wall ...): events, begin_frame, cpd, aud, logic,
 painter, end_frame, other; pipelines +n (q queued), tex upload KiB, res loads +n last <path>,
 scene NAME (new); switch: slot wait, staging wait, queue-full wait, worker busy (encode, submit,
-present, events), gl fence wait, glFinish, pipeline compile ms (count), dvd reads` line.
+present, events), gl fence wait, glFinish, pipeline compile ms (count), dvd reads; dawn gl: draws,
+tex binds, texparams, execute, other work, release ms` line.
 
 Aurora's caches (`user/cache/dawn_cache.db`, `pipeline_cache.db`) failed their first transaction
 on the console with "database disk image is malformed", so shaders and pipelines were compiled

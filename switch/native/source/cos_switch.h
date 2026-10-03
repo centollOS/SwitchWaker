@@ -41,7 +41,7 @@ void cos_switch_set_crash_state_writer(void (*writer)(int fd));
 /* Running totals (since start) of the Switch's graphics and disc counters, for the harness's
  * "[cos] perf-switch" and "[cos] hitch" lines (native/src/pc/pc_frame.cpp), which diff two reads.
  * Times in ns. Sources: Aurora's Switch patch 0005 (aurora_switch_get_stats), the Dawn GL queue
- * patch (switch/dawn/patches/dawn-switch-gl-fence-queue.patch) and the disc reader (nod/). */
+ * and command statistics patches (switch/dawn/patches) and the disc reader (nod/). */
 typedef struct {
     /* aurora_begin_frame: waiting for a free frame slot / a mapped staging buffer; any producer
      * waiting for room in the render worker's queue. */
@@ -57,6 +57,16 @@ typedef struct {
     uint64_t glFences, glWaits, glWaitNs, glFinishes, glFinishNs, glFencesPending;
     /* Disc image reads (nod_read): calls, bytes, time. */
     uint64_t dvdReads, dvdBytes, dvdNs;
+    /* Dawn's GL replay of the submissions (switch/dawn/patches/dawn-switch-gl-command-stats.patch):
+     * render passes, draws, pipeline applies (glUseProgram + fixed state), bind group applies,
+     * sampled-texture binds, glTexParameteri issued and skipped as unchanged, glUniform uploads of
+     * immediates, buffer-to-buffer copies and their bytes, buffer-to-texture copies; the time of
+     * CommandBuffer::Execute, of the whole deferred-work flush (Execute and the other deferred GL
+     * work such as buffer map/unmap, creations and writes, plus the context release) and of the
+     * context release alone; deferred work items run. */
+    uint64_t glPasses, glDraws, glPipelines, glBindGroups, glTexBinds, glTexParams, glTexParamsSkipped;
+    uint64_t glUniforms, glBufCopies, glBufCopyBytes, glTexUploads;
+    uint64_t glExecuteNs, glFlushNs, glFlushItems, glReleaseNs;
 } CosSwitchGfxStats;
 
 void cos_switch_gfx_stats(CosSwitchGfxStats* out);

@@ -2,10 +2,15 @@
 // harness's perf-switch and hitch lines. Each source keeps running totals; this only gathers them.
 #include "cos_switch.h"
 
+#include <cstddef>
+
 #include <aurora/switch_stats.h>
 
 // switch/dawn/patches/dawn-switch-gl-fence-queue.patch (Dawn's QueueGL.cpp).
 extern "C" void dawn_switch_gl_queue_stats(uint64_t out[6]);
+// switch/dawn/patches/dawn-switch-gl-command-stats.patch (Dawn's CommandBufferGL.cpp): the
+// running totals in the order of its switch_stats::Counter.
+extern "C" void dawn_switch_gl_cmd_stats(uint64_t* out, size_t count);
 // switch/native/nod/nod_gcn.cpp.
 extern "C" void cos_switch_nod_stats(uint64_t out[3]);
 
@@ -14,6 +19,8 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
     aurora_switch_get_stats(&a);
     uint64_t gl[6] = {};
     dawn_switch_gl_queue_stats(gl);
+    uint64_t cmd[15] = {};
+    dawn_switch_gl_cmd_stats(cmd, 15);
     uint64_t dvd[3] = {};
     cos_switch_nod_stats(dvd);
     *out = CosSwitchGfxStats{
@@ -41,5 +48,20 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
         .dvdReads = dvd[0],
         .dvdBytes = dvd[1],
         .dvdNs = dvd[2],
+        .glPasses = cmd[0],
+        .glDraws = cmd[1],
+        .glPipelines = cmd[2],
+        .glBindGroups = cmd[3],
+        .glTexBinds = cmd[4],
+        .glTexParams = cmd[5],
+        .glTexParamsSkipped = cmd[6],
+        .glUniforms = cmd[7],
+        .glBufCopies = cmd[8],
+        .glBufCopyBytes = cmd[9],
+        .glTexUploads = cmd[10],
+        .glExecuteNs = cmd[11],
+        .glFlushNs = cmd[12],
+        .glFlushItems = cmd[13],
+        .glReleaseNs = cmd[14],
     };
 }

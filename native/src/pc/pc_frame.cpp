@@ -237,6 +237,15 @@ double msOf(uint64_t ns) {
     return ns / 1e6;
 }
 
+#if defined(__SWITCH__)
+// The deferred GL work of Dawn's flushes other than CommandBuffer::Execute and the context release
+// (buffer map/unmap, object creation, buffer and texture writes), as a running total.
+uint64_t glOtherWorkNs(const CosSwitchGfxStats& s) {
+    const uint64_t known = s.glExecuteNs + s.glReleaseNs;
+    return s.glFlushNs > known ? s.glFlushNs - known : 0;
+}
+#endif
+
 // COS_HITCH_MS: one line for a frame whose busy time is above the threshold. `ev`/`prev`: the
 // frame's end and the previous frame's end; `texBytes`: Aurora's last texture upload size.
 void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, const FrameEvents& prev,
@@ -246,7 +255,7 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
     const unsigned int resLoads = ev.resources - prev.resources;
     const bool sceneChanged = ev.scene != prev.scene;
     const uint64_t beginFrameNs = f.beginNs > f.eventsNs ? f.beginNs - f.eventsNs : 0;
-    char platform[512] = "";
+    char platform[768] = "";
 #if defined(__SWITCH__)
     CosSwitchGfxStats now{};
     cos_switch_gfx_stats(&now);
@@ -254,7 +263,8 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
     snprintf(platform, sizeof(platform),
              "; switch: slot wait %.1f, staging wait %.1f, queue-full wait %.1f, worker busy %.1f "
              "(encode %.1f, submit %.1f, present %.1f, events %.1f), gl fence wait %.1f, glFinish "
-             "%.1f, pipeline compile %.1f ms (%llu), dvd %llu reads %.1f KiB %.1f ms",
+             "%.1f, pipeline compile %.1f ms (%llu), dvd %llu reads %.1f KiB %.1f ms; dawn gl: %llu "
+             "draws, %llu tex binds, %llu texparams, execute %.1f, other work %.1f, release %.1f ms",
              msOf(now.frameSlotWaitNs - p.frameSlotWaitNs), msOf(now.stagingWaitNs - p.stagingWaitNs),
              msOf(now.queueFullWaitNs - p.queueFullWaitNs), msOf(now.workerBusyNs - p.workerBusyNs),
              msOf(now.workerEncodeNs - p.workerEncodeNs), msOf(now.workerSubmitNs - p.workerSubmitNs),
@@ -263,7 +273,10 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
              msOf(now.pipelineCompileNs - p.pipelineCompileNs),
              (unsigned long long)(now.pipelineCompiles - p.pipelineCompiles),
              (unsigned long long)(now.dvdReads - p.dvdReads), (now.dvdBytes - p.dvdBytes) / 1024.0,
-             msOf(now.dvdNs - p.dvdNs));
+             msOf(now.dvdNs - p.dvdNs), (unsigned long long)(now.glDraws - p.glDraws),
+             (unsigned long long)(now.glTexBinds - p.glTexBinds),
+             (unsigned long long)(now.glTexParams - p.glTexParams), msOf(now.glExecuteNs - p.glExecuteNs),
+             msOf(glOtherWorkNs(now) - glOtherWorkNs(p)), msOf(now.glReleaseNs - p.glReleaseNs));
 #endif
     writef(STDERR_FILENO,
            "[cos] hitch frame %u: busy %.1f ms (wall %.1f): events %.1f, begin_frame %.1f, cpd %.1f, "
@@ -384,7 +397,11 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
            "unmap %.2f, acquire %.2f, submit %.2f, present %.2f; events %.2f), %.1f presents/s; "
            "gl %llu fences (%llu in flight), %llu waits %.2f ms, %llu glFinish %.2f ms; pipelines "
            "%u created, %llu compiled in %.1f ms (longest so far %.1f ms), %u queued; tex upload "
-           "%.1f KiB; dvd %llu reads %.1f KiB %.1f ms; res loads %u; scene %s\n",
+           "%.1f KiB; dvd %llu reads %.1f KiB %.1f ms; res loads %u; scene %s\n"
+           "[cos] perf-switch dawn gl per frame: %.1f passes, %.1f draws, %.1f pipelines, %.1f bind "
+           "groups, %.1f tex binds, %.1f texparams (%.1f skipped), %.1f uniform uploads, %.1f buffer "
+           "copies %.1f KiB, %.1f tex uploads; flush %.2f ms (%.1f items): execute %.2f, other work "
+           "%.2f, release %.2f\n",
            last - (unsigned int)n + 1, last, msOf(sSwWindowEventsNs) / n,
            msOf(cur.frameSlotWaitNs - w.frameSlotWaitNs) / n, msOf(cur.stagingWaitNs - w.stagingWaitNs) / n,
            msOf(cur.queueFullWaitNs - w.queueFullWaitNs) / n, msOf(cur.workerBusyNs - w.workerBusyNs) / wf,
@@ -404,7 +421,14 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
            stats != nullptr ? (unsigned int)stats->queuedPipelines : 0u, sSwWindowTexBytes / 1024.0,
            (unsigned long long)(cur.dvdReads - w.dvdReads), (cur.dvdBytes - w.dvdBytes) / 1024.0,
            msOf(cur.dvdNs - w.dvdNs), ev.resources - sSwWindowEvents.resources,
-           traceSceneName(ev.scene));
+           traceSceneName(ev.scene), (cur.glPasses - w.glPasses) / wf, (cur.glDraws - w.glDraws) / wf,
+           (cur.glPipelines - w.glPipelines) / wf, (cur.glBindGroups - w.glBindGroups) / wf,
+           (cur.glTexBinds - w.glTexBinds) / wf, (cur.glTexParams - w.glTexParams) / wf,
+           (cur.glTexParamsSkipped - w.glTexParamsSkipped) / wf, (cur.glUniforms - w.glUniforms) / wf,
+           (cur.glBufCopies - w.glBufCopies) / wf, (cur.glBufCopyBytes - w.glBufCopyBytes) / 1024.0 / wf,
+           (cur.glTexUploads - w.glTexUploads) / wf, msOf(cur.glFlushNs - w.glFlushNs) / wf,
+           (cur.glFlushItems - w.glFlushItems) / wf, msOf(cur.glExecuteNs - w.glExecuteNs) / wf,
+           msOf(glOtherWorkNs(cur) - glOtherWorkNs(w)) / wf, msOf(cur.glReleaseNs - w.glReleaseNs) / wf);
     sSwWindow = cur;
     sSwWindowEvents = ev;
     sSwWindowTexBytes = 0;
