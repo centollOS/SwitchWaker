@@ -2213,6 +2213,18 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   passed; `opening` now stops on the next blocker, SIGSEGV addr=0xd7a46cc60 in `strcmp` <-
   `dEvent_manager_c::getEventIdx` <- `dEvt_info_c::setEventName` <- `daAgb_Create`.
   Reviewer: regress all checks passed; `opening` confirmed past `playerInit`, stops in `daAgb_Create`.
+- **M7 boot loop, iteration 6** (2026-10-03, endian, H1; file owned by 4.16): SIGSEGV in `strcmp`
+  <- `dEvent_manager_c::getEventIdx` <- `daAgb_Create`. The event list binary is big-endian disc
+  data used in place, but `event_binary_data_header` and the Event/Staff/Cut/Data records were
+  read host-order, so `eventTop` came out byte-swapped and `mEventP` pointed far past the
+  buffer. `d_event_data.h` now declares every disc field of the header and the four record types
+  as `BE(T)` (Dusklight's layout, CC0); on the GameCube `BE(T)` is `T`. Left for 4.16: the
+  substance arrays reached through `getMySubstanceP` (f32/int data, still raw `f32*`/`int*`).
+  Fixer: `regress.sh -j 3` all checks passed; `opening` now gets past `daAgb_Create` and stops
+  on the next blocker, SIGSEGV addr=0xc in `J3DAnmLoaderDataBase::load` <-
+  `daPy_lk_c::getUnderUpperAnime` <- `setMoveAnime` <- `procWait_init` <- `makeBgWait` (frame 285).
+  Reviewer: regress all checks passed; `opening` confirmed past `daAgb_Create`, stops in
+  `J3DAnmLoaderDataBase::load` <- `daPy_lk_c::getUnderUpperAnime`.
 
 ### Phase 6 render issues
 

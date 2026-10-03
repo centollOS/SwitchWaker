@@ -2,22 +2,27 @@
 #define D_EVENT_D_EVENT_DATA_H
 
 #include "global.h"
+#include "helpers/endian.h"
+
+// event_list.dat (and the stage/room event lists) are big-endian disc data used in place: on
+// TARGET_PC the header and the Event/Staff/Cut/Data record fields are BE(T) (as in Dusklight's
+// d_event_data.h, CC0, ref/dusklight at 40457c6). On the GameCube BE(T) is T.
 
 struct event_binary_data_header {
-    /* 0x00 */ u32 eventTop;  // offset to Event chunk
-    /* 0x04 */ s32 eventNum;
-    /* 0x08 */ u32 staffTop;  // offset to Staff chunk
-    /* 0x0C */ s32 staffNum;
-    /* 0x10 */ u32 cutTop;  // offset to Cut chunk
-    /* 0x14 */ s32 cutNum;
-    /* 0x18 */ u32 dataTop;  // offset to Data chunk
-    /* 0x1C */ s32 dataNum;
-    /* 0x20 */ u32 fDataTop;  // offset to FData chunk
-    /* 0x24 */ s32 fDataNum;
-    /* 0x28 */ u32 iDataTop;  // offset to IData chunk
-    /* 0x2C */ s32 iDataNum;
-    /* 0x30 */ u32 sDataTop;  // offset to SData chunk
-    /* 0x34 */ s32 sDataNum;
+    /* 0x00 */ BE(u32) eventTop;  // offset to Event chunk
+    /* 0x04 */ BE(s32) eventNum;
+    /* 0x08 */ BE(u32) staffTop;  // offset to Staff chunk
+    /* 0x0C */ BE(s32) staffNum;
+    /* 0x10 */ BE(u32) cutTop;  // offset to Cut chunk
+    /* 0x14 */ BE(s32) cutNum;
+    /* 0x18 */ BE(u32) dataTop;  // offset to Data chunk
+    /* 0x1C */ BE(s32) dataNum;
+    /* 0x20 */ BE(u32) fDataTop;  // offset to FData chunk
+    /* 0x24 */ BE(s32) fDataNum;
+    /* 0x28 */ BE(u32) iDataTop;  // offset to IData chunk
+    /* 0x2C */ BE(s32) iDataNum;
+    /* 0x30 */ BE(u32) sDataTop;  // offset to SData chunk
+    /* 0x34 */ BE(s32) sDataNum;
     /* 0x38 */ u8 unk[8];
 };  // Size: 0x40
 
@@ -31,11 +36,11 @@ public:
     };
 
     /* 0x00 */ char mName[32];
-    /* 0x20 */ s32 mIndex;
-    /* 0x24 */ s32 mSubstanceType;
-    /* 0x28 */ s32 mSubstanceIdx;
-    /* 0x2C */ s32 mSubstanceSize;
-    /* 0x30 */ s32 mNextIdx;
+    /* 0x20 */ BE(s32) mIndex;
+    /* 0x24 */ BE(s32) mSubstanceType;
+    /* 0x28 */ BE(s32) mSubstanceIdx;
+    /* 0x2C */ BE(s32) mSubstanceSize;
+    /* 0x30 */ BE(s32) mNextIdx;
     /* 0x34 */ u32 field_0x34[3];
 
     char* getName() { return mName; }
@@ -57,12 +62,12 @@ public:
 
 public:
     /* 0x00 */ char mName[32];
-    /* 0x20 */ u32 mTagId;
-    /* 0x24 */ u32 mIndex;
-    /* 0x28 */ u32 mStartFlag[3];
-    /* 0x34 */ u32 mFlagIdx;
-    /* 0x38 */ u32 mFirstDataIdx;
-    /* 0x3C */ u32 mNextCutIdx;
+    /* 0x20 */ BE(u32) mTagId;
+    /* 0x24 */ BE(u32) mIndex;
+    /* 0x28 */ BE(u32) mStartFlag[3];
+    /* 0x34 */ BE(u32) mFlagIdx;
+    /* 0x38 */ BE(u32) mFirstDataIdx;
+    /* 0x3C */ BE(u32) mNextCutIdx;
     /* 0x40 */ u32 field_0x40[4];
 };
 
@@ -105,11 +110,11 @@ public:
 
 public:
     /* 0x00 */ char mName[32];
-    /* 0x20 */ int mTagID;
-    /* 0x24 */ int mStaffIdx;
-    /* 0x28 */ int m28;
-    /* 0x2C */ int mStaffType;
-    /* 0x30 */ int mFirstCutIdx;
+    /* 0x20 */ BE(int) mTagID;
+    /* 0x24 */ BE(int) mStaffIdx;
+    /* 0x28 */ BE(int) m28;
+    /* 0x2C */ BE(int) mStaffType;
+    /* 0x30 */ BE(int) mFirstCutIdx;
     /* 0x34 */ u8 m34[0x38 - 0x34];
     /* 0x38 */ int mCurCutIdx;
     /* 0x3C */ u32 mCurActionIdx;
@@ -143,18 +148,18 @@ public:
 
 public:
     /* 0x00 */ char mName[0x20];
-    /* 0x20 */ u32 field_0x20;
-    /* 0x24 */ u32 field_0x24;
-    /* 0x28 */ u32 mPriority;
-    /* 0x2C */ u32 mStaffIdx[20];
-    /* 0x7C */ s32 mNStaff;
-    /* 0x80 */ int mFlagCheckStart[2];
-    /* 0x88 */ int mFlagCheckFinish[3];
+    /* 0x20 */ BE(u32) field_0x20;
+    /* 0x24 */ BE(u32) field_0x24;
+    /* 0x28 */ BE(u32) mPriority;
+    /* 0x2C */ BE(u32) mStaffIdx[20];
+    /* 0x7C */ BE(s32) mNStaff;
+    /* 0x80 */ BE(int) mFlagCheckStart[2];
+    /* 0x88 */ BE(int) mFlagCheckFinish[3];
     /* 0x94 */ u8 mEventEndSound;
     /* 0x98 */ u32 field_0x98;
     /* 0x9C */ u32 field_0x9c;
     /* 0xA0 */ u32 field_0xa0;
-    /* 0xA4 */ s32 mEventState;
+    /* 0xA4 */ BE(s32) mEventState;
     /* 0xA8 */ u32 field_0xa8;
     /* 0xAC */ u32 field_0xac;
 };
