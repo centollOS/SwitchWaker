@@ -758,9 +758,10 @@ f64 TFunctionValue_list_parameter::update_INTERPOLATE_BSPLINE_dataMore3_(const T
     local_48[2] = pfVar2[-2];
     local_48[3] = pfVar2[0];
 #if TARGET_PC
-    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-    s32 iVar3 = ((int)(intptr_t)rThis.dat2.get() - (int)(intptr_t)pfVar2) / 4;
-    s32 iVar5 = ((int)(intptr_t)pfVar2 - (int)(intptr_t)rThis.dat1.get()) / 4;
+    // The f32 counts between the current key and the table ends as pointer differences (the
+    // addresses do not fit an int).
+    s32 iVar3 = (s32)(rThis.dat2.get() - pfVar2);
+    s32 iVar5 = (s32)(pfVar2 - rThis.dat1.get());
 #else
     s32 iVar3 = ((int)rThis.dat2.get() - (int)pfVar2) / 4;
     s32 iVar5 = ((int)pfVar2 - (int)rThis.dat1.get()) / 4;

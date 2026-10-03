@@ -248,8 +248,8 @@ void TObject::process_paragraph_reserved_(u32 arg1, const void* pContent, u32 uS
         const void* temp = dataID.getContent();
         on_data(dataID.get_ID(), dataID.get_IDSize(), temp,
 #if TARGET_PC
-                // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-                uSize - ((u32)(uintptr_t)temp - (u32)(uintptr_t)dataID.getRaw()));
+                // The ID header's size as a pointer difference (the addresses do not fit a u32).
+                uSize - (u32)((const u8*)temp - (const u8*)dataID.getRaw()));
 #else
                 uSize - ((u32)temp - (u32)dataID.getRaw()));
 #endif

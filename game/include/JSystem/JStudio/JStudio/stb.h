@@ -74,7 +74,7 @@ public:
     void setSequence_(const void* arg1) { pSequence = arg1; }
     const void* getSequence_offset(s32 i_no) const {
 #if TARGET_PC
-        // TODO(native phase 4): address arithmetic at host pointer width; offsets come from 32-bit data.
+        // The sequence address at host width plus the signed 32-bit jump offset of the STB.
         intptr_t s32Val = (intptr_t)getSequence();
         return (const void*)(s32Val + i_no);
 #else

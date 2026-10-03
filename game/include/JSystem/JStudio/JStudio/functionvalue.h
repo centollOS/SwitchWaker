@@ -175,8 +175,9 @@ class TFunctionValue_composite : public TFunctionValue, public TFunctionValueAtt
 public:
     struct TData {
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        TData(void* data) : uintdata((u32)(uintptr_t)data) {}
+        // The whole pointer: on the little-endian host uintdata aliases its low 32 bits, the
+        // value the GameCube's (u32) cast keeps (only initialize passes one, NULL).
+        TData(void* data) : rawData(data) {}
 #else
         TData(void* data) : uintdata((u32)data) {}
 #endif
