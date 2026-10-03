@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_picture_box.h"
 #include "d/d_s_play.h"
 #include "f_op/f_op_msg.h"
@@ -734,7 +737,13 @@ void dJle_Pb_c::pictureDraw(u8 mono_color_1_alpha, int img_index) {
     GXGetViewportv(viewv);
     GXGetScissor(&left, &top, &width, &height);
 
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): the photo keeps its 4:3 shape in a narrower viewport, centred
+    // (16:9 code at 0x80227A18-20: x 79, width 480).
+    GXSetViewport(pc_aspect_lerp(0.0f, 79.0f), 0.0f, pc_aspect_lerp(640.0f, 480.0f), 480.0f, 0.0f, 1.0f);
+#else
     GXSetViewport(0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 1.0f);
+#endif
     GXSetNumChans(0);
     GXSetNumTexGens(1);
     GXSetTexCoordGen2(GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY, false, GX_PTIDENTITY);
@@ -2365,6 +2374,14 @@ void dJle_Pb_c::draw() {
         scrn1->draw(0.0f, 0.0f, graph);
         shutterLineDraw(g_meterHIO.field_0x120);
     }
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): black bars left and right of the 4:3 picture (the 16:9 code's added
+    // code at 0x80004074, branched to from this function's return at 0x8022B9E4).
+    if (pc_aspect_wide()) {
+        J2DFillBox(-130.0f, -32.0f, 130.0f, 640.0f, JUtility::TColor(0x000000FF));
+        J2DFillBox(640.0f, -32.0f, 130.0f, 640.0f, JUtility::TColor(0x000000FF));
+    }
+#endif
 }
 
 /* 8022B9E8-8022BB3C       .text _delete__9dJle_Pb_cFP10JKRExpHeap */

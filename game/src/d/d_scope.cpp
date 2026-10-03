@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_scope.h"
 #include "f_op/f_op_msg.h"
 #include "d/d_com_inf_game.h"
@@ -73,6 +76,14 @@ void dDlst_2DSCP_c::draw() {
     dScp_ScpScreen->draw(0.0f, 0.0f, graf);
     dScp_MsgScreen->draw(0.0f, 0.0f, graf);
     outFontDraw();
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): black bars left and right of the 4:3 picture (the 16:9 code's added
+    // code at 0x80004074, branched to from this function's return at 0x802375E4).
+    if (pc_aspect_wide()) {
+        J2DFillBox(-130.0f, -32.0f, 130.0f, 640.0f, JUtility::TColor(0x000000FF));
+        J2DFillBox(640.0f, -32.0f, 130.0f, 640.0f, JUtility::TColor(0x000000FF));
+    }
+#endif
 }
 
 /* 802375E8-80237720       .text outFontDraw__13dDlst_2DSCP_cFv */

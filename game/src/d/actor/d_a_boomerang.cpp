@@ -4,6 +4,9 @@
  */
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/actor/d_a_boomerang.h"
 #include "d/d_camera.h"
 #include "d/d_cc_d.h"
@@ -245,6 +248,14 @@ void daBoomerang_sightPacket_c::setSight(cXyz* pPos, int n) {
 
         cXyz proj;
         mDoLib_project(pPos, &proj);
+#if TARGET_PC
+        // Widescreen (pc_aspect.h): the projected x (0..640 across the picture) placed on the wider
+        // 2D screen, about its centre (the 16:9 code's added code at 0x80004058, from 0x800E1630:
+        // x = 320 - (320 - x) * 1.3333).
+        if (pc_aspect_wide()) {
+            proj.x = 320.0f - (320.0f - proj.x) * pc_aspect_lerp(1.0f, 4.0f / 3.0f);
+        }
+#endif
         mDoMtx_stack_c::transS(proj);
         mDoMtx_stack_c::scaleM(scaleX, scaleY, scale);
 
