@@ -149,8 +149,17 @@ s32 JKRDvdFile::sync() {
 /* 802BCC78-802BCCAC       .text doneProcess__10JKRDvdFileFlP11DVDFileInfo */
 void JKRDvdFile::doneProcess(s32 id, DVDFileInfo* fileInfo) {
     // fileInfo->field_0x3c looks like some kind of user pointer?
+#if TARGET_PC
+    // mDvdFile follows mFileInfo, 0x3C bytes after it on the GameCube; the host's DVDFileInfo
+    // (Aurora's) has another size, so take the distance from the layout (as Dusklight's
+    // JKRDvdFile.cpp does, CC0, ref/dusklight at 40457c6).
+    JKRDvdFile* dvdFile = *(JKRDvdFile**)((u8*)fileInfo + (offsetof(JKRDvdFile, mDvdFile) -
+                                                          offsetof(JKRDvdFile, mFileInfo)));
+    OSSendMessage(&dvdFile->mMessageQueue2, (OSMessage)(intptr_t)id, OS_MESSAGE_NOBLOCK);
+#else
     JKRDvdFile* dvdFile = *(JKRDvdFile**)((u8*)fileInfo + 0x3c);
     OSSendMessage(&dvdFile->mMessageQueue2, (OSMessage)id, OS_MESSAGE_NOBLOCK);
+#endif
 }
 
 /* 802BCCAC-802BCCB4       .text getFileSize__10JKRDvdFileCFv */
