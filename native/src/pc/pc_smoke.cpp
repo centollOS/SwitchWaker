@@ -35,6 +35,8 @@
 //   stream read through JAudio's init-data code and compared with an independent reading.
 // - j3d-sweep (step 4.11, pc_j3d.cpp): every BMD/BDL/BMT of the disc loaded through the game's J3D
 //   loaders with the game's flags and compared with an independent reading.
+// - anm-sweep (step 4.12, pc_anm.cpp): every J3D animation of the disc loaded as the game loads it
+//   and evaluated at its first, middle and last frame through the game's getters.
 // In the booted game:
 // - pad-echo (step 6.3, pc_input.cpp): the COS_INPUT script read back from g_mDoCPd_cpadInfo after
 //   each mDoCPd_Read.
@@ -261,6 +263,9 @@ void requireWatchdog(const char* test, double seconds, const char* var) {
     if (strcmp(name, "j3d-sweep") == 0) {
         smokeJ3dSweep();
     }
+    if (strcmp(name, "anm-sweep") == 0) {
+        smokeAnmSweep();
+    }
     writef(STDERR_FILENO, "[cos] smoke %s has no runner\n", name);
     pc_exit(PC_EXIT_USAGE);
 }
@@ -296,6 +301,7 @@ const Smoke kSmokes[] = {
     {"dzb-sweep", kAfterHeaps},
     {"audio-parse", kAfterHeaps},
     {"j3d-sweep", kAfterHeaps},
+    {"anm-sweep", kAfterHeaps},
     {"pad-echo", kInGame},
 };
 

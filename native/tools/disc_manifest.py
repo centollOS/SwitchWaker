@@ -77,6 +77,14 @@ Usage
                                                   joint, material, shape, texture, draw and
                                                   envelope counts and its joint, material and
                                                   texture names (exit 0 equal, 1 different)
+  disc_manifest.py --check-anm ANM [--out FILE]  compare what the game's J3D animation code gave
+                                                  in COS_SMOKE=anm-sweep (<run dir>/
+                                                  anm_sweep.txt) with the manifest's J3D1 files:
+                                                  every file, its block tag, attribute, frame
+                                                  count, track and name counts, and the values
+                                                  its getters return at the first, middle and
+                                                  last frame (count, sum, sum of |v|, max |v|;
+                                                  exit 0 equal, 1 different)
   disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
 
 Manifest (JSON)
@@ -90,6 +98,8 @@ Manifest (JSON)
               size is always the stored size (FST or archive entry); a format's own size field
               is header_size
               j3d / bmg / bmc / bfn / blo: magic, header_size, blocks [{tag, size, ...counts}];
+              J3D1 animation blocks add attribute, frame_max, count, names (cnames/knames)
+              and eval {family: [n, sum, sum |v|, max |v|, tolerance]} (step 4.12);
               BMG INF1 adds messages (entries with text), distinct_ids and ids_fnv (FNV-1a 64
               of every entry's big-endian u32 offset and u16 number), BMC CLT1 entries and
               colors_fnv (FNV-1a 64 of the colour table)
@@ -132,7 +142,9 @@ GC_MAGIC = b"\xC2\x33\x9F\x3D"
 # 4: dzs/dzr records of the room, file and path chunks (step 4.9c).
 # 5: dzs/dzr records of the environment chunks (step 4.9d).
 # 6: JaiInit.aaf's audio records and the .afc headers (step 5.1).
-MANIFEST_VERSION = 6
+# 7: J3D animation blocks: track counts, update-material names and values evaluated at the first,
+#    middle and last frame (step 4.12).
+MANIFEST_VERSION = 7
 
 EXIT_OK = 0
 EXIT_DIFFERENT = 1
@@ -337,7 +349,247 @@ def jut_block_info(b, o, tag, size):
     elif tag in J3D_ANM_FRAMEMAX:
         info["attribute"] = u8(b, o + 0x08)
         info["frame_max"] = s16(b, o + J3D_ANM_FRAMEMAX[tag])
+        if tag in J3D_ANM_EVAL:
+            info.update(anm_eval(b, o, tag, info["frame_max"]))
     return info
+
+
+# J3D animations evaluated as J3DAnimation.cpp does (step 4.12), from plain big-endian reads of the
+# block (offsets of J3DAnimation.h's J3DAnm*Data, relative to the block). Each "family" of values
+# the game's getters return at the frames 0, frame_max / 2 and frame_max is summarised as
+# [count, sum, sum of |v|, max |v|, tolerance]: f32 arithmetic is emulated (to_f32 after every
+# operation) but the game's compiler may fuse a multiply-add, so a value truncated to an integer
+# within 1e-3 of an integer boundary adds its step (1 << shift for rotations) to the tolerance.
+
+def anm_hermite(t, t0, v0, d0, t1, v1, d1):
+    """JMAHermiteInterpolation (JMath.cpp), f32 operations in its order."""
+    F = to_f32
+    length = F(t1 - t0)
+    f9 = F(t - t0)
+    f1 = F(1.0 / length)
+    f2 = F(F(f9 * f9) * f1)
+    f10 = F(f2 * f1)
+    f11 = F(f9 * f10)
+    f12 = F(f11 * f1)
+    a = F(v0 * F(1.0 + F(F(2.0 * f12) - F(3.0 * f10))))
+    b2 = F(v1 * F(F(-2.0 * f12) + F(3.0 * f10)))
+    c = F(d0 * F(f9 + F(f11 - F(2.0 * f2))))
+    d = F(d1 * F(f11 - f2))
+    return F(F(F(a + b2) + c) + d)
+
+
+def anm_hermite_s(t, t0, v0, d0, t1, v1, d1):
+    """J3DHermiteInterpolationS (J3DAnimation.cpp): the paired-single sequence, s16 keys."""
+    F = to_f32
+    rng = F(t1 - t0)
+    u = F(F(t - t0) / rng)
+    dv = F(v1 - v0)
+    a = F(F(d1 * rng) + v0)
+    u2 = F(u * u)
+    bb = F(dv - F(rng * d0))
+    a = F(F(a - v1) - bb)
+    c = F(u2 * a)
+    out = F(F(rng * d0) + c)
+    out = F(F(out * u) + v0)
+    out = F(F(bb * u2) + out)
+    return F(out - c)
+
+
+def anm_key(b, pos, size, fmt, frame, max_frame, ktype, hermite):
+    """J3DGetKeyFrameInterpolation / J3DGetKeyFrameInterpolationS: keys of 3 (time, value,
+    tangent) or 4 (time, value, in, out) values from pos."""
+    def d(i):
+        return struct.unpack_from(fmt, b, pos + i * size)[0]
+    stride = 3 if ktype == 0 else 4
+    if frame < d(0):
+        return float(d(1))
+    if d(stride * (max_frame - 1)) <= frame:
+        return float(d(stride * (max_frame - 1) + 1))
+    base = 0
+    num = max_frame
+    while num > 1:
+        mid = num // 2
+        if frame >= d(base + stride * mid):
+            base += stride * mid
+            num -= mid
+        else:
+            num = mid
+    k = [d(base + i) for i in range(7)]
+    if stride == 3:
+        return hermite(frame, k[0], k[1], k[2], k[3], k[4], k[5])
+    return hermite(frame, k[0], k[1], k[3], k[4], k[5], k[6])
+
+
+class AnmFamily:
+    def __init__(self):
+        self.n = 0
+        self.sum = 0.0
+        self.abs = 0.0
+        self.max = 0.0
+        self.tol = 0.0
+
+    def add(self, v, step=0.0):
+        self.n += 1
+        self.sum += v
+        self.abs += abs(v)
+        self.max = max(self.max, abs(v))
+        self.tol += step
+
+    def record(self):
+        return [self.n, self.sum, self.abs, self.max, self.tol]
+
+
+def anm_trunc(v, step=1):
+    """C's float-to-integer truncation, with the tolerance step when v is near a boundary."""
+    near = abs(v - round(v)) < 1e-3 * max(1.0, abs(v))
+    return int(v), (step if near else 0)
+
+
+def wrap_s16(x):
+    return ((x + 0x8000) & 0xFFFF) - 0x8000
+
+
+J3D_ANM_EVAL = {"ANK1", "TTK1", "TRK1", "PAK1", "TPT1", "VAF1"}
+
+
+def anm_eval(b, o, tag, frame_max):
+    def tab(off):
+        return o + u32(b, o + off) if u32(b, o + off) != 0 else None
+
+    def kt(pos):  # J3DAnmKeyTableBase
+        return u16(b, pos), u16(b, pos + 2), u16(b, pos + 4)
+
+    frames = [0.0, to_f32(frame_max * 0.5), float(frame_max)]
+    fam = {}
+
+    def F(name):
+        if name not in fam:
+            fam[name] = AnmFamily()
+        return fam[name]
+
+    out = {}
+
+    def ids(name, off, count):
+        p = tab(off)
+        for i in range(count):
+            F(name).add(u16(b, p + 2 * i))
+
+    def names(off):
+        p = tab(off)
+        return u16(b, p) if p is not None else 0
+
+    def key_f32(info, data, frame, default):
+        mx, offs, ktype = info
+        if mx == 0:
+            return default
+        if mx == 1:
+            return f32(b, data + 4 * offs)
+        return anm_key(b, data + 4 * offs, 4, ">f", frame, mx, ktype, anm_hermite)
+
+    def key_rot(info, data, frame, shift):
+        """J3DTransformInfo/J3DTextureSRTInfo rotation: (s32)S-interpolation << shift, as s16."""
+        mx, offs, ktype = info
+        if mx == 0:
+            return 0, 0
+        if mx == 1:
+            return wrap_s16(s16(b, data + 2 * offs) << shift), 0
+        v = anm_key(b, data + 2 * offs, 2, ">h", frame, mx, ktype, anm_hermite_s)
+        i, step = anm_trunc(v, 1 << shift)
+        return wrap_s16(i << shift), step
+
+    if tag == "ANK1":
+        shift = u8(b, o + 0x09)
+        joints = u16(b, o + 0x0C)
+        out["count"] = joints
+        table, sc, rot, tr = tab(0x14), tab(0x18), tab(0x1C), tab(0x20)
+        for frame in frames:
+            for j in range(joints):
+                for axis in range(3):
+                    e = table + (j * 3 + axis) * 0x12
+                    F("scale").add(key_f32(kt(e), sc, frame, 1.0))
+                    v, step = key_rot(kt(e + 6), rot, frame, shift)
+                    F("rot").add(v, step)
+                    F("trans").add(key_f32(kt(e + 12), tr, frame, 0.0))
+    elif tag == "TTK1":
+        shift = u8(b, o + 0x09)
+        mats = u16(b, o + 0x0C) // 3
+        out["count"] = mats
+        out["names"] = names(0x1C)
+        table, sc, rot, tr = tab(0x14), tab(0x28), tab(0x2C), tab(0x30)
+        for frame in frames:
+            for m in range(mats):
+                e = table + m * 3 * 0x12
+                F("scale").add(key_f32(kt(e), sc, frame, 1.0))
+                F("scale").add(key_f32(kt(e + 0x12), sc, frame, 1.0))
+                v, step = key_rot(kt(e + 2 * 0x12 + 6), rot, frame, shift)
+                F("rot").add(v, step)
+                F("trans").add(key_f32(kt(e + 12), tr, frame, 0.0))
+                F("trans").add(key_f32(kt(e + 0x12 + 12), tr, frame, 0.0))
+        ids("ids", 0x18, mats)
+        p = tab(0x20)
+        for m in range(mats):
+            F("texmtx").add(u8(b, p + m))
+        p = tab(0x24)
+        if p is not None:
+            for m in range(mats * 3):
+                F("center").add(f32(b, p + 4 * m))
+    elif tag in ("TRK1", "PAK1"):
+        if tag == "TRK1":
+            groups = [("creg", 0x0C, 0x20, 0x38, 0x1C, -1024.0, 1023.0, 0x28, 0x30),
+                      ("kreg", 0x0E, 0x24, 0x48, 0x1C, 0.0, 255.0, 0x2C, 0x34)]
+        else:
+            groups = [("color", 0x0E, 0x18, 0x24, 0x18, 0.0, 255.0, 0x1C, 0x20)]
+        counts = []
+        for name, num_off, table_off, val_off, esize, lo, hi, id_off, name_off in groups:
+            num = u16(b, o + num_off)
+            counts.append(num)
+            table = tab(table_off)
+            vals = [tab(val_off + 4 * c) for c in range(4)]
+            for frame in frames:
+                for m in range(num):
+                    for c in range(4):
+                        mx, offs, ktype = kt(table + m * esize + c * 6)
+                        if mx == 0:
+                            F(name).add(0)
+                        elif mx == 1:
+                            raw = s16(b, vals[c] + 2 * offs)
+                            F(name).add(raw if name == "creg" else raw & 0xFF)
+                        else:
+                            v = anm_key(b, vals[c] + 2 * offs, 2, ">h", frame, mx, ktype,
+                                        anm_hermite)
+                            if v < lo:
+                                F(name).add(int(lo))
+                            elif v > hi:
+                                F(name).add(int(hi))
+                            else:
+                                i, step = anm_trunc(v)
+                                F(name).add(i, step)
+            ids(name[0] + "ids" if tag == "TRK1" else "ids", id_off, num)
+            out[name[0] + "names" if tag == "TRK1" else "names"] = names(name_off)
+        out["count"] = counts[0] if tag == "PAK1" else "%d,%d" % tuple(counts)
+    elif tag in ("TPT1", "VAF1"):
+        num = u16(b, o + 0x0C)
+        out["count"] = num
+        table, vals = tab(0x10), tab(0x14)
+        size, fmt, name = (2, ">H", "texno") if tag == "TPT1" else (1, ">B", "vis")
+        esize = 8 if tag == "TPT1" else 4
+        for frame in frames:
+            for m in range(num):
+                mx, offs = u16(b, table + m * esize), u16(b, table + m * esize + 2)
+                # getTexNo/getVisibility: three separate ifs, the last one that holds wins
+                idx = None
+                if 0.0 <= frame < mx:
+                    idx = int(frame) + offs
+                if frame < 0.0:
+                    idx = offs
+                if frame >= mx:
+                    idx = mx - 1 + offs
+                F(name).add(struct.unpack_from(fmt, b, vals + size * idx)[0])
+        if tag == "TPT1":
+            ids("ids", 0x18, num)
+            out["names"] = names(0x1C)
+    out["eval"] = {k: v.record() for k, v in fam.items()}
+    return out
 
 
 def fnv1a64(data, h=0xCBF29CE484222325):
@@ -1935,6 +2187,102 @@ def check_j3d(manifest, j3d_path):
     return report_problems(problems, "j3d_sweep.txt equals the manifest")
 
 
+def check_anm(manifest, anm_path):
+    """anm_sweep.txt (step 4.12): what the game's J3D animation loaders and getters gave for every
+    J3D1 file, fields separated by single spaces: 'ANM <path> magic=<s> tag=<s> attribute=N
+    frame_max=N count=N [names=N | cnames=N knames=N]' (the BRK count is 'c,k'; paths are
+    percent-encoded: a space, '%' and bytes outside printable ASCII as %XX), then per family
+    of values 'VAL <path> <family> n=N sum=X abs=X max=X'. Counts, names and n must equal the
+    manifest's; sum, abs and max may differ by the manifest's tolerance (integer values near a
+    truncation boundary) plus 1e-5 of the magnitude for f32 values. Every J3D1 file of the disc
+    must be reported once."""
+    from urllib.parse import unquote_to_bytes
+
+    def dec(text):
+        raw = unquote_to_bytes(text)
+        try:
+            return raw.decode("shift_jis")
+        except UnicodeDecodeError:
+            return raw.decode("latin-1")
+
+    by_path = records_by_path(manifest)
+    anims = {p: r for p, r in by_path.items()
+             if r.get("format") == "j3d" and r.get("magic", "")[:4] == "J3D1"}
+    problems = []
+    got = {}
+    with open(anm_path, encoding="ascii", errors="replace") as f:
+        for ln, line in enumerate(f, 1):
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split(" ")
+            if parts[0] == "ANM" and len(parts) >= 3:
+                path = dec(parts[1])
+                if path in got:
+                    problems.append("line %d: %s reported twice" % (ln, path))
+                got[path] = {"head": dict(p.partition("=")[::2] for p in parts[2:]), "val": {}}
+            elif parts[0] == "VAL" and len(parts) == 7:
+                path = dec(parts[1])
+                if path not in got:
+                    problems.append("line %d: %s before its ANM line" % (ln, path))
+                    continue
+                vals = dict(p.partition("=")[::2] for p in parts[3:])
+                try:
+                    got[path]["val"][parts[2]] = (int(vals["n"]), float(vals["sum"]),
+                                                  float(vals["abs"]), float(vals["max"]))
+                except (KeyError, ValueError):
+                    problems.append("line %d: malformed: %r" % (ln, line))
+            else:
+                problems.append("line %d: malformed: %r" % (ln, line))
+
+    counts = Counter()
+    values = 0
+    for path in sorted(set(anims) - set(got)):
+        problems.append("%s: J3D1 file of the manifest not reported" % path)
+    for path in sorted(set(got) - set(anims)):
+        problems.append("%s: not a J3D1 file of the manifest" % path)
+    for path in sorted(set(anims) & set(got)):
+        rec, g = anims[path], got[path]
+        blocks = rec.get("blocks", [])
+        if len(blocks) != 1 or "eval" not in blocks[0]:
+            problems.append("%s: the manifest has no evaluated block (%s)"
+                            % (path, [b["tag"] for b in blocks]))
+            continue
+        blk = blocks[0]
+        counts[blk["tag"]] += 1
+        want = {"magic": rec["magic"], "tag": blk["tag"], "attribute": str(blk["attribute"]),
+                "frame_max": str(blk["frame_max"]), "count": str(blk["count"])}
+        for key in ("names", "cnames", "knames"):
+            if key in blk:
+                want[key] = str(blk[key])
+        if g["head"] != want:
+            problems.append("%s: %s, the manifest has %s" % (path, g["head"], want))
+        ev = blk["eval"]
+        for fam in sorted(set(ev) | set(g["val"])):
+            if fam not in ev or fam not in g["val"]:
+                problems.append("%s: family %s only in %s" % (path, fam, "the manifest"
+                                                             if fam in ev else "the report"))
+                continue
+            n, vsum, vabs, vmax, tol = ev[fam]
+            gn, gsum, gabs, gmax = g["val"][fam]
+            values += gn
+            if gn != n:
+                problems.append("%s: %s n=%d, the manifest has %d" % (path, fam, gn, n))
+                continue
+            slack = tol + 1e-5 * vabs + 1e-6
+            for what, have, exp, lim in (("sum", gsum, vsum, slack), ("abs", gabs, vabs, slack),
+                                         ("max", gmax, vmax, tol + 1e-5 * vmax + 1e-6)):
+                if abs(have - exp) > lim:
+                    problems.append("%s: %s %s=%.9g, the manifest has %.9g (tolerance %.3g)"
+                                    % (path, fam, what, have, exp, lim))
+    print("disc_manifest: anm_sweep.txt: %d animation file(s) (%s; the manifest has %d): %d "
+          "values compared" % (len(got), ", ".join("%s %d" % kv for kv in sorted(counts.items())),
+                               len(anims), values))
+    if not got:
+        problems.append("no ANM line")
+    return report_problems(problems, "anm_sweep.txt equals the manifest")
+
+
 def load_manifest(path):
     try:
         with open(path, encoding="utf-8") as f:
@@ -1985,6 +2333,8 @@ def main():
                     help="compare a COS_SMOKE=audio-parse report with the manifest")
     ap.add_argument("--check-j3d", metavar="J3D",
                     help="compare a COS_SMOKE=j3d-sweep report with the manifest")
+    ap.add_argument("--check-anm", metavar="ANM",
+                    help="compare a COS_SMOKE=anm-sweep report with the manifest")
     ap.add_argument("--summary", action="store_true", help="print an existing manifest's counts")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
@@ -2009,6 +2359,8 @@ def main():
         return check_audio(load_manifest(args.out), args.check_audio)
     if args.check_j3d:
         return check_j3d(load_manifest(args.out), args.check_j3d)
+    if args.check_anm:
+        return check_anm(load_manifest(args.out), args.check_anm)
     if args.summary:
         print_summary(load_manifest(args.out))
         return EXIT_OK
