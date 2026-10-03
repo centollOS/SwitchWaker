@@ -2710,6 +2710,15 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   colours with toon shading; outset-debug shot 400 shows the horizon cloud band. Committed as two
   commits (one per cause).
 
+- R2-textures (lane boot, render): the name-scene backdrop's multicoloured blocks and the title's
+  garbled "the game" subtitle were already gone with R1-lighting's J3D texture binding
+  (title shot 600 and file-select shots 900/1200 show the subtitle and the cloudy sky before this
+  step). What remained on the name scene were long white lines across the sky: Aurora drew the
+  3-vertex `GX_QUADS` of `dKyr_drawStar` with a fourth index past the primitive. H11 patch
+  `0003-quads-three-vertex-triangle.patch`. See render issues.
+  Reviewed: patch matches Dolphin `IndexGenerator::AddQuads`, applies to clean 3227d76;
+  file-select shots 900/1200 show stars without lines, title shot 600 intact; regress passes.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
@@ -2777,6 +2786,25 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   trousers with two-tone toon shading; without patch 0002 Link is uniformly in shadow colours.
   `outset-debug --stage sea:44:206 --shot 400` shows the horizon cloud band instead of the garbage
   blocks; Outset's island and characters are not in view in that run (open entry above).
+- **Name-scene backdrop garbled, title subtitle garbled** (step R2-textures, lane boot;
+  `file-select --shot 1200`): the file-select sky showed multicoloured blocks and the subtitle
+  under the title logo was garbled. Two causes:
+  1. The blocks and the subtitle were J3D materials sampling stale textures; **fixed** by
+     R1-lighting's J3D texture binding (3c3f2ae): the sky (vrbox) and its clouds and the
+     subtitle draw correctly before R2.
+  2. (R2's fix) Long straight white lines crossed the name scene's night sky. `dKyr_drawStar`
+     draws every star as two `GXBegin(GX_QUADS, GX_VTXFMT0, 3)` triangles (`dKyr_drawLenzflare`
+     draws its rays the same way); the hardware rasterizes three vertices left over in a quad
+     primitive as a triangle (Dolphin `IndexGenerator::AddQuads`: "... do this for sun rays", about this game),
+     but Aurora's `prepare_idx_buffer` always emitted a fourth index, one vertex past the
+     primitive (the next star merged into the same draw, or stale vertex data), so each star
+     became a sliver across the screen. **Fixed** by
+     `native/patches/aurora/0003-quads-three-vertex-triangle.patch` (decision H11): only whole
+     quads, plus one triangle for a remainder of three.
+  Checked with COS_SHOT: `run --frames 1210 --input native/check/input/file-select.txt --shot
+  900,1200` shows the starry night sky with clouds behind the memory-card prompt, as on the
+  GameCube; before, the same frames had the white lines. `run --frames 610 --shot 600` (title,
+  logo with subtitle) unchanged.
 - **King of Red Lions dark on the title** (found while reviewing R1-lighting, title frames
   900/1300): after the J3D texture fix the boat's head and hull draw dark olive/brown with little
   of the red of the GameCube title. Not triaged (lighting/colour registers of its materials vs.

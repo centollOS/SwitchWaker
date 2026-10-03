@@ -1,0 +1,49 @@
+GX_QUADS draws only whole quads; three vertices left over draw one triangle
+
+GameCube behaviour: a GX_QUADS primitive takes its vertices four at a time; when three
+vertices remain the hardware still rasterizes them as a triangle, and one or two left
+over draw nothing. Dolphin's IndexGenerator::AddQuads does the same ("A simple triangle
+has to be rendered for three vertices. the game does this for sun rays"). The game relies on
+it: dKyr_drawStar (the night sky of the name/file-select scene and of the sea) draws each
+star as two GXBegin(GX_QUADS, GX_VTXFMT0, 3) triangles, and the lens-flare rays (dKyr_drawLenzflare) do likewise.
+
+Aurora 3227d76's prepare_idx_buffer stepped v by 4 up to vtxCount and always emitted
+v+3, so a 3-vertex quad indexed one vertex past its own data: the first vertex of the
+next draw merged into the same command (the next star), or whatever followed in the
+vertex buffer. Each star became a sliver reaching across the screen, drawn as long white
+lines over the name scene's sky. The fix emits only whole quads plus a triangle for a
+remainder of three.
+
+Upstream status: not reported upstream yet (encounter/aurora at 3227d76).
+
+--- a/lib/gx/command_processor.cpp
++++ b/lib/gx/command_processor.cpp
+@@ -26,9 +26,13 @@
+ u16 prepare_idx_buffer(ByteBuffer& buf, GXPrimitive prim, u16 vtxStart, u16 vtxCount) noexcept {
+   u16 numIndices = 0;
+   if (prim == GX_QUADS) {
+-    buf.reserve_extra((vtxCount / 4) * 6 * sizeof(u16));
++    buf.reserve_extra(((vtxCount / 4) * 6 + 3) * sizeof(u16));
+ 
+-    for (u16 v = 0; v < vtxCount; v += 4) {
++    // Only whole quads; the hardware draws three vertices left over as a triangle (the game
++    // draws its stars and sun rays as GX_QUADS of 3 vertices; Dolphin's IndexGenerator AddQuads
++    // does the same) and ignores one or two
++    u16 v = 0;
++    for (; v + 4 <= vtxCount; v += 4) {
+       u16 idx0 = vtxStart + v;
+       u16 idx1 = vtxStart + v + 1;
+       u16 idx2 = vtxStart + v + 2;
+@@ -42,6 +46,12 @@
+       buf.append(idx2);
+       buf.append(idx3);
+       buf.append(idx0);
++      numIndices += 3;
++    }
++    if (vtxCount - v == 3) {
++      buf.append(static_cast<u16>(vtxStart + v));
++      buf.append(static_cast<u16>(vtxStart + v + 1));
++      buf.append(static_cast<u16>(vtxStart + v + 2));
+       numIndices += 3;
+     }
+   } else if (prim == GX_TRIANGLES) {
