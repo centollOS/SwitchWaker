@@ -18,6 +18,7 @@
  *   COS_BOOT_STAGE <stage>:<room>[:<point>[:<layer>]]: debug stage boot (step 6.4, pc_boot.cpp)
  *   COS_PERF_EVERY every this many frames, one line of game-thread frame times (pc_frame.cpp)
  *   COS_PERF       file that gets one CSV row of game-thread times per game frame (step 6.7)
+ *   COS_ASPECT     4:3 (default), 16:9 or 16:10: the widescreen option (pc_aspect.h)
  *
  * Exit codes: see PC_EXIT_* below.
  */

@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_ovlp_fade4.h"
 #include "d/d_com_inf_game.h"
 #include "f_op/f_op_overlap.h"
@@ -115,7 +118,12 @@ void cnvAddress(f32 x1, f32 y1, f32* x2, f32* y2) {
     f32 f2 = 1.03125f;
     f32 f3 = 1.0946907f;
 #else
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): the 2D width scale (.sdata2 0x803FB77C, 1.0296875 -> 1.390625).
+    f32 f2 = pc_aspect_lerp(1.0296875f, 1.390625f);
+#else
     f32 f2 = 1.0296875f;
+#endif
     f32 f3 = 1.0926074f;
 #endif
     *x2 = 320.0f + (s32)(f2 * (x1 - 320.0f));
@@ -167,9 +175,16 @@ void dDlst_2Dt_Sp_c::draw() {
     x2 = x1 + (mWidth * 1.03125f);
     y2 = y1 + (mHeight * 1.0946907f);
 #else
+#if TARGET_PC
+    // Widescreen: the 2D left (.sdata2 0x803FB78C) and width scale (0x803FB77C).
+    x1 = pc_aspect_2d_left();
+    y1 = -21.0f;
+    x2 = x1 + (mWidth * pc_aspect_lerp(1.0296875f, 1.390625f));
+#else
     x1 = -9.0f;
     y1 = -21.0f;
     x2 = x1 + (mWidth * 1.0296875f);
+#endif
     y2 = y1 + (mHeight * 1.0916667f);
 #endif
 

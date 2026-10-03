@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_camera.h"
 #include "d/d_bg_s_gnd_chk.h"
 #include "d/d_bg_s_lin_chk.h"
@@ -7840,7 +7843,13 @@ static void preparation(camera_process_class* i_this) {
 
     dDlst_window_c* window = get_window(camera_id);
     view_port_class* viewport = window->getViewPort();
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): the camera aspect (.sdata2 0x803FA998, 4/3 -> 16/9) sets the
+    // projection and mDoLib_clipper's frustum, so the view and its culling both widen.
+    f32 aspect = pc_aspect_ratio() * fapGmHIO_getAspectRatio();
+#else
     f32 aspect = (4.0f/3.0f) * fapGmHIO_getAspectRatio();
+#endif
 
     camera->SetWindow(viewport->mWidth, viewport->mHeight);
     fopCamM_SetAspect(i_this, aspect);

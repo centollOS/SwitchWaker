@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_drawlist.h"
 #include "d/d_com_inf_game.h"
 #include "d/d_kankyo_rain.h"
@@ -2125,7 +2128,13 @@ void dDlst_list_c::wipeIn(f32 speed, GXColor& color) {
     }
     ResTIMG* texture = (ResTIMG*)JKRGetResource('TIMG', "wipe_00.bti", dComIfGp_getMenuArchive());
     JUT_ASSERT(VERSION_SELECT(5673, 5679, 5687, 5687), texture != NULL);
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): the wipe covers the wider 2D screen (.sdata2 0x803F89B8..C4).
+    mWipeDlst.init(texture, pc_aspect_lerp(-9.0f, -123.0f), pc_aspect_lerp(-21.0f, -118.0f),
+                   pc_aspect_lerp(659.0f, 890.0f), pc_aspect_lerp(524.0f, 716.0f), 0, 1, 1, 2.0f, 2.436f);
+#else
     mWipeDlst.init(texture, -9.0f, -21.0f, 659.0f, 524.0f, 0, 1, 1, 2.0f, 2.436f);
+#endif
 }
 
 /* 800866C8-800866F0       .text wipeIn__12dDlst_list_cFf */

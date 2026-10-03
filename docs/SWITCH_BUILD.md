@@ -200,7 +200,8 @@ Run options come from `native/env.txt`, one `NAME=value` per line, with `#` comm
 ([switch/native/env.example.txt](../switch/native/env.example.txt)); they are the Mac's `COS_*`
 variables ([native/README.md](../native/README.md), "Running centollos"). Without the file:
 `COS_DISC=/switch/centollos/GZLE01.iso`, `COS_RUN_DIR=/switch/centollos/native`,
-`COS_PERF_EVERY=60` and `COS_STALL_S=90`.
+`COS_PERF_EVERY=60`, `COS_STALL_S=90` and `COS_ASPECT=16:9` (the widescreen option on the
+1280x720 screen; `COS_ASPECT=4:3` gives the GameCube picture, pillarboxed).
 
 What the log shows, in order (the same `[cos]` lines as on the Mac; values vary):
 

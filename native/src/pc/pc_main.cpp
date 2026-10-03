@@ -21,6 +21,7 @@
 // audio is disabled). Changed: no settings, ImGui, mods or prelaunch UI; paths and options come
 // from the harness environment; failures exit through the harness codes.
 #include "pc_internal.h"
+#include "pc/pc_aspect.h"
 
 #include "JSystem/JKernel/JKRHeap.h"
 #include "m_Do/m_Do_audio.h"
@@ -29,6 +30,7 @@
 #include <aurora/aurora.h>
 #include <aurora/dvd.h>
 #include <dolphin/dvd.h>
+#include <dolphin/gx/GXAurora.h>
 #include <dolphin/os.h>
 
 #include <cerrno>
@@ -145,7 +147,8 @@ void pc_aurora_init(int argc, char* argv[]) {
     config.vsync = !gConfig.uncapped;
     config.windowPosX = -1;
     config.windowPosY = -1;
-    config.windowWidth = 640 * 3 / 2;
+    // 960x720, or as wide as COS_ASPECT at that height (1280x720 at 16:9, 1152x720 at 16:10).
+    config.windowWidth = (int)(480 * 3 / 2 * pc_aspect_ratio() + 0.5f);
     config.windowHeight = 480 * 3 / 2;
     config.logLevel = LOG_INFO;
     config.allowTextureDumps = false;
@@ -156,6 +159,12 @@ void pc_aurora_init(int argc, char* argv[]) {
     if (info.window == nullptr) {
         writef(STDERR_FILENO, "[cos] aurora_initialize returned no window\n");
         pc_exit(PC_EXIT_USAGE);
+    }
+    if (pc_aspect_wide()) {
+        // The game draws an anamorphic picture into the 640x480 EFB (pc_aspect.h): Aurora presents
+        // it at the wider aspect, letterboxed or pillarboxed in a window of another shape (patch
+        // 0006), as a widescreen TV stretches the console's output.
+        AuroraSetFitAspect(pc_aspect_ratio());
     }
     writef(STDERR_FILENO,
            "[cos] aurora: backend=%s window=%ux%u framebuffer=%ux%u vsync=%d pipelines=%s "

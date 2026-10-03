@@ -12,7 +12,8 @@
 //
 // Run options: COS_SWITCH_ROOT/env.txt, one NAME=value per line (# comments), applied before the
 // Switch defaults (setenv without overwrite): COS_DISC (the shared GZLE01.iso), COS_RUN_DIR (the
-// native directory, for backtrace.txt), COS_PERF_EVERY=60 and COS_STALL_S=90.
+// native directory, for backtrace.txt), COS_PERF_EVERY=60, COS_STALL_S=90 and COS_ASPECT=16:9 (the
+// console's 1280x720 screen; COS_ASPECT=4:3 in env.txt gives the GameCube picture, pillarboxed).
 //
 // Crash report: libnx's user exception handler prints the exception, the registers, the thread,
 // the NRO's load address and a frame-pointer backtrace as offsets into centollos.elf (for addr2line),
@@ -405,6 +406,7 @@ void cos_switch_start(int argc, char** argv) {
     setDefault("COS_RUN_DIR", COS_SWITCH_ROOT);
     setDefault("COS_PERF_EVERY", "60");
     setDefault("COS_STALL_S", "90");
+    setDefault("COS_ASPECT", "16:9");
 }
 
 void cos_switch_flush_logs(void) {

@@ -1,6 +1,7 @@
 // Run harness of the native executable centollos: environment, start-up order and exit
 // (docs/NATIVE_PORT_PHASE4_6.md, step 6.0). Public API in native/include/pc/pc_harness.h.
 #include "pc_internal.h"
+#include "pc/pc_aspect.h"
 
 #include <atomic>
 #include <cerrno>
@@ -134,6 +135,7 @@ void pc_harness_init(int argc, char* argv[]) {
     gConfig.audio = envFlag("COS_AUDIO", true);
     gConfig.perfEvery = envCount("COS_PERF_EVERY");
     gConfig.perfPath = envString("COS_PERF");
+    pc_aspect_init();
 
     writef(STDERR_FILENO,
            "[cos] harness: smoke=%s milestone=%s timeout=%gs stall=%gs frames=%u trace=%s "

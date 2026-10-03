@@ -4,6 +4,9 @@
 //
 
 #include "m_Do/machine.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "m_Do/m_Do_graphic.h"
 #include "SSystem/SComponent/c_lib.h"
 #include "d/d_com_inf_game.h"
@@ -1317,7 +1320,12 @@ void setUpRectangle() {
     GXSetNumIndStages(0);
     GXSetTevDirect(GX_TEVSTAGE0);
     Mtx44 mtx;
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): the 16:9 code's 2D screen left and right (.sdata2 0x803F7D68/6C).
+    C_MTXOrtho(mtx, -21.0f, 503.0f, pc_aspect_2d_left(), pc_aspect_2d_right(), 0.0f, 10.0f);
+#else
     C_MTXOrtho(mtx, -21.0f, 503.0f, -9.0f, 650.0f, 0.0f, 10.0f);
+#endif
     GXSetProjection(mtx, GX_ORTHOGRAPHIC);
     GXLoadPosMtxImm(cMtx_getIdentity(), GX_PNMTX0);
     GXSetCurrentMtx(GX_PNMTX0);
@@ -1568,7 +1576,12 @@ bool mDoGph_Painter() {
 #endif
 
     J2DOrthoGraph graf(0.0f, 0.0f, 640.0f, 480.0f, -1.0f, 1.0f);
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): the 2D screen spans -123..767 at 16:9 (.sdata2 0x803F7D68/6C).
+    graf.setOrtho(pc_aspect_2d_left(), -21.0f, pc_aspect_2d_right() - pc_aspect_2d_left(), 524.0f, -1.0f, 1.0f);
+#else
     graf.setOrtho(-9.0f, -21.0f, 659.0f, 524.0f, -1.0f, 1.0f);
+#endif
     graf.setPort();
 
     dComIfGp_setCurrentGrafPort(&graf);
@@ -1891,7 +1904,11 @@ bool mDoGph_Painter() {
     GXSetNumIndStages(0);
 #endif
 
+#if TARGET_PC
+    graf.setOrtho(pc_aspect_2d_left(), -21.0f, pc_aspect_2d_right() - pc_aspect_2d_left(), 524.0f, 100000.0f, -100000.0f);
+#else
     graf.setOrtho(-9.0f, -21.0f, 659.0f, 524.0f, 100000.0f, -100000.0f);
+#endif
     graf.setPort();
     Mtx viewMtx;
     cMtx_trans(viewMtx, 320.0f, 240.0f, 0.0f);

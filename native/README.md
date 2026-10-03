@@ -417,6 +417,7 @@ COS_DISC=/nonexistent build/native-mac/centollos; echo $?   # 14
 | `COS_PERF_EVERY` | every this many game frames, a `[cos] perf` line: the game thread's time per frame (average, maximum), the pace wait, frames and VI retraces a second, the phase split and the CPU time (0/unset: off) |
 | `COS_PERF` | a file that gets one CSV row per game frame (step 6.7; `run.sh --perf perf.csv` puts it in the run directory); see "Performance instrumentation" |
 | `COS_RUN_DIR` | where `backtrace.txt` and `stall.txt` go (set by `run.sh`) |
+| `COS_ASPECT` | `4:3` (default on the Mac), `16:9` (default on the Switch) or `16:10`: the widescreen option, the community 16:9 Gecko code done in C (wider view and culling, HUD at the screen edges) with Aurora presenting the picture at that aspect ([docs/MODS.md](../docs/MODS.md), "Widescreen in the native port") |
 
 Performance instrumentation (step 6.7, `pc_frame.cpp`). `COS_PERF=<file>` writes, per game frame,
 `frame,t_ms,wall_ms,busy_ms,cpu_ms,wait_ms,begin_ms,cpd_read_ms,aud_execute_ms,logic_ms,painter_ms,aurora_end_frame_ms,other_ms,retrace`:
