@@ -3191,3 +3191,28 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   blades (`l_Vmori_*` set) and bushes (dWood) green and leafy (before: dark blue grass and
   blue/beige bush balls). Not seen on screen yet: dTree trees and shadows, the Outset grass set
   (`l_Txa_ob_kusa_a`), chains, the hookshot chain and d_a_bwdg sand (same helper, same lists).
+
+#### Render audit, 2026-10-03 (lane boot, after R1-R7)
+
+Method: `COS_SHOT=300,590 native/tools/run.sh boot-sweep --frames 600` and
+`COS_SHOT=900,1190 native/tools/run.sh boot-sweep --frames 1200` (every stage the sweep boots,
+uncapped, 141 of 155 reach their last frame), plus title (`run --frames 1310 --shot 900,1300`), name
+scene (`run --frames 1210 --input native/check/input/file-select.txt --shot 1200`) and Outset
+(`outset-control --stage sea:44:206 --input native/check/input/outset-control.txt --uncapped --shot
+600,1500,2500,4000`). Every shot was inspected (frame 300 is still the stage fade-in in most
+stages). Title, name scene and Outset look right, and so do most stages: the sea, the sky, clouds,
+characters, toon shading, grass, HUD and message boxes. These are not defects: black skies in
+stages whose Stage.arc has no `vr_sky.bdl` (DmSpot0, Mukao, kazan, KATA_HB, the K_Test* maps,
+I_TestR, Ebesso); greyscale Hyroom and Xboss0-3 (the game's monochrome effect); Link drawn red or
+orange while burning (A_nami, K_Test8, Xboss0). Stages that fail to boot are left to the boot-sweep
+loop. Open defects, most visible first (one probable root cause per row):
+
+| # | Defect | Stages | Suspected cause | Repro |
+|---|--------|--------|-----------------|-------|
+| A1 | Arena floors are missing: below the walls the frame shows one flat colour, the same everywhere in a stage (RGB 48,48,45 in GanonE/GanonM/M_DaiMB, 59,59,59 in Xboss2, black in SirenB/kazeMB/kinBOSS). Link stands over nothing. | kinBOSS, GanonE, GanonM, M_DaiMB, Xboss2, SirenB, kazeMB; GanonB likely (dark brown gradient where its lava should be) | Each of these stages has one room with one `model.bdl`, so the walls and the floor come from the same model. The floor shapes or their material draw nothing and the clear colour shows through. Possible causes: a floor material path (indirect stage, projected texgen or Z/alpha state) that Aurora handles wrongly, or the floor shapes being culled. Next step: trace one stage's room draws material by material. | `native/tools/run.sh run --stage GanonE:0:0 --frames 1200 --uncapped --shot 1190` (also `M_DaiMB:12:0`, `kinBOSS:0:0 --shot 900`) |
+| A2 | Kalle Demos (the `Bmd` actor) draws as large flat blue, magenta and cyan polygons with jagged leaves. On the GameCube it has a textured red bulb and green tentacles. | kinBOSS | The model is an envelope-skinned `mDoExt_McaMorf` with BRK/BTK. The jagged geometry suggests corrupt skinned vertices. R5 left the S16 position/normal skinning paths and the envelope matrices unexercised. Alternatively its BRK colour registers are read host-order. | `native/tools/run.sh run --stage kinBOSS:0:0 --frames 1200 --uncapped --shot 590,900` |
+| A3 | Orca's message box shows its dark panel, the Next button and the arrow but no text, at frames 590, 900 and 1190. The Ojhous2 and Outset boxes show their text. | Ojhous | The message box layout draws but its text pane does not. Possibly a text colour, alpha or font state read wrongly for this message, or empty message text (not checked against the BMG yet). | `native/tools/run.sh run --stage Ojhous:0:0 --frames 1200 --uncapped --shot 900,1190` |
+| A4 | Link's real-time shadow is drawn as a bright white lobed blob on the floor. Elsewhere (VrTest, A_umikz, Kaisen) it is dark. | K_Testc | The `dDlst_shadowReal` pass in this lighting/floor setup: likely a blend or TEV colour from the environment palette that comes out additive instead of darkening. Compare K_Testc's palette with VrTest's. | `native/tools/run.sh run --stage K_Testc:0:0 --frames 1200 --uncapped --shot 590,900` |
+| A5 | Two crossed opaque white quads (an X) hang in the cave in every shot. They look like a light-shaft or billboard model that keeps its bind orientation. | SubD43 | A billboard joint (`J3DMtxCalc` billboard / `J3DCalcBBoardMtx` path) not applied on the host, or a light-shaft material without its alpha/blend. Not confirmed against the GameCube. | `native/tools/run.sh run --stage SubD43:0:0 --frames 1200 --uncapped --shot 900` |
+| A6 | Tingle Tower's walls and floor show a huge blocky, smeared Tingle mural (texels several screen pixels wide). The easel painting is sharp. | tincle | Either the authentic low-resolution mural texture or a wrong mip/LOD or texture size for that material. Needs a GameCube reference before work starts. | `native/tools/run.sh run --stage tincle:0:0 --frames 1200 --uncapped --shot 900` |
+| A7 | The island is untextured flat sand and blue, and the house and pier are pure white silhouettes. | Ebesso | Possibly authentic unfinished test geometry (a pre-release Outset). If the GameCube shows textures, the house's materials sample nothing. Low priority, verify first. | `native/tools/run.sh run --stage Ebesso:0:0 --frames 1200 --uncapped --shot 590` |
