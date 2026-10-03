@@ -265,9 +265,15 @@ public:
     /* 0xC */ cXyz max;
 };
 
+#if TARGET_PC
+// Inherit instead of embedding so the vtable pointer stays at offset 0 (see f_pc_base.h).
+class fopAc_ac_c : public leafdraw_class {
+public:
+#else
 class fopAc_ac_c {
 public:
     /* 0x000 */ leafdraw_class base;
+#endif
     /* 0x0C0 */ int actor_type;
     /* 0x0C4 */ create_tag_class actor_tag;
     /* 0x0D8 */ create_tag_class draw_tag;

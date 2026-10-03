@@ -161,7 +161,11 @@ BOOL daObjEkskz::Act_c::Delete() {
 /* 00000C64-00000CBC       .text Mthd_Delete__Q210daObjEkskz5Act_cFv */
 BOOL daObjEkskz::Act_c::Mthd_Delete() {
     BOOL result = MoveBGDelete();
+#if TARGET_PC
+    if (mCreateResult != cPhs_STOP_e) dComIfG_resDelete(&mPhs, M_arcname);
+#else
     if (base.base.mCreateResult != cPhs_STOP_e) dComIfG_resDelete(&mPhs, M_arcname);
+#endif
     return result;
 }
 

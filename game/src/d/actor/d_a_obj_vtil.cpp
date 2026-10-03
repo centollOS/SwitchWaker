@@ -396,7 +396,11 @@ bool daObjVtil_c::check_sink_end() {
 }
 
 inline void daObjVtil_c::camera_off() {
+#if TARGET_PC
+    dComIfGp_getCamera(0)->mCamera.ForceLockOff(mBsPcId);
+#else
     dComIfGp_getCamera(0)->mCamera.ForceLockOff(base.base.mBsPcId);
+#endif
 }
 
 /* 00001374-000014E0       .text hit_bg__11daObjVtil_cFv */

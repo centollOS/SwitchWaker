@@ -37,7 +37,11 @@ BOOL fpcLf_IsDelete(leafdraw_class* i_leaf) {
 BOOL fpcLf_Delete(leafdraw_class* i_leaf) {
     BOOL ret = fpcMtd_Delete(&i_leaf->mpDrawMtd->base, i_leaf);
     if (ret == TRUE) {
+#if TARGET_PC
+        i_leaf->mSubType = 0;
+#else
         i_leaf->base.mSubType = 0;
+#endif
     }
     return ret;
 }
@@ -47,10 +51,22 @@ int g_fpcLf_type;
 /* 8003DD8C-8003DE00       .text fpcLf_Create__FP14leafdraw_class */
 cPhs_State fpcLf_Create(leafdraw_class* i_leaf) {
     leaf_process_profile_definition* profDef;
+#if TARGET_PC
+    if (i_leaf->mInitState == 0) {
+#else
     if (i_leaf->base.mInitState == 0) {
+#endif
+#if TARGET_PC
+        profDef = (leaf_process_profile_definition*)i_leaf->mpProf;
+#else
         profDef = (leaf_process_profile_definition*)i_leaf->base.mpProf;
+#endif
         i_leaf->mpDrawMtd = profDef->sub_method;
+#if TARGET_PC
+        i_leaf->mSubType = fpcBs_MakeOfType(&g_fpcLf_type);
+#else
         i_leaf->base.mSubType = fpcBs_MakeOfType(&g_fpcLf_type);
+#endif
         fpcDwPi_Init(&i_leaf->mDwPi, profDef->mPriority);
         i_leaf->mbUnk0 = 0;
     }

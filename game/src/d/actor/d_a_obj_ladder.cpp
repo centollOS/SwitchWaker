@@ -84,7 +84,11 @@ BOOL daObjLadder::Act_c::Create() {
     mDoMtx_stack_c::pop();
 
     mGndChk.SetPos(&pos);
+#if TARGET_PC
+    mGndChk.SetActorPid(mBsPcId);
+#else
     mGndChk.SetActorPid(base.base.mBsPcId);
+#endif
     mGndY = dComIfG_Bgsp()->GroundCross(&mGndChk);
     unk346 = 0;
 

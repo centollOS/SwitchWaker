@@ -2182,6 +2182,19 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   checks passed; `opening` reaches ROOM_SCENE at frame 284 and stops on the next blocker, SIGSEGV
   addr=0xc in `fpcPi_Change` <- `fopAcM_setStageLayer` <- `phase_1(daPy_lk_c*)`.
 
+- **M7 boot loop, iteration 3** (2026-10-03, layout): SIGSEGV addr=0xc in `fpcPi_Change` <-
+  `fopAcM_setStageLayer` <- `phase_1(daPy_lk_c*)`. `daPy_lk_c` has virtual functions and
+  `fopAc_ac_c` had none, so the Itanium ABI put the vtable pointer at offset 0 and `fopAc_ac_c` at
+  offset 8; MWCC appends it after the base. Every `void*`/`base_process_class*` use of such an actor
+  (here `fopAcM_setStageLayer(i_this)`) then read the process header 8 bytes early. Under
+  `TARGET_PC` (after Dusklight) `base_process_class` gets a virtual destructor and `leafdraw_class`
+  and `fopAc_ac_c` inherit from it instead of embedding it, so the vtable pointer is shared at
+  offset 0; the 19 `base.base.X` / `i_leaf->base.X` sites have a `TARGET_PC` form. A static probe
+  found no polymorphic scene, msg, kankyo, view or overlap process class in GZLE01. Review:
+  `regress.sh -j 3` all checks passed; `opening` now gets past the player's phase_1 and stops
+  on the next blocker, SIGABRT (stack buffer overflow, `__stack_chk_fail`) in
+  `J3DSkinDeform::initMtxIndexArray` (the J3DSkinDeform item split off from 4.11).
+
 ### Phase 6 render issues
 
 None yet.

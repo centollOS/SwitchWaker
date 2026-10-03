@@ -62,7 +62,11 @@ BOOL daObjHlift::Act_c::Create() {
         151.0f
     );
     if (M_control_id == fpcM_ERROR_PROCESS_ID_e) {
+#if TARGET_PC
+        M_control_id = mBsPcId;
+#else
         M_control_id = base.base.mBsPcId;
+#endif
     }
     return TRUE;
 }
@@ -87,7 +91,11 @@ cPhs_State daObjHlift::Act_c::Mthd_Create() {
 
 /* 00000408-00000430       .text Delete__Q210daObjHlift5Act_cFv */
 BOOL daObjHlift::Act_c::Delete() {
+#if TARGET_PC
+    if (M_control_id == mBsPcId) {
+#else
     if (M_control_id == base.base.mBsPcId) {
+#endif
         M_control_id = fpcM_ERROR_PROCESS_ID_e;
     }
     return TRUE;
@@ -280,7 +288,11 @@ bool daObjHlift::Act_c::chk_demo_end() {
 
 /* 00000DE8-00000E74       .text se_whole__Q210daObjHlift5Act_cFv */
 void daObjHlift::Act_c::se_whole() {
+#if TARGET_PC
+    if (M_control_id == mBsPcId && M_lift_move_flag != 0) {
+#else
     if (M_control_id == base.base.mBsPcId && M_lift_move_flag != 0) {
+#endif
         mDoAud_seStart(JA_SE_OBJ_PRT_LIFT_WORK);
         M_lift_move_flag = 0;
     }

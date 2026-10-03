@@ -13,8 +13,13 @@ typedef struct leafdraw_method_class {
     /* 0x10 */ process_method_func mpDrawFunc;
 } leafdraw_method_class;
 
+#if TARGET_PC
+// Inherit instead of embedding so the vtable pointer stays at offset 0 (see f_pc_base.h).
+typedef struct leafdraw_class : base_process_class {
+#else
 typedef struct leafdraw_class {
     /* 0x00 */ base_process_class base;
+#endif
     /* 0xB8 */ leafdraw_method_class* mpDrawMtd;
     /* 0xBC */ s8 mbUnk0;
     /* 0xBD */ u8 mbUnk1;

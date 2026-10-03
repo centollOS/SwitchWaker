@@ -911,7 +911,11 @@ void Act_c::set_senv(int arg1, int arg2) const {
 /* 00003124-0000315C       .text cam_lockoff__Q27daStone5Act_cCFv */
 void Act_c::cam_lockoff() const {
     camera_process_class* camera = dComIfGp_getCamera(0);
+#if TARGET_PC
+    camera->mCamera.ForceLockOff(mBsPcId);
+#else
     camera->mCamera.ForceLockOff(base.base.mBsPcId);
+#endif
 }
 
 /* 0000315C-00003358       .text _execute__Q27daStone5Act_cFv */

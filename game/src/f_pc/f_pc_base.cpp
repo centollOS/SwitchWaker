@@ -83,6 +83,12 @@ BOOL fpcBs_Delete(base_process_class* i_proc) {
     return result;
 }
 
+#if TARGET_PC
+// Host-only: see the virtual destructor in f_pc_base.h. Adapted from Dusklight
+// (ref/dusklight/src/f_pc/f_pc_base.cpp, CC0).
+base_process_class::~base_process_class() {}
+
+#endif
 /* 8003CA60-8003CB5C       .text fpcBs_Create__FsUiPv */
 base_process_class* fpcBs_Create(s16 i_profName, fpc_ProcID i_procID, void* i_data) {
     process_profile_definition* procProfDef;

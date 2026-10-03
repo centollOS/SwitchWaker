@@ -127,7 +127,11 @@ void Bgc_c::gnd_pos(const Act_c* movebox, const BgcSrc_c* bgcSrc, int bgcSrcCoun
         cXyz pos;
         mDoMtx_stack_c::multVec(&offset, &pos);
         M_gnd_work[i].SetPos(&pos);
+#if TARGET_PC
+        M_gnd_work[i].SetActorPid(movebox->mBsPcId);
+#else
         M_gnd_work[i].SetActorPid(movebox->base.base.mBsPcId);
+#endif
         mGroundY[i] = dComIfG_Bgsp()->GroundCross(&M_gnd_work[i]);
         if (mGroundY[i] > maxGroundY) {
             fopAc_ac_c* groundActor = dComIfG_Bgsp()->GetActorPointer(M_gnd_work[i]);
@@ -184,7 +188,11 @@ void Bgc_c::wall_pos(const Act_c* movebox, const BgcSrc_c* bgcSrc, int bgcSrcCou
         startPos += movebox->current.pos;
         endPos = startPos + temp_20;
         M_wall_work[i].Set(&startPos, &endPos, const_cast<Act_c*>(movebox));
+#if TARGET_PC
+        M_wall_work[i].SetActorPid(movebox->mBsPcId);
+#else
         M_wall_work[i].SetActorPid(movebox->base.base.mBsPcId);
+#endif
         if (dComIfG_Bgsp()->LineCross(&M_wall_work[i])) {
             mWallPos[i] = M_wall_work[i].GetCross();
             f32 dist_sq = startPos.abs2(mWallPos[i]);
@@ -273,7 +281,11 @@ bool Bgc_c::chk_wall_touch(const Act_c* movebox, const BgcSrc_c* bgcSrc, s16 dir
     startPos += movebox->current.pos;
     endPos = startPos + direction;
     
+#if TARGET_PC
+    touch_work.SetActorPid(movebox->mBsPcId);
+#else
     touch_work.SetActorPid(movebox->base.base.mBsPcId);
+#endif
     touch_work.Set(&startPos, &endPos, const_cast<Act_c*>(movebox));
     return dComIfG_Bgsp()->LineCross(&touch_work);
 }
@@ -1726,7 +1738,11 @@ void Act_c::sound_break() {
     cXyz centerPos(current.pos.x, current.pos.y + 100.0f, current.pos.z);
     dBgS_ObjGndChk gndChk;
     gndChk.SetPos(&centerPos);
+#if TARGET_PC
+    gndChk.SetActorPid(mBsPcId);
+#else
     gndChk.SetActorPid(base.base.mBsPcId);
+#endif
     dComIfG_Bgsp()->GroundCross(&gndChk);
     int bgIndex = gndChk.GetBgIndex();
     s32 mtrlSndId = 0;

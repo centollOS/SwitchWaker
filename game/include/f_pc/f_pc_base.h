@@ -29,6 +29,17 @@ typedef struct base_process_class {
     /* 0xAC */ void* mpUserData;
     /* 0xB0 */ u32 mParameters;
     /* 0xB4 */ int mSubType;
+#if TARGET_PC
+    // The Itanium C++ ABI puts a class's vtable pointer at offset 0 when its first base has none,
+    // and moves that base to offset 8. Process classes with virtual functions (daPy_lk_c, for one)
+    // derive from fopAc_ac_c, whose header the process system reaches through void* and
+    // base_process_class* casts that assume offset 0; MWCC instead appends the vtable pointer after
+    // the base. Giving base_process_class a virtual destructor, and deriving leafdraw_class and
+    // fopAc_ac_c from it (instead of embedding it), makes every such class share one vtable pointer
+    // at offset 0 with the header right after it. Adapted from Dusklight
+    // (ref/dusklight/include/f_pc/f_pc_base.h, CC0).
+    virtual ~base_process_class();
+#endif
 } base_process_class;  // Size: 0xB8
 
 BOOL fpcBs_Is_JustOfType(int pType1, int pType2);

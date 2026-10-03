@@ -806,7 +806,11 @@ void Act_c::set_senv(int radius, int time) const {
 }
 
 /* 00002460-00002498       .text cam_lockoff__Q28daObjTry5Act_cCFv */
+#if TARGET_PC
+void Act_c::cam_lockoff() const { dComIfGp_getCamera(0)->mCamera.ForceLockOff(mBsPcId); }
+#else
 void Act_c::cam_lockoff() const { dComIfGp_getCamera(0)->mCamera.ForceLockOff(base.base.mBsPcId); }
+#endif
 
 /* 00002498-00002504       .text set_mtx__Q28daObjTry5Act_cFv */
 void Act_c::set_mtx() {

@@ -210,7 +210,11 @@ void daObjTribox::Act_c::correct_after_init() {
 void daObjTribox::Act_c::controll_set() {
     if (fpcM_IsFirstCreating(this)) {
         if (prm_get_type() == 1) {
+#if TARGET_PC
+            fpcPi_Change(&mPi, fpcLy_CURRENT_e, 2, fpcPi_CURRENT_e);
+#else
             fpcPi_Change(&base.base.mPi, fpcLy_CURRENT_e, 2, fpcPi_CURRENT_e);
+#endif
             if (M_c_cont_cnt == 0) {
                 mControll = 1;
                 M_sink_start = 0;
