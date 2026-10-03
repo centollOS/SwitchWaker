@@ -14,6 +14,9 @@
 #include "JSystem/J2DGraph/J2DScreen.h"
 #include "JSystem/JKernel/JKRExpHeap.h"
 #include "stdio.h"
+#if TARGET_PC
+#include "pc/pc_harness.h"
+#endif
 
 #if VERSION <= VERSION_JPN
 #include "res/Object/Tlogo.h"
@@ -569,6 +572,10 @@ void daTitle_proc_c::proc_draw() {
     J2DOrthoGraph* graf = dComIfGp_getCurrentGrafPort();
     graf->setPort();
     m_Screen->draw(0.0f, 0.0f, graf);
+#if TARGET_PC
+    // Milestone M9 title (pc_title.cpp): the title BLO screen was drawn this frame.
+    pc_title_drawn();
+#endif
 
     mDoExt_setCurrentHeap(oldHeap);
 }

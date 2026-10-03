@@ -118,6 +118,10 @@ void logoResDone(const char* how);
 void titleStageArm(int roomNo);
 void titleStageFrame(unsigned int frames);
 
+// pc_title.cpp: milestone M9 title (see pc_title_drawn); titleFrame runs from pc_frame_end every
+// game frame.
+void titleFrame(unsigned int frames);
+
 // pc_boot.cpp (step 6.4): parses COS_BOOT_STAGE into gBootStage (exit PC_EXIT_USAGE if it is
 // malformed).
 void loadBootStage();

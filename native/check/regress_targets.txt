@@ -18,6 +18,7 @@ logo-scene 0
 logo-res 0
 opening 0
 title-stage 0
+title 0
 
 # smoke tests and format sweeps
 disc-ls 0

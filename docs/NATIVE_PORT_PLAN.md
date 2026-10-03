@@ -2383,6 +2383,18 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   "room 44 ready at frame 287 ... 51 actor(s) created" and MILESTONE title-stage at frame 587,
   3 of 3. Adds "title-stage 0" to the regression targets.
   Reviewed: regress passed; title-stage reached 3 of 3 (one capped, frame 587; two uncapped).
+- M9 boot loop (step 4.14, lane boot, iter 1, harness): the game already reached M9, but no code
+  reported it, so `title` timed out (exit 10) in OPEN2_SCENE at frame 5535 with frames advancing
+  (the title actor had run and requested OPEN2_SCENE). `daTitle_proc_c::proc_draw` now calls
+  `pc_title_drawn` (under `TARGET_PC`) after it draws the title_logo BLO screen, and the new
+  `native/src/pc/pc_title.cpp` polls from `pc_frame_end`, reading game state only. A frame counts
+  when the d_a_title actor has finished creating, its screen was drawn that frame, its logo pane is
+  fully faded in (J2DPane alpha equals the BLO's initial alpha, which is nonzero), its
+  title-smoke JPA emitter has live particles and its sparkle emitter was set once. The probe
+  reports `title` after 60 such frames in a row. Runs reach "d_a_title created at frame 286" and
+  "60 frames drawn with the logo at alpha 255, 25 title smoke particle(s), sparkle emitter set"
+  at frame 560, 3 of 3. Adds "title 0" to the regression targets.
+  Reviewed: regress passed; title reached 3 of 3 (one capped, frame 560; two uncapped, frame 562).
 
 ### Phase 6 render issues
 

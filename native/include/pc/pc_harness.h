@@ -91,6 +91,13 @@ void pc_opening_scene_called(void);
    milestone M8 title-stage (pc_title_stage.cpp) for that room. */
 void pc_stage_created(const char* stageName, int roomNo, int stageFiles, int hasDzs);
 
+/* Milestone M9 title (boot loop, pc_title.cpp), called by daTitle_proc_c::proc_draw right after
+   the title_logo BLO screen was drawn. pc_frame_end then checks, reading game state only, that
+   the d_a_title actor finished creating, drew its screen in this frame with the logo pane fully
+   faded in, and that its JPA emitters were set (the title smoke live with particles, the sparkle
+   emitter set once); 60 such frames in a row log "title". */
+void pc_title_drawn(void);
+
 /* Debug stage boot (step 6.4, decision H4, pc_boot.cpp). COS_BOOT_STAGE=<stage>:<room>[:<point>
    [:<layer>]] (point 0 and layer -1 when left out; the new game starts at sea:44:206) makes the
    logo scene, once its resources synced, start a new file and go straight to the PLAY scene at
