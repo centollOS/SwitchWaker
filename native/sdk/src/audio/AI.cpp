@@ -39,6 +39,9 @@
 //   AIInit after AIReset starts a new dump (or ends it, if the variable is gone). The header's sizes are rewritten
 //   after each write, so the file is valid while the process runs and after it is killed.
 //
+// COSAIGetOutputStats (cos_sdk/audio.h, step 5.5) reports the frames the engine played and the
+// sum of their squares, for the harness's COS_SMOKE=title-audio level check.
+//
 // Other registers (stream sample rate, play state, volumes, trigger, sample count) are a register
 // model as before: disc streaming (DTK, AIStreamSampleCount) is step 5.6. AIGetDMAStartAddr
 // returns a u32 as on the console, so it aborts when the address does not fit instead of handing
@@ -64,6 +67,7 @@
 
 #include <dolphin/ai.h>
 #include <dolphin/os.h>
+#include "cos_sdk/audio.h"
 
 #include <aurora/aurora.h>
 
@@ -117,6 +121,10 @@ struct AIState {
     // plain array: the detached thread may still read it while exit runs static destructors.
     char dumpPath[1024] = {};
     u32 dumpInitCount = 0;
+    // What the engine played since the process started (COSAIGetOutputStats): sample frames
+    // (silence included) and the sum of the squares of both channels' samples.
+    u64 outFrames = 0;
+    u64 outSumSquares = 0;
 };
 
 AIState sAI;
@@ -257,14 +265,18 @@ const u8* Mem1Range(uintptr_t address, u32 size) {
 void StepLocked(std::vector<s16>& out) {
     const size_t at = out.size();
     out.resize(at + kStepFrames * 2, 0);
+    sAI.outFrames += kStepFrames;
     if (!sAI.dmaEnabled) {
         return;
     }
     if (const u8* p = Mem1Range(sAI.curAddr, kDmaStep)) {
         for (u32 i = 0; i < kStepFrames; i++) {
             const u8* f = p + i * kFrameBytes; // big-endian right, then left
-            out[at + i * 2 + 0] = s16(u16(f[2] << 8 | f[3]));
-            out[at + i * 2 + 1] = s16(u16(f[0] << 8 | f[1]));
+            const s16 left = s16(u16(f[2] << 8 | f[3]));
+            const s16 right = s16(u16(f[0] << 8 | f[1]));
+            out[at + i * 2 + 0] = left;
+            out[at + i * 2 + 1] = right;
+            sAI.outSumSquares += u64(s32(left) * left) + u64(s32(right) * right);
         }
     }
     if (sAI.curBlocksLeft != 0) {
@@ -544,6 +556,12 @@ void AIInit(u8* stack) {
     sAI.dumpInitCount++;
     // The DMA engine runs from now on (silence until AIStartDMA), as the console's does.
     StartDmaThreadLocked();
+}
+
+void COSAIGetOutputStats(u64* frames, u64* sumSquares) {
+    Guard guard;
+    *frames = sAI.outFrames;
+    *sumSquares = sAI.outSumSquares;
 }
 
 void AIReset(void) {

@@ -333,6 +333,12 @@ namespace JASystem {
         static TSeqParser sParser;
         static TTrack* sFreeList;
     };
+#if TARGET_PC
+
+    // Host harness only (step 5.5, COS_SMOKE=title-audio): the sequence ticks rootCallback has run
+    // (mainProc calls of root tracks) since the process started. Read from any thread.
+    u32 getSeqTickCount();
+#endif
 }
 
 #endif /* JASTRACK_H */

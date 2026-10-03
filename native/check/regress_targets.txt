@@ -44,6 +44,9 @@ pad-echo 0
 logo-res 0 --stage sea:44:206
 static-init 2 --stage sea
 
+# step 5.5: after the title, the AI output is above -40 dBFS RMS and the sequence ticks advance
+title-audio 0
+
 # milestone M12 (boot loop, lane outset): debug stage boot puts Link in Outset
 outset-debug 0 --stage sea:44:206
 

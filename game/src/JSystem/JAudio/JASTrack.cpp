@@ -17,6 +17,20 @@
 #include "JSystem/JKernel/JKRSolidHeap.h"
 #include "JSystem/JSupport/JSupport.h"
 #include "JSystem/JUtility/JUTAssert.h"
+#if TARGET_PC
+
+#include <atomic>
+
+namespace {
+// Sequence ticks run by rootCallback (getSeqTickCount). The audio thread writes it, the harness
+// reads it from the game thread.
+std::atomic<u32> sSeqTickCount{0};
+} // namespace
+
+u32 JASystem::getSeqTickCount() {
+    return sSeqTickCount.load(std::memory_order_relaxed);
+}
+#endif
 
 /* 80280960-80280A34       .text __ct__Q28JASystem6TTrackFv */
 JASystem::TTrack::TTrack() {
@@ -1496,6 +1510,9 @@ s32 JASystem::TTrack::rootCallback(void* user_data) {
     } else {
         while (track->field_0x364 >= 1.0f) {
             track->field_0x364 -= 1.0f;
+#if TARGET_PC
+            sSeqTickCount.fetch_add(1, std::memory_order_relaxed);
+#endif
             if (track->mainProc() == -1) {
                 track->stopSeqMain();
                 return -1;

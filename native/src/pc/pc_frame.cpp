@@ -347,6 +347,7 @@ void pc_frame_end(void) {
     const unsigned int frames = pc_frame_count();
     titleStageFrame(frames);
     titleFrame(frames);
+    titleAudioFrame(frames);
     outsetFrame(frames);
     fileSelectFrame(frames);
     // Step 5.A (decision H10): with COS_AUDIO=on, mDoAud_Execute retries mDoAud_Create every frame

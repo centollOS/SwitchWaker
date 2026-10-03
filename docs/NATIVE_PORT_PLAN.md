@@ -2146,6 +2146,45 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
     `cos_sdk_smoke` ok, `regress.sh -j 3` all checks passed, `run.sh outset-debug --stage
     sea:44:206 --audio-dump a.wav` reached with a 1.9 MB WAV (silent, as expected before 5.4/5.5).
     Committed as two commits (the `writeRegParam` fix, then the AI DMA).
+- **5.5 Sequences and sound effects** (2026-10-03; 5.4 is option (B) of H6, in place since 5.A):
+  `run.sh title-audio` 0 x3 (RMS -27.2 dBFS over the 300 frames after the title, about 960
+  sequence ticks); `run --frames 1500 --audio-dump a.wav` reaches the title and the dump is
+  -27.6 dBFS RMS from 15 s to 45 s (was 0 non-zero samples). Negative check: with HEAD's
+  `JASDSPInterface.h/.cpp` title-audio fails (-999 dBFS, the ticks still advance). Each item below
+  is meant as its own commit:
+  - **The DSP's channel and effect buffers are big-endian** (`JASDSPInterface.h/.cpp`): every
+    multi-byte field of `DSPBuffer` (CH_BUF, 64 x 0x180 bytes) and `FXBuffer` (FX_BUF) is `BE(T)`
+    (a u32 is its high word first, as the JAudio ucode's `_h`/`_l` word pairs), since Dolphin's
+    JAudio ucode HLE reads and writes them as big-endian u16 words, as the console's DSP does
+    (`FetchVPB`/`StoreVPB`, the reverb PBs). `setMixerInitVolume`/`setMixerVolume`/`setBusConnect`
+    take a `BE(u16)*` row; a `TARGET_PC` overload of `setFilterTable` copies the host-order taps
+    of `TChannelMgr` into the `BE(s16)` FIR8/IIR fields; three assignments between `BE` fields of
+    different types spell out the conversion with a cast (same value on the GameCube). The MEM1
+    copies of `DSPRES_FILTER` and `DSPADPCM_FILTER` that `DsetupTable` hands the DSP are written
+    big-endian (`RES_U16`). This was the `unknown/unimplemented sample source: 0900` alert (AFC
+    type 9 read as 0x0900) and `main-memory range ... outside MEM1` of 5.3.
+  - **Mixer configuration bytes on a little-endian host** (`JASChannel.h/.cpp`, `TARGET_PC`):
+    `TChannel::MixConfig`'s `mParts` (high byte `u`, then the two nibbles of the low byte) and the
+    `{hi, lo}` union of `TChannel::playLogicalChannel` read the parts of a host-order `u16` with
+    the console's byte and bit-field order, so on the host `setBusConnect` got the low byte and
+    indexed past its 12-entry `connect_table` (bus IDs 0xfff9/0x5678: `BufferForID` drops the
+    voice, so every voice mixed through the six mixer channels, i.e. all instrument notes, was
+    silent; only auto-mixer (Dolby) voices like the title's sea played) and `updateMixer` picked
+    the wrong pan/fx/dolby curves. On the host the parts are declared low byte first (bit-fields
+    from the least significant bit; a static_assert requires a little-endian host). After it the
+    name scene's `JA_BGM_SELECT` (sound 0x8000001e) shows as notes in a spectrogram of the dump.
+  - **Harness:** `COS_SMOKE=title-audio` (`pc_title_audio.cpp`, in-game smoke test, added to
+    `regress_targets.txt`): from milestone M9 title on it measures 300 game frames: the RMS of
+    what the AI DMA played (`COSAIGetOutputStats`, `cos_sdk/audio.h`, both channels, silence
+    included) must be above -40 dBFS and `JASystem::getSeqTickCount` (a `TARGET_PC` counter of
+    root-track `mainProc` calls in `TTrack::rootCallback`) must advance; it logs both and the
+    main/sub/stream BGM sound IDs.
+  Open: the title has no main BGM (0xffffffff): its music is the stream `title.afc` (5.6). The
+  balance between instrument voices (mixer volumes around 0x0010-0x0480) and the sea (Dolby
+  volume 0x050d) is for 5.8's comparison with the LLE DSP. `COS_AUDIO` stays on by default
+  (since 5.A).
+  Review (round 1): title-audio 0 x2 (-27.3 dBFS, 960 ticks), `run --frames 1500` dump -27.6 dBFS
+  from 15 s on, `regress.sh -j 3` all checks passed; committed as three commits.
 
 - **4.12 J3D animation and runtime** (2026-10-03): `COS_SMOKE=anm-sweep` 0 x3; the report equals
   the manifest (1319 archives, 6227 J3D1 files: 3444 BCK, 1070 BTK, 444 BRK, 13 BPK, 1255 BTP,

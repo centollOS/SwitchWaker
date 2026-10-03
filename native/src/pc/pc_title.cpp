@@ -87,6 +87,10 @@ void titleFrame(unsigned int frames) {
     pc_milestone("title");
 }
 
+bool titleReached() {
+    return sDone;
+}
+
 } // namespace pc
 
 extern "C" void pc_title_drawn(void) {

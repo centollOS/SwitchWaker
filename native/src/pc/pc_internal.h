@@ -136,8 +136,14 @@ void outsetArm(const char* stageName, int roomNo);
 void outsetFrame(unsigned int frames);
 
 // pc_title.cpp: milestone M9 title (see pc_title_drawn); titleFrame runs from pc_frame_end every
-// game frame.
+// game frame. titleReached: the milestone was logged.
 void titleFrame(unsigned int frames);
+bool titleReached();
+
+// pc_title_audio.cpp (step 5.5): COS_SMOKE=title-audio; titleAudioFrame runs from pc_frame_end
+// every game frame and, once the title is reached, measures the audio output level and the
+// sequence ticks over the next 300 game frames, then exits.
+void titleAudioFrame(unsigned int frames);
 
 // pc_file_select.cpp: milestone M10 file-select (see pc_name_scene_drawn); fileSelectFrame runs
 // from pc_frame_end every game frame.
