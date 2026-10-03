@@ -807,7 +807,12 @@ void dDlst_alphaModelData_c::draw(Mtx viewMtx) {
 
     if (mType == 0) {
         /* Bonbori */
+#if TARGET_PC
+        // Aurora needs the array's byte size and byte order (static asset array, host-endian).
+        GFSetArraySized(GX_VA_POS, l_bonboriPos, sizeof(l_bonboriPos), sizeof(*l_bonboriPos), true);
+#else
         GFSetArray(GX_VA_POS, l_bonboriPos, sizeof(*l_bonboriPos));
+#endif
         GXCallDisplayList(l_backRevZMat, 0x40);
         GXCallDisplayList(l_bonboriDL, 0xa0);
         GXCallDisplayList(l_frontZMat, 0x20);
@@ -816,7 +821,12 @@ void dDlst_alphaModelData_c::draw(Mtx viewMtx) {
         GXCallDisplayList(l_bonboriDL, 0xa0);
     } else if (mType == 1) {
         /* Bonborix2 */
+#if TARGET_PC
+        // Aurora needs the array's byte size and byte order (static asset array, host-endian).
+        GFSetArraySized(GX_VA_POS, l_bonboriPos, sizeof(l_bonboriPos), sizeof(*l_bonboriPos), true);
+#else
         GFSetArray(GX_VA_POS, l_bonboriPos, sizeof(*l_bonboriPos));
+#endif
         Mtx tmp;
         MTXScale(tmp, 0.8f, 0.8f, 0.8f);
         MTXConcat(mtx, tmp, tmp);
@@ -840,7 +850,12 @@ void dDlst_alphaModelData_c::draw(Mtx viewMtx) {
         GXCallDisplayList(l_bonboriDL, 0xa0);
     } else if (mType == 5) {
         /* Bonborix3 */
+#if TARGET_PC
+        // Aurora needs the array's byte size and byte order (static asset array, host-endian).
+        GFSetArraySized(GX_VA_POS, l_bonboriPos, sizeof(l_bonboriPos), sizeof(*l_bonboriPos), true);
+#else
         GFSetArray(GX_VA_POS, l_bonboriPos, sizeof(*l_bonboriPos));
+#endif
         Mtx tmp;
         MTXScale(tmp, 0.8f, 0.8f, 0.8f);
         MTXConcat(mtx, tmp, tmp);
@@ -874,7 +889,12 @@ void dDlst_alphaModelData_c::draw(Mtx viewMtx) {
         GXCallDisplayList(l_bonboriDL, 0xa0);
     } else if (mType == 2) {
         /* BeamCheck */
+#if TARGET_PC
+        // Aurora needs the array's byte size and byte order (static asset array, host-endian).
+        GFSetArraySized(GX_VA_POS, l_s_beam_checkPos, sizeof(l_s_beam_checkPos), sizeof(*l_s_beam_checkPos), true);
+#else
         GFSetArray(GX_VA_POS, l_s_beam_checkPos, sizeof(*l_s_beam_checkPos));
+#endif
         GXCallDisplayList(l_backRevZMat, 0x40);
         GXCallDisplayList(l_s_beam_checkDL, 0xe0);
         GXCallDisplayList(l_frontZMat, 0x20);
@@ -884,7 +904,12 @@ void dDlst_alphaModelData_c::draw(Mtx viewMtx) {
     } else if (mType == 3) {
         /* Cube */
         /* BeamCheck */
+#if TARGET_PC
+        // Aurora needs the array's byte size and byte order (static asset array, host-endian).
+        GFSetArraySized(GX_VA_POS, l_cubePos, sizeof(l_cubePos), sizeof(*l_cubePos), true);
+#else
         GFSetArray(GX_VA_POS, l_cubePos, sizeof(*l_cubePos));
+#endif
 #if VERSION == VERSION_DEMO
         GXCallDisplayList(l_backRevZMat, 0x40);
         GXCallDisplayList(l_cubeDL, 0x40);
@@ -899,7 +924,12 @@ void dDlst_alphaModelData_c::draw(Mtx viewMtx) {
 #endif
     } else if (mType == 4) {
         /* Bonbori2 */
+#if TARGET_PC
+        // Aurora needs the array's byte size and byte order (static asset array, host-endian).
+        GFSetArraySized(GX_VA_POS, l_bonbori2Pos, sizeof(l_bonbori2Pos), sizeof(*l_bonbori2Pos), true);
+#else
         GFSetArray(GX_VA_POS, l_bonbori2Pos, sizeof(*l_bonbori2Pos));
+#endif
         GXCallDisplayList(l_backRevZMat, 0x40);
         GXCallDisplayList(l_bonbori2DL, 0x2a0);
         GXCallDisplayList(l_frontZMat, 0x20);

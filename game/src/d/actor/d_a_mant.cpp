@@ -233,9 +233,17 @@ void daMant_packet_c::draw() {
     dKy_setLight_mine(mpTevStr);
     GFSetVtxDescv(l_vtxDescList);
     GFSetVtxAttrFmtv(GX_VTXFMT0, l_vtxAttrFmtList);
+#if TARGET_PC
+    // Aurora needs each array's byte size and byte order: the current buffer of the
+    // position/normal arrays (written by the CPU, host-endian) and the static texcoord table.
+    GFSetArraySized(GX_VA_POS, mPosition[mBuffer], sizeof(mPosition[mBuffer]), sizeof(cXyz), true);
+    GFSetArraySized(GX_VA_NRM, mNormal[mBuffer], sizeof(mNormal[mBuffer]), sizeof(cXyz), true);
+    GFSetArraySized(GX_VA_TEX0, l_texCoord, sizeof(l_texCoord), sizeof(l_texCoord[0]), true);
+#else
     GFSetArray(GX_VA_POS, mPosition[mBuffer], sizeof(cXyz));
     GFSetArray(GX_VA_NRM, mNormal[mBuffer], sizeof(cXyz));
     GFSetArray(GX_VA_TEX0, l_texCoord, sizeof(l_texCoord[0]));
+#endif
     GXTlutObj tlut;
     GXTexObj tex;
     GXInitTlutObj(&tlut, palette, GX_TL_RGB5A3, 256);

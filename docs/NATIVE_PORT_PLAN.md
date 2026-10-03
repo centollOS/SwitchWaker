@@ -2708,6 +2708,25 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   No crash fixed in this step.
   Reviewed: third sweep gives the same 83/72/1 result and the same signatures; regression passes.
 
+- **Boot-sweep fix 1: the last `GFSetArray` callers pass their array size** (2026-10-03, lane
+  outset). Most common sweep signature (54 of 72 failures): `PANIC GFGeometry.cpp:263` from
+  `dDlst_alphaModelData_c::draw` (d_drawlist.cpp), `daBwdg_packet_c::draw` and
+  `daMant_packet_c::draw`. Root cause: Aurora ignores CP_REG_ARRAYBASE, so `GFSetArray` stops
+  loudly and every caller must use `GFSetArraySized` (step 2.7); these three draw paths were never
+  converted. Under `#if TARGET_PC` they now pass the byte size and host byte order (`le = true`):
+  the static bonbori/beam-check/cube/bonbori2 position assets, the current half of the bridge's
+  double-buffered `mPos`/`mNrm` (0x1081 entries each) and its texcoord asset, and the cape's
+  current `mPosition`/`mNormal` buffer and texcoord table. GameCube code unchanged in `#else`.
+  Sweep: 83 -> 131 of 155 pass (24 fail, 1 skipped). Next blockers revealed by stages that got
+  further: `PANIC d_bg_w_hf.cpp:365` in `dBgWHf::MakeNodeTreeRpHf` (Xboss3, kazeB),
+  `JAISoundTable.cpp:61/70` in `SoundTable::getInfoPointer` (GanonK, M2tower), SIGSEGV in
+  `cNd_LengthOf <- cLs_Addition` (sea 1:0); figureA crashed once in
+  `JASystem::Kernel::portCmdMain` (passed in the previous sweep). Remaining older signatures are
+  unchanged (TextureBind::get_descriptor x4, cBgW::Set x5, JUTNameTab::getIndex x2,
+  J3DModel::J3DModel x2, others x1). Regression passes.
+  Reviewed: a second sweep gives 132 of 155 (23 fail, 1 skipped) with no `GFSetArray` panic left;
+  regression passes.
+
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
   variable values checked, max |v| 500000). Builds on the boot loops' STB/FVB big-endian

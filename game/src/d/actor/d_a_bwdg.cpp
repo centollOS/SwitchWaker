@@ -124,9 +124,17 @@ void daBwdg_packet_c::draw() {
     dKy_setLight_mine(mpTevStr);
     GFSetVtxDescv(l_vtxDescList);
     GFSetVtxAttrFmtv(GX_VTXFMT0, l_vtxAttrFmtList);
+#if TARGET_PC
+    // Aurora needs each array's byte size and byte order: the current half of the double-buffered
+    // position/normal arrays (written by the CPU, host-endian) and the static texcoord asset.
+    GFSetArraySized(GX_VA_POS, &mPos[m00010 * 0x1081], 0x1081 * sizeof(cXyz), sizeof(cXyz), true);
+    GFSetArraySized(GX_VA_NRM, &mNrm[m00010 * 0x1081], 0x1081 * sizeof(cXyz), sizeof(cXyz), true);
+    GFSetArraySized(GX_VA_TEX0, l_texCoord, sizeof(l_texCoord), sizeof(cXy), true);
+#else
     GFSetArray(GX_VA_POS, &mPos[m00010 * 0x1081], sizeof(cXyz));
     GFSetArray(GX_VA_NRM, &mNrm[m00010 * 0x1081], sizeof(cXyz));
     GFSetArray(GX_VA_TEX0, l_texCoord, sizeof(cXy));
+#endif
     GFSetTevColorS10(GX_TEVREG0, mpTevStr->mColorC0);
     GFSetTevColor(GX_TEVREG1, mpTevStr->mColorK0);
     GXCallDisplayList(l_matDL, 0xA0);
