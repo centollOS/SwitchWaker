@@ -200,8 +200,8 @@ Run options come from `native/env.txt`, one `NAME=value` per line, with `#` comm
 ([switch/native/env.example.txt](../switch/native/env.example.txt)); they are the Mac's `COS_*`
 variables ([native/README.md](../native/README.md), "Running centollos"). Without the file:
 `COS_DISC=/switch/centollos/GZLE01.iso`, `COS_RUN_DIR=/switch/centollos/native`,
-`COS_PERF_EVERY=60`, `COS_STALL_S=90` and `COS_ASPECT=16:9` (the widescreen option on the
-1280x720 screen; `COS_ASPECT=4:3` gives the GameCube picture, pillarboxed).
+`COS_PERF_EVERY=60`, `COS_HITCH_MS=50`, `COS_STALL_S=90` and `COS_ASPECT=16:9` (the widescreen
+option on the 1280x720 screen; `COS_ASPECT=4:3` gives the GameCube picture, pillarboxed).
 
 What the log shows, in order (the same `[cos]` lines as on the Mac; values vary):
 
@@ -243,7 +243,39 @@ and "retraces/s" is the game's speed (60 is full speed; the game asks for a fram
 retraces). The split (`mDoCPd_Read`, `mDoAud_Execute`, the `fapGm_Execute` logic, the
 `mDoGph_Painter` GX encode) and "cpu" (the thread's CPU time, "n/a" if the clock is missing) are
 the averages of the Mac's per-frame `COS_PERF` CSV columns (native/README.md, step 6.7), so the
-two machines compare column for column. Threads: the game thread runs on core 0; JAudio's, the DVD thread, Aurora's and Dawn's
+two machines compare column for column.
+
+Right after each perf line the Switch prints a `[cos] perf-switch` line (averages per frame over
+the same window; `switch/native/source/cos_switch_stats.cpp` gathers the counters of Aurora's
+Switch patch 0005, the Dawn GL queue patch and the disc reader):
+
+```
+[cos] perf-switch frames 61-120: begin: events E, slot wait S, staging wait T; queue-full wait Q; render worker B ms/frame busy (encode C, end_frame D: unmap U, acquire A, submit M, present P; events V), N presents/s; gl F fences (I in flight), W waits X ms, G glFinish H ms; pipelines K created, L compiled in Y ms (longest so far Z ms), J queued; tex upload KiB; dvd R reads KiB ms; res loads n; scene NAME
+```
+
+"begin" of the perf line is `events` (Aurora's event pump) plus `aurora_begin_frame`, which mostly
+waits for a free frame slot (the render worker still has two frames in flight: GPU-bound or
+worker-bound) or for a mapped staging buffer (the GPU has not finished the frame that used it).
+The render worker's busy time is what it costs to turn a frame into GL calls and present it; a
+worker near the frame time means the worker, not the game thread, sets the frame rate. Dawn's
+GL queue has no EGL sync extension on the console's Mesa: it used to call `glFinish` after every
+submission (the CPU waited for the GPU each frame); it now puts a GLES sync object in
+(`switch/dawn/patches/dawn-switch-gl-fence-queue.patch`, the "gl ... fences" count) and polls it.
+`COS_SWITCH_GL_FINISH=1` in `env.txt` brings the `glFinish` back for comparison ("glFinish" count
+and time). Every game frame whose busy time is over `COS_HITCH_MS` (50 ms by default; 0 turns it
+off) gets one `[cos] hitch frame N: busy ... ms (wall ...): events, begin_frame, cpd, aud, logic,
+painter, end_frame, other; pipelines +n (q queued), tex upload KiB, res loads +n last <path>,
+scene NAME (new); switch: slot wait, staging wait, queue-full wait, worker busy (encode, submit,
+present, events), gl fence wait, glFinish, pipeline compile ms (count), dvd reads` line.
+
+Aurora's caches (`user/cache/dawn_cache.db`, `pipeline_cache.db`) failed their first transaction
+on the console with "database disk image is malformed", so shaders and pipelines were compiled
+again every run. On the Switch they now keep no journal file (`journal_mode=MEMORY`, Aurora patch
+0006, with exclusive locking and in-memory temp files in the sqlite build); a cache that still
+fails is deleted and created once more (`Removed ... and retrying` in the log), and sqlite's own
+error log is in the run log as `[sqlite] (code) message` lines, which name the failing check.
+
+Threads: the game thread runs on core 0; JAudio's, the DVD thread, Aurora's and Dawn's
 workers prefer cores 1 and 2 (`switch/native/source/thread_wrap.c`). Every 15 seconds, at exit
 and in a crash report, `[switch] memory: used N MiB of M MiB` shows the process's memory.
 

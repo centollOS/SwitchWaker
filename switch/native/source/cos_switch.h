@@ -38,6 +38,29 @@ int cos_switch_read_word(uintptr_t addr, uintptr_t* out);
 /* The crash report (libnx's exception handler) calls this to add the harness's state line. */
 void cos_switch_set_crash_state_writer(void (*writer)(int fd));
 
+/* Running totals (since start) of the Switch's graphics and disc counters, for the harness's
+ * "[cos] perf-switch" and "[cos] hitch" lines (native/src/pc/pc_frame.cpp), which diff two reads.
+ * Times in ns. Sources: Aurora's Switch patch 0005 (aurora_switch_get_stats), the Dawn GL queue
+ * patch (switch/dawn/patches/dawn-switch-gl-fence-queue.patch) and the disc reader (nod/). */
+typedef struct {
+    /* aurora_begin_frame: waiting for a free frame slot / a mapped staging buffer; any producer
+     * waiting for room in the render worker's queue. */
+    uint64_t frameSlotWaitNs, stagingWaitNs, queueFullWaitNs;
+    /* Aurora's render worker: busy time, GX pass encoding, EndFrame items and their staging
+     * Unmap, surface acquire, Queue::Submit and Surface::Present; Instance::ProcessEvents; frames. */
+    uint64_t workerBusyNs, workerEncodeNs, workerEndFrameNs, workerUnmapNs, workerAcquireNs;
+    uint64_t workerSubmitNs, workerPresentNs, workerEventsNs, workerFrames;
+    /* Pipelines created, the time it took, the longest one. */
+    uint64_t pipelineCompiles, pipelineCompileNs, pipelineCompileMaxNs;
+    /* Dawn's GL queue: fences made, blocking waits and their time, glFinish calls (only with
+     * COS_SWITCH_GL_FINISH=1) and their time, fences not yet seen signaled (a level, not a total). */
+    uint64_t glFences, glWaits, glWaitNs, glFinishes, glFinishNs, glFencesPending;
+    /* Disc image reads (nod_read): calls, bytes, time. */
+    uint64_t dvdReads, dvdBytes, dvdNs;
+} CosSwitchGfxStats;
+
+void cos_switch_gfx_stats(CosSwitchGfxStats* out);
+
 #ifdef __cplusplus
 }
 #endif

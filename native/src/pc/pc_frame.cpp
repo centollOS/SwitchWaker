@@ -55,6 +55,9 @@
 #if defined(__APPLE__)
 #include <mach/mach_time.h>
 #endif
+#if defined(__SWITCH__)
+#include "cos_switch.h"
+#endif
 
 namespace pc {
 
@@ -149,6 +152,7 @@ uint32_t sMaxDrawCalls = 0;     // largest drawCallCount Aurora reported after a
 // to the pace wait, the wait itself, from the wait to pc_frame_end, and aurora_end_frame.
 bool sTraceFrame = false;
 uint64_t sFrameStartNs = 0;
+uint64_t sEventsDoneNs = 0; // pumpEvents returned (aurora_begin_frame starts)
 uint64_t sBeginDoneNs = 0; // aurora_begin_frame returned
 uint64_t sPaceStartNs = 0;
 uint64_t sPaceEndNs = 0;
@@ -168,7 +172,7 @@ bool sLogoResLogged = false;
 // Step 5.A: mDoAud_Create has finished (COS_AUDIO=on).
 bool sAudioLogged = false;
 
-// Step 6.7: COS_PERF or COS_PERF_EVERY is set (perfOpen / pc_frame_begin decide it once).
+// Step 6.7: COS_PERF, COS_PERF_EVERY or COS_HITCH_MS is set (perfOpen decides it once).
 bool sPerfOn = false;
 // Pace waits of the current frame: their sum (ns) and the game thread CPU they used (the
 // limiter's final spin).
@@ -199,8 +203,80 @@ uint64_t threadCpuNs() {
 struct PerfFrame {
     uint64_t wallNs, busyNs, cpuNs, waitNs, beginNs, cpdNs, audNs, logicNs, painterNs, endFrameNs,
         otherNs;
+    uint64_t eventsNs; // the pumpEvents part of beginNs (not in the CSV)
     bool cpuValid;
 };
+
+// What else happened in a frame, for the hitch lines and the Switch's perf lines: Aurora's
+// pipeline and texture counters, and the harness's resource and scene traces.
+struct FrameEvents {
+    uint32_t createdPipelines = 0; // AuroraStats::createdPipelines (a running total)
+    unsigned int resources = 0;    // traceResourceCount (a running total)
+    int scene = -1;                // traceScene
+};
+FrameEvents sPrevEvents;          // at the previous frame's end
+bool sPrevEventsValid = false;
+
+#if defined(__SWITCH__)
+// The Switch's graphics and disc counters (running totals) at the previous frame's end and at the
+// start of the COS_PERF_EVERY window.
+CosSwitchGfxStats sSwPrev{};
+CosSwitchGfxStats sSwWindow{};
+FrameEvents sSwWindowEvents;
+uint64_t sSwWindowTexBytes = 0;
+uint64_t sSwWindowEventsNs = 0;
+uint64_t sSwWindowStartNs = 0;
+unsigned int sSwFrames = 0;
+bool sSwStarted = false;
+#endif
+// The last frame perfFrameEnd measured, for perfPlatformFrame (called after the perf line).
+PerfFrame sLastPerfFrame{};
+FrameEvents sLastEvents;
+
+double msOf(uint64_t ns) {
+    return ns / 1e6;
+}
+
+// COS_HITCH_MS: one line for a frame whose busy time is above the threshold. `ev`/`prev`: the
+// frame's end and the previous frame's end; `texBytes`: Aurora's last texture upload size.
+void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, const FrameEvents& prev,
+               const AuroraStats* stats) {
+    char res[160];
+    traceLastResource(res, sizeof(res));
+    const unsigned int resLoads = ev.resources - prev.resources;
+    const bool sceneChanged = ev.scene != prev.scene;
+    const uint64_t beginFrameNs = f.beginNs > f.eventsNs ? f.beginNs - f.eventsNs : 0;
+    char platform[512] = "";
+#if defined(__SWITCH__)
+    CosSwitchGfxStats now{};
+    cos_switch_gfx_stats(&now);
+    const CosSwitchGfxStats& p = sSwPrev;
+    snprintf(platform, sizeof(platform),
+             "; switch: slot wait %.1f, staging wait %.1f, queue-full wait %.1f, worker busy %.1f "
+             "(encode %.1f, submit %.1f, present %.1f, events %.1f), gl fence wait %.1f, glFinish "
+             "%.1f, pipeline compile %.1f ms (%llu), dvd %llu reads %.1f KiB %.1f ms",
+             msOf(now.frameSlotWaitNs - p.frameSlotWaitNs), msOf(now.stagingWaitNs - p.stagingWaitNs),
+             msOf(now.queueFullWaitNs - p.queueFullWaitNs), msOf(now.workerBusyNs - p.workerBusyNs),
+             msOf(now.workerEncodeNs - p.workerEncodeNs), msOf(now.workerSubmitNs - p.workerSubmitNs),
+             msOf(now.workerPresentNs - p.workerPresentNs), msOf(now.workerEventsNs - p.workerEventsNs),
+             msOf(now.glWaitNs - p.glWaitNs), msOf(now.glFinishNs - p.glFinishNs),
+             msOf(now.pipelineCompileNs - p.pipelineCompileNs),
+             (unsigned long long)(now.pipelineCompiles - p.pipelineCompiles),
+             (unsigned long long)(now.dvdReads - p.dvdReads), (now.dvdBytes - p.dvdBytes) / 1024.0,
+             msOf(now.dvdNs - p.dvdNs));
+#endif
+    writef(STDERR_FILENO,
+           "[cos] hitch frame %u: busy %.1f ms (wall %.1f): events %.1f, begin_frame %.1f, cpd %.1f, "
+           "aud %.1f, logic %.1f, painter %.1f, end_frame %.1f, other %.1f; pipelines +%u (%u "
+           "queued), tex upload %.1f KiB, res loads +%u%s%s, scene %s%s%s\n",
+           frame, msOf(f.busyNs), msOf(f.wallNs), msOf(f.eventsNs), msOf(beginFrameNs), msOf(f.cpdNs),
+           msOf(f.audNs), msOf(f.logicNs), msOf(f.painterNs), msOf(f.endFrameNs), msOf(f.otherNs),
+           (unsigned int)(ev.createdPipelines - prev.createdPipelines),
+           stats != nullptr ? (unsigned int)stats->queuedPipelines : 0u,
+           stats != nullptr ? stats->lastTextureUploadSize / 1024.0 : 0.0, resLoads,
+           resLoads != 0 ? " last " : "", resLoads != 0 ? res : "", traceSceneName(ev.scene),
+           sceneChanged ? " (new)" : "", platform);
+}
 
 // COS_PERF: the CSV. Rows go to sCsvBuf (game thread); sCsvLen is published after each row, so
 // perfFlush from another thread (pc_exit) writes whole rows only. sCsvFlushing makes one writer.
@@ -275,7 +351,76 @@ struct PerfWindow {
     bool cpuValid = true;
 } sPerf;
 
-void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now) {
+// The Switch's "[cos] perf-switch" line, every COS_PERF_EVERY frames right after the perf line:
+// what aurora_begin_frame waited for, the render worker's time per frame, the GL queue's fences,
+// pipeline creation, texture uploads and disc reads. Nothing on other hosts.
+void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraStats* stats,
+                       unsigned int last, uint64_t now) {
+#if defined(__SWITCH__)
+    CosSwitchGfxStats cur{};
+    cos_switch_gfx_stats(&cur);
+    if (!sSwStarted) {
+        // Like the perf line, the first window starts with the loop (its first frame included).
+        sSwStarted = true;
+        sSwWindow = CosSwitchGfxStats{};
+        sSwWindowEvents = FrameEvents{};
+        sSwWindowStartNs = sLoopStartNs;
+    }
+    sSwPrev = cur;
+    sSwWindowTexBytes += stats != nullptr ? stats->lastTextureUploadSize : 0;
+    sSwWindowEventsNs += f.eventsNs;
+    sSwFrames++;
+    if (gConfig.perfEvery == 0 || sSwFrames < gConfig.perfEvery) {
+        return;
+    }
+    const double n = sSwFrames;
+    const CosSwitchGfxStats& w = sSwWindow;
+    const double workerFrames = cur.workerFrames > w.workerFrames ? cur.workerFrames - w.workerFrames : 0;
+    const double wf = workerFrames > 0 ? workerFrames : 1;
+    const double wallS = (now - sSwWindowStartNs) / 1e9;
+    writef(STDERR_FILENO,
+           "[cos] perf-switch frames %u-%u: begin: events %.2f, slot wait %.2f, staging wait %.2f; "
+           "queue-full wait %.2f; render worker %.2f ms/frame busy (encode %.2f, end_frame %.2f: "
+           "unmap %.2f, acquire %.2f, submit %.2f, present %.2f; events %.2f), %.1f presents/s; "
+           "gl %llu fences (%llu in flight), %llu waits %.2f ms, %llu glFinish %.2f ms; pipelines "
+           "%u created, %llu compiled in %.1f ms (longest so far %.1f ms), %u queued; tex upload "
+           "%.1f KiB; dvd %llu reads %.1f KiB %.1f ms; res loads %u; scene %s\n",
+           last - (unsigned int)n + 1, last, msOf(sSwWindowEventsNs) / n,
+           msOf(cur.frameSlotWaitNs - w.frameSlotWaitNs) / n, msOf(cur.stagingWaitNs - w.stagingWaitNs) / n,
+           msOf(cur.queueFullWaitNs - w.queueFullWaitNs) / n, msOf(cur.workerBusyNs - w.workerBusyNs) / wf,
+           msOf(cur.workerEncodeNs - w.workerEncodeNs) / wf,
+           msOf(cur.workerEndFrameNs - w.workerEndFrameNs) / wf,
+           msOf(cur.workerUnmapNs - w.workerUnmapNs) / wf,
+           msOf(cur.workerAcquireNs - w.workerAcquireNs) / wf,
+           msOf(cur.workerSubmitNs - w.workerSubmitNs) / wf,
+           msOf(cur.workerPresentNs - w.workerPresentNs) / wf,
+           msOf(cur.workerEventsNs - w.workerEventsNs) / wf, wallS > 0 ? workerFrames / wallS : 0.0,
+           (unsigned long long)(cur.glFences - w.glFences), (unsigned long long)cur.glFencesPending,
+           (unsigned long long)(cur.glWaits - w.glWaits), msOf(cur.glWaitNs - w.glWaitNs),
+           (unsigned long long)(cur.glFinishes - w.glFinishes), msOf(cur.glFinishNs - w.glFinishNs),
+           (unsigned int)(ev.createdPipelines - sSwWindowEvents.createdPipelines),
+           (unsigned long long)(cur.pipelineCompiles - w.pipelineCompiles),
+           msOf(cur.pipelineCompileNs - w.pipelineCompileNs), msOf(cur.pipelineCompileMaxNs),
+           stats != nullptr ? (unsigned int)stats->queuedPipelines : 0u, sSwWindowTexBytes / 1024.0,
+           (unsigned long long)(cur.dvdReads - w.dvdReads), (cur.dvdBytes - w.dvdBytes) / 1024.0,
+           msOf(cur.dvdNs - w.dvdNs), ev.resources - sSwWindowEvents.resources,
+           traceSceneName(ev.scene));
+    sSwWindow = cur;
+    sSwWindowEvents = ev;
+    sSwWindowTexBytes = 0;
+    sSwWindowEventsNs = 0;
+    sSwWindowStartNs = now;
+    sSwFrames = 0;
+#else
+    (void)f;
+    (void)ev;
+    (void)stats;
+    (void)last;
+    (void)now;
+#endif
+}
+
+void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* stats) {
     if (!sPerfOn) {
         return;
     }
@@ -290,6 +435,7 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now) {
         f.cpuNs = cpu > sFrameWaitCpuNs ? cpu - sFrameWaitCpuNs : 0;
     }
     f.beginNs = sBeginDoneNs - sFrameStartNs;
+    f.eventsNs = sEventsDoneNs > sFrameStartNs ? sEventsDoneNs - sFrameStartNs : 0;
     f.cpdNs = sPhase[PC_PERF_CPD_READ].ns;
     f.audNs = sPhase[PC_PERF_AUD_EXECUTE].ns;
     f.painterNs = sPhase[PC_PERF_PAINTER].ns;
@@ -301,6 +447,21 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now) {
     const uint32_t retrace = VIGetRetraceCount();
     const unsigned int last = pc_frame_count() + 1;
     csvRow(last, sFrameStartNs - sLoopStartNs, f, retrace);
+
+    FrameEvents ev;
+    ev.createdPipelines = stats != nullptr ? stats->createdPipelines : 0;
+    ev.resources = traceResourceCount();
+    ev.scene = traceScene();
+    if (!sPrevEventsValid) {
+        sPrevEvents = ev;
+        sPrevEventsValid = true;
+    }
+    if (gConfig.hitchMs != 0 && f.busyNs > (uint64_t)gConfig.hitchMs * 1000000ull) {
+        hitchLine(last, f, ev, sPrevEvents, stats);
+    }
+    sLastPerfFrame = f;
+    sLastEvents = ev;
+    sPrevEvents = ev;
 
     if (gConfig.perfEvery == 0) {
         return;
@@ -385,7 +546,7 @@ void writePacing(int fd) {
 }
 
 void perfOpen() {
-    sPerfOn = gConfig.perfEvery != 0 || gConfig.perfPath != nullptr;
+    sPerfOn = gConfig.perfEvery != 0 || gConfig.perfPath != nullptr || gConfig.hitchMs != 0;
     if (gConfig.perfPath == nullptr) {
         return;
     }
@@ -492,6 +653,7 @@ void pc_frame_begin(void) {
         }
     }
     pumpEvents();
+    sEventsDoneNs = monotonicNs();
     // Refused while the window cannot present (minimised, no surface yet): the console would not
     // run a frame without a display either. The stall watchdog reports a refusal that lasts.
     for (;;) {
@@ -541,7 +703,11 @@ void pc_frame_end(void) {
         (sLogoCreated ? sUploadSinceLogo : sUploadBeforeLogo) += stats->lastTextureUploadSize;
     }
 
-    perfFrameEnd(endFrameStartNs, monotonicNs());
+    const uint64_t perfNow = monotonicNs();
+    perfFrameEnd(endFrameStartNs, perfNow, stats);
+    if (sPerfOn) {
+        perfPlatformFrame(sLastPerfFrame, sLastEvents, stats, pc_frame_count() + 1, perfNow);
+    }
     pc_frame_tick();
 
     const unsigned int frames = pc_frame_count();

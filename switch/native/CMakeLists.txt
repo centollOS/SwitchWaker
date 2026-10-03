@@ -223,11 +223,16 @@ cos_switch_use_clang("${COS_REPO_ROOT}/native")
 # ---- The harness's Switch platform layer ---------------------------------------------------------------
 add_library(cos_switch_platform STATIC
         "${COS_SWITCH_DIR}/source/cos_switch.cpp"
+        "${COS_SWITCH_DIR}/source/cos_switch_stats.cpp"
         "${COS_SWITCH_DIR}/source/thread_wrap.c"
         "${COS_REPO_ROOT}/switch/source/common/usb_log.c")
 target_include_directories(cos_switch_platform PUBLIC "${COS_SWITCH_DIR}/source"
         PRIVATE "${COS_REPO_ROOT}/switch/source/common")
 target_link_libraries(cos_switch_platform PUBLIC nx)
+# cos_switch_stats.cpp reads Aurora's Switch counters (aurora/patches/0005), Dawn's GL queue
+# counters and the disc reader's (nod/), which the executable links.
+target_include_directories(cos_switch_platform PRIVATE "${COS_SWITCH_AURORA_DIR}/include")
+target_link_libraries(cos_switch_platform PUBLIC aurora_gx webgpu_dawn cos_switch_nod)
 add_library(cos_switch_main STATIC "${COS_SWITCH_DIR}/source/cos_switch_main.cpp")
 target_link_libraries(cos_switch_main PUBLIC cos_switch_platform)
 # The harness (cos_pc) calls the platform layer (pc_crash.cpp, pc_harness.cpp, pc_main.cpp).

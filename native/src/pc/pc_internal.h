@@ -4,6 +4,7 @@
 
 #include "pc/pc_harness.h"
 
+#include <cstddef>
 #include <cstdint>
 
 class JUTResFont;
@@ -29,6 +30,11 @@ struct Config {
     // (AuroraConfig::blockingPipelines, Aurora patch 0005) instead of skipping the draw until its
     // pipeline is ready. Default: on when COS_SHOT / COS_SHOT_EVERY capture frames, off otherwise.
     bool syncPipelines = false;
+    // COS_HITCH_MS=<n>: one "[cos] hitch" line for every game frame whose busy time (the frame
+    // minus the pace wait) exceeds n ms, with its split and what else happened in it (pipelines
+    // built, texture bytes uploaded, resources loaded, scene created). 0 = off (the default; the
+    // Switch build sets 50).
+    unsigned int hitchMs = 0;
 };
 
 extern Config gConfig;
@@ -48,6 +54,12 @@ void printMilestones(int fd);
 void installCrashHandler();
 // Writes "scene=... frame=... retrace=... ms=... last_res=..." (one line, no prefix) to fd.
 void writeState(int fd);
+// The scene process the game created last (fpcNm_* procName, -1 before the first) and its name;
+// the number of resources the game has loaded (pc_trace_resource) and the last one's path.
+int traceScene();
+const char* traceSceneName(int procName);
+unsigned int traceResourceCount();
+void traceLastResource(char* out, size_t size);
 // Formats into a fixed buffer and writes to fd; usable from the crash handler.
 void writef(int fd, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
 // Opens <COS_RUN_DIR>/<name> for writing (truncated), or -1 without a run directory.

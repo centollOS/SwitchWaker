@@ -315,6 +315,27 @@ void writeState(int fd) {
            sLastResEntry.load(std::memory_order_relaxed), sResSeq.load(std::memory_order_relaxed));
 }
 
+int traceScene() {
+    return sScene.load(std::memory_order_relaxed);
+}
+
+const char* traceSceneName(int procName) {
+    return sceneName(procName);
+}
+
+unsigned int traceResourceCount() {
+    return sResSeq.load(std::memory_order_relaxed);
+}
+
+void traceLastResource(char* out, size_t size) {
+    if (size == 0) {
+        return;
+    }
+    const size_t n = size < sizeof(sLastRes) ? size : sizeof(sLastRes);
+    memcpy(out, sLastRes, n);
+    out[n - 1] = '\0';
+}
+
 void installCrashHandler() {
 #if defined(__SWITCH__)
     // libnx's exception handler (switch/native/source/cos_switch.cpp) reports crashes; it adds

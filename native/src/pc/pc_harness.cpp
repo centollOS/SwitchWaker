@@ -136,6 +136,7 @@ void pc_harness_init(int argc, char* argv[]) {
     gConfig.perfEvery = envCount("COS_PERF_EVERY");
     gConfig.perfPath = envString("COS_PERF");
     pc_aspect_init();
+    gConfig.hitchMs = envCount("COS_HITCH_MS");
 
     writef(STDERR_FILENO,
            "[cos] harness: smoke=%s milestone=%s timeout=%gs stall=%gs frames=%u trace=%s "

@@ -13,6 +13,9 @@
 #include "nod.h"
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -213,6 +216,17 @@ NodResult nod_partition_open_file(NodHandle* partition, uint32_t index, NodHandl
 
 void nod_free(NodHandle* handle) { delete handle; }
 
+// Disc reads for the perf-switch and hitch lines (cos_switch_nod_stats): calls, bytes, time.
+static std::atomic<uint64_t> gNodReads{0};
+static std::atomic<uint64_t> gNodBytes{0};
+static std::atomic<uint64_t> gNodNs{0};
+
+extern "C" void cos_switch_nod_stats(uint64_t out[3]) {
+  out[0] = gNodReads.load(std::memory_order_relaxed);
+  out[1] = gNodBytes.load(std::memory_order_relaxed);
+  out[2] = gNodNs.load(std::memory_order_relaxed);
+}
+
 int64_t nod_read(NodHandle* handle, uint8_t* buf, size_t len) {
   if (handle == nullptr || handle->kind == Kind::Partition || (buf == nullptr && len != 0)) {
     return -1;
@@ -221,9 +235,16 @@ int64_t nod_read(NodHandle* handle, uint8_t* buf, size_t len) {
     return 0;
   }
   len = (size_t)std::min<uint64_t>(len, handle->length - handle->pos);
+  const auto start = std::chrono::steady_clock::now();
   const int64_t got = handle->disc->readSome(handle->start + handle->pos, buf, len);
+  gNodNs.fetch_add((uint64_t)std::chrono::duration_cast<std::chrono::nanoseconds>(
+                       std::chrono::steady_clock::now() - start)
+                       .count(),
+                   std::memory_order_relaxed);
+  gNodReads.fetch_add(1, std::memory_order_relaxed);
   if (got > 0) {
     handle->pos += (uint64_t)got;
+    gNodBytes.fetch_add((uint64_t)got, std::memory_order_relaxed);
   }
   return got;
 }

@@ -1,0 +1,297 @@
+Switch: frame timing counters (aurora_switch_get_stats)
+
+The first hardware runs spent 30-40 ms of a 45-60 ms Outset frame inside
+aurora_begin_frame, with no way to tell which wait it was. This patch adds running
+totals the harness diffs per perf window and per hitch frame (switch/native/source):
+the game thread's waits in gfx::begin_frame (free frame slot, mapped staging buffer)
+and for room in the render worker's queue; the render worker's busy time, split into
+GX pass encoding, EndFrame (staging Unmap, surface acquire, Queue::Submit,
+Surface::Present) and Instance::ProcessEvents; and pipeline creations with their time
+(compile thread or inline). Behaviour is unchanged; the counters are relaxed atomics.
+
+Switch only (switch/native/aurora/patches); not for upstream.
+
+diff --git a/include/aurora/switch_stats.h b/include/aurora/switch_stats.h
+new file mode 100644
+index 0000000..a368cb2
+--- /dev/null
++++ b/include/aurora/switch_stats.h
+@@ -0,0 +1,76 @@
++#pragma once
++
++/* Frame timing counters of the Switch build (switch/native/aurora/patches): where the game thread
++ * waits in aurora_begin_frame, what the render worker spends its time on, and pipeline creation.
++ * Every field is a running total since start; callers diff two reads. */
++
++#include <stdint.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++typedef struct {
++  uint64_t frameSlotWaitNs;   /* aurora_begin_frame: waiting for a free frame slot */
++  uint64_t stagingWaitNs;     /* aurora_begin_frame: waiting for a mapped staging buffer */
++  uint64_t queueFullWaitNs;   /* any producer: waiting for room in the render worker's queue */
++  uint64_t workerBusyNs;      /* render worker: running queue items */
++  uint64_t workerEncodeNs;    /* render worker: EncodePass items (GX passes into the encoder) */
++  uint64_t workerEndFrameNs;  /* render worker: EndFrame items (unmap, present pass, submit, present, remap) */
++  uint64_t workerUnmapNs;     /* EndFrame: staging buffer Unmap */
++  uint64_t workerAcquireNs;   /* EndFrame: surface GetCurrentTexture */
++  uint64_t workerSubmitNs;    /* EndFrame: Queue::Submit of the frame's command buffer */
++  uint64_t workerPresentNs;   /* EndFrame: Surface::Present */
++  uint64_t workerEventsNs;    /* render worker: Instance::ProcessEvents */
++  uint64_t workerFrames;      /* EndFrame items run */
++  uint64_t pipelineCompiles;  /* pipelines created (compile thread or inline) */
++  uint64_t pipelineCompileNs; /* time spent creating them */
++  uint64_t pipelineCompileMaxNs; /* longest single creation so far */
++} AuroraSwitchStats;
++
++void aurora_switch_get_stats(AuroraSwitchStats* out);
++
++#ifdef __cplusplus
++}
++
++#include <atomic>
++#include <chrono>
++
++namespace aurora::switch_stats {
++struct Counters {
++  std::atomic<uint64_t> frameSlotWaitNs{0}, stagingWaitNs{0}, queueFullWaitNs{0}, workerBusyNs{0},
++      workerEncodeNs{0}, workerEndFrameNs{0}, workerUnmapNs{0}, workerAcquireNs{0}, workerSubmitNs{0},
++      workerPresentNs{0}, workerEventsNs{0}, workerFrames{0}, pipelineCompiles{0}, pipelineCompileNs{0},
++      pipelineCompileMaxNs{0};
++};
++Counters& counters() noexcept;
++
++inline uint64_t now_ns() noexcept {
++  return static_cast<uint64_t>(
++      std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch())
++          .count());
++}
++
++// Adds the time from construction to destruction to a counter.
++class Scope {
++public:
++  explicit Scope(std::atomic<uint64_t>& counter) noexcept : m_counter(counter), m_start(now_ns()) {}
++  ~Scope() { m_counter.fetch_add(now_ns() - m_start, std::memory_order_relaxed); }
++  Scope(const Scope&) = delete;
++  Scope& operator=(const Scope&) = delete;
++
++private:
++  std::atomic<uint64_t>& m_counter;
++  uint64_t m_start;
++};
++
++inline void add_pipeline_compile(uint64_t ns) noexcept {
++  auto& c = counters();
++  c.pipelineCompiles.fetch_add(1, std::memory_order_relaxed);
++  c.pipelineCompileNs.fetch_add(ns, std::memory_order_relaxed);
++  uint64_t max = c.pipelineCompileMaxNs.load(std::memory_order_relaxed);
++  while (ns > max && !c.pipelineCompileMaxNs.compare_exchange_weak(max, ns, std::memory_order_relaxed)) {
++  }
++}
++} // namespace aurora::switch_stats
++#endif
+diff --git a/lib/aurora.cpp b/lib/aurora.cpp
+index 9430842..28cb220 100644
+--- a/lib/aurora.cpp
++++ b/lib/aurora.cpp
+@@ -1,5 +1,6 @@
+ #include <aurora/aurora.h>
+ #include <aurora/time.hpp>
++#include <aurora/switch_stats.h>
+ 
+ #ifdef AURORA_ENABLE_GX
+ #include "gfx/resources.hpp"
+@@ -295,6 +296,7 @@ void end_frame() noexcept {
+       window::SurfaceLock surfaceLock;
+       if (window::is_presentable() && g_surface) {
+         ZoneScopedN("Acquire texture");
++        switch_stats::Scope statScope{switch_stats::counters().workerAcquireNs};
+         wgpu::SurfaceTexture surfaceTexture;
+         g_surface.GetCurrentTexture(&surfaceTexture);
+         surfaceStatus = surfaceTexture.status;
+@@ -371,6 +373,7 @@ void end_frame() noexcept {
+     const auto buffer = encoder.Finish(&cmdBufDescriptor);
+     {
+       ZoneScopedN("Queue Submit");
++      switch_stats::Scope statScope{switch_stats::counters().workerSubmitNs};
+       g_queue.Submit(1, &buffer);
+     }
+     webgpu::gpu_prof::after_submit();
+@@ -380,6 +383,7 @@ void end_frame() noexcept {
+       {
+         window::SurfaceLock surfaceLock;
+         if (window::is_presentable()) {
++          switch_stats::Scope statScope{switch_stats::counters().workerPresentNs};
+           status = g_surface.Present();
+         }
+       }
+diff --git a/lib/gfx/frame.cpp b/lib/gfx/frame.cpp
+index e005a60..0e11d14 100644
+--- a/lib/gfx/frame.cpp
++++ b/lib/gfx/frame.cpp
+@@ -14,6 +14,7 @@
+ #endif
+ #include "../webgpu/gpu.hpp"
+ #include "../webgpu/gpu_prof.hpp"
++#include <aurora/switch_stats.h>
+ 
+ #include <array>
+ #include <atomic>
+@@ -152,6 +153,7 @@ void prune_present_times(PresentClock::time_point now) {
+ 
+ void process_events() {
+   ZoneScopedN("ProcessEvents");
++  switch_stats::Scope statScope{switch_stats::counters().workerEventsNs};
+   if (g_instance) {
+     g_instance.ProcessEvents();
+   }
+@@ -594,6 +596,7 @@ bool wait_for_staging_buffer(size_t slot) {
+ 
+ size_t acquire_frame_slot() {
+   ZoneScopedN("Acquire frame slot");
++  switch_stats::Scope statScope{switch_stats::counters().frameSlotWaitNs};
+   const auto waitStart = PresentClock::now();
+   while (true) {
+     if (const auto slot = g_frameSlots.try_acquire()) {
+@@ -608,6 +611,7 @@ size_t acquire_frame_slot() {
+ 
+ std::optional<size_t> acquire_mapped_staging_buffer() {
+   ZoneScopedN("Acquire mapped staging buffer");
++  switch_stats::Scope statScope{switch_stats::counters().stagingWaitNs};
+   while (true) {
+     if (auto slot = g_stagingSlots.try_acquire()) {
+       if (wait_for_staging_buffer(*slot)) {
+@@ -680,8 +684,13 @@ void end_frame(EndFrameCallback callback) {
+ 
+   const size_t stagingSlot = frame.stagingBuffer;
+   render_worker::enqueue_end_frame(frameId, [frameSlot, stagingSlot, callback = std::move(callback)]() mutable {
++    switch_stats::Scope statScope{switch_stats::counters().workerEndFrameNs};
++    switch_stats::counters().workerFrames.fetch_add(1, std::memory_order_relaxed);
+     auto& packet = g_framePackets[frameSlot];
+-    g_stagingBuffers[stagingSlot].Unmap();
++    {
++      switch_stats::Scope unmapScope{switch_stats::counters().workerUnmapNs};
++      g_stagingBuffers[stagingSlot].Unmap();
++    }
+     g_mappingStates[stagingSlot].store(BufferMapState::Unmapped, std::memory_order_release);
+     auto encoder = std::move(packet.encoder);
+     const auto stats = packet.stats;
+@@ -742,5 +751,34 @@ float calculate_fps() noexcept {
+ }
+ } // namespace aurora::gfx
+ 
++namespace aurora::switch_stats {
++Counters& counters() noexcept {
++  static Counters s_counters;
++  return s_counters;
++}
++} // namespace aurora::switch_stats
++
++void aurora_switch_get_stats(AuroraSwitchStats* out) {
++  const auto& c = aurora::switch_stats::counters();
++  const auto load = [](const std::atomic<uint64_t>& v) { return v.load(std::memory_order_relaxed); };
++  *out = AuroraSwitchStats{
++      .frameSlotWaitNs = load(c.frameSlotWaitNs),
++      .stagingWaitNs = load(c.stagingWaitNs),
++      .queueFullWaitNs = load(c.queueFullWaitNs),
++      .workerBusyNs = load(c.workerBusyNs),
++      .workerEncodeNs = load(c.workerEncodeNs),
++      .workerEndFrameNs = load(c.workerEndFrameNs),
++      .workerUnmapNs = load(c.workerUnmapNs),
++      .workerAcquireNs = load(c.workerAcquireNs),
++      .workerSubmitNs = load(c.workerSubmitNs),
++      .workerPresentNs = load(c.workerPresentNs),
++      .workerEventsNs = load(c.workerEventsNs),
++      .workerFrames = load(c.workerFrames),
++      .pipelineCompiles = load(c.pipelineCompiles),
++      .pipelineCompileNs = load(c.pipelineCompileNs),
++      .pipelineCompileMaxNs = load(c.pipelineCompileMaxNs),
++  };
++}
++
+ const AuroraStats* aurora_get_stats() { return &aurora::gfx::detail::resources().stats; }
+ float aurora_get_fps() { return aurora::gfx::calculate_fps(); }
+diff --git a/lib/gfx/pipeline_cache.cpp b/lib/gfx/pipeline_cache.cpp
+index f8cf35b..3b90e22 100644
+--- a/lib/gfx/pipeline_cache.cpp
++++ b/lib/gfx/pipeline_cache.cpp
+@@ -11,6 +11,7 @@
+ #endif
+ #include "../sqlite_utils.hpp"
+ #include "../webgpu/gpu.hpp"
++#include <aurora/switch_stats.h>
+ 
+ #include <algorithm>
+ #include <atomic>
+@@ -469,7 +470,9 @@ static PipelineRef find_pipeline_impl(PipelineRef runtimeKey, NewPipelineCallbac
+       if (blocking && !g_hasPipelineThread) {
+         auto pending = take_pending_pipeline(runtimeKey);
+         if (pending) {
++          const uint64_t compileStart = switch_stats::now_ns();
+           auto result = pending->create();
++          switch_stats::add_pipeline_compile(switch_stats::now_ns() - compileStart);
+           pipelineCount = result.pipeline_count();
+           g_pipelines.try_emplace(runtimeKey, std::move(result));
+           pipelineReady = true;
+@@ -482,7 +485,9 @@ static PipelineRef find_pipeline_impl(PipelineRef runtimeKey, NewPipelineCallbac
+         notifyWorker = priority != PipelinePriority::Background;
+       }
+     } else if (!g_hasPipelineThread && (blocking || g_pipelinesPerFrame < BuildPipelinesPerFrame)) {
++      const uint64_t compileStart = switch_stats::now_ns();
+       auto result = cb();
++      switch_stats::add_pipeline_compile(switch_stats::now_ns() - compileStart);
+       pipelineCount = result.pipeline_count();
+       g_pipelines.try_emplace(runtimeKey, std::move(result));
+       pipelineReady = true;
+@@ -981,7 +986,9 @@ static void pipeline_worker() {
+       pending = std::move(source.front());
+       source.pop_front();
+     }
++    const uint64_t compileStart = switch_stats::now_ns();
+     auto result = pending.create();
++    switch_stats::add_pipeline_compile(switch_stats::now_ns() - compileStart);
+     const auto pipelineCount = result.pipeline_count();
+     {
+       std::lock_guard lock{g_pipelineMutex};
+diff --git a/lib/gfx/render_worker.cpp b/lib/gfx/render_worker.cpp
+index 85783b6..5cae146 100644
+--- a/lib/gfx/render_worker.cpp
++++ b/lib/gfx/render_worker.cpp
+@@ -1,6 +1,7 @@
+ #include "render_worker.hpp"
+ 
+ #include "../thread.hpp"
++#include <aurora/switch_stats.h>
+ 
+ #include <algorithm>
+ #include <atomic>
+@@ -46,7 +47,14 @@ void worker_main(std::stop_token token) {
+ 
+     if (item->work) {
+       ZoneScopedN("QueueItem work");
++      const uint64_t start = switch_stats::now_ns();
+       item->work();
++      const uint64_t ns = switch_stats::now_ns() - start;
++      auto& stats = switch_stats::counters();
++      stats.workerBusyNs.fetch_add(ns, std::memory_order_relaxed);
++      if (item->type == ItemType::EncodePass) {
++        stats.workerEncodeNs.fetch_add(ns, std::memory_order_relaxed);
++      }
+     }
+     complete_sync(item->sync);
+     g_pendingItems.fetch_sub(1, std::memory_order_acq_rel);
+@@ -88,7 +96,10 @@ BoundedQueue::BoundedQueue(size_t capacity) : m_capacity(capacity) {}
+ bool BoundedQueue::push(QueueItem item) {
+   ZoneScoped;
+   std::unique_lock lock{m_mutex};
+-  m_notFull.wait(lock, [&] { return m_closed || m_items.size() < m_capacity; });
++  if (!m_closed && m_items.size() >= m_capacity) {
++    switch_stats::Scope statScope{switch_stats::counters().queueFullWaitNs};
++    m_notFull.wait(lock, [&] { return m_closed || m_items.size() < m_capacity; });
++  }
+   if (m_closed) {
+     return false;
+   }

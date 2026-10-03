@@ -405,6 +405,7 @@ void cos_switch_start(int argc, char** argv) {
     setDefault("COS_DISC", COS_SWITCH_DEFAULT_DISC);
     setDefault("COS_RUN_DIR", COS_SWITCH_ROOT);
     setDefault("COS_PERF_EVERY", "60");
+    setDefault("COS_HITCH_MS", "50");
     setDefault("COS_STALL_S", "90");
     setDefault("COS_ASPECT", "16:9");
 }
