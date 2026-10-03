@@ -2918,6 +2918,12 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   issues. Reviewed: `run --stage sea:44:206 --frames 820 --shot 800` (white flowers cut out on the
   sand) and `run --stage Omori:0:3 --frames 500 --shot 490` rerun and inspected, all changes under
   `TARGET_PC`, `regress.sh -j 3` all checks passed.
+- R7-korl-dark (lane boot, render): the title's King of Red Lions drew dark brown because Aurora's
+  `GXInitLightDistAttn` kept `GX_DA_GENTLE` for a reference brightness of 0 (k1 = inf), so the
+  2D-list light of `setLight()` contributed nothing; H11 patch
+  `0004-light-dist-attn-zero-brightness.patch` matches the SDK's `<= 0` test. See render issues. Reviewed:
+  `run --frames 1310 --shot 900,1300` rerun and inspected (red ship with white and gold trim), patch
+  applies to untouched 3227d76, `regress.sh -j 3` all checks passed.
 
 - **Fix NG-run-dir (M11 boot loop, lane audio, harness): parallel runs of one target shared a run
   directory.** `run.sh` tested a directory name for existence and then created it with
@@ -3056,7 +3062,19 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
 - **King of Red Lions dark on the title** (found while reviewing R1-lighting, title frames
   900/1300): after the J3D texture fix the boat's head and hull draw dark olive/brown with little
   of the red of the GameCube title. Not triaged (lighting/colour registers of its materials vs.
-  texture). Open.
+  texture). **Fixed** by R7-korl-dark: an Aurora divergence from the SDK, not the port's data.
+  `title_ship.bdl`'s three materials (one TEV stage, texture x lit colour 0) light colour channel 0
+  with GX_LIGHT0 (`GX_AF_SPOT`, `GX_DF_CLAMP`, ambient 0x32, material colour white from the BPK);
+  for the 2D list `mDoGph_Painter` loads that light with `setLight()` (m_Do_graphic.cpp), which
+  calls `GXInitLightDistAttn(&light, 0.0f, 0.0f, GX_DA_GENTLE)`. The SDK (decomp GXLight.c) turns
+  the attenuation off for a reference brightness <= 0; Aurora 3227d76 tested < 0, kept
+  GX_DA_GENTLE and set k1 = 1 / (0 * 0) = inf, so the light added nothing and the ship showed
+  only 0x32/255 of its red C8 textures. H11 patch
+  `native/patches/aurora/0004-light-dist-attn-zero-brightness.patch` uses the SDK's `<= 0`.
+  Any other light the game builds with a reference brightness of 0 gets the SDK behaviour too.
+  Checked with COS_SHOT `run --frames 1310 --shot 900,1300`: before, a
+  dark brown silhouette; after, the King of Red Lions in red with its white and gold head and
+  hull trim, lit from the left, as on the GameCube title; the rest of both frames unchanged.
 - **Thousands of `CP_REG_ARRAYBASE_ID is not supported` lines once a stage loads** (step
   R4-arraybase, lane boot): **fixed**. The writer was `J3DShape::loadVtxArray`, called on every J3D
   shape draw (`drawFast`, `simpleDraw`, `simpleDrawCache`): its `J3DLoadArrayBasePtr` wrote CP

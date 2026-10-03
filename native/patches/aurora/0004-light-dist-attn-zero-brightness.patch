@@ -1,0 +1,29 @@
+GXInitLightDistAttn turns attenuation off for a reference brightness of 0
+
+GameCube behaviour: the SDK's GXInitLightDistAttn uses GX_DA_OFF (k0 = 1, k1 = k2 = 0)
+when ref_distance < 0 or ref_brightness <= 0 or >= 1 (Dolphin SDK GXLight.c; the decomp's
+game/src/dolphin/gx/GXLight.c has the same test). The game relies on it:
+m_Do_graphic.cpp setLight(), the light of the 2D-list models (the title's King of Red
+Lions, title_ship.bdl), calls GXInitLightDistAttn(&light, 0.0f, 0.0f, GX_DA_GENTLE).
+
+Aurora 3227d76 tested refBrightness < 0, so a brightness of exactly 0 kept GX_DA_GENTLE
+and computed k1 = (1 - 0) / (0 * 0) = inf: the distance attenuation 1 + inf * dist made
+the light contribute nothing, and the ship's lit material (texture x lit colour 0, light
+0 with GX_AF_SPOT) showed only its ambient 0x32, a dark olive/brown instead of red and
+white. The fix uses the SDK's <= 0.
+
+Upstream status: not reported upstream yet (encounter/aurora at 3227d76).
+
+--- a/lib/dolphin/gx/GXLighting.cpp
++++ b/lib/dolphin/gx/GXLighting.cpp
+@@ -83,7 +83,9 @@
+ }
+ 
+ void GXInitLightDistAttn(GXLightObj* light_, float refDistance, float refBrightness, GXDistAttnFn distFunc) {
+-  if (refDistance < 0.f || refBrightness < 0.f || refBrightness >= 1.f) {
++  // As the SDK: a reference brightness of 0 (not only a negative one) turns the attenuation
++  // off; GX_DA_GENTLE with 0 would divide by zero and black out the light
++  if (refDistance < 0.f || refBrightness <= 0.f || refBrightness >= 1.f) {
+     distFunc = GX_DA_OFF;
+   }
+   float k0 = 1.f;
