@@ -622,8 +622,17 @@ void JAInter::StreamLib::__DecodeADPCM() {
         if (offset >= 0x1400) {
             offset -= 0x1400;
         }
+#if TARGET_PC
+        // The DSP plays the loop buffers as DirectPCM and reads them as big-endian s16 words, as
+        // from the console's RAM (Dolphin's Zelda ucode HLE); the decoder above works in host
+        // order, so each sample is stored big-endian. (__DecodePCM copies the disc's big-endian
+        // samples as they are.)
+        loop_buffer[0][playside][offset] = RES_S16(((s16*)store_buffer[0])[i]);
+        loop_buffer[1][playside][offset] = RES_S16(((s16*)store_buffer[1])[i]);
+#else
         loop_buffer[0][playside][offset] = ((s16*)store_buffer[0])[i];
         loop_buffer[1][playside][offset] = ((s16*)store_buffer[1])[i];
+#endif
     }
     u32 position = i + shift_sample;
     DCStoreRange(loop_buffer[0][playside], 0x2800);

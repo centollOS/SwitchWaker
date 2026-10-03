@@ -2186,6 +2186,26 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Review (round 1): title-audio 0 x2 (-27.3 dBFS, 960 ticks), `run --frames 1500` dump -27.6 dBFS
   from 15 s on, `regress.sh -j 3` all checks passed; committed as three commits.
 
+- **5.6 Streams** (2026-10-03): `run --frames 4000 --audio-dump a.wav` (about 130 s) lets the title
+  run until d_a_title switches to the attract prologue (`fpcNm_OPEN2_SCENE_e`, `dScnOpen_proc_c`),
+  which prepares and plays the stream `JA_STRM_DEMO_01_01` (`AudioRes/Stream/1tale.afc`, AFC,
+  32000 Hz). The dump from 76.76 s on equals an independent decode of the AFC read from the disc
+  (both channels: correlation 0.999 for the first 10 s, 1.0000 from 10 s to 45 s, gain 0.59,
+  residual 46-54 dB below the signal); before the fix the same window was full-scale noise
+  (-11 dBFS, correlation 0.00). The title itself starts no BGM: `setSceneName` sets `field_0x0066`
+  for sea_T (scene 0x75), so `bgmStart` refuses everything but `JA_BGM_SELECT`, and the opening
+  scene is not `fpcNm_PLAY_SCENE_e` (no `sceneBgmStart`); 5.5's "title.afc" guess is withdrawn.
+  `HardStream::useHardStreaming` is never set (DTK streaming unused).
+  - **AFC samples stored big-endian** (`JAIStreamMgr.cpp`, `TARGET_PC`): `__DecodeADPCM` decodes
+    in host order and copies the samples into the DirectPCM loop buffers, which the DSP reads as
+    big-endian s16 (Dolphin's JAudio ucode HLE, as from the console's RAM); each sample is now
+    stored with `RES_S16`. `__DecodePCM` copies the disc's big-endian PCM as it is and needs no
+    change.
+  No regression target: the stream starts about 77 s into a run, too slow for `regress.sh`.
+  Review (round 1): rerun `run --frames 4000 --audio-dump` (129 s): stream at 76.755 s, both
+  channels correlation 0.999 (0-10 s) and 1.0000 (10-45 s), gain 0.59; `regress.sh -j 3` all
+  checks passed.
+
 - **4.12 J3D animation and runtime** (2026-10-03): `COS_SMOKE=anm-sweep` 0 x3; the report equals
   the manifest (1319 archives, 6227 J3D1 files: 3444 BCK, 1070 BTK, 444 BRK, 13 BPK, 1255 BTP,
   1 BVA; 2799678 values at the first, middle and last frame). Builds on 4.8's animation block
