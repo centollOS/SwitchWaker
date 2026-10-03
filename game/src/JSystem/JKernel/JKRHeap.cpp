@@ -471,9 +471,15 @@ static void pc_delete(void* ptr) {
     JKRHeap::free(ptr, heap);
 }
 
+// The forms without an alignment use 4 on the GameCube, enough for any type there. The host's
+// operator new must return memory aligned for any type, __STDCPP_DEFAULT_NEW_ALIGNMENT__ (16 on
+// arm64 and x86-64), and the compiler may assume it; as in Dusklight's operator new
+// (alignof(max_align_t)). The forms with an alignment keep the one the game asks for.
+static const int kPcNewAlignment = __STDCPP_DEFAULT_NEW_ALIGNMENT__;
+
 /* 802B0C38-802B0C60       .text __nw__FUl */
 void* operator new(size_t size) {
-    return pc_new(size, 4, NULL);
+    return pc_new(size, kPcNewAlignment, NULL);
 }
 
 /* 802B0C60-802B0C84       .text __nw__FUli */
@@ -488,7 +494,7 @@ void* operator new(size_t size, JKRHeap* heap, int alignment) {
 
 /* 802B0CB0-802B0CD8       .text __nwa__FUl */
 void* operator new[](size_t size) {
-    return pc_new(size, 4, NULL);
+    return pc_new(size, kPcNewAlignment, NULL);
 }
 
 /* 802B0CD8-802B0CFC       .text __nwa__FUli */
