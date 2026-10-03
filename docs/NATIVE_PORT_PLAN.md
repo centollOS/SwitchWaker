@@ -1973,6 +1973,53 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   - Review (round 1): accepted; `audio-parse` rerun equal to the manifest, `regress.sh -j 3`
     all checks passed. Committed as two root causes (pointer-table sizes, then the formats).
 
+- **4.11 J3D model data** (2026-10-03): `COS_SMOKE=j3d-sweep` 0 x3; the report equals the manifest
+  (1319 archives, 3103 J3D2 files: 202 BMD (9 MAT2), 2556 BDL, 345 BMT; 17004 joints, 11692
+  materials, 11553 shapes, 16647 textures, 36606 draw matrices, 12917 weighted matrices). Builds on
+  4.8's model blocks; each item below is meant as its own commit:
+  - **MAT2 (v21) factory read host-order.** `J3DMaterialInitData_v21` gets `BE(u16)` index fields
+    and offsets (size 0x138); the factory's material-ID/texture/cull/TEV-colour tables are `BE(T)*`
+    and, as the MAT3 factory, it copies the tex-matrix, fog and NBT-scale infos host-order (the
+    converters `J3DHostTexMtxInfo`/`J3DHostFogInfo`/`J3DHostNBTScaleInfo` are now shared from
+    `J3DMaterialFactory.cpp`).
+  - **J3DStruct.h table entries lost their alignment.** `ALIGN_DECL` is empty off Metrowerks, so
+    `J3DTevSwapModeInfo`, `J3DIndTevStageInfo`, `J3DTexCoordInfo` and `J3DTevOrderInfo` were
+    smaller than the MAT3/MAT2 table entries they index (and `J3DIndInitData` 0x138); under
+    `TARGET_PC` they keep the Metrowerks alignment. The J3DStruct.h infos and the material init
+    data joined `layout_headers.txt` with their sizes.
+  - **EVP1/DRW1 tables the runtime reads were big-endian.** `readEnvelop` keeps host-order copies
+    of the mix indices, weights and inverse joint matrices (the matrix count is the table's length,
+    up to the next table or the block's end), `readDraw` of the draw matrix indices, on the model's
+    heap (no swap in place, so a resource can be loaded twice).
+  - **Material IDs from 64-bit addresses.** `mDiffFlag` is built from `(u32)ptr` or `(u32)ptr >> 4`
+    and `J3DMatPacket`/`J3DMaterial::change` read bits 31/30; on PC `J3DGCAddressBits` gives the
+    low 30 bits of the host address (unique inside the 256 MiB MEM1 block, H5) the GameCube's
+    upper bits. The two `readVertex` count markers compute a distance inside VTX1. Group F 21 -> 11.
+  - **Joint scale compensation read as a bool.** `J3DJointInitData::mScaleCompensate` is 0, 1 or
+    0xFF in the file; as a `bool` clang treats 0xFF as undefined and dropped
+    `J3DJointFactory::create`'s 0xFF test (4 models kept 255). On PC it is a `u8`.
+  - **CLS1 (`J3DClusterBlock`) as BE with `OFFSET_PTR_V0`;** `readCluster` converts the records into
+    the host structs (no BLS file is on the disc; compiled, not exercised). `J3DClusterBlock` left
+    `layout_xfail.txt`.
+  - **Harness:** `pc_j3d.cpp` mounts every archive under /res and loads every BMD/BDL/BMT through
+    `J3DModelLoaderDataBase` in a solid heap with `dRes_info_c::loadResource`'s flags for its
+    directory (the LODALL BDLs with `d_a_lod_bg`'s), then compares the model data with plain
+    big-endian reads of the file: INF1, VTX1 format list and arrays, EVP1/DRW1 values, every
+    joint, shape (descriptors, display lists, matrices), material (cull, counts, colours, textures,
+    tex matrices, fog, NBT scale), MDL3 display lists, current matrix (recomputed from MAT3 with
+    BDL flag 0x2000, as `modifyMaterial`) and patching offsets, TEX1. `j3d_sweep.txt` goes to
+    `disc_manifest.py --check-j3d` (counts, INF1 flags and vertices, joint/material/texture names;
+    every J3D2 file once). Negative checks: HEAD's `J3DJointFactory.h` gives 4 joint errors;
+    HEAD's v21 factory and `J3DModelLoader.cpp` crash the sweep (13).
+  Not done (4.12): the remaining group F markers are run-time (`J3DMaterial::getMaterialAnm`,
+  `J3DTexture::setResTIMG`, DrawBuffer, Shape, Joint, Sys, `J3DAnmLoader`), and the vertex data
+  the CPU reads (skinning).
+  Step verification: j3d-sweep 0 x3, logo-res 0, `cos_pc_tests` ok, layout check 1154 GameCube
+  checks, inventory `--check` ok (50 open); `unifdef -UTARGET_PC` of the changed files equals HEAD
+  but for `BE(T)` shims.
+  Review (2026-10-03): approved; j3d-sweep 0 equal to the manifest, `regress.sh -j 3` all checks
+  passed; committed as seven commits, one root cause each, plus this log.
+
 ### Phase 6 render issues
 
 None yet.
