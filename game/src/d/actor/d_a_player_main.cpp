@@ -10360,6 +10360,11 @@ void daPy_lk_c::setDemoData() {
                     ResTIMG casualLinktex = *mpCurrLinktex;
                     *mpCurrLinktex = mOtherLinktex;
                     mOtherLinktex = casualLinktex;
+#if TARGET_PC
+                    // J3DTexture keeps a texture object per entry on the host (J3DTexture.h): the header copy
+                    // alone left it on the other clothes' image (CI4 drawn without its palette: garbled tunic).
+                    mpCLModelData->getTexture()->resTIMGChanged(mpCurrLinktex);
+#endif
                     if (checkNoResetFlg1(daPyFlg1_CASUAL_CLOTHES)) {
                         offNoResetFlg1(daPyFlg1_CASUAL_CLOTHES);
                     } else {
@@ -11807,6 +11812,11 @@ BOOL daPy_lk_c::playerDelete() {
     
     if (checkNoResetFlg1(daPyFlg1_CASUAL_CLOTHES)) {
         *mpCurrLinktex = mOtherLinktex;
+#if TARGET_PC
+        // J3DTexture keeps a texture object per entry on the host (J3DTexture.h): the header copy
+        // alone left it on the other clothes' image (CI4 drawn without its palette: garbled tunic).
+        mpCLModelData->getTexture()->resTIMGChanged(mpCurrLinktex);
+#endif
     }
     
     dComIfGp_clearPlayerStatus0(0, daPyStts0_BOOMERANG_WAIT_e);
@@ -12463,6 +12473,11 @@ void daPy_lk_c::playerInit() {
         ResTIMG casualLinktex = *mpCurrLinktex;
         *mpCurrLinktex = mOtherLinktex;
         mOtherLinktex = casualLinktex;
+#if TARGET_PC
+        // J3DTexture keeps a texture object per entry on the host (J3DTexture.h): the header copy
+        // alone left it on the other clothes' image (CI4 drawn without its palette: garbled tunic).
+        mpCLModelData->getTexture()->resTIMGChanged(mpCurrLinktex);
+#endif
         break;
     }
 }

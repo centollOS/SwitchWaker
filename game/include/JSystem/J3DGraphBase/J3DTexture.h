@@ -50,6 +50,13 @@ public:
     J3DTexture(u16 num, ResTIMG* res);
     virtual ~J3DTexture();
     void loadGX(u16 index, GXTexMapID texMapID) const;
+    // For code that writes a ResTIMG entry itself instead of calling setResTIMG (daPy_lk_c swaps
+    // Link's clothes texture header in place): rebuild that entry's texture object, which would
+    // otherwise still describe the previous image.
+    void resTIMGChanged(const ResTIMG* entry) {
+        J3D_ASSERT(0, entry >= mpRes && entry < mpRes + mNum, "Error : range over.");
+        initTexObj((u16)(entry - mpRes));
+    }
 #else
     J3DTexture(u16 num, ResTIMG* res) : mNum(num), mpRes(res) {}
     virtual ~J3DTexture() {}
