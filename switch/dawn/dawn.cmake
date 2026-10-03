@@ -425,6 +425,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
             message(FATAL_ERROR
                 "Could not apply the Dawn Switch GL no-error context patch:\n"
                 "${DAWN_GL_NO_ERROR_PATCH_OUTPUT}${DAWN_GL_NO_ERROR_PATCH_ERROR}")
+
+    # Pipelines whose stages translate to the same GLSL share one linked GL program (Mesa 20.1 on
+    # Horizon has no program binaries, so each program costs a full compile and link on the one GL
+    # context). Its own patch file, independent of the command-stats and texture-parameter ones.
+    set(DAWN_OPENGL_PIPELINE_SOURCE "${dawn_SOURCE_DIR}/src/dawn/native/opengl/PipelineGL.cpp")
+    file(READ "${DAWN_OPENGL_PIPELINE_SOURCE}" DAWN_OPENGL_PIPELINE_TEXT)
+    if(NOT DAWN_OPENGL_PIPELINE_TEXT MATCHES "SharedProgramCache")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-program-share.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_PROGRAM_SHARE_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_PROGRAM_SHARE_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_PROGRAM_SHARE_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_PROGRAM_SHARE_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL program sharing patch:\n"
+                "${DAWN_GL_PROGRAM_SHARE_PATCH_OUTPUT}${DAWN_GL_PROGRAM_SHARE_PATCH_ERROR}")
         endif()
     endif()
 
