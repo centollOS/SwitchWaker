@@ -1,0 +1,102 @@
+AuroraSetFitAspect: present the logical framebuffer at a chosen aspect ratio
+
+GameCube behaviour: the console's video output is the 640x480 EFB copy; a game with a 16:9 mode
+(or the community 16:9 Gecko code for the game) renders an anamorphic picture into it, and a
+widescreen TV stretches that picture horizontally. Dolphin does the same with its "Force 16:9"
+aspect setting.
+
+Aurora 3227d76's AURORA_VIEWPORT_FIT sizes the content framebuffer to the window, fitted to the
+aspect of the configured render mode (fbWidth x efbHeight, 4:3 for 640x480), and maps logical
+viewports, scissors and copies onto it with separate x and y scales. There is no way to present
+the logical framebuffer at another aspect while keeping the fit (letterbox/pillarbox) behaviour
+on a window of any shape: AURORA_VIEWPORT_STRETCH follows the window exactly.
+
+The patch adds AuroraSetFitAspect(float): 0 (the default) keeps Aurora's behaviour; a positive
+value is the aspect FIT keeps instead of the render mode's. Nothing else changes, since
+viewports, scissors and texture copies already scale x and y separately. The game's harness sets
+it for COS_ASPECT=16:9 or 16:10, where the game draws an anamorphic picture (the widescreen
+option, docs/MODS.md).
+
+Upstream status: not reported upstream yet (encounter/aurora at 3227d76).
+
+diff -ru a/include/dolphin/gx/GXAurora.h b/include/dolphin/gx/GXAurora.h
+--- a/include/dolphin/gx/GXAurora.h	2026-10-03 22:11:18
++++ b/include/dolphin/gx/GXAurora.h	2026-10-03 22:11:18
+@@ -132,6 +132,14 @@
+ void AuroraSetViewportPolicy(AuroraViewportPolicy policy);
+ 
+ /**
++ * Sets the aspect ratio (width / height) that AURORA_VIEWPORT_FIT keeps for the content framebuffer.
++ * 0 (the default) keeps the aspect of the configured render mode (fbWidth x efbHeight, 4:3 for 640x480).
++ * A wider value presents the logical framebuffer stretched to it, the way a widescreen TV shows an
++ * anamorphic picture; viewports, scissors and copies scale as they do for any content size.
++ */
++void AuroraSetFitAspect(float aspect);
++
++/**
+  * Retrieves the current content framebuffer size.
+  */
+ void AuroraGetRenderSize(u32* width, u32* height);
+diff -ru a/lib/dolphin/gx/GXAurora.cpp b/lib/dolphin/gx/GXAurora.cpp
+--- a/lib/dolphin/gx/GXAurora.cpp	2026-10-03 22:11:18
++++ b/lib/dolphin/gx/GXAurora.cpp	2026-10-03 22:11:18
+@@ -36,6 +36,8 @@
+   aurora::gx::set_viewport_policy(policy);
+ }
+ 
++void AuroraSetFitAspect(float aspect) { aurora::window::set_frame_buffer_fit_aspect(aspect); }
++
+ void AuroraGetRenderSize(u32* width, u32* height) {
+   const auto windowSize = aurora::window::get_window_size();
+   if (width != nullptr) {
+diff -ru a/lib/window.cpp b/lib/window.cpp
+--- a/lib/window.cpp	2026-10-03 22:11:18
++++ b/lib/window.cpp	2026-10-03 22:11:18
+@@ -45,6 +45,7 @@
+ SDL_Renderer* g_renderer;
+ float g_frameBufferScale = 0.f;
+ bool g_frameBufferAspectFit = false;
++float g_frameBufferFitAspect = 0.f;
+ AuroraWindowSize g_windowSize;
+ std::vector<AuroraEvent> g_events;
+ std::deque<std::string> g_eventStrings;
+@@ -465,8 +466,9 @@
+   if (g_frameBufferAspectFit) {
+     const auto [baseW, baseH] = vi::configured_fb_size();
+     if (baseW > 0 && baseH > 0) {
+-      const auto [fitW, fitH] =
+-          fit_frame_buffer_to_aspect(fb_w, fb_h, static_cast<float>(baseW) / static_cast<float>(baseH));
++      const float aspect = g_frameBufferFitAspect > 0.f ? g_frameBufferFitAspect
++                                                        : static_cast<float>(baseW) / static_cast<float>(baseH);
++      const auto [fitW, fitH] = fit_frame_buffer_to_aspect(fb_w, fb_h, aspect);
+       fb_w = fitW;
+       fb_h = fitH;
+     }
+@@ -584,6 +586,17 @@
+   }
+ 
+   g_frameBufferAspectFit = fit;
++  request_frame_buffer_resize();
++}
++
++void set_frame_buffer_fit_aspect(float aspect) {
++  if (aspect < 0.f) {
++    aspect = 0.f;
++  }
++  if (g_frameBufferFitAspect == aspect) {
++    return;
++  }
++  g_frameBufferFitAspect = aspect;
+   request_frame_buffer_resize();
+ }
+ 
+diff -ru a/lib/window.hpp b/lib/window.hpp
+--- a/lib/window.hpp	2026-10-03 22:11:18
++++ b/lib/window.hpp	2026-10-03 22:11:18
+@@ -50,5 +50,6 @@
+ void request_frame_buffer_resize();
+ void set_frame_buffer_scale(float scale);
+ void set_frame_buffer_aspect_fit(bool fit);
++void set_frame_buffer_fit_aspect(float aspect);
+ void set_background_input(bool value);
+ }; // namespace aurora::window
