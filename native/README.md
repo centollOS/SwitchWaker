@@ -20,6 +20,69 @@ SDK-over-Aurora layer and static REL linking are the reference. Why: the transla
 about 6-8 percent speed on the Switch (`docs/SWITCH_IMPLEMENTATION_CHECKLIST.md`), and native code
 costs about 0.9 host instructions per guest instruction against 27 for the translation.
 
+## Quick start (Mac)
+
+This builds the native port and boots it to the title screen on an Apple Silicon Mac. The steps
+below are the whole procedure from a fresh clone; the sections after this one explain each part.
+
+**Requirements**
+
+- An Apple Silicon Mac (arm64). Xcode command line tools (`xcode-select --install`, Apple clang).
+- CMake 3.28 or newer and Ninja (`brew install cmake ninja`).
+- Python 3.10 or newer as `python3` (the decomp's `configure.py` that generates the asset headers
+  needs it; the `python3` of the command line tools is 3.9). `brew install python` is enough; no
+  packages are needed.
+- The network for the one-time setup and the first configure: RecompCore, the decomp and its
+  `dtk` binary, Aurora and the dependencies it fetches (prebuilt Dawn and nod packages, SDL3,
+  abseil, fmt...).
+- Your own disc image of the game, USA, revision 0 (`GZLE01`), as a plain `.iso`. Nothing
+  derived from it goes into git: the generated files stay under `build/`, which is ignored.
+
+**One-time setup** (from the repository root)
+
+```sh
+export COS_DISC=/path/to/GZLE01.iso            # every script and the game read the disc from here
+native/tools/fetch_recompcore.sh               # ref/recompcore: Dolphin's DSP HLE sources (RecompCore 8ab24da)
+native/tools/gen_assets.sh                     # build/native-mac/assets/GZLE01: asset headers from the disc
+```
+
+**Configure and build** (about 1500 build steps; drop `-j4` to use every core)
+
+```sh
+cmake -S native -B build/native-mac -G Ninja
+ninja -C build/native-mac -j4 centollos              # build/native-mac/centollos
+```
+
+**Run**
+
+```sh
+native/tools/run.sh logo-res               # milestone check: "logo-res: exit 0 (reached)" after ~10 s
+native/tools/run.sh run --frames 1500 --shot 1500
+#   boots for 1500 game frames (~45 s) and saves the title screen as
+#   build/native-mac/runs/run-<timestamp>/shot-001500.png
+build/native-mac/centollos                           # interactive: a 960x720 window; Ctrl-C in the terminal quits
+```
+
+`run.sh` opens a window too; each run keeps its log in `build/native-mac/runs/` (see "Running
+`centollos` (phase 6)" for its options and exit codes). Without `COS_DISC` (or `--disc PATH`) a run that
+boots the game stops with exit 14.
+
+**Controls.** Port 0 is Aurora's SDL gamepad: connect a controller (Xbox, PlayStation, Switch
+Pro...) before launching. Left stick: control stick; right stick: C-stick; the bottom face button
+is A, and B, X and Y follow Aurora's default for the controller type (on an Xbox controller: left
+B, right X, top Y, the GameCube's arrangement); right shoulder: Z; analog triggers: L and R;
+Start: START; D-pad: D-pad. The keyboard is not mapped: Aurora has no default key bindings and
+the port sets none yet, so without a controller you can only watch.
+
+**What you should see now.** The publisher and Dolby logos, then the title screen ("PRESS START")
+over Outset Island. Known problems: the gameplay HUD
+(hearts, buttons, rupees) is drawn over the title, the "the game" subtitle under the logo is
+garbled, some geometry renders black, and there is no sound yet.
+
+**Platforms.** Only macOS on Apple Silicon is built and tested so far. Linux and Windows are
+untested, although Aurora supports them (the scripts, and `native/cmake/dsp_hle.cmake`'s arm64
+definitions, assume an arm64 Mac in places). The Switch is phase 7 of `docs/NATIVE_PORT_PLAN.md`.
+
 ## Building on the Mac (phase 1)
 
 Phase 1 of `docs/NATIVE_PORT_PLAN.md`: every game unit compiles to an object with Apple clang
@@ -349,6 +412,7 @@ COS_DISC=/nonexistent build/native-mac/centollos; echo $?   # 14
 | `COS_TIMEOUT_S`, `COS_STALL_S` | watchdog: exit 10 after this long; exit 11 when the game frame counter is frozen this long (0/unset: off) |
 | `COS_TRACE` | `res` (every path through `my_DVDConvertPathToEntrynum`), `scene` (every scene process created), `all` |
 | `COS_FRAMES` | exit 0 after this many game frames |
+| `COS_SHOT`, `COS_SHOT_EVERY`, `COS_SHOT_DIR` | save the presented image of these game frames (`1500` or `300,1500`), or of every n-th frame, as `shot-<frame>.png` in the run directory or `COS_SHOT_DIR` (`native/src/pc/pc_shot.cpp`; `run.sh --shot`) |
 | `COS_UNCAPPED`, `COS_AUDIO` | frame pacing off (step 6.2); `off` keeps audio silent (step 6.1, phase 5) |
 | `COS_RUN_DIR` | where `backtrace.txt` and `stall.txt` go (set by `run.sh`) |
 
