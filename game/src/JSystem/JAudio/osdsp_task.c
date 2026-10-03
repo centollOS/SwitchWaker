@@ -21,7 +21,12 @@ DSPTaskInfo* DSP_prior_task;
 /* 8028ECA0-8028EFA4       .text __DSPHandler */
 void __DSPHandler(int interrupt, OSContext* context) {
     OSContext funcContext;
+#if TARGET_PC
+    // __DSPRegs is the console's register block; cos_sdk models DSPCR (cos_dsp_extras.h).
+    COSDSPWriteControlRegister((u16)(COSDSPReadControlRegister() & ~0x28) | 0x80);
+#else
     __DSPRegs[5] = ((u16)(__DSPRegs[5]) & ~0x28) | 0x80;
+#endif
     OSClearContext(&funcContext);
     OSSetCurrentContext(&funcContext);
 
