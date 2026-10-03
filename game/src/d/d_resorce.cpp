@@ -325,8 +325,8 @@ int dRes_info_c::loadResource() {
                 void *pBasData;
                 if (fileHeader->mSeAnmOffset != -1)
 #if TARGET_PC
-                    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-                    pBasData = (char*)fileHeader->mSeAnmOffset + (uintptr_t)pRes;
+                    // mSeAnmOffset is a BE(u32) offset from the file start (step 4.3).
+                    pBasData = (char*)pRes + (u32)fileHeader->mSeAnmOffset;
 #else
                     pBasData = (char*)fileHeader->mSeAnmOffset + (u32)pRes;
 #endif
