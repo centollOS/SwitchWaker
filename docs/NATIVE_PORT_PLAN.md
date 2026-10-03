@@ -527,3 +527,15 @@ Each phase lands as its own commits; this file records decisions and measured re
   Review: rerun independently (actors-2 rebuilt from clean in aurora mode, 74/74 units, 0 errors;
   all aurora-mode modules and checks build, smoke ok, shadow check ok; default decomp configuration
   `cos_modules` and checks up to date with `d_a_hookshot` force-rebuilt, 0 errors).
+- **2.7 actors-3:** compiles in aurora header mode (all 74 units, `d_a_npc_auction` ..
+  `d_a_obj_YLzou`, 0 errors) and still in decomp mode, with no source change: the first aurora
+  build compiled all 74 units with 0 errors (no unit near clang's 50-per-unit limit), because the
+  forwarders and per-header fixes from the earlier 2.7 steps already cover every SDK use in this
+  chunk. No forwarder change, no `STATIC_ASSERT` fired. Aurora mode: SSystem, the four JSystem
+  modules, framework, m_Do, d-core, actors-1, actors-2, actors-3, `cos_sdk`, smoke (ok), scaffold,
+  header and shadow checks (82 names, ok) build; default configuration: `cos_modules` and checks
+  up to date, 0 errors.
+  Review: rerun independently (actors-3 rebuilt from clean in aurora mode, 74/74 units, 0 errors,
+  units built with `-DTARGET_PC=1`, the Aurora include dir and the forced `cos_sdk_extras.h`; all
+  aurora-mode modules and checks build, smoke ok, shadow check ok; default decomp configuration
+  `cos_modules` and checks build with `d_a_npc_auction` force-rebuilt, 0 errors).
