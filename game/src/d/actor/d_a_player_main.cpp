@@ -12341,7 +12341,7 @@ void daPy_lk_c::playerInit() {
     ResTIMG* tmp_img = (ResTIMG*)dComIfG_getObjectRes(l_arcName, dRes_INDEX_LINK_BTI_ROCK_MARK_e);
     JUT_ASSERT(VERSION_SELECT(21506, 21613, 21693, 21693), tmp_img != NULL);
 #if TARGET_PC
-    // TODO(native phase 4): ResTIMG fields are big-endian in the archive.
+    // imageOffset is a BE(u32) since step 4.3 (JUTTexture.h).
     void* tmp_img_data = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(tmp_img) + tmp_img->imageOffset);
 #else
     void* tmp_img_data = reinterpret_cast<void*>(reinterpret_cast<u32>(tmp_img) + tmp_img->imageOffset);

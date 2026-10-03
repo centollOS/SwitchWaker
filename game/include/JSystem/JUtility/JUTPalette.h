@@ -3,13 +3,15 @@
 
 #include "dolphin/gx/GXEnum.h"
 #include "dolphin/gx/GXStruct.h"
+#include "helpers/endian.h"
 
 enum JUTTransparency { UNK0, UNK1 };
 
+// Disc data, stored big-endian: BE(T) is T on the GameCube (phase 4, step 4.3; as in Dusklight).
 struct ResTLUT {
     u8 format;
     u8 transparency;
-    u16 numColors;
+    BE(u16) numColors;
 };
 
 class JUTPalette {

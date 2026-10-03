@@ -2,13 +2,15 @@
 #define JUTNAMETAB_H
 
 #include "dolphin/types.h"
+#include "helpers/endian.h"
 
+// Disc data, stored big-endian: BE(T) is T on the GameCube (phase 4, step 4.3; as in Dusklight).
 struct ResNTAB {
-    u16 mEntryNum;
-    u16 mPad0;
+    BE(u16) mEntryNum;
+    BE(u16) mPad0;
     struct Entry {
-        u16 mKeyCode;
-        u16 mOffs;
+        BE(u16) mKeyCode;
+        BE(u16) mOffs;
     } mEntries[1];
 
     inline const char* getName(u32 index) const {

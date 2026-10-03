@@ -95,7 +95,12 @@ void JUTTexture::initTexObj() {
         mipmapEnabled = 0;
     }
     u8* image = ((u8*)mTexInfo);
+#if TARGET_PC
+    // imageOffset is a BE(u32) (step 4.3): read it once as a host value for the conditional.
+    image += ((u32)mTexInfo->imageOffset ? (u32)mTexInfo->imageOffset : 0x20);
+#else
     image += (mTexInfo->imageOffset ? mTexInfo->imageOffset : 0x20);
+#endif
     GXInitTexObj(&mTexObj, image, mTexInfo->width, mTexInfo->height, (GXTexFmt)mTexInfo->format,
                  (GXTexWrapMode)mWrapS, (GXTexWrapMode)mWrapT, mipmapEnabled);
     GXInitTexObjLOD(&mTexObj, (GXTexFilter)mMinFilter, (GXTexFilter)mMagFilter, mMinLOD / 8.0f,
@@ -113,7 +118,12 @@ void JUTTexture::initTexObj(GXTlut tlut) {
     }
     mTlutName = tlut;
     u8* image = ((u8*)mTexInfo);
+#if TARGET_PC
+    // imageOffset is a BE(u32) (step 4.3): read it once as a host value for the conditional.
+    image += ((u32)mTexInfo->imageOffset ? (u32)mTexInfo->imageOffset : 0x20);
+#else
     image += (mTexInfo->imageOffset ? mTexInfo->imageOffset : 0x20);
+#endif
     GXInitTexObjCI(&mTexObj, image, mTexInfo->width, mTexInfo->height, (GXCITexFmt)mTexInfo->format,
                    (GXTexWrapMode)mWrapS, (GXTexWrapMode)mWrapT, mipmapEnabled, tlut);
     GXInitTexObjLOD(&mTexObj, (GXTexFilter)mMinFilter, (GXTexFilter)mMagFilter, mMinLOD / 8.0f,
