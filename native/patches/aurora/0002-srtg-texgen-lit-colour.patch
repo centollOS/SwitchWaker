@@ -1,0 +1,48 @@
+GX_TG_SRTG texgens read the lit colour channel output, not the raw vertex colour
+
+GameCube behaviour: a texgen of type GX_TG_SRTG with source GX_TG_COLOR0/1 (XF texgen
+type 2/3, "colour strgbc") takes S and T from the R and G of colour channel 0/1 after
+lighting, with Q = 1. Dolphin's VertexShaderGen writes
+`texture_coord_N.xyz = vec3(vertex_lighting_0.x, vertex_lighting_0.y, 1)`. The game's
+toon shading relies on it: J3D materials of Link, Aryll, the King of Red Lions and other
+actors light channel 0 (N.L) and sample a toon ramp texture at that (S, T).
+
+Aurora 3227d76 used the vertex attribute GX_VA_CLR0/1 instead, which these models do not
+have, so the coordinate was (0, 0) (or an unlit vertex colour) and the characters drew
+in a single dark ramp texel: solid black in Outset, flat grey on the title screen. It
+also only computed a colour channel when a TEV stage rasterized it. The fix marks the
+channel a SRTG texgen reads as sampled and uses the vertex stage's lit `out.ccN`
+(per-vertex lighting, Aurora's default).
+
+Upstream status: not reported upstream yet (encounter/aurora at 3227d76).
+
+--- a/lib/gx/shader.cpp
++++ b/lib/gx/shader.cpp
+@@ -1260,7 +1260,12 @@
+       fragmentFnPre += fmt::format("\n    var tex{0}_uv = in.tex{0}_uv.xy;", i);
+       continue;
+     }
+-    if (tcg.src >= GX_TG_TEX0 && tcg.src <= GX_TG_TEX7) {
++    if (tcg.type == GX_TG_SRTG && !UsePerPixelLighting &&
++        (tcg.src == GX_TG_COLOR0 || tcg.src == GX_TG_COLOR1)) {
++      // The hardware feeds GX_TG_SRTG the lit colour channel output (Dolphin: vertex_lighting_N),
++      // not the raw vertex colour: toon shading samples a ramp at (lit R, lit G)
++      vtxXfrAttrs += fmt::format("\n    var tc{} = out.cc{};", i, tcg.src - GX_TG_COLOR0);
++    } else if (tcg.src >= GX_TG_TEX0 && tcg.src <= GX_TG_TEX7) {
+       vtxXfrAttrs += fmt::format("\n    var tc{} = vec4f({}, 1.0, 1.0);", i,
+                                  vtx_attr(config, GXAttr(GX_VA_TEX0 + (tcg.src - GX_TG_TEX0))));
+     } else if (tcg.src == GX_TG_POS) {
+--- a/lib/gx/shader_info.cpp
++++ b/lib/gx/shader_info.cpp
+@@ -305,6 +305,11 @@
+       info.sampledTexCoords.set(tcg.embossSrc);
+       info.lightingEnabled = true;
+     }
++    // GX_TG_SRTG reads the R and G of a lit colour channel's output, so that channel must be
++    // computed even when no TEV stage rasterizes it
++    if (tcg.type == GX_TG_SRTG && (tcg.src == GX_TG_COLOR0 || tcg.src == GX_TG_COLOR1)) {
++      info.sampledColorChannels.set(tcg.src - GX_TG_COLOR0);
++    }
+   }
+ 
+   info.uniformSize += info.loadsTevReg.count() * sizeof(Vec4<float>);

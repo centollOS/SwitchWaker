@@ -2672,10 +2672,12 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
 - R1-lighting (lane boot, render): characters and J3D models drew black or posterised grey.
   Cause 1: J3D textures were never bound (Aurora ignores the BP image-pointer writes of
   `loadTexNo`); `J3DTexture` keeps GX texture/TLUT objects and `J3DTevBlock::loadTexture` loads
-  them before each material display list (TARGET_PC, Dusklight pattern). Cause 2 (Aurora's
-  `GX_TG_SRTG` texgen) is fixed separately. See render issues.
+  them before each material display list (TARGET_PC, Dusklight pattern). Cause 2: Aurora fed
+  `GX_TG_SRTG` texgens the raw vertex colour instead of the lit channel; H11 patch
+  `0002-srtg-texgen-lit-colour.patch`. See render issues.
   Reviewed: regress passed; title shots 900/1300 show sky, clouds, subtitle and Link in his
-  colours; outset-debug shot 400 shows the horizon cloud band.
+  colours with toon shading; outset-debug shot 400 shows the horizon cloud band. Committed as two
+  commits (one per cause).
 
 ### Phase 6 render issues
 
@@ -2715,8 +2717,9 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   band. The missing island and the sea-only view after frame 1000 remain open.
 - **Characters and J3D models draw black or posterised grey** (step R1-lighting, lane boot): Link and
   Aryll solid black in Outset, Link a streaky grey on the title, "the game" subtitle of the
-  title logo and the title's sky backdrop a grid of garbage blocks. Two independent causes:
-  1. (main, **fixed**) J3D textures were never bound. `loadTexNo` puts a material's textures in its display
+  title logo and the title's sky backdrop a grid of garbage blocks. Two independent causes, both
+  **fixed**:
+  1. (main) J3D textures were never bound. `loadTexNo` puts a material's textures in its display
      list as BP writes (image pointer `OSCachedToPhysical(ptr) >> 5`, attributes, TLUT load), and
      Aurora takes a texture's image and TLUT only from `GXLoadTexObj`/`GXLoadTlut`
      (`GX_AURORA_LOAD_TEXOBJ`): its BP handler keeps the image-pointer register but never resolves
@@ -2734,11 +2737,13 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
      display list is rebuilt (`mDoExt_McaMorf::updateDL(J3DMaterialTable*)`, `setMaterialTable`
      with `J3DMatCopyFlag_Texture`) has its texture numbers resolved in the model's own table, not
      the swapped one as on the GameCube. Not seen yet; open if such a model draws wrong textures.
-  2. (open) Aurora feeds `GX_TG_SRTG` texgens the raw vertex colour instead of the lit colour
-     channel, so the toon ramp is sampled at its shadow end.
+  2. Aurora fed `GX_TG_SRTG` texgens the raw vertex colour (absent in these models, so (0, 0))
+     instead of the lit colour channel, as the hardware does (Dolphin VertexShaderGen:
+     `vertex_lighting_0.xy`), so the toon ramp was always sampled at its shadow end. Fixed by
+     `native/patches/aurora/0002-srtg-texgen-lit-colour.patch` (decision H11).
   Checked with COS_SHOT: `run --frames 1310 --shot 900,1300` (title) shows the logo with its
   subtitle, the sky and clouds, the King of Red Lions and Link in his blue shirt and orange
-  trousers, uniformly in the toon ramp's shadow colours (cause 2).
+  trousers with two-tone toon shading; without patch 0002 Link is uniformly in shadow colours.
   `outset-debug --stage sea:44:206 --shot 400` shows the horizon cloud band instead of the garbage
   blocks; Outset's island and characters are not in view in that run (open entry above).
 - **King of Red Lions dark on the title** (found while reviewing R1-lighting, title frames
