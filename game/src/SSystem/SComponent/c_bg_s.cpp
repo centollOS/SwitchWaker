@@ -154,26 +154,41 @@ void* cBgS::ConvDzb(void* work) {
     }
 
 #if TARGET_PC
-    // TODO(native phase 4): offsets in the dzb are 32-bit; pointers here are 64-bit.
-    JUT_ASSERT(0x214, ((uintptr_t)pbgd->m_v_tbl % 4) == 0);
-    JUT_ASSERT(0x215, ((uintptr_t)pbgd->m_t_tbl % 2) == 0);
-    JUT_ASSERT(0x216, ((uintptr_t)pbgd->m_b_tbl % 2) == 0);
-    JUT_ASSERT(0x217, ((uintptr_t)pbgd->m_tree_tbl % 2) == 0);
-    JUT_ASSERT(0x218, ((uintptr_t)pbgd->m_g_tbl % 4) == 0);
-    JUT_ASSERT(0x219, ((uintptr_t)pbgd->m_ti_tbl % 4) == 0);
+    // Step 4.10: the table offsets are OFFSET_PTR (4 bytes, self-relative once relocated), as in
+    // Dusklight's cBgS::ConvDzb (src/d/d_bg_s.cpp, CC0, ref/dusklight at 40457c6). The alignment
+    // checks apply to the file offsets, as on GameCube. The vertex table is swapped to host order
+    // once here (the 0x80000000 flag above guards against a second pass): cBgW and its users read
+    // it as host Vec. The other tables stay big-endian and are read through BE(T).
+    JUT_ASSERT(0x214, ((s32)pbgd->m_v_tbl.value.value % 4) == 0);
+    JUT_ASSERT(0x215, ((s32)pbgd->m_t_tbl.value.value % 2) == 0);
+    JUT_ASSERT(0x216, ((s32)pbgd->m_b_tbl.value.value % 2) == 0);
+    JUT_ASSERT(0x217, ((s32)pbgd->m_tree_tbl.value.value % 2) == 0);
+    JUT_ASSERT(0x218, ((s32)pbgd->m_g_tbl.value.value % 4) == 0);
+    JUT_ASSERT(0x219, ((s32)pbgd->m_ti_tbl.value.value % 4) == 0);
 
-    if (pbgd->m_v_tbl != NULL)
-        pbgd->m_v_tbl = (cBgD_Vtx_t*)((uintptr_t)pbgd->m_v_tbl + (uintptr_t)pbgd);
+    if (pbgd->m_v_tbl.value.value != 0)
+        pbgd->m_v_tbl.setBase(pbgd);
 
-    pbgd->m_t_tbl = (cBgD_Tri_t*)((uintptr_t)pbgd->m_t_tbl + (uintptr_t)pbgd);
-    pbgd->m_b_tbl = (cBgD_Blk_t*)((uintptr_t)pbgd->m_b_tbl + (uintptr_t)pbgd);
-    pbgd->m_tree_tbl = (cBgD_Tree_t*)((uintptr_t)pbgd->m_tree_tbl + (uintptr_t)pbgd);
-    pbgd->m_g_tbl = (cBgD_Grp_t*)((uintptr_t)pbgd->m_g_tbl + (uintptr_t)pbgd);
-    pbgd->m_ti_tbl = (cBgD_Ti_t*)((uintptr_t)pbgd->m_ti_tbl + (uintptr_t)pbgd);
+    pbgd->m_t_tbl.setBase(pbgd);
+    pbgd->m_b_tbl.setBase(pbgd);
+    pbgd->m_tree_tbl.setBase(pbgd);
+    pbgd->m_g_tbl.setBase(pbgd);
+    pbgd->m_ti_tbl.setBase(pbgd);
 
     for (s32 i = 0; i < pbgd->m_g_num; i++) {
-        pbgd->m_g_tbl[i].m_name = (char*)((uintptr_t)pbgd + (uintptr_t)pbgd->m_g_tbl[i].m_name);
+        pbgd->m_g_tbl[i].m_name.setBase(pbgd);
     }
+
+#if TARGET_LITTLE_ENDIAN
+    cBgD_Vtx_t* vtx = pbgd->m_v_tbl;
+    if (vtx != NULL) {
+        for (s32 i = 0; i < pbgd->m_v_num; i++) {
+            be_swap(vtx[i].x);
+            be_swap(vtx[i].y);
+            be_swap(vtx[i].z);
+        }
+    }
+#endif
 #else
     JUT_ASSERT(0x214, ((int)pbgd->m_v_tbl % 4) == 0);
     JUT_ASSERT(0x215, ((int)pbgd->m_t_tbl % 2) == 0);

@@ -7,9 +7,5 @@
 # as a 32-bit offset (8 bytes on the host); none is an endian problem, which offsets cannot see.
 # Current failures with the host offsets: native/tools/layout_check.py --discover
 
-# 4.10: collision (dzb)
-cBgD_Grp_t                           # 11/12 fail: m_scale, m_rotation, m_translation, ...
-cBgD_t                               # 13/14 fail: m_v_tbl, m_t_num, m_t_tbl, ...
-
 # 4.11: J3D model data (file offsets declared as pointers become OFFSET_PTR_V0 / BE)
 J3DClusterBlock                      # 7/12 fail: mClusterPointer, mClusterKeyPointer, mClusterVertex, ...

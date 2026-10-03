@@ -57,6 +57,11 @@ Usage
                                                   manifest's BLO files: every file of the disc
                                                   (nested archives included) and its PAN1, PIC1,
                                                   WIN1 and TBX1 counts (exit 0 equal, 1 different)
+  disc_manifest.py --check-dzb DZB [--out FILE]  compare what the game's collision code read in
+                                                  COS_SMOKE=dzb-sweep (<run dir>/dzb_sweep.txt)
+                                                  with the manifest's dzb files: every file's
+                                                  table counts and offsets, flag and vertex
+                                                  bounding box (exit 0 equal, 1 different)
   disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
 
 Manifest (JSON)
@@ -1140,6 +1145,61 @@ def check_jpa(manifest, jpa_path):
     return report_problems(problems, "jpa_sweep.txt equals the manifest")
 
 
+def check_dzb(manifest, dzb_path):
+    """dzb_sweep.txt lines (fields separated by single spaces): 'DZB <archive>:dzb/<file name>
+    vertices=N triangles=N blocks=N tree_nodes=N groups=N infos=N flag=N offsets=V,T,B,N,G,I
+    [bbox=minX,minY,minZ,maxX,maxY,maxZ]' (step 4.10), the path being the manifest's; offsets in
+    the manifest's order (vtx, tri, blk, tree, grp, ti), the bounding box compared as the
+    manifest rounds it (3 decimals). Every dzb of the disc must be there once."""
+    by_path = records_by_path(manifest)
+    # The game converts the files of an archive's 'DZB ' directory (dzb/); the disc has one more
+    # copy under dzs/ in /res/Stage/ITest61/Stage.arc, which it never reads as collision.
+    all_dzb = {p: r for p, r in by_path.items()
+               if r.get("format") == "dzb" and p.rpartition(":")[2].startswith("dzb/")}
+    problems = []
+    seen = Counter()
+    order = ("vtx", "tri", "blk", "tree", "grp", "ti")
+    with open(dzb_path, encoding="utf-8", errors="replace") as f:
+        for ln, line in enumerate(f, 1):
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split(" ")
+            if len(parts) < 3 or parts[0] != "DZB":
+                problems.append("line %d: malformed: %r" % (ln, line))
+                continue
+            path, rec = parts[1], all_dzb.get(parts[1])
+            if rec is None:
+                problems.append("line %d: %s is not a dzb file of the manifest" % (ln, path))
+                continue
+            seen[parts[1]] += 1
+            got = dict(field.partition("=")[::2] for field in parts[2:])
+            want = {k: str(rec[k]) for k in ("vertices", "triangles", "blocks", "tree_nodes",
+                                             "groups", "infos", "flag")}
+            want["offsets"] = ",".join(str(rec["offsets"][k]) for k in order)
+            # A vertex offset of 0 is no vertex table (the manifest's box then reads the header).
+            if "bbox" in rec and rec["offsets"]["vtx"] != 0:
+                box = rec["bbox"]["min"] + rec["bbox"]["max"]
+                want["bbox"] = ",".join("%r" % float(x) for x in box)
+                try:
+                    # Each value printed with 9 significant digits: back to its f32 exactly.
+                    got["bbox"] = ",".join(
+                        "%r" % round(struct.unpack(">f", struct.pack(">f", float(x)))[0], 3)
+                        for x in got.get("bbox", "").split(","))
+                except ValueError:
+                    pass
+            for key in sorted(set(want) | set(got)):
+                if got.get(key) != want.get(key):
+                    problems.append("line %d: %s %s=%s, the manifest has %s"
+                                    % (ln, path, key, got.get(key), want.get(key)))
+    for path in sorted(all_dzb):
+        if seen[path] != 1:
+            problems.append("%s: %d DZB lines" % (path, seen[path]))
+    print("disc_manifest: dzb_sweep.txt: %d dzb files (the disc has %d) compared"
+          % (len(seen), len(all_dzb)))
+    return report_problems(problems, "dzb_sweep.txt equals the manifest")
+
+
 # ---- stage chunk tables (step 4.9a) -------------------------------------------------------------
 
 def check_stage_record(rec, path, parts, ln, problems, rec_seen, dec):
@@ -1499,6 +1559,8 @@ def main():
                     help="compare a COS_SMOKE=stage-sweep report with the manifest")
     ap.add_argument("--check-blo", metavar="BLO",
                     help="compare a COS_SMOKE=blo-sweep report with the manifest")
+    ap.add_argument("--check-dzb", metavar="DZB",
+                    help="compare a COS_SMOKE=dzb-sweep report with the manifest")
     ap.add_argument("--summary", action="store_true", help="print an existing manifest's counts")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
@@ -1517,6 +1579,8 @@ def main():
         return check_stage(load_manifest(args.out), args.check_stage)
     if args.check_blo:
         return check_blo(load_manifest(args.out), args.check_blo)
+    if args.check_dzb:
+        return check_dzb(load_manifest(args.out), args.check_dzb)
     if args.summary:
         print_summary(load_manifest(args.out))
         return EXIT_OK

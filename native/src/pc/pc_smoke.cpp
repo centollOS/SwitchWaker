@@ -29,6 +29,8 @@
 //   panes compared with an independent reading.
 // - save (step 4.15, pc_save.cpp): a new save written to a memory card in the run directory,
 //   checked as big-endian GCI bytes, reloaded and compared.
+// - dzb-sweep (step 4.10, pc_dzb.cpp): every dzb converted by cBgS::ConvDzb and compared with an
+//   independent reading, set into a dBgW and probed with downward GroundCross rays.
 // In the booted game:
 // - pad-echo (step 6.3, pc_input.cpp): the COS_INPUT script read back from g_mDoCPd_cpadInfo after
 //   each mDoCPd_Read.
@@ -246,6 +248,9 @@ void requireWatchdog(const char* test, double seconds, const char* var) {
     if (strcmp(name, "save") == 0) {
         smokeSave();
     }
+    if (strcmp(name, "dzb-sweep") == 0) {
+        smokeDzbSweep();
+    }
     writef(STDERR_FILENO, "[cos] smoke %s has no runner\n", name);
     pc_exit(PC_EXIT_USAGE);
 }
@@ -278,6 +283,7 @@ const Smoke kSmokes[] = {
     {"stage-sweep", kAfterHeaps},
     {"blo-sweep", kAfterHeaps},
     {"save", kAfterHeaps},
+    {"dzb-sweep", kAfterHeaps},
     {"pad-echo", kInGame},
 };
 

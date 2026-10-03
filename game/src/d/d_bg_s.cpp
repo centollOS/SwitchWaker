@@ -180,7 +180,7 @@ int dBgS::GetSpecialCode(cBgS_PolyInfo& polyInfo) {
 }
 
 /* 800A0B08-800A0B28       .text dBgS_ChangeAttributeCode__FUlPUl */
-void dBgS_ChangeAttributeCode(u32 code, u32* dst) {
+void dBgS_ChangeAttributeCode(u32 code, BE(u32)* dst) {
     *dst &= 0xFFE0FFFF;
     *dst |= code << 16;
 }

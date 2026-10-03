@@ -8,6 +8,8 @@
 #include "SSystem/SComponent/c_m3d_g_pla.h"
 #include "SSystem/SComponent/c_bg_w_tri_elm.h"
 #include "dolphin/mtx/mtx.h"
+#include "helpers/endian_ssystem.h"
+#include "helpers/offset_ptr.h"
 
 class cBgW_BgId {
 private:
@@ -35,47 +37,52 @@ public:
 
 struct cBgD_Vtx_t : public Vec {};
 
+// The dzb file is read in place. On TARGET_PC (step 4.10 of docs/NATIVE_PORT_PHASE4_6.md) its
+// fields are BE(T) and its table offsets OFFSET_PTR(T) (4 bytes, relocated by cBgS::ConvDzb), as
+// in Dusklight's include/d/d_bg_w.h (CC0, ref/dusklight at 40457c6); on GameCube BE(T) is T and
+// OFFSET_PTR(T) is T*. The vertex table is the one array swapped once at load (ConvDzb): cBgW and
+// the actors read it as host Vec.
 struct cBgD_Blk_t {
-    /* 0x00 */ u16 startTri;
+    /* 0x00 */ BE(u16) startTri;
 };
 
 struct cBgD_Ti_t {
 public:
-    /* 0x00 */ u32 mPolyInf0;
-    /* 0x04 */ u32 mPolyInf1;
-    /* 0x08 */ u32 mPolyInf2;
-    /* 0x0C */ u32 mPolyInf3;
+    /* 0x00 */ BE(u32) mPolyInf0;
+    /* 0x04 */ BE(u32) mPolyInf1;
+    /* 0x08 */ BE(u32) mPolyInf2;
+    /* 0x0C */ BE(u32) mPolyInf3;
 };
 
 struct cBgD_Tri_t {
 public:
-    /* 0x00 */ u16 vtx0;
-    /* 0x02 */ u16 vtx1;
-    /* 0x04 */ u16 vtx2;
-    /* 0x06 */ u16 id;
-    /* 0x08 */ u16 grp;
+    /* 0x00 */ BE(u16) vtx0;
+    /* 0x02 */ BE(u16) vtx1;
+    /* 0x04 */ BE(u16) vtx2;
+    /* 0x06 */ BE(u16) id;
+    /* 0x08 */ BE(u16) grp;
 };
 
 struct cBgD_Grp_t {
-    /* 0x00 */ char* m_name;
-    /* 0x04 */ cXyz m_scale;
-    /* 0x10 */ csXyz m_rotation;
-    /* 0x18 */ cXyz m_translation;
-    /* 0x24 */ u16 m_parent;
-    /* 0x26 */ u16 m_next_sibling;
-    /* 0x28 */ u16 m_first_child;
-    /* 0x2A */ u16 m_room_id;
-    /* 0x2C */ u16 m_first_vtx_idx;
-    /* 0x2E */ u16 m_tree_idx;
-    /* 0x30 */ u32 m_info;
+    /* 0x00 */ OFFSET_PTR(char) m_name;
+    /* 0x04 */ BE(cXyz) m_scale;
+    /* 0x10 */ BE(csXyz) m_rotation;
+    /* 0x18 */ BE(cXyz) m_translation;
+    /* 0x24 */ BE(u16) m_parent;
+    /* 0x26 */ BE(u16) m_next_sibling;
+    /* 0x28 */ BE(u16) m_first_child;
+    /* 0x2A */ BE(u16) m_room_id;
+    /* 0x2C */ BE(u16) m_first_vtx_idx;
+    /* 0x2E */ BE(u16) m_tree_idx;
+    /* 0x30 */ BE(u32) m_info;
 }; // Size: 0x34
 
 struct cBgD_Tree_t {
-    /* 0x00 */ u16 mFlag;
-    /* 0x02 */ u16 mParent;
+    /* 0x00 */ BE(u16) mFlag;
+    /* 0x02 */ BE(u16) mParent;
     union {
-        /* 0x04 */ u16 mChild[8]; // branch
-        /* 0x04 */ u16 mBlock; // leaf
+        /* 0x04 */ BE(u16) mChild[8]; // branch
+        /* 0x04 */ BE(u16) mBlock; // leaf
     };
 }; // Size: 0x14
 
@@ -86,19 +93,19 @@ public:
 
 class cBgD_t {
 public:
-    /* 0x00 */ s32 m_v_num;
-    /* 0x04 */ cBgD_Vtx_t* m_v_tbl;
-    /* 0x08 */ s32 m_t_num;
-    /* 0x0C */ cBgD_Tri_t* m_t_tbl;
-    /* 0x10 */ s32 m_b_num;
-    /* 0x14 */ cBgD_Blk_t* m_b_tbl;
-    /* 0x18 */ s32 m_tree_num;
-    /* 0x1C */ cBgD_Tree_t* m_tree_tbl;
-    /* 0x20 */ s32 m_g_num;
-    /* 0x24 */ cBgD_Grp_t* m_g_tbl;
-    /* 0x28 */ s32 m_ti_num;
-    /* 0x2C */ cBgD_Ti_t* m_ti_tbl;
-    /* 0x30 */ u32 flag;
+    /* 0x00 */ BE(s32) m_v_num;
+    /* 0x04 */ OFFSET_PTR(cBgD_Vtx_t) m_v_tbl;
+    /* 0x08 */ BE(s32) m_t_num;
+    /* 0x0C */ OFFSET_PTR(cBgD_Tri_t) m_t_tbl;
+    /* 0x10 */ BE(s32) m_b_num;
+    /* 0x14 */ OFFSET_PTR(cBgD_Blk_t) m_b_tbl;
+    /* 0x18 */ BE(s32) m_tree_num;
+    /* 0x1C */ OFFSET_PTR(cBgD_Tree_t) m_tree_tbl;
+    /* 0x20 */ BE(s32) m_g_num;
+    /* 0x24 */ OFFSET_PTR(cBgD_Grp_t) m_g_tbl;
+    /* 0x28 */ BE(s32) m_ti_num;
+    /* 0x2C */ OFFSET_PTR(cBgD_Ti_t) m_ti_tbl;
+    /* 0x30 */ BE(u32) flag;
 };
 class cBgS_LinChk;
 class cBgS_GndChk;

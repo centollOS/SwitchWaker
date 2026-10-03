@@ -1902,6 +1902,37 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Review (round 1): `save` 0 x3, `regress.sh -j 3` all checks passed; M10 stays open until
   the audio fault of 4.8 (another lane) lets `opening` through.
 
+- **4.10 Collision (dzb)** (2026-10-03, lane dzb): `COS_SMOKE=dzb-sweep` 0 x4; the report equals
+  the manifest (865 dzb files of the 'DZB ' directories, 379403 vertices, 531864 triangles, 11080
+  groups); 69984 grid rays (43242 hits) and 27306 ground-triangle rays hold. M8 is not reachable
+  yet: M7 (`opening`) still stops at 13 in `JAIZelBasic::talkOut` (H10, step 5.A).
+  - **The dzb was read through 8-byte pointers and host order.** In `c_bg_w.h` the `cBgD_t`
+    table offsets are `OFFSET_PTR(T)` and its counts and flag `BE(T)`; `cBgD_Tri_t`, `cBgD_Blk_t`,
+    `cBgD_Tree_t`, `cBgD_Ti_t` and `cBgD_Grp_t` fields are `BE(T)` (`m_name` `OFFSET_PTR(char)`,
+    scale/translation `BE(cXyz)`, rotation `BE(csXyz)`), as Dusklight's `d_bg_w.h`.
+    `cBgS::ConvDzb`'s `TARGET_PC` branch relocates with `setBase` (a vertex offset of 0 stays
+    null, as on GameCube: Bwdg's `hsand1.dzb`, whose owner supplies the vertices) and swaps the
+    vertex table to host order once (guarded by the 0x80000000 flag), because `cBgW` and the
+    movable-BG code read it as host `Vec`; the other tables stay big-endian. The one writer into
+    the file, `dBgS_ChangeAttributeCode` (`dBgW::ChangeAttributeCodeByPathPntNo`), takes
+    `BE(u32)*` (`u32*` on GameCube). `cBgD_t` and `cBgD_Grp_t` leave `layout_xfail.txt`; a
+    `-fsyntax-only` pass over every game and harness unit finds no `BE<T>`/`OffsetPtr` passed to a
+    variadic function.
+  - **Harness:** `pc_dzb.cpp` mounts every .arc under /res/Stage and /res/Object, fetches the
+    'DZB ' files as `dRes_info_c::loadResource` does, checks every field of every table after
+    `ConvDzb` against an independent big-endian reading (vertices bit for bit, a second `ConvDzb`
+    a no-op), then sets each file into a `dBgW` (GLOBAL_e, as `d_a_bg`) registered in a test
+    `dBgS`: a 9 x 9 grid of downward `dBgS_GndChk` rays must hit inside the bounding box (widened
+    only by the plane rise over `cM3d_CrossY_Tri_Front`'s 20-unit edge margin) on a triangle
+    that contains the ray and gives the hit height; a ray at the centroid of up to 48 reachable
+    ground triangles per file must stop on or above it; a MOVE_BG_e copy with an identity matrix
+    must give the same hits. `disc_manifest.py --check-dzb` compares counts, offsets, flag and
+    bounding box (the disc's extra `dzs/door10.dzb` in ITest61's Stage.arc is not collision).
+    Negative checks: with HEAD's `c_bg_w.h`/`c_bg_s.cpp` the sweep dies in `cBgS::ConvDzb`
+    (exit 13); without the vertex swap it reports 4236 errors.
+  - Review (round 1): dzb-sweep 0 (865 files, report equals the manifest), `regress.sh -j 3`
+    all checks passed; accepted with M8 deferred until M7 passes (as 4.9a-d with M7).
+
 ### Phase 6 render issues
 
 None yet.
