@@ -539,3 +539,15 @@ Each phase lands as its own commits; this file records decisions and measured re
   units built with `-DTARGET_PC=1`, the Aurora include dir and the forced `cos_sdk_extras.h`; all
   aurora-mode modules and checks build, smoke ok, shadow check ok; default decomp configuration
   `cos_modules` and checks build with `d_a_npc_auction` force-rebuilt, 0 errors).
+- **2.7 actors-4:** compiles in aurora header mode (all 74 units, `d_a_obj_barrel2` ..
+  `d_a_obj_nest`, 0 errors) and still in decomp mode. The first aurora build failed 2 units with
+  8 errors (none near clang's 50-per-unit limit, so nothing hidden), both known idioms:
+  `d_a_obj_buoyflag` makes 7 three-argument `GXSetArray` calls, now `GXSETARRAY` with each
+  array's real byte size and `le=true` under `TARGET_PC && defined(COS_SDK_AURORA)` (the current
+  `DrawVtx_c` buffer's `pos`/`normal`/`backNormal`, the static `Khata`/`Khasi` asset arrays and
+  `M_hasi_nrm`; original calls in `#else`, `TODO(native phase 2.8)`); `d_a_obj_mkie` declares a
+  local `_GXColor`, which is `GXColor` under `TARGET_PC` (Aurora's `GXColor` has no struct tag).
+  No forwarder change, no `STATIC_ASSERT` fired. Aurora mode: SSystem, the four JSystem modules,
+  framework, m_Do, d-core, actors-1 to actors-4, `cos_sdk`, smoke (ok), scaffold, header and
+  shadow checks (82 names, ok) build; default configuration: `cos_modules` and checks rebuilt
+  (2 units), 0 errors.

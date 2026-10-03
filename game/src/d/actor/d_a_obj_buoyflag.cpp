@@ -219,9 +219,18 @@ void daObjBuoyflag::Packet_c::draw_hata(Act_c* actor) {
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_NRM, GX_NRM_XYZ, GX_F32, 0);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0);
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora's GXSetArray also takes the array's byte size and byte order
+    // (the current DrawVtx_c buffer's arrays and the static asset array, host-endian).
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    GXSETARRAY(GX_VA_POS, draw->pos, sizeof(draw->pos), sizeof(cXyz), true);
+    GXSETARRAY(GX_VA_NRM, draw->normal, sizeof(draw->normal), sizeof(cXyz), true);
+    GXSETARRAY(GX_VA_TEX0, Khata::l_texCoord, sizeof(Khata::l_texCoord), sizeof(f32) * 2, true);
+#else
     GXSetArray(GX_VA_POS, draw->pos, sizeof(cXyz));
     GXSetArray(GX_VA_NRM, draw->normal, sizeof(cXyz));
     GXSetArray(GX_VA_TEX0, Khata::l_texCoord, sizeof(f32) * 2);
+#endif
     GXTexObj texObj;
     GXInitTexObj(&texObj, texture, 64, 64, GX_TF_CMPR, GX_CLAMP, GX_CLAMP, GX_FALSE);
     GXInitTexObjLOD(&texObj, GX_LINEAR, GX_LINEAR, 0.0f, 0.0f, 0.0f, GX_FALSE, GX_FALSE, GX_ANISO_1);
@@ -278,7 +287,12 @@ void daObjBuoyflag::Packet_c::draw_hata(Act_c* actor) {
     GXSetCullMode(GX_CULL_BACK);
     GXCallDisplayList(Khata::l_Khata_00DL, 0xE0);
     GXSetCullMode(GX_CULL_FRONT);
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    GXSETARRAY(GX_VA_NRM, draw->backNormal, sizeof(draw->backNormal), sizeof(cXyz), true);
+#else
     GXSetArray(GX_VA_NRM, draw->backNormal, sizeof(cXyz));
+#endif
     GXCallDisplayList(Khata::l_Khata_00DL, 0xE0);
 }
 
@@ -298,9 +312,17 @@ void daObjBuoyflag::Packet_c::draw_hasi(Act_c* actor) {
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_NRM, GX_NRM_XYZ, GX_F32, 0);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0);
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora's GXSetArray also takes the array's byte size and byte order (static arrays, host-endian).
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    GXSETARRAY(GX_VA_POS, Khasi::l_pos, sizeof(Khasi::l_pos), sizeof(cXyz), true);
+    GXSETARRAY(GX_VA_NRM, M_hasi_nrm, sizeof(M_hasi_nrm), sizeof(cXyz), true);
+    GXSETARRAY(GX_VA_TEX0, Khasi::l_texCoord, sizeof(Khasi::l_texCoord), sizeof(f32) * 2, true);
+#else
     GXSetArray(GX_VA_POS, Khasi::l_pos, sizeof(cXyz));
     GXSetArray(GX_VA_NRM, M_hasi_nrm, sizeof(cXyz));
     GXSetArray(GX_VA_TEX0, Khasi::l_texCoord, sizeof(f32) * 2);
+#endif
     GXTexObj texObj;
     GXInitTexObj(&texObj, Khasi::l_k_taru02TEX, 32, 64, GX_TF_CMPR, GX_CLAMP, GX_CLAMP, GX_FALSE);
     GXInitTexObjLOD(&texObj, GX_LINEAR, GX_LINEAR, 0.0f, 0.0f, 0.0f, GX_FALSE, GX_FALSE, GX_ANISO_1);
