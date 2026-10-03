@@ -49,6 +49,9 @@ int checkDisc();
 // pc_smoke.cpp: runs COS_SMOKE if it is a test that runs before the SDK (it never returns then);
 // exits PC_EXIT_USAGE for an unknown name; returns for no COS_SMOKE.
 void runEarlySmoke();
+// pc_smoke.cpp: runs COS_SMOKE if it is a test that runs right after the disc check (disc-ls); it
+// never returns then.
+void runDiscSmoke();
 bool isKnownSmoke(const char* name);
 void printSmokes(int fd);
 

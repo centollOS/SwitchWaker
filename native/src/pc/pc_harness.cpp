@@ -129,6 +129,9 @@ void pc_harness_init(int argc, char* argv[]) {
     if (disc != 0) {
         pc_exit(disc);
     }
+
+    // Smoke tests that need the disc but not the game (disc-ls) end here.
+    runDiscSmoke();
 }
 
 const char* pc_env_disc(void) {

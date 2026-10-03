@@ -1,0 +1,827 @@
+#!/usr/bin/env python3
+"""Disc oracle: a manifest of the GZLE01 disc (docs/NATIVE_PORT_PHASE4_6.md, step 4.0d).
+
+The phase 4 format steps check what the native game reads against an independent reading of the
+same disc. This script is that reading, in pure Python (standard library only): the GameCube FST,
+Yaz0, RARC archives, and the header fields of BMD/BDL/BMT, the J3D animations (BCK/BCA/BTK/BTP/
+BRK/BPK/BVA/BLA/BLK), BTI, BFN, BMG, BLO, JPC, STB, dzs/dzr, dzb and AAF. It writes
+build/native-mac/disc_manifest.json, which is derived from the disc and is never committed; the
+manifest records counts, names, sizes and header fields, never file contents.
+
+The disc is read at runtime only. On first use its SHA-1 (and main.dol's) is checked against the
+expectations below, the only disc-derived values in the repository; the result is cached by
+(path, size, mtime) in build/native-mac/runs/disc_check.txt, the cache native/tools/run.sh
+uses too.
+
+Usage
+  disc_manifest.py [--disc ISO] [--out FILE]      verify the disc, write the manifest
+  disc_manifest.py --verify [--disc ISO]          only the SHA-1 checks (exit 0 ok, 14 mismatch)
+  disc_manifest.py --check-ls LS [--out FILE]     compare the listing COS_SMOKE=disc-ls wrote
+                                                  (<run dir>/disc_ls.txt) with the manifest's FST:
+                                                  file and directory counts, entry numbers, paths
+                                                  and sizes (exit 0 equal, 1 different)
+  disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
+
+Manifest (JSON)
+  disc      path, size, sha1, dol_sha1, game_id, revision
+  fst       entries (root included), files, dirs (root excluded)
+  files     one record per FST file, in FST order:
+              path, entry, offset, size, format, and per format:
+              yaz0: {"size": decompressed size}   (then the decompressed content is parsed)
+              rarc: nodes [{type, name, dirs, files, first}], entries (raw file table count,
+                    "." and ".." included), files [{path, id, flags, size, format, ...}]
+              j3d / bmg / bfn / blo: magic, size, blocks [{tag, size, ...counts}]
+              bti: the ResTIMG header;  jpc: emitters [{res_id, blocks, keys, fields, textures,
+              tags}], textures [names];  stb: version, blocks [{type, id}];  dzs/dzr: chunks
+              [{tag, num}] and actors {tag: [{name, params, pos, angle, set_id}]};  dzb: counts
+              and the vertex bounding box;  aaf: sections [{type, offset, size, count}]
+  summary   per-format counts and the number of parse errors
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import struct
+import sys
+from collections import Counter
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
+BUILD = os.path.join(REPO, "build", "native-mac")
+DEFAULT_DISC = "/path/to/GZLE01.iso"
+DEFAULT_OUT = os.path.join(BUILD, "disc_manifest.json")
+DISC_CHECK_CACHE = os.path.join(BUILD, "runs", "disc_check.txt")
+
+# The supported disc (decision H9): GZLE01 revision 0 as a plain .iso. These hashes are the only
+# disc-derived values in the repository. The main.dol hash is the one scripts/prepare.py and
+# native/tools/run.sh have always checked; the image hash was taken from that same disc.
+EXPECTED_ISO_SHA1 = "0289e70f470dc758c73be9b8bcd8c865fb82d8ae"
+EXPECTED_DOL_SHA1 = "8d28bab68bb5078c38e43f29206f0bd01f7e7a67"
+GC_MAGIC = b"\xC2\x33\x9F\x3D"
+
+EXIT_OK = 0
+EXIT_DIFFERENT = 1
+EXIT_USAGE = 2
+EXIT_DISC = 14  # as centollos and run.sh
+
+
+def u8(b, o):
+    return b[o]
+
+
+def u16(b, o):
+    return struct.unpack_from(">H", b, o)[0]
+
+
+def s16(b, o):
+    return struct.unpack_from(">h", b, o)[0]
+
+
+def u32(b, o):
+    return struct.unpack_from(">I", b, o)[0]
+
+
+def s32(b, o):
+    return struct.unpack_from(">i", b, o)[0]
+
+
+def tag4(b, o):
+    return b[o:o + 4].decode("latin-1")
+
+
+def cstr(b, o, limit=None):
+    end = b.find(b"\0", o, len(b) if limit is None else min(len(b), o + limit))
+    if end < 0:
+        end = len(b) if limit is None else min(len(b), o + limit)
+    raw = bytes(b[o:end])
+    try:
+        return raw.decode("shift_jis")
+    except UnicodeDecodeError:
+        return raw.decode("latin-1")
+
+
+class ParseError(Exception):
+    pass
+
+
+def need(cond, what):
+    if not cond:
+        raise ParseError(what)
+
+
+# ---- disc check ---------------------------------------------------------------------------------
+
+def file_stamp(path):
+    st = os.stat(path)
+    return "%d %d" % (st.st_size, int(st.st_mtime))
+
+
+def dol_sha1(f):
+    f.seek(0)
+    head = f.read(0x440)
+    need(head[0x1C:0x20] == GC_MAGIC, "no GameCube disc magic at 0x1C")
+    dol_off = u32(head, 0x420)
+    f.seek(dol_off)
+    dh = f.read(0x100)
+    offs = struct.unpack_from(">18I", dh, 0x00)
+    sizes = struct.unpack_from(">18I", dh, 0x90)
+    size = max([0x100] + [o + s for o, s in zip(offs, sizes) if s])
+    f.seek(dol_off)
+    return hashlib.sha1(f.read(size)).hexdigest()
+
+
+def image_sha1(f):
+    h = hashlib.sha1()
+    f.seek(0)
+    while True:
+        chunk = f.read(16 << 20)
+        if not chunk:
+            break
+        h.update(chunk)
+    return h.hexdigest()
+
+
+def verify_disc(path, quiet=False):
+    """Checks main.dol's and the image's SHA-1 on first use; returns (ok, iso_sha1, dol_sha1)."""
+    if not os.path.isfile(path):
+        print("disc_manifest: %s: no such file" % path, file=sys.stderr)
+        return False, None, None
+    stamp = file_stamp(path)
+    line = "ok\t%s\t%s\t%s" % (path, stamp, EXPECTED_ISO_SHA1)
+    try:
+        with open(DISC_CHECK_CACHE, encoding="utf-8") as c:
+            if line in c.read().splitlines():
+                return True, EXPECTED_ISO_SHA1, EXPECTED_DOL_SHA1
+    except OSError:
+        pass
+    if not quiet:
+        print("disc_manifest: first use of %s: checking the SHA-1 of main.dol and of the image"
+              % path, file=sys.stderr)
+    with open(path, "rb") as f:
+        try:
+            dsha = dol_sha1(f)
+        except ParseError as e:
+            print("disc_manifest: %s: %s" % (path, e), file=sys.stderr)
+            return False, None, None
+        if dsha != EXPECTED_DOL_SHA1:
+            print("disc_manifest: %s: main.dol SHA-1 %s, expected %s (GZLE01 revision 0)"
+                  % (path, dsha, EXPECTED_DOL_SHA1), file=sys.stderr)
+            return False, None, dsha
+        isha = image_sha1(f)
+    if isha != EXPECTED_ISO_SHA1:
+        print("disc_manifest: %s: image SHA-1 %s, expected %s (the plain GZLE01 revision 0 .iso, "
+              "decision H9)" % (path, isha, EXPECTED_ISO_SHA1), file=sys.stderr)
+        return False, isha, dsha
+    os.makedirs(os.path.dirname(DISC_CHECK_CACHE), exist_ok=True)
+    with open(DISC_CHECK_CACHE, "a", encoding="utf-8") as c:
+        c.write(line + "\n")
+    return True, isha, dsha
+
+
+# ---- Yaz0 ---------------------------------------------------------------------------------------
+
+def yaz0_decompress(src):
+    need(len(src) >= 16 and src[:4] == b"Yaz0", "not Yaz0")
+    size = u32(src, 4)
+    out = bytearray(size)
+    sp = 16
+    dp = 0
+    n_src = len(src)
+    while dp < size:
+        need(sp < n_src, "Yaz0: source ends early")
+        code = src[sp]
+        sp += 1
+        if code == 0xFF and dp + 8 <= size and sp + 8 <= n_src:
+            out[dp:dp + 8] = src[sp:sp + 8]
+            dp += 8
+            sp += 8
+            continue
+        for _ in range(8):
+            if dp >= size:
+                break
+            if code & 0x80:
+                out[dp] = src[sp]
+                dp += 1
+                sp += 1
+            else:
+                b1 = src[sp]
+                b2 = src[sp + 1]
+                sp += 2
+                dist = (((b1 & 0x0F) << 8) | b2) + 1
+                n = b1 >> 4
+                if n == 0:
+                    n = src[sp] + 0x12
+                    sp += 1
+                else:
+                    n += 2
+                s = dp - dist
+                need(s >= 0, "Yaz0: back reference before the start")
+                need(dp + n <= size, "Yaz0: copy past the end")
+                if dist >= n:
+                    out[dp:dp + n] = out[s:s + n]
+                else:
+                    pattern = bytes(out[s:dp])
+                    out[dp:dp + n] = (pattern * (n // dist + 1))[:n]
+                dp += n
+            code = (code << 1) & 0xFF
+    return out
+
+
+# ---- formats ------------------------------------------------------------------------------------
+
+def parse_bti(b, base=0):
+    need(len(b) >= base + 0x20, "ResTIMG: short")
+    return {
+        "tex_format": u8(b, base + 0x00), "alpha": u8(b, base + 0x01),
+        "width": u16(b, base + 0x02), "height": u16(b, base + 0x04),
+        "wrap_s": u8(b, base + 0x06), "wrap_t": u8(b, base + 0x07),
+        "index_texture": u8(b, base + 0x08), "color_format": u8(b, base + 0x09),
+        "num_colors": u16(b, base + 0x0A), "palette_offset": u32(b, base + 0x0C),
+        "mipmap": u8(b, base + 0x10), "min_filter": u8(b, base + 0x14),
+        "mag_filter": u8(b, base + 0x15), "mipmap_count": u8(b, base + 0x18),
+        "lod_bias": s16(b, base + 0x1A), "image_offset": u32(b, base + 0x1C),
+    }
+
+
+# Blocks whose u16 at 0x08 is an element count (J3D model data, BFN, BMG).
+J3D_COUNT_BLOCKS = {"JNT1", "MAT3", "MAT2", "MDL3", "SHP1", "TEX1", "EVP1", "DRW1"}
+# J3D animation blocks: offset of the s16 frame count (PAK1/PAF1 have a 4-byte attribute field).
+J3D_ANM_FRAMEMAX = {"ANK1": 0x0A, "ANF1": 0x0A, "PAK1": 0x0C, "PAF1": 0x0C, "TTK1": 0x0A,
+                    "TRK1": 0x0A, "TPT1": 0x0A, "VAF1": 0x0A, "CLK1": 0x0A, "CLF1": 0x0A,
+                    "VCK1": 0x0A, "VCF1": 0x0A}
+
+
+def jut_block_info(b, o, tag, size):
+    info = {"tag": tag, "size": size}
+    if tag in J3D_COUNT_BLOCKS:
+        info["count"] = u16(b, o + 0x08)
+        if tag == "TEX1":
+            info["names"] = ntab(b, o + u32(b, o + 0x10))
+        elif tag in ("JNT1", "MAT3", "MAT2", "SHP1") and u32(b, o + 0x14) != 0:
+            info["names"] = ntab(b, o + u32(b, o + 0x14))  # SHP1 has none on this disc
+    elif tag in J3D_ANM_FRAMEMAX:
+        info["attribute"] = u8(b, o + 0x08)
+        info["frame_max"] = s16(b, o + J3D_ANM_FRAMEMAX[tag])
+    return info
+
+
+def ntab(b, o):
+    """ResNTAB: u16 count, pad, then {u16 key, u16 offset} entries; names relative to o."""
+    need(o + 4 <= len(b), "ResNTAB outside the file")
+    n = u16(b, o)
+    names = []
+    for i in range(n):
+        off = u16(b, o + 4 + i * 4 + 2)
+        names.append(cstr(b, o + off, 256))
+    return names
+
+
+def parse_jut_file(b, family):
+    """JUTDataFileHeader files: 8-byte magic, size, block count, blocks from 0x20."""
+    need(len(b) >= 0x20, "JUT file: short header")
+    magic = b[0:8].decode("latin-1")
+    size = u32(b, 8)
+    if family == "bmg":
+        size *= 0x20  # BMG counts its size in 32-byte units
+    nblocks = u32(b, 0xC)
+    need(size <= len(b), "JUT file: size 0x%x larger than the data 0x%x" % (size, len(b)))
+    rec = {"magic": magic, "size": size, "block_count": nblocks, "blocks": []}
+    # The file size is not always 32-byte aligned while the last block's size is: a block may
+    # end up to 0x1F bytes past the file (some BTK), recorded as "overrun". Some files declare
+    # more blocks than they hold (a few BMT): the walk stops at the end and records how many were
+    # missing.
+    o = 0x20
+    for k in range(nblocks):
+        if o + 8 > size:
+            rec["blocks_missing"] = nblocks - k
+            break
+        tag = tag4(b, o)
+        bsize = u32(b, o + 4)
+        need(bsize >= 8 and o + bsize <= size + 0x1F,
+             "JUT file: block %s size 0x%x out of range" % (tag, bsize))
+        if o + bsize > size:
+            rec["overrun"] = o + bsize - size
+        if family == "j3d":
+            info = jut_block_info(b, o, tag, bsize)
+            if tag == "INF1":
+                info["flags"] = u16(b, o + 0x08)
+                info["packets"] = u32(b, o + 0x0C)
+                info["vertices"] = u32(b, o + 0x10)
+        elif family == "bmg":
+            info = {"tag": tag, "size": bsize}
+            if tag == "INF1":
+                info["entries"] = u16(b, o + 0x08)
+                info["entry_size"] = u16(b, o + 0x0A)
+                info["group"] = u16(b, o + 0x0C)
+            elif tag == "MID1":
+                info["entries"] = u16(b, o + 0x08)
+                info["format"] = u8(b, o + 0x0A)
+                info["info"] = u8(b, o + 0x0B)
+        elif family == "bfn":
+            info = {"tag": tag, "size": bsize}
+            if tag == "INF1":
+                info.update(font_type=u16(b, o + 8), ascent=u16(b, o + 0xA), descent=u16(b, o + 0xC),
+                            width=u16(b, o + 0xE), leading=u16(b, o + 0x10),
+                            default_code=u16(b, o + 0x12))
+            elif tag == "WID1":
+                info.update(start=u16(b, o + 8), end=u16(b, o + 0xA))
+            elif tag == "MAP1":
+                info.update(method=u16(b, o + 8), start=u16(b, o + 0xA), end=u16(b, o + 0xC),
+                            entries=u16(b, o + 0xE))
+            elif tag == "GLY1":
+                info.update(start=u16(b, o + 8), end=u16(b, o + 0xA), cell_width=u16(b, o + 0xC),
+                            cell_height=u16(b, o + 0xE), texture_size=u32(b, o + 0x10),
+                            texture_format=u16(b, o + 0x14), rows=u16(b, o + 0x16),
+                            columns=u16(b, o + 0x18), texture_width=u16(b, o + 0x1A),
+                            texture_height=u16(b, o + 0x1C))
+        else:
+            info = {"tag": tag, "size": bsize}
+        rec["blocks"].append(info)
+        o += bsize
+    if family == "blo":
+        rec["panes"] = dict(Counter(bl["tag"] for bl in rec["blocks"]
+                                    if bl["tag"] in ("PAN1", "PIC1", "WIN1", "TBX1")))
+    return rec
+
+
+def parse_jpc(b):
+    need(len(b) >= 0x20 and b[0:8] == b"JPAC1-00", "JPC: not JPAC1-00")
+    n_emitters = u16(b, 8)
+    n_textures = u16(b, 0xA)
+    rec = {"version": "JPAC1-00", "emitter_count": n_emitters, "texture_count": n_textures,
+           "emitters": [], "textures": []}
+    o = 0x20
+    for _ in range(n_emitters):
+        need(o + 0x20 <= len(b) and b[o:o + 8] == b"JEFFjpa1", "JPC: emitter without JEFFjpa1")
+        nblocks = u32(b, o + 0xC)
+        em = {"res_id": u16(b, o + 0x18), "blocks": nblocks, "keys": u8(b, o + 0x14),
+              "fields": u8(b, o + 0x15), "textures": u8(b, o + 0x16), "tags": []}
+        bo = o + 0x20
+        for _ in range(nblocks):
+            need(bo + 8 <= len(b), "JPC: block past the end")
+            size = u32(b, bo + 4)
+            need(size >= 8, "JPC: block size %d" % size)
+            em["tags"].append(tag4(b, bo))
+            bo += size
+        rec["emitters"].append(em)
+        o = bo
+    for _ in range(n_textures):
+        need(o + 0x40 <= len(b) and b[o:o + 4] == b"TEX1", "JPC: texture without TEX1")
+        size = u32(b, o + 4)
+        tex = {"name": cstr(b, o + 0x0C, 0x14)}
+        tex.update(parse_bti(b, o + 0x20))
+        rec["textures"].append(tex)
+        o += size
+    return rec
+
+
+def parse_stb(b):
+    need(len(b) >= 0x20 and b[0:4] == b"STB\0", "STB: no signature")
+    need(u16(b, 4) == 0xFEFF, "STB: byte order mark 0x%04x" % u16(b, 4))
+    nblocks = u32(b, 0xC)
+    rec = {"version": u16(b, 6), "size": u32(b, 8), "block_count": nblocks,
+           "target": cstr(b, 0x10, 8), "target_version": u16(b, 0x1E), "blocks": []}
+    o = 0x20
+    for _ in range(nblocks):
+        need(o + 8 <= len(b), "STB: block past the end")
+        size = u32(b, o)
+        btype = tag4(b, o + 4)
+        need(size >= 8 and o + size <= len(b), "STB: block %r size 0x%x" % (btype, size))
+        blk = {"type": btype, "size": size}
+        if btype != "JFVB" and size >= 0xC:  # TBlock_object; JFVB holds function values
+            id_size = u16(b, o + 0xA)
+            blk["id"] = cstr(b, o + 0xC, id_size) if id_size else ""
+        rec["blocks"].append(blk)
+        o += size
+    return rec
+
+
+ACTOR_TAGS_20 = {"ACTR", "TGOB", "TRES", "PLYR"} | {"ACT" + c for c in "0123456789ab"} | \
+                {"TRE" + c for c in "0123456789ab"}
+ACTOR_TAGS_24 = {"SCOB", "TGSC", "DOOR", "TGDR"} | {"SCO" + c for c in "0123456789ab"}
+
+
+def parse_stage(b):
+    need(len(b) >= 4, "dzs/dzr: short")
+    n = s32(b, 0)
+    need(0 <= n < 256 and 4 + n * 12 <= len(b), "dzs/dzr: chunk count %d" % n)
+    rec = {"chunk_count": n, "chunks": [], "actors": {}}
+    for i in range(n):
+        o = 4 + i * 12
+        tag = tag4(b, o)
+        num = s32(b, o + 4)
+        off = u32(b, o + 8)
+        need(num >= 0 and off <= len(b), "dzs/dzr: chunk %s num %d offset 0x%x" % (tag, num, off))
+        rec["chunks"].append({"tag": tag, "num": num, "offset": off})
+        esize = 0x20 if tag in ACTOR_TAGS_20 else 0x24 if tag in ACTOR_TAGS_24 else 0
+        if esize:
+            need(off + num * esize <= len(b), "dzs/dzr: %s entries past the end" % tag)
+            actors = []
+            for k in range(num):
+                e = off + k * esize
+                actors.append({"name": cstr(b, e, 8), "params": u32(b, e + 8),
+                               "pos": [round(v, 3) for v in struct.unpack_from(">3f", b, e + 0xC)],
+                               "angle": list(struct.unpack_from(">3h", b, e + 0x18)),
+                               "set_id": u16(b, e + 0x1E)})
+            rec["actors"][tag] = actors
+    return rec
+
+
+def parse_dzb(b):
+    need(len(b) >= 0x34, "dzb: short")
+    f = struct.unpack_from(">iIiIiIiIiIiII", b, 0)
+    rec = {"vertices": f[0], "triangles": f[2], "blocks": f[4], "tree_nodes": f[6], "groups": f[8],
+           "infos": f[10], "flag": f[12],
+           "offsets": {"vtx": f[1], "tri": f[3], "blk": f[5], "tree": f[7], "grp": f[9], "ti": f[11]}}
+    nv, vo = f[0], f[1]
+    need(nv >= 0 and vo + nv * 12 <= len(b), "dzb: vertex table past the end")
+    if nv:
+        v = struct.unpack_from(">%df" % (nv * 3), b, vo)
+        xs, ys, zs = v[0::3], v[1::3], v[2::3]
+        rec["bbox"] = {"min": [round(min(xs), 3), round(min(ys), 3), round(min(zs), 3)],
+                       "max": [round(max(xs), 3), round(max(ys), 3), round(max(zs), 3)]}
+    need(f[2] >= 0 and f[3] + f[2] * 0xA <= len(b), "dzb: triangle table past the end")
+    return rec
+
+
+def parse_aaf(b):
+    """JaiInit.aaf as JAInter::InitData::checkInitDataOnMemory reads it."""
+    words = len(b) // 4
+    w = lambda i: u32(b, i * 4)
+    sections = []
+    i = 0
+    while True:
+        need(i < words, "aaf: no terminating 0")
+        t = w(i)
+        i += 1
+        if t == 0:
+            break
+        if t in (1, 4, 5, 6, 7, 8):
+            sections.append({"type": t, "offset": w(i), "size": w(i + 1), "flags": w(i + 2)})
+            i += 3
+        elif t in (2, 3):
+            entries = []
+            while w(i) != 0:
+                entries.append({"offset": w(i), "size": w(i + 1), "flags": w(i + 2)})
+                i += 3
+            i += 1
+            sections.append({"type": t, "count": len(entries), "entries": entries})
+        else:
+            start = i
+            while w(i) != 0:
+                i += 1
+            i += 1
+            sections.append({"type": t, "words": i - start})
+    return {"sections": sections}
+
+
+JUT_MAGICS = {b"J3D1": "j3d", b"J3D2": "j3d"}
+JUT_MAGICS8 = {b"MESGbmg1": "bmg", b"FONTbfn1": "bfn", b"SCRNblo1": "blo"}
+
+
+def classify(name, b):
+    lname = name.lower()
+    head = bytes(b[:8])
+    if head[:4] == b"RARC":
+        return "rarc"
+    if head[:4] in JUT_MAGICS:
+        return "j3d"
+    if head in JUT_MAGICS8:
+        return JUT_MAGICS8[head]
+    if head == b"JPAC1-00":
+        return "jpc"
+    if head[:4] == b"STB\0":
+        return "stb"
+    ext = lname.rsplit(".", 1)[-1] if "." in lname else ""
+    if ext == "bti":
+        return "bti"
+    if ext in ("dzs", "dzr"):
+        return ext
+    if ext == "dzb":
+        return "dzb"
+    if ext == "aaf":
+        return "aaf"
+    return None
+
+
+def parse_content(name, b, rec, errors, where):
+    """Fills rec with format and header fields of b; parse errors are recorded, not raised."""
+    fmt = classify(name, b)
+    if fmt is None:
+        return
+    rec["format"] = fmt
+    try:
+        if fmt == "rarc":
+            rec.update(parse_rarc(b, errors, where))
+        elif fmt in ("j3d", "bmg", "bfn", "blo"):
+            rec.update(parse_jut_file(b, fmt))
+        elif fmt == "jpc":
+            rec.update(parse_jpc(b))
+        elif fmt == "stb":
+            rec.update(parse_stb(b))
+        elif fmt == "bti":
+            rec.update(parse_bti(b))
+        elif fmt in ("dzs", "dzr"):
+            rec.update(parse_stage(b))
+        elif fmt == "dzb":
+            rec.update(parse_dzb(b))
+        elif fmt == "aaf":
+            rec.update(parse_aaf(b))
+    except (ParseError, struct.error, IndexError) as e:
+        rec["error"] = str(e) or type(e).__name__
+        errors.append("%s: %s" % (where, rec["error"]))
+
+
+def parse_rarc(b, errors, where):
+    need(len(b) >= 0x40, "RARC: short")
+    file_length = u32(b, 4)
+    header_length = u32(b, 8)
+    data_offset = u32(b, 0xC)
+    need(header_length == 0x20, "RARC: header length 0x%x" % header_length)
+    info = 0x20
+    num_nodes = u32(b, info + 0x00)
+    node_off = info + u32(b, info + 0x04)
+    num_entries = u32(b, info + 0x08)
+    entry_off = info + u32(b, info + 0x0C)
+    str_off = info + u32(b, info + 0x14)
+    data_base = header_length + data_offset
+    need(node_off + num_nodes * 0x10 <= len(b) and entry_off + num_entries * 0x14 <= len(b),
+         "RARC: tables past the end")
+    nodes = []
+    for i in range(num_nodes):
+        o = node_off + i * 0x10
+        nodes.append({"type": tag4(b, o), "name": cstr(b, str_off + u32(b, o + 4)),
+                      "hash": u16(b, o + 8), "entries": u16(b, o + 0xA), "first": u32(b, o + 0xC)})
+    # Paths: walk from the root node; a directory entry (flags & 2) other than "." and ".." points
+    # at a node by its data_offset.
+    entries = []
+    for i in range(num_entries):
+        o = entry_off + i * 0x14
+        tf = u32(b, o + 4)
+        entries.append({"id": u16(b, o), "hash": u16(b, o + 2), "flags": tf >> 24,
+                        "name": cstr(b, str_off + (tf & 0xFFFFFF)), "data_offset": u32(b, o + 8),
+                        "size": u32(b, o + 0xC)})
+    files = []
+    dirs = 0
+
+    def walk(node_index, prefix, depth):
+        nonlocal dirs
+        need(depth < 32 and node_index < num_nodes, "RARC: bad node %d" % node_index)
+        node = nodes[node_index]
+        for k in range(node["first"], node["first"] + node["entries"]):
+            need(k < num_entries, "RARC: entry %d out of range" % k)
+            e = entries[k]
+            if e["flags"] & 0x02:
+                if e["name"] in (".", ".."):
+                    continue
+                dirs += 1
+                walk(e["data_offset"], prefix + e["name"] + "/", depth + 1)
+                continue
+            path = prefix + e["name"]
+            rec = {"path": path, "id": e["id"], "flags": e["flags"], "size": e["size"],
+                   "offset": e["data_offset"]}
+            start = data_base + e["data_offset"]
+            need(start + e["size"] <= len(b), "RARC: %s data past the end" % path)
+            data = b[start:start + e["size"]]
+            sub_where = "%s:%s" % (where, path)
+            if data[:4] == b"Yaz0":
+                try:
+                    data = yaz0_decompress(data)
+                    rec["yaz0"] = {"size": len(data)}
+                except ParseError as ex:
+                    rec["error"] = str(ex)
+                    errors.append("%s: %s" % (sub_where, ex))
+                    files.append(rec)
+                    continue
+            parse_content(e["name"], data, rec, errors, sub_where)
+            files.append(rec)
+
+    if num_nodes:
+        walk(0, "", 0)
+    return {"file_length": file_length, "node_count": num_nodes, "entries": num_entries,
+            "nodes": [{"type": n["type"], "name": n["name"], "entries": n["entries"],
+                       "first": n["first"]} for n in nodes],
+            "dir_count": dirs, "file_count": len(files), "files": files}
+
+
+# ---- FST and manifest ---------------------------------------------------------------------------
+
+def read_fst(f):
+    f.seek(0)
+    head = f.read(0x440)
+    fst_off = u32(head, 0x424)
+    fst_size = u32(head, 0x428)
+    f.seek(fst_off)
+    fst = f.read(fst_size)
+    n = u32(fst, 8)
+    strtab = n * 12
+    entries = [None] * n
+    entries[0] = {"dir": True, "name": "", "parent": 0, "next": n}
+
+    paths = [""] * n
+    # Directories: parent in word 1, next (one past the last child) in word 2.
+    stack = [(0, n)]  # (dir entry, end)
+    for i in range(1, n):
+        while stack and i >= stack[-1][1]:
+            stack.pop()
+        w0, a, c = struct.unpack_from(">III", fst, i * 12)
+        is_dir = (w0 >> 24) != 0
+        name = cstr(fst, strtab + (w0 & 0xFFFFFF))
+        parent = stack[-1][0]
+        paths[i] = paths[parent] + "/" + name
+        if is_dir:
+            entries[i] = {"dir": True, "name": name, "parent": a, "next": c}
+            stack.append((i, c))
+        else:
+            entries[i] = {"dir": False, "name": name, "offset": a, "size": c}
+    paths[0] = "/"
+    return entries, paths
+
+
+def build_manifest(disc, iso_sha, dsha, progress=True):
+    errors = []
+    with open(disc, "rb") as f:
+        head = f.read(0x20)
+        entries, paths = read_fst(f)
+        files = []
+        n_files = sum(1 for e in entries[1:] if not e["dir"])
+        done = 0
+        for i, e in enumerate(entries):
+            if i == 0 or e["dir"]:
+                continue
+            rec = {"path": paths[i], "entry": i, "offset": e["offset"], "size": e["size"]}
+            name = e["name"]
+            lname = name.lower()
+            # Bulk media and code: size only (the THP movies alone are 600 MiB).
+            if lname.endswith((".thp", ".afc", ".aw", ".map", ".dds")):
+                rec["format"] = lname.rsplit(".", 1)[-1]
+                files.append(rec)
+                continue
+            f.seek(e["offset"])
+            data = f.read(e["size"])
+            if data[:4] == b"Yaz0":
+                if lname.endswith(".rel"):
+                    rec["yaz0"] = {"size": u32(data, 4)}
+                    rec["format"] = "rel"
+                    files.append(rec)
+                    continue
+                try:
+                    data = yaz0_decompress(data)
+                    rec["yaz0"] = {"size": len(data)}
+                except ParseError as ex:
+                    rec["error"] = str(ex)
+                    errors.append("%s: %s" % (paths[i], ex))
+                    files.append(rec)
+                    continue
+            parse_content(name, data, rec, errors, paths[i])
+            files.append(rec)
+            done += 1
+            if progress and done % 200 == 0:
+                print("disc_manifest: %d/%d files" % (len(files), n_files), file=sys.stderr)
+
+    fmt_disc = Counter(r.get("format", "other") for r in files)
+    fmt_arc = Counter()
+    arc_files = 0
+
+    def count_arc(r):
+        nonlocal arc_files
+        for af in r.get("files", []):
+            arc_files += 1
+            fmt_arc[af.get("format", "other")] += 1
+            if af.get("format") == "rarc":
+                count_arc(af)
+
+    for r in files:
+        if r.get("format") == "rarc":
+            count_arc(r)
+    manifest = {
+        "tool": "native/tools/disc_manifest.py",
+        "manifest_version": 1,
+        "disc": {"path": disc, "size": os.path.getsize(disc), "sha1": iso_sha, "dol_sha1": dsha,
+                 "game_id": head[0:6].decode("latin-1"), "revision": head[7]},
+        "fst": {"entries": len(entries), "files": n_files,
+                "dirs": sum(1 for e in entries[1:] if e["dir"])},
+        "summary": {"disc_formats": dict(sorted(fmt_disc.items())),
+                    "archive_files": arc_files, "archive_formats": dict(sorted(fmt_arc.items())),
+                    "errors": len(errors), "error_list": errors},
+        "files": files,
+    }
+    return manifest
+
+
+# ---- disc-ls cross-check ------------------------------------------------------------------------
+
+def check_ls(manifest, ls_path):
+    """disc_ls.txt lines: 'F <entry> <size> <path>' and 'D <entry> <path>'."""
+    want_files = {r["entry"]: (r["path"], r["size"]) for r in manifest["files"]}
+    got_files = {}
+    got_dirs = 0
+    problems = []
+    with open(ls_path, encoding="utf-8", errors="replace") as f:
+        for ln, line in enumerate(f, 1):
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split(" ", 3)
+            if parts[0] == "D" and len(parts) >= 3:
+                got_dirs += 1
+            elif parts[0] == "F" and len(parts) == 4:
+                entry, size, path = int(parts[1]), int(parts[2]), parts[3]
+                if entry in got_files:
+                    problems.append("line %d: entry %d listed twice" % (ln, entry))
+                got_files[entry] = (path, size)
+            else:
+                problems.append("line %d: malformed: %r" % (ln, line))
+    fst = manifest["fst"]
+    print("disc_manifest: FST %d files, %d dirs; DVDReadDir %d files, %d dirs"
+          % (fst["files"], fst["dirs"], len(got_files), got_dirs))
+    if len(got_files) != fst["files"]:
+        problems.append("file count %d, the FST has %d" % (len(got_files), fst["files"]))
+    if got_dirs != fst["dirs"]:
+        problems.append("directory count %d, the FST has %d" % (got_dirs, fst["dirs"]))
+    for entry, (path, size) in sorted(want_files.items()):
+        got = got_files.get(entry)
+        if got is None:
+            problems.append("entry %d %s not listed" % (entry, path))
+        elif got[0] != path or got[1] != size:
+            problems.append("entry %d: listed %s (%d bytes), the FST has %s (%d bytes)"
+                            % (entry, got[0], got[1], path, size))
+    for entry in sorted(set(got_files) - set(want_files)):
+        problems.append("entry %d %s is not a file of the FST" % (entry, got_files[entry][0]))
+    for p in problems[:40]:
+        print("disc_manifest: DIFF " + p)
+    if len(problems) > 40:
+        print("disc_manifest: ... %d differences in all" % len(problems))
+    if problems:
+        return EXIT_DIFFERENT
+    print("disc_manifest: disc-ls equals the FST")
+    return EXIT_OK
+
+
+def load_manifest(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except OSError as e:
+        print("disc_manifest: cannot read %s: %s (run disc_manifest.py first)" % (path, e),
+              file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+
+
+def print_summary(m):
+    s = m["summary"]
+    print("disc_manifest: %s %s rev %d, sha1 %s" % (m["disc"]["path"], m["disc"]["game_id"],
+                                                   m["disc"]["revision"], m["disc"]["sha1"]))
+    print("disc_manifest: FST %d entries: %d files, %d dirs" % (m["fst"]["entries"],
+                                                                m["fst"]["files"], m["fst"]["dirs"]))
+    print("disc_manifest: disc formats: " +
+          ", ".join("%s %d" % kv for kv in s["disc_formats"].items()))
+    print("disc_manifest: %d files inside archives: " % s["archive_files"] +
+          ", ".join("%s %d" % kv for kv in s["archive_formats"].items()))
+    print("disc_manifest: %d parse error(s)" % s["errors"])
+    for e in s["error_list"][:20]:
+        print("disc_manifest: ERROR " + e)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0],
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--disc", default=os.environ.get("COS_DISC", DEFAULT_DISC))
+    ap.add_argument("--out", default=DEFAULT_OUT)
+    ap.add_argument("--verify", action="store_true", help="only check the SHA-1 of the disc")
+    ap.add_argument("--check-ls", metavar="LS", help="compare a disc-ls listing with the manifest")
+    ap.add_argument("--summary", action="store_true", help="print an existing manifest's counts")
+    ap.add_argument("--quiet", action="store_true")
+    args = ap.parse_args()
+
+    if args.check_ls:
+        return check_ls(load_manifest(args.out), args.check_ls)
+    if args.summary:
+        print_summary(load_manifest(args.out))
+        return EXIT_OK
+
+    ok, iso_sha, dsha = verify_disc(args.disc, args.quiet)
+    if not ok:
+        return EXIT_DISC
+    if args.verify:
+        if not args.quiet:
+            print("disc_manifest: %s is GZLE01 revision 0 (SHA-1 %s)" % (args.disc, iso_sha))
+        return EXIT_OK
+
+    m = build_manifest(args.disc, iso_sha, dsha, progress=not args.quiet)
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+    tmp = args.out + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(m, f, indent=1, sort_keys=False)
+        f.write("\n")
+    os.replace(tmp, args.out)
+    print_summary(m)
+    print("disc_manifest: wrote %s" % args.out)
+    return EXIT_OK if m["summary"]["errors"] == 0 else EXIT_DIFFERENT
+
+
+if __name__ == "__main__":
+    sys.exit(main())

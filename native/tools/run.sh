@@ -28,8 +28,11 @@
 #
 # The run directory holds: command.txt, env.txt, run.log (stdout and stderr), exit_code.txt and,
 # when the harness wrote them, backtrace.txt (crash or panic; atos file:line names are appended)
-# and stall.txt (every thread's backtrace). The disc's main.dol is SHA-1 checked against the
-# supported revision on first use; the result is cached in build/native-mac/runs/disc_check.txt.
+# and stall.txt (every thread's backtrace). On first use the SHA-1 of the disc image and of its
+# main.dol are checked against the supported revision (native/tools/disc_manifest.py --verify,
+# which holds the expected hashes); the result is cached in build/native-mac/runs/disc_check.txt.
+# disc-ls (step 4.0d) is then compared with the disc manifest (build/native-mac/disc_manifest.json,
+# written by disc_manifest.py if missing): a difference turns exit 0 into 1.
 # Nothing the run writes is meant for git (build/ is ignored).
 set -u
 
@@ -38,7 +41,7 @@ repo="$(cd "$script_dir/../.." && pwd)"
 build="$repo/build/native-mac"
 
 milestones=" static-init aurora-up heaps gfx-create frame-loop logo-scene logo-res opening title-stage title file-select new-game outset-debug outset-control outset-real "
-expected_dol_sha1="8d28bab68bb5078c38e43f29206f0bd01f7e7a67" # GZLE01 revision 0 (scripts/prepare.py)
+disc_manifest="$script_dir/disc_manifest.py"
 grace_s=30
 
 usage() {
@@ -89,37 +92,13 @@ fi
 runs="$build/runs"
 mkdir -p "$runs"
 
-# --- disc: main.dol SHA-1 on first use (decision H9) -----------------------------------------
+# --- disc: SHA-1 of the image and of main.dol on first use (decision H9) -----------------------
 # Only when the target boots the game: a smoke test that runs before the disc check needs none.
+# A missing file is left to centollos, which exits 14 with its own message.
 needs_disc=1
 case "$target" in static-init|crash-test|panic-test|stall-test|timeout-test) needs_disc=0 ;; esac
 if [ "$needs_disc" = 1 ] && [ -f "$disc" ]; then
-    cache="$runs/disc_check.txt"
-    stamp="$(stat -f '%z %m' "$disc" 2>/dev/null)"
-    if ! grep -qxF "ok	$disc	$stamp" "$cache" 2>/dev/null; then
-        echo "run: first use of $disc: checking main.dol SHA-1" >&2
-        dol_sha1="$(python3 - "$disc" <<'PY'
-import hashlib, struct, sys
-with open(sys.argv[1], "rb") as f:
-    head = f.read(0x440)
-    if head[0x1C:0x20] != b"\xC2\x33\x9F\x3D":
-        print("not-a-gamecube-disc"); sys.exit()
-    dol_off = struct.unpack(">I", head[0x420:0x424])[0]
-    f.seek(dol_off)
-    dh = f.read(0x100)
-    offs = struct.unpack(">18I", dh[0x00:0x48])
-    sizes = struct.unpack(">18I", dh[0x90:0xD8])
-    size = max([0x100] + [o + s for o, s in zip(offs, sizes) if s])
-    f.seek(dol_off)
-    print(hashlib.sha1(f.read(size)).hexdigest())
-PY
-)"
-        if [ "$dol_sha1" != "$expected_dol_sha1" ]; then
-            echo "run: $disc: main.dol SHA-1 $dol_sha1, expected $expected_dol_sha1 (GZLE01 revision 0)" >&2
-            exit 14
-        fi
-        printf 'ok\t%s\t%s\n' "$disc" "$stamp" >> "$cache"
-    fi
+    python3 "$disc_manifest" --verify --quiet --disc "$disc" || exit 14
 fi
 
 # --- environment ------------------------------------------------------------------------------
@@ -182,6 +161,20 @@ if [ "$killed" = 1 ]; then
 elif [ "$rc" -gt 128 ]; then
     echo "run: centollos died of signal $((rc - 128)) without the crash handler" >> "$run_dir/run.log"
     rc=13
+fi
+
+# --- disc-ls: the listing against the manifest (step 4.0d) ------------------------------------
+if [ "$target" = disc-ls ] && [ "$rc" = 0 ]; then
+    manifest="$build/disc_manifest.json"
+    if [ ! -f "$manifest" ] || ! grep -qF "\"path\": \"$disc\"" "$manifest"; then
+        echo "run: writing $manifest" >> "$run_dir/run.log"
+        python3 "$disc_manifest" --quiet --disc "$disc" --out "$manifest" >> "$run_dir/run.log" 2>&1 || rc=1
+    fi
+    if [ "$rc" = 0 ]; then
+        python3 "$disc_manifest" --out "$manifest" --check-ls "$run_dir/disc_ls.txt" \
+            >> "$run_dir/run.log" 2>&1 || rc=1
+    fi
+    grep '^disc_manifest: \(FST\|disc-ls\|DIFF\)' "$run_dir/run.log" | head -5
 fi
 echo "$rc" > "$run_dir/exit_code.txt"
 

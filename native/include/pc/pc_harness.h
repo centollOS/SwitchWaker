@@ -37,7 +37,8 @@ enum {
 
 /* Called first thing in main: reads the environment, installs the crash handler and the
    watchdog, runs a COS_SMOKE test that needs no SDK (and exits), then checks the disc
-   (exit 14 on failure). Returns only when the game should boot. */
+   (exit 14 on failure) and runs a COS_SMOKE test that needs only the disc (disc-ls; it exits).
+   Returns only when the game should boot. */
 void pc_harness_init(int argc, char* argv[]);
 
 /* Logs "[cos] MILESTONE <name> frame= retrace= ms=" and exits 0 if <name> is COS_MILESTONE. */

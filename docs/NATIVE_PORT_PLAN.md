@@ -1006,6 +1006,46 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Rerun from a clean `layout_check/`: 826 checks hold, 224 xfailed, 1050 hold on the GameCube;
   dropping an xfail entry, an XPASS entry and a wrong header comment each fail the target, and
   the original comments fail `--gc-verify` on exactly the 10 corrected checks; regression equal.
+- **4.0d Disc oracle:** `native/tools/disc_manifest.py` (pure Python, standard library) reads
+  the disc on its own: the FST, Yaz0, RARC (nodes, the raw file-table count with `.`/`..`, every
+  file with id, flags, size, nested Yaz0 and archives) and the header fields of BMD/BDL/BMT
+  (block tags; INF1 packets and vertices; JNT1/MAT3/MAT2/SHP1/TEX1/EVP1/DRW1 counts and name
+  tables), the J3D animations (attribute, frame count), BTI (ResTIMG), BFN (INF1/WID1/MAP1/GLY1),
+  BMG (INF1 entries, MID1), BLO (block tags, pane counts), JPC (JPAC1-00: emitters with resID,
+  block tags and key/field/texture counts; TEX1 names), STB (version, block types and ids),
+  dzs/dzr (chunk tags and counts; ACTR/SCOB/TRES/TGOB/TGSC/DOOR/TGDR/PLYR and the layer variants
+  with name, parameters, position, angle, set id), dzb (counts, table offsets, vertex bounding
+  box) and AAF (sections as `JAInter::InitData::checkInitDataOnMemory` walks them). It writes
+  `build/native-mac/disc_manifest.json` (never committed; counts, names, sizes and header
+  fields, no file contents) in about 4 s: 2213 files and 177 directories on the disc, 1321
+  archives holding 13808 files (9330 J3D, 1849 BTI, 866 dzb, 496 dzr, 155 dzs, 63 BLO, 54 STB),
+  0 parse errors. What the disc does that the parser had to allow, recorded per file rather than
+  rejected: BMG counts its size in 32-byte units; 86 BTK end their last block up to 0x1F bytes
+  past the file (`overrun`); 7 BMT declare more blocks than they hold (`blocks_missing`); one
+  text file in the test stage `A_R00` is named `model.bmd`; SHP1 has no name table.
+  Disc check (decision H9): the expected SHA-1 of the image and of main.dol live only in
+  `disc_manifest.py`; `--verify` checks both on first use and caches the result by path, size
+  and mtime in `build/native-mac/runs/disc_check.txt`. `run.sh` calls it in place of its
+  own main.dol check (the `.ciso` is refused, exit 14).
+  New `COS_SMOKE=disc-ls` (`pc_smoke.cpp`, run by `pc_harness_init` right after the disc check):
+  `aurora_dvd_open`, then a recursive `DVDOpenDir`/`DVDReadDir` walk with `DVDFastOpen` sizes into
+  `<run dir>/disc_ls.txt` (`D <entry> <path>`, `F <entry> <size> <path>`). For `disc-ls`,
+  `run.sh` writes the manifest if it is missing and runs `disc_manifest.py --check-ls`, which
+  compares the file and directory counts and each entry number, path and size; a difference
+  turns exit 0 into 1.
+  Verified: `run.sh disc-ls` exit 0 (3 runs): FST 2213 files, 177 dirs; DVDReadDir 2213
+  files, 177 dirs; every entry equal. A listing with one file removed fails `--check-ls`;
+  `COS_DISC=/nonexistent` gives 14. Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests
+  cos_layout_check cos_sdk_shadow_check cos_link_census` 0 errors, smoke ok, `cos_pc_tests` ok,
+  shadow check ok, link census equal to `expected_unresolved_phase2.txt`,
+  `symbol_census.py --all --dups` 0, `run.sh static-init` exit 0 (3 runs), inventory
+  unchanged (263 open).
+- **4.0d review (round 1):** approved; rerun independently: `shasum` of the ISO equals
+  `EXPECTED_ISO_SHA1`; `--verify` from an empty cache ok, the `.ciso` refused (14); manifest 0
+  parse errors in 4 s; `disc-ls` 0 x2; a dropped line and a size off by one both reported as
+  DIFF; `COS_DISC=/nonexistent` 14; build 0 errors, smoke and `cos_pc_tests` ok, census diff
+  empty, 0 duplicate strong, static-init 0 x2, crash/panic/stall/timeout-test 13/12/11/10.
+  `--check-ls` compares directories by count only (file entries by number, path and size).
 
 ### Phase 6 render issues
 
