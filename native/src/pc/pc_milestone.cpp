@@ -69,6 +69,18 @@ void pc_milestone(const char* name) {
     }
 }
 
+void pc_copydate_loaded(int status, const char* copydate) {
+    // The placeholder m_Do_main.cpp starts with; DVDReadPrio replaces it with the disc's date.
+    bool read = status != 0 && copydate != nullptr && copydate[0] != '?';
+    writef(STDERR_FILENO, "[cos] gfx-create: LOAD_COPYDATE status %d, COPYDATE \"%s\"\n", status,
+           copydate != nullptr ? copydate : "(null)");
+    if (!read) {
+        writef(STDERR_FILENO, "[cos] gfx-create: /COPYDATE was not read\n");
+        pc_exit(PC_EXIT_CHECK_FAILED);
+    }
+    pc_milestone("gfx-create");
+}
+
 void pc_frame_tick(void) {
     unsigned int n = sFrames.fetch_add(1, std::memory_order_relaxed) + 1;
     if (gConfig.frames != 0 && n >= gConfig.frames) {

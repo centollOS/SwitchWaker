@@ -53,8 +53,14 @@ struct OSThread* pc_main_thread(void);
 
 /* Milestone M2 (step 4.2, pc_heap.cpp), called by main01 right after mDoMch_Create returned:
    check() on the root, system, main, game, archive and command heaps; logs "heaps" if all hold,
-   else exits 1. */
+   else exits 1. Then runs COS_SMOKE=font (step 4.3), which exits. */
 void pc_heaps_created(void);
+
+/* Milestone M3 (step 4.3, pc_milestone.cpp), called by LOAD_COPYDATE on the DVD thread: main01
+   queued it after mDoGph_Create and mDoCPd_Create returned. Logs the date read from /COPYDATE and
+   "gfx-create" when the read succeeded (status nonzero, the string no longer the placeholder),
+   else exits 1. */
+void pc_copydate_loaded(int status, const char* copydate);
 
 /* Logs "[cos] MILESTONE <name> frame= retrace= ms=" and exits 0 if <name> is COS_MILESTONE. */
 void pc_milestone(const char* name);

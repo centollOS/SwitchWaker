@@ -14,7 +14,8 @@
 //   and tail, every alignment); operator new in the current heap (aligned to
 //   __STDCPP_DEFAULT_NEW_ALIGNMENT__, owned by it). Exit 0 when every check holds, 1 otherwise.
 // - M2: pc_heaps_created, called by main01 right after mDoMch_Create returned, runs check() on the
-//   root, system, main, game, archive and command heaps and logs the milestone if all hold.
+//   root, system, main, game, archive and command heaps and logs the milestone if all hold;
+//   then a COS_SMOKE test that needs the game's heaps (font, step 4.3) runs.
 #include "pc_internal.h"
 
 #include "JSystem/JKernel/JKRExpHeap.h"
@@ -468,4 +469,5 @@ extern "C" void pc_heaps_created(void) {
         pc_exit(PC_EXIT_CHECK_FAILED);
     }
     pc_milestone("heaps");
+    runHeapsSmoke();
 }

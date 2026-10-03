@@ -15,6 +15,8 @@
 //   from the same image independently (disc_manifest.py --check-ls).
 // After the Aurora bring-up (runAuroraSmoke, from pc_aurora_init), before the game's main code:
 // - heap (step 4.2, pc_heap.cpp): the JKR heaps on the host.
+// After mDoMch_Create (runHeapsSmoke, from pc_heaps_created, once milestone M2's checks held):
+// - font (step 4.3, pc_font.cpp): the system font, a disc font and a console line drawn.
 // The format sweeps and the other smoke tests of phases 4-6 add their names to kSmokes; one that
 // runs after some of the boot is started by the boot code at that point, not by runEarlySmoke.
 #include "pc_internal.h"
@@ -208,6 +210,9 @@ void requireWatchdog(const char* test, double seconds, const char* var) {
     if (strcmp(name, "heap") == 0) {
         smokeHeap();
     }
+    if (strcmp(name, "font") == 0) {
+        smokeFont();
+    }
     writef(STDERR_FILENO, "[cos] smoke %s has no runner\n", name);
     pc_exit(PC_EXIT_USAGE);
 }
@@ -216,6 +221,7 @@ enum SmokeStage {
     kEarly,     // runs from pc_harness_init, before the SDK and the disc check
     kAfterDisc, // runs from pc_harness_init once the disc check passed
     kAfterAurora, // runs from pc_aurora_init once Aurora, the disc and OSInit are up
+    kAfterHeaps,  // runs from pc_heaps_created once mDoMch_Create made every heap
 };
 
 struct Smoke {
@@ -231,6 +237,7 @@ const Smoke kSmokes[] = {
     {"timeout-test", kEarly},
     {"disc-ls", kAfterDisc},
     {"heap", kAfterAurora},
+    {"font", kAfterHeaps},
 };
 
 const Smoke* findSmoke(const char* name) {
@@ -279,6 +286,10 @@ void runDiscSmoke() {
 
 void runAuroraSmoke() {
     runSmokeAt(kAfterAurora);
+}
+
+void runHeapsSmoke() {
+    runSmokeAt(kAfterHeaps);
 }
 
 } // namespace pc

@@ -378,6 +378,11 @@ s32 LOAD_COPYDATE(void*) {
         memcpy(mDoMain::COPYDATE_STRING, buffer, sizeof(mDoMain::COPYDATE_STRING)-1);
         status = DVDClose(&fileInfo);
     }
+#if TARGET_PC
+    // Milestone M3 (docs/NATIVE_PORT_PHASE4_6.md): main01 queues this after mDoGph_Create and
+    // mDoCPd_Create returned; the DVD thread has now read the date.
+    pc_copydate_loaded(status, mDoMain::COPYDATE_STRING);
+#endif
     return status;
 }
 

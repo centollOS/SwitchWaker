@@ -20,6 +20,10 @@ Usage
                                                   (<run dir>/disc_ls.txt) with the manifest's FST:
                                                   file and directory counts, entry numbers, paths
                                                   and sizes (exit 0 equal, 1 different)
+  disc_manifest.py --check-font FONT [--out FILE] compare what JUTResFont read in COS_SMOKE=font
+                                                  (<run dir>/font.txt) with the manifest's BFN
+                                                  headers: block counts, INF1 and every WID1/MAP1/
+                                                  GLY1 field (exit 0 equal, 1 different)
   disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
 
 Manifest (JSON)
@@ -761,6 +765,73 @@ def check_ls(manifest, ls_path):
     return EXIT_OK
 
 
+# ---- font cross-check (step 4.3) ----------------------------------------------------------------
+
+def check_font(manifest, font_path):
+    """font.txt lines: 'FONT <path> block_count=N INF1=1 WID1=n MAP1=n GLY1=n' and
+    '<TAG> <path> <index among that tag> key=value ...', the keys being the manifest's."""
+    by_path = {r["path"]: r for r in manifest["files"]}
+    problems = []
+    fonts = 0
+    blocks_checked = 0
+    with open(font_path, encoding="utf-8", errors="replace") as f:
+        for ln, line in enumerate(f, 1):
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split()
+            if len(parts) < 3:
+                problems.append("line %d: malformed: %r" % (ln, line))
+                continue
+            kind, path = parts[0], parts[1]
+            rec = by_path.get(path)
+            if rec is None or rec.get("format") != "bfn":
+                problems.append("line %d: %s is not a BFN file of the manifest" % (ln, path))
+                continue
+            blocks = rec.get("blocks", [])
+            if kind == "FONT":
+                fonts += 1
+                want = {"block_count": rec.get("block_count")}
+                for tag in ("INF1", "WID1", "MAP1", "GLY1"):
+                    want[tag] = sum(1 for b in blocks if b["tag"] == tag)
+                fields = parts[2:]
+                target = want
+            else:
+                same = [b for b in blocks if b["tag"] == kind]
+                try:
+                    index = int(parts[2])
+                except ValueError:
+                    problems.append("line %d: malformed index: %r" % (ln, line))
+                    continue
+                if index >= len(same):
+                    problems.append("line %d: %s %s #%d: the file has %d" % (ln, path, kind, index,
+                                                                             len(same)))
+                    continue
+                target = same[index]
+                fields = parts[3:]
+                blocks_checked += 1
+            for field in fields:
+                key, _, value = field.partition("=")
+                if key not in target:
+                    problems.append("line %d: %s %s: no field %s in the manifest" % (ln, path, kind,
+                                                                                    key))
+                elif str(target[key]) != value:
+                    problems.append("line %d: %s %s %s=%s, the manifest has %s"
+                                    % (ln, path, kind, key, value, target[key]))
+    print("disc_manifest: font.txt: %d font(s), %d block header(s) compared" % (fonts,
+                                                                                 blocks_checked))
+    if fonts == 0:
+        problems.append("no FONT line")
+    for p in problems[:40]:
+        print("disc_manifest: DIFF " + p)
+    if len(problems) > 40:
+        print("disc_manifest: ... %d differences in all" % len(problems))
+    if problems:
+        return EXIT_DIFFERENT
+    print("disc_manifest: font.txt equals the manifest")
+    return EXIT_OK
+
+
 def load_manifest(path):
     try:
         with open(path, encoding="utf-8") as f:
@@ -793,12 +864,16 @@ def main():
     ap.add_argument("--out", default=DEFAULT_OUT)
     ap.add_argument("--verify", action="store_true", help="only check the SHA-1 of the disc")
     ap.add_argument("--check-ls", metavar="LS", help="compare a disc-ls listing with the manifest")
+    ap.add_argument("--check-font", metavar="FONT",
+                    help="compare a COS_SMOKE=font report with the manifest")
     ap.add_argument("--summary", action="store_true", help="print an existing manifest's counts")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
 
     if args.check_ls:
         return check_ls(load_manifest(args.out), args.check_ls)
+    if args.check_font:
+        return check_font(load_manifest(args.out), args.check_font)
     if args.summary:
         print_summary(load_manifest(args.out))
         return EXIT_OK

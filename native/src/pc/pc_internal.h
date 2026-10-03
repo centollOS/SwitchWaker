@@ -55,8 +55,13 @@ void runDiscSmoke();
 // pc_smoke.cpp: runs COS_SMOKE if it is a test that runs right after the Aurora bring-up (heap);
 // it never returns then.
 void runAuroraSmoke();
+// pc_smoke.cpp: runs COS_SMOKE if it is a test that runs once mDoMch_Create made the heaps (font,
+// from pc_heaps_created); it never returns then.
+void runHeapsSmoke();
 // pc_heap.cpp: COS_SMOKE=heap.
 [[noreturn]] void smokeHeap();
+// pc_font.cpp: COS_SMOKE=font.
+[[noreturn]] void smokeFont();
 bool isKnownSmoke(const char* name);
 void printSmokes(int fd);
 

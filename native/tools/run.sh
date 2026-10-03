@@ -31,8 +31,9 @@
 # and stall.txt (every thread's backtrace). On first use the SHA-1 of the disc image and of its
 # main.dol are checked against the supported revision (native/tools/disc_manifest.py --verify,
 # which holds the expected hashes); the result is cached in build/native-mac/runs/disc_check.txt.
-# disc-ls (step 4.0d) is then compared with the disc manifest (build/native-mac/disc_manifest.json,
-# written by disc_manifest.py if missing): a difference turns exit 0 into 1.
+# disc-ls (step 4.0d) and font (step 4.3) are then compared with the disc manifest
+# (build/native-mac/disc_manifest.json, written by disc_manifest.py if missing): a difference turns
+# exit 0 into 1.
 # Nothing the run writes is meant for git (build/ is ignored).
 set -u
 
@@ -163,18 +164,23 @@ elif [ "$rc" -gt 128 ]; then
     rc=13
 fi
 
-# --- disc-ls: the listing against the manifest (step 4.0d) ------------------------------------
-if [ "$target" = disc-ls ] && [ "$rc" = 0 ]; then
+# --- disc-ls (step 4.0d) and font (step 4.3): what the game read against the manifest ----------
+check_arg=""
+case "$target" in
+    disc-ls) check_arg="--check-ls"; check_file="disc_ls.txt" ;;
+    font) check_arg="--check-font"; check_file="font.txt" ;;
+esac
+if [ -n "$check_arg" ] && [ "$rc" = 0 ]; then
     manifest="$build/disc_manifest.json"
     if [ ! -f "$manifest" ] || ! grep -qF "\"path\": \"$disc\"" "$manifest"; then
         echo "run: writing $manifest" >> "$run_dir/run.log"
         python3 "$disc_manifest" --quiet --disc "$disc" --out "$manifest" >> "$run_dir/run.log" 2>&1 || rc=1
     fi
     if [ "$rc" = 0 ]; then
-        python3 "$disc_manifest" --out "$manifest" --check-ls "$run_dir/disc_ls.txt" \
+        python3 "$disc_manifest" --out "$manifest" "$check_arg" "$run_dir/$check_file" \
             >> "$run_dir/run.log" 2>&1 || rc=1
     fi
-    grep '^disc_manifest: \(FST\|disc-ls\|DIFF\)' "$run_dir/run.log" | head -5
+    grep '^disc_manifest: \(FST\|disc-ls\|font.txt\|DIFF\)' "$run_dir/run.log" | head -5
 fi
 echo "$rc" > "$run_dir/exit_code.txt"
 
