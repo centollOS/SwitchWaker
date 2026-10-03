@@ -137,7 +137,12 @@ endforeach ()
 add_executable(centollos EXCLUDE_FROM_ALL "${_exe_dir}/cos_exe_stub.c")
 add_dependencies(centollos ${COS_MODULES})
 target_link_options(centollos PRIVATE "@${_exe_rsp}")
-target_link_libraries(centollos PRIVATE cos_pc cos_sdk aurora::main)
+# The process entry point: aurora::main, whose main calls the game's (aurora_main). A platform
+# build may set COS_EXE_ENTRY to its own entry library first (the Switch build, switch/native).
+if (NOT COS_EXE_ENTRY)
+    set(COS_EXE_ENTRY aurora::main)
+endif ()
+target_link_libraries(centollos PRIVATE cos_pc cos_sdk ${COS_EXE_ENTRY})
 set_target_properties(centollos PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
         # The game is C++: link with the C++ driver, so libc++/libc++abi resolve the C++ runtime.

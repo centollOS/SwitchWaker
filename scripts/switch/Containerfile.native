@@ -1,0 +1,13 @@
+# Build image of the native port's Switch NRO (scripts/switch/build_native.sh):
+# the image of the translated port's Aurora build (Containerfile.dawn, the same
+# pinned devkitPro digest and packages) plus clang 19, which compiles the game
+# units as on the Mac (switch/native/clang-launcher.sh).
+FROM docker.io/devkitpro/devkita64@sha256:1fc388c3a0d34bd2045a6dadcb1020e069d5f876a187fd705de14b4440c00282
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        cmake=3.31.6-2~bpo12+1 \
+        ninja-build=1.11.1-2~deb12u1 \
+        pkg-config=1.8.1-1 \
+        clang-19=1:19.1.7-3~deb12u1 \
+    && rm -rf /var/lib/apt/lists/*
