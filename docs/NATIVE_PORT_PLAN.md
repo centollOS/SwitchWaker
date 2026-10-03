@@ -224,3 +224,30 @@ Each phase lands as its own commits; this file records decisions and measured re
   buckets, so an SDK gap such as `OSLockMutex` called from audio code is never filed under
   JAudio (where 2.9's expected list could hide it); the bundle relinks when the census scripts
   change, so the POST_BUILD report always reflects the current classifier.
+- **2.6a OS threads, interrupts, mutexes, messages, alarms, contexts:** `native/sdk/src/os/`
+  (`OSThread`, `OSInterrupt`, `OSMutex`, `OSMessage`, `OSAlarm`, `OSContext`, internal
+  `os_internal.h`), adapted from Dusklight's `OSThread.cpp`/`OSMutex.cpp`/`OSContext.cpp` and the
+  message queues of `stubs.cpp` (provenance in each file). Model: "interrupts disabled" is one
+  process-wide lock held per thread with the GameCube's boolean Disable/Restore semantics; every OS
+  function runs under it and uses the SDK's own algorithms (priority-ordered thread queues,
+  `OSSleepThread`/`OSWakeupThread`, active-thread list, joinable vs detached, mutexes on
+  `thread->queueMutex` released on exit/cancel), so there are no per-object side tables. Blocked
+  threads wait on their own condition variable, which releases the lock even if the caller had
+  interrupts disabled (as a thread switch restores the next thread's MSR). `OSCreateThread`
+  threads are detached pthreads launched by the first `OSResumeThread` (host stack ≥ 1 MiB);
+  `OSExitThread` ends the thread (`pthread_exit`) and `OSJoinThread` returns the full 64-bit value.
+  Alarms (D6) fire on a real host timer thread that calls handlers with the lock held; handlers
+  that block abort. Deviations: priorities order nothing (phase 6); `OSSuspendThread`/
+  `OSCancelThread` on another thread running game code act at its next OS call (logged); the
+  switch-thread callback is never called (logged once). `OSInitContext`/`OSSaveContext`/`OSLoadContext`/
+  `OSSwitchStack`/`OSSwitchFiber` abort; `OSGetStackPointer` returns 0. New
+  `native/sdk/include/cos_sdk/hooks.h`: `COSSdkRequestShutdown` (blocking message calls return
+  FALSE, alarms stop) and `COSSdkSetThreadStartHook` (per-thread setup such as the current
+  `JKRHeap`, replacing Dusklight's game couplings). Tests `threads` and `alarms`
+  (`native/sdk/tests/sdk_threads.cpp`, 1000-message ping-pong, mutex/cond counter, cancel,
+  periodic/cancelled/re-arming alarms, JFWDisplay's alarm-resume-self-suspend). TSan: new target
+  `cos_sdk_smoke_tsan` (not in `all`, without `aurora::dvd`, whose Rust personality breaks the
+  macOS TSan link). Xcode 26's clang 17 TSan crashes at start-up on macOS 26.6 even for an empty
+  program, so the run uses `build/native-mac-tsan` configured with the Command Line Tools clang
+  21 (recipe in `native/sdk/README.md`): 10 runs + 40 runs of `threads alarms`, no report. Census
+  with `COS_WITH_AURORA=ON`: SDK/OS 56 → 18 (the rest is 2.6b: reset, console, PPC, `__OSBusClock`).

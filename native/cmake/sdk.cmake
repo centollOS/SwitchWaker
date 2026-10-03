@@ -34,3 +34,24 @@ add_executable(cos_sdk_smoke ${COS_SDK_SMOKE_SOURCES})
 target_link_libraries(cos_sdk_smoke PRIVATE cos_sdk)
 # The program sits at the top of the build directory: build/native-mac/cos_sdk_smoke.
 set_target_properties(cos_sdk_smoke PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+
+# cos_sdk_smoke_tsan: the same tests and cos_sdk sources built with ThreadSanitizer (step 2.6a:
+# the OS thread, mutex, message and alarm code must run race-free). Aurora's libraries are linked
+# uninstrumented, without aurora::dvd: it pulls in nod (Rust), and with it the TSan link on macOS
+# fails ("too many personality routines for compact unwind": C, C++, Objective-C and Rust). The
+# tests do not use DVD. Not part of `all`:
+#   ninja cos_sdk_smoke_tsan && build/native-mac/cos_sdk_smoke_tsan
+# On macOS 26.6 Xcode's clang 17 TSan runtime crashes at start-up; native/sdk/README.md
+# ("ThreadSanitizer run") builds it in build/native-mac-tsan with the Command Line Tools clang.
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU" AND NOT CMAKE_CROSSCOMPILING)
+    add_executable(cos_sdk_smoke_tsan EXCLUDE_FROM_ALL ${COS_SDK_SOURCES} ${COS_SDK_SMOKE_SOURCES})
+    target_include_directories(cos_sdk_smoke_tsan PRIVATE "${COS_SDK_ROOT}/include")
+    target_compile_definitions(cos_sdk_smoke_tsan PRIVATE MTX_USE_PS=1
+            "COS_AURORA_COMMIT_STR=\"${COS_AURORA_COMMIT}\"")
+    target_compile_options(cos_sdk_smoke_tsan PRIVATE -fsanitize=thread -fno-omit-frame-pointer)
+    target_link_options(cos_sdk_smoke_tsan PRIVATE -fsanitize=thread)
+    set(COS_SDK_TSAN_LIBS ${COS_AURORA_LIBS})
+    list(REMOVE_ITEM COS_SDK_TSAN_LIBS aurora::dvd)
+    target_link_libraries(cos_sdk_smoke_tsan PRIVATE ${COS_SDK_TSAN_LIBS})
+    set_target_properties(cos_sdk_smoke_tsan PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+endif ()
