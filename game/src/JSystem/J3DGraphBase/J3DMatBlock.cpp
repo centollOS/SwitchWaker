@@ -29,16 +29,28 @@ int SizeOfLoadColorChans = 21;
 int SizeOfJ3DColorBlockLightOffLoad = SizeOfLoadMatColors + SizeOfLoadColorChans;
 int SizeOfJ3DColorBlockAmbientOnLoad = SizeOfLoadMatColors + SizeOfLoadAmbColors + SizeOfLoadColorChans;
 
+// The colours are GXColor bytes (r, g, b, a); the XF registers take red in the top byte, so on a
+// little-endian host they are read as a big-endian word (as Dusklight does).
 inline void loadMatColors(const J3DGXColor* color) {
     J3DGDWriteXFCmdHdr(0x100C, 2);
+#if TARGET_PC
+    J3DGDWrite_u32(*(BE(u32)*)color);
+    J3DGDWrite_u32(*(BE(u32)*)(color + 1));
+#else
     J3DGDWrite_u32(*(u32*)color);
     J3DGDWrite_u32(*(u32*)(color + 1));
+#endif
 }
 
 inline void loadAmbColors(const J3DGXColor* color) {
     J3DGDWriteXFCmdHdr(0x100A, 2);
+#if TARGET_PC
+    J3DGDWrite_u32(*(BE(u32)*)color);
+    J3DGDWrite_u32(*(BE(u32)*)(color + 1));
+#else
     J3DGDWrite_u32(*(u32*)color);
     J3DGDWrite_u32(*(u32*)(color + 1));
+#endif
 }
 
 inline void loadTexCoordScale(GXTexCoordID coord, const J3DTexCoordScaleInfo& info) {
