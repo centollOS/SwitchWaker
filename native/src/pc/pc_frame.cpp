@@ -673,6 +673,10 @@ void pc_frame_begin(void) {
 
 void pc_frame_end(void) {
     const uint64_t endFrameStartNs = monotonicNs();
+    if (gConfig.fpsOverlay) {
+        const uint64_t frameNs = endFrameStartNs - sFrameStartNs;
+        overlayFrame(frameNs > sFrameWaitNs ? frameNs - sFrameWaitNs : 0);
+    }
     const AuroraStats* stats;
     {
         // Aurora's frame work allocates host memory, not the game's current heap (JKRHeap.cpp).

@@ -35,6 +35,9 @@ struct Config {
     // built, texture bytes uploaded, resources loaded, scene created). 0 = off (the default; the
     // Switch build sets 50).
     unsigned int hitchMs = 0;
+    // COS_FPS_OVERLAY: a frame-rate panel drawn with Aurora's ImGui (pc_overlay.cpp). Off by default;
+    // the Switch build sets 1.
+    bool fpsOverlay = false;
 };
 
 extern Config gConfig;
@@ -137,6 +140,10 @@ void loadInput();
 
 // pc_watchdog.cpp
 void startWatchdog();
+
+// pc_overlay.cpp: COS_FPS_OVERLAY's panel, drawn into this frame's ImGui frame (call between
+// aurora_begin_frame and aurora_end_frame). busyNs: this frame's game-thread busy time so far.
+void overlayFrame(uint64_t busyNs);
 
 // pc_frame.cpp: milestone M6 logo-res, once pc_logo_res_synced reported every resource and the
 // logo scene made its scene request (`how` says which: dComIfG_changeOpeningScene, or the

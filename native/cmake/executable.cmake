@@ -42,6 +42,13 @@ endif ()
 set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_shot.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
         "${aurora_SOURCE_DIR}"
         "$<TARGET_PROPERTY:dawn::webgpu_dawn,INTERFACE_INCLUDE_DIRECTORIES>")
+# pc_overlay.cpp (COS_FPS_OVERLAY) draws with Aurora's ImGui. Headers only: aurora_core links imgui.
+if (TARGET imgui)
+    set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_overlay.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
+            "$<TARGET_PROPERTY:imgui,INTERFACE_INCLUDE_DIRECTORIES>")
+    set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_overlay.cpp" APPEND PROPERTY COMPILE_DEFINITIONS
+            "$<TARGET_PROPERTY:imgui,INTERFACE_COMPILE_DEFINITIONS>")
+endif ()
 if (TARGET cos_link_census)
     target_link_libraries(cos_link_census PRIVATE cos_pc)
 endif ()
