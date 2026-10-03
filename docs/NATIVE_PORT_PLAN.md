@@ -800,3 +800,16 @@ Each phase lands as its own commits; this file records decisions and measured re
   binds all undefined symbols to libSystem/libc++/libobjc/libz/libsqlite3, Apple frameworks, and
   Aurora's Homebrew libpng16/libfreetype (libzstd linked); every default target rc=0, smoke ok,
   link census equal to the expected list, census `--dups` 0. Not run yet (step 3.9).
+- **3.9 Static-init smoke:** under `TARGET_PC`, `COS_SMOKE=static-init` makes `main` run
+  `pc_smoke_static_init()` before any SDK call and leave with `_Exit` (returning would run the game's
+  static destructors, which the GameCube never ran; `~dComIfG_inf_c` reaches a missing
+  `JUTGamePad`, TODO(native phase 6)). It checks `g_fpcPf_ProfileList_p == g_fpcPfLst_ProfileList`,
+  the NULL at `fpcNm_MAX_NUM_e`, `mProcName == i` for every non-NULL entry and `fpcPf_Get(i)`.
+  Two crashes before `main` fixed under `TARGET_PC`: the global `operator new`/`new[]` forms in
+  `JKRHeap.cpp` fall back to `aligned_alloc` when no heap is given and none is current, and
+  `operator delete` hands pointers no JKRHeap owns to `free` (adapted from Dusklight's
+  `fallback_alloc`, CC0; Aurora's static `std::vector<bool>` hit it); `dComIfGs_isStageTbox`
+  reads the saved table when no stage is loaded (`daNpc_Tc_HIO_c`'s REL constructor calls it).
+  Reviewed in round 1: `unifdef -UTARGET_PC` of the 3 sources reproduces HEAD, every default
+  target rc=0, smoke ok, link census unchanged (REL 1), and `COS_SMOKE=static-init centollos` prints
+  "502 of 502 profile slots filled, 0 error(s)" and exits 0 on two runs.

@@ -710,7 +710,14 @@ void dComIfGs_onStageTbox(int i_stageNo, int i_no) {
 BOOL dComIfGs_isStageTbox(int i_stageNo, int i_no) {
     stage_stag_info_class* stag_info = dComIfGp_getStageStagInfo();
 
+#if TARGET_PC
+    // On PC the REL units are linked into the executable (phase 3.5), so their static
+    // constructors run before main, before any stage is loaded; daNpc_Tc_HIO_c's constructor
+    // calls this then. With no stage, no stage is the current one: read the saved table.
+    if (stag_info != NULL && i_stageNo == dStage_stagInfo_GetSaveTbl(stag_info)) {
+#else
     if (i_stageNo == dStage_stagInfo_GetSaveTbl(stag_info)) {
+#endif
         return dComIfGs_isTbox(i_no);
     } else {
         return dComIfGs_isSaveTbox(i_stageNo, i_no);
