@@ -320,6 +320,32 @@ void J3DAnmTransformFull::getTransform(u16 idx, J3DTransformInfo* dst) const {
 }
 
 /* 802F06D8-802F072C       .text J3DHermiteInterpolationS__FfPsPsPsPsPsPs */
+#if TARGET_PC
+f32 J3DHermiteInterpolationS(f32 t, s16* time0, s16* value0, s16* tangent0, s16* time1, s16* value1, s16* tangent1) {
+    // The GameCube version below is paired-single assembly only (psq_l loads the s16 keys as
+    // floats), which compiles to nothing here. The same operations, in the same order:
+    f32 t0 = (s16)*time0;
+    f32 v0 = (s16)*value0;
+    f32 d0 = (s16)*tangent0;
+    f32 t1 = (s16)*time1;
+    f32 v1 = (s16)*value1;
+    f32 d1 = (s16)*tangent1;
+    f32 range = t1 - t0;
+    f32 u = (t - t0) / range;
+    f32 dv = v1 - v0;
+    f32 a = d1 * range + v0;
+    f32 u2 = u * u;
+    f32 b = dv - range * d0;
+    a = a - v1;
+    a = a - b;
+    f32 c = u2 * a;
+    f32 fout = range * d0 + c;
+    fout = fout * u + v0;
+    fout = b * u2 + fout;
+    fout = fout - c;
+    return fout;
+}
+#else
 f32 J3DHermiteInterpolationS(f32 t, s16* time0, s16* value0, s16* tangent0, s16* time1, s16* value1, s16* tangent1) {
     /*
     f32 v0 = *(f32*)value0;
@@ -364,6 +390,7 @@ f32 J3DHermiteInterpolationS(f32 t, s16* time0, s16* value0, s16* tangent0, s16*
 #endif
     return fout;
 }
+#endif
 
 /* 802F072C-802F0954       .text J3DGetKeyFrameInterpolationS__FfP18J3DAnmKeyTableBasePs */
 f32 J3DGetKeyFrameInterpolationS(f32 frame, J3DAnmKeyTableBase* table, s16* data) {
