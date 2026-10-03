@@ -187,7 +187,7 @@ f32 J2DPrint::parse(const u8* param_1, int param_2, int param_3, u16* param_4, J
         }
 
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; only the 32-bit distance matters here.
+        // NOTE(native phase 4, harmless): only the distance between two pointers into one string is used; its low 32 bits are the whole distance, as on the GameCube.
         if (r27 == 0 || ((u32)(uintptr_t)param_1 - (u32)(uintptr_t)local_a4) > param_2) {
 #else
         if (r27 == 0 || ((u32)param_1 - (u32)local_a4) > param_2) {
@@ -233,7 +233,7 @@ f32 J2DPrint::parse(const u8* param_1, int param_2, int param_3, u16* param_4, J
                     }
                 }
 #if TARGET_PC
-            // TODO(native phase 4): pointers are 64-bit on the host; only the 32-bit distance matters here.
+            // NOTE(native phase 4, harmless): only the distance between two pointers into one string is used; its low 32 bits are the whole distance, as on the GameCube.
             } else if (local_f0 && ((u32)(uintptr_t)param_1 - (u32)(uintptr_t)local_a4 > (u32)param_2)) {
 #else
             } else if (local_f0 && ((u32)param_1 - (u32)local_a4 > (u32)param_2)) {
@@ -514,7 +514,7 @@ s32 J2DPrint::getNumberS32(const u8** param_1, s32 param_2, s32 param_3, int bas
     } else if (base == 16) {
         uVar2 = strtoul((char*)*param_1, &local_28, base);
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; only the 32-bit distance matters here.
+        // NOTE(native phase 4, harmless): only the distance between two pointers into one string is used; its low 32 bits are the whole distance, as on the GameCube.
         if ((u32)(uintptr_t)local_28 - (u32)(uintptr_t)*param_1 != 8) {
             if ((u32)(uintptr_t)local_28 - (u32)(uintptr_t)*param_1 == 6) {
 #else
@@ -557,7 +557,7 @@ f32 J2DPrint::getNumberF32(const u8** param_1, f32 param_2, f32 param_3, int bas
     } else if (base == 16) {
         uVar2 = strtoul((char*)*param_1, &local_28, base);
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; only the 32-bit distance matters here.
+        // NOTE(native phase 4, harmless): only the distance between two pointers into one string is used; its low 32 bits are the whole distance, as on the GameCube.
         if ((u32)(uintptr_t)local_28 - (u32)(uintptr_t)*param_1 != 8) {
             if ((u32)(uintptr_t)local_28 - (u32)(uintptr_t)*param_1 == 6) {
 #else
