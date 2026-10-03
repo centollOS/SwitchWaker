@@ -728,9 +728,17 @@ private:
 
 class J3DAnmVtxColorIndexData {
 public:
-    /* 0x00 */ u16 mNum;
+    /* 0x00 */ BE(u16) mNum;
+#if TARGET_PC
+    // The file holds an index into the block's u16 vertex index table here, which the GameCube
+    // loader overwrites in place with a 32-bit pointer. A host pointer does not fit, so on PC the
+    // record stays as in the file and J3DAnmVtxColor::getVtxColorIndexPointer resolves it against
+    // colorAddressBase (Dusklight keeps the same base, J3DAnimation.h).
+    /* 0x04 */ BE(u32) mpData;
+#else
     /* 0x04 */ void* mpData;
-};
+#endif
+};  // Size: 0x8
 
 class J3DAnmVtxColor : public J3DAnmBase {
 public:
@@ -742,14 +750,30 @@ public:
         for (int i = 0; i < 2; i++) {
             mAnmVtxColorIndexData[i] = NULL;
         }
+#if TARGET_PC
+        for (int i = 0; i < 2; i++) {
+            colorAddressBase[i] = NULL;
+        }
+#endif
     }
 
     virtual ~J3DAnmVtxColor() {}
     virtual void getColor(u8, u16, GXColor*) const {}
+#if TARGET_PC
+    // The vertex index list of record idx of table col (what the GameCube's relocated mpData
+    // points to).
+    BE(u16)* getVtxColorIndexPointer(u8 col, u16 idx) const {
+        return colorAddressBase[col] + mAnmVtxColorIndexData[col][idx].mpData;
+    }
+#endif
 
 protected:
     /* 0x10 */ u16 mAnmTableNum[2];
     /* 0x14 */ J3DAnmVtxColorIndexData* mAnmVtxColorIndexData[2];
+#if TARGET_PC
+    // The block's u16 vertex index tables, to which the records' mpData indices are relative.
+    BE(u16)* colorAddressBase[2];
+#endif
 };  // Size: 0x1C
 
 class J3DAnmVtxColorKey : public J3DAnmVtxColor {

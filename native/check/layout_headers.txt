@@ -207,6 +207,7 @@ JSystem/J3DGraphAnimator/J3DAnimation.h
     J3DAnmClusterFullData
     J3DAnmTransformKeyData
     J3DAnmClusterKeyData
+    J3DAnmVtxColorIndexData
 
 # 4.13: J2D screens (SCRNblo1): the pane block headers
 JSystem/J2DGraph/J2DPane.h

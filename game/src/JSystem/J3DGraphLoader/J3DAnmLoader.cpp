@@ -355,21 +355,18 @@ void J3DAnmFullLoader_v15::setAnmVtxColor(J3DAnmVtxColorFull* dst, const J3DAnmV
     dst->mpTable[1] = JSUConvertOffsetToPtr<J3DAnmColorFullTable>(data, (void*)data->mTableOffsets[1]);
     dst->mAnmVtxColorIndexData[0] = JSUConvertOffsetToPtr<J3DAnmVtxColorIndexData>(data, (void*)data->mVtxColorIndexDataOffsets[0]);
     dst->mAnmVtxColorIndexData[1] = JSUConvertOffsetToPtr<J3DAnmVtxColorIndexData>(data, (void*)data->mVtxColorIndexDataOffsets[1]);
+#if TARGET_PC
+    // The records keep their file index (no relocation in place, so the resource can be loaded
+    // again); getVtxColorIndexPointer adds it to these bases.
+    dst->colorAddressBase[0] = JSUConvertOffsetToPtr<BE(u16)>(data, (void*)data->mVtxColorIndexPointerOffsets[0]);
+    dst->colorAddressBase[1] = JSUConvertOffsetToPtr<BE(u16)>(data, (void*)data->mVtxColorIndexPointerOffsets[1]);
+#else
     void* indexPtr0 = JSUConvertOffsetToPtr<u16>(data, (void*)data->mVtxColorIndexPointerOffsets[0]);
     void* indexPtr1 = JSUConvertOffsetToPtr<u16>(data, (void*)data->mVtxColorIndexPointerOffsets[1]);
 
     for (s32 i = 0; i < dst->mAnmTableNum[0]; i++)
-#if TARGET_PC
-        // TODO(native phase 4): mpData holds a 32-bit index from the file in a pointer-sized field.
-        dst->mAnmVtxColorIndexData[0][i].mpData = (void*)((intptr_t)indexPtr0 + (s32)(intptr_t)dst->mAnmVtxColorIndexData[0][i].mpData * 2);
-#else
         dst->mAnmVtxColorIndexData[0][i].mpData = (void*)((s32)indexPtr0 + (s32)dst->mAnmVtxColorIndexData[0][i].mpData * 2);
-#endif
     for (s32 i = 0; i < dst->mAnmTableNum[1]; i++)
-#if TARGET_PC
-        // TODO(native phase 4): mpData holds a 32-bit index from the file in a pointer-sized field.
-        dst->mAnmVtxColorIndexData[1][i].mpData = (void*)((intptr_t)indexPtr1 + (s32)(intptr_t)dst->mAnmVtxColorIndexData[1][i].mpData * 2);
-#else
         dst->mAnmVtxColorIndexData[1][i].mpData = (void*)((s32)indexPtr1 + (s32)dst->mAnmVtxColorIndexData[1][i].mpData * 2);
 #endif
 
@@ -615,21 +612,18 @@ void J3DAnmKeyLoader_v15::setAnmVtxColor(J3DAnmVtxColorKey* dst, const J3DAnmVtx
     dst->mpTable[1] = JSUConvertOffsetToPtr<J3DAnmColorKeyTable>(data, (void*)data->mTableOffsets[1]);
     dst->mAnmVtxColorIndexData[0] = JSUConvertOffsetToPtr<J3DAnmVtxColorIndexData>(data, (void*)data->mVtxColorIndexDataOffsets[0]);
     dst->mAnmVtxColorIndexData[1] = JSUConvertOffsetToPtr<J3DAnmVtxColorIndexData>(data, (void*)data->mVtxColorIndexDataOffsets[1]);
+#if TARGET_PC
+    // The records keep their file index (no relocation in place, so the resource can be loaded
+    // again); getVtxColorIndexPointer adds it to these bases.
+    dst->colorAddressBase[0] = JSUConvertOffsetToPtr<BE(u16)>(data, (void*)data->mVtxColorIndexPointerOffsets[0]);
+    dst->colorAddressBase[1] = JSUConvertOffsetToPtr<BE(u16)>(data, (void*)data->mVtxColorIndexPointerOffsets[1]);
+#else
     void* indexPtr0 = JSUConvertOffsetToPtr<u16>(data, (void*)data->mVtxColorIndexPointerOffsets[0]);
     void* indexPtr1 = JSUConvertOffsetToPtr<u16>(data, (void*)data->mVtxColorIndexPointerOffsets[1]);
 
     for (s32 i = 0; i < dst->mAnmTableNum[0]; i++)
-#if TARGET_PC
-        // TODO(native phase 4): mpData holds a 32-bit index from the file in a pointer-sized field.
-        dst->mAnmVtxColorIndexData[0][i].mpData = (void*)((intptr_t)indexPtr0 + (s32)(intptr_t)dst->mAnmVtxColorIndexData[0][i].mpData * 2);
-#else
         dst->mAnmVtxColorIndexData[0][i].mpData = (void*)((s32)indexPtr0 + (s32)dst->mAnmVtxColorIndexData[0][i].mpData * 2);
-#endif
     for (s32 i = 0; i < dst->mAnmTableNum[1]; i++)
-#if TARGET_PC
-        // TODO(native phase 4): mpData holds a 32-bit index from the file in a pointer-sized field.
-        dst->mAnmVtxColorIndexData[1][i].mpData = (void*)((intptr_t)indexPtr1 + (s32)(intptr_t)dst->mAnmVtxColorIndexData[1][i].mpData * 2);
-#else
         dst->mAnmVtxColorIndexData[1][i].mpData = (void*)((s32)indexPtr1 + (s32)dst->mAnmVtxColorIndexData[1][i].mpData * 2);
 #endif
 
