@@ -20,6 +20,7 @@ struct GameArgs {
 
 void* gameThread(void* raw) {
     auto* args = static_cast<GameArgs*>(raw);
+    cos_switch_thread_role(COS_SWITCH_THREAD_GAME);
     args->result = aurora_main(args->argc, args->argv);
     return nullptr;
 }

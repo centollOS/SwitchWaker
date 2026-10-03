@@ -99,9 +99,27 @@ typedef struct {
      * Execute yet, 1 on, 2 the driver has no GL_EXT_disjoint_timer_query, 3 COS_SWITCH_GPU_TIMER=0. */
     uint64_t gpuFrames, gpuTotalNs, gpuEfbNs, gpuTexConvNs, gpuPresentNs, gpuImguiNs, gpuCopyNs;
     uint64_t gpuOtherNs, gpuFirstPassNs, gpuDisjoint, gpuDropped, gpuTimerState;
+    /* CPU time (ns, the kernel's per-thread tick count) of the game thread, Aurora's render worker,
+     * JAudio's audio thread, the game's DVD thread and every other thread together. */
+    uint64_t cpuGameNs, cpuRenderNs, cpuAudioNs, cpuDvdNs, cpuOtherNs;
 } CosSwitchGfxStats;
 
 void cos_switch_gfx_stats(CosSwitchGfxStats* out);
+
+/* Threads by role, for their CPU time (switch/native/source/thread_wrap.c). Every pthread is
+ * registered as OTHER when it starts; a thread names its role with cos_switch_thread_role. */
+enum {
+    COS_SWITCH_THREAD_OTHER = 0, /* Aurora's DVD worker and pipeline threads, Dawn's, the logs... */
+    COS_SWITCH_THREAD_GAME,      /* the game's main thread */
+    COS_SWITCH_THREAD_RENDER,    /* Aurora's render worker (all of Dawn's GL work) */
+    COS_SWITCH_THREAD_AUDIO,     /* JAudio's audio thread (JASystem::TAudioThread) */
+    COS_SWITCH_THREAD_DVD,       /* the game's DVD thread (mDoDvdThd) */
+    COS_SWITCH_THREAD_ROLES
+};
+void cos_switch_thread_role(int role);
+/* CPU time (ns, svcGetInfo ThreadTickCount) of the registered threads per role, running totals;
+ * a thread that ended keeps its last value. */
+void cos_switch_thread_cpu_ns(uint64_t out[COS_SWITCH_THREAD_ROLES]);
 
 #ifdef __cplusplus
 }

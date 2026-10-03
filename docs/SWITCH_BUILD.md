@@ -257,6 +257,7 @@ Switch patch 0005, the Dawn GL queue patch and the disc reader):
 [cos] perf-switch dawn gl replay per frame: pipelines P ms, bind groups B, immediates I, vertex state V, draw calls D (a after a pipeline change A ms = x us each, t after a texture bind T ms = y us each, o others O ms = z us each); u UBO binds, v VAO binds, i index binds
 [cos] perf-switch dawn gl execute split per frame: passes P ms (lazy clears L, fbo setup F, default state S, clears C, pass end E, viewport/scissor/blend V, replay R, residual X); first pass xN T ms (lazy clears, fbo setup, default state, clears, pass end, replay, residual); buffer copies B ms (n before the first pass Bp ms, first copy B1 ms); m texture copies M ms; execute residual Y ms
 [cos] perf-switch gpu per frame (n read back): G ms (p95 P, max M): efb passes E, tex copy conv C, present R, imgui I, copies K, other O; first pass F; d dropped, j disjoint
+[cos] perf-switch cpu per frame: game thread G ms, render worker R ms (busy B ms wall), audio A, dvd D, other threads O
 ```
 
 The second line is Dawn's GL replay of the frame's submission
@@ -316,6 +317,13 @@ included. If Mesa does not expose the extension the line says so (and the overla
 timer"); `COS_SWITCH_GPU_TIMER=0` in `env.txt` turns the queries off for an A/B run. The frame-rate
 panel shows the same GPU ms per frame. If GPU ms per frame is about the frame time, the frame is
 GPU-bound and the internal resolution (`COS_FB_SCALE`) is the lever.
+The sixth line is each thread's CPU time per game frame from the kernel's per-thread tick count
+(`svcGetInfo(InfoType_ThreadTickCount)`; `switch/native/source/thread_wrap.c` keeps the handle of
+every pthread): the game thread, Aurora's render worker (all of Dawn's GL work runs on it), JAudio's
+audio thread, the game's DVD thread (`mDoDvdThd`) and all other threads together (Aurora's DVD
+worker, Dawn's and the log threads). A render worker CPU time well below its busy wall time (first
+line) means the worker waits rather than works: for the GPU inside Mesa, or for a core another
+thread holds (study, timer 4). The hitch line has the same five numbers for the hitch frame.
 `COS_SWITCH_GL_NO_ERROR=1` in `env.txt` makes Dawn ask for a `KHR_no_error` GL context
 (`switch/dawn/patches/dawn-switch-gl-no-error-context.patch`), in which Mesa skips the error
 checks of every GL call, draw and uniform validation included; `[dawn] COS_SWITCH_GL_NO_ERROR:` in

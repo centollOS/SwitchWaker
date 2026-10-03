@@ -299,7 +299,8 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
              "%.1f, pipeline compile %.1f ms (%llu), dvd %llu reads %.1f KiB %.1f ms; dawn gl: %llu "
              "draws, %llu tex binds, %llu texparams, execute %.1f, other work %.1f, release %.1f ms "
              "(first pass %.1f: fbo %.1f, clears %.1f, replay %.1f; other passes %.1f; buffer "
-             "copies %.1f, first %.1f; texture copies %.1f); gpu %.1f ms over %llu frames read back",
+             "copies %.1f, first %.1f; texture copies %.1f); gpu %.1f ms over %llu frames read back; "
+             "cpu: game %.1f, render worker %.1f, audio %.1f, dvd %.1f, other %.1f ms",
              msOf(now.frameSlotWaitNs - p.frameSlotWaitNs), msOf(now.stagingWaitNs - p.stagingWaitNs),
              msOf(now.queueFullWaitNs - p.queueFullWaitNs), msOf(now.workerBusyNs - p.workerBusyNs),
              msOf(now.workerEncodeNs - p.workerEncodeNs), msOf(now.workerSubmitNs - p.workerSubmitNs),
@@ -319,7 +320,9 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
              msOf(subOrZero(now.glPassTotalNs - p.glPassTotalNs, now.glFirstPassNs - p.glFirstPassNs)),
              msOf(now.glBufCopyNs - p.glBufCopyNs), msOf(now.glFirstBufCopyNs - p.glFirstBufCopyNs),
              msOf(now.glTexCopyNs - p.glTexCopyNs), msOf(now.gpuTotalNs - p.gpuTotalNs),
-             (unsigned long long)(now.gpuFrames - p.gpuFrames));
+             (unsigned long long)(now.gpuFrames - p.gpuFrames), msOf(now.cpuGameNs - p.cpuGameNs),
+             msOf(now.cpuRenderNs - p.cpuRenderNs), msOf(now.cpuAudioNs - p.cpuAudioNs),
+             msOf(now.cpuDvdNs - p.cpuDvdNs), msOf(now.cpuOtherNs - p.cpuOtherNs));
 #endif
     writef(STDERR_FILENO,
            "[cos] hitch frame %u: busy %.1f ms (wall %.1f): events %.1f, begin_frame %.1f, cpd %.1f, "
@@ -573,6 +576,14 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
         }
         sSwGpuFrameNs.clear();
     }
+    // CPU time per game frame of the threads (thread_wrap.c), against the render worker's busy
+    // wall time: a worker CPU time well below its busy time means it waits (GPU, or preempted).
+    writef(STDERR_FILENO,
+           "[cos] perf-switch cpu per frame: game thread %.2f ms, render worker %.2f ms (busy %.2f ms "
+           "wall), audio %.2f, dvd %.2f, other threads %.2f\n",
+           msOf(cur.cpuGameNs - w.cpuGameNs) / n, msOf(cur.cpuRenderNs - w.cpuRenderNs) / n,
+           msOf(cur.workerBusyNs - w.workerBusyNs) / n, msOf(cur.cpuAudioNs - w.cpuAudioNs) / n,
+           msOf(cur.cpuDvdNs - w.cpuDvdNs) / n, msOf(cur.cpuOtherNs - w.cpuOtherNs) / n);
     sSwWindow = cur;
     sSwWindowEvents = ev;
     sSwWindowTexBytes = 0;

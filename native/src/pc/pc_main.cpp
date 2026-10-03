@@ -44,7 +44,11 @@
 #include <mach-o/dyld.h>
 #endif
 #if defined(__SWITCH__)
+#include "JSystem/JAudio/JASAudioThread.h"
+#include "m_Do/m_Do_dvd_thread.h"
 #include "cos_switch.h"
+
+#include <lib/gfx/render_worker.hpp>
 #endif
 
 namespace pc {
@@ -130,6 +134,14 @@ void* threadLaunchHook(OSThread* thread) {
 void threadStartHook(OSThread* thread, void* launchValue) {
     (void)thread;
     JKRHeap::sCurrentHeap = static_cast<JKRHeap*>(launchValue);
+#if defined(__SWITCH__)
+    // The threads whose CPU time the perf-switch lines report by name (thread_wrap.c).
+    if (thread == &JASystem::TAudioThread::sAudioThread) {
+        cos_switch_thread_role(COS_SWITCH_THREAD_AUDIO);
+    } else if (thread == &mDoDvdThd::l_thread) {
+        cos_switch_thread_role(COS_SWITCH_THREAD_DVD);
+    }
+#endif
 }
 
 } // namespace
@@ -168,6 +180,14 @@ void pc_aurora_init(int argc, char* argv[]) {
         writef(STDERR_FILENO, "[cos] aurora_initialize returned no window\n");
         pc_exit(PC_EXIT_USAGE);
     }
+#if defined(__SWITCH__)
+    // Name Aurora's render worker for its CPU time in the perf-switch lines (thread_wrap.c).
+    aurora::gfx::render_worker::enqueue_work([] {
+        if (aurora::gfx::render_worker::is_worker_thread()) {
+            cos_switch_thread_role(COS_SWITCH_THREAD_RENDER);
+        }
+    });
+#endif
     if (pc_aspect_wide()) {
         // The game draws an anamorphic picture into the 640x480 EFB (pc_aspect.h): Aurora presents
         // it at the wider aspect, letterboxed or pillarboxed in a window of another shape (patch

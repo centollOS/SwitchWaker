@@ -23,6 +23,8 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
     dawn_switch_gl_cmd_stats(cmd, 60);
     uint64_t dvd[3] = {};
     cos_switch_nod_stats(dvd);
+    uint64_t cpu[COS_SWITCH_THREAD_ROLES] = {};
+    cos_switch_thread_cpu_ns(cpu);
     *out = CosSwitchGfxStats{
         .frameSlotWaitNs = a.frameSlotWaitNs,
         .stagingWaitNs = a.stagingWaitNs,
@@ -108,5 +110,10 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
         .gpuDisjoint = cmd[57],
         .gpuDropped = cmd[58],
         .gpuTimerState = cmd[59],
+        .cpuGameNs = cpu[COS_SWITCH_THREAD_GAME],
+        .cpuRenderNs = cpu[COS_SWITCH_THREAD_RENDER],
+        .cpuAudioNs = cpu[COS_SWITCH_THREAD_AUDIO],
+        .cpuDvdNs = cpu[COS_SWITCH_THREAD_DVD],
+        .cpuOtherNs = cpu[COS_SWITCH_THREAD_OTHER],
     };
 }
