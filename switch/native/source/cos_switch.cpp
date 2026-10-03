@@ -7,6 +7,9 @@
 //     by a thread of its own so a game thread never waits on the SD card. A crash or an exit
 //     writes what is still queued before the process ends.
 //
+// Memory: the process's used and total memory at start, every 15 seconds (from the log writer
+// thread) and at exit: "[switch] memory: used N MiB of M MiB".
+//
 // Run options: COS_SWITCH_ROOT/env.txt, one NAME=value per line (# comments), applied before the
 // Switch defaults (setenv without overwrite): COS_DISC (the shared GZLE01.iso), COS_RUN_DIR (the
 // native directory, for backtrace.txt), COS_PERF_EVERY=60 and COS_STALL_S=90.
@@ -104,8 +107,23 @@ void storeQueued() {
     }
 }
 
+void sayf(const char* format, ...) __attribute__((format(printf, 1, 2)));
+
+void reportMemory() {
+    u64 total = 0, used = 0;
+    svcGetInfo(&total, InfoType_TotalMemorySize, CUR_PROCESS_HANDLE, 0);
+    svcGetInfo(&used, InfoType_UsedMemorySize, CUR_PROCESS_HANDLE, 0);
+    sayf("[switch] memory: used %llu MiB of %llu MiB\n", (unsigned long long)(used >> 20),
+         (unsigned long long)(total >> 20));
+}
+
 void writerMain(void*) {
+    u64 lastMemoryReport = armGetSystemTick();
     while (gWriterRunning.load(std::memory_order_acquire)) {
+        if (armTicksToNs(armGetSystemTick() - lastMemoryReport) >= 15000000000ULL) {
+            lastMemoryReport = armGetSystemTick();
+            reportMemory();
+        }
         mutexLock(&gRingLock);
         if (queuedLocked() == 0) {
             condvarWaitTimeout(&gRingChanged, &gRingLock, 100000000ULL);
@@ -156,7 +174,6 @@ const devoptab_t gTee = {
     .write_r = teeWrite,
 };
 
-void sayf(const char* format, ...) __attribute__((format(printf, 1, 2)));
 void sayf(const char* format, ...) {
     char line[1024];
     va_list args;
@@ -332,6 +349,7 @@ void crashReport(ThreadExceptionDump* ctx) {
         sayf("[cos] state: ");
         gStateWriter(STDERR_FILENO);
     }
+    reportMemory();
     sayf("[cos] exit 13 (crash); Atmosphère writes its report to atmosphere/crash_reports/\n");
 }
 
@@ -412,6 +430,7 @@ void cos_switch_exit(int code) {
             svcSleepThread(1000000000ULL);
         }
     }
+    reportMemory();
     sayf("[switch] exit %d after %u threads; ending the process\n", code, cos_switch_threads_created());
     cos_switch_flush_logs();
     usb_log_stop(1000);
