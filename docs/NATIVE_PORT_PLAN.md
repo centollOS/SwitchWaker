@@ -2812,6 +2812,18 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   fail, 2 expected fails, 1 skipped); Xboss3 and kazeB reach frame 600. Regression passes. Reviewed:
   Xboss3 and kazeB re-run to frame 600, regression re-run passes.
 
+- **Boot-sweep fix 7: the JStudio sound adaptor reads its STB operands big-endian** (2026-10-03,
+  lane outset, endian). Most common signature (2 of 12 in a 143/155 sweep): `PANIC
+  JAISoundTable.cpp:61/70` (invalid category) in `JAInter::SoundTable::getInfoPointer` <-
+  `JAIBasic::startSoundVec` <- `JStudio_JAudio::TAdaptor_sound` while a demo STB plays (GanonK,
+  M2tower). Root cause: `TAdaptor_sound::adaptor_do_SOUND` read the 4-byte STB sound-ID operand
+  with a native `*(s32*)`, so on the host the ID was byte-swapped and its category bits garbage;
+  `adaptor_do_LOCATED` read its 4-byte operand as an 8-byte host `Vec*`. Both now read
+  `BE(u32)` under `TARGET_PC` (after Dusklight JStudio_JAudio2/object-sound.cpp, CC0). Sweep:
+  143 -> 145 of 155; M2tower reaches frame 600; GanonK now stops at the LkD00/LkD01 demo-archive
+  signature of fix 5 (`JUTNameTab::getIndex` <- `searchUpdateMaterialID`). Reviewed: GanonK and
+  M2tower re-run (no JAISoundTable panic), regression passes.
+
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
   variable values checked, max |v| 500000). Builds on the boot loops' STB/FVB big-endian

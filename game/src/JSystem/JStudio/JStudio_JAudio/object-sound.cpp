@@ -72,7 +72,12 @@ void TAdaptor_sound::adaptor_do_update(const JStudio::TObject* object, u32) {
 void TAdaptor_sound::adaptor_do_SOUND(JStudio::data::TEOperationData op, const void* data, u32) {
     switch (op) {
     case JStudio::data::TEOD_Unknown_19: {
+#if TARGET_PC
+        // The STB operand is a big-endian 4-byte word (after Dusklight, CC0: object-sound.cpp).
+        u32 soundID = *(BE(u32)*)data;
+#else
         u32 soundID = *(s32*)data;
+#endif
         if (mpBasic->checkEnablePrepare(soundID)) {
             if (mpSound) {
                 mpSound->stop(0);
@@ -83,7 +88,11 @@ void TAdaptor_sound::adaptor_do_SOUND(JStudio::data::TEOperationData op, const v
                 return;
             }
         } else {
+#if TARGET_PC
+            mSoundID = soundID;
+#else
             mSoundID = *(s32*)data;
+#endif
         }
         break;
     }
@@ -96,7 +105,12 @@ void TAdaptor_sound::adaptor_do_SOUND(JStudio::data::TEOperationData op, const v
 void TAdaptor_sound::adaptor_do_LOCATED(JStudio::data::TEOperationData op, const void* data, u32 flag) {
     switch (op) {
     case JStudio::data::TEOD_Unknown_02: {
+#if TARGET_PC
+        // A 4-byte big-endian flag in the STB, not a host pointer (after Dusklight, CC0: object-sound.cpp).
+        u32 pos = *(BE(u32)*)data;
+#else
         Vec* pos  = *(Vec**)data;
+#endif
         mPosition = NULL;
         if (!pos)
             return;
