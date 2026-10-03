@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+# Run the native executable centollos to a milestone or through a smoke test, with a timeout, and keep
+# what the run left in build/native-mac/runs/<target>-<timestamp>/ (docs/NATIVE_PORT_PHASE4_6.md,
+# step 6.0 and "The crash-to-fix loop").
+#
+#   native/tools/run.sh <target> [options] [-- extra arguments for centollos]
+#
+# <target> is a milestone (static-init, aurora-up, heaps, ... see COS_MILESTONE) or a smoke test
+# (crash-test, ... see COS_SMOKE). static-init is milestone M0 and runs the static-init smoke test.
+#
+# Options:
+#   --timeout S      in-process watchdog timeout (COS_TIMEOUT_S), default 180
+#   --stall S        frame-counter stall limit (COS_STALL_S), default 30
+#   --frames N       exit 0 after N game frames (COS_FRAMES)
+#   --trace LIST     trace channels (COS_TRACE), e.g. res,scene
+#   --uncapped       COS_UNCAPPED=1
+#   --audio on|off   COS_AUDIO (default: off, until phase 5)
+#   --disc PATH      COS_DISC, default /path/to/GZLE01.iso
+#   --build          run `ninja -C build/native-mac centollos` first
+#   --exe PATH       the executable (default build/native-mac/centollos)
+#   --quiet          do not print the tail of the log on failure
+# Other COS_* variables already in the environment are passed through.
+#
+# Exit codes (those of centollos): 0 reached, 1 smoke check failed, 2 usage, 10 timeout, 11 stall,
+# 12 panic, 13 signal, 14 disc problem. If the process does not end within the timeout plus a
+# grace period it is killed and the run counts as a stall (11); a process killed by a signal the
+# crash handler could not catch counts as 13.
+#
+# The run directory holds: command.txt, env.txt, run.log (stdout and stderr), exit_code.txt and,
+# when the harness wrote them, backtrace.txt (crash or panic; atos file:line names are appended)
+# and stall.txt (every thread's backtrace). The disc's main.dol is SHA-1 checked against the
+# supported revision on first use; the result is cached in build/native-mac/runs/disc_check.txt.
+# Nothing the run writes is meant for git (build/ is ignored).
+set -u
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo="$(cd "$script_dir/../.." && pwd)"
+build="$repo/build/native-mac"
+
+milestones=" static-init aurora-up heaps gfx-create frame-loop logo-scene logo-res opening title-stage title file-select new-game outset-debug outset-control outset-real "
+expected_dol_sha1="8d28bab68bb5078c38e43f29206f0bd01f7e7a67" # GZLE01 revision 0 (scripts/prepare.py)
+grace_s=30
+
+usage() {
+    sed -n '2,/^set -u/p' "${BASH_SOURCE[0]}" | sed '$d' | sed 's/^# \{0,1\}//'
+    exit 2
+}
+
+[ $# -ge 1 ] || usage
+target="$1"
+shift
+case "$target" in -h|--help) usage ;; esac
+
+timeout_s=180
+stall_s=30
+frames=""
+trace="${COS_TRACE:-}"
+uncapped="${COS_UNCAPPED:-}"
+audio="${COS_AUDIO:-off}"
+disc="${COS_DISC:-/path/to/GZLE01.iso}"
+do_build=0
+exe="$build/centollos"
+quiet=0
+extra=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --timeout) timeout_s="$2"; shift 2 ;;
+        --stall) stall_s="$2"; shift 2 ;;
+        --frames) frames="$2"; shift 2 ;;
+        --trace) trace="$2"; shift 2 ;;
+        --uncapped) uncapped=1; shift ;;
+        --audio) audio="$2"; shift 2 ;;
+        --disc) disc="$2"; shift 2 ;;
+        --build) do_build=1; shift ;;
+        --exe) exe="$2"; shift 2 ;;
+        --quiet) quiet=1; shift ;;
+        --) shift; extra=("$@"); break ;;
+        *) echo "run: unknown option $1" >&2; usage ;;
+    esac
+done
+case "$timeout_s" in ''|*[!0-9.]*) echo "run: --timeout needs seconds" >&2; exit 2 ;; esac
+case "$stall_s" in ''|*[!0-9.]*) echo "run: --stall needs seconds" >&2; exit 2 ;; esac
+
+if [ "$do_build" = 1 ]; then
+    ninja -C "$build" centollos >/dev/null || { echo "run: build failed" >&2; exit 2; }
+fi
+[ -x "$exe" ] || { echo "run: $exe not built (ninja -C build/native-mac centollos)" >&2; exit 2; }
+
+runs="$build/runs"
+mkdir -p "$runs"
+
+# --- disc: main.dol SHA-1 on first use (decision H9) -----------------------------------------
+# Only when the target boots the game: a smoke test that runs before the disc check needs none.
+needs_disc=1
+case "$target" in static-init|crash-test|panic-test|stall-test|timeout-test) needs_disc=0 ;; esac
+if [ "$needs_disc" = 1 ] && [ -f "$disc" ]; then
+    cache="$runs/disc_check.txt"
+    stamp="$(stat -f '%z %m' "$disc" 2>/dev/null)"
+    if ! grep -qxF "ok	$disc	$stamp" "$cache" 2>/dev/null; then
+        echo "run: first use of $disc: checking main.dol SHA-1" >&2
+        dol_sha1="$(python3 - "$disc" <<'PY'
+import hashlib, struct, sys
+with open(sys.argv[1], "rb") as f:
+    head = f.read(0x440)
+    if head[0x1C:0x20] != b"\xC2\x33\x9F\x3D":
+        print("not-a-gamecube-disc"); sys.exit()
+    dol_off = struct.unpack(">I", head[0x420:0x424])[0]
+    f.seek(dol_off)
+    dh = f.read(0x100)
+    offs = struct.unpack(">18I", dh[0x00:0x48])
+    sizes = struct.unpack(">18I", dh[0x90:0xD8])
+    size = max([0x100] + [o + s for o, s in zip(offs, sizes) if s])
+    f.seek(dol_off)
+    print(hashlib.sha1(f.read(size)).hexdigest())
+PY
+)"
+        if [ "$dol_sha1" != "$expected_dol_sha1" ]; then
+            echo "run: $disc: main.dol SHA-1 $dol_sha1, expected $expected_dol_sha1 (GZLE01 revision 0)" >&2
+            exit 14
+        fi
+        printf 'ok\t%s\t%s\n' "$disc" "$stamp" >> "$cache"
+    fi
+fi
+
+# --- environment ------------------------------------------------------------------------------
+ts="$(date +%Y%m%d-%H%M%S)"
+run_dir="$runs/$target-$ts"
+n=1
+while [ -e "$run_dir" ]; do run_dir="$runs/$target-$ts-$n"; n=$((n + 1)); done
+mkdir -p "$run_dir"
+
+unset COS_SMOKE COS_MILESTONE
+if [[ "$milestones" == *" $target "* ]]; then
+    export COS_MILESTONE="$target"
+    [ "$target" = "static-init" ] && export COS_SMOKE=static-init
+else
+    export COS_SMOKE="$target"
+fi
+export COS_DISC="$disc"
+export COS_TIMEOUT_S="$timeout_s"
+export COS_STALL_S="$stall_s"
+export COS_AUDIO="$audio"
+export COS_RUN_DIR="$run_dir"
+[ -n "$frames" ] && export COS_FRAMES="$frames"
+[ -n "$trace" ] && export COS_TRACE="$trace"
+[ -n "$uncapped" ] && export COS_UNCAPPED="$uncapped"
+
+printf '%q ' "$exe" "${extra[@]+"${extra[@]}"}" > "$run_dir/command.txt"
+echo >> "$run_dir/command.txt"
+env | grep '^COS_' | sort > "$run_dir/env.txt"
+
+# --- run --------------------------------------------------------------------------------------
+start=$(date +%s)
+"$exe" ${extra[@]+"${extra[@]}"} > "$run_dir/run.log" 2>&1 &
+pid=$!
+cleanup() {
+    if kill -0 "$pid" 2>/dev/null; then
+        kill -9 "$pid" 2>/dev/null
+        wait "$pid" 2>/dev/null
+    fi
+}
+trap cleanup EXIT
+trap 'cleanup; exit 130' INT TERM
+
+hard_limit=$(python3 -c "import math; print(int(math.ceil($timeout_s)) + $grace_s)")
+killed=0
+while kill -0 "$pid" 2>/dev/null; do
+    if [ $(( $(date +%s) - start )) -ge "$hard_limit" ]; then
+        echo "run: no exit $hard_limit s after start: killing $pid" >> "$run_dir/run.log"
+        kill -9 "$pid" 2>/dev/null
+        killed=1
+        break
+    fi
+    sleep 0.2
+done
+wait "$pid" 2>/dev/null
+rc=$?
+trap - EXIT INT TERM
+elapsed=$(( $(date +%s) - start ))
+if [ "$killed" = 1 ]; then
+    rc=11
+elif [ "$rc" -gt 128 ]; then
+    echo "run: centollos died of signal $((rc - 128)) without the crash handler" >> "$run_dir/run.log"
+    rc=13
+fi
+echo "$rc" > "$run_dir/exit_code.txt"
+
+# --- symbolise --------------------------------------------------------------------------------
+for f in backtrace.txt stall.txt; do
+    [ -f "$run_dir/$f" ] || continue
+    load="$(sed -n 's/^\[cos\] image .* load=\(0x[0-9a-f]*\).*/\1/p' "$run_dir/$f" | head -1)"
+    [ -n "$load" ] || continue
+    {
+        echo
+        echo "[run] atos -o $exe -l $load (file:line where the debug info allows):"
+        grep '^\[cos\] frames' "$run_dir/$f" | while IFS= read -r line; do
+            # shellcheck disable=SC2086
+            atos -o "$exe" -l "$load" ${line#*:} 2>/dev/null | grep -v '^0x' || true
+            echo "--"
+        done
+    } >> "$run_dir/$f"
+done
+
+case "$rc" in
+    0) meaning="reached" ;;
+    1) meaning="smoke check failed" ;;
+    2) meaning="usage error" ;;
+    10) meaning="timeout" ;;
+    11) meaning="stall" ;;
+    12) meaning="panic" ;;
+    13) meaning="signal" ;;
+    14) meaning="disc problem" ;;
+    *) meaning="unexpected exit" ;;
+esac
+echo "run: $target: exit $rc ($meaning) after ${elapsed}s; run dir ${run_dir#"$repo"/}"
+if [ "$rc" != 0 ] && [ "$quiet" = 0 ]; then
+    tail -n 25 "$run_dir/run.log" | sed 's/^/  | /'
+    [ -f "$run_dir/backtrace.txt" ] && echo "  backtrace: ${run_dir#"$repo"/}/backtrace.txt"
+    [ -f "$run_dir/stall.txt" ] && echo "  threads:   ${run_dir#"$repo"/}/stall.txt"
+fi
+exit "$rc"

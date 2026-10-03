@@ -8,6 +8,9 @@
 #include "stdio.h"
 #include "dolphin/base/PPCArch.h"
 #include "dolphin/os/OS.h"
+#if TARGET_PC
+#include "pc/pc_harness.h"
+#endif
 
 u8 __OSReport_disable;
 u8 __OSReport_Error_disable;
@@ -243,13 +246,20 @@ void OSPanic(const char* file, s32 line, const char* fmt, ...) {
     va_end(args);
     OSReport(" in \"%s\" on line %d.\n", file, line);
 
-    OSReport("\nAddress:      Back Chain    LR Save\n");
 #if TARGET_PC
-    // TODO(native phase 4): pointers are 64-bit on the host; only the low 32 bits are used here.
-    for (i = 0, p = (u32*)OSGetStackPointer(); p && (u32)(uintptr_t)p != 0xFFFFFFFF && i++ < 16; p = (u32*)*p) {
+    // The PowerPC back chain below does not exist on the host (and following it faults), nor does
+    // the deliberate write to 0x1234567 stop the program cleanly: the run harness prints the scene,
+    // frame, last resource and the host backtrace, then exits 12 (docs/NATIVE_PORT_PHASE4_6.md,
+    // step 6.0).
+    (void)i;
+    (void)p;
+    (void)tmp;
+    (void)tmp2;
+    fflush(stdout);
+    pc_panic(file, line);
 #else
+    OSReport("\nAddress:      Back Chain    LR Save\n");
     for (i = 0, p = (u32*)OSGetStackPointer(); p && (u32)p != 0xFFFFFFFF && i++ < 16; p = (u32*)*p) {
-#endif
         OSReport("0x%08x:   0x%08x    0x%08x\n", p, p[0], p[1]);
     }
 
@@ -257,4 +267,5 @@ void OSPanic(const char* file, s32 line, const char* fmt, ...) {
     tmp = (u32*)tmp2;
     *tmp = tmp2;
     PPCHalt();
+#endif
 }

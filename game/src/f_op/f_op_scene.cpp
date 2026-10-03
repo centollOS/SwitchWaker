@@ -6,6 +6,9 @@
 #include "f_op/f_op_scene.h"
 #include "f_pc/f_pc_manager.h"
 #include "m_Do/m_Do_hostIO.h"
+#if TARGET_PC
+#include "pc/pc_harness.h"
+#endif
 
 static BOOL fopScn_Draw(scene_class* i_this) {
     return fpcNd_DrawMethod((nodedraw_method_class*)i_this->mpMtd, i_this);
@@ -34,6 +37,10 @@ static cPhs_State fopScn_Create(void* i_this) {
     if (fpcM_IsFirstCreating(i_this)) {
         scene_process_profile_definition* profile = (scene_process_profile_definition*)fpcM_GetProfile(i_this);
         scene->mpMtd = profile->sub_method;
+#if TARGET_PC
+        // Run harness (step 6.0): the scene the crash report names, and COS_TRACE=scene.
+        pc_trace_scene(fpcM_GetName(i_this));
+#endif
         fopScnTg_Init(&scene->mScnTg, i_this);
         fopScnTg_ToQueue(&scene->mScnTg);
 

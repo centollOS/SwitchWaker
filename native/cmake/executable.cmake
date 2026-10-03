@@ -15,6 +15,19 @@
 # - Needs Aurora (cos_sdk) and every module; skipped otherwise. Not part of `all`.
 include_guard(GLOBAL)
 
+# The run harness (docs/NATIVE_PORT_PHASE4_6.md, step 6.0): native/src/pc/pc_*.cpp, globbed into
+# the static library cos_pc (API: native/include/pc/pc_harness.h). Compiled like the game units
+# (cos_game_headers), since pc_smoke.cpp reads game state. Game units call into it under TARGET_PC,
+# so the link census bundle links it too: its symbols must not show up as unresolved.
+file(GLOB _pc_sources CONFIGURE_DEPENDS "${COS_NATIVE_ROOT}/src/pc/pc_*.cpp")
+list(SORT _pc_sources)
+add_library(cos_pc STATIC ${_pc_sources})
+target_link_libraries(cos_pc PRIVATE cos_game_headers)
+target_include_directories(cos_pc PRIVATE "${COS_NATIVE_ROOT}/src/pc")
+if (TARGET cos_link_census)
+    target_link_libraries(cos_link_census PRIVATE cos_pc)
+endif ()
+
 if (NOT TARGET cos_sdk)
     message(STATUS "cos_native: executable centollos disabled (needs COS_WITH_AURORA=ON, i.e. cos_sdk)")
     return()
@@ -95,7 +108,7 @@ endforeach ()
 add_executable(centollos EXCLUDE_FROM_ALL "${_exe_dir}/cos_exe_stub.c")
 add_dependencies(centollos ${COS_MODULES})
 target_link_options(centollos PRIVATE "@${_exe_rsp}")
-target_link_libraries(centollos PRIVATE cos_sdk aurora::main)
+target_link_libraries(centollos PRIVATE cos_pc cos_sdk aurora::main)
 set_target_properties(centollos PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
         # The game is C++: link with the C++ driver, so libc++/libc++abi resolve the C++ runtime.

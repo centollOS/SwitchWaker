@@ -28,9 +28,7 @@
 #include "m_Do/m_Do_printf.h"
 #include <stdio.h>
 #if TARGET_PC
-#include <stdlib.h>
-#include "f_pc/f_pc_name.h"
-#include "f_pc/f_pc_profile.h"
+#include "pc/pc_harness.h"
 #endif
 #if TARGET_PC
 // From Dusklight (CC0, ref/dusklight/src/dusk/main.cpp): Aurora's aurora::main library owns the
@@ -536,48 +534,6 @@ void parse_args(int argc, const char* argv[]) {
 }
 #endif
 
-#if TARGET_PC
-// Smoke check of phase 3 step 3.9 (docs/NATIVE_PORT_PHASE2_3.md). COS_SMOKE=static-init makes main
-// stop here, before any SDK initialisation: reaching it proves every static constructor (main.dol,
-// REL and audio units, Aurora) ran without crashing before main. It then checks the profile list
-// the REL units used to provide: g_fpcPf_ProfileList_p points at g_fpcPfLst_ProfileList, the list
-// has fpcNm_MAX_NUM_e entries and a NULL terminator, each non-NULL entry i has mProcName == i,
-// and fpcPf_Get(i) returns entry i. Returns the process exit code: 0 if all of it holds.
-static int pc_smoke_static_init() {
-    int errors = 0;
-    int profiles = 0;
-
-    if (g_fpcPf_ProfileList_p != g_fpcPfLst_ProfileList) {
-        fprintf(stderr, "static-init: g_fpcPf_ProfileList_p %p is not g_fpcPfLst_ProfileList %p\n",
-                (void*)g_fpcPf_ProfileList_p, (void*)g_fpcPfLst_ProfileList);
-        errors++;
-    }
-    if (g_fpcPfLst_ProfileList[fpcNm_MAX_NUM_e] != NULL) {
-        fprintf(stderr, "static-init: the profile list has no NULL at index %d\n", (int)fpcNm_MAX_NUM_e);
-        errors++;
-    }
-    for (int i = 0; i < fpcNm_MAX_NUM_e; i++) {
-        process_profile_definition* profile = g_fpcPfLst_ProfileList[i];
-        if (fpcPf_Get(i) != profile) {
-            fprintf(stderr, "static-init: fpcPf_Get(%d) = %p, list entry %p\n", i, (void*)fpcPf_Get(i),
-                    (void*)profile);
-            errors++;
-        }
-        if (profile == NULL) {
-            continue;
-        }
-        profiles++;
-        if (profile->mProcName != i) {
-            fprintf(stderr, "static-init: profile list entry %d has mProcName %d\n", i, profile->mProcName);
-            errors++;
-        }
-    }
-
-    fprintf(stderr, "static-init: %d of %d profile slots filled, %d error(s)\n", profiles,
-            (int)fpcNm_MAX_NUM_e, errors);
-    return errors == 0 ? 0 : 1;
-}
-#endif
 #if VERSION > VERSION_DEMO
 OSThread mainThread;
 #endif
@@ -590,19 +546,10 @@ int main(int argc, char* argv[]) {
 int main(int argc, const char* argv[]) {
 #endif
 #if TARGET_PC
-    {
-        const char* smoke = getenv("COS_SMOKE");
-        if (smoke != NULL && strcmp(smoke, "static-init") == 0) {
-            // _Exit, not return: returning runs the game's static destructors, which the
-            // GameCube never ran and which assume a booted game (~dComIfG_inf_c reaches
-            // dVibration_c::Kill, which stops the motor of a JUTGamePad that does not exist).
-            // TODO(native phase 6): decide how the PC executable exits once the game boots.
-            int code = pc_smoke_static_init();
-            fflush(stdout);
-            fflush(stderr);
-            _Exit(code);
-        }
-    }
+    // Run harness (docs/NATIVE_PORT_PHASE4_6.md, step 6.0, native/src/pc): crash handler and
+    // watchdog, the COS_SMOKE tests that need no SDK (static-init, which ends here as it did in
+    // step 3.9), then the COS_DISC check. Returns only when the game boots.
+    pc_harness_init(argc, argv);
 #endif
 #if VERSION == VERSION_DEMO
     OSThread mainThread;

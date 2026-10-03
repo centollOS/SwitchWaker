@@ -852,3 +852,59 @@ Each phase lands as its own commits; this file records decisions and measured re
   generator were not needed. Not done here, by design: the game's `main` without `COS_SMOKE`
   (phase 6), the `TODO(native phase 4)` pointer-in-32-bit-field and big-endian data notes, and
   the `TODO(native phase 5)` DSP and streaming semantics.
+
+## Phase 6 log
+
+Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
+
+- **6.0 Run harness:** new static library `cos_pc` from `native/src/pc/pc_*.cpp` (globbed by
+  `native/cmake/executable.cmake`, compiled with the game's flags; also linked into the link
+  census bundle, so its symbols never show up as unresolved), API `native/include/pc/pc_harness.h`.
+  `pc_harness.cpp` reads `COS_DISC`, `COS_SMOKE`, `COS_MILESTONE`, `COS_TIMEOUT_S`, `COS_STALL_S`,
+  `COS_TRACE`, `COS_UNCAPPED`, `COS_AUDIO`, `COS_FRAMES` and `COS_RUN_DIR`, rejects unknown
+  smoke/milestone names (exit 2) and leaves through `pc_exit` (`_Exit` after flushing stdio
+  without blocking on another thread's lock). `pc_milestone.cpp` logs
+  `[cos] MILESTONE <name> frame= retrace= ms=` and exits 0 on `COS_MILESTONE`; `pc_frame_tick`
+  (called from step 6.2 on) feeds the stall watchdog and `COS_FRAMES`. `pc_crash.cpp`: sigaction
+  handler (SEGV/BUS/ILL/FPE/TRAP/ABRT, alternate stack on the main thread) printing the fault
+  address with a below-4-GiB truncation hint, scene, frame, retrace count, last resource,
+  registers, image load address and a `backtrace_symbols_fd` backtrace of the faulting context
+  (pc, lr when it is a caller, then the frame-record chain read with `vm_read_overwrite`, return
+  addresses shown as call sites), to stderr and `<COS_RUN_DIR>/backtrace.txt`, exit 13; `pc_panic`
+  the same with exit 12. `pc_watchdog.cpp`: exit 10 on timeout, exit 11 when the frame counter is
+  frozen for `COS_STALL_S` (from start-up), with every other thread suspended and its frame chain
+  written to `stall.txt`. `pc_disc.cpp`: `COS_DISC` must be a readable GameCube image
+  (magic 0xC2339F3D) of GZLE01 revision 0, else exit 14 (opening it for the game is step 6.1).
+  `pc_smoke.cpp`: `static-init` moved out of `m_Do_main.cpp` unchanged (it now also logs
+  milestone M0), plus the harness self-tests `crash-test` (null write through a volatile
+  pointer), `panic-test` (`OSPanic`), `stall-test` and `timeout-test`. Game changes, all under
+  `TARGET_PC` (`unifdef -UTARGET_PC` of the four files reproduces HEAD): `main` calls
+  `pc_harness_init` first; `OSPanic` calls `pc_panic` instead of walking the PowerPC back chain
+  (which faults on the host; one `TODO(native phase 4)` marker of the stack-walk group goes) and
+  writing to 0x1234567; `fopScn_Create` reports the scene (`pc_trace_scene`) and
+  `my_DVDConvertPathToEntrynum` the resource path (`pc_trace_resource`) for the crash report and
+  `COS_TRACE=scene,res`. `native/tools/run.sh <target>`: milestone or smoke, default timeout
+  180 s and stall 30 s, `COS_AUDIO=off`, disc default `/path/to/GZLE01.iso`
+  with its `main.dol` SHA-1 checked against `8d28bab6…` on first use (cached by size and mtime in
+  `build/native-mac/runs/disc_check.txt`), run directory `build/native-mac/runs/<target>-<ts>/`
+  (`command.txt`, `env.txt`, `run.log`, `exit_code.txt`, `backtrace.txt`/`stall.txt` with `atos`
+  file:line names appended), a hard kill 30 s after the timeout (counted as a stall). Found here:
+  with developer mode off both `lldb` and `sample` wait for an authorisation prompt, so
+  `native/tools/lldb_crash.sh` checks `DevToolsSecurity -status` and exits 3 without starting
+  lldb (`--force` tries anyway under its timeout and kills lldb and debugserver), and stalls use
+  the in-process thread walk instead of `sample`. `*.iso`/`*.ciso` were already in `.gitignore`.
+  Verified: `run.sh static-init` exit 0 (3 runs); `COS_DISC=/nonexistent build/native-mac/centollos`
+  exit 14 (and 14 with `COS_DISC` unset); `run.sh crash-test` exit 13 with
+  `runSmoke(char const*) (pc_smoke.cpp:85)` and its callers named; `panic-test` 12 (`OSPanic` in
+  the backtrace), `timeout-test` 10, `stall-test` 11; `run.sh aurora-up --stall 5` stalls (11)
+  with the main thread in `aurora_main` (`m_Do_main.cpp`, the reset-data loop: the arena is not
+  set up before step 6.1). Regression: `ninja all centollos cos_sdk_smoke` 0 errors, smoke ok, shadow
+  check ok, link census equal to `expected_unresolved_phase2.txt`, `symbol_census.py --all --dups`
+  0.
+- **6.0 review (round 1):** approved; verification and regression rerun independently (static-init
+  0 x3, no disc 14, crash-test 13, panic-test 12, timeout-test 10, stall-test 11, lldb_crash.sh 3
+  with developer mode off, census diff empty, `unifdef -UTARGET_PC` of the game files equals HEAD).
+
+### Phase 6 render issues
+
+None yet.

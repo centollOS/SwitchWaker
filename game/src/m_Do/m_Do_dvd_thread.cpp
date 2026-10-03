@@ -13,6 +13,9 @@
 #include "JSystem/JUtility/JUTAssert.h"
 #include "SSystem/SComponent/c_list.h"
 #include "dolphin/dvd/dvd.h"
+#if TARGET_PC
+#include "pc/pc_harness.h"
+#endif
 
 OSThread mDoDvdThd::l_thread;
 mDoDvdThdStack mDoDvdThd::l_threadStack;
@@ -56,6 +59,10 @@ void mDoDvdThd::suspend() {
 /* 80017FD8-80018038       .text my_DVDConvertPathToEntrynum__FPCc */
 s32 my_DVDConvertPathToEntrynum(const char* path) {
     s32 entryNo = DVDConvertPathToEntrynum(path);
+#if TARGET_PC
+    // Run harness (step 6.0): the last resource the crash report names, and COS_TRACE=res.
+    pc_trace_resource(path, entryNo);
+#endif
 #if VERSION > VERSION_DEMO
     if (entryNo < 0)
         JUT_WARN(0x240, "can't open:[%s]\n", path);
