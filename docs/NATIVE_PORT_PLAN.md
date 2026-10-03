@@ -350,3 +350,21 @@ Each phase lands as its own commits; this file records decisions and measured re
   runs clean, census reproduced (SDK/GF 9, total 145), no cos_sdk/Aurora symbol overlap, default
   configuration (`cos_modules` and checks) unchanged; `GBAGetProcessStatus` = `GBA_READY` accepted
   (the SDK's idle value; JUTGba ignores the result).
+- **2.6f Audio hardware (silent) and MSL extras:** new `native/sdk/src/audio/{AIStubs,DSPStubs,DTK}.cpp`
+  and `native/sdk/src/runtime/extras.c` (globbed), tests `audio` and `msl`
+  (`native/sdk/tests/sdk_audio.cpp`). AI: a register model that plays nothing (settings read back,
+  `AIGetDSPSampleRate` in the SDK encoding, 1 before `AIInit` and 0 after, as `d_a_movie_player`
+  expects; no interrupt or callback ever; `AIInitDMA` keeps the `uintptr_t`, `AIGetDMAStartAddr`
+  aborts when it does not fit a u32). DSP: mail to the DSP taken at once, none back, the SDK's task
+  list, `__DSP_boot_task`/`__DSP_exec_task` log once and never wait; `DSPAddTask` weak (JAudio's
+  `osdsp.c` overrides it). DTK: Dusklight's `libs/dolphin` dtk.c copied as C++ over the silent AI
+  and Aurora's synchronous DVD stream commands (the game never calls it; left out of the TSan target,
+  which links no `aurora::dvd`). `stricmp`/`strnicmp` from Dusklight's `extras.c`, compared as
+  unsigned char. Census (Aurora on, decomp headers): MSL/runtime 0, no SDK/audio bucket, total 145
+  (both were already 0; the real consumers, JAudio/JAZelAudio, come in 3.7). Open for 3.7/phase 5:
+  JAudio's own DSP handshake loops spin with no DSP; Aurora's `<dolphin/dsp.h>` lacks the
+  `__DSP_*` task declarations `osdsp_task.c` needs in aurora-header mode.
+  Reviewed in round 1: new files rebuilt, smoke `audio`/`msl` and the whole program ok (6 runs),
+  3 TSan runs clean, census reproduced, no audio/MSL name of any compiled unit unresolved against
+  cos_sdk and Aurora, DTK.cpp matches Dusklight's dtk.c apart from the listed changes, default
+  configuration (`cos_modules` and checks) unchanged.
