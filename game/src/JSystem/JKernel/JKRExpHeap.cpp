@@ -42,8 +42,15 @@ JKRExpHeap* JKRExpHeap::create(u32 size, JKRHeap* parent, bool errorFlag) {
 
     u32 alignedSize = OSRoundDown(size, 0x10);
     u32 expHeapSize = OSRoundUp(sizeof(JKRExpHeap), 0x10);
+#if TARGET_PC
+    // 0xa0 is the GameCube's OSRoundUp(sizeof(JKRExpHeap), 0x10) + sizeof(CMemBlock): the heap
+    // object and one block header. Both are larger on the host.
+    if (alignedSize < expHeapSize + sizeof(CMemBlock))
+        return NULL;
+#else
     if (alignedSize < 0xa0)
         return NULL;
+#endif
 
     u8* memory = (u8*)JKRAllocFromHeap(parent, alignedSize, 0x10);
     u8* dataPtr = (memory + expHeapSize);
@@ -372,7 +379,12 @@ void JKRExpHeap::do_freeAll() {
     JKRHeap::callAllDisposer();
     mHeadFreeList = (CMemBlock*)getStartAddr();
     mTailFreeList = mHeadFreeList;
+#if TARGET_PC
+    // 0x10 is the GameCube's sizeof(CMemBlock).
+    mHeadFreeList->initiate(NULL, NULL, getHeapSize() - sizeof(CMemBlock), 0, 0);
+#else
     mHeadFreeList->initiate(NULL, NULL, getHeapSize() - 0x10, 0, 0);
+#endif
     mHeadUsedList = NULL;
     mTailUsedList = NULL;
     unlock();

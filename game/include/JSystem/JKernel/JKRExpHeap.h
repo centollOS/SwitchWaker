@@ -31,8 +31,8 @@ public:
         u32 getSize() const { return size; }
         u8 getGroupId() const { return mGroupId; }
 #if TARGET_PC
-        // TODO(native phase 4): the header is 0x10 bytes only with 32-bit pointers.
-        static CMemBlock* getBlock(void* data) { return (CMemBlock*)((uintptr_t)data + -0x10); }
+        // The header is sizeof(CMemBlock) (0x20 on the host, see below), not 0x10.
+        static CMemBlock* getBlock(void* data) { return (CMemBlock*)((uintptr_t)data - sizeof(CMemBlock)); }
 #else
         static CMemBlock* getBlock(void* data) { return (CMemBlock*)((u32)data + -0x10); }
 #endif
@@ -44,8 +44,19 @@ public:
         /* 0x4 */ u32 size;
         /* 0x8 */ CMemBlock* mPrev;
         /* 0xC */ CMemBlock* mNext;
+#if TARGET_PC
+        // With 8-byte pointers the fields end at 0x18. Padded to 0x20 (as in Dusklight,
+        // ref/dusklight/libs/JSystem/include/JSystem/JKernel/JKRExpHeap.h, CC0) so the header stays
+        // a multiple of 16, like the GameCube's 0x10: a block's content then has the block's own
+        // alignment modulo 16, which the alignment arithmetic of the heap relies on
+        // (JKRHeap::getMaxAllocatableSize masks the block address with 0xf).
+        /* 0x18 */ void* mPad;
+#endif
     };  // Size: 0x10
     friend class CMemBlock;
+#if TARGET_PC
+    static_assert(sizeof(CMemBlock) == 0x20, "JKRExpHeap::CMemBlock must be 0x20 bytes on PC");
+#endif
 
 protected:
     JKRExpHeap(void* data, u32 size, JKRHeap* parent, bool errorFlag);
