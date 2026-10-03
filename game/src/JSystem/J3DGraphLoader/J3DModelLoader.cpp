@@ -16,6 +16,19 @@
 #include "dolphin/os/OS.h"
 #if TARGET_PC
 #include "helpers/endian_gx.hpp"
+// The end of the EVP1 table at `offset`: the next table of the block or the block's end (the
+// tables are back to back; the block size is 32-byte aligned).
+static u32 J3DTableEnd(const JUTDataBlockHeader* i_block, u32 offset, const BE(u32)* offsets,
+                       int count) {
+    u32 end = i_block->mSize;
+    for (int i = 0; i < count; i++) {
+        u32 other = offsets[i];
+        if (other > offset && other < end) {
+            end = other;
+        }
+    }
+    return end;
+}
 #endif
 
 /* 802FB758-802FB8A4       .text load__22J3DModelLoaderDataBaseFPCvUl */
@@ -405,12 +418,56 @@ void J3DModelLoader::readEnvelop(const J3DEnvelopBlock* i_block) {
     mpModelData->getJointTree().mWEvlpMtxNum = i_block->mWEvlpMtxNum;
     mpModelData->getJointTree().mWEvlpMixMtxNum =
         JSUConvertOffsetToPtr<u8>(i_block, i_block->mpWEvlpMixMtxNum);
+#if TARGET_PC
+    // The mix indices, weights and inverse joint matrices are big-endian in the file; J3DModel
+    // reads them every frame and hands the matrices to MTXConcat. The model keeps host-order
+    // copies on its heap (no swap in place, so a resource can be loaded again).
+    J3DJointTree& tree = mpModelData->getJointTree();
+    u32 mixNum = 0;
+    for (u16 i = 0; i < tree.mWEvlpMtxNum; i++) {
+        mixNum += tree.mWEvlpMixMtxNum[i];
+    }
+    const BE(u16)* index = JSUConvertOffsetToPtr<BE(u16)>(i_block, i_block->mpWEvlpMixMtxIndex);
+    const BE(f32)* weight = JSUConvertOffsetToPtr<BE(f32)>(i_block, i_block->mpWEvlpMixWeight);
+    tree.mWEvlpMixMtxIndex = NULL;
+    tree.mWEvlpMixWeight = NULL;
+    if (index != NULL) {
+        tree.mWEvlpMixMtxIndex = new u16[mixNum];
+        for (u32 i = 0; i < mixNum; i++) {
+            tree.mWEvlpMixMtxIndex[i] = index[i];
+        }
+    }
+    if (weight != NULL) {
+        tree.mWEvlpMixWeight = new f32[mixNum];
+        for (u32 i = 0; i < mixNum; i++) {
+            tree.mWEvlpMixWeight[i] = weight[i];
+        }
+    }
+    // One inverse matrix per joint; the table ends at the next table or at the block's end.
+    tree.mInvJointMtx = NULL;
+    if (i_block->mpInvJointMtx != 0) {
+        const BE(u32) offsets[] = {i_block->mpWEvlpMixMtxNum, i_block->mpWEvlpMixMtxIndex,
+                                   i_block->mpWEvlpMixWeight};
+        u32 start = i_block->mpInvJointMtx;
+        u32 num = (J3DTableEnd(i_block, start, offsets, 3) - start) / sizeof(Mtx);
+        const BE(f32)* src = JSUConvertOffsetToPtr<BE(f32)>(i_block, i_block->mpInvJointMtx);
+        tree.mInvJointMtx = new Mtx[num];
+        for (u32 i = 0; i < num; i++) {
+            for (int r = 0; r < 3; r++) {
+                for (int c = 0; c < 4; c++) {
+                    tree.mInvJointMtx[i][r][c] = src[i * 12 + r * 4 + c];
+                }
+            }
+        }
+    }
+#else
     mpModelData->getJointTree().mWEvlpMixMtxIndex =
         JSUConvertOffsetToPtr<u16>(i_block, i_block->mpWEvlpMixMtxIndex);
     mpModelData->getJointTree().mWEvlpMixWeight =
         JSUConvertOffsetToPtr<f32>(i_block, i_block->mpWEvlpMixWeight);
     mpModelData->getJointTree().mInvJointMtx =
         JSUConvertOffsetToPtr<Mtx>(i_block, i_block->mpInvJointMtx);
+#endif
 }
 
 /* 802FC6C0-802FC750       .text readDraw__14J3DModelLoaderFPC12J3DDrawBlock */
@@ -418,7 +475,23 @@ void J3DModelLoader::readDraw(const J3DDrawBlock* i_block) {
     J3DJointTree& joint_tree = mpModelData->getJointTree();
     joint_tree.mDrawMtxData.mEntryNum = i_block->mMtxNum;
     joint_tree.mDrawMtxData.mDrawMtxFlag = JSUConvertOffsetToPtr<u8>(i_block, i_block->mpDrawMtxFlag);
+#if TARGET_PC
+    // The draw matrix indices are big-endian in the file; J3DModel, J3DShapeMtx and the skin
+    // deformer read them every frame: the model keeps a host-order copy on its heap.
+    {
+        const BE(u16)* index = JSUConvertOffsetToPtr<BE(u16)>(i_block, i_block->mpDrawMtxIndex);
+        joint_tree.mDrawMtxData.mDrawMtxIndex = NULL;
+        if (index != NULL) {
+            u16* copy = new u16[joint_tree.mDrawMtxData.mEntryNum];
+            for (u16 j = 0; j < joint_tree.mDrawMtxData.mEntryNum; j++) {
+                copy[j] = index[j];
+            }
+            joint_tree.mDrawMtxData.mDrawMtxIndex = copy;
+        }
+    }
+#else
     joint_tree.mDrawMtxData.mDrawMtxIndex = JSUConvertOffsetToPtr<u16>(i_block, i_block->mpDrawMtxIndex);
+#endif
     u16 i;
     for (i = 0; i < joint_tree.mDrawMtxData.mEntryNum; i++) {
         if (joint_tree.mDrawMtxData.mDrawMtxFlag[i] == 1) {
