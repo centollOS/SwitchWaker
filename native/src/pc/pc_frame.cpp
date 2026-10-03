@@ -19,6 +19,7 @@
 #include "pc_internal.h"
 
 #include "JSystem/JAudio/osdsp_task.h"
+#include "JSystem/JKernel/JKRHeap.h"
 #include "JSystem/JUtility/JUTTexture.h"
 #include "m_Do/m_Do_audio.h"
 
@@ -153,7 +154,11 @@ bool sAudioLogged = false;
 // Drains Aurora's events. A quit request (window closed) ends the process: exit 0 for a plain
 // run, 1 when a milestone or COS_FRAMES was still expected.
 void pumpEvents() {
-    const AuroraEvent* event = aurora_update();
+    const AuroraEvent* event;
+    {
+        JKRPcHostAllocScope hostAlloc;
+        event = aurora_update();
+    }
     for (; event != nullptr && event->type != AURORA_NONE; event++) {
         if (event->type == AURORA_EXIT) {
             const bool expected = gConfig.milestone != nullptr || gConfig.frames != 0;
@@ -234,7 +239,15 @@ void pc_frame_begin(void) {
     pumpEvents();
     // Refused while the window cannot present (minimised, no surface yet): the console would not
     // run a frame without a display either. The stall watchdog reports a refusal that lasts.
-    while (!aurora_begin_frame()) {
+    for (;;) {
+        bool begun;
+        {
+            JKRPcHostAllocScope hostAlloc;
+            begun = aurora_begin_frame();
+        }
+        if (begun) {
+            break;
+        }
         usleep(10 * 1000);
         pumpEvents();
     }
@@ -243,9 +256,15 @@ void pc_frame_begin(void) {
 
 void pc_frame_end(void) {
     const uint64_t endFrameStartNs = monotonicNs();
-    aurora_end_frame();
-    // COS_SHOT: the frame is queued to Aurora's render worker; the readback goes in behind it.
-    shotFrameEnd(pc_frame_count() + 1);
+    const AuroraStats* stats;
+    {
+        // Aurora's frame work allocates host memory, not the game's current heap (JKRHeap.cpp).
+        JKRPcHostAllocScope hostAlloc;
+        aurora_end_frame();
+        // COS_SHOT: the frame is queued to Aurora's render worker; the readback goes in behind it.
+        shotFrameEnd(pc_frame_count() + 1);
+        stats = aurora_get_stats();
+    }
     if (sTraceFrame) {
         const uint64_t now = monotonicNs();
         const uint64_t paceStart = sPaceStartNs != 0 ? sPaceStartNs : endFrameStartNs;
@@ -259,8 +278,7 @@ void pc_frame_end(void) {
     }
 
     // Aurora publishes a frame's counters when its render worker has taken the frame, so look at
-    // them every frame and keep the largest.
-    const AuroraStats* stats = aurora_get_stats();
+    // them every frame and keep the largest (stats above).
     if (stats != nullptr && stats->drawCallCount > sMaxDrawCalls) {
         sMaxDrawCalls = stats->drawCallCount;
     }

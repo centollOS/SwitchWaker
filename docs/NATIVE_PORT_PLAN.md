@@ -2405,6 +2405,17 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `native/check/input/file-select.txt` (START at frames 600/720/840). Next blocker: SIGSEGV
   addr=0x20 in `aurora::gfx::enqueue_pass` from `aurora_end_frame`, NAME_SCENE frame 752.
   Reviewed: regress passed; file-select now enters NAME_SCENE and gets past the create crash.
+- M10 boot loop (lane boot, iter 2, host-semantics): the frame-752 SIGSEGV (addr=0x20 in
+  `aurora::gfx::enqueue_pass`, `aurora_end_frame`) was Aurora growing its frame's pass list
+  (`frame.ops.emplace_back`) through the game's global `operator new`, which on PC takes a block
+  of the current JKRHeap: the heap NAME_SCENE left current had 0x750 bytes free for a 4048-byte
+  request, so `pc_new` returned NULL. New PC-only `JKRPcHostAllocScope` (JKRHeap.h/.cpp, a
+  thread-local depth): while open, the heapless global forms give host memory. `pc_frame.cpp`
+  opens it around `aurora_update`, `aurora_begin_frame`, `aurora_end_frame` (+ COS_SHOT readback)
+  and `aurora_get_stats`. Aurora allocations made inside the game's own GX/VI/PAD calls still
+  use the current heap (JKRHeap.cpp TODO, phase 6). Next blocker: SIGSEGV addr=0x10 in
+  `wether_move_vrkumo` (dKyeff2_Execute), NAME_SCENE frame 756.
+  Reviewed: regress passed; file-select gets past frame 752 and stops at the frame-756 blocker.
 
 ### Phase 6 render issues
 

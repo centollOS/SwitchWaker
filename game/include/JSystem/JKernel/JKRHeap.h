@@ -256,6 +256,22 @@ inline bool JKRSetErrorFlag(JKRHeap* heap, bool flag) {
     return heap->setErrorFlag(flag);
 }
 
+#if TARGET_PC
+// Host allocation scope (JKRHeap.cpp): while one is open on a thread, the global operator new
+// forms that take no heap give that thread host memory instead of a block of the current heap.
+// For host code with no GameCube counterpart (Aurora's frame work) that the game calls with a
+// current heap set; operator delete already hands blocks no JKRHeap owns back to the host.
+void JKRPcBeginHostAlloc();
+void JKRPcEndHostAlloc();
+
+struct JKRPcHostAllocScope {
+    JKRPcHostAllocScope() { JKRPcBeginHostAlloc(); }
+    ~JKRPcHostAllocScope() { JKRPcEndHostAlloc(); }
+    JKRPcHostAllocScope(const JKRPcHostAllocScope&) = delete;
+    JKRPcHostAllocScope& operator=(const JKRPcHostAllocScope&) = delete;
+};
+#endif
+
 inline void JKRSetDebugFillDelete(u8) {}
 inline void JKRSetDebugFillNew(u8) {}
 inline void JKRSetDebugFillNotuse(u8) {}

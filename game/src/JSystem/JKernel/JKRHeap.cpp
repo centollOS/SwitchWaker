@@ -442,8 +442,24 @@ bool JKRHeap::isSubHeap(JKRHeap* heap) const {
 // Host bookkeeping must not come here: freeing a JKRHeap block takes the heap's OSMutex, which the
 // alarm thread may not, and game heaps are freed wholesale. cos_sdk's containers and records and
 // the PC harness use host memory explicitly (native/sdk/include/cos_sdk/host_alloc.h).
-// TODO(native phase 6): Aurora/SDL/libc++ allocations made after the heaps exist still land in
-// the current JKRHeap through these global forms; Dusklight moves the game to JKR_NEW instead.
+// Aurora's frame work (aurora_update, aurora_begin_frame, aurora_end_frame; native/src/pc/
+// pc_frame.cpp) runs inside a JKRPcHostAllocScope: the GameCube has no such code, and its
+// allocations (the frame's pass list, render-worker jobs) would otherwise take blocks from whatever
+// heap the game left current, failing when that heap is full and dangling when the game frees it.
+// TODO(native phase 6): Aurora/SDL/libc++ allocations made inside the game's own SDK calls (GX,
+// VI, PAD) still land in the current JKRHeap through these global forms; Dusklight moves the game
+// to JKR_NEW instead.
+static thread_local int sPcHostAllocDepth = 0;
+
+void JKRPcBeginHostAlloc() {
+    sPcHostAllocDepth++;
+}
+
+void JKRPcEndHostAlloc() {
+    JUT_ASSERT(0, sPcHostAllocDepth > 0);
+    sPcHostAllocDepth--;
+}
+
 static void* pc_heapless_alloc(size_t size, int alignment) {
     size_t align = alignment < 0 ? (size_t)-alignment : (size_t)alignment;
     if (align < alignof(max_align_t)) {
@@ -456,7 +472,7 @@ static void* pc_heapless_alloc(size_t size, int alignment) {
 }
 
 static void* pc_new(size_t size, int alignment, JKRHeap* heap) {
-    if (heap == NULL && JKRHeap::getCurrentHeap() == NULL) {
+    if (heap == NULL && (JKRHeap::getCurrentHeap() == NULL || sPcHostAllocDepth > 0)) {
         return pc_heapless_alloc(size, alignment);
     }
     return JKRHeap::alloc(size, alignment, heap);
