@@ -1341,6 +1341,17 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   heap/disc-ls/font 0. Committed as eight commits (host allocator, RARC BE and side table, Yaz0
   header, ARAM `uintptr_t`, `field_0x64`, `doneProcess` offset, manifest `header_size`, arc-sweep
   harness) plus this log and the baseline.
+- **6.2 COS_AUDIO=off wave status** (own commit, a separate root cause from pacing):
+  step 6.1's `onInitFlag` leaves audio uninitialised. The logo scene's `phase_0` calls
+  `JAIZelBasic::checkFirstWaves`, and with no audio initialised the `JAInter::BankWave`
+  status table does not exist, so frame 1 faulted at 0x8. `getWaveLoadStatus` now reports
+  a missing table as loaded (2) under `TARGET_PC` (`unifdef -UTARGET_PC` of `JAIBankWave.cpp`
+  equals HEAD's). This is Dusklight's `DUSK_AUDIO_DISABLED` guard pattern, needed because
+  The game's JAudio1 has no such guards. With `COS_AUDIO=on` the game runs `zelAudio.init` over
+  audio data whose formats are still little-endian (step 5.1); its wave wait does pass, but
+  that is not a valid boot path before phase 5. Prerequisite for M4 under COS_AUDIO=off.
+  Reviewed in round 1 (2026-10-03): guard only reached when the table is missing; `unifdef`
+  equal to HEAD; committed on its own.
 
 ### Phase 6 render issues
 

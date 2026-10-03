@@ -120,6 +120,17 @@ void JAInter::BankWave::loadGroupWave(s32 param_1, s32 param_2) {
 
 /* 802916B0-802916C0       .text getWaveLoadStatus__Q27JAInter8BankWaveFl */
 s32 JAInter::BankWave::getWaveLoadStatus(s32 param_1) {
+#if TARGET_PC
+    // COS_AUDIO=off (docs/NATIVE_PORT_PHASE4_6.md, steps 6.1 and 6.2): the game is told the audio
+    // system is up (mDoAud_zelAudio_c::onInitFlag, Dusklight's DUSK_AUDIO_DISABLED) but
+    // JAIBasic::initBankWave never ran, so no wave set exists and none is loading. The logo scene's
+    // first phase waits for wave set 2 (JAIZelBasic::checkFirstWaves) and faulted on frame 1
+    // reading the missing table (address 0x8). With no audio system there is nothing to wait for:
+    // report the set loaded (2, what finishSceneSet stores once a set is in ARAM).
+    if (wsLoadStatus == NULL) {
+        return 2;
+    }
+#endif
     return wsLoadStatus[param_1];
 }
 
