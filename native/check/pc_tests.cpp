@@ -9,12 +9,14 @@
 //     GX enums and vertex-format lists; RES_* and be_swap; constant evaluation;
 //   - the compound assignments and post-increment/decrement on BE fields;
 //   - OffsetPtr::setBase: relocation, idempotence (a second call changes nothing), negative
-//     offsets, the extremes of the range, and the panics on a null or out-of-range offset.
+//     offsets, the extremes of the range, and the panics on a null or out-of-range offset;
+//   - JUtility::TColor's u32 form, 0xRRGGBBAA as GX and the disc have it (step 4.5).
 // Prints "ok" and exits 0 when every check passes; otherwise prints each failed check and exits 1.
 #include "helpers/endian.h"
 #include "helpers/endian_gx.hpp"
 #include "helpers/endian_ssystem.h"
 #include "helpers/offset_ptr.h"
+#include "JSystem/JUtility/TColor.h"
 
 #include <cmath>
 #include <cstdint>
@@ -375,6 +377,23 @@ void testOffsetPtrPanics() {
     }));
 }
 
+// TColor's u32 form is 0xRRGGBBAA (GXColor1u32, GXSetTevColor's packed form, BLO colours read
+// with JSUInputStream::readU32): r is its high byte whatever the host's byte order (step 4.5).
+void testTColor() {
+    JUtility::TColor c(0x11223344u);
+    CHECK(c.r == 0x11 && c.g == 0x22 && c.b == 0x33 && c.a == 0x44);
+    CHECK(c.toUInt32() == 0x11223344u);
+    CHECK((u32)c == 0x11223344u);
+    JUtility::TColor d(0xDC, 0x00, 0x00, 0x80);
+    CHECK(d.toUInt32() == 0xDC000080u);
+    d.set(0x000000FFu);
+    CHECK(d.r == 0 && d.a == 0xFF);
+    BE(u32) be = 0xAABBCCDDu;
+    JUtility::TColor e(be);
+    CHECK(e.r == 0xAA && e.a == 0xDD);
+    CHECK(bytesAre(c, {0x11, 0x22, 0x33, 0x44}));
+}
+
 } // namespace
 
 int main() {
@@ -384,6 +403,7 @@ int main() {
     testGX();
     testOffsetPtr();
     testOffsetPtrPanics();
+    testTColor();
     if (g_failures != 0) {
         std::printf("FAIL: %d checks\n", g_failures);
         return 1;
