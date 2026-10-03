@@ -576,14 +576,17 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
         }
         sSwGpuFrameNs.clear();
     }
+    // The operation mode and clocks now (docking mid-run changes them).
+    char mode[128];
+    cos_switch_describe_mode(mode, sizeof(mode));
     // CPU time per game frame of the threads (thread_wrap.c), against the render worker's busy
     // wall time: a worker CPU time well below its busy time means it waits (GPU, or preempted).
     writef(STDERR_FILENO,
            "[cos] perf-switch cpu per frame: game thread %.2f ms, render worker %.2f ms (busy %.2f ms "
-           "wall), audio %.2f, dvd %.2f, other threads %.2f\n",
+           "wall), audio %.2f, dvd %.2f, other threads %.2f; %s\n",
            msOf(cur.cpuGameNs - w.cpuGameNs) / n, msOf(cur.cpuRenderNs - w.cpuRenderNs) / n,
            msOf(cur.workerBusyNs - w.workerBusyNs) / n, msOf(cur.cpuAudioNs - w.cpuAudioNs) / n,
-           msOf(cur.cpuDvdNs - w.cpuDvdNs) / n, msOf(cur.cpuOtherNs - w.cpuOtherNs) / n);
+           msOf(cur.cpuDvdNs - w.cpuDvdNs) / n, msOf(cur.cpuOtherNs - w.cpuOtherNs) / n, mode);
     sSwWindow = cur;
     sSwWindowEvents = ev;
     sSwWindowTexBytes = 0;

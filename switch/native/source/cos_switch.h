@@ -117,6 +117,10 @@ enum {
     COS_SWITCH_THREAD_ROLES
 };
 void cos_switch_thread_role(int role);
+
+/* "handheld, gpu 307.2 MHz, emc 1331.2 MHz" (operation mode, GPU and memory controller clocks now)
+ * into out; snprintf's result. Asks the clock service: call it once per perf window, not per frame. */
+int cos_switch_describe_mode(char* out, size_t size);
 /* CPU time (ns, svcGetInfo ThreadTickCount) of the registered threads per role, running totals;
  * a thread that ended keeps its last value. */
 void cos_switch_thread_cpu_ns(uint64_t out[COS_SWITCH_THREAD_ROLES]);

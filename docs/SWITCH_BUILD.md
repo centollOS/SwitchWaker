@@ -257,7 +257,7 @@ Switch patch 0005, the Dawn GL queue patch and the disc reader):
 [cos] perf-switch dawn gl replay per frame: pipelines P ms, bind groups B, immediates I, vertex state V, draw calls D (a after a pipeline change A ms = x us each, t after a texture bind T ms = y us each, o others O ms = z us each); u UBO binds, v VAO binds, i index binds
 [cos] perf-switch dawn gl execute split per frame: passes P ms (lazy clears L, fbo setup F, default state S, clears C, pass end E, viewport/scissor/blend V, replay R, residual X); first pass xN T ms (lazy clears, fbo setup, default state, clears, pass end, replay, residual); buffer copies B ms (n before the first pass Bp ms, first copy B1 ms); m texture copies M ms; execute residual Y ms
 [cos] perf-switch gpu per frame (n read back): G ms (p95 P, max M): efb passes E, tex copy conv C, present R, imgui I, copies K, other O; first pass F; d dropped, j disjoint
-[cos] perf-switch cpu per frame: game thread G ms, render worker R ms (busy B ms wall), audio A, dvd D, other threads O
+[cos] perf-switch cpu per frame: game thread G ms, render worker R ms (busy B ms wall), audio A, dvd D, other threads O; MODE, gpu G MHz, emc E MHz
 ```
 
 The second line is Dawn's GL replay of the frame's submission
@@ -324,6 +324,11 @@ audio thread, the game's DVD thread (`mDoDvdThd`) and all other threads together
 worker, Dawn's and the log threads). A render worker CPU time well below its busy wall time (first
 line) means the worker waits rather than works: for the GPU inside Mesa, or for a core another
 thread holds (study, timer 4). The hitch line has the same five numbers for the hitch frame.
+The line ends with the operation mode (handheld or docked) and the GPU and memory controller (EMC)
+clocks at that moment (clkrst, or pcv before firmware 8.0.0; "clocks unavailable" if the service
+refuses the app); the `[switch] centollos native:` start-up line has the same. At stock the GPU runs at
+307.2 or 384 MHz handheld and 768 MHz docked, so the same frame can be GPU-bound in one mode and
+not in the other: always note the mode next to a measurement.
 `COS_SWITCH_GL_NO_ERROR=1` in `env.txt` makes Dawn ask for a `KHR_no_error` GL context
 (`switch/dawn/patches/dawn-switch-gl-no-error-context.patch`), in which Mesa skips the error
 checks of every GL call, draw and uniform validation included; `[dawn] COS_SWITCH_GL_NO_ERROR:` in

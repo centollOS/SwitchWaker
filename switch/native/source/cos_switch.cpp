@@ -243,6 +243,37 @@ void setDefault(const char* name, const char* value) {
 }
 
 // ---- system report -------------------------------------------------------------------------------
+// ---- operation mode and clocks ---------------------------------------------------------------------
+// clkrst (firmware 8.0.0+) or pcv (older): the GPU and memory controller clocks change with the
+// operation mode (handheld GPU 307.2/384 MHz, docked 768 MHz at stock), which sets the GPU budget.
+int gClockService = 0; // 0 not opened yet, 1 clkrst, 2 pcv, -1 unavailable
+Result gClockServiceRc = 0;
+
+bool readClock(PcvModuleId id, PcvModule legacy, u32* hz) {
+    if (gClockService == 0) {
+        if (hosversionAtLeast(8, 0, 0)) {
+            gClockServiceRc = clkrstInitialize();
+            gClockService = R_SUCCEEDED(gClockServiceRc) ? 1 : -1;
+        } else {
+            gClockServiceRc = pcvInitialize();
+            gClockService = R_SUCCEEDED(gClockServiceRc) ? 2 : -1;
+        }
+    }
+    if (gClockService == 1) {
+        ClkrstSession session;
+        if (R_FAILED(clkrstOpenSession(&session, id, 3))) {
+            return false;
+        }
+        const Result rc = clkrstGetClockRate(&session, hz);
+        clkrstCloseSession(&session);
+        return R_SUCCEEDED(rc);
+    }
+    if (gClockService == 2) {
+        return R_SUCCEEDED(pcvGetClockRate(legacy, hz));
+    }
+    return false;
+}
+
 const char* appletTypeName(AppletType type) {
     switch (type) {
     case AppletType_Application: return "application (title mode)";
@@ -254,15 +285,33 @@ const char* appletTypeName(AppletType type) {
     }
 }
 
+} // namespace
+
+extern "C" int cos_switch_describe_mode(char* out, size_t size) {
+    const char* mode = appletGetOperationMode() == AppletOperationMode_Console ? "docked" : "handheld";
+    u32 gpu = 0, emc = 0;
+    const bool gpuOk = readClock(PcvModuleId_GPU, PcvModule_GPU, &gpu);
+    const bool emcOk = readClock(PcvModuleId_EMC, PcvModule_EMC, &emc);
+    if (!gpuOk && !emcOk) {
+        return snprintf(out, size, "%s, clocks unavailable (%s rc 0x%x)", mode,
+                        hosversionAtLeast(8, 0, 0) ? "clkrst" : "pcv", (unsigned)gClockServiceRc);
+    }
+    return snprintf(out, size, "%s, gpu %.1f MHz, emc %.1f MHz", mode, gpu / 1e6, emc / 1e6);
+}
+
+namespace {
+
 void reportSystem() {
     u64 total = 0, used = 0, cores = 0;
     svcGetInfo(&total, InfoType_TotalMemorySize, CUR_PROCESS_HANDLE, 0);
     svcGetInfo(&used, InfoType_UsedMemorySize, CUR_PROCESS_HANDLE, 0);
     svcGetInfo(&cores, InfoType_CoreMask, CUR_PROCESS_HANDLE, 0);
     const AppletType applet = appletGetAppletType();
-    sayf("[switch] centollos native: %s; memory %llu MiB, %llu MiB used at start; core mask 0x%llx; "
+    char mode[128];
+    cos_switch_describe_mode(mode, sizeof(mode));
+    sayf("[switch] centollos native: %s; %s; memory %llu MiB, %llu MiB used at start; core mask 0x%llx; "
          "image at 0x%llx\n",
-         appletTypeName(applet), (unsigned long long)(total >> 20), (unsigned long long)(used >> 20),
+         appletTypeName(applet), mode, (unsigned long long)(total >> 20), (unsigned long long)(used >> 20),
          (unsigned long long)cores, (unsigned long long)cos_switch_image_base());
     sayf("[switch] logs: %s %s, USB live log %s\n", kLogPath, gLogFile != nullptr ? "open" : "NOT open",
          gUsb ? "started" : "unavailable");
