@@ -373,3 +373,24 @@ Phase 3 is done (`centollos` links with nothing unresolved; `COS_SMOKE=static-in
 - **H8:** build with `-fno-strict-aliasing`.
 - **H9:** disc = `/path/to/GZLE01.iso` (SHA-1 checked on first use, never committed). macOS developer mode was enabled and its access dialogs approved on 2026-10-03: `lldb --batch` now launches `centollos` without prompting (checked with `COS_SMOKE=static-init`), so `lldb_crash.sh` is usable; the built-in crash handler stays the first tool.
 - **H10 (2026-10-03, at M7):** no audio-off interface gating. The game's JAudio1 cannot run uninitialised (`talkOut` -> `checkStreamPlaying` faults on a null `StreamMgr::streamUpdate` when `mDoAud_Create` is skipped), so `COS_AUDIO=off` stops being the boot mode. Phase 5's first steps move ahead of M7: 5.1 (audio data formats) and 5.2 (JAudio 64-bit), then step 5.A: `mDoAud_Create` runs to completion with `COS_AUDIO=on` (sound output may still be silent), including the DSP task handshake; if the handshake needs a real DSP backend, 5.4 option (B) (H6) is pulled in here. After 5.A the harness default is `COS_AUDIO=on` and every earlier milestone is rerun with it. The particle solid heap (0x16e800, `dPa_modelControl_c`) is scaled for 64-bit objects under H5 when the boot loop hits it.
+
+## Speed-up (2026-10-03)
+
+Measured over the first 122 agents of the phase 4/6 workflow (11.9 agent-hours): 66 percent model
+time, 23 percent game runs (1078 runs, mostly capped at 60 Hz, repeated by fixer and reviewer), 8
+percent builds (7 s per incremental build on average). The build is not the bottleneck; serial
+steps and serial, duplicated regressions are. From here on:
+
+- **One regression command:** `native/tools/regress.sh` builds every check target, runs the
+  static checks (smoke, `cos_pc_tests`, link census, `--all --dups`, phase 4 inventory) and every
+  target of `native/check/regress_targets.txt` through `run.sh`, uncapped and 4 at a time,
+  against its expected exit code. The whole set (M0-M6, 7 smokes and sweeps, 5 harness self-tests)
+  takes about 12 s instead of several minutes. A step that reaches a milestone or adds a smoke test
+  appends it to `regress_targets.txt` in the same commit. Capped runs are kept for what is about
+  pacing.
+- **Fixer and reviewer split the work:** the fixer runs the step's own verification; the reviewer
+  runs `regress.sh` once instead of repeating each check by hand.
+- **Lanes:** steps that touch separate formats run at the same time, each in its own git worktree
+  under `build/lanes/<lane>` (gitignored) on a branch `lane/<lane>`, with its own
+  `build/native-mac`. A reviewed step is rebased onto `feature/switch-native` and fast-forwarded
+  into it one at a time; the boot milestones stay serial on the main checkout.

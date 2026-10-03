@@ -1,0 +1,27 @@
+# Targets of native/tools/regress.sh: <target> <expected exit> [extra run.sh options]
+# A step that reaches a milestone or adds a smoke test appends it here in the same commit.
+
+# harness self-tests (step 6.0)
+crash-test 13
+panic-test 12
+timeout-test 10 --timeout 5
+stall-test 11 --stall 5
+no-disc 14
+
+# milestones (static-init is M0)
+static-init 0
+aurora-up 0
+heaps 0
+gfx-create 0
+frame-loop 0
+logo-scene 0
+logo-res 0
+
+# smoke tests and format sweeps
+disc-ls 0
+heap 0
+font 0
+arc-sweep 0
+msg-sweep 0
+jpa-sweep 0
+stage-sweep 0
