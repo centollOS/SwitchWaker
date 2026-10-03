@@ -184,6 +184,19 @@ void writePacing(int fd) {
            gConfig.uncapped ? 1 : 0, (unsigned int)(VIGetRetraceCount() - sLoopStartRetrace));
 }
 
+void logoResDone(const char* how) {
+    if (sLogoResSynced && !sLogoResLogged) {
+        sLogoResLogged = true;
+        if (gConfig.audio && !mDoAud_zelAudio_c::isInitFlag()) {
+            // The logo scene waits for it, so this would be a harness or game-flow error.
+            writef(STDERR_FILENO, "[cos] logo-res: COS_AUDIO=on but mDoAud_Create has not finished\n");
+            pc_exit(PC_EXIT_CHECK_FAILED);
+        }
+        writef(STDERR_FILENO, "[cos] logo-res: %s\n", how);
+        pc_milestone("logo-res");
+    }
+}
+
 } // namespace pc
 
 using namespace pc;
@@ -313,16 +326,7 @@ void pc_logo_res_synced(int archives, int files, int missing) {
 }
 
 void pc_opening_scene_called(void) {
-    if (sLogoResSynced && !sLogoResLogged) {
-        sLogoResLogged = true;
-        if (gConfig.audio && !mDoAud_zelAudio_c::isInitFlag()) {
-            // The logo scene waits for it, so this would be a harness or game-flow error.
-            writef(STDERR_FILENO, "[cos] logo-res: COS_AUDIO=on but mDoAud_Create has not finished\n");
-            pc_exit(PC_EXIT_CHECK_FAILED);
-        }
-        writef(STDERR_FILENO, "[cos] logo-res: dComIfG_changeOpeningScene called\n");
-        pc_milestone("logo-res");
-    }
+    logoResDone("dComIfG_changeOpeningScene called");
 }
 
 void pc_stage_created(const char* stageName, int roomNo, int stageFiles, int hasDzs) {

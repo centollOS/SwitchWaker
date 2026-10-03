@@ -35,3 +35,8 @@ anm-sweep 0
 
 # input injection (step 6.3): the default script native/check/input/pad-echo.txt
 pad-echo 0
+
+# debug stage boot (step 6.4): the COS_BOOT_STAGE request is made and checked, M6 still logged;
+# a malformed spec is a usage error
+logo-res 0 --stage sea:44:206
+static-init 2 --stage sea

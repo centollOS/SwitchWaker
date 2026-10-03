@@ -15,6 +15,7 @@
  *   COS_FRAMES     exit 0 after this many game frames
  *   COS_RUN_DIR    directory for backtrace.txt / stall.txt (set by native/tools/run.sh)
  *   COS_INPUT      input script for controller port 0 (step 6.3, pc_input.cpp)
+ *   COS_BOOT_STAGE <stage>:<room>[:<point>[:<layer>]]: debug stage boot (step 6.4, pc_boot.cpp)
  *
  * Exit codes: see PC_EXIT_* below.
  */
@@ -88,6 +89,26 @@ void pc_opening_scene_called(void);
    and whether stage.dzs was found. Logs the stage; logs "opening" for the title opening's sea_T
    once the archive is mounted and stage.dzs read, else exits 1 for sea_T. */
 void pc_stage_created(const char* stageName, int roomNo, int stageFiles, int hasDzs);
+
+/* Debug stage boot (step 6.4, decision H4, pc_boot.cpp). COS_BOOT_STAGE=<stage>:<room>[:<point>
+   [:<layer>]] (point 0 and layer -1 when left out; the new game starts at sea:44:206) makes the
+   logo scene, once its resources synced, start a new file and go straight to the PLAY scene at
+   that stage instead of dComIfG_changeOpeningScene: no title, file select, name entry or intro.
+   pc_boot_stage returns the parsed request, or NULL without COS_BOOT_STAGE. */
+struct PcBootStage {
+    char stage[8]; /* stage name, at most 7 characters (dStage_startStage_c::mName) */
+    int room;      /* 0..63 */
+    int point;     /* s16 */
+    int layer;     /* -1 (the game picks it) .. 15 */
+};
+const struct PcBootStage* pc_boot_stage(void);
+/* d_s_logo.cpp, once its PLAY scene request was accepted: the next stage the game now holds.
+   Logs it and checks it against COS_BOOT_STAGE (exit 1 on a difference), then logs M6 logo-res
+   (the request stands in for dComIfG_changeOpeningScene). */
+void pc_boot_stage_requested(const char* stage, int room, int point, int layer);
+/* d_s_play.cpp phase_1, when a PLAY scene takes the next stage as its start stage: with
+   COS_BOOT_STAGE, the first one must be the requested stage (logged; exit 1 on a difference). */
+void pc_play_stage_started(const char* stage, int room, int point, int layer);
 
 /* Logs "[cos] MILESTONE <name> frame= retrace= ms=" and exits 0 if <name> is COS_MILESTONE. */
 void pc_milestone(const char* name);

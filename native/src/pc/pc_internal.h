@@ -17,6 +17,7 @@ struct Config {
     const char* trace = nullptr;     // COS_TRACE
     const char* runDir = nullptr;    // COS_RUN_DIR
     const char* input = nullptr;     // COS_INPUT
+    const char* bootStage = nullptr; // COS_BOOT_STAGE (parsed by loadBootStage)
     double timeoutS = 0;             // COS_TIMEOUT_S, 0 = off
     double stallS = 0;               // COS_STALL_S, 0 = off
     unsigned int frames = 0;         // COS_FRAMES, 0 = off
@@ -105,6 +106,15 @@ void loadInput();
 
 // pc_watchdog.cpp
 void startWatchdog();
+
+// pc_frame.cpp: milestone M6 logo-res, once pc_logo_res_synced reported every resource and the
+// logo scene made its scene request (`how` says which: dComIfG_changeOpeningScene, or the
+// COS_BOOT_STAGE request of step 6.4). Logged once.
+void logoResDone(const char* how);
+
+// pc_boot.cpp (step 6.4): parses COS_BOOT_STAGE into gBootStage (exit PC_EXIT_USAGE if it is
+// malformed).
+void loadBootStage();
 
 // pc_frame.cpp: "[cos] pacing: frames= wall= requested= ..." since the frame loop started (nothing
 // before it).

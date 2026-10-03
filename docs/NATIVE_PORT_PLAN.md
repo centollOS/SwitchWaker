@@ -2280,6 +2280,34 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: regress passed; three independent capped `opening --timeout 180` runs exit 0 (sea_T
   room 44, frame 281, ~5 s each).
 
+- **Step 6.4: debug stage boot** (2026-10-03, lane outset, decision H4). `COS_BOOT_STAGE=<stage>:
+  <room>[:<point>[:<layer>]]` (point 0 and layer -1 by default; `run.sh --stage`), parsed by
+  the new `native/src/pc/pc_boot.cpp` at start-up (a malformed spec exits 2). When the logo
+  scene's `dvdWaitDraw` has every `l_*Command` synced, `pcBootStage` (d_s_logo.cpp, `TARGET_PC`)
+  replaces `dComIfG_changeOpeningScene`: a new file as `dScnName_c::NameInMain` makes it
+  (`dComIfGs_init`, which sets the name "Link" and the return place sea 44 point 206, then
+  `dComIfGp_itemDataInit`), the requested next stage, and `dScnName_c::changeGameScene`'s request
+  for the PLAY scene (`fopScnM_ChangeReq`, `dComIfGs_resetDan`, `dComIfGs_setRestartRoomParam(0)`,
+  `mDoAud_setSceneName`). The harness logs the next stage the game now holds and checks it against
+  the request, then logs M6 logo-res (the request stands in for `changeOpeningScene`); d_s_play.cpp
+  `phase_1` reports the first PLAY scene's start stage, which must be the requested one ("request
+  honoured"; exit 1 otherwise). Verified: `logo-res --stage sea:44:206` exit 0 three times (the
+  plain `logo-res` still exits 0), eight malformed specs exit 2, and `run --stage sea:44:206
+  --frames 600` and `sea:44:206:0 --frames 400` log "PLAY scene starts stage sea room 44 point 206"
+  at frame 282-283 and "request honoured". New regress lines: `logo-res 0 --stage sea:44:206` and
+  `static-init 2 --stage sea`. Reaching a working Outset is M12: the first run goes on to
+  ROOM_SCENE (sea Room0) frame 1230 and aborts in Aurora's shader generator (render issue below).
+  Reviewed: regress passed; an independent `run --stage sea:44:206 --frames 400 --uncapped` logged
+  the request at frame 245 and "request honoured" at frame 282, then hit the same Aurora abort at
+  frame 371 with the pipeline cache from earlier runs present (deleted afterwards).
+
 ### Phase 6 render issues
 
-None yet.
+- **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
+  ROOM_SCENE frame 1230): `build_shader` emits `round(sampled0.a.r * 255.0) >
+  round(tev_overflow_f32(tevreg1.a).r * 255.0)`, Dawn rejects it ("cannot index into expression of
+  type 'f32'"): an alpha TEV stage with a compare op (`GX_TEV_COMP_R8_GT`; Aurora's
+  lib/gx/shader.cpp:376 formats `{0}.r` on the alpha stage's scalar operands) and Aurora aborts (SIGABRT on its pipeline worker thread). The bad pipeline is then
+  in `build/native-mac/user/cache/pipeline_cache.db`, which Aurora recompiles at start-up, so every
+  later run, even `logo-res`, aborts right after gfx-create until that file is deleted. The fix is
+  in Aurora (stop condition: needs a decision); it blocks M12.

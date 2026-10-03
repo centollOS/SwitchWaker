@@ -39,6 +39,9 @@
 #include "m_Do/m_Do_graphic.h"
 #include "m_Do/m_Do_machine.h"
 #include <stdio.h>
+#if TARGET_PC
+#include "pc/pc_harness.h"
+#endif
 
 static const int PRELOAD_RES_MAX = 0x23;
 static const int PRELOAD_DYL_MAX = 0x1B;
@@ -1342,6 +1345,14 @@ cPhs_State phase_1(dScnPly_ply_c* i_this) {
 
     dComIfGp_setStartStage(dComIfGp_getNextStartStage());
     dComIfGp_offEnableNextStage();
+#if TARGET_PC
+    if (fpcM_GetName(i_this) == fpcNm_PLAY_SCENE_e) {
+        // Run harness (step 6.4): COS_BOOT_STAGE's PLAY scene must start the requested stage.
+        dStage_startStage_c* start = dComIfGp_getStartStage();
+        pc_play_stage_started(start->getName(), start->getRoomNo(), start->getPoint(),
+                              start->getLayer());
+    }
+#endif
 
 #if VERSION == VERSION_DEMO
     JUTReportConsole_f("StartStageName [%s]\n", dComIfGp_getStartStageName());

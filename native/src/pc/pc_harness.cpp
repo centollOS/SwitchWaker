@@ -96,6 +96,7 @@ void pc_harness_init(int argc, char* argv[]) {
     gConfig.trace = envString("COS_TRACE");
     gConfig.runDir = envString("COS_RUN_DIR");
     gConfig.input = envString("COS_INPUT");
+    gConfig.bootStage = envString("COS_BOOT_STAGE");
     gConfig.timeoutS = envSeconds("COS_TIMEOUT_S");
     gConfig.stallS = envSeconds("COS_STALL_S");
     gConfig.frames = envCount("COS_FRAMES");
@@ -104,11 +105,12 @@ void pc_harness_init(int argc, char* argv[]) {
 
     writef(STDERR_FILENO,
            "[cos] harness: smoke=%s milestone=%s timeout=%gs stall=%gs frames=%u trace=%s "
-           "uncapped=%d audio=%s input=%s disc=%s\n",
+           "uncapped=%d audio=%s input=%s boot_stage=%s disc=%s\n",
            gConfig.smoke ? gConfig.smoke : "-", gConfig.milestone ? gConfig.milestone : "-",
            gConfig.timeoutS, gConfig.stallS, gConfig.frames, gConfig.trace ? gConfig.trace : "-",
            gConfig.uncapped ? 1 : 0, gConfig.audio ? "on" : "off",
-           gConfig.input ? gConfig.input : "-", gConfig.disc ? gConfig.disc : "-");
+           gConfig.input ? gConfig.input : "-", gConfig.bootStage ? gConfig.bootStage : "-",
+           gConfig.disc ? gConfig.disc : "-");
 
     if (gConfig.milestone != nullptr && !isKnownMilestone(gConfig.milestone)) {
         writef(STDERR_FILENO, "[cos] unknown COS_MILESTONE \"%s\"; known:", gConfig.milestone);
@@ -122,6 +124,7 @@ void pc_harness_init(int argc, char* argv[]) {
     }
 
     loadInput();
+    loadBootStage();
 
     installCrashHandler();
     startWatchdog();

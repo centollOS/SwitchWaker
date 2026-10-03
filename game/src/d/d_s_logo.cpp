@@ -33,6 +33,7 @@
 #include "string.h"
 #include "stdio.h"
 #if TARGET_PC
+#include "f_op/f_op_overlap_mng.h"
 #include "pc/pc_harness.h"
 #endif
 
@@ -487,6 +488,38 @@ static void pcLogoResSynced() {
 }
 #endif
 
+#if TARGET_PC
+// Set once the PLAY scene request was accepted; dScnLogo_Create clears it (a reset comes back
+// through a new logo scene).
+static bool l_pcBootStageRequested = false;
+
+// Debug stage boot (step 6.4, decision H4: COS_BOOT_STAGE). Called by dvdWaitDraw instead of
+// dComIfG_changeOpeningScene, every frame until the scene change happens. It does what the new
+// game flow does between here and the PLAY scene, minus the title, file select, name entry and
+// intro scenes: a new file as dScnName_c::NameInMain makes it (dComIfGs_init sets the default
+// name and return place; dComIfGp_itemDataInit), then the requested next stage in place of
+// dComIfGs_gameStart's return place, and the scene request of dScnName_c::changeGameScene.
+static void pcBootStage(dScnLogo_c* i_this) {
+    if (l_pcBootStageRequested || fopOvlpM_IsPeek()) {
+        return;
+    }
+    dComIfGs_init();
+    dComIfGp_itemDataInit();
+    const PcBootStage* boot = pc_boot_stage();
+    dComIfGp_offEnableNextStage();
+    dComIfGp_setNextStage(boot->stage, boot->point, boot->room, boot->layer);
+    if (fopScnM_ChangeReq(i_this, fpcNm_PLAY_SCENE_e, fpcNm_OVERLAP0_e, 5)) {
+        l_pcBootStageRequested = true;
+        dComIfGs_resetDan();
+        dComIfGs_setRestartRoomParam(0);
+        mDoAud_setSceneName(dComIfGp_getNextStageName(), dComIfGp_getNextStageRoomNo(),
+                            dComIfGp_getNextStageLayer());
+        pc_boot_stage_requested(dComIfGp_getNextStageName(), dComIfGp_getNextStageRoomNo(),
+                                dComIfGp_getNextStagePoint(), dComIfGp_getNextStageLayer());
+    }
+}
+#endif
+
 /* 8022CF44-8022D18C       .text dvdWaitDraw__FP10dScnLogo_c */
 BOOL dvdWaitDraw(dScnLogo_c* i_this) {
     if (!dComIfG_syncAllObjectRes()
@@ -535,6 +568,11 @@ BOOL dvdWaitDraw(dScnLogo_c* i_this) {
         // what they and the object archives left, then dComIfG_changeOpeningScene logs the
         // milestone when it is called.
         pcLogoResSynced();
+        if (pc_boot_stage() != NULL) {
+            // Debug stage boot (step 6.4): straight to the PLAY scene instead of the opening.
+            pcBootStage(i_this);
+            return TRUE;
+        }
 #endif
         dComIfG_changeOpeningScene(i_this, fpcNm_OPENING_SCENE_e);
     }
@@ -1035,6 +1073,9 @@ cPhs_State phase_2(dScnLogo_c* i_this) {
     JUTGamePad::setResetCallback(mDoRst_resetCallBack, NULL);
 #endif
 #if TARGET_PC
+
+    // Debug stage boot (step 6.4): this logo scene has not made its request yet.
+    l_pcBootStageRequested = false;
 
     // Run harness (step 4.5): milestone M5 logo-scene, the scene is created. It checks the Logo
     // archive and the Nintendo logo's header, then waits for Aurora's first texture upload.

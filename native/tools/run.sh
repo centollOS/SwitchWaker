@@ -21,6 +21,8 @@
 #   --input PATH     COS_INPUT, the controller script (step 6.3; a relative path is taken from the
 #                    current directory, else from the repository); pad-echo defaults to
 #                    native/check/input/pad-echo.txt
+#   --stage SPEC     COS_BOOT_STAGE, debug stage boot (step 6.4): <stage>:<room>[:<point>[:<layer>]],
+#                    e.g. sea:44:206 (Outset, where the new game starts)
 #   --build          run `ninja -C build/native-mac centollos` first
 #   --exe PATH       the executable (default build/native-mac/centollos)
 #   --quiet          do not print the tail of the log on failure
@@ -70,6 +72,7 @@ uncapped="${COS_UNCAPPED:-}"
 audio="${COS_AUDIO:-on}"
 disc="${COS_DISC:-/path/to/GZLE01.iso}"
 input="${COS_INPUT:-}"
+stage="${COS_BOOT_STAGE:-}"
 do_build=0
 exe="$build/centollos"
 quiet=0
@@ -84,6 +87,7 @@ while [ $# -gt 0 ]; do
         --audio) audio="$2"; shift 2 ;;
         --disc) disc="$2"; shift 2 ;;
         --input) input="$2"; shift 2 ;;
+        --stage) stage="$2"; shift 2 ;;
         --build) do_build=1; shift ;;
         --exe) exe="$2"; shift 2 ;;
         --quiet) quiet=1; shift ;;
@@ -141,6 +145,7 @@ export COS_STALL_S="$stall_s"
 export COS_AUDIO="$audio"
 export COS_RUN_DIR="$run_dir"
 [ -n "$frames" ] && export COS_FRAMES="$frames"
+if [ -n "$stage" ]; then export COS_BOOT_STAGE="$stage"; else unset COS_BOOT_STAGE; fi
 [ -n "$trace" ] && export COS_TRACE="$trace"
 [ -n "$uncapped" ] && export COS_UNCAPPED="$uncapped"
 
