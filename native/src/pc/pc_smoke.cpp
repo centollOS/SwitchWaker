@@ -324,6 +324,7 @@ const Smoke kSmokes[] = {
     {"pad-echo", kInGame},
     {"title-audio", kInGame},
     {"actor-sweep", kInGame},
+    {"bgm-hop", kInGame},
 };
 
 const Smoke* findSmoke(const char* name) {

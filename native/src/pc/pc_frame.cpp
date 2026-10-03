@@ -906,6 +906,7 @@ void pc_frame_end(void) {
     titleAudioFrame(frames);
     outsetFrame(frames);
     actorSweepFrame(frames);
+    bgmHopFrame(frames);
     fileSelectFrame(frames);
     newGameFrame(frames);
     precompileFrame(frames);

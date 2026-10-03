@@ -40,6 +40,8 @@ amp-sweep 0
 stb-sweep 0
 # bug B3: Link's sword blur positions (LkAnm.arc *_POS) read in host order
 blur-pos 0
+# bug B1: Outset's BGM after a house (sea -> Omasao -> sea), audio level and BGM state
+bgm-hop 0 --stage sea:44:0
 
 # input injection (step 6.3): the default script native/check/input/pad-echo.txt
 pad-echo 0

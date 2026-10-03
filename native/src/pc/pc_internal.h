@@ -187,6 +187,10 @@ bool outsetLinkReady();
 // every game frame and, once outsetLinkReady, spawns every actor profile next to Link in turn,
 // runs it 30 frames and deletes it, then exits 0.
 void actorSweepFrame(unsigned int frames);
+// pc_bgm_hop.cpp (bug B1): COS_SMOKE=bgm-hop; bgmHopFrame runs from pc_frame_end every game
+// frame and, once Link is in the COS_BOOT_STAGE island room, measures the island BGM, goes to a
+// house and back and checks the BGM came back.
+void bgmHopFrame(unsigned int frames);
 
 // pc_title.cpp: milestone M9 title (see pc_title_drawn); titleFrame runs from pc_frame_end every
 // game frame. titleReached: the milestone was logged.
