@@ -312,7 +312,11 @@ JKRHeap* JKRHeap::find(void* memory) const {
 }
 
 /* 802B0A58-802B0AEC       .text dispose_subroutine__7JKRHeapFUlUl */
+#if TARGET_PC
+void JKRHeap::dispose_subroutine(uintptr_t begin, uintptr_t end) {
+#else
 void JKRHeap::dispose_subroutine(u32 begin, u32 end) {
+#endif
     JSUListIterator<JKRDisposer> last_iterator;
     JSUListIterator<JKRDisposer> next_iterator;
     JSUListIterator<JKRDisposer> iterator;

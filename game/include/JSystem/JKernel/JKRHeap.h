@@ -50,7 +50,12 @@ public:
     JKRHeap* find(void* ptr) const;
     JKRHeap* findAllHeap(void* ptr) const;
 
+#if TARGET_PC
+    // Host addresses: a u32 would cut them to their low 32 bits.
+    void dispose_subroutine(uintptr_t start, uintptr_t end);
+#else
     void dispose_subroutine(u32 start, u32 end);
+#endif
     bool dispose(void* ptr, u32 size);
     void dispose(void* begin, void* end);
     void dispose();

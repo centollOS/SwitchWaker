@@ -150,7 +150,7 @@ void* JKRExpHeap::allocFromHead(u32 size, int align) {
 
     for (CMemBlock* block = mHeadFreeList; block; block = block->mNext) {
 #if TARGET_PC
-        u32 alignedContent = ALIGN_NEXT((uintptr_t)block->getContent(), align);
+        uintptr_t alignedContent = ALIGN_NEXT((uintptr_t)block->getContent(), align);
         u32 offset = alignedContent - (uintptr_t)block->getContent();
 #else
         u32 alignedContent = ALIGN_NEXT((u32)block->getContent(), align);
@@ -286,7 +286,12 @@ void* JKRExpHeap::allocFromTail(u32 size, int align) {
     CMemBlock* foundBlock = NULL;
     CMemBlock* newBlock = NULL;
     u32 usedSize;
+#if TARGET_PC
+    // start becomes the block address below, so it must hold a whole host pointer.
+    uintptr_t start;
+#else
     u32 start;
+#endif
 
     for (CMemBlock* block = mTailFreeList; block; block = block->mPrev) {
 #if TARGET_PC
@@ -697,15 +702,17 @@ void JKRExpHeap::recycleFreeBlock(CMemBlock* block) {
 /* 802B27D0-802B291C       .text joinTwoBlocks__10JKRExpHeapFPQ210JKRExpHeap9CMemBlock */
 void JKRExpHeap::joinTwoBlocks(CMemBlock* block) {
 #if TARGET_PC
-    u32 curBlock = (uintptr_t)block; // Fakematch?
-    u32 endAddr = (uintptr_t)(block + 1) + block->size;
+    // Whole host addresses: compared as 32-bit values, two blocks on either side of a 4 GiB
+    // boundary would compare the wrong way round.
+    uintptr_t curBlock = (uintptr_t)block; // Fakematch?
+    uintptr_t endAddr = (uintptr_t)(block + 1) + block->size;
 #else
     u32 curBlock = (u32)block; // Fakematch?
     u32 endAddr = (u32)(block + 1) + block->size;
 #endif
     CMemBlock* next = block->mNext;
 #if TARGET_PC
-    u32 nextAddr = (uintptr_t)next - (next->mFlags & 0x7f);
+    uintptr_t nextAddr = (uintptr_t)next - (next->mFlags & 0x7f);
 #else
     u32 nextAddr = (u32)next - (next->mFlags & 0x7f);
 #endif
