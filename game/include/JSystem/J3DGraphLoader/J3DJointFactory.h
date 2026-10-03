@@ -13,8 +13,8 @@ struct J3DJointInitData {
     /* 0x04 */ J3DTransformInfo mTransformInfo;
     /* 0x24 */ f32 mRadius;
     /* 0x28 */ Vec mMin;
-    /* 0x2C */ Vec mMax;
-};  // Size: 0x30
+    /* 0x34 */ Vec mMax;
+};  // Size: 0x40
 
 struct J3DJointBlock {
     /* 0x00 */ u32 mMagic;

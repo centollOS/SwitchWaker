@@ -96,13 +96,13 @@ struct J3DMaterialBlock_v21 : public JUTDataBlockHeader {
     /* 0x50 */ void* mpTevStageInfo;
     /* 0x54 */ void* mpTevSwapModeInfo;
     /* 0x58 */ void* mpTevSwapModeTableInfo;
-    /* 0x68 */ void* mpFogInfo;
-    /* 0x6C */ void* mpAlphaCompInfo;
-    /* 0x70 */ void* mpBlendInfo;
-    /* 0x74 */ void* mpZModeInfo;
-    /* 0x78 */ void* mpZCompLoc;
-    /* 0x7C */ void* mpDither;
-    /* 0x80 */ void* mpNBTScaleInfo;
+    /* 0x5C */ void* mpFogInfo;
+    /* 0x60 */ void* mpAlphaCompInfo;
+    /* 0x64 */ void* mpBlendInfo;
+    /* 0x68 */ void* mpZModeInfo;
+    /* 0x6C */ void* mpZCompLoc;
+    /* 0x70 */ void* mpDither;
+    /* 0x74 */ void* mpNBTScaleInfo;
 };
 
 struct J3DMaterialDLBlock : public JUTDataBlockHeader {
