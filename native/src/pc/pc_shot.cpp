@@ -17,6 +17,10 @@
 //   gpu.cpp waits for the adapter) and writes the PNG there. The game thread then waits for the
 //   worker (render_worker::synchronize), so a shot taken right before an exit is on disk; a
 //   frame with a shot runs late, which only matters to a run that measures pacing.
+// - Every draw is in the shot: with shots on, COS_SYNC_PIPELINES defaults to on (pc_harness.cpp)
+//   and Aurora compiles a pipeline before its first draw (Aurora patch 0005) instead of skipping
+//   the draw while the pipeline compiles, which made shots depend on machine load (render audit
+//   A3: Orca's message text and most of the HUD missing in parallel runs).
 // - The PNG is written by hand: 8-bit RGB, deflate "stored" blocks (no compression), so no
 //   library is needed; a 640x480 frame is about 0.9 MB.
 #include "pc_internal.h"
@@ -285,7 +289,7 @@ bool wanted(unsigned int frame) {
 
 } // namespace
 
-void loadShots() {
+bool loadShots() {
     const char* list = getenv("COS_SHOT");
     if (list != nullptr && list[0] != '\0') {
         const char* p = list;
@@ -315,13 +319,14 @@ void loadShots() {
     }
     sShotOn = !sShotFrames.empty() || sShotEvery != 0;
     if (!sShotOn) {
-        return;
+        return false;
     }
     const char* dir = getenv("COS_SHOT_DIR");
     sShotDir = (dir != nullptr && dir[0] != '\0') ? dir : gConfig.runDir != nullptr ? gConfig.runDir : ".";
     initCrcTable();
     writef(STDERR_FILENO, "[cos] shot: %zu frame(s) listed, every %u, into %s\n", sShotFrames.size(),
            sShotEvery, sShotDir);
+    return true;
 }
 
 void shotFrameEnd(unsigned int frame) {

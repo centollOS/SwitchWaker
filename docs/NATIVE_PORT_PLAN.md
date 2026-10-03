@@ -3110,6 +3110,38 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: the fight script rerun, shots 1100 (closing blue spotted flower, cutscene), 1800 and
   2400 (bulb, petals, thorned tentacles, clean skinned geometry) inspected; no code change,
   `regress.sh -j 3` all checks passed.
+- RA-A3 (lane boot, render audit A3): Orca's text was missing only under load, not in the
+  game. A single `run --stage Ojhous:0:0 --frames 1200 --uncapped --shot 590,900,1190` shows the
+  text at the head, at the audit commit 772362e and at the audit-time head 49cfd9d. Running the same
+  command 10 at a time gave 2 to 7 runs with the box, Next button and arrow but no text, and only
+  one dim heart and no rupee counter (the audit's picture). CPU load alone (10 `yes` processes,
+  runs one at a time) gave 0/4. A temporary `dMsg_Execute` trace (removed) showed identical
+  message logic in good and bad runs: message 0x961, statuses 1, 2, 6, 7, and `output_text`
+  `CC[ffffffff]GM[0]CR[0]Link! Is that you? ...` (137 bytes) complete at frame ~620. Save data
+  (life 12/12, name "Link") was the same too. `aurora_get_stats` (temporary, removed) showed the
+  cause: good runs had 0 pipelines queued and 350 created by frame ~350; bad runs still had
+  220-300 queued at frame 1100, compiling about one per 25 frames. Aurora's GX `find_pipeline`
+  uses `PipelinePriority::Normal`, which skips a draw until its pipeline is built. Parallel
+  processes compete for the Metal compiler and the shared Dawn cache (`[aurora::gpu::cache]
+  Failed to start transaction: database is locked`, a failed prune), so whether a draw shows
+  depends on wall-clock compile time. Fix: Aurora patch 0005
+  (`native/patches/aurora/0005-blocking-pipelines-option.patch`) adds
+  `AuroraConfig::blockingPipelines` (default false, Aurora's behaviour unchanged), which resolves
+  GX and clear pipelines through the existing `PipelinePriority::Blocking` path. The harness sets
+  it from `COS_SYNC_PIPELINES`, which defaults to on when `COS_SHOT`/`COS_SHOT_EVERY` capture
+  frames (`pc_harness.cpp`, `pc_main.cpp`; the aurora log line now prints `pipelines=sync|async`).
+  So a shot shows every draw, as on the console (Dolphin's default `ShaderCompilationMode::
+  Synchronous` does the same; skip-drawing is its opt-in mode). Plain runs keep async compiles.
+  Checked (shots inspected): 6 parallel cold-cache runs (fresh user dirs) with
+  `COS_SYNC_PIPELINES=0` drew neither Orca, Link, the HUD nor the box at 900/1190 (0/6 with text),
+  while 6 with sync drew the full frame, text included (6/6; about 50 s wall each when cold, 9 s
+  warm). 10 parallel runs with the shared cache and the default had text at 900 and 1190 (10/10),
+  and so did the step's repro. Not fixed here (already known, see the amp-sweep entry):
+  `--audio off` faults in `JAIZelBasic::sceneChange` from `pcBootStage` at frame 244. See render
+  issues (A3).
+  Reviewed: the step's repro (log shows `pipelines=sync`) and 6 parallel runs of it with separate
+  run dirs, shots 900 and 1190 inspected (Orca's text, full HUD in all); `regress.sh -j 3`
+  all checks passed.
 
 - **Fix NG-run-dir (M11 boot loop, lane audio, harness): parallel runs of one target shared a run
   directory.** `run.sh` tested a directory name for existence and then created it with
@@ -3458,7 +3490,7 @@ loop. Open defects, most visible first (one probable root cause per row):
 |---|--------|--------|-----------------|-------|
 | A1 | Arena floors are missing: below the walls the frame shows one flat colour, the same everywhere in a stage (RGB 48,48,45 in GanonE/GanonM/M_DaiMB, 59,59,59 in Xboss2, black in SirenB/kazeMB/kinBOSS). Link stands over nothing. | kinBOSS, GanonE, GanonM, M_DaiMB, Xboss2, SirenB, kazeMB; GanonB likely (dark brown gradient where its lava should be) | **Fixed** by RA-A1: not a render issue. The room-entry event camera found no `RelActor` ("@PLAYER" matched by a host-order u32 read of its name against `'@PLA'`), so its relative eye/centre offsets became world positions and the camera sat under the floor (eye (0,-40,-170) in GanonE), whose triangles are back-face culled from below. `dCamera_strTag` reads such tags big-endian. Checked with COS_SHOT (inspected, before/after): GanonE:0:0 and M_DaiMB:12:0 shot 1190, kinBOSS:0:0 shot 900 went from walls over the clear colour (kinBOSS: Kalle Demos seen from below) to Link seen from behind on the tiled/earth floor; GanonM:0:0, Xboss2:0:0, SirenB:0:0, GanonB:0:0 and kazeMB:6:0 (the sweep start; kazeMB:0:0 faults in `dStage_escapeRestart` with no player, before and after) shot 1190 all show the floor; title shot 1300 unchanged. | `native/tools/run.sh run --stage GanonE:0:0 --frames 1200 --uncapped --shot 1190` (also `M_DaiMB:12:0`, `kinBOSS:0:0 --shot 900`) |
 | A2 | Kalle Demos (the `Bmd` actor) draws as large flat blue, magenta and cyan polygons with jagged leaves. (Seen with the camera under the arena floor, A1; after RA-A1 the frame-900 view is behind Link and the boss is out of view: recheck A2 from a shot that frames it.) On the GameCube it has a textured red bulb and green tentacles. | kinBOSS | **Not a defect; resolved by RA-A1** (checked in RA-A2): the flat blue/magenta/cyan polygons were the undersides of the boss's open flower (material `hana_sitahana`), seen from A1's under-floor camera. The flower's colours come from its own `bkm_body` CMPR texture (cyan/blue/violet, a green-to-magenta band), decoded independently from the disc; the TEV stages sample it unswizzled and `bkm.brk` animates only the death fade. With the camera fixed, the fight (Link walks to the flower) shows the blue-violet yellow-spotted bulb, the green/cyan petals, the barbed tentacles and the ceiling vines. Their geometry is intact and the skinned vines bend smoothly. The "red bulb" in the audit was a wrong expectation. | `native/tools/run.sh run --stage kinBOSS:0:0 --frames 2500 --uncapped --input native/check/input/kinboss-fight.txt --shot 1100,1800,2400` |
-| A3 | Orca's message box shows its dark panel, the Next button and the arrow but no text, at frames 590, 900 and 1190. The Ojhous2 and Outset boxes show their text. | Ojhous | The message box layout draws but its text pane does not. Possibly a text colour, alpha or font state read wrongly for this message, or empty message text (not checked against the BMG yet). | `native/tools/run.sh run --stage Ojhous:0:0 --frames 1200 --uncapped --shot 900,1190` |
+| A3 | Orca's message box shows its dark panel, the Next button and the arrow but no text, at frames 590, 900 and 1190. The Ojhous2 and Outset boxes show their text. | Ojhous | **Fixed** by RA-A3: not a game or decode issue, a harness timing artefact. Aurora skips a draw until its pipeline is compiled (`PipelinePriority::Normal`, "async skip draw"). In the parallel boot sweep, several game processes were compiling Metal pipelines at once and contending for the shared Dawn cache ("database is locked"), so about 300 pipelines were still queued at frame 1100 and the text's and most of the HUD's draws never showed. The game state matched good runs exactly: message 0x961, the same status sequence, and `output_text` "Link! Is that you? ..." complete by frame ~620. The BMG text, font and colours are fine. Aurora patch 0005 adds `AuroraConfig::blockingPipelines`, and `COS_SYNC_PIPELINES` (default on with `COS_SHOT`/`COS_SHOT_EVERY`) turns it on, so a captured frame shows every draw, as the console and Dolphin's default synchronous shader mode do. Checked (COS_SHOT, inspected): with cold caches and 6 parallel runs, async gave 0/6 with text at 900/1190 (no characters, HUD or box), sync 6/6; with the shared cache, 10/10 parallel runs show the text. | `native/tools/run.sh run --stage Ojhous:0:0 --frames 1200 --uncapped --shot 900,1190` (to reproduce the old behaviour: run 8 at once with `COS_SYNC_PIPELINES=0` and fresh user dirs) |
 | A4 | Link's real-time shadow is drawn as a bright white lobed blob on the floor. Elsewhere (VrTest, A_umikz, Kaisen) it is dark. | K_Testc | The `dDlst_shadowReal` pass in this lighting/floor setup: likely a blend or TEV colour from the environment palette that comes out additive instead of darkening. Compare K_Testc's palette with VrTest's. | `native/tools/run.sh run --stage K_Testc:0:0 --frames 1200 --uncapped --shot 590,900` |
 | A5 | Two crossed opaque white quads (an X) hang in the cave in every shot. They look like a light-shaft or billboard model that keeps its bind orientation. | SubD43 | A billboard joint (`J3DMtxCalc` billboard / `J3DCalcBBoardMtx` path) not applied on the host, or a light-shaft material without its alpha/blend. Not confirmed against the GameCube. | `native/tools/run.sh run --stage SubD43:0:0 --frames 1200 --uncapped --shot 900` |
 | A6 | Tingle Tower's walls and floor show a huge blocky, smeared Tingle mural (texels several screen pixels wide). The easel painting is sharp. | tincle | Either the authentic low-resolution mural texture or a wrong mip/LOD or texture size for that material. Needs a GameCube reference before work starts. | `native/tools/run.sh run --stage tincle:0:0 --frames 1200 --uncapped --shot 900` |

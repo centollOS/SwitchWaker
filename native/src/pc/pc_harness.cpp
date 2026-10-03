@@ -166,7 +166,10 @@ void pc_harness_init(int argc, char* argv[]) {
 
     loadInput();
     loadBootStage();
-    loadShots();
+    // A captured frame must show every draw, as the console does: Aurora's default skips a draw
+    // until its pipeline is compiled, so what a shot shows would depend on how busy the machine
+    // is (render audit A3: Orca's text missing in parallel boot-sweep runs).
+    gConfig.syncPipelines = envFlag("COS_SYNC_PIPELINES", loadShots());
     perfOpen();
 
     installCrashHandler();

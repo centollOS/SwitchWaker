@@ -25,6 +25,10 @@ struct Config {
     unsigned int perfEvery = 0;      // COS_PERF_EVERY: game-thread frame times every N frames, 0 = off
     const char* perfPath = nullptr;  // COS_PERF: CSV of per-frame game-thread times (step 6.7)
     bool audio = true;               // COS_AUDIO (off/0 -> false)
+    // COS_SYNC_PIPELINES (render audit A3): Aurora compiles a draw's pipeline before drawing it
+    // (AuroraConfig::blockingPipelines, Aurora patch 0005) instead of skipping the draw until its
+    // pipeline is ready. Default: on when COS_SHOT / COS_SHOT_EVERY capture frames, off otherwise.
+    bool syncPipelines = false;
 };
 
 extern Config gConfig;
@@ -181,8 +185,8 @@ bool newGameNeedsCleanCard();
 void loadBootStage();
 
 // pc_shot.cpp: parses COS_SHOT / COS_SHOT_EVERY (exit PC_EXIT_USAGE if malformed); without
-// them the screenshots stay off.
-void loadShots();
+// them the screenshots stay off. Returns whether any frame will be captured.
+bool loadShots();
 // pc_shot.cpp: after aurora_end_frame of game frame `frame` (pc_frame_count numbering): saves the
 // presented image as shot-<frame>.png if COS_SHOT or COS_SHOT_EVERY names that frame.
 void shotFrameEnd(unsigned int frame);

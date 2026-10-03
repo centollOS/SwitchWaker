@@ -1,0 +1,66 @@
+AuroraConfig::blockingPipelines: wait for a draw's pipeline instead of skipping the draw
+
+GameCube behaviour: the GPU draws every primitive the game sends, every frame; there is no
+shader compilation and nothing is ever left out of a frame. Dolphin's default shader
+compilation mode (VideoCommon ShaderCompilationMode::Synchronous) keeps this: a draw waits
+for its shader. Its "asynchronous (skip drawing)" mode is an option.
+
+Aurora 3227d76 resolves every GX and clear pipeline with PipelinePriority::Normal
+(lib/gfx/pipeline_cache.cpp find_pipeline): a pipeline that is not built yet goes on the
+compile thread's queue and the draw is skipped until it is ready. That is a fine default
+for playing, but it makes frames depend on wall-clock compile time. In the game's port,
+with several game processes compiling at once (the boot sweep, parallel regression runs),
+about 300 pipelines were still queued 1100 frames into Ojhous and Orca's message box drew
+its panel, Next button and arrow but not the text or most of the HUD (render audit A3),
+in 2 to 7 runs out of 10, while the game state was identical.
+
+The patch adds a config field, false by default (Aurora's behaviour is unchanged). When
+it is true, GX and clear pipelines use the existing PipelinePriority::Blocking path: the
+pipeline goes to the front of the compile queue (or is promoted from the warm-up queue)
+and find_pipeline waits for it. The game's harness turns it on for runs that capture
+frames (COS_SHOT), so screenshots show what the console would draw.
+
+Upstream status: not reported upstream yet (encounter/aurora at 3227d76).
+
+diff -ru a/include/aurora/aurora.h b/include/aurora/aurora.h
+--- a/include/aurora/aurora.h	2026-10-03 21:48:06
++++ b/include/aurora/aurora.h	2026-10-03 21:48:14
+@@ -116,6 +116,13 @@
+    * This can be set to 0 to disable allocating this region.
+    */
+   uint32_t mem2Size;
++
++  /*
++   * Compile GX and clear pipelines synchronously: a draw whose pipeline is not built yet waits for
++   * it instead of being skipped for that frame (the default asynchronous mode). Every frame then
++   * shows every draw, as on the console, at the cost of a stall the first time a pipeline is used.
++   */
++  bool blockingPipelines;
+ } AuroraConfig;
+ 
+ typedef struct {
+diff -ru a/lib/gfx/pipeline_cache.cpp b/lib/gfx/pipeline_cache.cpp
+--- a/lib/gfx/pipeline_cache.cpp	2026-10-03 21:48:06
++++ b/lib/gfx/pipeline_cache.cpp	2026-10-03 21:48:14
+@@ -1087,14 +1087,19 @@
+   g_pipelineCacheWriteQueue.clear();
+ }
+ 
++// AuroraConfig::blockingPipelines: wait for a draw's pipeline instead of skipping the draw.
++static PipelinePriority draw_pipeline_priority() {
++  return g_config.blockingPipelines ? PipelinePriority::Blocking : PipelinePriority::Normal;
++}
++
+ PipelineRef find_pipeline(const clear::PipelineConfig& config, const RenderTargetLayout& layout) {
+   remember_pipeline_config(ShaderType::Clear, config, current_frame(), true);
+-  return resolve_pipeline(ShaderType::Clear, config, layout, PipelinePriority::Normal);
++  return resolve_pipeline(ShaderType::Clear, config, layout, draw_pipeline_priority());
+ }
+ 
+ PipelineRef find_pipeline(const gx::PipelineConfig& config, const RenderTargetLayout& layout) {
+   remember_pipeline_config(ShaderType::GX, config, current_frame(), true);
+-  return resolve_pipeline(ShaderType::GX, config, layout, PipelinePriority::Normal);
++  return resolve_pipeline(ShaderType::GX, config, layout, draw_pipeline_priority());
+ }
+ 
+ #ifdef AURORA_ENABLE_RMLUI

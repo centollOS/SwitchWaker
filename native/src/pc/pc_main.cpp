@@ -151,16 +151,19 @@ void pc_aurora_init(int argc, char* argv[]) {
     config.allowTextureDumps = false;
     config.mem1Size = kMem1Size;
     config.mem2Size = kMem2Size;
+    config.blockingPipelines = gConfig.syncPipelines;
     const AuroraInfo info = aurora_initialize(argc, argv, &config);
     if (info.window == nullptr) {
         writef(STDERR_FILENO, "[cos] aurora_initialize returned no window\n");
         pc_exit(PC_EXIT_USAGE);
     }
     writef(STDERR_FILENO,
-           "[cos] aurora: backend=%s window=%ux%u framebuffer=%ux%u vsync=%d user=%s\n",
+           "[cos] aurora: backend=%s window=%ux%u framebuffer=%ux%u vsync=%d pipelines=%s "
+           "user=%s\n",
            backendName(info.backend), (unsigned int)info.windowSize.width,
            (unsigned int)info.windowSize.height, (unsigned int)info.windowSize.fb_width,
-           (unsigned int)info.windowSize.fb_height, config.vsync ? 1 : 0, sUserPath);
+           (unsigned int)info.windowSize.fb_height, config.vsync ? 1 : 0,
+           config.blockingPipelines ? "sync" : "async", sUserPath);
 
     // Before DVDInit (Aurora's rule); pc_harness_init already checked COS_DISC is set and readable.
     if (!aurora_dvd_open(gConfig.disc)) {
