@@ -11,6 +11,29 @@
 
 cmake_minimum_required(VERSION 3.25)
 
+# Benchmark variant (docs/NATIVE_PORT_PHASE4_6.md, step 6.7), in a build directory of its own:
+#   cmake -S native -B build/native-mac-perf -G Ninja -DCOS_PERF_BUILD=ON
+# Release at -O2 (not -O3), every target compiled for generic ARMv8.0 (-march=armv8-a, the A57's
+# level) instead of the host CPU's, and Tracy forced off. The executable logs that it is this
+# variant; COS_PERF / COS_PERF_EVERY then give its frame times.
+option(COS_PERF_BUILD "Benchmark build: -O2, -march=armv8-a, no Tracy (step 6.7)" OFF)
+
+if (COS_PERF_BUILD)
+    if (NOT CMAKE_BUILD_TYPE)
+        set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+                "Build type options: Debug Release RelWithDebInfo MinSizeRel" FORCE)
+    endif ()
+    if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+        message(FATAL_ERROR "COS_PERF_BUILD needs CMAKE_BUILD_TYPE=Release (got ${CMAKE_BUILD_TYPE})")
+    endif ()
+    # Before project(), so these are the cache defaults it would otherwise set to -O3.
+    set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG" CACHE STRING "Flags used by the C compiler in Release")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG" CACHE STRING "Flags used by the C++ compiler in Release")
+    set(CMAKE_OBJC_FLAGS_RELEASE "-O2 -DNDEBUG" CACHE STRING "Flags used by the ObjC compiler in Release")
+    set(CMAKE_OBJCXX_FLAGS_RELEASE "-O2 -DNDEBUG" CACHE STRING "Flags used by the ObjC++ compiler in Release")
+    set(TRACY_ENABLE OFF CACHE BOOL "Enable Tracy profiling" FORCE)
+endif ()
+
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING
             "Build type options: Debug Release RelWithDebInfo MinSizeRel" FORCE)
@@ -21,6 +44,17 @@ if (APPLE AND NOT CMAKE_OSX_ARCHITECTURES)
 endif ()
 
 project(cos_native LANGUAGES C CXX)
+
+if (COS_PERF_BUILD)
+    # Before any target (Aurora and its dependencies included), so all of them get it.
+    if (CMAKE_OSX_ARCHITECTURES STREQUAL "arm64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|ARM64)$")
+        add_compile_options(-march=armv8-a)
+    else ()
+        message(WARNING "COS_PERF_BUILD: not an ARM64 host (${CMAKE_SYSTEM_PROCESSOR}); no -march=armv8-a")
+    endif ()
+    add_compile_definitions(COS_PERF_BUILD=1)
+    message(STATUS "cos_native: COS_PERF_BUILD (Release -O2, -march=armv8-a, Tracy off)")
+endif ()
 
 if (APPLE AND NOT CMAKE_OSX_SYSROOT)
     # If the Xcode SDK is lagging behind the system version, CMake needs this done first

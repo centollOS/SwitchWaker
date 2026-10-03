@@ -17,6 +17,7 @@
  *   COS_INPUT      input script for controller port 0 (step 6.3, pc_input.cpp)
  *   COS_BOOT_STAGE <stage>:<room>[:<point>[:<layer>]]: debug stage boot (step 6.4, pc_boot.cpp)
  *   COS_PERF_EVERY every this many frames, one line of game-thread frame times (pc_frame.cpp)
+ *   COS_PERF       file that gets one CSV row of game-thread times per game frame (step 6.7)
  *
  * Exit codes: see PC_EXIT_* below.
  */
@@ -149,6 +150,21 @@ void pc_frame_end(void);
 /* The wait of JFWDisplay's waitForTick (step 6.2): returns once periodNs have passed since the
    previous call returned (Dusklight's limiter); returns at once with COS_UNCAPPED. */
 void pc_frame_pace(unsigned long long periodNs);
+
+/* Performance instrumentation (step 6.7, pc_frame.cpp). main01 brackets mDoCPd_Read,
+   mDoAud_Execute and fapGm_Execute, and cAPIGph_Painter brackets the painter (mDoGph_Painter,
+   which fapGm_Execute runs first), with pc_perf_begin/pc_perf_end; time spent in pc_frame_pace
+   inside a bracket is left out of it. The COS_PERF rows and COS_PERF_EVERY lines report them;
+   without either both calls return at once. */
+enum {
+    PC_PERF_CPD_READ = 0,    /* mDoCPd_Read */
+    PC_PERF_AUD_EXECUTE = 1, /* mDoAud_Execute */
+    PC_PERF_GAME = 2,        /* fapGm_Execute, the painter included */
+    PC_PERF_PAINTER = 3,     /* mDoGph_Painter: the GX encode of the frame's draw lists */
+    PC_PERF_PHASES = 4,
+};
+void pc_perf_begin(int phase);
+void pc_perf_end(int phase);
 
 /* One NTSC VI retrace (59.94 Hz): 1001/60000 s. */
 #define PC_RETRACE_PERIOD_NS 16683333ull

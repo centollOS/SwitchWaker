@@ -414,8 +414,26 @@ COS_DISC=/nonexistent build/native-mac/centollos; echo $?   # 14
 | `COS_FRAMES` | exit 0 after this many game frames |
 | `COS_SHOT`, `COS_SHOT_EVERY`, `COS_SHOT_DIR` | save the presented image of these game frames (`1500` or `300,1500`), or of every n-th frame, as `shot-<frame>.png` in the run directory or `COS_SHOT_DIR` (`native/src/pc/pc_shot.cpp`; `run.sh --shot`) |
 | `COS_UNCAPPED`, `COS_AUDIO` | frame pacing off (step 6.2); `off` keeps audio silent (step 6.1, phase 5) |
-| `COS_PERF_EVERY` | every this many game frames, a `[cos] perf` line: the game thread's time per frame (average, maximum), the pace wait, frames and VI retraces a second (0/unset: off) |
+| `COS_PERF_EVERY` | every this many game frames, a `[cos] perf` line: the game thread's time per frame (average, maximum), the pace wait, frames and VI retraces a second, the phase split and the CPU time (0/unset: off) |
+| `COS_PERF` | a file that gets one CSV row per game frame (step 6.7; `run.sh --perf perf.csv` puts it in the run directory); see "Performance instrumentation" |
 | `COS_RUN_DIR` | where `backtrace.txt` and `stall.txt` go (set by `run.sh`) |
+
+Performance instrumentation (step 6.7, `pc_frame.cpp`). `COS_PERF=<file>` writes, per game frame,
+`frame,t_ms,wall_ms,busy_ms,cpu_ms,wait_ms,begin_ms,cpd_read_ms,aud_execute_ms,logic_ms,painter_ms,aurora_end_frame_ms,other_ms,retrace`:
+`t_ms` is the frame's start since the loop's first frame, `wall_ms` runs from `pc_frame_begin` to
+the end of `aurora_end_frame`, `wait_ms` is the pace wait (JFWDisplay's `waitForTick`),
+`busy_ms` = wall - wait (the "game thread" of the `[cos] perf` line), `cpu_ms` the game thread's
+CPU time (`CLOCK_THREAD_CPUTIME_ID`: time blocked is left out, and so is the CPU of the limiter's
+final spin; empty where the clock is missing). The split adds up to `busy_ms`: `begin_ms` (Aurora's
+events and `aurora_begin_frame`), `mDoCPd_Read`, `mDoAud_Execute`, `logic_ms` (`fapGm_Execute`
+without the painter), `painter_ms` (`mDoGph_Painter`, the GX encode, without the pace wait inside
+it), `aurora_end_frame` and `other_ms` (the rest of main01's loop). The `[cos] perf` lines of
+`COS_PERF_EVERY` average the same numbers, so the Mac's CSV and the Switch's log compare
+directly. The game thread (the process main thread) runs at QoS USER_INTERACTIVE on macOS, logged
+as `[cos] game thread: QoS`. The benchmark variant is a build directory of its own:
+`cmake -S native -B build/native-mac-perf -G Ninja -DCOS_PERF_BUILD=ON` (Release at `-O2`, every
+target at `-march=armv8-a`, generic ARMv8.0 like the A57, Tracy off; it logs
+`[cos] perf: COS_PERF_BUILD variant`), run with `run.sh --exe build/native-mac-perf/centollos`.
 
 Exit codes: 0 reached, 1 smoke check failed, 2 usage error, 10 timeout, 11 stall, 12 panic
 (`OSPanic`, which `JUT_ASSERT` ends in), 13 signal, 14 disc problem. Milestones are logged as

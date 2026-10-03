@@ -13,6 +13,10 @@
 #if defined(__SWITCH__)
 #include "cos_switch.h"
 #endif
+#if defined(__APPLE__)
+#include <pthread.h>
+#include <pthread/qos.h>
+#endif
 
 namespace pc {
 
@@ -56,6 +60,18 @@ unsigned int envCount(const char* name) {
         pc_exit(PC_EXIT_USAGE);
     }
     return (unsigned int)n;
+}
+
+// Step 6.7: the game thread (the process main thread, which runs main01) at QoS USER_INTERACTIVE,
+// so macOS keeps it on the P-cores. Threads it creates later (DVD, JAudio, Aurora's workers)
+// inherit that class unless they set their own.
+void setGameThreadQos() {
+#if defined(__APPLE__)
+    const qos_class_t before = qos_class_self();
+    const int err = pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
+    writef(STDERR_FILENO, "[cos] game thread: QoS 0x%x -> 0x%x%s\n", (unsigned int)before,
+           (unsigned int)qos_class_self(), err == 0 ? " (user-interactive)" : " (refused)");
+#endif
 }
 
 bool envFlag(const char* name, bool fallback) {
@@ -117,6 +133,7 @@ void pc_harness_init(int argc, char* argv[]) {
     gConfig.uncapped = envFlag("COS_UNCAPPED", false);
     gConfig.audio = envFlag("COS_AUDIO", true);
     gConfig.perfEvery = envCount("COS_PERF_EVERY");
+    gConfig.perfPath = envString("COS_PERF");
 
     writef(STDERR_FILENO,
            "[cos] harness: smoke=%s milestone=%s timeout=%gs stall=%gs frames=%u trace=%s "
@@ -131,6 +148,10 @@ void pc_harness_init(int argc, char* argv[]) {
         writef(STDERR_FILENO, "[cos] perf: game-thread frame times every %u frames (COS_PERF_EVERY)\n",
                gConfig.perfEvery);
     }
+#if defined(COS_PERF_BUILD)
+    writef(STDERR_FILENO, "[cos] perf: COS_PERF_BUILD variant (-O2, generic ARMv8.0, no Tracy)\n");
+#endif
+    setGameThreadQos();
 
     if (gConfig.milestone != nullptr && !isKnownMilestone(gConfig.milestone)) {
         writef(STDERR_FILENO, "[cos] unknown COS_MILESTONE \"%s\"; known:", gConfig.milestone);
@@ -146,6 +167,7 @@ void pc_harness_init(int argc, char* argv[]) {
     loadInput();
     loadBootStage();
     loadShots();
+    perfOpen();
 
     installCrashHandler();
     startWatchdog();
@@ -185,6 +207,8 @@ void pc_exit(int code) {
     // which assume a booted game (~dComIfG_inf_c reaches dVibration_c::Kill, which stops the motor
     // of a JUTGamePad that does not exist; found in step 3.9).
     // TODO(native phase 6): decide how the PC executable exits once the game boots (quit event).
+    // The COS_PERF rows still buffered (step 6.7).
+    perfFlush();
     // Flush stdio without blocking on a lock some other (now frozen) thread may hold.
     FILE* streams[2] = {stdout, stderr};
     for (FILE* f : streams) {

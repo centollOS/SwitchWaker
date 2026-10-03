@@ -23,6 +23,7 @@ struct Config {
     unsigned int frames = 0;         // COS_FRAMES, 0 = off
     bool uncapped = false;           // COS_UNCAPPED
     unsigned int perfEvery = 0;      // COS_PERF_EVERY: game-thread frame times every N frames, 0 = off
+    const char* perfPath = nullptr;  // COS_PERF: CSV of per-frame game-thread times (step 6.7)
     bool audio = true;               // COS_AUDIO (off/0 -> false)
 };
 
@@ -177,6 +178,12 @@ void loadShots();
 // pc_shot.cpp: after aurora_end_frame of game frame `frame` (pc_frame_count numbering): saves the
 // presented image as shot-<frame>.png if COS_SHOT or COS_SHOT_EVERY names that frame.
 void shotFrameEnd(unsigned int frame);
+
+// pc_frame.cpp (step 6.7): creates the COS_PERF file and writes its header row (exit
+// PC_EXIT_USAGE if it cannot be created); nothing without COS_PERF. perfFlush writes out the rows
+// still buffered (pc_exit; any thread, never blocks).
+void perfOpen();
+void perfFlush();
 
 // pc_frame.cpp: "[cos] pacing: frames= wall= requested= ..." since the frame loop started (nothing
 // before it).

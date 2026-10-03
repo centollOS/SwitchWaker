@@ -219,7 +219,7 @@ What the log shows, in order (the same `[cos]` lines as on the Mac; values vary)
 [cos] frame loop: start, paced by JFWDisplay
 [cos] audio: mDoAud_Create done at frame N; DSP handshake done
 [cos] MILESTONE logo-scene ...                                   <- the boot logo is on screen
-[cos] perf frames 1-60: game thread X ms avg, Y ms max (begin B, aurora_end_frame E); pace wait W ms avg; F fps, R retraces/s (60 = full speed)
+[cos] perf frames 1-60: game thread X ms avg, Y ms max (begin B, aurora_end_frame E); pace wait W ms avg; F fps, R retraces/s (60 = full speed); cpd_read C, aud_execute A, logic L, painter P; cpu U ms avg
 [cos] MILESTONE frame-loop ...
 [cos] logo-res: all commands synced at frame ...: 26 archives mounted, 4 files in main RAM, 0 empty
 [cos] MILESTONE logo-res ...
@@ -236,7 +236,10 @@ instead of returning to the Homebrew Menu). Exit codes are the Mac's (native/REA
 The `[cos] perf` lines are the speed at 1020 MHz: "game thread" is the game's own work per frame
 (the frame minus the wait for the next tick), "begin" includes waiting for Aurora's render worker,
 and "retraces/s" is the game's speed (60 is full speed; the game asks for a frame every one or two
-retraces). Threads: the game thread runs on core 0; JAudio's, the DVD thread, Aurora's and Dawn's
+retraces). The split (`mDoCPd_Read`, `mDoAud_Execute`, the `fapGm_Execute` logic, the
+`mDoGph_Painter` GX encode) and "cpu" (the thread's CPU time, "n/a" if the clock is missing) are
+the averages of the Mac's per-frame `COS_PERF` CSV columns (native/README.md, step 6.7), so the
+two machines compare column for column. Threads: the game thread runs on core 0; JAudio's, the DVD thread, Aurora's and Dawn's
 workers prefer cores 1 and 2 (`switch/native/source/thread_wrap.c`). Every 15 seconds, at exit
 and in a crash report, `[switch] memory: used N MiB of M MiB` shows the process's memory.
 

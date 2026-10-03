@@ -491,9 +491,22 @@ void main01() {
             mDoMemCd_UpDate();
         }
 
+#if TARGET_PC
+        // Step 6.7 (pc_frame.cpp): the phase split of COS_PERF / COS_PERF_EVERY.
+        pc_perf_begin(PC_PERF_CPD_READ);
+        mDoCPd_Read();     // read controller input
+        pc_perf_end(PC_PERF_CPD_READ);
+        pc_perf_begin(PC_PERF_AUD_EXECUTE);
+        mDoAud_Execute();  // handle audio execution
+        pc_perf_end(PC_PERF_AUD_EXECUTE);
+        pc_perf_begin(PC_PERF_GAME);
+        fapGm_Execute();   // handle game execution
+        pc_perf_end(PC_PERF_GAME);
+#else
         mDoCPd_Read();     // read controller input
         mDoAud_Execute();  // handle audio execution
         fapGm_Execute();   // handle game execution
+#endif
 
 #if VERSION == VERSION_DEMO
         if (mCheckHeap) {

@@ -9,8 +9,17 @@
 // - COS_PERF_EVERY=<n> (phase 7, for the Switch at its stock 1020 MHz): every n frames one line
 //   with the game thread's busy time per frame (the frame minus the pace wait: average and
 //   maximum, and the aurora_begin_frame/aurora_end_frame parts), the average wait, the frame rate
-//   and the VI retrace rate (60 a second is full speed). Off by default (the Switch build turns it
-//   on).
+//   and the VI retrace rate (60 a second is full speed), then the phase split and the CPU time
+//   below as averages. Off by default (the Switch build turns it on).
+// - COS_PERF=<file> (step 6.7): one CSV row per game frame (columns at kPerfCsvHeader): the wall
+//   time from pc_frame_begin to the end of aurora_end_frame, the busy part (wall minus the pace
+//   wait), the game thread's CPU time (CLOCK_THREAD_CPUTIME_ID, which leaves out time blocked;
+//   the CPU the pace wait spins away is left out too) and the split: pumpEvents with
+//   aurora_begin_frame, mDoCPd_Read, mDoAud_Execute, the fapGm_Execute logic (fapGm_Execute minus
+//   the painter), the mDoGph_Painter GX encode (pc_perf_begin/pc_perf_end brackets, minus the pace
+//   wait inside them), aurora_end_frame, and the rest of the busy time. Times in ms. Rows are
+//   buffered and written out when the buffer fills and at exit (pc_exit). The same numbers feed
+//   the COS_PERF_EVERY lines, so the Mac's CSV and the Switch's log compare directly.
 // - pc_frame_pace is the wait of JFWDisplay's waitForTick (JFWDisplay.cpp, TARGET_PC): it sleeps
 //   until the period the game asked for has passed since the previous wait, with Dusklight's
 //   limiter (mach_wait_until for all but the last 2 ms, then a spin). COS_UNCAPPED skips it.
@@ -36,7 +45,10 @@
 
 #include <array>
 #include <atomic>
+#include <cerrno>
+#include <cstring>
 #include <ctime>
+#include <fcntl.h>
 #include <numeric>
 #include <unistd.h>
 
@@ -156,6 +168,94 @@ bool sLogoResLogged = false;
 // Step 5.A: mDoAud_Create has finished (COS_AUDIO=on).
 bool sAudioLogged = false;
 
+// Step 6.7: COS_PERF or COS_PERF_EVERY is set (perfOpen / pc_frame_begin decide it once).
+bool sPerfOn = false;
+// Pace waits of the current frame: their sum (ns) and the game thread CPU they used (the
+// limiter's final spin).
+uint64_t sFrameWaitNs = 0;
+uint64_t sFrameWaitCpuNs = 0;
+uint64_t sFrameStartCpuNs = 0;
+// pc_perf_begin/pc_perf_end: per phase, the time of this frame (pace wait left out) and the open
+// bracket's start.
+struct PerfPhase {
+    uint64_t startNs = 0;
+    uint64_t startWaitNs = 0; // sFrameWaitNs at pc_perf_begin
+    uint64_t ns = 0;
+};
+PerfPhase sPhase[PC_PERF_PHASES];
+
+// The game thread's CPU time in ns, or UINT64_MAX where the clock is missing.
+uint64_t threadCpuNs() {
+#if defined(CLOCK_THREAD_CPUTIME_ID)
+    struct timespec ts;
+    if (clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) == 0) {
+        return (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+    }
+#endif
+    return UINT64_MAX;
+}
+
+// One game frame's numbers (ns), as the CSV row and the COS_PERF_EVERY sums use them.
+struct PerfFrame {
+    uint64_t wallNs, busyNs, cpuNs, waitNs, beginNs, cpdNs, audNs, logicNs, painterNs, endFrameNs,
+        otherNs;
+    bool cpuValid;
+};
+
+// COS_PERF: the CSV. Rows go to sCsvBuf (game thread); sCsvLen is published after each row, so
+// perfFlush from another thread (pc_exit) writes whole rows only. sCsvFlushing makes one writer.
+constexpr const char* kPerfCsvHeader =
+    "frame,t_ms,wall_ms,busy_ms,cpu_ms,wait_ms,begin_ms,cpd_read_ms,aud_execute_ms,logic_ms,"
+    "painter_ms,aurora_end_frame_ms,other_ms,retrace\n";
+int sCsvFd = -1;
+char sCsvBuf[256 * 1024];
+std::atomic<size_t> sCsvLen{0};
+std::atomic_flag sCsvFlushing = ATOMIC_FLAG_INIT;
+
+void csvWriteAll(const char* p, size_t n) {
+    while (n > 0) {
+        const ssize_t w = write(sCsvFd, p, n);
+        if (w < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            return;
+        }
+        p += w;
+        n -= (size_t)w;
+    }
+}
+
+void csvRow(unsigned int frame, uint64_t tNs, const PerfFrame& f, uint32_t retrace) {
+    if (sCsvFd < 0) {
+        return;
+    }
+    char row[256];
+    char cpu[24] = "";
+    if (f.cpuValid) {
+        snprintf(cpu, sizeof(cpu), "%.3f", f.cpuNs / 1e6);
+    }
+    const int len = snprintf(row, sizeof(row),
+                             "%u,%.3f,%.3f,%.3f,%s,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%u\n",
+                             frame, tNs / 1e6, f.wallNs / 1e6, f.busyNs / 1e6, cpu, f.waitNs / 1e6,
+                             f.beginNs / 1e6, f.cpdNs / 1e6, f.audNs / 1e6, f.logicNs / 1e6,
+                             f.painterNs / 1e6, f.endFrameNs / 1e6, f.otherNs / 1e6,
+                             (unsigned int)retrace);
+    if (len <= 0 || len >= (int)sizeof(row)) {
+        return;
+    }
+    size_t used = sCsvLen.load(std::memory_order_relaxed);
+    if (used + (size_t)len > sizeof(sCsvBuf)) {
+        perfFlush();
+        used = sCsvLen.load(std::memory_order_relaxed);
+        if (used + (size_t)len > sizeof(sCsvBuf)) {
+            return; // pc_exit is writing the buffer out; the process ends
+        }
+    }
+    memcpy(sCsvBuf + used, row, (size_t)len);
+    sCsvLen.store(used + (size_t)len, std::memory_order_release);
+}
+
 // COS_PERF_EVERY: sums over the frames since the last perf line.
 struct PerfWindow {
     bool started = false;
@@ -167,9 +267,41 @@ struct PerfWindow {
     uint64_t waitNs = 0;
     uint64_t beginNs = 0;      // pumpEvents + aurora_begin_frame
     uint64_t endFrameNs = 0;   // aurora_end_frame
+    uint64_t cpdNs = 0;
+    uint64_t audNs = 0;
+    uint64_t logicNs = 0;
+    uint64_t painterNs = 0;
+    uint64_t cpuNs = 0;
+    bool cpuValid = true;
 } sPerf;
 
 void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now) {
+    if (!sPerfOn) {
+        return;
+    }
+    const uint64_t cpuNow = threadCpuNs();
+    PerfFrame f{};
+    f.waitNs = sFrameWaitNs;
+    f.wallNs = now - sFrameStartNs;
+    f.busyNs = f.wallNs > f.waitNs ? f.wallNs - f.waitNs : 0;
+    f.cpuValid = cpuNow != UINT64_MAX && sFrameStartCpuNs != UINT64_MAX;
+    if (f.cpuValid) {
+        const uint64_t cpu = cpuNow - sFrameStartCpuNs;
+        f.cpuNs = cpu > sFrameWaitCpuNs ? cpu - sFrameWaitCpuNs : 0;
+    }
+    f.beginNs = sBeginDoneNs - sFrameStartNs;
+    f.cpdNs = sPhase[PC_PERF_CPD_READ].ns;
+    f.audNs = sPhase[PC_PERF_AUD_EXECUTE].ns;
+    f.painterNs = sPhase[PC_PERF_PAINTER].ns;
+    const uint64_t gameNs = sPhase[PC_PERF_GAME].ns;
+    f.logicNs = gameNs > f.painterNs ? gameNs - f.painterNs : 0;
+    f.endFrameNs = now - endFrameStartNs;
+    const uint64_t known = f.beginNs + f.cpdNs + f.audNs + gameNs + f.endFrameNs;
+    f.otherNs = f.busyNs > known ? f.busyNs - known : 0;
+    const uint32_t retrace = VIGetRetraceCount();
+    const unsigned int last = pc_frame_count() + 1;
+    csvRow(last, sFrameStartNs - sLoopStartNs, f, retrace);
+
     if (gConfig.perfEvery == 0) {
         return;
     }
@@ -178,28 +310,36 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now) {
         sPerf.startNs = sLoopStartNs;
         sPerf.startRetrace = sLoopStartRetrace;
     }
-    const uint64_t waitNs = sPaceEndNs > sPaceStartNs ? sPaceEndNs - sPaceStartNs : 0;
-    const uint64_t frameNs = now - sFrameStartNs;
-    const uint64_t busyNs = frameNs > waitNs ? frameNs - waitNs : 0;
     sPerf.frames++;
-    sPerf.busyNs += busyNs;
-    sPerf.maxBusyNs = busyNs > sPerf.maxBusyNs ? busyNs : sPerf.maxBusyNs;
-    sPerf.waitNs += waitNs;
-    sPerf.beginNs += sBeginDoneNs - sFrameStartNs;
-    sPerf.endFrameNs += now - endFrameStartNs;
+    sPerf.busyNs += f.busyNs;
+    sPerf.maxBusyNs = f.busyNs > sPerf.maxBusyNs ? f.busyNs : sPerf.maxBusyNs;
+    sPerf.waitNs += f.waitNs;
+    sPerf.beginNs += f.beginNs;
+    sPerf.endFrameNs += f.endFrameNs;
+    sPerf.cpdNs += f.cpdNs;
+    sPerf.audNs += f.audNs;
+    sPerf.logicNs += f.logicNs;
+    sPerf.painterNs += f.painterNs;
+    sPerf.cpuNs += f.cpuNs;
+    sPerf.cpuValid = sPerf.cpuValid && f.cpuValid;
     if (sPerf.frames < gConfig.perfEvery) {
         return;
     }
     const double n = sPerf.frames;
     const double wallS = (now - sPerf.startNs) / 1e9;
-    const uint32_t retrace = VIGetRetraceCount();
-    const unsigned int last = pc_frame_count() + 1;
+    char cpu[48] = "n/a";
+    if (sPerf.cpuValid) {
+        snprintf(cpu, sizeof(cpu), "%.2f ms avg", sPerf.cpuNs / n / 1e6);
+    }
     writef(STDERR_FILENO, "[cos] perf frames %u-%u: game thread %.2f ms avg, %.2f ms max (begin %.2f, "
                           "aurora_end_frame %.2f); pace wait %.2f ms avg; %.1f fps, %.1f retraces/s "
-                          "(60 = full speed)\n",
+                          "(60 = full speed); cpd_read %.2f, aud_execute %.2f, logic %.2f, painter "
+                          "%.2f; cpu %s\n",
            last - sPerf.frames + 1, last, sPerf.busyNs / n / 1e6, sPerf.maxBusyNs / 1e6,
            sPerf.beginNs / n / 1e6, sPerf.endFrameNs / n / 1e6, sPerf.waitNs / n / 1e6,
-           wallS > 0 ? n / wallS : 0.0, wallS > 0 ? (retrace - sPerf.startRetrace) / wallS : 0.0);
+           wallS > 0 ? n / wallS : 0.0, wallS > 0 ? (retrace - sPerf.startRetrace) / wallS : 0.0,
+           sPerf.cpdNs / n / 1e6, sPerf.audNs / n / 1e6, sPerf.logicNs / n / 1e6,
+           sPerf.painterNs / n / 1e6, cpu);
     sPerf = PerfWindow{};
     sPerf.started = true;
     sPerf.startNs = now;
@@ -244,6 +384,32 @@ void writePacing(int fd) {
            gConfig.uncapped ? 1 : 0, (unsigned int)(VIGetRetraceCount() - sLoopStartRetrace));
 }
 
+void perfOpen() {
+    sPerfOn = gConfig.perfEvery != 0 || gConfig.perfPath != nullptr;
+    if (gConfig.perfPath == nullptr) {
+        return;
+    }
+    sCsvFd = open(gConfig.perfPath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (sCsvFd < 0) {
+        writef(STDERR_FILENO, "[cos] COS_PERF=\"%s\": cannot create it (%s)\n", gConfig.perfPath,
+               strerror(errno));
+        pc_exit(PC_EXIT_USAGE);
+    }
+    csvWriteAll(kPerfCsvHeader, strlen(kPerfCsvHeader));
+    writef(STDERR_FILENO, "[cos] perf: one CSV row per game frame to %s (COS_PERF)\n",
+           gConfig.perfPath);
+}
+
+void perfFlush() {
+    if (sCsvFd < 0 || sCsvFlushing.test_and_set(std::memory_order_acquire)) {
+        return;
+    }
+    const size_t len = sCsvLen.load(std::memory_order_acquire);
+    csvWriteAll(sCsvBuf, len);
+    sCsvLen.store(0, std::memory_order_release);
+    sCsvFlushing.clear(std::memory_order_release);
+}
+
 void logoResDone(const char* how) {
     if (sLogoResSynced && !sLogoResLogged) {
         sLogoResLogged = true;
@@ -263,8 +429,27 @@ using namespace pc;
 
 extern "C" {
 
+void pc_perf_begin(int phase) {
+    if (!sPerfOn || phase < 0 || phase >= PC_PERF_PHASES) {
+        return;
+    }
+    sPhase[phase].startWaitNs = sFrameWaitNs;
+    sPhase[phase].startNs = monotonicNs();
+}
+
+void pc_perf_end(int phase) {
+    if (!sPerfOn || phase < 0 || phase >= PC_PERF_PHASES || sPhase[phase].startNs == 0) {
+        return;
+    }
+    const uint64_t ns = monotonicNs() - sPhase[phase].startNs;
+    const uint64_t waitNs = sFrameWaitNs - sPhase[phase].startWaitNs;
+    sPhase[phase].ns += ns > waitNs ? ns - waitNs : 0;
+    sPhase[phase].startNs = 0;
+}
+
 void pc_frame_pace(unsigned long long periodNs) {
     sRequestedNs += periodNs;
+    const uint64_t cpuStart = sPerfOn ? threadCpuNs() : UINT64_MAX;
     sPaceStartNs = monotonicNs();
     if (!gConfig.uncapped) {
         if (!sLimiterStarted) {
@@ -275,6 +460,13 @@ void pc_frame_pace(unsigned long long periodNs) {
         sLimiter.Sleep(periodNs);
     }
     sPaceEndNs = monotonicNs();
+    sFrameWaitNs += sPaceEndNs - sPaceStartNs;
+    if (sPerfOn) {
+        const uint64_t cpuEnd = threadCpuNs();
+        if (cpuStart != UINT64_MAX && cpuEnd != UINT64_MAX) {
+            sFrameWaitCpuNs += cpuEnd - cpuStart;
+        }
+    }
     if (sFirstPaceEndNs == 0) {
         sFirstPaceEndNs = sPaceEndNs;
         sFirstPeriodNs = periodNs;
@@ -291,6 +483,14 @@ void pc_frame_begin(void) {
     }
     sFrameStartNs = monotonicNs();
     sPaceStartNs = sPaceEndNs = 0;
+    sFrameWaitNs = 0;
+    if (sPerfOn) {
+        sFrameStartCpuNs = threadCpuNs();
+        sFrameWaitCpuNs = 0;
+        for (PerfPhase& phase : sPhase) {
+            phase.ns = 0;
+        }
+    }
     pumpEvents();
     // Refused while the window cannot present (minimised, no surface yet): the console would not
     // run a frame without a display either. The stall watchdog reports a refusal that lasts.

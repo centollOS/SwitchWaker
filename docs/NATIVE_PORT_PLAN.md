@@ -3064,6 +3064,31 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `run.sh outset-real --input native/check/input/new-game.txt --timeout 480` (capped).
   Review: `regress.sh -j 3` passed; `outset-real` reached 3/3 capped (3 parallel runs, 410 s
   each, milestone frame 12420).
+- **Step 6.7 performance instrumentation** (2026-10-03, lane audio). `COS_PERF=<file>`
+  (`run.sh --perf perf.csv`): one CSV row per game frame from `pc_frame.cpp`, with the wall
+  time, the busy time (wall minus the pace wait), the game thread's CPU time
+  (`CLOCK_THREAD_CPUTIME_ID`, minus the CPU the limiter's final spin uses), the pace wait and the
+  split `begin` (events + `aurora_begin_frame`), `mDoCPd_Read`, `mDoAud_Execute`, the
+  `fapGm_Execute` logic, the `mDoGph_Painter` GX encode, `aurora_end_frame` and the rest. The
+  split comes from `pc_perf_begin`/`pc_perf_end` brackets under `TARGET_PC` around the three
+  calls of main01's loop (m_Do_main.cpp) and around `cAPIGph_Painter` (c_API_graphic.cpp; the
+  painter runs first inside `fapGm_Execute`, so logic = `fapGm_Execute` - painter); pace waits
+  inside a bracket are left out of it. Rows are buffered (256 KiB) and written at exit by
+  `pc_exit`. The Switch's `COS_PERF_EVERY` line (a88916e) now averages the same per-frame numbers
+  and appends the split and the CPU time, keeping its existing prefix, so Mac CSVs and Switch logs
+  compare column for column. The game thread is set to QoS USER_INTERACTIVE
+  (`pthread_set_qos_class_self_np`, logged; threads it creates inherit it). `-DCOS_PERF_BUILD=ON`
+  (own build dir, e.g. `build/native-mac-perf`): Release at `-O2`, `-march=armv8-a` on every
+  target (Aurora and its dependencies included), Tracy forced off, and the executable logs the
+  variant. Verified: `run --frames 900 --perf perf.csv` (capped, `COS_PERF_EVERY=120`) exits 0
+  with 901 lines (header + frames 1-900, contiguous); in every row wall = busy + wait, the split
+  sums to busy and cpu <= busy; at the title (frames 600-900) busy is ~1.4 ms median (logic ~0.9,
+  painter ~0.4), wait ~32 ms (30 fps title); frame 1 carries the boot (~280 ms in
+  `aurora_begin_frame`). Uncapped 400 frames: wait 0, rows complete. The perf variant configures
+  (all 1580 compile commands carry `-O2 -march=armv8-a`, no `-O3`) and builds; benchmarks are step
+  6.8.
+  Review: `regress.sh -j 3` passed; `run --frames 900 --perf perf.csv` (COS_PERF_EVERY=120)
+  exit 0, 901 CSV lines, wall = busy + wait and the split sums to busy in every row, cpu <= busy.
 
 ### Phase 6 render issues
 
