@@ -425,6 +425,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
             message(FATAL_ERROR
                 "Could not apply the Dawn Switch GL no-error context patch:\n"
                 "${DAWN_GL_NO_ERROR_PATCH_OUTPUT}${DAWN_GL_NO_ERROR_PATCH_ERROR}")
+        endif()
+    endif()
 
     # Pipelines whose stages translate to the same GLSL share one linked GL program (Mesa 20.1 on
     # Horizon has no program binaries, so each program costs a full compile and link on the one GL
