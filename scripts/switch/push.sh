@@ -6,6 +6,7 @@
 #   scripts/switch/push.sh --game DISC.iso
 #   scripts/switch/push.sh --disc DISC.iso
 #   scripts/switch/push.sh --native-env ENV.txt
+#   scripts/switch/push.sh --pipeline-cache [FILE.db]
 #
 # Enable USB file transfer on the console first (Horizon's own, haze or DBI).
 # Files go to sdmc:/switch/centollos/, are read back, and must match
@@ -17,7 +18,11 @@
 # on the console with the same size are skipped. --disc copies only the disc
 # image (all the native port reads; same name and place as --game's). `native`
 # is the native port's NRO (scripts/switch/build_native.sh), centollos.nro;
-# --native-env copies a run options file as its native/env.txt. Needs libmtp
+# --native-env copies a run options file as its native/env.txt. --pipeline-cache copies the
+# bundled pipeline cache that native/tools/gen_pipeline_cache.sh made (default
+# build/pipeline-cache/initial_pipeline_cache.db; it is derived from the player's disc and never
+# committed) as initial_pipeline_cache.db next to the NRO, where Aurora seeds its pipeline cache
+# from at every start, and checks the read-back. Needs libmtp
 # (macOS: brew install libmtp); runs on the host, not in a container.
 set -euo pipefail
 
@@ -71,6 +76,27 @@ if [[ ${1:-} == --native-env ]]; then
     cp "$env_file" "$staging/env.txt"
     "$tool" push "$staging/env.txt" "$remote_dir/native"
     echo "pushed $env_file as $remote_dir/native/env.txt"
+    exit 0
+fi
+
+if [[ ${1:-} == --pipeline-cache ]]; then
+    db=${2:-$root/build/pipeline-cache/initial_pipeline_cache.db}
+    if [[ ! -s $db ]]; then
+        echo "push: $db is missing; run native/tools/gen_pipeline_cache.sh first" >&2
+        exit 1
+    fi
+    staging=$(mktemp -d)
+    trap 'rm -rf "$staging"' EXIT
+    # Aurora looks for this exact name in its resources path (the NRO's directory).
+    cp "$db" "$staging/initial_pipeline_cache.db"
+    "$tool" push "$staging/initial_pipeline_cache.db" "$remote_dir" "$staging/readback.db"
+    want=$(shasum -a 256 "$db" | cut -d' ' -f1)
+    got=$(shasum -a 256 "$staging/readback.db" | cut -d' ' -f1)
+    if [[ $want != "$got" ]]; then
+        echo "push: read-back of initial_pipeline_cache.db does not match ($got != $want)" >&2
+        exit 1
+    fi
+    echo "verified initial_pipeline_cache.db $want"
     exit 0
 fi
 

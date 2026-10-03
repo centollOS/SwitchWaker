@@ -65,8 +65,8 @@ void makeDir(const char* path) {
     }
 }
 
-// <directory of the executable>/user and <directory of the executable>/user/cache; on the Switch
-// <COS_SWITCH_ROOT>/user (the native port's directory on the SD card, switch/native/source).
+// <directory of the executable>/user and <directory of the executable>/user/cache (or COS_CACHE_DIR);
+// on the Switch <COS_SWITCH_ROOT>/user (the native port's directory on the SD card, switch/native/source).
 void makeUserPaths(const char* argv0) {
 #if defined(__SWITCH__)
     (void)argv0;
@@ -93,6 +93,14 @@ void makeUserPaths(const char* argv0) {
     snprintf(sUserPath, sizeof(sUserPath), "%.*s/user", dirLen, path);
 #endif
     snprintf(sCachePath, sizeof(sCachePath), "%s/cache", sUserPath);
+#if !defined(__SWITCH__)
+    // COS_CACHE_DIR: Aurora's caches (pipeline_cache.db, dawn_cache.db) in that directory instead,
+    // e.g. a fresh one per run for native/tools/gen_pipeline_cache.sh, which records the pipelines
+    // a run uses. Its parent must exist.
+    if (const char* cacheDir = getenv("COS_CACHE_DIR"); cacheDir != nullptr && cacheDir[0] != '\0') {
+        snprintf(sCachePath, sizeof(sCachePath), "%s", cacheDir);
+    }
+#endif
     makeDir(sUserPath);
     makeDir(sCachePath);
 }
