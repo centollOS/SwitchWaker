@@ -197,8 +197,8 @@ struct TVector {
             return 0;
         }
 #if TARGET_PC
-        // TODO(native phase 4): the / 4 assumes 4-byte elements (32-bit pointers).
-        return ((intptr_t)mEnd - (intptr_t)mBegin) / 4;
+        // The / 4 was sizeof(T) for the only element type used (void*, 4 bytes on the GameCube).
+        return ((intptr_t)mEnd - (intptr_t)mBegin) / sizeof(T);
 #else
         return ((int)mEnd - (int)mBegin) / 4;
 #endif
