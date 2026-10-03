@@ -576,7 +576,6 @@ cPhs_State daMozo_c::CreateInit() {
     mType = cLib_minMaxLimit<u8>(temp, 0, 2);
 
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mAnimMorf->getModel()->setUserArea((uintptr_t)this);
 #else
     mAnimMorf->getModel()->setUserArea((u32)this);

@@ -488,7 +488,6 @@ BOOL daNpc_Cb1_c::createHeap() {
     modelData->getJointNodePointer(m_backbone_jnt_num)->setCallBack(nodeCallBack);
 
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpMorf->getModel()->setUserArea((uintptr_t)this);
 #else
     mpMorf->getModel()->setUserArea((u32)this);
@@ -512,7 +511,6 @@ BOOL daNpc_Cb1_c::createHeap() {
         modelData->getJointNodePointer(m_nut_jnt_num)->setCallBack(nutNodeCallBack);
 
 #if TARGET_PC
-        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
         mpStickModel->setUserArea((uintptr_t)this);
 #else
         mpStickModel->setUserArea((u32)this);
@@ -537,7 +535,6 @@ BOOL daNpc_Cb1_c::createHeap() {
     modelData->getJointNodePointer(m_center_jnt_num)->setCallBack(ppNodeCallBack);
 
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpPropellerModel->setUserArea((uintptr_t)this);
 #else
     mpPropellerModel->setUserArea((u32)this);

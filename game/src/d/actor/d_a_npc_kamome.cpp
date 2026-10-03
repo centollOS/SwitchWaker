@@ -300,7 +300,6 @@ BOOL daNpc_kam_c::createHeap() {
     JUT_ASSERT(DEMO_SELECT(782, 783), m_jnt_body >= 0);
     
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpMorf->getModel()->setUserArea((uintptr_t)this);
 #else
     mpMorf->getModel()->setUserArea((u32)this);

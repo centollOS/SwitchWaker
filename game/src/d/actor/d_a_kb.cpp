@@ -2425,7 +2425,6 @@ static BOOL useHeapInit(fopAc_ac_c* i_actor) {
 
     i_this->mpMaterialTable = (J3DMaterialTable*)dComIfG_getObjectRes("Kb", kb_bmt_idx[temp]);
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     i_this->mpMorf->getModel()->setUserArea((uintptr_t)i_actor);
 #else
     i_this->mpMorf->getModel()->setUserArea((u32)i_actor);

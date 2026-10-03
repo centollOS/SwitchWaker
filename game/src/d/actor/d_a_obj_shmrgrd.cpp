@@ -192,7 +192,6 @@ BOOL daObjShmrgrd_c::create_heap() {
         if (mpModel) {
             mdl_data->getJointNodePointer(SHMRGRD_JNT_HIT_e)->setCallBack(jnodeCB);
 #if TARGET_PC
-            // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
             mpModel->setUserArea((uintptr_t)this);
 #else
             mpModel->setUserArea((u32) this);

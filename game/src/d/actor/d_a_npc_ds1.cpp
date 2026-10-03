@@ -1557,7 +1557,6 @@ BOOL daNpc_Ds1_c::CreateHeap() {
     }
     for (u16 i = 0;i < data->getJointNum();i++) if (i == m_head_jnt_num || i == m_backbone_jnt_num) mpMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Ds);
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpMorf->getModel()->setUserArea((uintptr_t)this);
 #else
     mpMorf->getModel()->setUserArea((u32)this);

@@ -1066,7 +1066,6 @@ bool daObjFtree::Act_c::create_heap() {
     }
     J3DModel* modelS = mpMorf->getModel();
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     modelS->setUserArea((uintptr_t)this);
 #else
     modelS->setUserArea((u32)this);
@@ -1086,7 +1085,6 @@ bool daObjFtree::Act_c::create_heap() {
         return false;
     }
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpModel->setUserArea((uintptr_t)this);
 #else
     mpModel->setUserArea((u32)this);

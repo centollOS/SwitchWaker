@@ -1890,7 +1890,6 @@ static BOOL useHeapInit(fopAc_ac_c* i_this) {
     }
 
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     a_this->mpMorf->getModel()->setUserArea((uintptr_t)a_this);
 #else
     a_this->mpMorf->getModel()->setUserArea((u32)a_this);

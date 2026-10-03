@@ -820,7 +820,6 @@ void daObj_Search::Act_c::CreateInit() {
     set_mtx_base();
     set_moveBG_mtx_base();
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpModel->setUserArea((uintptr_t)this);
 #else
     mpModel->setUserArea((u32)this);

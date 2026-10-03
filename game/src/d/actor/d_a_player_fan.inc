@@ -140,7 +140,6 @@ void daPy_lk_c::setSmallFanModel() {
     }
     mDoExt_setCurrentHeap(oldHeap);
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpEquipItemModel->setUserArea(reinterpret_cast<uintptr_t>(this));
 #else
     mpEquipItemModel->setUserArea(reinterpret_cast<u32>(this));
@@ -178,7 +177,6 @@ void daPy_lk_c::setParachuteFanModel(f32 f31) {
     mpEquipItemModel = mpParachuteFanMorf->getModel();
     mDoExt_setCurrentHeap(oldHeap);
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpEquipItemModel->setUserArea(reinterpret_cast<uintptr_t>(this));
 #else
     mpEquipItemModel->setUserArea(reinterpret_cast<u32>(this));

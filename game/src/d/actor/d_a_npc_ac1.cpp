@@ -715,7 +715,6 @@ BOOL daNpc_Ac1_c::CreateHeap() {
                 mpWingMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Wng);
         }
 #if TARGET_PC
-        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
         mpWingMorf->getModel()->setUserArea((uintptr_t)this);
 #else
         mpWingMorf->getModel()->setUserArea((u32)this);
@@ -725,7 +724,6 @@ BOOL daNpc_Ac1_c::CreateHeap() {
                 mpArmMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Arm);
         }
 #if TARGET_PC
-        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
         mpArmMorf->getModel()->setUserArea((uintptr_t)this);
 #else
         mpArmMorf->getModel()->setUserArea((u32)this);
@@ -735,7 +733,6 @@ BOOL daNpc_Ac1_c::CreateHeap() {
                 mpMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Ac1);
         }
 #if TARGET_PC
-        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
         mpMorf->getModel()->setUserArea((uintptr_t)this);
 #else
         mpMorf->getModel()->setUserArea((u32)this);

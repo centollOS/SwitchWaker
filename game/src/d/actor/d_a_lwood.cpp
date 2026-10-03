@@ -27,7 +27,6 @@ BOOL daLwood_c::CreateHeap() {
         return FALSE;
 
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mModel->setUserArea((uintptr_t)this);
 #else
     mModel->setUserArea((u32)this);

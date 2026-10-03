@@ -672,7 +672,6 @@ static BOOL useHeapInit(fopAc_ac_c* a_this) {
         i_this->mpMorf1->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack);
     }
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     i_this->mpMorf1->getModel()->setUserArea((uintptr_t)i_this);
 #else
     i_this->mpMorf1->getModel()->setUserArea((u32)i_this);

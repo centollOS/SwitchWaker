@@ -567,7 +567,6 @@ daObjTapestryPacket_c::daObjTapestryPacket_c() {
 void daObjTapestryPacket_c::init(daObjTapestry_c* actor) {
     static cXyz base_z_rev(0.0f, 0.0f, -1.0f);
 #if TARGET_PC
-    // TODO(native phase 4): J3DPacket::setUserArea takes a u32; it cannot hold a 64-bit pointer.
     setUserArea((uintptr_t)actor);
 #else
     setUserArea((u32)actor);

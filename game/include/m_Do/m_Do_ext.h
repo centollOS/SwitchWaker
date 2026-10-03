@@ -281,7 +281,12 @@ struct mDoExt_MtxCalcAnmBlendTbl : public J3DMtxCalcMaya {
 };
 
 struct mDoExt_MtxCalcAnmBlendTblOld : public mDoExt_MtxCalcAnmBlendTbl {
+#if TARGET_PC
+    // The user area holds a pointer (the owning actor), so it is pointer-sized on the host.
+    typedef int (*CalcCallback)(uintptr_t, u16, J3DTransformInfo*, Quaternion*);
+#else
     typedef int (*CalcCallback)(u32, u16, J3DTransformInfo*, Quaternion*);
+#endif
 
     mDoExt_MtxCalcAnmBlendTblOld(mDoExt_MtxCalcOldFrame* oldFrame, int num, mDoExt_AnmRatioPack* anmRatio) : mDoExt_MtxCalcAnmBlendTbl(num, anmRatio) {
         mOldFrame = oldFrame;
@@ -291,11 +296,19 @@ struct mDoExt_MtxCalcAnmBlendTblOld : public mDoExt_MtxCalcAnmBlendTbl {
     }
     virtual void calc(u16);
 
+#if TARGET_PC
+    void setUserArea(uintptr_t area)  { mUserArea = area; }
+#else
     void setUserArea(u32 area)  { mUserArea = area; }
+#endif
     void setBeforeCalc(CalcCallback callback) { mBeforeCallback = callback; }
     void setAfterCalc(CalcCallback callback) { mAfterCallback = callback; }
 
+#if TARGET_PC
+    /* 0x58 */ uintptr_t mUserArea;
+#else
     /* 0x58 */ u32 mUserArea;
+#endif
     /* 0x5C */ mDoExt_MtxCalcOldFrame* mOldFrame;
     /* 0x60 */ CalcCallback mBeforeCallback;
     /* 0x64 */ CalcCallback mAfterCallback;

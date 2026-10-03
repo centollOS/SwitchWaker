@@ -1766,7 +1766,6 @@ BOOL useHeapInit(bmd_class* i_this) {
         return FALSE;
     }
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     model->setUserArea((uintptr_t)i_this);
 #else
     model->setUserArea((u32)i_this);

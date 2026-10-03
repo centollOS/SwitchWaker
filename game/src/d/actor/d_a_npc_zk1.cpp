@@ -737,7 +737,6 @@ BOOL daNpc_Zk1_c::bodyCreateHeap() {
     mpMorf->getModel()->getModelData()->getJointNodePointer(m_hed_jnt_num)->setCallBack(nodeCB_Head);
     mpMorf->getModel()->getModelData()->getJointNodePointer(m_bbone_jnt_num)->setCallBack(nodeCB_BackBone);
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpMorf->getModel()->setUserArea((uintptr_t)this);
 #else
     mpMorf->getModel()->setUserArea((u32)this);

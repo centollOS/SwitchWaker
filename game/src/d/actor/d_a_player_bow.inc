@@ -230,7 +230,6 @@ void daPy_lk_c::setBowModel() {
     tmp_modelData->getJointNodePointer(LINK_BOW_JNT_LINEAB_JNT_e)->setCallBack(daPy_bowJointCB);
     tmp_modelData->getJointNodePointer(LINK_BOW_JNT_LINEBB_JNT_e)->setCallBack(daPy_bowJointCB);
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpEquipItemModel->setUserArea(reinterpret_cast<uintptr_t>(this));
 #else
     mpEquipItemModel->setUserArea(reinterpret_cast<u32>(this));

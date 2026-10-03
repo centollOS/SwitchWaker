@@ -4575,7 +4575,6 @@ cPhs_State daShip_c::create() {
         pModelData = pModel->getModelData();
         
 #if TARGET_PC
-        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
         pModel->setUserArea(reinterpret_cast<uintptr_t>(this));
 #else
         pModel->setUserArea(reinterpret_cast<u32>(this));
@@ -4608,7 +4607,6 @@ cPhs_State daShip_c::create() {
         pModelData = pModel->getModelData();
         
 #if TARGET_PC
-        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
         pModel->setUserArea(reinterpret_cast<uintptr_t>(this));
 #else
         pModel->setUserArea(reinterpret_cast<u32>(this));
@@ -4633,7 +4631,6 @@ cPhs_State daShip_c::create() {
         }
         
 #if TARGET_PC
-        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
         mpCannonModel->setUserArea(reinterpret_cast<uintptr_t>(this));
 #else
         mpCannonModel->setUserArea(reinterpret_cast<u32>(this));
@@ -4645,7 +4642,6 @@ cPhs_State daShip_c::create() {
         pModelData->getJointNodePointer(VFNCN_JNT_CANON2_e)->setCallBack(daShip_cannonJointCallBack);
         
 #if TARGET_PC
-        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
         mpSalvageArmModel->setUserArea(reinterpret_cast<uintptr_t>(this));
 #else
         mpSalvageArmModel->setUserArea(reinterpret_cast<u32>(this));

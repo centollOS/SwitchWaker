@@ -110,11 +110,13 @@ public:
         mpFirstChild = NULL;
     }
 
-    void setUserArea(u32 area) { mpUserData = (void*)area; }
 #if TARGET_PC
-    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-    u32 getUserArea() const { return (u32)(uintptr_t)mpUserData; }
+    // The user area holds a pointer (the owning actor); keep all 64 bits on the host
+    // (Dusklight's J3DPacket.h takes a uintptr_t too).
+    void setUserArea(uintptr_t area) { mpUserData = (void*)area; }
+    uintptr_t getUserArea() const { return (uintptr_t)mpUserData; }
 #else
+    void setUserArea(u32 area) { mpUserData = (void*)area; }
     u32 getUserArea() const { return (u32)mpUserData; }
 #endif
 

@@ -382,7 +382,12 @@ BOOL daPy_lk_c::jointBeforeCB(int jnt_no, J3DTransformInfo* param_2, Quaternion*
 }
 
 /* 80103A88-80103AAC       .text daPy_jointBeforeCallback__FUlUsP16J3DTransformInfoP10Quaternion */
+#if TARGET_PC
+// The calc's user area is pointer-sized on the host (m_Do_ext.h CalcCallback).
+static BOOL daPy_jointBeforeCallback(uintptr_t userArea, u16 jnt_no, J3DTransformInfo* param_2, Quaternion* param_3) {
+#else
 static BOOL daPy_jointBeforeCallback(u32 userArea, u16 jnt_no, J3DTransformInfo* param_2, Quaternion* param_3) {
+#endif
     return reinterpret_cast<daPy_lk_c*>(userArea)->jointBeforeCB(jnt_no, param_2, param_3);
 }
 
@@ -414,7 +419,11 @@ BOOL daPy_lk_c::jointAfterCB(int jnt_no, J3DTransformInfo* param_2, Quaternion* 
 }
 
 /* 80103C1C-80103C40       .text daPy_jointAfterCallback__FUlUsP16J3DTransformInfoP10Quaternion */
+#if TARGET_PC
+static BOOL daPy_jointAfterCallback(uintptr_t userArea, u16 jnt_no, J3DTransformInfo* param_2, Quaternion* param_3) {
+#else
 static BOOL daPy_jointAfterCallback(u32 userArea, u16 jnt_no, J3DTransformInfo* param_2, Quaternion* param_3) {
+#endif
     return reinterpret_cast<daPy_lk_c*>(userArea)->jointAfterCB(jnt_no, param_2, param_3);
 }
 
@@ -12125,13 +12134,11 @@ void daPy_lk_c::playerInit() {
     fopAcM_SetMtx(this, mpCLModel->getBaseTRMtx());
     
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpCLModel->setUserArea(reinterpret_cast<uintptr_t>(this));
 #else
     mpCLModel->setUserArea(reinterpret_cast<u32>(this));
 #endif
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpYmgcs00Model->setUserArea(reinterpret_cast<uintptr_t>(this));
 #else
     mpYmgcs00Model->setUserArea(reinterpret_cast<u32>(this));
@@ -12151,7 +12158,6 @@ void daPy_lk_c::playerInit() {
     mpCLModelData->getJointNodePointer(CL_JNT_RTOE_JNT_e)->setCallBack(daPy_jointCallback1);
     
 #if TARGET_PC
-    // TODO(native phase 4): the calc's user area is a u32; it cannot hold a 64-bit pointer.
     m_pbCalc[PART_UNDER_e]->setUserArea(reinterpret_cast<uintptr_t>(this));
 #else
     m_pbCalc[PART_UNDER_e]->setUserArea(reinterpret_cast<u32>(this));
@@ -12159,7 +12165,6 @@ void daPy_lk_c::playerInit() {
     m_pbCalc[PART_UNDER_e]->setBeforeCalc(daPy_jointBeforeCallback);
     m_pbCalc[PART_UNDER_e]->setAfterCalc(daPy_jointAfterCallback);
 #if TARGET_PC
-    // TODO(native phase 4): the calc's user area is a u32; it cannot hold a 64-bit pointer.
     m_pbCalc[PART_UPPER_e]->setUserArea(reinterpret_cast<uintptr_t>(this));
 #else
     m_pbCalc[PART_UPPER_e]->setUserArea(reinterpret_cast<u32>(this));

@@ -2626,7 +2626,6 @@ static BOOL CallbackCreateHeap(fopAc_ac_c* i_this) {
         }
 
 #if TARGET_PC
-        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
         model->setUserArea((uintptr_t)actor);
 #else
         model->setUserArea((u32)actor);
@@ -2789,7 +2788,6 @@ static BOOL useHeapInit(mt_class* i_this) {
         }
 
 #if TARGET_PC
-        // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
         model->setUserArea((uintptr_t)i_this);
 #else
         model->setUserArea((u32)i_this);

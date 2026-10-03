@@ -361,7 +361,6 @@ void daStandItem_c::CreateInit() {
                 }
             }
 #if TARGET_PC
-            // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
             mpModel->setUserArea((uintptr_t)this);
 #else
             mpModel->setUserArea((u32)this);
@@ -377,7 +376,6 @@ void daStandItem_c::CreateInit() {
                     mpModel->getModelData()->getJointNodePointer(i)->setCallBack(DEMO_SELECT(nodeCallBack, daiItemNodeCallBack));
             }
 #if TARGET_PC
-            // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
             mpModel->setUserArea((uintptr_t)this);
 #else
             mpModel->setUserArea((u32)this);

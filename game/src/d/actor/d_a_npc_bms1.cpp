@@ -1112,14 +1112,12 @@ BOOL daNpc_Bms1_c::CreateHeap() {
     } else mpLegModel = NULL;
     for (u16 i = 0; i < body->getJointNum(); i++) if (i == m_head_jnt_num || i == m_backbone_jnt_num) mpMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Bms);
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpMorf->getModel()->setUserArea((uintptr_t)this);
 #else
     mpMorf->getModel()->setUserArea((u32) this);
 #endif
     for (u16 i = 0; i < mpHeadModel->getModelData()->getJointNum(); i++) if (i == m_hairL_jnt_num || i == m_hairR_jnt_num) mpHeadModel->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_BmsHead);
 #if TARGET_PC
-    // TODO(native phase 4): J3DModel::mUserArea is a u32; it cannot hold a 64-bit pointer.
     mpHeadModel->setUserArea((uintptr_t)this);
 #else
     mpHeadModel->setUserArea((u32) this);
