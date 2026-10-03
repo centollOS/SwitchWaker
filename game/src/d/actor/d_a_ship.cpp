@@ -988,9 +988,16 @@ void daShip_c::setYPos() {
 BOOL daShip_c::checkOutRange() {
     dPnt* pnt;
     dPath* path;
+#if TARGET_PC
+    // Point positions in the stage file, big-endian (dPnt::m_position, d_path.h).
+    BE(cXyz)* closestPoint;
+    BE(cXyz)* nextPoint;
+    BE(cXyz)* prevPoint;
+#else
     Vec* closestPoint;
     Vec* nextPoint;
     Vec* prevPoint;
+#endif
     int lastIndex;
     int closestIndex;
     int pathIndex;

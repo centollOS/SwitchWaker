@@ -97,16 +97,16 @@ struct stage_tresure_class {
 
 // STAG
 struct stage_stag_info_class {
-    /* 0x00 */ f32 mNearPlane;
-    /* 0x04 */ f32 mFarPlane;
+    /* 0x00 */ BE(f32) mNearPlane;
+    /* 0x04 */ BE(f32) mFarPlane;
     /* 0x08 */ u8 mCameraMapToolID;
     /* 0x09 */ u8 mProp;
-    /* 0x0A */ u16 mParticleSceneNo;
-    /* 0x0C */ u32 mStageTypeAndSchbit;
-    /* 0x10 */ u32 mSchbitEnableAndFarPlane; // High 16 bits are the schbit enable, low 16 bits are the far plane
-    /* 0x14 */ u32 field_0x14;
-    /* 0x18 */ u32 field_0x18;
-    /* 0x1C */ u32 field_0x1c;
+    /* 0x0A */ BE(u16) mParticleSceneNo;
+    /* 0x0C */ BE(u32) mStageTypeAndSchbit;
+    /* 0x10 */ BE(u32) mSchbitEnableAndFarPlane; // High 16 bits are the schbit enable, low 16 bits are the far plane
+    /* 0x14 */ BE(u32) field_0x14;
+    /* 0x18 */ BE(u32) field_0x18;
+    /* 0x1C */ BE(u32) field_0x1c;
 };  // Size: 0x20
 
 // SCLS
@@ -167,19 +167,19 @@ struct stage_palet_info_class {
 
 // 2Dma / 2DMA
 struct stage_map_info_class {
-    /* 0x00 */ f32 field_0x00;
-    /* 0x04 */ f32 field_0x04;
-    /* 0x08 */ f32 field_0x08;
-    /* 0x0C */ f32 field_0x0C;
-    /* 0x10 */ f32 field_0x10;
-    /* 0x14 */ f32 field_0x14;
-    /* 0x18 */ f32 field_0x18;
-    /* 0x1C */ f32 field_0x1C;
-    /* 0x20 */ f32 field_0x20;
-    /* 0x24 */ f32 field_0x24;
-    /* 0x28 */ f32 field_0x28;
-    /* 0x2C */ f32 field_0x2c;
-    /* 0x30 */ f32 field_0x30;
+    /* 0x00 */ BE(f32) field_0x00;
+    /* 0x04 */ BE(f32) field_0x04;
+    /* 0x08 */ BE(f32) field_0x08;
+    /* 0x0C */ BE(f32) field_0x0C;
+    /* 0x10 */ BE(f32) field_0x10;
+    /* 0x14 */ BE(f32) field_0x14;
+    /* 0x18 */ BE(f32) field_0x18;
+    /* 0x1C */ BE(f32) field_0x1C;
+    /* 0x20 */ BE(f32) field_0x20;
+    /* 0x24 */ BE(f32) field_0x24;
+    /* 0x28 */ BE(f32) field_0x28;
+    /* 0x2C */ BE(f32) field_0x2c;
+    /* 0x30 */ BE(f32) field_0x30;
     /* 0x34 */ u8 field_0x34;
     /* 0x35 */ u8 field_0x35;
     /* 0x36 */ u8 mOceanXZ;
@@ -212,9 +212,9 @@ struct stage_camera_class {
 
 // AROB / RARO
 struct stage_arrow_data_class {
-    /* 0x00 */ cXyz position;
-    /* 0x0C */ csXyz angle;
-    /* 0x12 */ s16 field_0x12;
+    /* 0x00 */ BE(cXyz) position;
+    /* 0x0C */ BE(csXyz) angle;
+    /* 0x12 */ BE(s16) field_0x12;
 };  // Size: 0x14
 
 struct stage_arrow_class {
@@ -298,9 +298,9 @@ struct dStage_dPnt_c {
 
 // MULT
 struct dStage_Mult_info {
-    /* 0x0 */ f32 mTransX;
-    /* 0x4 */ f32 mTransY;
-    /* 0x8 */ s16 mAngle;
+    /* 0x0 */ BE(f32) mTransX;
+    /* 0x4 */ BE(f32) mTransY;
+    /* 0x8 */ BE(s16) mAngle;
     /* 0xA */ u8 mRoomNo;
     /* 0xB */ u8 mWaveMax;
 };  // Size: 0xC
@@ -313,7 +313,7 @@ struct dStage_Multi_c {
 // SOND
 struct stage_sound_data {
     /* 0x00 */ char field_0x0[8];
-    /* 0x08 */ Vec field_0x8;
+    /* 0x08 */ BE(Vec) field_0x8;
     /* 0x14 */ u8 field_0x14;
     /* 0x15 */ u8 field_0x15;
     /* 0x16 */ u8 field_0x16;
@@ -330,8 +330,8 @@ struct dStage_SoundInfo_c {
 
 // FILI
 struct dStage_FileList_dt_c {
-    /* 0x0 */ u32 mParam;
-    /* 0x4 */ f32 mSeaLevel;
+    /* 0x0 */ BE(u32) mParam;
+    /* 0x4 */ BE(f32) mSeaLevel;
 };  // Size: 0x8
 
 // FLOR

@@ -3,6 +3,7 @@
 
 #include "d/d_bg_s.h"
 #include "dolphin/types.h"
+#include "helpers/endian_ssystem.h"
 #include "helpers/offset_ptr.h"
 
 struct dPnt {
@@ -10,12 +11,18 @@ struct dPnt {
     /* 0x01 */ u8 mArg1;
     /* 0x02 */ u8 mArg2;
     /* 0x03 */ u8 mArg3;
+#if TARGET_PC
+    // Big-endian in the PPNT/RPPN chunk, read in place. BE<cXyz> rather than Dusklight's BE<Vec>:
+    // the readers copy it into a cXyz, which BE<cXyz> converts to in one step.
+    /* 0x04 */ BE(cXyz) m_position;
+#else
     /* 0x04 */ Vec m_position;
+#endif
 };
 
 struct dPath {
-    /* 0x00 */ u16 m_num;
-    /* 0x02 */ u16 m_nextID;
+    /* 0x00 */ BE(u16) m_num;
+    /* 0x02 */ BE(u16) m_nextID;
     /* 0x04 */ u8 mArg0;
     /* 0x05 */ u8 m_closed;
     /* 0x06 */ u8 field4_0x6;
