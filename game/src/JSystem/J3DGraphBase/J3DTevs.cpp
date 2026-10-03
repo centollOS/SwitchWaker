@@ -131,11 +131,29 @@ bool isTexNoReg(void* param_0) {
 
 /* 802EC37C-802EC388       .text getTexNoReg__FPv */
 u16 getTexNoReg(void* param_0) {
+#if TARGET_PC
+    // The BP command (0x61, register, 24-bit value) is big-endian in the display list; the
+    // texture number is the low half of the value. A host-order read gave the register byte
+    // (0x94..0x97, 0xB4..0xB7) as the texture number.
+    return *(BE(u32)*)((u8*)param_0 + 1);
+#else
     return *(u32*)((u8*)param_0 + 1);
+#endif
 }
 
 /* 802EC388-802EC530       .text loadTexNo__FUlRCUs */
 void loadTexNo(u32 param_0, const u16& param_1) {
+#if TARGET_PC
+    // A texture number past the model's TEX1 table reads a ResTIMG out of bounds: garbage
+    // that loadTexNo writes into the display list, or a fault when the archive ends at an
+    // unmapped page (an intermittent Switch crash loading knob.arc for d_a_kanban). Stop
+    // here with the numbers instead; the j3d-sweep smoke runs this for every model on the disc.
+    J3DTexture* texture = j3dSys.getTexture();
+    if (texture == NULL || param_0 >= 8 || param_1 >= texture->getNum()) {
+        OSPanic(__FILE__, __LINE__, "loadTexNo: texture %u of %u for map %u", (unsigned)param_1,
+                texture != NULL ? (unsigned)texture->getNum() : 0u, (unsigned)param_0);
+    }
+#endif
     ResTIMG* resTIMG = j3dSys.getTexture()->getResTIMG(param_1);
     J3DSys::sTexCoordScaleTable[param_0].field_0x00 = resTIMG->width;
     J3DSys::sTexCoordScaleTable[param_0].field_0x02 = resTIMG->height;

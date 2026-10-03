@@ -3461,6 +3461,29 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   lookout event, a one-pixel blue line at the bottom of fully black frames, and a panic in
   `dMenu_save_c::_create` (d_menu_save.cpp:184) when R opens the collection screen from the item menu.
 
+- **Patched BDL materials read their texture numbers in host order** (2026-10-03, lane switch).
+  One Switch run (build 35e3af0; the next run of the same NRO was clean) faulted on the title:
+  `CRASH data abort esr=0x92000007` (translation fault) `far=0x2490d5a322` in `loadTexNo`
+  (J3DTevs.cpp) <- `J3DTevBlockPatched::indexToPtr` <- `J3DModelData::indexToPtr` <-
+  `J3DModelLoader::loadBinaryDisplayList` <- `dRes_info_c::setRes` <- `daKanban_Create` phase 2,
+  last resource `/res/Object/knob.arc`, frame 289. The registers give it away: the texture number
+  was x8=0x94 and the faulting address x21 = x24 (the model's ResTIMG table) + 0x94 * 32 + 2.
+  Cause (byte order): `getTexNoReg` reads the 24-bit value of the patched BP command
+  (`61 RR VV VV VV`) as `*(u32*)(p + 1)`; on the host that is the register byte, so every patched
+  BDL material asked for texture 0x94..0x97 or 0xB4..0xB7 instead of its own. `loadTexNo` then read
+  a ResTIMG 4.6 to 5.9 KiB past the TEX1 table and wrote its garbage (image address, size, format,
+  wrap and filter, sometimes a TLUT load) into the material display list. Aurora binds the image
+  through J3DTexture's texture objects, so this showed on screen at most as wrong sampler modes; it
+  faulted only when the read crossed into an unmapped page after the archive's buffer, which depends
+  on where the host allocator placed it (so: intermittent, Switch only so far, more likely as other
+  allocations shift). No data race, heap damage or uninitialised data is involved: the same wrong
+  index is computed on every run and on the Mac. Fix (`J3DTevs.cpp`, `TARGET_PC`): read the value
+  big-endian (as Dusklight does). Guard: under `TARGET_PC`, `loadTexNo` panics with the numbers when
+  the texture number is not below the J3DTexture's count (or the map is not below 8). Before the fix
+  the `j3d-sweep` smoke (in `regress.sh`) stopped on the first BDL with `loadTexNo: texture 148
+  of 1 for map 0`; after it all 2556 BDLs on the disc load and the sweep equals the manifest.
+  Checked with COS_SHOT: the title sky and Outset (frame 690: houses, mailbox, trees, boat) draw correctly.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
