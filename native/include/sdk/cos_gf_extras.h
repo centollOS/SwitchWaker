@@ -40,6 +40,10 @@ static inline void GFWriteXFCmdHdr(u16 addr, u8 len) {
 void GFSetVtxDescv(GXVtxDescList*);
 void GFSetVtxAttrFmtv(GXVtxFmt, GXVtxAttrFmtList*);
 void GFSetArray(GXAttr, void*, u8);
+// Not in the game: the Aurora form of GFSetArray (step 2.6d), as Aurora's GDSetArraySized. Aurora
+// ignores CP_REG_ARRAYBASE, so on Aurora GFSetArray stops with OSPanic and the game's callers pass
+// the array's size in bytes and byte order (le: built by the host, not loaded from the disc).
+void GFSetArraySized(GXAttr attr, void* base_ptr, u32 size, u8 stride, bool le);
 void GFSetCullMode(GXCullMode);
 
 static inline void GFBegin(GXPrimitive type, GXVtxFmt fmt, u16 vert_num) {

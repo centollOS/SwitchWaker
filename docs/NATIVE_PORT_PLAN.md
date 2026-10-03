@@ -299,3 +299,27 @@ Each phase lands as its own commits; this file records decisions and measured re
   failure or report. Census with `COS_WITH_AURORA=ON`: SDK/GX 13 → 0, SDK/VI 7 → 0 (total
   174 → 154). Reviewed in round 1: smoke `vi`/`gx`, 18 more whole-program runs and 8 TSan runs
   clean, census reproduced, default configuration (`cos_modules` and checks) unchanged.
+- **2.6d GF:** the game's `game/src/dolphin/gf/GF{Geometry,Light,Pixel,Tev,Transform}.cpp`
+  compiled into `cos_sdk` through an OBJECT library `cos_sdk_gf` in its own
+  `native/cmake/sdk_gf.cmake` (included after `sdk.cmake`), against Aurora's headers plus the
+  `native/include/sdk` forwarders and `cos_gf_extras.h`, whatever `COS_SDK_HEADERS` is, as Dusklight
+  compiles Dusklight's GF. Aurora's `GXCmd1u*` write into the same FIFO outside a display list as inside
+  one, and its command processor parses `LOAD_BP/CP/XF_REG` in both, so GF needs no shim. One
+  `TARGET_PC` edit: Aurora ignores `CP_REG_ARRAYBASE` (logs "not supported"), so the new
+  `GFSetArraySized(attr, ptr, size, stride, le)` writes `GX_AURORA_LOAD_ARRAYBASE` with the 64-bit
+  pointer as Aurora's `GDSetArraySized` does, and `GFSetArray` (no size) stops with `OSPanic`;
+  its callers (`m_Do_graphic`, `d_tree`, `d_grass`) switch in step 2.7. Test `gf`
+  (`native/sdk/tests/sdk_gf.cpp`): each GF call recorded in a GX display list equals Aurora's GD
+  function of the same name byte for byte; `GFSetCullMode`, `GFBegin`/vertex writers and
+  `GFSetArraySized` against hand-encoded commands; `GFSetArray`'s panic in a forked child. 20 runs
+  of the whole smoke program and 10 TSan runs, no failure or report. Census with
+  `COS_WITH_AURORA=ON` (decomp headers): SDK/GF 11 → 9 (total 154 → 152); the 9 left differ only
+  in the decomp's enum tags (`_GXAttr` vs Aurora's `GXAttr`) in the mangled names, and resolve
+  once the callers compile against Aurora's headers (2.7); the smoke test, which includes GF.h
+  through the forwarder, links against them.
+  THP: no replacement decoder is needed in `native/sdk`; Aurora's `aurora_thp` (already linked)
+  provides `THPInit`/`THPVideoDecode`/`THPAudioDecode`, and the actors step that compiles
+  `d_a_movie_player.cpp` puts its PPC-asm decoder under `#if !TARGET_PC` and calls Aurora's, as
+  Dusklight does. Reviewed in round 1: GF units rebuilt, `nm` shows the 15 GF functions, smoke
+  `gf` and the whole program ok, census reproduced (SDK/GF 9, total 152), default configuration
+  (`cos_modules` and checks) unchanged.

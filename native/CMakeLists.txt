@@ -55,6 +55,8 @@ include(cmake/modules.cmake)
 include(cmake/Aurora.cmake)
 # cos_sdk, the game-specific SDK over Aurora, and its headless test cos_sdk_smoke (with Aurora only).
 include(cmake/sdk.cmake)
+# The game's GF sources (game/src/dolphin/gf) compiled into cos_sdk (with Aurora only).
+include(cmake/sdk_gf.cmake)
 # Link census (phase 2): `ninja cos_link_census` lists what the non-REL units still need.
 include(cmake/census.cmake)
 

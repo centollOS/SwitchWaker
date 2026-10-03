@@ -234,6 +234,37 @@ void GFSetVtxAttrFmtv(GXVtxFmt vtxfmt, GXVtxAttrFmtList* list) {
     GFWriteCPCmd(vtxfmt + CP_REG_VAT_GRP2_ID, CP_REG_VAT_GRP2(tx4Frac, tx5Cnt, tx5Type, tx5Frac, tx6Cnt, tx6Type, tx6Frac, tx7Cnt, tx7Type, tx7Frac));
 }
 
+#if TARGET_PC
+// Aurora has no CP_REG_ARRAYBASE: it logs "not supported" and ignores the register, because a
+// 32-bit physical address cannot hold a host pointer. Its replacement, GX_AURORA_LOAD_ARRAYBASE,
+// carries the 64-bit pointer, the array's size in bytes (Aurora uploads that many bytes for indexed
+// draws) and its byte order, as Aurora's GDSetArraySized writes it. GFSetArray has no size, so the
+// game's callers use GFSetArraySized (step 2.7), and GFSetArray itself stops loudly, as Aurora's
+// GDSetArray does.
+void GFSetArraySized(GXAttr attr, void* base_ptr, u32 size, u8 stride, bool le) {
+    s32 cpAttr;
+    if (attr == GX_VA_NBT) {
+        cpAttr = GX_VA_TEX0MTXIDX;
+    } else {
+        cpAttr = attr - GX_VA_POS;
+    }
+
+    const u64 addr = (u64)(uintptr_t)base_ptr;
+    GFWrite_u8(GX_AURORA);
+    GFWrite_u16(GX_AURORA_LOAD_ARRAYBASE + cpAttr);
+    GFWrite_u32((u32)(addr >> 32));
+    GFWrite_u32((u32)addr);
+    GFWrite_u32(size);
+    GFWrite_u8(le ? 1 : 0);
+    GFWriteCPCmd(cpAttr + CP_REG_ARRAYSTRIDE_ID, stride);
+}
+
+void GFSetArray(GXAttr attr, void* base_ptr, u8 stride) {
+    OSPanic(__FILE__, __LINE__,
+            "GFSetArray(attr %d, %p, stride %u) has no array size on Aurora: use GFSetArraySized",
+            (int)attr, base_ptr, (unsigned)stride);
+}
+#else
 void GFSetArray(GXAttr attr, void* base_ptr, u8 stride) {
     s32 cpAttr;
     if (attr == GX_VA_NBT) {
@@ -245,6 +276,7 @@ void GFSetArray(GXAttr attr, void* base_ptr, u8 stride) {
     GFWriteCPCmd(cpAttr + CP_REG_ARRAYBASE_ID, OSCachedToPhysical(base_ptr));
     GFWriteCPCmd(cpAttr + CP_REG_ARRAYSTRIDE_ID, stride);
 }
+#endif
 
 void GFSetCullMode(GXCullMode mode) {
     static u8 cm2hw[4] = {0, 2, 1, 3};

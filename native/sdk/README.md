@@ -128,3 +128,15 @@ glue needs to know:
   display-list state. Each is logged once. `GXGetFifoBase`/`GXGetFifoSize` abort.
 - `cos_sdk/gx.h` declares the GX functions Aurora's headers lack (`GXSetDrawSync`,
   `GXSetGPMetric`, `GXClearGPMetric`).
+
+## GF (step 2.6d)
+
+The game's own `game/src/dolphin/gf/*.cpp`, built by `native/cmake/sdk_gf.cmake` (OBJECT library
+`cos_sdk_gf`, objects added to `cos_sdk`) against Aurora's headers and the forwarders in
+`native/include/sdk`; test `gf` (`tests/sdk_gf.cpp`). What game glue needs to know:
+
+- GF writes raw BP/XF/CP commands through `GXCmd1u*`; Aurora parses them from its FIFO in
+  immediate mode as in display lists. The test checks each GF function against Aurora's GD twin.
+- `GFSetArray` stops with `OSPanic` on Aurora: a 32-bit `CP_REG_ARRAYBASE` cannot hold a host
+  pointer and Aurora ignores it. Callers use `GFSetArraySized(attr, ptr, sizeBytes, stride, le)`
+  (declared in `native/include/sdk/cos_gf_extras.h`), `le` true for arrays the host builds.
