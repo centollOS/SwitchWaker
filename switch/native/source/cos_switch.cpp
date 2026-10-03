@@ -35,8 +35,6 @@
 #include "cos_switch_internal.h"
 #include "usb_log.h"
 
-extern "C" char __start__[];
-
 namespace {
 
 constexpr const char* kLogPath = COS_SWITCH_ROOT "/centollos.log";
@@ -439,7 +437,22 @@ void cos_switch_exit(int code) {
     svcExitProcess();
 }
 
-uintptr_t cos_switch_image_base(void) { return reinterpret_cast<uintptr_t>(__start__); }
+// switch.ld defines __start__ as the absolute symbol 0 (the NRO is linked at 0), so its address is
+// 0 at run time too, whatever the load address: the crash reports of the first console run said
+// "image base=0x0". The base is the start of the mapping that holds this function: hbloader maps
+// the NRO's text segment, which begins at offset 0 (crt0), as one read-execute block.
+uintptr_t cos_switch_image_base(void) {
+    static uintptr_t sBase;
+    if (sBase == 0) {
+        MemoryInfo info{};
+        u32 page = 0;
+        const uintptr_t here = reinterpret_cast<uintptr_t>(&cos_switch_image_base);
+        if (R_SUCCEEDED(svcQueryMemory(&info, &page, here)) && info.type != MemType_Unmapped) {
+            sBase = info.addr;
+        }
+    }
+    return sBase;
+}
 
 uint64_t cos_switch_thread_id(void) {
     u64 id = 0;

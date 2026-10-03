@@ -246,8 +246,9 @@ and in a crash report, `[switch] memory: used N MiB of M MiB` shows the process'
 ### Crashes
 
 - **The log.** A crash prints `[cos] CRASH <kind> esr=... far=...`, the registers, and a backtrace
-  with every address also given as `centollos.elf+0x<offset>`; then the harness's state line (scene,
-  frame, last resource). `abort()` (Aurora's fatal errors, asserts) prints `[cos] ABORT` with a
+  with every address also given as `centollos.elf+0x<offset>` (the offset from the start of the NRO's
+  text mapping, which `[cos] image base=0x...` and the start banner's `image at 0x...` print);
+  then the harness's state line (scene, frame, last resource). `abort()` (Aurora's fatal errors, asserts) prints `[cos] ABORT` with a
   backtrace the same way, and an `OSPanic` `[cos] PANIC` (exit 12). Get the log with
   `scripts/switch/push.sh --logs` (to `build/switch-logs/native/centollos.log`), or from the live USB log.
   Resolve the offsets with the ELF of the same build:
