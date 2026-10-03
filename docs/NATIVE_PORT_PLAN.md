@@ -2843,6 +2843,19 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   GanonK and M2ganon now stop in `J3DAnmTexPattern::searchUpdateMaterialID`, GTower in the btk
   form (`JUTNameTab::getIndex` <- `J3DAnmTextureSRTKey`) of the same LkD00/LkD01 mismatch.
 
+- **Boot-sweep fix 9: `new` checked for NULL as MWCC did (`-fcheck-new`)** (2026-10-03, lane
+  outset, host-semantics). Every failure of a 145/155 sweep had its own signature; this one dates
+  from fix 2: SIGSEGV addr=0x0 in `cBgW::Set` (c_bg_w.cpp:332, inlined `SetTri`) <-
+  `daObjDoguuD_c::CreateHeap` (ADMumi). Root cause: the doubled estimate (0x28c0) is too small on
+  the host, so `new cBgW_TriElm[n]` gets NULL from the full JKRSolidHeap. The game handles that
+  (`if (pm_tri == NULL) return true;`, and `fopAcM_entrySolidHeap` then retries with a measured
+  heap), but clang assumes a non-`noexcept` `operator new` never returns NULL: it wrote the
+  `new[]` array cookie to address 0 before the check, and dropped `SetVtx`'s NULL check
+  altogether. MWCC checked first. `-fcheck-new` (C++ game units, native/cmake/GameConfig.cmake;
+  GCC accepts it too) restores the check everywhere; no game source changes. ADMumi now logs the
+  game's own "見積もりヒープサイズ(000028c0)で登録失敗" and reaches frame 600 on the retry. Sweep:
+  145 -> 146 of 155 (6 fail, 3 expected fails, 1 skipped). Regression passes.
+
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
   variable values checked, max |v| 500000). Builds on the boot loops' STB/FVB big-endian

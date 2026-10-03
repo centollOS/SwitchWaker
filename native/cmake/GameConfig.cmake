@@ -70,6 +70,12 @@ set(COS_GAME_COMPILE_OPTIONS
         # MWCC was invoked with -Cpp_exceptions off and -RTTI off.
         $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>
         $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>
+        # The game checks `new` for NULL everywhere (a full JKRSolidHeap returns NULL, and
+        # fopAcM_entrySolidHeap retries with a bigger heap when CreateHeap fails). MWCC tested the
+        # result before running constructors or writing the new[] array cookie; clang assumes a
+        # non-noexcept operator new never returns NULL and stores through it unchecked (SIGSEGV
+        # addr=0x0 in cBgW::SetTri's new[] on a full actor heap). -fcheck-new restores the check.
+        $<$<COMPILE_LANGUAGE:CXX>:-fcheck-new>
         # Diagnostics only (no code change). Same set as Dusklight, plus the MWCC-isms clang
         # rejects by default but can accept with identical meaning.
         -Wno-multichar                       # 'ABCD' constants: identical big-endian encoding
