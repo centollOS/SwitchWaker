@@ -87,7 +87,8 @@ void pc_opening_scene_called(void);
 /* Milestone M7 (boot loop, pc_frame.cpp), called at the end of every dStage_Create: the start
    stage's name and room, the file count of the mounted "Stage" archive (0 when it is not mounted)
    and whether stage.dzs was found. Logs the stage; logs "opening" for the title opening's sea_T
-   once the archive is mounted and stage.dzs read, else exits 1 for sea_T. */
+   once the archive is mounted and stage.dzs read, else exits 1 for sea_T. For sea_T it also arms
+   milestone M8 title-stage (pc_title_stage.cpp) for that room. */
 void pc_stage_created(const char* stageName, int roomNo, int stageFiles, int hasDzs);
 
 /* Debug stage boot (step 6.4, decision H4, pc_boot.cpp). COS_BOOT_STAGE=<stage>:<room>[:<point>

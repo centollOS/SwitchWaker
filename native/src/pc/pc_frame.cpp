@@ -271,6 +271,7 @@ void pc_frame_end(void) {
     pc_frame_tick();
 
     const unsigned int frames = pc_frame_count();
+    titleStageFrame(frames);
     // Step 5.A (decision H10): with COS_AUDIO=on, mDoAud_Execute retries mDoAud_Create every frame
     // until JAudio is up (JAIZelBasic::init, the audio thread's DSP boot and handshake), then sets
     // the init flag the logo scene waits for.
@@ -342,6 +343,7 @@ void pc_stage_created(const char* stageName, int roomNo, int stageFiles, int has
             pc_exit(PC_EXIT_CHECK_FAILED);
         }
         pc_milestone("opening");
+        titleStageArm(roomNo);
     }
 }
 

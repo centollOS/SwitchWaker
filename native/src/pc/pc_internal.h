@@ -112,6 +112,12 @@ void startWatchdog();
 // COS_BOOT_STAGE request of step 6.4). Logged once.
 void logoResDone(const char* how);
 
+// pc_title_stage.cpp: milestone M8 title-stage. pc_stage_created arms it with sea_T's start room
+// (M7); titleStageFrame (pc_frame_end, every game frame) waits until that room is loaded, its BG
+// collision registered and its actors created, then reports title-stage 300 frames later.
+void titleStageArm(int roomNo);
+void titleStageFrame(unsigned int frames);
+
 // pc_boot.cpp (step 6.4): parses COS_BOOT_STAGE into gBootStage (exit PC_EXIT_USAGE if it is
 // malformed).
 void loadBootStage();

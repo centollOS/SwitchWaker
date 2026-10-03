@@ -2372,6 +2372,17 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   at frame 5534 in OPEN2_SCENE with frames advancing; nothing calls `pc_milestone("title-stage")`
   yet, the next root cause. Reviewed: regress passed; title-stage gets past `changeDemoProc` (no
   fault through frame 3732, OPEN2_SCENE).
+- M8 boot loop (lane boot, iter 6, harness): no code reported milestone M8, so title-stage timed
+  out (exit 10) in OPEN2_SCENE with the title demo playing and frames advancing. The new
+  `native/src/pc/pc_title_stage.cpp` adds the probe: `pc_stage_created` arms it with sea_T's start
+  room (M7), and `pc_frame_end` polls each frame, reading game state only, until the room is
+  loaded (its ROOM_SCENE process is executing, `Room<n>` holds room.dzr and the room status has its
+  `dStage_roomDt_c`), its collision is registered (the room's BG actor is created, status flag 0x10
+  is set and its `dBgW` is in a used `dBgS` element) and its actors are created (at least one, none
+  still creating). It then logs the room and reports `title-stage` 300 frames later. Runs reach
+  "room 44 ready at frame 287 ... 51 actor(s) created" and MILESTONE title-stage at frame 587,
+  3 of 3. Adds "title-stage 0" to the regression targets.
+  Reviewed: regress passed; title-stage reached 3 of 3 (one capped, frame 587; two uncapped).
 
 ### Phase 6 render issues
 
