@@ -3,6 +3,7 @@
 
 #include "d/d_save.h"
 #include "dolphin/types.h"
+#include "helpers/endian.h"
 
 typedef struct CARDFileInfo CARDFileInfo;
 
@@ -17,11 +18,11 @@ struct mDoMemCdRWm_HeaderData
 struct card_pictdata
 {
     /* 0x0000 */ u8 tex_buffer[0x1EE0]; // Holds the texture data for one 152x104 CMPR texture
-    /* 0x1EE0 */ u32 snap_result; // Photo index
+    /* 0x1EE0 */ BE(u32) snap_result; // Photo index
     /* 0x1EE4 */ u8 snap_result_detail;
     /* 0x1EE5 */ u8 capture_format; // The format the capture was done in (not the same as the format of tex_buffer)
     /* 0x1EE6 */ u8 field_0x1EE6[0x1FFE - 0x1EE6];
-    /* 0x1FFE */ u16 csum;
+    /* 0x1FFE */ BE(u16) csum;
 };  // Size: 0x2000
 
 STATIC_ASSERT(sizeof(card_pictdata) == 0x2000);
@@ -29,16 +30,16 @@ STATIC_ASSERT(sizeof(card_pictdata) == 0x2000);
 struct card_gamedata
 {
     /* 0x000 */ u8 data[dSv_save_c::PACKED_STRUCT_SIZE];
-    /* 0x768 */ u64 csum;
+    /* 0x768 */ BE(u64) csum;
 };  // Size: 0x770
 
 struct card_savedata
 {
-    /* 0x0000 */ u32 save_count;
-    /* 0x0004 */ u32 data_version;
+    /* 0x0000 */ BE(u32) save_count;
+    /* 0x0004 */ BE(u32) data_version;
     /* 0x0008 */ card_gamedata gamedata[3];
     /* 0x1658 */ u8 field_0x1658[0x1FFC - 0x1658];
-    /* 0x1FFC */ u32 csum;
+    /* 0x1FFC */ BE(u32) csum;
 };  // Size: 0x2000
 
 STATIC_ASSERT(sizeof(card_savedata) == 0x2000);

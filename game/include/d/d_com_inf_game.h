@@ -1562,7 +1562,12 @@ inline u8 dComIfGs_getPlayerPriestFlag() {
     return g_dComIfG_gameInfo.save.getPlayer().getPriest().getFlag();
 }
 
+#if TARGET_PC
+// The saved position is big-endian (d_save.h): a host copy, not a reference.
+inline cXyz dComIfGs_getPlayerPriestPos() {
+#else
 inline cXyz& dComIfGs_getPlayerPriestPos() {
+#endif
     return g_dComIfG_gameInfo.save.getPlayer().getPriest().getPos();
 }
 

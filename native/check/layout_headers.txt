@@ -194,6 +194,40 @@ JSystem/J2DGraph/J2DPane.h
     J2DPaneHeader                       size=0x8
     J2DPane::J2DScrnBlockHeader         size=0x8
 
+# 4.15: save data and memory card (the save file file; memory_to_card packs the dSv_* parts of
+# dSv_save_c one after the other into card_gamedata, decision H2: big-endian as on the GameCube)
+d/d_save.h
+    dSv_player_status_a_c
+    dSv_player_status_b_c
+    dSv_player_return_place_c
+    dSv_player_item_c
+    dSv_player_get_item_c
+    dSv_player_item_record2_c
+    dSv_player_item_record_c
+    dSv_player_item_max2_c
+    dSv_player_item_max_c
+    dSv_player_bag_item_c
+    dSv_player_get_bag_item_c
+    dSv_player_bag_item_record_c
+    dSv_player_collect_c
+    dSv_player_map_c
+    dSv_player_info_c
+    dSv_player_config_c     size=0x5
+    dSv_player_priest_c     size=0x10
+    dSv_player_status_c_c
+    dSv_player_c
+    dSv_memBit_c
+    dSv_memory_c
+    dSv_ocean_c             size=0x64
+    dSv_event_c
+    dSv_reserve_c
+    dSv_save_c
+m_Do/m_Do_MemCardRWmng.h
+    mDoMemCdRWm_HeaderData
+    card_pictdata
+    card_gamedata
+    card_savedata
+
 # 4.16: event data (event_list.dat)
 d/d_event_data.h
     event_binary_data_header

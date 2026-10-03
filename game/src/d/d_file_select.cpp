@@ -738,7 +738,7 @@ void dFile_select_c::makeRecInfo(u8 i_dataNo) {
 
     u8* saveData = &mSaveDataPtr[i_dataNo * sizeof(card_gamedata)];
 
-    u16 curHealth = *(u16*)(saveData + 2);
+    u16 curHealth = *(BE(u16)*)(saveData + 2); // the card data is big-endian (step 4.15)
 
     int curHearts = curHealth / 4;
     int healthMod4 = curHealth % 4;
@@ -748,7 +748,7 @@ void dFile_select_c::makeRecInfo(u8 i_dataNo) {
 
     // display hearts
     for(i = 0; i < 0x14; i++) {
-        if(i < *(u16*)saveData / 4) {
+        if(i < *(BE(u16)*)saveData / 4) {
             field_0x828[i].pane->show();
             field_0xc88[i].pane->show();
 
@@ -3453,7 +3453,7 @@ void dFile_select_c::setSaveData() {
             else {
                 strcpy(field_0x38f4[i], (char*)(&data[0x157]));
                 OSCalendarTime time;
-                OSTicksToCalendarTime(*(u64*)(data + 0x18), &time);
+                OSTicksToCalendarTime(*(BE(u64)*)(data + 0x18), &time); // big-endian card data (step 4.15)
                 sprintf(
                     field_0x3900[i],
 #if VERSION <= VERSION_JPN
@@ -3602,7 +3602,7 @@ void dFile_select_c::setSaveData() {
             else {
                 strcpy(field_0x38f4[i], (char*)(&data[0x157]));
                 OSCalendarTime time;
-                OSTicksToCalendarTime(*(u64*)(data + 0x18), &time);
+                OSTicksToCalendarTime(*(BE(u64)*)(data + 0x18), &time); // big-endian card data (step 4.15)
 #if VERSION == VERSION_PAL
                 if(dComIfGs_getPalLanguage() == 0) {
                     sprintf(

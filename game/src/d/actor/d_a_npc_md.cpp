@@ -632,7 +632,13 @@ cPhs_State daNpc_Md_c::create() {
         if (isTypeM_Dai()) {
             u8 flag = dComIfGs_getPlayerPriestFlag();
             if (flag == 2) {
+#if TARGET_PC
+                // The saved position is big-endian (d_save.h): pass a host copy.
+                cXyz priestPos = dComIfGs_getPlayerPriestPos();
+                dComIfGs_setRestartOption(&priestPos, dComIfGs_getPlayerPriestRotate(), dComIfGs_getPlayerPriestRoomNo(), 2);
+#else
                 dComIfGs_setRestartOption(&dComIfGs_getPlayerPriestPos(), dComIfGs_getPlayerPriestRotate(), dComIfGs_getPlayerPriestRoomNo(), 2);
+#endif
             }
             checkRestart(2);
         }

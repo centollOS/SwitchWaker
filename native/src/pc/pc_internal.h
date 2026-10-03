@@ -59,7 +59,8 @@ void runDiscSmoke();
 // it never returns then.
 void runAuroraSmoke();
 // pc_smoke.cpp: runs COS_SMOKE if it is a test that runs once mDoMch_Create made the heaps (font,
-// arc-sweep, msg-sweep, jpa-sweep, stage-sweep, blo-sweep; from pc_heaps_created); it never returns then.
+// arc-sweep, msg-sweep, jpa-sweep, stage-sweep, blo-sweep, save; from pc_heaps_created); it never
+// returns then.
 void runHeapsSmoke();
 // pc_heap.cpp: COS_SMOKE=heap.
 [[noreturn]] void smokeHeap();
@@ -81,6 +82,10 @@ int checkResFont(const char* test, const char* path, JUTResFont& font, const uin
 [[noreturn]] void smokeStageSweep();
 // pc_blo.cpp: COS_SMOKE=blo-sweep.
 [[noreturn]] void smokeBloSweep();
+// pc_save.cpp: COS_SMOKE=save. prepareSaveSmoke (from pc_aurora_init, before CARDInit) moves
+// the card of slot A into <COS_RUN_DIR>/card; smokeSave runs from pc_heaps_created.
+void prepareSaveSmoke();
+[[noreturn]] void smokeSave();
 // pc_arc.cpp: COS_SMOKE=arc-sweep.
 [[noreturn]] void smokeArcSweep();
 bool isKnownSmoke(const char* name);

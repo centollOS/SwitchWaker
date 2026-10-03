@@ -4,6 +4,7 @@
 #include "global.h"
 #include "SSystem/SComponent/c_xyz.h"
 #include "string.h"
+#include "helpers/endian.h"
 
 class dSv_player_status_a_c {
 public:
@@ -37,10 +38,10 @@ public:
     u16 getMaxLife() { return mMaxLife; }
     void setMaxLife(u16 life) { mMaxLife = life; }
 
-    /* 0x00 */ u16 mMaxLife;
-    /* 0x02 */ u16 mLife;
-    /* 0x04 */ u16 mRupee;
-    /* 0x06 */ u16 field_0x6;
+    /* 0x00 */ BE(u16) mMaxLife;
+    /* 0x02 */ BE(u16) mLife;
+    /* 0x04 */ BE(u16) mRupee;
+    /* 0x06 */ BE(u16) field_0x6;
     /* 0x08 */ u8 field_0x8;
     /* 0x09 */ u8 mSelectItem[5];   // X, Y, Z button
     /* 0x0E */ u8 mSelectEquip[4];  // Sword, Shield, Bracelet, ?
@@ -69,12 +70,12 @@ public:
     void setWindY(s16 i_windY) { mTactWindAngleY = i_windY; }
     void setWindX(s16 i_windX) { mTactWindAngleX = i_windX; }
 
-    /* 0x00 */ u64 mDateIPL;
-    /* 0x08 */ f32 field_0x8;
-    /* 0x0C */ f32 mTime;
-    /* 0x10 */ u16 mDate;
-    /* 0x12 */ s16 mTactWindAngleX;
-    /* 0x14 */ s16 mTactWindAngleY;
+    /* 0x00 */ BE(u64) mDateIPL;
+    /* 0x08 */ BE(f32) field_0x8;
+    /* 0x0C */ BE(f32) mTime;
+    /* 0x10 */ BE(u16) mDate;
+    /* 0x12 */ BE(s16) mTactWindAngleX;
+    /* 0x14 */ BE(s16) mTactWindAngleY;
     /* 0x16 */ /* 2 bytes of alignment padding */
 };  // Size: 0x18
 
@@ -161,7 +162,7 @@ public:
     u8 getPictureNum() { return mItemRecord2.getPictureNum(); }
     void setPictureNum(u8 num) { mItemRecord2.setPictureNum(num); }
 
-    /* 0x0 */ u16 mTimer;
+    /* 0x0 */ BE(u16) mTimer;
     /* 0x2 */ dSv_player_item_record2_c mItemRecord2;
     /* 0x5 */ u8 mBottleNum[3];
 };  // Size: 0x8
@@ -243,7 +244,7 @@ public:
     void offReserve(u8);
     BOOL isReserve(u8);
 
-    /* 0x0 */ u32 mReserveFlags;
+    /* 0x0 */ BE(u32) mReserveFlags;
     /* 0x4 */ u8 mBeastFlags;
     /* 0x5 */ u8 mBaitFlags;
     /* 0x6 */ u8 unk_0x6[0xC - 0x6]; // there's probably an unused field here
@@ -429,7 +430,7 @@ public:
     void onSaveArriveGridForAgb(int);
     BOOL isSaveArriveGridForAgb(int);
 
-    /* 0x00 */ u32 field_0x0[4][4];
+    /* 0x00 */ BE(u32) field_0x0[4][4];
     /* 0x40 */ u8 mFmapBits[dIsleIdx_COUNT_e];
     /* 0x71 */ u8 field_0x71[16];
     /* 0x81 */ u8 field_0x81;
@@ -458,8 +459,8 @@ public:
     void setRandomSalvage(u8 point) { mRandomSalvagePoint = point; }
 
     /* 0x00 */ u8 field_0x0[0x10];
-    /* 0x10 */ u16 field_0x10;
-    /* 0x10 */ u16 mDeathCount;
+    /* 0x10 */ BE(u16) field_0x10;
+    /* 0x12 */ BE(u16) mDeathCount;
     /* 0x14 */ char mPlayerName[17];
     /* 0x25 */ char field_0x25[17];
     /* 0x36 */ char field_0x36[17];
@@ -503,12 +504,21 @@ public:
     void set(u8, cXyz&, s16, s8);
 
     u8 getFlag() { return field_0xf; }
+#if TARGET_PC
+    // The position is stored big-endian (it goes to the memory card as it is): a copy, not a reference.
+    cXyz getPos() { return cXyz(field_0x0); }
+#else
     cXyz& getPos() { return field_0x0; }
+#endif
     s16 getRotate() { return field_0xc; }
     s8 getRoomNo() { return field_0xe; }
 
+#if TARGET_PC
+    /* 0x0 */ BE(Vec) field_0x0;
+#else
     /* 0x0 */ cXyz field_0x0;
-    /* 0xC */ s16 field_0xc;
+#endif
+    /* 0xC */ BE(s16) field_0xc;
     /* 0xE */ s8 field_0xe;
     /* 0xF */ u8 field_0xf;
 };
@@ -672,10 +682,10 @@ public:
     void offStageBossDemo() { offDungeonItem(STAGE_BOSS_DEMO); }
     BOOL isStageBossDemo() { return isDungeonItem(STAGE_BOSS_DEMO); }
 
-    /* 0x00 */ u32 mTbox;
-    /* 0x04 */ u32 mSwitch[4];
-    /* 0x14 */ u32 mItem[1];
-    /* 0x18 */ u32 mVisitedRoom[2];
+    /* 0x00 */ BE(u32) mTbox;
+    /* 0x04 */ BE(u32) mSwitch[4];
+    /* 0x14 */ BE(u32) mItem[1];
+    /* 0x18 */ BE(u32) mVisitedRoom[2];
     /* 0x20 */ u8 mKeyNum;
     /* 0x21 */ u8 mDungeonItem;
 };  // Size: 0x24
@@ -688,7 +698,7 @@ public:
     void onOceanSvBit(u8 i_grid, u16 i_bit);
     BOOL isOceanSvBit(u8 i_grid, u16 i_bit);
 
-    /* 0x0 */ u16 field_0x0[50];
+    /* 0x0 */ BE(u16) field_0x0[50];
 };
 
 STATIC_ASSERT(sizeof(dSv_ocean_c) == 0x64);

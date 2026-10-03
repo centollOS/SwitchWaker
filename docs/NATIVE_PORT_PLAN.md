@@ -1859,6 +1859,49 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   - Review (round 1): pad-echo 0 capped and `--uncapped`, `regress.sh -j 3` all passed,
     `unifdef -UTARGET_PC m_Do_controller_pad.cpp` equals HEAD. Step 6.3 stays open for M10.
 
+- **4.15 Save data and memory card** (2026-10-03, decision H2): `COS_SMOKE=save` 0 x4; M10 not
+  reachable yet (`opening` still 13 in `JAIZelBasic::talkOut`, the audio fault of 4.8).
+  - **The save went to the card host-order.** `memory_to_card`/`card_to_memory` memcpy the
+    `dSv_*` parts of `dSv_save_c` into the card buffer and the file select reads that buffer, so
+    the parts are now big-endian in memory too (Dusklight's `d_save.h` does the same): in
+    `d_save.h`, `BE(T)` for every multi-byte field that goes to the card (status A's life/rupee
+    halfwords, status B's save date, floats and wind angles, the item record timer, the reserve
+    flags, the map words, info's two halfwords, the priest position (`BE(Vec)` under `TARGET_PC`,
+    `getPos` returning a copy; `dComIfGs_getPlayerPriestPos` too, and `d_a_npc_cb1`/`d_a_npc_md`
+    pass a local copy to `dComIfGs_setRestartOption`) and angle, `dSv_memBit_c`'s words,
+    `dSv_ocean_c`). Runtime-only state (zones, `dSv_danBit_c`, restart) stays host-order. The
+    `mDeathCount` offset comment said 0x10; it is 0x12. In `m_Do_MemCardRWmng.h`, `card_savedata`'s
+    save count, data version and checksum, `card_gamedata`'s u64 checksum and `card_pictdata`'s
+    `snap_result`/checksum are `BE(T)`; `mDoMemCdRWm_CalcCheckSum` sums `BE(u16)` halfwords as the
+    GameCube does. `d_file_select.cpp` reads the life halfwords and the save date of the card
+    buffer through `BE(T)` casts. No source change elsewhere: every reader goes through `BE<T>`'s
+    conversions. A `-fsyntax-only -Wformat -Wclass-varargs` pass over the 300-odd units that use the
+    save finds no `BE<T>` passed to a variadic function. `d_save.h` (the 25 card structs) and
+    `m_Do_MemCardRWmng.h` are in `layout_headers.txt` and hold (1181 GameCube checks).
+  - **Harness:** `pc_save.cpp`. `prepareSaveSmoke` (from `pc_aurora_init`, before `CARDInit`)
+    points slot A at `<run dir>/card/`, a fresh GCI folder. From `pc_heaps_created`: attach through
+    `mDoMemCd_UpDate`; `dSv_info_c::init` and distinctive values in every card field above through
+    the game's setters; `initdata_to_card` x2 + `memory_to_card` + `mDoMemCdRWm_SetCheckSumGameData`
+    and `mDoMemCd_Save` as the name scene does; the `.gci` is then read with plain big-endian loads
+    (directory entry GZLE/01/<save file>, 12 blocks, comment at 0x1C00; header title; both
+    `card_savedata` copies: save count, version, halfword and byte checksums recomputed; every value
+    at its GameCube offset in the packed file); reload through `mDoMemCd_Load`/`LoadSync` must give
+    the written bytes back, pass `TestCheckSumGameData`, and `card_to_memory` must give every value
+    back through the getters; `memory_to_card` of the reloaded state equals file 1 (but the save
+    date it stamps); a second write gives save count 2. Negative checks: with HEAD's `d_save.h` the
+    test reports 47 failures (e.g. max life `0x2800`, time 8.9e-41); with HEAD's
+    `m_Do_MemCardRWmng.{h,cpp}` 22 (save count `0x01000000`, every checksum). `save 0` is in
+    `regress_targets.txt`.
+  - Left for later steps: `d_name.cpp` reads two name characters as one `*(u16*)` (name entry,
+    M10/M11's boot loop); `card_pictdata::tex_buffer` holds what `GXCopyTex` captured (pictograph
+    pictures, phase 6).
+  Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check
+  cos_link_census` 0 errors; `cos_pc_tests` ok; census equal; `--all --dups` 0; inventory `--check`
+  ok (60 open); `unifdef -UTARGET_PC` of `d_a_npc_cb1.cpp`, `d_a_npc_md.cpp`, `d_com_inf_game.h`
+  equals HEAD.
+  Review (round 1): `save` 0 x3, `regress.sh -j 3` all checks passed; M10 stays open until
+  the audio fault of 4.8 (another lane) lets `opening` through.
+
 ### Phase 6 render issues
 
 None yet.

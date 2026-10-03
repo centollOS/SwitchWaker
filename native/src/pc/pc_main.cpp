@@ -181,6 +181,11 @@ void pc_aurora_init(int argc, char* argv[]) {
         mDoAud_zelAudio_c::onInitFlag();
     }
 
+    // COS_SMOKE=save writes its own card: the path must be set before mDoMch_Create's CARDInit.
+    if (gConfig.smoke != nullptr && strcmp(gConfig.smoke, "save") == 0) {
+        prepareSaveSmoke();
+    }
+
     // Smoke tests that need Aurora and OSInit but none of the game's main code (heap) end here.
     runAuroraSmoke();
 }

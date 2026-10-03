@@ -310,7 +310,13 @@ cPhs_State daNpc_Cb1_c::create() {
     if(result == cPhs_COMPLEATE_e) {
         if(isTypeKaze()) {
             if(dComIfGs_getPlayerPriestFlag() == 1) {
+#if TARGET_PC
+                // The saved position is big-endian (d_save.h): pass a host copy.
+                cXyz priestPos = dComIfGs_getPlayerPriestPos();
+                dComIfGs_setRestartOption(&priestPos, dComIfGs_getPlayerPriestRotate(), dComIfGs_getPlayerPriestRoomNo(), 1);
+#else
                 dComIfGs_setRestartOption(&dComIfGs_getPlayerPriestPos(), dComIfGs_getPlayerPriestRotate(), dComIfGs_getPlayerPriestRoomNo(), 1);
+#endif
             }
 
 #if VERSION > VERSION_DEMO
