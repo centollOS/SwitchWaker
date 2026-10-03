@@ -143,6 +143,9 @@ The DSP behind `cos_sdk` is Dolphin's high-level DSP emulation (step 5.A, decisi
 `native/dsp_hle`, `native/cmake/dsp_hle.cmake`), compiled from the RecompCore checkout in
 `COS_RECOMPCORE_DIR`. It defaults to `ref/recompcore`, or to the main checkout's when the source
 tree is a git worktree (`build/lanes/<lane>`); pass `-DCOS_RECOMPCORE_DIR=...` otherwise.
+`native/tools/fetch_recompcore.sh` puts it in `ref/recompcore`: a shallow checkout, without
+submodules, of [elliotttate/RecompCore](https://github.com/elliotttate/RecompCore) at `8ab24da`
+(branch `bluewake`, the commit the recompilation project builds from; `patches/recompcore/README.md`).
 
 ### SDK headers
 
