@@ -436,3 +436,16 @@ Exit codes: 0 reached, 1 smoke check failed, 2 usage error, 10 timeout, 11 stall
 - `native/tools/lldb_crash.sh` reruns under `lldb --batch` with the inherited environment. With
   developer mode off it exits 3 without starting lldb, which would wait for an authorisation
   prompt.
+
+## The Switch (phase 7)
+
+`scripts/switch/build_native.sh` builds this tree as a Switch NRO, `build/switch-native/centollos.nro`,
+in the translated port's devkitPro container, with the same asset headers and Aurora checkout as the
+Mac build: docs/SWITCH_BUILD.md, "Native port", has the build, the copy to the console, the run
+options (`COS_*` from an `env.txt` on the SD card) and the crash reports. The Switch build lives in
+`switch/native` (Aurora patches, a GameCube disc reader standing in for nod, the harness's platform
+layer); in this tree it only adds code under `#if defined(__SWITCH__)` in `src/pc` (no signals,
+`backtrace()` or `_Exit` there: libnx's exception handler, `svcQueryMemory` frame walks and an exit
+that writes the logs out) and the `COS_EXE_ENTRY` hook of `cmake/executable.cmake`. `game` is
+unchanged. `COS_PERF_EVERY=<n>` (any host, off by default, on by default on the Switch) logs the
+game thread's time per frame every n frames.
