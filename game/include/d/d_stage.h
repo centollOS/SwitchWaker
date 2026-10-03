@@ -45,12 +45,15 @@ struct dStage_fileHeader {
     /* 0x4 */ dStage_nodeHeader m_nodes[];
 };
 
+// The environment chunks (Virt, LGTV, Colo, LGHT, Pale, EnvR) are read in place, so their
+// multi-byte fields are BE(T) (step 4.9d); d_kankyo_data.cpp's default tables of the same types
+// go through BE<T>'s conversions.
 // Virt
 struct stage_vrbox_info_class {
-    /* 0x00 */ u32 field_0x00;
-    /* 0x04 */ u32 field_0x04;
-    /* 0x08 */ u32 field_0x08;
-    /* 0x0C */ u32 field_0x0c;
+    /* 0x00 */ BE(u32) field_0x00;
+    /* 0x04 */ BE(u32) field_0x04;
+    /* 0x08 */ BE(u32) field_0x08;
+    /* 0x0C */ BE(u32) field_0x0c;
     /* 0x10 */ GXColor mKumoColor;
     /* 0x14 */ GXColor mKumoCenterColor;
     /* 0x18 */ color_RGB_class mSkyColor;
@@ -125,8 +128,8 @@ struct stage_scls_info_dummy_class {
 
 // LGTV
 struct stage_lightvec_info_class {
-    /* 0x00 */ Vec position;
-    /* 0x0C */ f32 radius;
+    /* 0x00 */ BE(Vec) position;
+    /* 0x0C */ BE(f32) radius;
     /* 0x10 */ u8 field_0x10[0x18 - 0x10];
     /* 0x18 */ u8 field_0x18[0x1B - 0x18];
     /* 0x1B */ u8 fluctuation;
@@ -135,13 +138,13 @@ struct stage_lightvec_info_class {
 // COLO
 struct stage_pselect_info_class {
     /* 0x0 */ u8 palette_id[8];
-    /* 0x8 */ f32 change_rate;
+    /* 0x8 */ BE(f32) change_rate;
 };  // Size: 0xC
 
 // LGHT
 struct stage_plight_info_class {
-    /* 0x00 */ Vec position;
-    /* 0x0C */ f32 radius;
+    /* 0x00 */ BE(Vec) position;
+    /* 0x0C */ BE(f32) radius;
     /* 0x10 */ u8 field_0x10[0x18 - 0x10];
     /* 0x18 */ color_RGB_class color;
     /* 0x1B */ u8 fluctuation;
@@ -161,8 +164,8 @@ struct stage_palet_info_class {
     /* 0x1B */ color_RGB_class mBG3_K0;
     /* 0x1E */ color_RGB_class mFog;
     /* 0x21 */ u8 mVirtIdx;
-    /* 0x24 */ f32 mFogStartZ;
-    /* 0x28 */ f32 mFogEndZ;
+    /* 0x24 */ BE(f32) mFogStartZ;
+    /* 0x28 */ BE(f32) mFogEndZ;
 };  // Size: 0x2C
 
 // 2Dma / 2DMA
