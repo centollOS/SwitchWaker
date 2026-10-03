@@ -3,6 +3,7 @@
 
 #include "JSystem/J3DGraphBase/J3DShape.h"
 #include "dolphin/mtx/mtx.h"
+#include "helpers/endian.h"
 
 class J3DShapeMtxImm : public J3DShapeMtx {
 public:
@@ -26,7 +27,7 @@ public:
 
 class J3DShapeMtxMultiImm : public J3DShapeMtxImm {
 public:
-    J3DShapeMtxMultiImm(u16 useMtxIndex, u16 useMtxNum, u16* useMtxIndexTable)
+    J3DShapeMtxMultiImm(u16 useMtxIndex, u16 useMtxNum, BE(u16)* useMtxIndexTable)
         : J3DShapeMtxImm(useMtxIndex), mUseMtxNum(useMtxNum), mUseMtxIndexTable(useMtxIndexTable) {}
 
     virtual ~J3DShapeMtxMultiImm() {}
@@ -38,7 +39,7 @@ public:
 
 private:
     /* 0x8 */ u16 mUseMtxNum;
-    /* 0xC */ u16* mUseMtxIndexTable;
+    /* 0xC */ BE(u16)* mUseMtxIndexTable;
 };
 
 class J3DShapeMtxConcatView : public J3DShapeMtxImm {
@@ -99,7 +100,7 @@ public:
 
 class J3DShapeMtxMulti : public J3DShapeMtx {
 public:
-    J3DShapeMtxMulti(u16 useMtxIndex, u16 useMtxNum, u16* useMtxIndexTable)
+    J3DShapeMtxMulti(u16 useMtxIndex, u16 useMtxNum, BE(u16)* useMtxIndexTable)
         : J3DShapeMtx(useMtxIndex), mUseMtxNum(useMtxNum), mUseMtxIndexTable(useMtxIndexTable) {}
 
     virtual ~J3DShapeMtxMulti() {}
@@ -111,12 +112,12 @@ public:
 
 private:
     /* 0x8 */ u16 mUseMtxNum;
-    /* 0xC */ u16* mUseMtxIndexTable;
+    /* 0xC */ BE(u16)* mUseMtxIndexTable;
 };
 
 class J3DShapeMtxMultiConcatView : public J3DShapeMtxConcatView {
 public:
-    J3DShapeMtxMultiConcatView(u16 useMtxIndex, u16 useMtxNum, u16* useMtxIndexTable)
+    J3DShapeMtxMultiConcatView(u16 useMtxIndex, u16 useMtxNum, BE(u16)* useMtxIndexTable)
         : J3DShapeMtxConcatView(useMtxIndex), mUseMtxNum(useMtxNum),
           mUseMtxIndexTable(useMtxIndexTable) {}
 
@@ -130,7 +131,7 @@ public:
 
 private:
     /* 0x8 */ u16 mUseMtxNum;
-    /* 0xC */ u16* mUseMtxIndexTable;
+    /* 0xC */ BE(u16)* mUseMtxIndexTable;
 };
 
 #endif /* J3DSHAPEMTX_H */

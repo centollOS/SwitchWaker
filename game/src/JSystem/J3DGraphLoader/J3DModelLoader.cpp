@@ -14,6 +14,9 @@
 #include "JSystem/JSupport/JSupport.h"
 #include "JSystem/JKernel/JKRHeap.h"
 #include "dolphin/os/OS.h"
+#if TARGET_PC
+#include "helpers/endian_gx.hpp"
+#endif
 
 /* 802FB758-802FB8A4       .text load__22J3DModelLoaderDataBaseFPCvUl */
 J3DModelData* J3DModelLoaderDataBase::load(const void* i_data, u32 i_flags) {
@@ -218,15 +221,14 @@ void J3DModelLoader::setupBBoardInfo() {
         if (mesh != NULL) {
             u16 shape_index = mesh->getShape()->getIndex();
 #if TARGET_PC
-            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-            u16* index_table = JSUConvertOffsetToPtr<u16>(mpShapeBlock, (u32)(uintptr_t)mpShapeBlock->mpIndexTable);
+            // The block holds 32-bit big-endian offsets; the index table is big-endian too.
+            BE(u16)* index_table = JSUConvertOffsetToPtr<BE(u16)>(mpShapeBlock, (u32)mpShapeBlock->mpIndexTable);
 #else
             u16* index_table = JSUConvertOffsetToPtr<u16>(mpShapeBlock, (u32)mpShapeBlock->mpIndexTable);
 #endif
             J3DShapeInitData* shape_init_data =
 #if TARGET_PC
-                // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-                JSUConvertOffsetToPtr<J3DShapeInitData>(mpShapeBlock, (u32)(uintptr_t)mpShapeBlock->mpShapeInitData);
+                JSUConvertOffsetToPtr<J3DShapeInitData>(mpShapeBlock, (u32)mpShapeBlock->mpShapeInitData);
 #else
                 JSUConvertOffsetToPtr<J3DShapeInitData>(mpShapeBlock, (u32)mpShapeBlock->mpShapeInitData);
 #endif
@@ -293,8 +295,31 @@ static GXCompType getFmtType(GXVtxAttrFmtList* i_fmtList, GXAttr i_attr) {
 /* 802FC410-802FC630       .text readVertex__14J3DModelLoaderFPC14J3DVertexBlock */
 void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
     J3DVertexData& vertex_data = mpModelData->getVertexData();
+#if TARGET_PC
+    // The file's attribute format list is big-endian ({GXAttr, GXCompCnt, GXCompType, frac}, ended
+    // by GX_VA_NULL); the model keeps a host-order copy for GX (no swap in place, so a resource can
+    // be loaded again). The vertex arrays themselves stay big-endian.
+    {
+        const BE(GXVtxAttrFmtList)* src =
+            JSUConvertOffsetToPtr<BE(GXVtxAttrFmtList)>(i_block, i_block->mpVtxAttrFmtList);
+        u32 count = 0;
+        while (src[count].attr != GX_VA_NULL) {
+            count++;
+        }
+        count++;
+        GXVtxAttrFmtList* list = new GXVtxAttrFmtList[count];
+        for (u32 i = 0; i < count; i++) {
+            list[i].attr = src[i].attr;
+            list[i].cnt = src[i].cnt;
+            list[i].type = src[i].type;
+            list[i].frac = src[i].frac;
+        }
+        vertex_data.mVtxAttrFmtList = list;
+    }
+#else
     vertex_data.mVtxAttrFmtList =
         JSUConvertOffsetToPtr<GXVtxAttrFmtList>(i_block, i_block->mpVtxAttrFmtList);
+#endif
     vertex_data.mVtxPosArray = JSUConvertOffsetToPtr<void>(i_block, i_block->mpVtxPosArray);
     vertex_data.mVtxNrmArray = JSUConvertOffsetToPtr<void>(i_block, i_block->mpVtxNrmArray);
     vertex_data.mVtxNBTArray = JSUConvertOffsetToPtr<void>(i_block, i_block->mpVtxNBTArray);
@@ -330,8 +355,8 @@ void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
 #endif
     } else {
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        vertex_data.mNrmNum = (i_block->mSize - (u32)(uintptr_t)i_block->mpVtxNrmArray) / nrm_size + 1;
+        // mpVtxNrmArray is the 32-bit big-endian file offset (OFFSET_PTR_V0).
+        vertex_data.mNrmNum = (i_block->mSize - (u32)i_block->mpVtxNrmArray) / nrm_size + 1;
 #else
         vertex_data.mNrmNum = (i_block->mSize - (u32)i_block->mpVtxNrmArray) / nrm_size + 1;
 #endif
@@ -355,8 +380,8 @@ void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
 #endif
     } else {
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        vertex_data.mColNum = (i_block->mSize - (u32)(uintptr_t)i_block->mpVtxColorArray[0]) / 4 + 1;
+        // mpVtxColorArray[0] is the 32-bit big-endian file offset (OFFSET_PTR_V0).
+        vertex_data.mColNum = (i_block->mSize - (u32)i_block->mpVtxColorArray[0]) / 4 + 1;
 #else
         vertex_data.mColNum = (i_block->mSize - (u32)i_block->mpVtxColorArray[0]) / 4 + 1;
 #endif
@@ -366,8 +391,8 @@ void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
         vertex_data.mTexCoordNum = 0;
     } else {
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        vertex_data.mTexCoordNum = (i_block->mSize - (u32)(uintptr_t)i_block->mpVtxTexCoordArray[0]) / 8 + 1;
+        // mpVtxTexCoordArray[0] is the 32-bit big-endian file offset (OFFSET_PTR_V0).
+        vertex_data.mTexCoordNum = (i_block->mSize - (u32)i_block->mpVtxTexCoordArray[0]) / 8 + 1;
 #else
         vertex_data.mTexCoordNum = (i_block->mSize - (u32)i_block->mpVtxTexCoordArray[0]) / 8 + 1;
 #endif

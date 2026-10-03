@@ -4,12 +4,14 @@
 #include "JSystem/J3DGraphAnimator/J3DJoint.h"
 #include "dolphin/types.h"
 #include "global.h"
+#include "helpers/endian.h"
 
 class JUTNameTab;
 
+// INF1 disc data, stored big-endian (phase 4; Dusklight's J3DJointTree.h declares the same).
 struct J3DModelHierarchy {
-    /* 0x0 */ u16 mType; // TODO enum
-    /* 0x2 */ u16 mValue;
+    /* 0x0 */ BE(u16) mType; // TODO enum
+    /* 0x2 */ BE(u16) mValue;
 
     inline u16 getValue() const { return mValue; }
 };

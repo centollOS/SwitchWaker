@@ -9,16 +9,67 @@
 #include "JSystem/J3DGraphLoader/J3DModelLoader.h"
 #include "JSystem/J3DGraphBase/J3DMatBlock.h"
 #include "JSystem/JSupport/JSupport.h"
+#if TARGET_PC
+#include <string.h>
+#endif
+
+#if TARGET_PC
+// The material tables hold J3DStruct.h infos, which are host objects as well (J3DTexMtx, J3DFog,
+// J3DNBTScale and J3DIndTexMtx keep and animate them). In the file their multi-byte members are
+// big-endian: these return a host-order copy, leaving the file data as it is.
+static J3DTexMtxInfo hostTexMtxInfo(const J3DTexMtxInfo& src) {
+    J3DTexMtxInfo info;
+    memcpy(&info, &src, sizeof(info));
+    be_swap(info.mCenter);
+    be_swap(info.mSRT.mScaleX);
+    be_swap(info.mSRT.mScaleY);
+    be_swap(info.mSRT.mRotation);
+    be_swap(info.mSRT.mTranslationX);
+    be_swap(info.mSRT.mTranslationY);
+    be_swap(info.mEffectMtx);
+    return info;
+}
+
+static J3DFogInfo hostFogInfo(const J3DFogInfo& src) {
+    J3DFogInfo info;
+    memcpy(&info, &src, sizeof(info));
+    be_swap(info.mCenter);
+    be_swap(info.mStartZ);
+    be_swap(info.mEndZ);
+    be_swap(info.mNearZ);
+    be_swap(info.mFarZ);
+    be_swap(info.mFogAdjTable);
+    return info;
+}
+
+static J3DNBTScaleInfo hostNBTScaleInfo(const J3DNBTScaleInfo& src) {
+    J3DNBTScaleInfo info;
+    memcpy(&info, &src, sizeof(info));
+    be_swap(info.mScale);
+    return info;
+}
+
+static J3DIndTexMtxInfo hostIndTexMtxInfo(const J3DIndTexMtxInfo& src) {
+    J3DIndTexMtxInfo info;
+    memcpy(&info, &src, sizeof(info));
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 3; j++) {
+            be_swap(info.mOffsetMtx[i][j]);
+        }
+    }
+    return info;
+}
+#endif
 
 /* 802F68F0-802F6B38       .text __ct__18J3DMaterialFactoryFRC16J3DMaterialBlock */
 J3DMaterialFactory::J3DMaterialFactory(const J3DMaterialBlock& block) {
     mMaterialNum = block.mMaterialNum;
     mpMaterialInitData = JSUConvertOffsetToPtr<J3DMaterialInitData>(&block, block.mpMaterialInitData);
-    mpMaterialID = JSUConvertOffsetToPtr<u16>(&block, block.mpMaterialID);
+    mpMaterialID = JSUConvertOffsetToPtr<BE(u16)>(&block, block.mpMaterialID);
 
 #if TARGET_PC
-    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-    if (block.mpIndInitData != NULL && ((u32)(uintptr_t)block.mpIndInitData - (u32)(uintptr_t)block.mpNameTable) > 4)
+    // The block holds 32-bit big-endian offsets (OFFSET_PTR_V0, J3DModelLoader.h).
+    if (block.mpIndInitData != 0 && ((u32)block.mpIndInitData - (u32)block.mpNameTable) > 4)
 #else
     if (block.mpIndInitData != NULL && ((u32)block.mpIndInitData - (u32)block.mpNameTable) > 4)
 #endif
@@ -26,7 +77,7 @@ J3DMaterialFactory::J3DMaterialFactory(const J3DMaterialBlock& block) {
     else
         mpIndInitData = NULL;
 
-    mpCullMode = JSUConvertOffsetToPtr<GXCullMode>(&block, block.mpCullMode);
+    mpCullMode = JSUConvertOffsetToPtr<BE(GXCullMode)>(&block, block.mpCullMode);
     mpMatColor = JSUConvertOffsetToPtr<GXColor>(&block, block.mpMatColor);
     mpColorChanNum = JSUConvertOffsetToPtr<u8>(&block, block.mpColorChanNum);
     mpColorChanInfo = JSUConvertOffsetToPtr<J3DColorChanInfo>(&block, block.mpColorChanInfo);
@@ -37,9 +88,9 @@ J3DMaterialFactory::J3DMaterialFactory(const J3DMaterialBlock& block) {
     mpTexCoord2Info = JSUConvertOffsetToPtr<J3DTexCoord2Info>(&block, block.mpTexCoord2Info);
     mpTexMtxInfo = JSUConvertOffsetToPtr<J3DTexMtxInfo>(&block, block.mpTexMtxInfo);
     field_0x44 = JSUConvertOffsetToPtr<J3DTexMtxInfo>(&block, block.field_0x44);
-    mpTexNo = JSUConvertOffsetToPtr<u16>(&block, block.mpTexNo);
+    mpTexNo = JSUConvertOffsetToPtr<BE(u16)>(&block, block.mpTexNo);
     mpTevOrderInfo = JSUConvertOffsetToPtr<J3DTevOrderInfo>(&block, block.mpTevOrderInfo);
-    mpTevColor = JSUConvertOffsetToPtr<GXColorS10>(&block, block.mpTevColor);
+    mpTevColor = JSUConvertOffsetToPtr<BE(GXColorS10)>(&block, block.mpTevColor);
     mpTevKColor = JSUConvertOffsetToPtr<GXColor>(&block, block.mpTevKColor);
     mpTevStageNum = JSUConvertOffsetToPtr<u8>(&block, block.mpTevStageNum);
     mpTevStageInfo = JSUConvertOffsetToPtr<J3DTevStageInfo>(&block, block.mpTevStageInfo);
@@ -337,7 +388,18 @@ J3DMaterial* J3DMaterialFactory::createLockedMaterial(J3DMaterial* mat, int idx,
         mat->mMaterialMode = field_0x84[idx];
     }
 
+#if TARGET_PC
+    // J3DCurrentMtxInfo is a host object too: the file's two big-endian register words.
+    {
+        const BE(u32)* currentMtx = (const BE(u32)*)&mpCurrentMtxInfo[idx];
+        J3DCurrentMtxInfo info;
+        info.mMtxIdxRegA = currentMtx[0];
+        info.mMtxIdxRegB = currentMtx[1];
+        mat->mCurrentMtx = info;
+    }
+#else
     mat->mCurrentMtx = mpCurrentMtxInfo[idx];
+#endif
     mat->mColorBlock->setMatColorOffset(mpPatchingInfo[idx].mMatColorOffset);
     mat->mColorBlock->setColorChanOffset(mpPatchingInfo[idx].mColorChanOffset);
     mat->mTexGenBlock->setTexMtxOffset(mpPatchingInfo[idx].mTexMtxOffset);
@@ -347,8 +409,8 @@ J3DMaterial* J3DMaterialFactory::createLockedMaterial(J3DMaterial* mat, int idx,
     if (mat->mSharedDLObj == NULL) {
         mat->mSharedDLObj = new J3DDisplayListObj();
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        mat->mSharedDLObj->setSingleDisplayList((void*)(mpDisplayListInit[idx].mOffset + (uintptr_t)&mpDisplayListInit[idx]), mpDisplayListInit[idx].mSize);
+        // The offset is relative to the entry; the display list itself stays big-endian (GX data).
+        mat->mSharedDLObj->setSingleDisplayList((void*)((u32)mpDisplayListInit[idx].mOffset + (uintptr_t)&mpDisplayListInit[idx]), mpDisplayListInit[idx].mSize);
 #else
         mat->mSharedDLObj->setSingleDisplayList((void*)(mpDisplayListInit[idx].mOffset + (u32)&mpDisplayListInit[idx]), mpDisplayListInit[idx].mSize);
 #endif
@@ -502,7 +564,11 @@ J3DTexMtx* J3DMaterialFactory::newTexMtx(int idx, int stage) const {
     J3DTexMtx* ret = NULL;
     J3DMaterialInitData* initData = &mpMaterialInitData[mpMaterialID[idx]];
     if (initData->mTexMtxIdx[stage] != 0xFFFF)
+#if TARGET_PC
+        ret = new J3DTexMtx(hostTexMtxInfo(mpTexMtxInfo[initData->mTexMtxIdx[stage]]));
+#else
         ret = new J3DTexMtx(mpTexMtxInfo[initData->mTexMtxIdx[stage]]);
+#endif
     return ret;
 }
 
@@ -538,10 +604,18 @@ J3DGXColorS10 J3DMaterialFactory::newTevColor(int idx, int stage) const {
     GXColorS10 _ret = { 0x00, 0x00, 0x00, 0x00 };
     J3DGXColorS10 ret(_ret);
     u16 no = mpMaterialInitData[mpMaterialID[idx]].mTevColorIdx[stage];
+#if TARGET_PC
+    if (no != 0xFFFF) {
+        GXColorS10 color = mpTevColor[no];
+        return J3DGXColorS10(color);
+    }
+    return ret;
+#else
     if (no != 0xFFFF)
         return mpTevColor[no];
     else
         return ret;
+#endif
 }
 
 /* 802F8C88-802F8D18       .text newTevKColor__18J3DMaterialFactoryCFii */
@@ -603,7 +677,11 @@ J3DIndTexOrder J3DMaterialFactory::newIndTexOrder(int idx, int stage) const {
 J3DIndTexMtx J3DMaterialFactory::newIndTexMtx(int idx, int stage) const {
     J3DIndTexMtx ret;
     if (mpIndInitData[idx].mEnabled == true)
+#if TARGET_PC
+        return J3DIndTexMtx(hostIndTexMtxInfo(mpIndInitData[idx].mIndTexMtxInfo[stage]));
+#else
         return J3DIndTexMtx(mpIndInitData[idx].mIndTexMtxInfo[stage]);
+#endif
     else
         return ret;
 }
@@ -630,7 +708,11 @@ J3DIndTexCoordScale J3DMaterialFactory::newIndTexCoordScale(int idx, int stage) 
 J3DFog* J3DMaterialFactory::newFog(int idx) const {
     J3DMaterialInitData* initData = &mpMaterialInitData[mpMaterialID[idx]];
     if (initData->mFogIdx != 0xFFFF)
+#if TARGET_PC
+        return new J3DFog(hostFogInfo(mpFogInfo[initData->mFogIdx]));
+#else
         return new J3DFog(mpFogInfo[initData->mFogIdx]);
+#endif
     else
         return new J3DFog();
 }
@@ -685,7 +767,11 @@ J3DNBTScale J3DMaterialFactory::newNBTScale(int idx) const {
     J3DNBTScale ret;
     u16 no = mpMaterialInitData[mpMaterialID[idx]].mNBTScaleIdx;
     if (no != 0xFFFF)
+#if TARGET_PC
+        return J3DNBTScale(hostNBTScaleInfo(mpNBTScaleInfo[no]));
+#else
         return J3DNBTScale(mpNBTScaleInfo[no]);
+#endif
     else
         return ret;
 }

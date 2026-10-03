@@ -12,9 +12,9 @@
 /* 802FE1A4-802FE1FC       .text __ct__15J3DJointFactoryFRC13J3DJointBlock */
 J3DJointFactory::J3DJointFactory(const J3DJointBlock& jointBlock) {
 #if TARGET_PC
-    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-    mJointInitData = JSUConvertOffsetToPtr<J3DJointInitData>(&jointBlock, (u32)(uintptr_t)jointBlock.mpJointInitData);
-    mIndexTable = JSUConvertOffsetToPtr<u16>(&jointBlock, (u32)(uintptr_t)jointBlock.mpIndexTable);
+    // The block holds 32-bit big-endian offsets (J3DJointFactory.h).
+    mJointInitData = JSUConvertOffsetToPtr<J3DJointInitData>(&jointBlock, (u32)jointBlock.mpJointInitData);
+    mIndexTable = JSUConvertOffsetToPtr<BE(u16)>(&jointBlock, (u32)jointBlock.mpIndexTable);
 #else
     mJointInitData = JSUConvertOffsetToPtr<J3DJointInitData>(&jointBlock, (u32)jointBlock.mpJointInitData);
     mIndexTable = JSUConvertOffsetToPtr<u16>(&jointBlock, (u32)jointBlock.mpIndexTable);

@@ -152,6 +152,8 @@ JSystem/J3DGraphLoader/J3DMaterialFactory_v21.h
     J3DMaterialInitData_v21
 JSystem/J3DGraphLoader/J3DClusterLoader.h
     J3DClusterBlock
+JSystem/J3DGraphAnimator/J3DJointTree.h
+    J3DModelHierarchy       size=0x4
 
 # 4.12: J3D animation data (BCK/BCA/BTK/BTP/BRK/BPK/BVA/BLA/BLK)
 JSystem/J3DGraphAnimator/J3DAnimation.h
