@@ -2626,6 +2626,17 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   to the regression list.
   Reviewed: regression passes (with `amp-sweep`); `amp-sweep` fails with the old m_Do_lib.cpp
   (705 archives, 0 maps, 541 errors) and passes with the fix (180 maps, 497,289 tiles, 0 errors).
+- **F3-mema: stage chunk fields big-endian** (2026-10-03, lane outset, layout). The MEMA chunk's
+  `dStage_MemoryMap_c::m_entries` was `OFFSET_PTR(u32)` read raw, so `dStage_memaInfoInit` asked
+  for a byte-swapped room heap (0xb0870f00) and a dungeon boot (`--stage kindan:0:0`) panicked at
+  `d_stage.cpp:2932`. Now `OFFSET_PTR(BE(u32))` (H1, as Dusklight). Audit of the other chunk structs
+  found the same raw multi-byte reads in FLOR (`field_0x00` f32), DMAP (origin/scale/offsetY f32)
+  and SHIP (`m_pos` cXyz, `m_angle` s16), now `BE(T)`; `dStage_setShipPos` copies the position to
+  a host `cXyz` for `daShip_c::initStartPos` under `TARGET_PC`. GameCube layout unchanged.
+  The kindan boot now loads stage and rooms (74 resources) and reaches ROOM_SCENE frame 293, then
+  panics on a separate cause: `GFSetArray(attr 9, stride 12)` without an array size on Aurora from
+  `dDlst_alphaModelData_c::draw` (not fixed here).
+  Reviewed: regression passes; `sea:44:206` still reaches its milestone.
 
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million

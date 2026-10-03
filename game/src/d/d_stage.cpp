@@ -1847,7 +1847,7 @@ int dStage_memaInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void*) {
     i_stage->setMemoryMap(pd);
 
     if (pd != NULL) {
-        u32* entry_p = pd->m_entries;
+        BE(u32)* entry_p = pd->m_entries;
 
         for (int i = 0; i < pd->num; i++) {
             JKRExpHeap* heap = dStage_roomControl_c::createMemoryBlock(i, *entry_p + 0x300);
@@ -1897,7 +1897,13 @@ bool dStage_setShipPos(int param_0, int i_roomNo) {
                         }
                     }
                 } else {
+#if TARGET_PC
+                    // SHIP entries are big-endian in the room data: take the position in host order.
+                    cXyz ship_pos = ship_data_p->m_pos;
+                    ship_p->initStartPos(&ship_pos, ship_data_p->m_angle);
+#else
                     ship_p->initStartPos(&ship_data_p->m_pos, ship_data_p->m_angle);
+#endif
                 }
                 return true;
             }
@@ -1935,7 +1941,13 @@ bool dStage_setShipPos(int param_0, int i_roomNo) {
         if (ship_data_p != NULL) {
             daShip_c* ship_p = (daShip_c*)fopAcM_SearchByName(fpcNm_SHIP_e);
             if (ship_p != NULL) {
+#if TARGET_PC
+                // SHIP entries are big-endian in the room data: take the position in host order.
+                cXyz ship_pos = ship_data_p->m_pos;
+                ship_p->initStartPos(&ship_pos, ship_data_p->m_angle);
+#else
                 ship_p->initStartPos(&ship_data_p->m_pos, ship_data_p->m_angle);
+#endif
                 return true;
             }
         }

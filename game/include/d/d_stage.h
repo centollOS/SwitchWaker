@@ -272,7 +272,7 @@ struct roomRead_class {
 // MEMA
 struct dStage_MemoryMap_c {
     /* 0x0 */ BE(int) num;
-    /* 0x4 */ OFFSET_PTR(u32) m_entries;
+    /* 0x4 */ OFFSET_PTR(BE(u32)) m_entries; // room heap sizes, big-endian in the chunk
 };
 
 // MECO
@@ -339,7 +339,7 @@ struct dStage_FileList_dt_c {
 
 // FLOR
 struct dStage_FloorInfo_dt_c {
-    /* 0x00 */ f32 field_0x00;
+    /* 0x00 */ BE(f32) field_0x00;
     /* 0x04 */ u8 floorNo;
     /* 0x05 */ s8 field_0x05[14];
 }; // Size: 0x14
@@ -358,10 +358,10 @@ struct dStage_Lbnk_c {
 
 // DMAP
 struct dStage_DMap_dt_c {
-    /* 0x00 */ f32 originX;
-    /* 0x04 */ f32 originZ;
-    /* 0x08 */ f32 scale;
-    /* 0x0C */ f32 offsetY;
+    /* 0x00 */ BE(f32) originX;
+    /* 0x04 */ BE(f32) originZ;
+    /* 0x08 */ BE(f32) scale;
+    /* 0x0C */ BE(f32) offsetY;
 };  // Size: 0x10
 
 struct dStage_DMap_c {
@@ -390,8 +390,8 @@ struct dStage_EventInfo_c {
 
 // SHIP
 struct dStage_Ship_dt_c {
-    /* 0x0 */ cXyz m_pos;
-    /* 0xC */ s16 m_angle;
+    /* 0x0 */ BE(cXyz) m_pos;
+    /* 0xC */ BE(s16) m_angle;
     /* 0xE */ u8 field_0xe;
     /* 0xF */ u8 field_0xf;
 };  // Size: 0x10
