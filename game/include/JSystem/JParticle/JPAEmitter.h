@@ -10,6 +10,7 @@
 #include "JSystem/TPosition3.h"
 #include "dolphin/gx/GXStruct.h"
 #include "dolphin/mtx/mtx.h"
+#include "helpers/endian.h"
 
 class JPADynamicsBlock;
 class JPABaseShape;
@@ -44,7 +45,7 @@ public:
     u8 getKeyNum() { return keyNum; }
     JPAKeyBlock ** getKey() { return keyBlocks; }
     JPAExtraShape * getExtraShape() { return espBlock; }
-    u16 * getTextureDataBase() { return texDataBase; }
+    BE(u16) * getTextureDataBase() { return texDataBase; }
     JPAExTexShape * getExTexShape() { return etxBlock; }
     JPABaseShape * getBaseShape() { return bspBlock; }
     u8 getTextureNum() { return mTextureNum; }
@@ -57,7 +58,7 @@ public:
     /* 0x10 */ JPAExTexShape * etxBlock;
     /* 0x14 */ JPAKeyBlock ** keyBlocks;
     /* 0x18 */ JPAFieldBlock ** fldBlocks;
-    /* 0x1C */ u16 * texDataBase;
+    /* 0x1C */ BE(u16) * texDataBase;
     /* 0x20 */ u8 fldNum;
     /* 0x21 */ u8 mTextureNum;
     /* 0x22 */ u8 keyNum;

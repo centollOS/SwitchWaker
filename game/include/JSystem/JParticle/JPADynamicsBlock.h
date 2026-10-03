@@ -2,37 +2,38 @@
 #define JPADYNAMICSBLOCK_H
 
 #include "JSystem/JGeometry.h"
+#include "helpers/endian.h"
 
 struct JPADynamicsBlockData {
-    /* 0x00 */ u32 mFlags;
-    /* 0x04 */ f32 mVolumeSweep;
-    /* 0x08 */ f32 mVolumeMinRad;
-    /* 0x0C */ u16 mVolumeSize;
-    /* 0x0E */ u16 mDivNumber;
-    /* 0x10 */ f32 mRate;
-    /* 0x14 */ f32 mRateRndm;
+    /* 0x00 */ BE(u32) mFlags;
+    /* 0x04 */ BE(f32) mVolumeSweep;
+    /* 0x08 */ BE(f32) mVolumeMinRad;
+    /* 0x0C */ BE(u16) mVolumeSize;
+    /* 0x0E */ BE(u16) mDivNumber;
+    /* 0x10 */ BE(f32) mRate;
+    /* 0x14 */ BE(f32) mRateRndm;
     /* 0x18 */ u8 mRateStep;
     /* 0x19 */ u8 field_0x19;
-    /* 0x1A */ s16 mMaxFrame;
-    /* 0x1C */ s16 mStartFrame;
-    /* 0x1E */ s16 mLifeTime;
-    /* 0x20 */ f32 mLifeTimeRndm;
-    /* 0x24 */ f32 mInitVelOmni;
-    /* 0x28 */ f32 mInitVelAxis;
-    /* 0x2C */ f32 mInitVelRndm;
-    /* 0x30 */ f32 mInitVelDir;
-    /* 0x34 */ f32 mInitVelRatio;
-    /* 0x38 */ f32 mSpread;
-    /* 0x3C */ f32 mAirResist;
-    /* 0x40 */ f32 mAirResistRndm;
-    /* 0x44 */ f32 mMoment;
-    /* 0x48 */ f32 mMomentRndm;
-    /* 0x4C */ f32 mAccel;
-    /* 0x50 */ f32 mAccelRndm;
-    /* 0x54 */ JGeometry::TVec3<f32> mEmitterScl;
-    /* 0x60 */ JGeometry::TVec3<f32> mEmitterTrs;
-    /* 0x6C */ JGeometry::TVec3<f32> mEmitterDir;
-    /* 0x78 */ JGeometry::TVec3<s16> mEmitterRot;
+    /* 0x1A */ BE(s16) mMaxFrame;
+    /* 0x1C */ BE(s16) mStartFrame;
+    /* 0x1E */ BE(s16) mLifeTime;
+    /* 0x20 */ BE(f32) mLifeTimeRndm;
+    /* 0x24 */ BE(f32) mInitVelOmni;
+    /* 0x28 */ BE(f32) mInitVelAxis;
+    /* 0x2C */ BE(f32) mInitVelRndm;
+    /* 0x30 */ BE(f32) mInitVelDir;
+    /* 0x34 */ BE(f32) mInitVelRatio;
+    /* 0x38 */ BE(f32) mSpread;
+    /* 0x3C */ BE(f32) mAirResist;
+    /* 0x40 */ BE(f32) mAirResistRndm;
+    /* 0x44 */ BE(f32) mMoment;
+    /* 0x48 */ BE(f32) mMomentRndm;
+    /* 0x4C */ BE(f32) mAccel;
+    /* 0x50 */ BE(f32) mAccelRndm;
+    /* 0x54 */ JGeometry::TVec3<BE(f32)> mEmitterScl;
+    /* 0x60 */ JGeometry::TVec3<BE(f32)> mEmitterTrs;
+    /* 0x6C */ JGeometry::TVec3<BE(f32)> mEmitterDir;
+    /* 0x78 */ JGeometry::TVec3<BE(s16)> mEmitterRot;
 };  // Size: 0x80
 
 enum {

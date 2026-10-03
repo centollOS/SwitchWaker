@@ -3,24 +3,25 @@
 
 #include "JSystem/JParticle/JPAParticle.h"
 #include "JSystem/JUtility/TColor.h"
+#include "helpers/endian.h"
 
 struct JPASweepShapeData {
-    /* 0x00 */ u32 mFlags;
-    /* 0x04 */ f32 mPosRndm;
-    /* 0x08 */ f32 mBaseVel;
-    /* 0x0C */ f32 mBaseVelRndm;
-    /* 0x10 */ f32 mVelInfRate;
-    /* 0x14 */ f32 mGravity;
-    /* 0x18 */ f32 mTiming;
-    /* 0x1C */ s16 mLife;
-    /* 0x1E */ s16 mRate;
+    /* 0x00 */ BE(u32) mFlags;
+    /* 0x04 */ BE(f32) mPosRndm;
+    /* 0x08 */ BE(f32) mBaseVel;
+    /* 0x0C */ BE(f32) mBaseVelRndm;
+    /* 0x10 */ BE(f32) mVelInfRate;
+    /* 0x14 */ BE(f32) mGravity;
+    /* 0x18 */ BE(f32) mTiming;
+    /* 0x1C */ BE(s16) mLife;
+    /* 0x1E */ BE(s16) mRate;
     /* 0x20 */ u8 mStep;
-    /* 0x24 */ f32 mScaleX;
-    /* 0x28 */ f32 mScaleY;
-    /* 0x2C */ f32 mRotateSpeed;
-    /* 0x30 */ f32 mInheritScale;
-    /* 0x34 */ f32 mInheritAlpha;
-    /* 0x38 */ f32 mInheritRGB;
+    /* 0x24 */ BE(f32) mScaleX;
+    /* 0x28 */ BE(f32) mScaleY;
+    /* 0x2C */ BE(f32) mRotateSpeed;
+    /* 0x30 */ BE(f32) mInheritScale;
+    /* 0x34 */ BE(f32) mInheritAlpha;
+    /* 0x38 */ BE(f32) mInheritRGB;
     /* 0x3C */ JUtility::TColor mPrm;
     /* 0x40 */ JUtility::TColor mEnv;
     /* 0x44 */ u8 mTextureIndex;

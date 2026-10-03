@@ -368,7 +368,7 @@ void JPABaseEmitter::calcKey() {
     for (int i = 0; i < getEmitterDataBlockInfoPtr()->getKeyNum(); i++) {
         JPAKeyBlock* key = getEmitterDataBlockInfoPtr()->getKey()[i];
         f32 tick = mTick.getFrame();
-        const f32* dataPtr = key->getKeyDataPtr();
+        const BE(f32)* dataPtr = key->getKeyDataPtr();
         u32 dataNum = key->getNumber();
         if (key->isLoopEnable()) {
             int tickMax = (int)(dataPtr[(dataNum - 1) * 4]) + 1;

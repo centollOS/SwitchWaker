@@ -29,7 +29,16 @@ void JPADrawSetupTev::setupTev(JPABaseShape* param_1, JPAExTexShape* param_2) {
         case 1:
             GXSetIndTexOrder(GX_INDTEXSTAGE0, GX_TEXCOORD1, GX_TEXMAP5);
             GXSetIndTexCoordScale(GX_INDTEXSTAGE0, GX_ITS_1, GX_ITS_1);
+#if TARGET_PC
+            {
+                // The file's matrix is big-endian; GXSetIndTexMtx reads host floats.
+                Mtx23 indMtx;
+                param_2->getIndTexMtx()->to_host(indMtx);
+                GXSetIndTexMtx(GX_ITM_0, (f32*)indMtx, param_2->getExpScale());
+            }
+#else
             GXSetIndTexMtx(GX_ITM_0, (f32*)param_2->getIndTexMtx(), param_2->getExpScale());
+#endif
             GXSetTevIndirect(GX_TEVSTAGE0, GX_INDTEXSTAGE0, GX_ITF_8, GX_ITB_STU, param_2->getIndTexMtxID(), GX_ITW_OFF, GX_ITW_OFF, GX_FALSE, GX_FALSE, GX_ITBA_OFF);
             field_0x2++;
             field_0x1++;
@@ -38,7 +47,16 @@ void JPADrawSetupTev::setupTev(JPABaseShape* param_1, JPAExTexShape* param_2) {
         case 2:
             GXSetIndTexOrder(GX_INDTEXSTAGE0, GX_TEXCOORD1, GX_TEXMAP5);
             GXSetIndTexCoordScale(GX_INDTEXSTAGE0, GX_ITS_1, GX_ITS_1);
+#if TARGET_PC
+            {
+                // The file's matrix is big-endian; GXSetIndTexMtx reads host floats.
+                Mtx23 indMtx;
+                param_2->getIndTexMtx()->to_host(indMtx);
+                GXSetIndTexMtx(GX_ITM_0, (f32*)indMtx, param_2->getExpScale());
+            }
+#else
             GXSetIndTexMtx(GX_ITM_0, (f32*)param_2->getIndTexMtx(), param_2->getExpScale());
+#endif
             GXSetTevIndirect(GX_TEVSTAGE1, GX_INDTEXSTAGE0, GX_ITF_8, GX_ITB_STU, param_2->getIndTexMtxID(), GX_ITW_OFF, GX_ITW_OFF, GX_FALSE, GX_FALSE, GX_ITBA_OFF);
             GXSetTevOrder(GX_TEVSTAGE1, GX_TEXCOORD2, GX_TEXMAP6, GX_COLOR_NULL);
             GXSetTevColorIn(GX_TEVSTAGE1, GX_CC_ZERO, GX_CC_TEXC, GX_CC_CPREV, GX_CC_TEXA);

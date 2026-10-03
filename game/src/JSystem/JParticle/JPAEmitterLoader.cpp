@@ -20,29 +20,30 @@
 #include "JSystem/JUtility/JUTAssert.h"
 #include "JSystem/JUtility/JUTDataHeader.h"
 #include "JSystem/JKernel/JKRHeap.h"
+#include "helpers/endian.h"
 
 struct JPAEmitterArchiveData_v10 {
-    /* 0x00 */ u32 magic;
-    /* 0x04 */ u32 version;
-    /* 0x08 */ u16 emtrResNum;
-    /* 0x0A */ u16 texResNum;
+    /* 0x00 */ BE(u32) magic;
+    /* 0x04 */ BE(u32) version;
+    /* 0x08 */ BE(u16) emtrResNum;
+    /* 0x0A */ BE(u16) texResNum;
 };
 
 struct JPAEmitterParticleHeader_v10 {
-    /* 0x00 */ u32 magic; // 'JEFF'
-    /* 0x04 */ u32 type;  // 'jpa1'
+    /* 0x00 */ BE(u32) magic; // 'JEFF'
+    /* 0x04 */ BE(u32) type;  // 'jpa1'
     /* 0x08 */ u8 field_0x08[0x0C - 0x08];
-    /* 0x0C */ u32 blockNum;
+    /* 0x0C */ BE(u32) blockNum;
     /* 0x10 */ u8 field_0x10[0x14 - 0x10];
     /* 0x14 */ u8 keyNum;
     /* 0x15 */ u8 fldNum;
     /* 0x16 */ u8 textureNum;
-    /* 0x18 */ u16 resID;
+    /* 0x18 */ BE(u16) resID;
 };
 
 struct JPAEmitterBlockHeader_v10 {
-    /* 0x00 */ u32 magic;
-    /* 0x04 */ u32 size;
+    /* 0x00 */ BE(u32) magic;
+    /* 0x04 */ BE(u32) size;
     /* 0x08 */ u8 field_0x08[0x0C - 0x08];
     /* 0x0C */ u8 blockData;
 };
@@ -164,7 +165,7 @@ void JPAEmitterArchiveLoader_v10::load() {
                 JUT_ASSERT(300, pLinkInfo->etxBlock);
                 break;
             case 'TDB1':
-                pLinkInfo->texDataBase = (u16*)&block->blockData;
+                pLinkInfo->texDataBase = (BE(u16)*)&block->blockData;
                 break;
             }
 

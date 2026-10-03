@@ -5,6 +5,7 @@
 #include "JSystem/JGeometry.h"
 #include "dolphin/mtx/mtx.h"
 #include "dolphin/types.h"
+#include "helpers/endian.h"
 
 class JPABaseEmitter;
 class JPABaseParticle;
@@ -26,7 +27,7 @@ public:
     /* 0x14 */ JPADraw* mpDraw;
     /* 0x18 */ JSUList<JPABaseParticle>* mpActiveParticles;
     /* 0x1C */ JPATextureResource* mpTextureResource;
-    /* 0x20 */ u16* pTexIdx;
+    /* 0x20 */ BE(u16)* pTexIdx;
 
     static JPADrawClipBoard* pcb;
 };

@@ -10,5 +10,5 @@
 /* 8025855C-80258588       .text __ct__14JPAKeyBlockArcFPCUc */
 JPAKeyBlockArc::JPAKeyBlockArc(const u8* data) {
     mpData = reinterpret_cast<const JPAKeyBlockData*>(data+0x0C);
-    mpKeyData = reinterpret_cast<const f32*>(data+0x20);
+    mpKeyData = reinterpret_cast<const BE(f32)*>(data+0x20);
 }

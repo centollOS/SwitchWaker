@@ -2,21 +2,22 @@
 #define JPAFIELDBLOCK_H
 
 #include "JSystem/JGeometry.h"
+#include "helpers/endian.h"
 
 struct JPAFieldBlockData {
-    /* 0x00 */ u32 mFlags;
-    /* 0x04 */ f32 mMag;
-    /* 0x08 */ f32 mMagRndm;
-    /* 0x0C */ f32 mMaxDist;
-    /* 0x10 */ JGeometry::TVec3<f32> mPos;
-    /* 0x1C */ JGeometry::TVec3<f32> mDir;
-    /* 0x28 */ f32 mVal1;
-    /* 0x2C */ f32 mVal2;
-    /* 0x30 */ f32 mVal3;
-    /* 0x34 */ f32 mFadeIn;
-    /* 0x38 */ f32 mFadeOut;
-    /* 0x3C */ f32 mEnTime;
-    /* 0x40 */ f32 mDisTime;
+    /* 0x00 */ BE(u32) mFlags;
+    /* 0x04 */ BE(f32) mMag;
+    /* 0x08 */ BE(f32) mMagRndm;
+    /* 0x0C */ BE(f32) mMaxDist;
+    /* 0x10 */ JGeometry::TVec3<BE(f32)> mPos;
+    /* 0x1C */ JGeometry::TVec3<BE(f32)> mDir;
+    /* 0x28 */ BE(f32) mVal1;
+    /* 0x2C */ BE(f32) mVal2;
+    /* 0x30 */ BE(f32) mVal3;
+    /* 0x34 */ BE(f32) mFadeIn;
+    /* 0x38 */ BE(f32) mFadeOut;
+    /* 0x3C */ BE(f32) mEnTime;
+    /* 0x40 */ BE(f32) mDisTime;
     /* 0x44 */ u8 mCycle;
 };
 
@@ -52,8 +53,14 @@ public:
     virtual u32 getSttFlag() { return (mpData->mFlags >> 16) & 0xFFFF; }
     virtual u32 getCycle() { return mpData->mCycle; }
     virtual u32 getID() { return 0; }
+#if TARGET_PC
+    // The file's vectors are big-endian: converted member by member (TVec3<f32>::set).
+    virtual void getPos(JGeometry::TVec3<float>& out) { out.set(mpData->mPos); };
+    virtual void getDir(JGeometry::TVec3<float>& out) { out.set(mpData->mDir); };
+#else
     virtual void getPos(JGeometry::TVec3<float>& out) { out = mpData->mPos; };
     virtual void getDir(JGeometry::TVec3<float>& out) { out = mpData->mDir; };
+#endif
     virtual f32 getMag() { return mpData->mMag; }
     virtual f32 getMagRndm() { return mpData->mMagRndm; }
     virtual f32 getMaxDist() { return mpData->mMaxDist; }

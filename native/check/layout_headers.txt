@@ -49,6 +49,7 @@ f_op/f_op_msg_mng.h
 # 4.7: JParticle (JPAC1-00)
 JSystem/JParticle/JPABaseShape.h
     JPABaseShapeData
+    JPAColorRegAnmKey
 JSystem/JParticle/JPAExtraShape.h
     JPAExtraShapeData
 JSystem/JParticle/JPASweepShape.h

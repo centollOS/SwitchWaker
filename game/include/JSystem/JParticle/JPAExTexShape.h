@@ -2,10 +2,11 @@
 #define JPAEXTEXSHAPE_H
 
 #include "dolphin/gx/GX.h"
+#include "helpers/endian.h"
 
 struct JPAExTexShapeData {
-    /* 0x00 */ u32 mFlags;
-    /* 0x04 */ Mtx23 mIndTexMtx;
+    /* 0x00 */ BE(u32) mFlags;
+    /* 0x04 */ BE(Mtx23) mIndTexMtx;
     /* 0x1C */ s8 mExpScale;
     /* 0x1D */ u8 field_0x1d[3];
     /* 0x20 */ u8 mIndTextureID;
@@ -18,7 +19,7 @@ public:
     virtual ~JPAExTexShape() {}
     virtual u32 getIndTexMode() = 0;
     virtual GXIndTexMtxID getIndTexMtxID() = 0;
-    virtual const Mtx23* getIndTexMtx() = 0;
+    virtual const BE(Mtx23)* getIndTexMtx() = 0;
     virtual s8 getExpScale() = 0;
     virtual u8 getIndTextureID() = 0;
     virtual u8 getSubTextureID() = 0;
@@ -32,7 +33,7 @@ public:
     virtual ~JPAExTexShapeArc() {}
     virtual u32 getIndTexMode() { return (mpData->mFlags >> 0) & 0x03; }
     virtual GXIndTexMtxID getIndTexMtxID() { return indMtxID[(mpData->mFlags >> 2) & 0x03]; }
-    virtual const Mtx23* getIndTexMtx() { return &mpData->mIndTexMtx; }
+    virtual const BE(Mtx23)* getIndTexMtx() { return &mpData->mIndTexMtx; }
     virtual s8 getExpScale() { return mpData->mExpScale; }
     virtual u8 getIndTextureID() { return mpData->mIndTextureID; }
     virtual u8 getSubTextureID() { return mpData->mSubTextureID; }

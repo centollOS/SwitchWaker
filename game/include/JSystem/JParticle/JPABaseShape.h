@@ -3,6 +3,7 @@
 
 #include "JSystem/JParticle/JPAEmitter.h"
 #include "dolphin/gx/GX.h"
+#include "helpers/endian.h"
 
 class JKRHeap;
 
@@ -93,18 +94,18 @@ public:
 
 class JPAColorRegAnmKey {
 public:
-    s16 m00;
-    GXColor m02;
-};
+    /* 0x00 */ BE(s16) m00;
+    /* 0x02 */ GXColor m02;
+};  // Size: 0x06
 
 struct JPABaseShapeData {
-    /* 0x00 */ u32 mFlags;
-    /* 0x04 */ s16 mPrmAnimDataOffs;
-    /* 0x06 */ s16 mEnvAnimDataOffs;
-    /* 0x08 */ f32 mBaseSizeX;
-    /* 0x0c */ f32 mBaseSizeY;
-    /* 0x10 */ s16 mLoopOffset;
-    /* 0x12 */ u16 mBlendFlags;
+    /* 0x00 */ BE(u32) mFlags;
+    /* 0x04 */ BE(s16) mPrmAnimDataOffs;
+    /* 0x06 */ BE(s16) mEnvAnimDataOffs;
+    /* 0x08 */ BE(f32) mBaseSizeX;
+    /* 0x0c */ BE(f32) mBaseSizeY;
+    /* 0x10 */ BE(s16) mLoopOffset;
+    /* 0x12 */ BE(u16) mBlendFlags;
     /* 0x14 */ u8 mAlphaFlags;
     /* 0x15 */ u8 mAlphaCmpRef0;
     /* 0x16 */ u8 mAlphaCmpRef1;
@@ -115,20 +116,20 @@ struct JPABaseShapeData {
     /* 0x1b */ u8 mColorFlags;
     /* 0x1c */ u8 prmAnmKeyNum;
     /* 0x1d */ u8 envAnmKeyNum;
-    /* 0x1e */ s16 mColorRegAnmMaxFrm;
+    /* 0x1e */ BE(s16) mColorRegAnmMaxFrm;
     /* 0x20 */ GXColor mPrmColor;
     /* 0x24 */ GXColor mEnvColor;
-    /* 0x28 */ f32 mTilingX;
-    /* 0x2c */ f32 mTilingY;
-    /* 0x30 */ f32 mTexStaticTransX;
-    /* 0x34 */ f32 mTexStaticTransY;
-    /* 0x38 */ f32 mTexStaticScaleX;
-    /* 0x3c */ f32 mTexStaticScaleY;
-    /* 0x40 */ f32 mTexScrollTransX;
-    /* 0x44 */ f32 mTexScrollTransY;
-    /* 0x48 */ f32 mTexScrollScaleX;
-    /* 0x4c */ f32 mTexScrollScaleY;
-    /* 0x50 */ f32 mTexScrollRotate;
+    /* 0x28 */ BE(f32) mTilingX;
+    /* 0x2c */ BE(f32) mTilingY;
+    /* 0x30 */ BE(f32) mTexStaticTransX;
+    /* 0x34 */ BE(f32) mTexStaticTransY;
+    /* 0x38 */ BE(f32) mTexStaticScaleX;
+    /* 0x3c */ BE(f32) mTexStaticScaleY;
+    /* 0x40 */ BE(f32) mTexScrollTransX;
+    /* 0x44 */ BE(f32) mTexScrollTransY;
+    /* 0x48 */ BE(f32) mTexScrollScaleX;
+    /* 0x4c */ BE(f32) mTexScrollScaleY;
+    /* 0x50 */ BE(f32) mTexScrollRotate;
 };  // Size: 0x54
 
 class JPABaseShapeArc : public JPABaseShape {
