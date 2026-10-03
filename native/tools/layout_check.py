@@ -81,6 +81,7 @@ BASE_DEFINES = {
 OFFSET_COMMENT_RE = re.compile(r"^\s*/\*\s*(0x[0-9A-Fa-f]+)\b[^*]*\*/(.*)$")
 SIZE_COMMENT_RE = re.compile(r"(?://|/\*)\s*[Ss]ize\s*[:=]?\s*(0x[0-9A-Fa-f]+)")
 IDENT_RE = re.compile(r"[A-Za-z_]\w*")
+PORT_TYPE_MACRO_RE = re.compile(r"\b(?:BE|LE|OFFSET_PTR|OFFSET_PTR_V0)\s*\([^()]*\)")
 RECORD_HEAD_RE = re.compile(
     r"^(?P<template>template\s*<.*>\s*)?(?P<typedef>typedef\s+)?(?P<kind>struct|class|union)"
     r"(?:\s+__attribute__\s*\(\(.*?\)\))?(?:\s+(?P<name>[A-Za-z_]\w*))?\s*(?:final\s*)?(?::[^{]*)?$",
@@ -278,6 +279,9 @@ def parse_declarator(stmt: str) -> tuple[str | None, bool, str]:
         return None, False, "not a data member"
     if "{" in s:
         return None, False, "inline type or body"
+    # The port's field-type macros (helpers/endian.h, helpers/offset_ptr.h: BE(T) is T on the
+    # GameCube) name a type, not a function: read BE(u16) width; as one type and a name.
+    s = PORT_TYPE_MACRO_RE.sub("port_type_", s)
     if "(" in s:
         fp = re.search(r"\(\s*(?:\w+\s*::\s*)*\*\s*(?:const\s+)?([A-Za-z_]\w*)\s*\)", s)
         if fp:
