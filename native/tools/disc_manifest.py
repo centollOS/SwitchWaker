@@ -42,6 +42,12 @@ Usage
                                                   emitter's user index, block, key, field and
                                                   texture counts and block order, every texture's
                                                   name and header (exit 0 equal, 1 different)
+  disc_manifest.py --check-stage STG [--out FILE] compare what the game's stage code read in
+                                                  COS_SMOKE=stage-sweep (<run dir>/
+                                                  stage_sweep.txt) with the manifest's dzs/dzr
+                                                  files: every file's chunk count, every chunk's
+                                                  tag, entry count and offset (exit 0 equal, 1
+                                                  different)
   disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
 
 Manifest (JSON)
@@ -1024,6 +1030,74 @@ def check_jpa(manifest, jpa_path):
     return report_problems(problems, "jpa_sweep.txt equals the manifest")
 
 
+# ---- stage chunk tables (step 4.9a) -------------------------------------------------------------
+
+def check_stage(manifest, stage_path):
+    """stage_sweep.txt lines (fields separated by single spaces): 'STG <path> chunk_count=N' and
+    'CHUNK <path> <index> tag=XXXX num=N offset=N', <path> being the manifest's name of the file
+    ('<archive>:dzs/stage.dzs' or '<archive>:dzr/room.dzr'). Every dzs/dzr of the disc and every
+    one of its chunks must be there."""
+    by_path = records_by_path(manifest)
+    all_stage = {p: r for p, r in by_path.items() if r.get("format") in ("dzs", "dzr")}
+    problems = []
+    seen = {}
+    chunks = 0
+    with open(stage_path, encoding="utf-8", errors="replace") as f:
+        for ln, line in enumerate(f, 1):
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split(" ")
+            if len(parts) < 3 or parts[0] not in ("STG", "CHUNK"):
+                problems.append("line %d: malformed: %r" % (ln, line))
+                continue
+            kind, path = parts[0], parts[1]
+            rec = all_stage.get(path)
+            if rec is None:
+                problems.append("line %d: %s is not a dzs/dzr file of the manifest" % (ln, path))
+                continue
+            got = seen.setdefault(path, {"STG": 0, "CHUNK": set()})
+            if kind == "STG":
+                got["STG"] += 1
+                fields = dict(p.partition("=")[::2] for p in parts[2:])
+                if fields.get("chunk_count") != str(rec["chunk_count"]):
+                    problems.append("line %d: %s chunk_count=%s, the manifest has %d"
+                                    % (ln, path, fields.get("chunk_count"), rec["chunk_count"]))
+                continue
+            try:
+                index = int(parts[2])
+            except ValueError:
+                problems.append("line %d: malformed index: %r" % (ln, line))
+                continue
+            if not 0 <= index < len(rec["chunks"]):
+                problems.append("line %d: %s chunk %d: the file has %d" % (ln, path, index,
+                                                                         len(rec["chunks"])))
+                continue
+            if index in got["CHUNK"]:
+                problems.append("line %d: %s chunk %d reported twice" % (ln, path, index))
+            got["CHUNK"].add(index)
+            chunks += 1
+            want = rec["chunks"][index]
+            fields = dict(p.partition("=")[::2] for p in parts[3:])
+            for key in ("tag", "num", "offset"):
+                if fields.get(key) != str(want[key]):
+                    problems.append("line %d: %s chunk %d %s=%s, the manifest has %s"
+                                    % (ln, path, index, key, fields.get(key), want[key]))
+            for key in set(fields) - {"tag", "num", "offset"}:
+                problems.append("line %d: %s chunk %d: unexpected field %s" % (ln, path, index, key))
+    for path, rec in sorted(all_stage.items()):
+        got = seen.get(path)
+        if got is None or got["STG"] != 1:
+            problems.append("%s: %d STG lines" % (path, 0 if got is None else got["STG"]))
+            continue
+        if len(got["CHUNK"]) != len(rec["chunks"]):
+            problems.append("%s: %d of %d chunks reported" % (path, len(got["CHUNK"]),
+                                                              len(rec["chunks"])))
+    print("disc_manifest: stage_sweep.txt: %d dzs/dzr files (the disc has %d), %d chunks compared"
+          % (len(seen), len(all_stage), chunks))
+    return report_problems(problems, "stage_sweep.txt equals the manifest")
+
+
 # ---- archive cross-check (step 4.4) -------------------------------------------------------------
 
 def check_arc(manifest, arc_path):
@@ -1186,6 +1260,8 @@ def main():
                     help="compare a COS_SMOKE=arc-sweep report with the manifest")
     ap.add_argument("--check-jpa", metavar="JPA",
                     help="compare a COS_SMOKE=jpa-sweep report with the manifest")
+    ap.add_argument("--check-stage", metavar="STG",
+                    help="compare a COS_SMOKE=stage-sweep report with the manifest")
     ap.add_argument("--summary", action="store_true", help="print an existing manifest's counts")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
@@ -1200,6 +1276,8 @@ def main():
         return check_msg(load_manifest(args.out), args.check_msg)
     if args.check_jpa:
         return check_jpa(load_manifest(args.out), args.check_jpa)
+    if args.check_stage:
+        return check_stage(load_manifest(args.out), args.check_stage)
     if args.summary:
         print_summary(load_manifest(args.out))
         return EXIT_OK

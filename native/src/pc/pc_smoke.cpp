@@ -23,6 +23,8 @@
 //   message code, the BMC colour table and the message fonts;
 // - jpa-sweep (step 4.7, pc_jpa.cpp): every JPC's emitter resources and textures read through
 //   JParticle and compared with an independent reading, every emitter calculated for 30 frames.
+// - stage-sweep (step 4.9a, pc_stage.cpp): every dzs/dzr chunk table relocated and decoded through
+//   d_stage.cpp, its RTBL and paths relocated by the game's loaders, and /res/Menu/Menu1.dat.
 // The format sweeps and the other smoke tests of phases 4-6 add their names to kSmokes; one that
 // runs after some of the boot is started by the boot code at that point, not by runEarlySmoke.
 #include "pc_internal.h"
@@ -228,6 +230,9 @@ void requireWatchdog(const char* test, double seconds, const char* var) {
     if (strcmp(name, "jpa-sweep") == 0) {
         smokeJpaSweep();
     }
+    if (strcmp(name, "stage-sweep") == 0) {
+        smokeStageSweep();
+    }
     writef(STDERR_FILENO, "[cos] smoke %s has no runner\n", name);
     pc_exit(PC_EXIT_USAGE);
 }
@@ -256,6 +261,7 @@ const Smoke kSmokes[] = {
     {"arc-sweep", kAfterHeaps},
     {"msg-sweep", kAfterHeaps},
     {"jpa-sweep", kAfterHeaps},
+    {"stage-sweep", kAfterHeaps},
 };
 
 const Smoke* findSmoke(const char* name) {
