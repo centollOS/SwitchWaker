@@ -18,9 +18,12 @@
 // - threads not made by OSCreateThread (host threads) get their own OSThread instead of sharing
 //   the default thread;
 // - dusk::IsShuttingDown, JKRHeap and Tracy couplings are replaced by cos_sdk/hooks.h;
-// - OSSetCurrentThreadName (Dusklight-only) is not part of this file.
+// - OSSetCurrentThreadName (Dusklight-only) is not part of this file;
+// - the side table, the HostThread records and the launch records live in host memory
+//   (cos_sdk/host_alloc.h), not in the game's operator new/delete (JKRHeap on PC; see there).
 #include "os_internal.h"
 
+#include "cos_sdk/host_alloc.h"
 #include "cos_sdk/hooks.h"
 
 #include <pthread.h>
@@ -31,7 +34,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <thread>
-#include <unordered_map>
 
 // __OSActiveThreadQueue: the SDK's list of active threads (linked through OSThread::linkActive),
 // at 0x800000DC on the console. Exported with C linkage under its SDK name because game code walks
@@ -47,7 +49,7 @@ namespace cos_sdk::os {
 // Shared state
 
 std::mutex& Lock() {
-    static std::mutex* const sLock = new std::mutex(); // never destroyed
+    static std::mutex* const sLock = cos_sdk::HostNew<std::mutex>(); // never destroyed
     return *sLock;
 }
 
@@ -61,9 +63,9 @@ namespace {
 // destructors run at pthread_exit too.
 thread_local std::shared_ptr<HostThread> tHostRef;
 
-using HostMap = std::unordered_map<OSThread*, std::shared_ptr<HostThread>>;
+using HostMap = cos_sdk::HostUnorderedMap<OSThread*, std::shared_ptr<HostThread>>;
 HostMap& Hosts() {
-    static HostMap* const sHosts = new HostMap(); // never destroyed
+    static HostMap* const sHosts = cos_sdk::HostNew<HostMap>(); // never destroyed
     return *sHosts;
 }
 
@@ -153,7 +155,7 @@ void WriteStackMagic(u8* where) {
 // the first). Its record lives as long as the host thread.
 struct ForeignThread {
     OSThread record;
-    std::shared_ptr<HostThread> host = std::make_shared<HostThread>();
+    std::shared_ptr<HostThread> host = cos_sdk::HostMakeShared<HostThread>();
 
     ~ForeignThread() {
         if (tInterruptsDisabled) {
@@ -168,7 +170,7 @@ struct ForeignThread {
         Hosts().erase(&record);
     }
 };
-thread_local std::unique_ptr<ForeignThread> tForeign;
+thread_local cos_sdk::HostUniquePtr<ForeignThread> tForeign;
 
 void ClaimDefaultThreadLocked() {
     InitRecord(&sDefaultThread, 16, OS_THREAD_ATTR_DETACH);
@@ -178,7 +180,7 @@ void ClaimDefaultThreadLocked() {
     WriteStackMagic(sDefaultStack);
     ActiveAdd(&sDefaultThread);
 
-    auto host = std::make_shared<HostThread>();
+    auto host = cos_sdk::HostMakeShared<HostThread>();
     tHost = host.get();
     tHostRef = host;
     Hosts()[&sDefaultThread] = std::move(host);
@@ -193,7 +195,7 @@ struct Launch {
 };
 
 void* ThreadEntry(void* arg) {
-    std::unique_ptr<Launch> launch(static_cast<Launch*>(arg));
+    cos_sdk::HostUniquePtr<Launch> launch(static_cast<Launch*>(arg));
     OSThread* thread = launch->thread;
     tHostRef = launch->host;
     tHost = tHostRef.get();
@@ -234,12 +236,12 @@ void LaunchLocked(OSThread* thread, const std::shared_ptr<HostThread>& host) {
     pthread_attr_setstacksize(&attr, HostStackSize(requested));
     // The launch hook runs here, on the thread that called OSResumeThread (with the lock held).
     void* const launchValue = sThreadLaunchHook != nullptr ? sThreadLaunchHook(thread) : nullptr;
-    auto* launch = new Launch{thread, host, launchValue};
+    auto* launch = cos_sdk::HostNew<Launch>(Launch{thread, host, launchValue});
     pthread_t handle;
     const int err = pthread_create(&handle, &attr, &ThreadEntry, launch);
     pthread_attr_destroy(&attr);
     if (err != 0) {
-        delete launch;
+        cos_sdk::HostDelete(launch);
         Fatal("OSResumeThread(%p): pthread_create failed (%d: %s)", static_cast<void*>(thread),
               err, std::strerror(err));
     }
@@ -290,7 +292,7 @@ void AdoptCurrentLocked() {
         ClaimDefaultThreadLocked();
         return;
     }
-    tForeign = std::make_unique<ForeignThread>();
+    tForeign = cos_sdk::HostMakeUnique<ForeignThread>();
     OSThread* record = &tForeign->record;
     InitRecord(record, 16, OS_THREAD_ATTR_DETACH);
     record->state = OS_THREAD_STATE_RUNNING;
@@ -502,7 +504,7 @@ BOOL OSCreateThread(OSThread* thread, void* (*func)(void*), void* param, void* s
         WriteStackMagic(thread->stackEnd);
     }
 
-    auto host = std::make_shared<HostThread>();
+    auto host = cos_sdk::HostMakeShared<HostThread>();
     host->func = func;
     host->param = param;
     host->created = true;

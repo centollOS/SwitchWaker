@@ -439,6 +439,9 @@ bool JKRHeap::isSubHeap(JKRHeap* heap) const {
 // allocation (none given and no current heap) the global forms fall back to the host allocator,
 // and operator delete hands a pointer that no JKRHeap owns back to it. Once main has made the
 // root heap, everything behaves as on the GameCube.
+// Host bookkeeping must not come here: freeing a JKRHeap block takes the heap's OSMutex, which the
+// alarm thread may not, and game heaps are freed wholesale. cos_sdk's containers and records and
+// the PC harness use host memory explicitly (native/sdk/include/cos_sdk/host_alloc.h).
 // TODO(native phase 6): Aurora/SDL/libc++ allocations made after the heaps exist still land in
 // the current JKRHeap through these global forms; Dusklight moves the game to JKR_NEW instead.
 static void* pc_heapless_alloc(size_t size, int alignment) {

@@ -20,13 +20,21 @@
 //
 // The timer thread starts with the first OSSetAlarm* call (or OSInitAlarm) and is detached.
 // After COSSdkRequestShutdown it fires nothing more.
+//
+// Memory: the queue, the pending table and the state live in host memory (cos_sdk/host_alloc.h),
+// never in the game's operator new/delete. On PC those allocate from the current JKRHeap and free
+// under its OSMutex, which the timer thread may not take: an erase while the game held a heap's
+// mutex was fatal ("a blocking OS call was made from an alarm handler"). For the same reason the
+// timer thread is a pthread: libc++'s std::thread allocates its start state with global new.
 #include "os_internal.h"
+
+#include "cos_sdk/host_alloc.h"
+
+#include <pthread.h>
 
 #include <chrono>
 #include <cstdint>
-#include <map>
-#include <thread>
-#include <unordered_map>
+#include <cstring>
 #include <utility>
 
 using namespace cos_sdk::os;
@@ -35,11 +43,11 @@ namespace {
 
 // Ordered by (fire time, insertion sequence): alarms with the same fire time fire in set order.
 using AlarmKey = std::pair<OSTime, std::uint64_t>;
-using AlarmQueue = std::map<AlarmKey, OSAlarm*>;
+using AlarmQueue = cos_sdk::HostMap<AlarmKey, OSAlarm*>;
 
 struct AlarmState {
     AlarmQueue queue;
-    std::unordered_map<OSAlarm*, AlarmQueue::iterator> pending;
+    cos_sdk::HostUnorderedMap<OSAlarm*, AlarmQueue::iterator> pending;
     std::uint64_t sequence = 0;
     std::condition_variable cv; // the timer thread waits on it with the OS lock
     bool threadStarted = false;
@@ -48,7 +56,8 @@ struct AlarmState {
 };
 
 AlarmState& State() {
-    static AlarmState* const sState = new AlarmState(); // never destroyed (detached timer thread)
+    // Never destroyed (detached timer thread).
+    static AlarmState* const sState = cos_sdk::HostNew<AlarmState>();
     return *sState;
 }
 
@@ -74,7 +83,7 @@ bool RemoveLocked(OSAlarm* alarm) {
     return true;
 }
 
-void TimerThreadMain() {
+void* TimerThreadMain(void*) {
     AlarmState& state = State();
     tCurrent = &state.threadRecord;
     tHost = &state.threadHost;
@@ -139,7 +148,16 @@ void InsertLocked(OSAlarm* alarm, OSTime fire, OSAlarmHandler handler, const cha
         state.threadHost.alarmThread = true;
         state.threadRecord.state = OS_THREAD_STATE_RUNNING;
         state.threadRecord.priority = state.threadRecord.base = OS_PRIORITY_MIN;
-        std::thread(&TimerThreadMain).detach();
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+        pthread_t handle;
+        const int err = pthread_create(&handle, &attr, &TimerThreadMain, nullptr);
+        pthread_attr_destroy(&attr);
+        if (err != 0) {
+            Fatal("%s: pthread_create of the alarm thread failed (%d: %s)", caller, err,
+                  std::strerror(err));
+        }
     }
     if (it == state.queue.begin()) {
         state.cv.notify_all();
