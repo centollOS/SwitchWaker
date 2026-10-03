@@ -1771,6 +1771,41 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `cos_pc_tests` ok, census equal, `--all --dups` 0, `unifdef -UTARGET_PC` of `d_a_ship.cpp` equals
   HEAD, stage-sweep 0 (21443 records equal), static-init..logo-res 0, `--uncapped` 0, sweeps 0;
   M7 `opening` still 13 in `JAIZelBasic::talkOut` (audio-off decision pending).
+- **4.9d Environment** (2026-10-03): `COS_SMOKE=stage-sweep` 0 x4 (3 on the final build); the report
+  equals the manifest (651 dzs/dzr files, 6063 chunks, 20207 actor records, 24790 room/file/path/
+  environment records, 3347 of them new); sea_T's fog and colour values print within their ranges.
+  M7 still stops at the audio-off fault of 4.8 (`opening` 13 in `JAIZelBasic::talkOut`, unchanged).
+  - **The environment records were read host-order.** `d_kankyo` reads the LGHT/LGTV/Colo/Pale/Virt/
+    EnvR chunks in place every frame. In `d_stage.h`, `stage_plight_info_class` and
+    `stage_lightvec_info_class` have `BE(Vec) position` and `BE(f32) radius`,
+    `stage_pselect_info_class::change_rate` and `stage_palet_info_class::mFogStartZ`/`mFogEndZ` are
+    `BE(f32)`, and `stage_vrbox_info_class`'s four leading words are `BE(u32)` (unread, kept
+    correct). Colours, indices and EnvR are bytes. Every reader (`plight_set`, `SetBaseLight`,
+    `dKy_setLight*`, `envcolor_init`'s change-rate clamp) goes through `BE<T>`'s conversions with
+    no source change; `d_kankyo_data.cpp`'s default tables are built through `BE<T>`'s constexpr
+    constructor. A `-fsyntax-only -Wclass-varargs` pass over `d_kankyo*`, `d_kyeff` and `d_stage`
+    finds no `BE<T>` passed to a variadic function. On the GameCube `BE(T)` is `T`; the layout
+    check holds (1021 GameCube checks).
+  - **Harness:** `pc_stage.cpp` writes a REC line per entry of the first LGHT, LGTV, Colo, Pale,
+    Virt and EnvR chunk, read through the node's offset as their chunk loaders do;
+    `disc_manifest.py` (manifest version 5) decodes the same records. For sea_T's `stage.dzs`,
+    `checkSeaEnv` runs the game's Pale/Colo/Virt/EnvR/LGHT loaders into a `dStage_stageDt_c`, prints
+    every palette (fog start..end, fog/actor/BG0 colours, sky index), colour set and sky to the run
+    log, and checks: fog finite with 0 <= start <= end <= 1e6 (palette 19 ends at 200000, past the
+    160000 far plane), each 0 or >= 1; change rate in [1/30, 1000] or 0; palette, sky and
+    colour-set indices below their chunk counts. sea_T: 33 palettes, fog 0..200000, 5 colour sets
+    (change rate 10), 31 skies, 50 environments. Negative check: with HEAD's `d_stage.h` the
+    manifest comparison reports 2552 differences and the range check 38 errors (every fog distance
+    and change rate is a denormal); exit 1.
+  Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check
+  cos_link_census` 0 errors; smoke ok; `cos_pc_tests` ok; census equal to
+  `expected_unresolved_phase2.txt`; `--all --dups` 0; inventory `--check` ok (60 open);
+  static-init, aurora-up, heaps, gfx-create, frame-loop, logo-scene, logo-res 0 x3; frame-loop,
+  logo-scene, logo-res `--uncapped` 0; disc-ls, heap, font, arc-sweep, msg-sweep, jpa-sweep 0.
+  Review (round 1): rebuilt, stage-sweep 0 (sea_T fog 0..200000, every value in its range; 128 LGHT,
+  492 LGTV, 605 Colo, 1317 Pale, 845 Virt, 841 EnvR REC lines equal the manifest), smoke and
+  `cos_pc_tests` ok, `--gc-verify` 1021, census equal, `--dups` 0, inventory ok (60 open), static-init..logo-res and
+  sweeps 0, `--uncapped` 0; `opening` 13 in `JAIZelBasic::talkOut` as before.
 
 ### Phase 6 render issues
 
