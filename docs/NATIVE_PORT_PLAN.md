@@ -3054,6 +3054,31 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   as the console does. See render issues (A1). Reviewed: GanonE:0:0 / M_DaiMB:12:0 shot 1190 and
   kinBOSS:0:0 shot 900 rerun and inspected (Link from behind on the floor), `unifdef -UTARGET_PC`
   unchanged, `regress.sh -j 3` all checks passed.
+- RA-A2 (lane boot, render audit A2): Kalle Demos renders correctly; the A2 picture came from
+  A1's camera. Under the floor (A1 reverted for diagnosis), the camera saw the boss's open flower
+  (`bkm.bmd`, the `hana_wait` pose at the arena centre) from below. The floor is culled from below,
+  so the undersides of the petals (material `hana_sitahana`) showed as large flat blue, magenta
+  and cyan polygons against the clear colour. Their jagged edges are the petal outlines of the
+  `bkm_body` texture. Nothing was changed in the code. Checks against the disc, with an
+  independent decoder: `bkm_body` (CMPR 512x256, decoded with a scratch CMPR decoder) is itself
+  cyan/blue/violet with a green-cyan-blue-magenta band. The `bkm.bmd` TEV stages sample it with
+  the identity swap table (only the toon stage reads `toonEX` through the RRRA table). `bkm.brk`
+  animates only `hana_sitahana` C2 and the `hikari_ex_hana_ura` konst, for the 250-frame death
+  fade. So the blue bulb and the cyan/green/magenta petals are the model's own colours, not a
+  host-order BRK or texture decode. Seen from above the floor (a temporary diagnostic camera,
+  not committed), the flower is a pale blue lily with white-spotted petals and Makar at its centre.
+  The new `native/check/input/kinboss-fight.txt` walks Link to the flower: the flower closes and
+  rises, and from frame ~1500 the fight camera frames the bulb. The bulb is blue-violet with a
+  lighter zigzag and yellow spots, the flower is green/cyan, and the barbed tentacles and the
+  ceiling vines with their flower-tipped anchors are drawn. The geometry is clean and the
+  envelope-skinned vines bend smoothly, so the
+  suspected corrupt skinned vertices are not there. Shots inspected: `run --stage kinBOSS:0:0
+  --frames 1200 --uncapped --shot 590,900` (unchanged, boss out of view behind Link) and `run
+  --stage kinBOSS:0:0 --frames 2500 --uncapped --input native/check/input/kinboss-fight.txt
+  --shot 590,1100,1800,2400`. See render issues (A2).
+  Reviewed: the fight script rerun, shots 1100 (closing blue spotted flower, cutscene), 1800 and
+  2400 (bulb, petals, thorned tentacles, clean skinned geometry) inspected; no code change,
+  `regress.sh -j 3` all checks passed.
 
 - **Fix NG-run-dir (M11 boot loop, lane audio, harness): parallel runs of one target shared a run
   directory.** `run.sh` tested a directory name for existence and then created it with
@@ -3331,7 +3356,7 @@ loop. Open defects, most visible first (one probable root cause per row):
 | # | Defect | Stages | Suspected cause | Repro |
 |---|--------|--------|-----------------|-------|
 | A1 | Arena floors are missing: below the walls the frame shows one flat colour, the same everywhere in a stage (RGB 48,48,45 in GanonE/GanonM/M_DaiMB, 59,59,59 in Xboss2, black in SirenB/kazeMB/kinBOSS). Link stands over nothing. | kinBOSS, GanonE, GanonM, M_DaiMB, Xboss2, SirenB, kazeMB; GanonB likely (dark brown gradient where its lava should be) | **Fixed** by RA-A1: not a render issue. The room-entry event camera found no `RelActor` ("@PLAYER" matched by a host-order u32 read of its name against `'@PLA'`), so its relative eye/centre offsets became world positions and the camera sat under the floor (eye (0,-40,-170) in GanonE), whose triangles are back-face culled from below. `dCamera_strTag` reads such tags big-endian. Checked with COS_SHOT (inspected, before/after): GanonE:0:0 and M_DaiMB:12:0 shot 1190, kinBOSS:0:0 shot 900 went from walls over the clear colour (kinBOSS: Kalle Demos seen from below) to Link seen from behind on the tiled/earth floor; GanonM:0:0, Xboss2:0:0, SirenB:0:0, GanonB:0:0 and kazeMB:6:0 (the sweep start; kazeMB:0:0 faults in `dStage_escapeRestart` with no player, before and after) shot 1190 all show the floor; title shot 1300 unchanged. | `native/tools/run.sh run --stage GanonE:0:0 --frames 1200 --uncapped --shot 1190` (also `M_DaiMB:12:0`, `kinBOSS:0:0 --shot 900`) |
-| A2 | Kalle Demos (the `Bmd` actor) draws as large flat blue, magenta and cyan polygons with jagged leaves. (Seen with the camera under the arena floor, A1; after RA-A1 the frame-900 view is behind Link and the boss is out of view: recheck A2 from a shot that frames it.) On the GameCube it has a textured red bulb and green tentacles. | kinBOSS | The model is an envelope-skinned `mDoExt_McaMorf` with BRK/BTK. The jagged geometry suggests corrupt skinned vertices. R5 left the S16 position/normal skinning paths and the envelope matrices unexercised. Alternatively its BRK colour registers are read host-order. | `native/tools/run.sh run --stage kinBOSS:0:0 --frames 1200 --uncapped --shot 590,900` |
+| A2 | Kalle Demos (the `Bmd` actor) draws as large flat blue, magenta and cyan polygons with jagged leaves. (Seen with the camera under the arena floor, A1; after RA-A1 the frame-900 view is behind Link and the boss is out of view: recheck A2 from a shot that frames it.) On the GameCube it has a textured red bulb and green tentacles. | kinBOSS | **Not a defect; resolved by RA-A1** (checked in RA-A2): the flat blue/magenta/cyan polygons were the undersides of the boss's open flower (material `hana_sitahana`), seen from A1's under-floor camera. The flower's colours come from its own `bkm_body` CMPR texture (cyan/blue/violet, a green-to-magenta band), decoded independently from the disc; the TEV stages sample it unswizzled and `bkm.brk` animates only the death fade. With the camera fixed, the fight (Link walks to the flower) shows the blue-violet yellow-spotted bulb, the green/cyan petals, the barbed tentacles and the ceiling vines. Their geometry is intact and the skinned vines bend smoothly. The "red bulb" in the audit was a wrong expectation. | `native/tools/run.sh run --stage kinBOSS:0:0 --frames 2500 --uncapped --input native/check/input/kinboss-fight.txt --shot 1100,1800,2400` |
 | A3 | Orca's message box shows its dark panel, the Next button and the arrow but no text, at frames 590, 900 and 1190. The Ojhous2 and Outset boxes show their text. | Ojhous | The message box layout draws but its text pane does not. Possibly a text colour, alpha or font state read wrongly for this message, or empty message text (not checked against the BMG yet). | `native/tools/run.sh run --stage Ojhous:0:0 --frames 1200 --uncapped --shot 900,1190` |
 | A4 | Link's real-time shadow is drawn as a bright white lobed blob on the floor. Elsewhere (VrTest, A_umikz, Kaisen) it is dark. | K_Testc | The `dDlst_shadowReal` pass in this lighting/floor setup: likely a blend or TEV colour from the environment palette that comes out additive instead of darkening. Compare K_Testc's palette with VrTest's. | `native/tools/run.sh run --stage K_Testc:0:0 --frames 1200 --uncapped --shot 590,900` |
 | A5 | Two crossed opaque white quads (an X) hang in the cave in every shot. They look like a light-shaft or billboard model that keeps its bind orientation. | SubD43 | A billboard joint (`J3DMtxCalc` billboard / `J3DCalcBBoardMtx` path) not applied on the host, or a light-shaft material without its alpha/blend. Not confirmed against the GameCube. | `native/tools/run.sh run --stage SubD43:0:0 --frames 1200 --uncapped --shot 900` |
