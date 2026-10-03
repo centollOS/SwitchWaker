@@ -7,6 +7,11 @@
 #include "JSystem/JAudio/JAIBasic.h"
 #include "JSystem/JMath/random.h"
 #include "dolphin/mtx/mtx.h"
+#if TARGET_PC
+// VERSION_SELECT/DEMO_SELECT (here and in the JAZelAudio units) and DEAD_STRING come from global.h,
+// which the decomp's SDK headers bring in (dolphin/types.h); Aurora's do not (COS_SDK_HEADERS=aurora).
+#include "global.h" // IWYU pragma: export
+#endif
 
 class JAISound;
 class JKRSolidHeap;
@@ -290,10 +295,22 @@ public:
     /* 0x00CD */ u8 field_0x00cd;
     /* 0x00CE */ u8 field_0x00ce;
     /* 0x00CF */ u8 field_0x00CF[0x00D0 - 0x00CF];
+#if TARGET_PC
+    // Holds the Vec* given to cbPracticePlay (read back as a pointer by cbPracticeProcess); an int
+    // would truncate it on a 64-bit host.
+    /* 0x00D0 */ intptr_t field_0x00d0;
+#else
     /* 0x00D0 */ int field_0x00d0;
+#endif
     /* 0x00D4 */ JAISound* mpSeSound[MAX_CONCURRENT_SE_NUM];
     /* 0x0134 */ u32 mSeNum[MAX_CONCURRENT_SE_NUM];
+#if TARGET_PC
+    // The Vec* each SE slot was started with, compared whole by seStart to reuse the slot; a u32
+    // would keep only the low half of the pointer on a 64-bit host.
+    /* 0x0194 */ uintptr_t field_0x0194[MAX_CONCURRENT_SE_NUM];
+#else
     /* 0x0194 */ u32 field_0x0194[MAX_CONCURRENT_SE_NUM];
+#endif
     /* 0x01F4 */ int field_0x01f4;
     /* 0x01F8 */ u8 field_0x01f8;
     /* 0x01F9 */ u8 field_0x01f9;
@@ -315,7 +332,13 @@ public:
     /* 0x0208 */ u8 field_0x0208;
     /* 0x020C */ int field_0x020c;
     /* 0x0210 */ int field_0x0210;
+#if TARGET_PC
+    // A JAISound* (startSoundVec writes one through (JAISound**)&field_0x0214); an int has no room
+    // for it on a 64-bit host.
+    /* 0x0214 */ intptr_t field_0x0214;
+#else
     /* 0x0214 */ int field_0x0214;
+#endif
     /* 0x0218 */ u32 field_0x0218;
     /* 0x021C */ u8 mCameraSeaFloorGroupInfo;
     /* 0x021D */ u8 mLinkSeaFloorGroupInfo;
@@ -376,8 +399,20 @@ public:
     /* 0x1F3D */ u8 mIsSailing;
     /* 0x1F3E */ u8 field_0x1F3E[0x1F40 - 0x1F3E];
     /* 0x1F40 */ f32 field_0x1f40;
+#if TARGET_PC
+    // A JAISound* (startSoundVec writes one through (JAISound**)&field_0x1f44); an int has no room
+    // for it on a 64-bit host.
+    /* 0x1F44 */ intptr_t field_0x1f44;
+#else
     /* 0x1F44 */ int field_0x1f44;
+#endif
+#if TARGET_PC
+    // A JAISound* (startSoundVec writes one through (JAISound**)&field_0x1f48); an int has no room
+    // for it on a 64-bit host.
+    /* 0x1F48 */ intptr_t field_0x1f48;
+#else
     /* 0x1F48 */ int field_0x1f48;
+#endif
     /* 0x1F4C */ struct {
         int field_0x00;
         JAISound* field_0x04;
@@ -387,7 +422,13 @@ public:
     /* 0x2040 */ JAISound* field_0x2040[4];
     /* 0x2050 */ JAISound* field_0x2050[4];
     /* 0x2060 */ JAISound* field_0x2060;
+#if TARGET_PC
+    // A JAISound* (startSoundVec writes one through (JAISound**)&field_0x2064); an int has no room
+    // for it on a 64-bit host.
+    /* 0x2064 */ intptr_t field_0x2064;
+#else
     /* 0x2064 */ int field_0x2064;
+#endif
     /* 0x2068 */ JMath::TRandom_<JMath::TRandom_enough_> field_0x2068;
     /* 0x20F0 */ u8 field_0x20F0[0x20F4 - 0x20F0];
 };

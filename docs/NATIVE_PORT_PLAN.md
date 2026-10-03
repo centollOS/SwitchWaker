@@ -768,3 +768,25 @@ Each phase lands as its own commits; this file records decisions and measured re
   0 errors, link census equal to the expected list (93), census `--dups` clean, `cos_sdk_smoke` ok.
   `cos_sdk_smoke_tsan` exits 139, but its binary predates 3.7a and links no `game` code, so
   it is tracked separately.
+- **3.7c JAZelAudio:** the `audio` module now also globs `src/JAZelAudio`, the 8 units of
+  `configure.py`'s `JAZelAudio` library, 74 units in all, 0 deferred. Changes, each under
+  `TARGET_PC` with the original in `#else` (`unifdef -UTARGET_PC` reproduces HEAD for both files):
+  `JAIZelBasic.h` includes `global.h` (`VERSION_SELECT`, `DEMO_SELECT`, `DEAD_STRING`, which the
+  decomp's SDK headers bring in and Aurora's do not); one case of `seStart`
+  (`JA_SE_CM_INOCHIDAMA_BLINK`/`JA_SE_CM_MAGTAIL_MOVE`) gets its own scope, since C++ forbids the
+  next case label from jumping past `dist`'s initialisation. Four real 64-bit bugs: `JAIZelBasic`
+  kept pointers in 32-bit fields. `field_0x00d0` (the `Vec*` of `cbPracticePlay`, read back as a
+  pointer by `cbPracticeProcess`) is `intptr_t` and tested whole; `field_0x0194[]` (the `Vec*`
+  each SE slot was started with, compared by `seStart`) is `uintptr_t`; `field_0x0214`,
+  `field_0x1f44`, `field_0x1f48` and `field_0x2064` are `intptr_t`, because `startSoundVec` writes
+  a `JAISound*` through `(JAISound**)&field`, which overran the 4-byte `int` on a 64-bit host.
+  `ninja -k 0 audio` 0 errors. The link census lists 1 symbol (REL 1: `g_fpcPfLst_ProfileList`,
+  defined by the REL unit `f_pc_profile_lst.cpp`), JAudio/JAZel 0, SDK 0, and
+  `expected_unresolved_phase2.txt` is updated to it. Over all 940 objects (498 main.dol, 416 REL,
+  26 cos_sdk) `nm` finds no undefined JAudio/JAZel/DSP symbol that no object defines, so no trap
+  list (`unresolved_traps.txt`, `gen_traps.py`) is needed. `symbol_census.py --all --dups`: 0
+  duplicate strong definitions; 0 weak data size mismatches; 0 duplicate types.
+- **3.7c review:** independent rebuild of the 8 JAZelAudio units, `ninja -k 0` on every default
+  target 0 errors, link census equal to the expected list (REL 1), `unifdef -UTARGET_PC` of both
+  touched sources reproduces HEAD, `nm` over all built objects finds no undefined audio symbol, so
+  no trap list; census `--dups` clean.

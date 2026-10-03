@@ -88,9 +88,9 @@ endforeach ()
 # link and silent over cos_sdk's audio-hardware stubs (step 2.6f); their DSP and streaming
 # semantics are phase 5. Brought in a step at a time: step 3.7a took the first sorted half of
 # src/JSystem/JAudio (JAIAnimation.cpp .. JASDSPInterface.cpp), step 3.7b the second half
-# (JASDriverIF.cpp .. osdsp_task.c), so the module now holds all of src/JSystem/JAudio; a later
-# 3.7 step adds src/JAZelAudio.
-_cos_glob(COS_SRC_audio DIRS JSystem/JAudio)
+# (JASDriverIF.cpp .. osdsp_task.c), so the module now holds all of src/JSystem/JAudio; step 3.7c
+# added the 8 units of src/JAZelAudio (configure.py's JAZelAudio library).
+_cos_glob(COS_SRC_audio DIRS JSystem/JAudio JAZelAudio)
 # The decomp builds JAudio's four DSP .c units with "-lang c++" (configure.py): their headers rely
 # on C++ (JSystem.h, JSUList.h, ...) and their non-extern "C" functions have C++ linkage
 # (e.g. DSPReleaseHalt2__FUl), which the C++ callers expect. Compile them as C++ here too.

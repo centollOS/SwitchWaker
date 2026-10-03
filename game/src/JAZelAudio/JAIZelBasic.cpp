@@ -1902,7 +1902,11 @@ void JAIZelBasic::taktModeMuteOff() {
 
 /* 802A5F24-802A61AC       .text cbPracticePlay__11JAIZelBasicFP3Vec */
 void JAIZelBasic::cbPracticePlay(Vec* pos) {
+#if TARGET_PC
+    field_0x00d0 = (intptr_t)pos;
+#else
     field_0x00d0 = (int)pos;
+#endif
     MtxP matrix = mAudioCamera->field_0x8;
     Vec position = {0.0f, 0.0f, -50.0f};
     if (!pos) {
@@ -1963,7 +1967,11 @@ void JAIZelBasic::cbPracticePlay(Vec* pos) {
 
 /* 802A61AC-802A6434       .text cbPracticeProcess__11JAIZelBasicFv */
 void JAIZelBasic::cbPracticeProcess() {
+#if TARGET_PC
+    if (field_0x00d0 == 0) {
+#else
     if ((u32)field_0x00d0 == 0) {
+#endif
         return;
     }
     if (checkCbPracticePlay() == 0) {
@@ -2879,6 +2887,10 @@ JAISound** JAIZelBasic::seStart(u32 i_seNum, Vec* i_sePos, u32 i_variation, s8 i
         break;
     case JA_SE_CM_INOCHIDAMA_BLINK:
     case JA_SE_CM_MAGTAIL_MOVE:
+#if TARGET_PC
+    // C++ does not allow the following case label to jump past the initialisation of dist, so
+    // the case body gets its own scope (same code).
+    {
         if (matrix) {
             PSMTXMultVec(matrix, &position, &position);
         }
@@ -2887,6 +2899,17 @@ JAISound** JAIZelBasic::seStart(u32 i_seNum, Vec* i_sePos, u32 i_variation, s8 i
             return NULL;
         }
         break;
+    }
+#else
+        if (matrix) {
+            PSMTXMultVec(matrix, &position, &position);
+        }
+        f32 dist = std::sqrtf(position.x * position.x + position.y * position.y + position.z * position.z);
+        if (dist > JAIGlobalParameter::getParamDistanceMax()) {
+            return NULL;
+        }
+        break;
+#endif
     case JA_SE_FIREBLAST_BLOW:
         if (i_sePos) {
             Vec* stored = (Vec*)&field_0x1ED4[field_0x1f34 * sizeof(Vec)];
@@ -2925,7 +2948,11 @@ JAISound** JAIZelBasic::seStart(u32 i_seNum, Vec* i_sePos, u32 i_variation, s8 i
 
     if (!(i_seNum & 0x800)) {
         for (int i = 0; i < MAX_CONCURRENT_SE_NUM; i++) {
+#if TARGET_PC
+            if (mSeNum[i] == i_seNum && mpSeSound[i] && field_0x0194[i] == (uintptr_t)i_sePos) {
+#else
             if (mSeNum[i] == i_seNum && mpSeSound[i] && field_0x0194[i] == (u32)i_sePos) {
+#endif
                 startSoundVec(i_seNum, &mpSeSound[i], i_sePos, 0, i_variation, 4);
                 if (mpSeSound[i]) {
                     mpSeSound[i]->setPortData(9, i_reverb);
@@ -3002,7 +3029,11 @@ JAISound** JAIZelBasic::seStart(u32 i_seNum, Vec* i_sePos, u32 i_variation, s8 i
 
     JAISound** ret = &mpSeSound[field_0x01f4];
     mSeNum[field_0x01f4] = i_seNum;
+#if TARGET_PC
+    field_0x0194[field_0x01f4] = (uintptr_t)i_sePos;
+#else
     field_0x0194[field_0x01f4] = (u32)i_sePos;
+#endif
     field_0x01f4++;
     field_0x01f4 = field_0x01f4 % MAX_CONCURRENT_SE_NUM;
     return ret;
