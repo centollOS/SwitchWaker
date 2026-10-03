@@ -10,6 +10,8 @@
 //   bytes, written through Aurora);
 // - the decomp's GXBlendFactor spellings (GX_BL_SRC_ALPHA, ...) as macros for Aurora's enumerators of
 //   the same value (GX_BL_SRCALPHA, ...), step 2.7;
+// - the decomp's GXLogicOp spellings (GX_LO_REV_AND, GX_LO_INV_COPY, ...) as macros for Aurora's
+//   enumerators of the same value (GX_LO_REVAND, GX_LO_INVCOPY, ...), step 2.7 (JParticle);
 // - the BP/CP/XF register numbers and field locators (GX_BP_REG_*, GX_XF_*, ...), which the decomp's
 //   GX.h exports through its GXEnum.h and Aurora keeps in <dolphin/gd/GDGeometry.h> (same values);
 //   J3DGD/J3DTevs use them, step 2.7 (J3D);
@@ -79,6 +81,13 @@ static inline void GXColor4x8(u8 r, u8 g, u8 b, u8 a) {
 #define GX_BL_INV_SRC_ALPHA GX_BL_INVSRCALPHA
 #define GX_BL_DST_ALPHA     GX_BL_DSTALPHA
 #define GX_BL_INV_DST_ALPHA GX_BL_INVDSTALPHA
+
+// The decomp's GXLogicOp spellings; same values (0x2, 0x4, 0xB, 0xC, 0xD).
+#define GX_LO_REV_AND  GX_LO_REVAND
+#define GX_LO_INV_AND  GX_LO_INVAND
+#define GX_LO_REV_OR   GX_LO_REVOR
+#define GX_LO_INV_COPY GX_LO_INVCOPY
+#define GX_LO_INV_OR   GX_LO_INVOR
 
 // The decomp's GXTexCoordID / GXTexMapID spellings; same values.
 #define GX_MAXCOORD       GX_MAX_TEXCOORD

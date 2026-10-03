@@ -423,3 +423,11 @@ Each phase lands as its own commits; this file records decisions and measured re
   shadow, header and scaffold checks and smoke ok, and from clean in the default configuration with
   `cos_modules` and checks clean; Aurora only pushes `size` bytes for vertex arrays, so the 16-bit
   index range for the matrix arrays affects nothing but the indexed-load bounds check.
+- **2.7 JSystem-2D-particle:** compiles in aurora header mode (all 26 units of J2DGraph and JParticle,
+  0 errors) and still in decomp mode. First aurora build: one unit failed (`JPABaseShape.cpp`) with 5
+  errors, the decomp's `GXLogicOp` spellings `GX_LO_REV_AND`, `GX_LO_INV_AND`, `GX_LO_REV_OR`,
+  `GX_LO_INV_COPY` and `GX_LO_INV_OR`. Fixed in the forwarder only: `dolphin/gx/GX.h` maps them to
+  Aurora's `GX_LO_REVAND`, ... (same values 0x2, 0x4, 0xB, 0xC, 0xD); no change in `game`, no
+  `STATIC_ASSERT` fired. Aurora mode: SSystem, JSystem-core, JSystem-J3D, JSystem-2D-particle,
+  `cos_sdk`, smoke, scaffold, header and shadow checks (82 names, ok) build; default configuration:
+  `cos_modules` and checks clean (the forwarder is not on the decomp-mode include path).
