@@ -159,10 +159,13 @@ set(AURORA_CACHE_USE_ZSTD OFF CACHE BOOL "" FORCE)
 set(COS_EXE_ENTRY cos_switch_main)
 add_subdirectory("${COS_REPO_ROOT}/native" native)
 
-# sqlite (Aurora's caches): no WAL or memory-mapped files (no mmap), lock-free VFS on Horizon.
+# sqlite (Aurora's caches): no WAL or memory-mapped files (no mmap), lock-free VFS on Horizon,
+# exclusive locking (one process; the pager keeps its cache between transactions) and temp files in
+# memory (no create-then-unlink on the SD card). Aurora's Switch patch 0006 drops the journal file.
 if (TARGET sqlite3)
     target_compile_definitions(sqlite3 PRIVATE SQLITE_OMIT_WAL=1 SQLITE_MAX_MMAP_SIZE=0
-            SQLITE_OMIT_LOAD_EXTENSION=1 SQLITE_THREADSAFE=1)
+            SQLITE_OMIT_LOAD_EXTENSION=1 SQLITE_THREADSAFE=1 SQLITE_DEFAULT_LOCKING_MODE=1
+            SQLITE_TEMP_STORE=3)
     target_sources(sqlite3 PRIVATE "${COS_REPO_ROOT}/switch/aurora/sqlite_horizon.c")
     get_target_property(_sqlite_sources sqlite3 SOURCES)
     list(GET _sqlite_sources 0 _sqlite_amalgamation)
