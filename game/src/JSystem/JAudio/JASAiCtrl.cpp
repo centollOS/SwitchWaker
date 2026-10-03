@@ -41,7 +41,13 @@ void JASystem::Kernel::initSystem() {
         DCStoreRange(dac[i], getDacSize() * 2);
     }
     AIInit(NULL);
+#if TARGET_PC
+    // Aurora's AIInitDMA takes the full address as a uintptr_t (cos_sdk's silent AI stub, step 2.6f).
+    // TODO(native phase 5): real audio output.
+    AIInitDMA(uintptr_t(dac[2]), getDacSize() * 2);
+#else
     AIInitDMA(u32(dac[2]), getDacSize() * 2);
+#endif
 }
 
 int JASystem::Kernel::JASUniversalDacCounter;
@@ -99,7 +105,13 @@ void JASystem::Kernel::updateDac() {
         lastRspMadep = NULL;
     }
     if (useRspMadep) {
+#if TARGET_PC
+        // Aurora's AIInitDMA takes the full address as a uintptr_t (cos_sdk's silent AI stub, step 2.6f).
+        // TODO(native phase 5): real audio output.
+        AIInitDMA(uintptr_t(useRspMadep), getDacSize() * 2);
+#else
         AIInitDMA(u32(useRspMadep), getDacSize() * 2);
+#endif
         useRspMadep = NULL;
     } else {
         JASUniversalDacCounter++;

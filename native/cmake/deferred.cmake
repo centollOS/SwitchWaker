@@ -9,7 +9,8 @@
 #
 # Never deferred because never part of phase 1 (out of scope, not globbed by modules.cmake):
 #   src/dolphin, src/PowerPC_EABI_Support, src/TRK_MINNOW_DOLPHIN, src/OdemuExi2,
-#   src/odenotstub, src/amcstubs, src/REL, src/JSystem/JAudio, src/JAZelAudio.
+#   src/odenotstub, src/amcstubs, src/REL. src/JSystem/JAudio and src/JAZelAudio joined the build in
+#   phase 3 (step 3.7, module audio in modules.cmake).
 include_guard(GLOBAL)
 
 set_property(GLOBAL PROPERTY COS_DEFERRED_UNITS "")

@@ -61,8 +61,15 @@ u32 JASystem::DSPInterface::DOLBY2_DELAY_BUF[600];
 
 /* 8028A240-8028A28C       .text setupBuffer__Q28JASystem12DSPInterfaceFv */
 void JASystem::DSPInterface::setupBuffer() {
+#if TARGET_PC
+    // TODO(native phase 5): the DSP task takes 32-bit main-memory addresses; with no DSP (cos_sdk's
+    // silent stubs) they are never dereferenced.
+    DsetupTable(64, (u32)(uintptr_t)CH_BUF, (u32)(uintptr_t)&DSPRES_FILTER, (u32)(uintptr_t)&DSPADPCM_FILTER, (u32)(uintptr_t)FX_BUF);
+    DsetDolbyDelay((u32)(uintptr_t)&DOLBY2_DELAY_BUF, 10);
+#else
     DsetupTable(64, (u32)CH_BUF, (u32)&DSPRES_FILTER, (u32)&DSPADPCM_FILTER, (u32)FX_BUF);
     DsetDolbyDelay((u32)&DOLBY2_DELAY_BUF, 10);
+#endif
 }
 
 /* 8028A28C-8028A368       .text initBuffer__Q28JASystem12DSPInterfaceFv */
@@ -106,7 +113,12 @@ bool JASystem::DSPInterface::FXBuffer::setFXLine(s16* buffer, JASystem::DSPInter
         u32 bufsize = config->field_0xc * 0xa0;
         field_0x4 = buffer;
         Calc::bzero(buffer, bufsize);
+#if TARGET_PC
+        // Alignment test on the low bits: through uintptr_t, a u32 cast does not compile for a 64-bit pointer.
+        JUT_ASSERT(219, (reinterpret_cast<uintptr_t>(buffer) & 0x1f) == 0);
+#else
         JUT_ASSERT(219, (reinterpret_cast<u32>(buffer) & 0x1f) == 0);
+#endif
         JUT_ASSERT(220, (bufsize & 0x1f) == 0);
         DCFlushRange(buffer, bufsize);
     } else if (!config || buffer) {

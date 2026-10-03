@@ -120,12 +120,27 @@ void* JAInter::HeapMgr::getFreeStayHeapPointer(u32 param_1, u32 param_2) {
     void* r30;
     r30 = sStayHeap[0].getPointer();
     r29 = sStayHeap[sStayHeapCount].getPointer();
+#if TARGET_PC
+    // Pointer arithmetic through uintptr_t: u32 would truncate a 64-bit address.
+    if (param_1 + uintptr_t(r29) < uintptr_t(r30) + JAIGlobalParameter::getParamStayHeapSize() && sStayHeapCount < JAIGlobalParameter::getParamStayHeapMax()) {
+#else
     if (param_1 + u32(r29) < u32(r30) + JAIGlobalParameter::getParamStayHeapSize() && sStayHeapCount < JAIGlobalParameter::getParamStayHeapMax()) {
+#endif
         r29 = sStayHeap[sStayHeapCount].getPointer();
         sStayHeap[sStayHeapCount].setDataNumber(param_2);
+#if TARGET_PC
+        // Pointer arithmetic through uintptr_t: u32 would truncate a 64-bit address.
+        r30 = (void*)(uintptr_t(sStayHeap[sStayHeapCount].getPointer()) + ALIGN_PREV(param_1, 32));
+#else
         r30 = (void*)(u32(sStayHeap[sStayHeapCount].getPointer()) + ALIGN_PREV(param_1, 32));
+#endif
         if (IS_NOT_ALIGNED(param_1, 32)) {
+#if TARGET_PC
+            // Pointer arithmetic through uintptr_t: u32 would truncate a 64-bit address.
+            r30 = (void*)(uintptr_t(r30) + 32);
+#else
             r30 = (void*)(u32(r30) + 32);
+#endif
         }
         sStayHeapCount++;
         if (sStayHeapCount < JAIGlobalParameter::getParamStayHeapMax()) {

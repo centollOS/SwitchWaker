@@ -720,3 +720,22 @@ Each phase lands as its own commits; this file records decisions and measured re
   aside). `nm -m` over the 866 objects finds no `OSLink`, `OSLinkFixed`, `OSUnlink` or
   `OSSetStringTable`; the link census lists 121 symbols (REL 1, JAudio/JAZel 120), equal to
   `expected_unresolved_phase2.txt` with the four removed; `symbol_census.py --all --dups` 0.
+- **3.7a JAudio, first half:** new module `audio` (`modules.cmake`, in `COS_MODULES_READY`) with
+  the first sorted half of `src/JSystem/JAudio`, 33 of 66 units (`JAIAnimation.cpp` …
+  `JASDSPInterface.cpp`); the second half and `JAZelAudio` follow in later 3.7 steps. All 33
+  compile against Aurora's headers, 0 deferred. Changes, each under `TARGET_PC` with the original
+  in `#else`: pointer arithmetic through `uintptr_t` (`JAISequenceHeap` stay heap,
+  `JAIStreamMgr` header copy), alignment asserts and tests in `JASCalc`/`JASDSPInterface` through
+  `uintptr_t`, `AIInitDMA` gets the whole address (cos_sdk's `uintptr_t` stub), the audio thread
+  passes `audioproc` with its real type to `OSCreateThread` and reads its `OSMessage` through
+  `intptr_t`, and `JAISequenceMgr` compares the `(void*)-1` "still loading" pointer of
+  `checkOnMemory` whole instead of against `0xFFFFFFFF` (which a 64-bit -1 never equals).
+  `TODO(native phase 4)`: the `aaf` init-data and scene tables relocated through pointer-sized
+  fields (`JAIInitData`), and `TDSPChannel`'s u32 owner tag (`alloc`/`free` truncate alike;
+  `getLogicalChannel` turns it back into a pointer). `TODO(native phase 5)`: the 32-bit DSP
+  addresses given to `DsetupTable`, `DsetDolbyDelay`, `DsyncFrame2` and the stream's DSP buffer.
+  `ninja -k 0 audio` 0 errors. The census now covers 899 objects (457 main.dol, 416 REL, 26
+  cos_sdk): 0 duplicate strong definitions, 0 weak data size mismatches, 0 duplicate types; the
+  link census lists 180 symbols (REL 1, JAudio/JAZel 179: the DSP task functions and the JAS units
+  of the second half are now referenced (86 new), 27 JAI symbols are resolved), SDK 0, and
+  `expected_unresolved_phase2.txt` is updated to that list.

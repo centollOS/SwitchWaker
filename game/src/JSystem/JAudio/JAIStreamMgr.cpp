@@ -383,7 +383,13 @@ void JAInter::StreamMgr::checkPlayingStream() {
 /* 8029C730-8029C858       .text Play_DirectPCM__Q27JAInter9StreamLibFPQ28JASystem11TDSPChannelPsUsUlsUs */
 void JAInter::StreamLib::Play_DirectPCM(JASystem::TDSPChannel* param_1, s16* param_2, u16 param_3, u32 param_4, s16 param_5, u16 param_6) {
     JASystem::DSPInterface::DSPBuffer* buffer = JASystem::DSPInterface::getDSPHandle(param_1->mNumber);
+#if TARGET_PC
+    // TODO(native phase 5): the DSP buffer holds 32-bit DSP addresses; the stream is silent until
+    // phase 5 gives JAudio a real mixer, so the truncated value is never used as an address.
+    buffer->field_0x118 = (u32)(uintptr_t)param_2;
+#else
     buffer->field_0x118 = (u32)param_2;
+#endif
     buffer->field_0x102 = 0;
     buffer->field_0x100 = 33;
     if (JAInter::StreamLib::header.field_0x10 != 0) {
@@ -391,7 +397,13 @@ void JAInter::StreamLib::Play_DirectPCM(JASystem::TDSPChannel* param_1, s16* par
     } else {
         buffer->field_0x74 = param_4;
     }
+#if TARGET_PC
+    // TODO(native phase 5): the DSP buffer holds 32-bit DSP addresses; the stream is silent until
+    // phase 5 gives JAudio a real mixer, so the truncated value is never used as an address.
+    buffer->field_0x110 = (u32)(uintptr_t)param_2;
+#else
     buffer->field_0x110 = (u32)param_2;
+#endif
     buffer->field_0x114 = param_3 << 16;
     JASystem::DSPInterface::getDSPHandle(param_1->mNumber)->setMixerInitDelayMax(0);
     for (u8 i = 0; i < 6; i++) {
@@ -781,7 +793,12 @@ void JAInter::StreamLib::__start() {
         DVDReadPrio(&finfo, adpcm_buffer, 32, 0, 2);
     } else {
         for (u32 i = 0; i < 32; i++) {
+#if TARGET_PC
+            // Pointer arithmetic through uintptr_t: u32 would truncate a 64-bit address.
+            *(u8*)((uintptr_t)adpcm_buffer + i) = ((u8*)Head)[i];
+#else
             *(u8*)((u32)adpcm_buffer + i) = ((u8*)Head)[i];
+#endif
         }
     }
     adpcm_loadpoint = 32;
@@ -810,7 +827,13 @@ void JAInter::StreamLib::__start() {
     LoadADPCM();
     for (u32 i = 0; i < 2; i++) {
         if (assign_ch[i] && assign_ch[i]->field_0x8 != 0) {
+#if TARGET_PC
+            // TODO(native phase 4): TDSPChannel keeps its owner as a u32 tag. alloc and free truncate the
+            // same pointer the same way, so the tags still match.
+            JASystem::TDSPChannel::free(assign_ch[i], (u32)(uintptr_t)&assign_ch[i]);
+#else
             JASystem::TDSPChannel::free(assign_ch[i], (u32)&assign_ch[i]);
+#endif
         }
         assign_ch[i] = NULL;
     }
@@ -842,8 +865,15 @@ s32 JAInter::StreamLib::callBack(void*) {
         }
     }
     if (!assign_ch[0]) {
+#if TARGET_PC
+        // TODO(native phase 4): TDSPChannel keeps its owner as a u32 tag. alloc and free truncate the
+        // same pointer the same way, so the tags still match.
+        assign_ch[0] = TDSPChannel::alloc(0, (u32)(uintptr_t)&assign_ch[0]);
+        assign_ch[1] = TDSPChannel::alloc(0, (u32)(uintptr_t)&assign_ch[1]);
+#else
         assign_ch[0] = TDSPChannel::alloc(0, (u32)&assign_ch[0]);
         assign_ch[1] = TDSPChannel::alloc(0, (u32)&assign_ch[1]);
+#endif
         if (assign_ch[0] && assign_ch[1]) {
             assign_ch[0]->setPriority(0x7F);
             assign_ch[1]->setPriority(0x7F);
@@ -894,8 +924,15 @@ s32 JAInter::StreamLib::callBack(void*) {
         if (buffer->field_0x2 != 0 || dspFinishFlag) {
             if (adpcmbuf_state != 1) {
 #endif
+#if TARGET_PC
+                // TODO(native phase 4): TDSPChannel keeps its owner as a u32 tag. alloc and free truncate the
+                // same pointer the same way, so the tags still match.
+                TDSPChannel::free(assign_ch[0], (u32)(uintptr_t)&assign_ch[0]);
+                TDSPChannel::free(assign_ch[1], (u32)(uintptr_t)&assign_ch[1]);
+#else
                 TDSPChannel::free(assign_ch[0], (u32)&assign_ch[0]);
                 TDSPChannel::free(assign_ch[1], (u32)&assign_ch[1]);
+#endif
                 assign_ch[0] = NULL;
                 assign_ch[1] = NULL;
                 sync(-1);
@@ -939,8 +976,15 @@ s32 JAInter::StreamLib::callBack(void*) {
             if (adpcmbuf_state != 1)
 #endif
             {
+#if TARGET_PC
+                // TODO(native phase 4): TDSPChannel keeps its owner as a u32 tag. alloc and free truncate the
+                // same pointer the same way, so the tags still match.
+                TDSPChannel::free(assign_ch[0], (u32)(uintptr_t)&assign_ch[0]);
+                TDSPChannel::free(assign_ch[1], (u32)(uintptr_t)&assign_ch[1]);
+#else
                 TDSPChannel::free(assign_ch[0], (u32)&assign_ch[0]);
                 TDSPChannel::free(assign_ch[1], (u32)&assign_ch[1]);
+#endif
                 assign_ch[0] = NULL;
                 assign_ch[1] = NULL;
                 sync(-1);

@@ -66,7 +66,13 @@ void JAInter::InitData::checkInitDataOnMemory() {
             for (var6 = 0; aafPointer[r30 + var6]; var6 += 3) {}
             BankWave::initOnCodeBnk = (BankWave::initOnCode_s*)transInitDataFile(temp, var6 / 3 * 12 + 4);
             for (; aafPointer[r30]; r31++, r30 += 3) {
+#if TARGET_PC
+                // TODO(native phase 4): the 'aaf' entry is a 32-bit file offset read through a pointer-sized
+                // field; uintptr_t only lets this compile, the 64-bit layout of the table is phase 4.
+                BankWave::initOnCodeBnk[r31].field_0x0 = (u8*)aafPointer + (uintptr_t)BankWave::initOnCodeBnk[r31].field_0x0;
+#else
                 BankWave::initOnCodeBnk[r31].field_0x0 = (u8*)aafPointer + (u32)BankWave::initOnCodeBnk[r31].field_0x0;
+#endif
             }
             r30++;
             break;
@@ -76,7 +82,13 @@ void JAInter::InitData::checkInitDataOnMemory() {
             for (var6 = 0; aafPointer[r30 + var6]; var6 += 3) {}
             BankWave::initOnCodeWs = (BankWave::initOnCode_s*)transInitDataFile(temp, var6 / 3 * 12 + 4);
             for (; aafPointer[r30]; r30 += 3, r31++) {
+#if TARGET_PC
+                // TODO(native phase 4): the 'aaf' entry is a 32-bit file offset read through a pointer-sized
+                // field; uintptr_t only lets this compile, the 64-bit layout of the table is phase 4.
+                BankWave::initOnCodeWs[r31].field_0x0 = (u8*)aafPointer + (uintptr_t)BankWave::initOnCodeWs[r31].field_0x0;
+#else
                 BankWave::initOnCodeWs[r31].field_0x0 = (u8*)aafPointer + (u32)BankWave::initOnCodeWs[r31].field_0x0;
+#endif
                 BankWave::wsMax++;
             }
             r30++;
@@ -96,7 +108,13 @@ void JAInter::InitData::checkInitDataOnMemory() {
             JAIGlobalParameter::setParamSoundSceneMax(*r28);
             JAIBasic::getInterface()->field_0x1c = (u8**)(r28 + 1);
             for (int i = 0; i < JAIGlobalParameter::getParamSoundSceneMax(); i++) {
+#if TARGET_PC
+                // TODO(native phase 4): the scene table holds 32-bit offsets that are relocated in place through
+                // u8* entries; uintptr_t only lets this compile, the 64-bit layout of the table is phase 4.
+                JAIBasic::getInterface()->field_0x1c[i] += uintptr_t(r28);
+#else
                 JAIBasic::getInterface()->field_0x1c[i] += u32(r28);
+#endif
             }
             r30 += 3;
             break;

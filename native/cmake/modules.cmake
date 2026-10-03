@@ -18,7 +18,8 @@ set(COS_MODULES
         framework
         m_Do
         d-core
-        actors-1 actors-2 actors-3 actors-4 actors-5 actors-6)
+        actors-1 actors-2 actors-3 actors-4 actors-5 actors-6
+        audio)
 
 # Modules whose every unit compiles (or is deferred); their options default to ON.
 set(COS_MODULES_READY
@@ -35,7 +36,8 @@ set(COS_MODULES_READY
         actors-3
         actors-4
         actors-5
-        actors-6)
+        actors-6
+        audio)
 
 set(COS_ACTOR_CHUNKS 6)
 
@@ -81,6 +83,16 @@ foreach (_i RANGE 1 ${COS_ACTOR_CHUNKS})
         list(SUBLIST _actors ${_begin} ${_chunk} COS_SRC_actors-${_i})
     endif ()
 endforeach ()
+
+# Audio (phase 3, step 3.7, decision D4): JSystem/JAudio and JAZelAudio, compiled for the phase 3
+# link and silent over cos_sdk's audio-hardware stubs (step 2.6f); their DSP and streaming
+# semantics are phase 5. Brought in a sorted half at a time: step 3.7a takes the first half of
+# src/JSystem/JAudio (JAIAnimation.cpp .. JASDSPInterface.cpp); later 3.7 steps add the second half
+# and src/JAZelAudio.
+_cos_glob(_jaudio DIRS JSystem/JAudio)
+list(LENGTH _jaudio _n_jaudio)
+math(EXPR _jaudio_half "(${_n_jaudio} + 1) / 2")
+list(SUBLIST _jaudio 0 ${_jaudio_half} COS_SRC_audio)
 
 get_property(_deferred GLOBAL PROPERTY COS_DEFERRED_UNITS)
 

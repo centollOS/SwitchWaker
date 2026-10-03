@@ -177,7 +177,13 @@ void JAInter::SequenceMgr::checkEntriedSeq() {
                 update->mSequence->mState = 2;
             }
         } else {
+#if TARGET_PC
+            // HeapMgr::checkOnMemory returns (void*)-1 for a block still loading: compare the whole pointer,
+            // since its 64-bit value is not 0xFFFFFFFF.
+            if ((uintptr_t)buffer == (uintptr_t)-1) {
+#else
             if ((u32)buffer == 0xFFFFFFFF) {
+#endif
                 continue;
             }
             if (heap != 0xFF) {

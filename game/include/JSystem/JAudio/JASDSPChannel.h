@@ -54,6 +54,7 @@ namespace JASystem {
         }
         TChannel* getLogicalChannel() {
             if (mCallback != NULL) {
+                // TODO(native phase 4): field_0x8 is the owner tag, a pointer truncated to u32 by alloc.
                 return (TChannel*)field_0x8; // ?? is this userdata?
             } else {
                 return NULL;

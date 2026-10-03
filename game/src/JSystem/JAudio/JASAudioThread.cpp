@@ -65,7 +65,12 @@ void* JASystem::TAudioThread::audioproc(void*) {
     while (true) {
         OSMessage message;
         OSReceiveMessage(&sAudioprocMQ, &message, 1);
+#if TARGET_PC
+        // The message is a small integer sent as an OSMessage (void*).
+        switch (int(intptr_t(message))) {
+#else
         switch (int(message)) {
+#endif
         case 0:
             Kernel::updateDac();
             break;
@@ -136,7 +141,12 @@ void JASystem::TAudioThread::start(JKRSolidHeap* heap, u32 aramSize, u32 flag) {
     Dvd::resumeThread();
     Kernel::stackInit((u64*)saAudioStack, 0x200);
     if ((flag & 2)) {
+#if TARGET_PC
+        // Aurora declares the entry point with its real type, void* (*)(void*), which audioproc already has.
+        OSCreateThread(&sAudioThread, audioproc, NULL, &saAudioStack[sizeof(saAudioStack)], sizeof(saAudioStack), sDSPPrio, 1);
+#else
         OSCreateThread(&sAudioThread, (void*)audioproc, NULL, &saAudioStack[sizeof(saAudioStack)], sizeof(saAudioStack), sDSPPrio, 1);
+#endif
         OSResumeThread(&sAudioThread);
     }
 }

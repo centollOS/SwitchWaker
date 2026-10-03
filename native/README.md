@@ -43,7 +43,7 @@ A build directory configured before step 2.8 (`COS_SDK_HEADERS=decomp`, `COS_WIT
 its cache) stops the configure with an error; reconfigure it with `cmake --fresh`.
 
 Each module is an `OBJECT` library behind an option, off until it compiles; the modules listed
-in `COS_MODULES_READY` (`cmake/modules.cmake`) compile and default to on (currently `SSystem`, `JSystem-core`, `JSystem-J3D`, `JSystem-2D-particle`, `JSystem-studio`, `framework`, `m_Do`, `d-core`, `actors-1`, `actors-2`, `actors-3`, `actors-4`, `actors-5`, `actors-6`):
+in `COS_MODULES_READY` (`cmake/modules.cmake`) compile and default to on (currently `SSystem`, `JSystem-core`, `JSystem-J3D`, `JSystem-2D-particle`, `JSystem-studio`, `framework`, `m_Do`, `d-core`, `actors-1`, `actors-2`, `actors-3`, `actors-4`, `actors-5`, `actors-6`, `audio`):
 
 | Target | Option | Sources (`game/src/...`) |
 | --- | --- | --- |
@@ -56,6 +56,7 @@ in `COS_MODULES_READY` (`cmake/modules.cmake`) compile and default to on (curren
 | `m_Do` | `COS_MODULE_m_Do` | `m_Do` |
 | `d-core` | `COS_MODULE_d_core` | `d/*.cpp` |
 | `actors-1` … `actors-6` | `COS_MODULE_actors_N` | `d/actor`, sorted, in six equal chunks |
+| `audio` | `COS_MODULE_audio` | `JSystem/JAudio`, first sorted half (`JAIAnimation.cpp` … `JASDSPInterface.cpp`, step 3.7a); the rest of JAudio and `JAZelAudio` follow in later 3.7 steps |
 
 ```sh
 cmake -S native -B build/native-mac -DCOS_MODULE_framework=ON  # or -DCOS_ALL_MODULES=ON
@@ -64,7 +65,8 @@ ninja -C build/native-mac cos_deferred                         # deferred units 
 ```
 
 Never part of the build in phase 1 (their headers may still be included): `src/dolphin` (the SDK
-over Aurora is phase 2), `src/REL` (phase 3), `src/JSystem/JAudio` and `src/JAZelAudio` (phase 5),
+over Aurora is phase 2), `src/REL` (phase 3), `src/JSystem/JAudio` and `src/JAZelAudio` (compiled for the phase 3 link
+since step 3.7, silent until phase 5),
 `src/PowerPC_EABI_Support`, `src/TRK_MINNOW_DOLPHIN`, `src/OdemuExi2`, `src/odenotstub`,
 `src/amcstubs`.
 

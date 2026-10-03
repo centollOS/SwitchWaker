@@ -21,7 +21,14 @@ void JASystem::TDSPQueue::deQueue() {
     for (link = sDspQueueList.getFirst(); link; link = next) {
         next = link->getNext();
         TChannel* channel = link->getObject();
+#if TARGET_PC
+        // TODO(native phase 4): TDSPChannel keeps its owner as a u32 tag. alloc and free truncate the
+        // same pointer the same way, so the tags still match, but TDSPChannel::getLogicalChannel
+        // (JASDSPChannel.h) turns the tag back into a TChannel*, which a 64-bit pointer does not survive.
+        TDSPChannel* dspChannel = TDSPChannel::alloc(0, u32(uintptr_t(channel)));
+#else
         TDSPChannel* dspChannel = TDSPChannel::alloc(0, u32(channel));
+#endif
         if (!dspChannel) {
             if (r31) {
                 r31--;

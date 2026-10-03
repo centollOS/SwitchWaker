@@ -48,8 +48,14 @@ void JASystem::Calc::imixcopy(const s16* s1, const s16* s2, s16* dst, s32 n) {
 
 /* 8027AA50-8027AB68       .text bcopyfast__Q28JASystem4CalcFPCUlPUlUl */
 void JASystem::Calc::bcopyfast(const u32* src, u32* dest, u32 size) {
+#if TARGET_PC
+    // Alignment test on the low bits: through uintptr_t, a u32 cast does not compile for a 64-bit pointer.
+    JUT_ASSERT(280, (reinterpret_cast<uintptr_t>(src) & 0x03) == 0);
+    JUT_ASSERT(281, (reinterpret_cast<uintptr_t>(dest) & 0x03) == 0);
+#else
     JUT_ASSERT(280, (reinterpret_cast<u32>(src) & 0x03) == 0);
     JUT_ASSERT(281, (reinterpret_cast<u32>(dest) & 0x03) == 0);
+#endif
     JUT_ASSERT(282, (size & 0x0f) == 0);
     for (size /= 16; size; size--) {
         u32 val1 = *src++;
@@ -71,8 +77,14 @@ void JASystem::Calc::bcopy(const void* src, void* dest, u32 size) {
     u8 *bsrc = (u8 *)src;
     u8 *bdest = (u8 *)dest;
 
+#if TARGET_PC
+    // Alignment test on the low bits: through uintptr_t, a u32 cast does not compile for a 64-bit pointer.
+    u8 endbitsSrc = (reinterpret_cast<uintptr_t>(bsrc) & 0x03);
+    u8 enbitsDst = (reinterpret_cast<uintptr_t>(bdest) & 0x03);
+#else
     u8 endbitsSrc = (reinterpret_cast<u32>(bsrc) & 0x03);
     u8 enbitsDst = (reinterpret_cast<u32>(bdest) & 0x03);
+#endif
     if ((endbitsSrc) == (enbitsDst) && (size & 0x0f) == 0) {
         bcopyfast((u32*)src, (u32*)dest, size);
     } else if ((endbitsSrc == enbitsDst) && (size >= 16)) {
@@ -107,7 +119,12 @@ void JASystem::Calc::bcopy(const void* src, void* dest, u32 size) {
 
 /* 8027AC68-8027AD38       .text bzerofast__Q28JASystem4CalcFPvUl */
 void JASystem::Calc::bzerofast(void* dest, u32 size) {
+#if TARGET_PC
+    // Alignment test on the low bits: through uintptr_t, a u32 cast does not compile for a 64-bit pointer.
+    JUT_ASSERT(387, (reinterpret_cast<uintptr_t>(dest) & 0x03) == 0);
+#else
     JUT_ASSERT(387, (reinterpret_cast<u32>(dest) & 0x03) == 0);
+#endif
     JUT_ASSERT(388, (size & 0x0f) == 0);
     u32* udest = (u32*)dest;
     for (size = size / 16; size != 0; size--) {
@@ -122,12 +139,22 @@ void JASystem::Calc::bzerofast(void* dest, u32 size) {
 void JASystem::Calc::bzero(void* dest, u32 size) {
     u32 *udest;
     u8 *bdest = (u8 *)dest;
+#if TARGET_PC
+    // Alignment test on the low bits: through uintptr_t, a u32 cast does not compile for a 64-bit pointer.
+    if ((size & 0x1f) == 0 && (reinterpret_cast<uintptr_t>(dest) & 0x1f) == 0) {
+#else
     if ((size & 0x1f) == 0 && (reinterpret_cast<u32>(dest) & 0x1f) == 0) {
+#endif
         DCZeroRange(dest, size);
         return;
     }
 
+#if TARGET_PC
+    // Alignment test on the low bits: through uintptr_t, a u32 cast does not compile for a 64-bit pointer.
+    u8 alignedbitsDst = reinterpret_cast<uintptr_t>(bdest) & 0x3;
+#else
     u8 alignedbitsDst = reinterpret_cast<u32>(bdest) & 0x3;
+#endif
 
     if ((size & 0xf) == 0 && alignedbitsDst == 0) {
         bzerofast(dest, size);
