@@ -121,6 +121,18 @@ void logoResDone(const char* how);
 // collision registered and its actors created, then reports title-stage 300 frames later.
 void titleStageArm(int roomNo);
 void titleStageFrame(unsigned int frames);
+// The room checks behind M8, shared with M12: nullptr once room roomNo's ROOM_SCENE executes,
+// Room<n> holds room.dzr, its dStage_roomDt_c is set, its BG collision is registered and its
+// actors are created (*created, when not null, gets their count); otherwise the first unmet
+// condition.
+const char* stageRoomReady(int roomNo, int* created);
+
+// pc_outset.cpp: milestone M12 outset-debug. pc_stage_created arms it with the COS_BOOT_STAGE
+// stage's start room; outsetFrame (pc_frame_end, every game frame) waits until the PLAY scene
+// executes with that stage, the room is up and the player actor finished creating, then reports
+// outset-debug 300 frames later.
+void outsetArm(const char* stageName, int roomNo);
+void outsetFrame(unsigned int frames);
 
 // pc_title.cpp: milestone M9 title (see pc_title_drawn); titleFrame runs from pc_frame_end every
 // game frame.

@@ -2435,6 +2435,18 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: regress passed; `outset-debug --stage sea:44:206` runs ROOM_SCENE to frame 3732 in
   120 s with no fault (timeout: nothing reports M12 yet); shared Aurora checkout left clean.
 
+- M12 boot loop (lane outset, iter 2, harness): `outset-debug --stage sea:44:206` timed out
+  (exit 10) in ROOM_SCENE at frame 5531 with frames advancing: the game had reached M12, but no
+  code called `pc_milestone("outset-debug")`. New `native/src/pc/pc_outset.cpp`: `pc_stage_created`
+  arms it for the COS_BOOT_STAGE stage's start room and `pc_frame_end` polls it, reading game state
+  only, until a PLAY_SCENE process executes with the requested start stage, the room is up (the M8
+  room checks, now shared as `stageRoomReady` in `pc_title_stage.cpp`) and `dComIfGp_getPlayer(0)`
+  is a PLAYER actor that finished creating; it reports outset-debug 300 frames later (until then it
+  logs the first unmet condition). Link is in sea room 44 at frame 289 at (-195138, 1650, 313772);
+  M12 at frame 589, 3/3 runs. Adds `outset-debug 0 --stage sea:44:206` to the regression targets.
+  Reviewed: regress passed; 3/3 capped `outset-debug --stage sea:44:206` runs reached M12 in 15 s
+  (Link in room 44 at frame 289); the probe only reads game state.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
@@ -2455,3 +2467,8 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   checkout is never modified. `outset-debug --stage sea:44:206` now runs ROOM_SCENE past frame 5500
   without a fault (timeout: nothing reports M12 yet). Still open, not fatal: about 470k
   `CP_REG_ARRAYBASE_ID is not supported` log lines per 180 s run in sea room 44.
+- **Outset (sea room 44) draws badly** (found by M12, `--shot`): at frame 400 the backdrop band
+  behind the clouds is a grid of garbage-coloured blocks (a texture decoded or sampled wrongly) and
+  the island geometry is missing (only a distant grey silhouette and the sea); by frame 1450 the
+  view shows only the sea under the letterbox. Not yet triaged (render vs. camera/event state); M12
+  does not depend on it, M13 may.

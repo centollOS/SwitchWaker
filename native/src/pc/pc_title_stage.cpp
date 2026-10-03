@@ -82,6 +82,42 @@ bool bgwRegistered(const dBgW* bgw) {
 
 } // namespace
 
+const char* stageRoomReady(int roomNo, int* created) {
+    // Room loaded.
+    const fpc_ProcID roomProc = dStage_roomControl_c::getStatusProcID(roomNo);
+    if (fpcM_IsErrorID(roomProc) || !fpcM_IsExecuting(roomProc)) {
+        return "ROOM_SCENE not executing";
+    }
+    char arcName[16];
+    snprintf(arcName, sizeof(arcName), "Room%d", roomNo);
+    if (dComIfG_getStageRes(arcName, "room.dzr") == nullptr) {
+        return "room.dzr not mounted";
+    }
+    if (dComIfGp_roomControl_getStatusRoomDt(roomNo) == nullptr) {
+        return "no dStage_roomDt_c";
+    }
+
+    // Collision registered, actors created.
+    RoomActors room = {roomNo, nullptr, false, 0, 0};
+    fopAcIt_Executor(countRoomActor, &room);
+    if (room.bg == nullptr || room.bgCreating) {
+        return "BG actor not created";
+    }
+    if (!dComIfGp_roomControl_checkStatusFlag(roomNo, 0x10) || !bgwRegistered(room.bg->bgw)) {
+        return "BG collision not registered";
+    }
+    if (room.created == 0) {
+        return "no actor created";
+    }
+    if (room.creating != 0) {
+        return "actors still creating";
+    }
+    if (created != nullptr) {
+        *created = room.created;
+    }
+    return nullptr;
+}
+
 void titleStageArm(int roomNo) {
     if (sArmed || roomNo < 0 || roomNo >= 64) {
         return;
@@ -104,34 +140,16 @@ void titleStageFrame(unsigned int frames) {
         return;
     }
 
-    // Room loaded.
-    const fpc_ProcID roomProc = dStage_roomControl_c::getStatusProcID(sRoomNo);
-    if (fpcM_IsErrorID(roomProc) || !fpcM_IsExecuting(roomProc)) {
-        return;
-    }
-    char arcName[16];
-    snprintf(arcName, sizeof(arcName), "Room%d", sRoomNo);
-    if (dComIfG_getStageRes(arcName, "room.dzr") == nullptr ||
-        dComIfGp_roomControl_getStatusRoomDt(sRoomNo) == nullptr) {
-        return;
-    }
-
-    // Collision registered, actors created.
-    RoomActors room = {sRoomNo, nullptr, false, 0, 0};
-    fopAcIt_Executor(countRoomActor, &room);
-    if (room.bg == nullptr || room.bgCreating ||
-        !dComIfGp_roomControl_checkStatusFlag(sRoomNo, 0x10) || !bgwRegistered(room.bg->bgw)) {
-        return;
-    }
-    if (room.created == 0 || room.creating != 0) {
+    int created = 0;
+    if (stageRoomReady(sRoomNo, &created) != nullptr) {
         return;
     }
 
     sReady = true;
     sReadyFrame = frames;
-    writef(STDERR_FILENO, "[cos] title-stage: room %d ready at frame %u: %s mounted, BG collision "
-                          "registered, %d actor(s) created\n",
-           sRoomNo, frames, arcName, room.created);
+    writef(STDERR_FILENO, "[cos] title-stage: room %d ready at frame %u: Room%d mounted, BG "
+                          "collision registered, %d actor(s) created\n",
+           sRoomNo, frames, sRoomNo, created);
 }
 
 } // namespace pc

@@ -42,3 +42,6 @@ pad-echo 0
 # a malformed spec is a usage error
 logo-res 0 --stage sea:44:206
 static-init 2 --stage sea
+
+# milestone M12 (boot loop, lane outset): debug stage boot puts Link in Outset
+outset-debug 0 --stage sea:44:206
