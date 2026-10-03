@@ -10,6 +10,7 @@
 //   - the compound assignments and post-increment/decrement on BE fields;
 //   - OffsetPtr::setBase: relocation, idempotence (a second call changes nothing), negative
 //     offsets, the extremes of the range, and the panics on a null or out-of-range offset;
+//     setBaseAllowZero, where an offset of 0 is the base (step 4.9a);
 //   - JUtility::TColor's u32 form, 0xRRGGBBAA as GX and the disc have it (step 4.5);
 //   - BMG data read in place: JMessage's header, block and INF1 accessors, the JMSMesgEntry_c
 //     fields, and JGadget's TParseValue_endian_big_ for tag parameters (step 4.6).
@@ -336,6 +337,27 @@ void testOffsetPtr() {
     setRaw(minusOne, 0x10);
     CHECK(minusOne.setBase((u8*)&minusOne - 0x11));
     CHECK((uintptr_t)(u8*)minusOne == (uintptr_t)&minusOne - 1);
+
+    // setBaseAllowZero (step 4.9a): an offset of 0 is the base itself (a path's first point at
+    // the start of its PPNT entries), relocated once like any other.
+    // The fields and the base in one object (the range is +-1 GiB, the stack is farther away).
+    static struct {
+        OFFSET_PTR(u8) first;
+        OFFSET_PTR(u8) second;
+        u8 points[0x40];
+    } path;
+    u8* points = path.points;
+    auto& first = path.first;
+    auto& second = path.second;
+    setRaw(first.value, 0);
+    CHECK(first.setBaseAllowZero(points));
+    CHECK(first.isRelocated());
+    CHECK((u8*)first == points);
+    CHECK(!first.setBaseAllowZero(points + 0x10));
+    CHECK((u8*)first == points);
+    setRaw(second.value, 0x10);
+    CHECK(second.setBaseAllowZero(points));
+    CHECK((u8*)second == points + 0x10);
 }
 
 // Runs fn in a child process; true if the child ended abnormally (OSPanic aborts).

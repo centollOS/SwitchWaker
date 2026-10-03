@@ -7,30 +7,6 @@
 # as a 32-bit offset (8 bytes on the host); none is an endian problem, which offsets cannot see.
 # Current failures with the host offsets: native/tools/layout_check.py --discover
 
-# 4.9a-c: stage chunks relocated in place ({num, pointer} pairs become OFFSET_PTR)
-stage_tresure_class                  # 2/3 fail: m_entries, sizeof
-stage_scls_info_dummy_class          # 2/3 fail: m_entries, sizeof
-stage_map_info_dummy_class           # 2/3 fail: m_entries, sizeof
-stage_camera_class                   # 2/3 fail: m_entries, sizeof
-stage_arrow_class                    # 2/3 fail: m_entries, sizeof
-stage_actor_class                    # 2/3 fail: m_entries, sizeof
-stage_tgsc_class                     # 2/3 fail: m_entries, sizeof
-roomRead_data_class                  # 2/5 fail: m_rooms, sizeof
-roomRead_class                       # 2/3 fail: m_entries, sizeof
-dStage_MemoryMap_c                   # 2/3 fail: m_entries, sizeof
-dStage_MemoryConfig_c                # 2/3 fail: m_entries, sizeof
-dStage_dPath_c                       # 2/3 fail: m_path, sizeof
-dStage_Multi_c                       # 2/3 fail: m_entries, sizeof
-dStage_SoundInfo_c                   # 2/3 fail: m_entries, sizeof
-dStage_FloorInfo_c                   # 2/3 fail: m_entries, sizeof
-dStage_Lbnk_c                        # 2/3 fail: m_entries, sizeof
-dStage_DMap_c                        # 2/3 fail: entries, sizeof
-dStage_EventInfo_c                   # 2/3 fail: events, sizeof
-dStage_Ship_c                        # 2/3 fail: m_entries, sizeof
-
-# 4.9c / 4.16: paths
-dPath                                # 1/8 fail: sizeof
-
 # 4.10: collision (dzb)
 cBgD_Grp_t                           # 11/12 fail: m_scale, m_rotation, m_translation, ...
 cBgD_t                               # 13/14 fail: m_v_tbl, m_t_num, m_t_tbl, ...

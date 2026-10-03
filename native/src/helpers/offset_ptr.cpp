@@ -8,6 +8,8 @@
 //  - The range check: bit 31 is the "relocated" flag and operator T*() reads bit 30 as the sign,
 //    so a positive offset must stay below 0x4000'0000. Dusklight accepted up to 0x7FFF'FFFF, and
 //    an offset in [0x4000'0000, 0x7FFF'FFFF] would have decoded as negative.
+// Addition (step 4.9a): setBaseAllowZero(), the same relocation for an offset where 0 is valid
+// (a path's first point is at offset 0 of its PPNT/RPPN entries: 225 paths on the disc).
 #include "helpers/offset_ptr.h"
 
 #include <dolphin/os.h>
@@ -20,7 +22,10 @@ bool OffsetPtr::setBase(void* base) {
     if (value == 0) {
         OSPanic(__FILE__, __LINE__, "OffsetPtr::setBase: null offset");
     }
+    return setBaseAllowZero(base);
+}
 
+bool OffsetPtr::setBaseAllowZero(void* base) {
     if (isRelocated()) {
         // Already relocated, don't touch it again!
         return false;

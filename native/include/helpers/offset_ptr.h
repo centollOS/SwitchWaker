@@ -9,6 +9,8 @@
 // field itself and flags it relocated (bit 31), and the conversion adds it to the field's address.
 // The field stays 4 bytes, so the struct layout is the disc's. GameCube shim (OFFSET_PTR(T) is T*):
 // game/include/helpers/offset_ptr.h. Implementation: native/src/helpers/offset_ptr.cpp.
+// Addition (step 4.9a): setBaseAllowZero(), for an offset where 0 is valid data (a path's point
+// offset from the start of its PPNT/RPPN entries), not the null that setBase() refuses.
 #pragma once
 
 #if TARGET_PC
@@ -21,6 +23,8 @@ struct OffsetPtr {
     BE<s32> value;
 
     bool setBase(void* base);
+    // As setBase, but a file offset of 0 is the base itself rather than a null offset.
+    bool setBaseAllowZero(void* base);
     bool isRelocated();
 
     template<typename T>
@@ -48,6 +52,9 @@ struct OffsetPtrT {
 
     bool setBase(void* base) {
         return value.setBase(base);
+    }
+    bool setBaseAllowZero(void* base) {
+        return value.setBaseAllowZero(base);
     }
     bool isRelocated() {
         return value.isRelocated();

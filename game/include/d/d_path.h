@@ -3,6 +3,7 @@
 
 #include "d/d_bg_s.h"
 #include "dolphin/types.h"
+#include "helpers/offset_ptr.h"
 
 struct dPnt {
     /* 0x00 */ u8 mArg0;
@@ -19,7 +20,9 @@ struct dPath {
     /* 0x05 */ u8 m_closed;
     /* 0x06 */ u8 field4_0x6;
     /* 0x07 */ u8 field5_0x7;
-    /* 0x08 */ dPnt* m_points;
+    // A file offset from the PPNT/RPPN chunk's entries, relocated in place by dStage_pathInfoInit
+    // and dStage_rpatInfoInit (OFFSET_PTR on PC: a host pointer does not fit the 4-byte field).
+    /* 0x08 */ OFFSET_PTR(dPnt) m_points;
 };
 
 inline bool dPath_ChkClose(dPath* i_path) { return (i_path->m_closed & 1) != 0; }

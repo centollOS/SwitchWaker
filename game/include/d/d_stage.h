@@ -9,6 +9,7 @@
 #include "JSystem/JUtility/JUTAssert.h"
 #include "global.h"
 #include "f_op/f_op_actor_mng.h"
+#include "helpers/offset_ptr.h"
 
 void dStage_SetErrorRoom();
 void dStage_SetErrorStage();
@@ -26,15 +27,20 @@ enum StageType {
 };
 
 // made up name
+// The chunk table of a dzs/dzr file. m_offset is a file offset that dStage_dt_c_offsetToPtr
+// relocates in place; on PC it becomes a self-relative OFFSET_PTR_RAW (a host pointer does not fit
+// the 4-byte field). m_tag stays raw: dStage_dt_c_decode compares its bytes with a FuncTable
+// identifier read the same way. The {num, pointer} chunk structs below overlay {m_entryNum,
+// m_offset} (they are read at the node + 4), so their pointer is an OFFSET_PTR at the same address.
 struct dStage_nodeHeader {
     /* 0x0 */ u32 m_tag;
-    /* 0x4 */ int m_entryNum;
-    /* 0x8 */ u32 m_offset;
+    /* 0x4 */ BE(int) m_entryNum;
+    /* 0x8 */ OFFSET_PTR_RAW m_offset;
 };
 
 // made up name
 struct dStage_fileHeader {
-    /* 0x0 */ int m_chunkCount;
+    /* 0x0 */ BE(int) m_chunkCount;
     /* 0x4 */ dStage_nodeHeader m_nodes[];
 };
 
@@ -58,8 +64,8 @@ struct stage_tresure_data_class {
 };  // Size: 0x20
 
 struct stage_tresure_class {
-    /* 0x00 */ int num;
-    /* 0x04 */ stage_tresure_data_class* m_entries;
+    /* 0x00 */ BE(int) num;
+    /* 0x04 */ OFFSET_PTR(stage_tresure_data_class) m_entries;
 };
 
 // STAG
@@ -86,8 +92,8 @@ struct stage_scls_info_class {
 };  // Size: 0xC
 
 struct stage_scls_info_dummy_class {
-    /* 0x00 */ int num;
-    /* 0x04 */ stage_scls_info_class* m_entries;
+    /* 0x00 */ BE(int) num;
+    /* 0x04 */ OFFSET_PTR(stage_scls_info_class) m_entries;
 };
 
 // LGTV
@@ -154,8 +160,8 @@ struct stage_map_info_class {
 };  // Size: 0x38
 
 struct stage_map_info_dummy_class {
-    /* 0x0 */ int num;
-    /* 0x4 */ stage_map_info_class* m_entries;
+    /* 0x0 */ BE(int) num;
+    /* 0x4 */ OFFSET_PTR(stage_map_info_class) m_entries;
 };
 
 // EnvR
@@ -173,8 +179,8 @@ struct stage_camera2_data_class {
 };  // Size: 0x14
 
 struct stage_camera_class {
-    /* 0x0 */ int num;
-    /* 0x4 */ stage_camera2_data_class* m_entries;
+    /* 0x0 */ BE(int) num;
+    /* 0x4 */ OFFSET_PTR(stage_camera2_data_class) m_entries;
 };
 
 // AROB / RARO
@@ -185,8 +191,8 @@ struct stage_arrow_data_class {
 };  // Size: 0x14
 
 struct stage_arrow_class {
-    /* 0x00 */ int num;
-    /* 0x04 */ stage_arrow_data_class* m_entries;
+    /* 0x00 */ BE(int) num;
+    /* 0x04 */ OFFSET_PTR(stage_arrow_data_class) m_entries;
 };
 
 // ACT
@@ -196,8 +202,8 @@ struct stage_actor_data_class {
 };  // Size: 0x20
 
 struct stage_actor_class {
-    /* 0x0 */ int num;
-    /* 0x4 */ stage_actor_data_class* m_entries;
+    /* 0x0 */ BE(int) num;
+    /* 0x4 */ OFFSET_PTR(stage_actor_data_class) m_entries;
 };
 
 // TGSC / SCOB / DOOR / TGDR
@@ -208,8 +214,8 @@ struct stage_tgsc_data_class {
 };  // Size: 0x24
 
 struct stage_tgsc_class {
-    /* 0x00 */ int num;
-    /* 0x04 */ stage_tgsc_data_class* m_entries;
+    /* 0x00 */ BE(int) num;
+    /* 0x04 */ OFFSET_PTR(stage_tgsc_data_class) m_entries;
 };
 
 // RTBL
@@ -217,18 +223,18 @@ struct roomRead_data_class {
     /* 0x0 */ u8 num;
     /* 0x1 */ u8 field_0x1;
     /* 0x2 */ u8 field_0x2;
-    /* 0x4 */ u8* m_rooms;
+    /* 0x4 */ OFFSET_PTR(u8) m_rooms;
 };  // Size: 0x8
 
 struct roomRead_class {
-    /* 0x0 */ int num;
-    /* 0x4 */ roomRead_data_class** m_entries;
+    /* 0x0 */ BE(int) num;
+    /* 0x4 */ OFFSET_PTR(OFFSET_PTR(roomRead_data_class)) m_entries;
 };
 
 // MEMA
 struct dStage_MemoryMap_c {
-    /* 0x0 */ int num;
-    /* 0x4 */ u32* m_entries;
+    /* 0x0 */ BE(int) num;
+    /* 0x4 */ OFFSET_PTR(u32) m_entries;
 };
 
 // MECO
@@ -238,21 +244,21 @@ struct dStage_MemoryConfig_data {
 };  // Size: 0x2
 
 struct dStage_MemoryConfig_c {
-    /* 0x0 */ int num;
-    /* 0x4 */ dStage_MemoryConfig_data* m_entries;
+    /* 0x0 */ BE(int) num;
+    /* 0x4 */ OFFSET_PTR(dStage_MemoryConfig_data) m_entries;
 };
 
 // PATH / RPAT
 struct dPath;
 struct dStage_dPath_c {
-    /* 0x0 */ int num;
-    /* 0x4 */ dPath* m_path;
+    /* 0x0 */ BE(int) num;
+    /* 0x4 */ OFFSET_PTR(dPath) m_path;
 };
 
 // PPNT / RPPN
 struct dStage_dPnt_c {
-    /* 0x0 */ int num;
-    /* 0x4 */ u32 m_pnt_offset;
+    /* 0x0 */ BE(int) num;
+    /* 0x4 */ OFFSET_PTR_RAW m_pnt_offset;
 };  // Size: 0x8
 
 // MULT
@@ -265,8 +271,8 @@ struct dStage_Mult_info {
 };  // Size: 0xC
 
 struct dStage_Multi_c {
-    /* 0x0 */ int num;
-    /* 0x4 */ dStage_Mult_info* m_entries;
+    /* 0x0 */ BE(int) num;
+    /* 0x4 */ OFFSET_PTR(dStage_Mult_info) m_entries;
 };
 
 // SOND
@@ -283,8 +289,8 @@ struct stage_sound_data {
 };  // Size: 0x1C
 
 struct dStage_SoundInfo_c {
-    /* 0x0 */ int num;
-    /* 0x4 */ stage_sound_data* m_entries;
+    /* 0x0 */ BE(int) num;
+    /* 0x4 */ OFFSET_PTR(stage_sound_data) m_entries;
 };
 
 // FILI
@@ -301,15 +307,15 @@ struct dStage_FloorInfo_dt_c {
 }; // Size: 0x14
 
 struct dStage_FloorInfo_c {
-    /* 0x00 */ int num;
-    /* 0x04 */ dStage_FloorInfo_dt_c* m_entries;
+    /* 0x00 */ BE(int) num;
+    /* 0x04 */ OFFSET_PTR(dStage_FloorInfo_dt_c) m_entries;
 };
 
 
 // LBNK
 struct dStage_Lbnk_c {
-    /* 0x00 */ int m_num;
-    /* 0x04 */ u8* m_entries;
+    /* 0x00 */ BE(int) m_num;
+    /* 0x04 */ OFFSET_PTR(u8) m_entries;
 };
 
 // DMAP
@@ -321,8 +327,8 @@ struct dStage_DMap_dt_c {
 };  // Size: 0x10
 
 struct dStage_DMap_c {
-    /* 0x00 */ int num;
-    /* 0x04 */ dStage_DMap_dt_c* entries;
+    /* 0x00 */ BE(int) num;
+    /* 0x04 */ OFFSET_PTR(dStage_DMap_dt_c) entries;
 };
 
 // EVNT
@@ -340,8 +346,8 @@ struct dStage_Event_dt_c {
 }; // Size: 0x18
 
 struct dStage_EventInfo_c {
-    /* 0x00 */ s32 num;
-    /* 0x04 */ dStage_Event_dt_c* events;
+    /* 0x00 */ BE(s32) num;
+    /* 0x04 */ OFFSET_PTR(dStage_Event_dt_c) events;
 }; // Size: 0x08
 
 // SHIP
@@ -353,8 +359,8 @@ struct dStage_Ship_dt_c {
 };  // Size: 0x10
 
 struct dStage_Ship_c {
-    /* 0x0 */ int num;
-    /* 0x4 */ dStage_Ship_dt_c* m_entries;
+    /* 0x0 */ BE(int) num;
+    /* 0x4 */ OFFSET_PTR(dStage_Ship_dt_c) m_entries;
 };
 
 struct FuncTable;

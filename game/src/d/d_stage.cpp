@@ -1739,14 +1739,19 @@ int dStage_tgscInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void*) {
 /* 8004259C-80042628       .text dStage_roomReadInit__FP11dStage_dt_cPviPv */
 int dStage_roomReadInit(dStage_dt_c* i_stage, void* i_data, int i_num, void* i_file) {
     roomRead_class* rtbl = (roomRead_class*)((int*)i_data + 1);
+#if TARGET_PC
+    // The table's entries and each entry's room list are file offsets (from i_file), relocated
+    // in place into self-relative OFFSET_PTRs; a host pointer does not fit their 4 bytes.
+    OFFSET_PTR(roomRead_data_class)* rtbl_entries = rtbl->m_entries;
+#else
     roomRead_data_class** rtbl_entries = rtbl->m_entries;
+#endif
     i_stage->setRoom(rtbl);
 
     for (int i = 0; i < rtbl->num; i++) {
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        rtbl_entries[i] = (roomRead_data_class*)((uintptr_t)i_file + (u32)(uintptr_t)rtbl_entries[i]);
-        rtbl_entries[i]->m_rooms = (u8*)((uintptr_t)i_file + (u32)(uintptr_t)rtbl_entries[i]->m_rooms);
+        rtbl_entries[i].setBase(i_file);
+        rtbl_entries[i]->m_rooms.setBase(i_file);
 #else
         rtbl_entries[i] = (roomRead_data_class*)((u32)i_file + (u32)rtbl_entries[i]);
         rtbl_entries[i]->m_rooms = (u8*)((u32)i_file + (u32)rtbl_entries[i]->m_rooms);
@@ -1780,8 +1785,9 @@ int dStage_pathInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void*) {
     i_stage->setPathInfo(pStagePath);
     for (s32 i = 0; i < pStagePath->num; pPath++, i++)
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        pPath->m_points = (dPnt*)((uintptr_t)pPath->m_points + i_stage->getPntInf()->m_pnt_offset);
+        // m_points is an offset from the PPNT entries (0 for a path's first point is valid data),
+        // relocated in place into a self-relative OFFSET_PTR.
+        pPath->m_points.setBaseAllowZero((void*)i_stage->getPntInf()->m_pnt_offset);
 #else
         pPath->m_points = (dPnt*)((u32)pPath->m_points + i_stage->getPntInf()->m_pnt_offset);
 #endif
@@ -1803,8 +1809,8 @@ int dStage_rpatInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void*) {
     i_stage->setPath2Info(pStagePath);
     for (s32 i = 0; i < pStagePath->num; pPath++, i++)
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        pPath->m_points = (dPnt*)((uintptr_t)pPath->m_points + i_stage->getPnt2Inf()->m_pnt_offset);
+        // As dStage_pathInfoInit, from the RPPN entries.
+        pPath->m_points.setBaseAllowZero((void*)i_stage->getPnt2Inf()->m_pnt_offset);
 #else
         pPath->m_points = (dPnt*)((u32)pPath->m_points + i_stage->getPnt2Inf()->m_pnt_offset);
 #endif
@@ -2071,14 +2077,17 @@ void dStage_dt_c_offsetToPtr(void* i_data) {
     dStage_nodeHeader* p_tno = file->m_nodes;
 
     for (int i = 0; i < file->m_chunkCount; i++) {
-        if (p_tno->m_offset != 0) {
 #if TARGET_PC
-            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-            p_tno->m_offset += (u32)(uintptr_t)i_data;
-#else
-            p_tno->m_offset += (u32)i_data;
-#endif
+        // The offset from the start of the file becomes a self-relative OFFSET_PTR_RAW, flagged as
+        // relocated (a host pointer does not fit the 4-byte field). 0 stays "no data", as below.
+        if (p_tno->m_offset.value != 0) {
+            p_tno->m_offset.setBase(i_data);
         }
+#else
+        if (p_tno->m_offset != 0) {
+            p_tno->m_offset += (u32)i_data;
+        }
+#endif
         p_tno++;
     }
 }
