@@ -431,3 +431,12 @@ Each phase lands as its own commits; this file records decisions and measured re
   `STATIC_ASSERT` fired. Aurora mode: SSystem, JSystem-core, JSystem-J3D, JSystem-2D-particle,
   `cos_sdk`, smoke, scaffold, header and shadow checks (82 names, ok) build; default configuration:
   `cos_modules` and checks clean (the forwarder is not on the decomp-mode include path).
+- **2.7 JSystem-studio:** compiles in aurora header mode (all 37 units of JStudio, JStage and
+  JMessage, 0 errors) and still in decomp mode. First aurora build: 15 units failed with one error
+  each, all from the `typedef struct _GXColor GXColor;` forward in `jstudio-object.h` (clang's
+  50-per-unit limit hid nothing). Fixed as in `J3DVertex.h`: under `TARGET_PC` the header includes
+  `dolphin/gx/GXStruct.h`, the original forward kept in `#else`. No forwarder change, no
+  `STATIC_ASSERT` fired. Aurora mode: SSystem, JSystem-core, JSystem-J3D, JSystem-2D-particle,
+  JSystem-studio (rebuilt from clean), `cos_sdk`, smoke, scaffold, header and shadow checks (82
+  names, ok) build; default configuration: `cos_modules` and checks rebuilt (every includer of the
+  header), 0 errors.

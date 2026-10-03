@@ -4,7 +4,13 @@
 #include "JSystem/JStudio/JStudio/jstudio-control.h"
 #include "limits.h"
 
+#if TARGET_PC
+// Aurora defines GXColor as a typedef of an unnamed struct, so a forward declaration through the
+// tag _GXColor would declare a second, different type. Take the real one.
+#include "dolphin/gx/GXStruct.h"
+#else
 typedef struct _GXColor GXColor;
+#endif
 
 namespace JStudio {
 namespace data {
