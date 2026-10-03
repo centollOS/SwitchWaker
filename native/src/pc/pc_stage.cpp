@@ -27,7 +27,11 @@
 // structs and copied into an fopAcM_prm_class as dStage_actorInit (field by field) and
 // dStage_tgscInfoInit (the whole base) copy them; both copies must equal the file's big-endian
 // fields bit for bit, and the host values go to an ACTOR line.
-// <COS_RUN_DIR>/stage_sweep.txt gets what the game read (STG/CHUNK/ACTOR lines in
+// Step 4.9c: the records of the first RTBL, STAG, FILI, MULT, SCLS, PATH/PPNT, RPAT/RPPN,
+// CAMR/RCAM, AROB/RARO, EVNT, 2DMA/2Dma and SOND chunk are read through the struct their chunk
+// loader uses (RTBL after dStage_roomReadInit relocated it), each entry at the file's address,
+// and every field goes to a REC line.
+// <COS_RUN_DIR>/stage_sweep.txt gets what the game read (STG/CHUNK/ACTOR/REC lines in
 // disc_manifest.py's names); native/tools/run.sh compares it with the manifest
 // (disc_manifest.py --check-stage).
 // The test's own strings and vectors are in host memory (cos_sdk/host_alloc.h).
@@ -282,86 +286,8 @@ void checkOverlays(const dStage_nodeHeader* node, int wantNum, const void* wantP
 
 #undef OVERLAY
 
-// The relocating loaders through dStage_dt_c_decode, then their results against the file.
-void checkRelocs(uint8_t* data, const RawFile& raw, const RawRelocs& r, bool isStage) {
-    dStage_stageDt_c stageDt;
-    dStage_roomDt_c roomDt;
-    dStage_dt_c* dt = isStage ? (dStage_dt_c*)&stageDt : (dStage_dt_c*)&roomDt;
-    dt->init();
-    static FuncTable sStageTable[] = {
-        {"RTBL", dStage_roomReadInit}, {"PPNT", dStage_ppntInfoInit},
-        {"PATH", dStage_pathInfoInit}, {"RPPN", dStage_rppnInfoInit},
-        {"RPAT", dStage_rpatInfoInit},
-    };
-    static FuncTable sRoomTable[] = {
-        {"RTBL", dStage_roomReadInit},
-        {"RPPN", dStage_rppnInfoInit},
-        {"RPAT", dStage_rpatInfoInit},
-    };
-    if (isStage) {
-        dStage_dt_c_decode(data, dt, sStageTable, ARRAY_SIZE(sStageTable));
-    } else {
-        dStage_dt_c_decode(data, dt, sRoomTable, ARRAY_SIZE(sRoomTable));
-    }
-
-    roomRead_class* rtbl = isStage ? dt->getRoom() : nullptr;
-    if (r.rtblEntries.empty() != (rtbl == nullptr || rtbl->num == 0)) {
-        fail("RTBL: %zu entries in the file, the stage data has %p", r.rtblEntries.size(),
-             (void*)rtbl);
-    } else if (rtbl != nullptr) {
-        if ((size_t)(int)rtbl->num != r.rtblEntries.size()) {
-            fail("RTBL: %d entries, the file has %zu", (int)rtbl->num, r.rtblEntries.size());
-        }
-        for (size_t i = 0; i < r.rtblEntries.size() && i < (size_t)(int)rtbl->num; i++) {
-            roomRead_data_class* e = rtbl->m_entries[i];
-            if ((const uint8_t*)e != raw.base + r.rtblEntries[i]) {
-                fail("RTBL entry %zu at %p, the file has 0x%x", i, (void*)e, r.rtblEntries[i]);
-                continue;
-            }
-            if (e->num != r.rtblNums[i] || (const uint8_t*)(u8*)e->m_rooms !=
-                                               raw.base + r.rtblRooms[i]) {
-                fail("RTBL entry %zu: %u rooms at %p, the file has %u at 0x%x", i, e->num,
-                     (void*)(u8*)e->m_rooms, r.rtblNums[i], r.rtblRooms[i]);
-            }
-        }
-    }
-
-    struct PathCase {
-        const char* tag;
-        const char* pntTag;
-        dStage_dPath_c* path;
-        dStage_dPnt_c* pnt;
-        const Vector<uint32_t>* want;
-    };
-    PathCase cases[2] = {
-        {"PATH", "PPNT", isStage ? dt->getPathInf() : nullptr,
-         isStage ? dt->getPntInf() : nullptr, &r.pathPoints},
-        {"RPAT", "RPPN", dt->getPath2Inf(), dt->getPnt2Inf(), &r.rpatPoints},
-    };
-    for (const PathCase& pc : cases) {
-        int pntChunk = raw.find(pc.pntTag);
-        if (pc.want->empty()) {
-            continue;
-        }
-        if (pc.path == nullptr || pc.pnt == nullptr || pntChunk < 0) {
-            fail("%s: %zu paths in the file, the stage data has %p / %s %p", pc.tag,
-                 pc.want->size(), (void*)pc.path, pc.pntTag, (void*)pc.pnt);
-            continue;
-        }
-        const uint8_t* pntBase = raw.base + raw.chunks[pntChunk].offset;
-        dPath* paths = pc.path->m_path;
-        for (size_t i = 0; i < pc.want->size(); i++) {
-            const uint8_t* got = (const uint8_t*)(dPnt*)paths[i].m_points;
-            if (got != pntBase + (*pc.want)[i]) {
-                fail("%s path %zu: points at %p, the file has %s + 0x%x", pc.tag, i,
-                     (const void*)got, pc.pntTag, (*pc.want)[i]);
-            }
-        }
-    }
-}
-
 struct Totals {
-    uint32_t archives = 0, files = 0, chunks = 0, rtbl = 0, paths = 0, actors = 0;
+    uint32_t archives = 0, files = 0, chunks = 0, rtbl = 0, paths = 0, actors = 0, records = 0;
 };
 Totals sTotals;
 
@@ -514,6 +440,306 @@ void checkActors(const dStage_fileHeader* file, const RawFile& raw, const String
     }
 }
 
+// ---- step 4.9c: the room, file and path records ------------------------------------------------
+
+// One REC line of stage_sweep.txt: "REC <path> <chunk> <entry> tag=XXXX <field>=<value>..."
+// (disc_manifest.py check_stage_record): a list comma-separated, an f32 as %.9g (it round-trips),
+// a string percent-encoded.
+struct RecLine {
+    String text;
+    RecLine(const String& name, int chunk, int k, const char* tag) {
+        char head[64];
+        snprintf(head, sizeof(head), " %d %d tag=%.4s", chunk, k, tag);
+        text = String("REC ") + name + head;
+    }
+    void key(const char* name) {
+        text += " ";
+        text += name;
+        text += "=";
+    }
+    template <class... T>
+    void ints(const char* name, T... v) {
+        key(name);
+        long long vals[] = {(long long)v...};
+        for (size_t i = 0; i < sizeof...(v); i++) {
+            char n[24];
+            snprintf(n, sizeof(n), i == 0 ? "%lld" : ",%lld", vals[i]);
+            text += n;
+        }
+    }
+    template <class... T>
+    void floats(const char* name, T... v) {
+        key(name);
+        double vals[] = {(double)(f32)v...};
+        for (size_t i = 0; i < sizeof...(v); i++) {
+            char n[40];
+            snprintf(n, sizeof(n), i == 0 ? "%.9g" : ",%.9g", vals[i]);
+            text += n;
+        }
+    }
+    void str(const char* name, const char* v, size_t limit) {
+        key(name);
+        text += enc(v, limit);
+    }
+    void write(int fd) {
+        if (fd >= 0) {
+            writef(fd, "%s\n", text.c_str());
+        }
+        sTotals.records++;
+    }
+};
+
+// The entry the game reads must be the file's (its struct the format's size).
+template <class Entry>
+bool entryAt(const Entry* e, const RawFile& raw, const RawChunk& c, int k, uint32_t esize) {
+    const uint8_t* want = raw.base + c.offset + (uint32_t)k * esize;
+    if (sizeof(Entry) != esize || (const uint8_t*)e != want) {
+        fail("%s entry %d at %p (%zu bytes); the file has it at %p (%u bytes)",
+             tagText(c.tag).c_str(), k, (const void*)e, sizeof(Entry), (const void*)want, esize);
+        return false;
+    }
+    return true;
+}
+
+// The records of the first chunk of each tag (the one dStage_dt_c_decode hands out), read through
+// the struct its chunk loader (d_stage.cpp) uses: STAG and FILI through the node's offset as
+// dStage_stagInfoInit and dStage_filiInfoInit, the others through their {num, pointer} struct at
+// the node + 4. RTBL is written by checkRelocs (its entries are relocated there).
+void checkRecords(const dStage_fileHeader* file, const RawFile& raw, const String& name, int fd) {
+    for (size_t i = 0; i < raw.chunks.size(); i++) {
+        const RawChunk& c = raw.chunks[i];
+        String tag = tagText(c.tag);
+        // An offset of 0 is "no data" (dStage_dt_c_offsetToPtr leaves the pointer null): four
+        // stage.dzs files have a 2DMA chunk with 1 entry and offset 0.
+        if (raw.find(tag.c_str()) != (int)i || c.num == 0 || c.offset == 0) {
+            continue;
+        }
+        const dStage_nodeHeader* nodeHdr = &file->m_nodes[i];
+        const void* node = (const int*)nodeHdr + 1;
+        auto is = [&](const char* a, const char* b = nullptr) {
+            return tag == a || (b != nullptr && tag == b);
+        };
+        uint32_t esize = is("STAG") ? 0x20 : is("FILI") ? 0x08 : is("MULT", "SCLS") ? 0x0C
+                       : is("PATH", "RPAT") ? 0x0C : is("PPNT", "RPPN") ? 0x10
+                       : is("CAMR", "RCAM") ? 0x14 : is("AROB", "RARO") ? 0x14
+                       : is("EVNT") ? 0x18 : is("2DMA", "2Dma") ? 0x38 : is("SOND") ? 0x1C : 0;
+        if (esize == 0) {
+            continue;
+        }
+        if (!inFile(raw, c.offset, (uint32_t)c.num * esize)) {
+            fail("%s: %d records of 0x%x bytes at 0x%x past the end", tag.c_str(), c.num, esize,
+                 c.offset);
+            continue;
+        }
+        for (int k = 0; k < c.num; k++) {
+            RecLine l(name, (int)i, k, tag.c_str());
+            if (is("STAG")) {
+                const stage_stag_info_class* e =
+                    (const stage_stag_info_class*)(const void*)nodeHdr->m_offset + k;
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                l.floats("near", e->mNearPlane);
+                l.floats("far", e->mFarPlane);
+                l.ints("camera_tool", e->mCameraMapToolID);
+                l.ints("prop", e->mProp);
+                l.ints("particle", (u16)e->mParticleSceneNo);
+                l.ints("type_schbit", (u32)e->mStageTypeAndSchbit);
+                l.ints("schbit_far", (u32)e->mSchbitEnableAndFarPlane);
+                l.ints("f14", (u32)e->field_0x14);
+                l.ints("f18", (u32)e->field_0x18);
+                l.ints("f1c", (u32)e->field_0x1c);
+            } else if (is("FILI")) {
+                const dStage_FileList_dt_c* e =
+                    (const dStage_FileList_dt_c*)(const void*)nodeHdr->m_offset + k;
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                l.ints("param", (u32)e->mParam);
+                l.floats("sea_level", e->mSeaLevel);
+            } else if (is("MULT")) {
+                const dStage_Mult_info* e = &((const dStage_Multi_c*)node)->m_entries[k];
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                l.floats("trans", e->mTransX, e->mTransY);
+                l.ints("angle", (s16)e->mAngle);
+                l.ints("room", e->mRoomNo);
+                l.ints("wave_max", e->mWaveMax);
+            } else if (is("SCLS")) {
+                const stage_scls_info_class* e =
+                    &((const stage_scls_info_dummy_class*)node)->m_entries[k];
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                l.str("stage", e->mStage, sizeof(e->mStage));
+                l.ints("start", e->mStart);
+                l.ints("room", e->mRoom);
+                l.ints("wipe", e->mWipe);
+                l.ints("b0b", e->field_0xb);
+            } else if (is("PATH", "RPAT")) {
+                const dPath* e = &((const dStage_dPath_c*)node)->m_path[k];
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                l.ints("num", (u16)e->m_num);
+                l.ints("next", (u16)e->m_nextID);
+                l.ints("args", e->mArg0, e->m_closed, e->field4_0x6, e->field5_0x7);
+            } else if (is("PPNT", "RPPN")) {
+                const dPnt* e =
+                    (const dPnt*)(const void*)((const dStage_dPnt_c*)node)->m_pnt_offset + k;
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                cXyz pos = e->m_position;
+                l.ints("args", e->mArg0, e->mArg1, e->mArg2, e->mArg3);
+                l.floats("pos", pos.x, pos.y, pos.z);
+            } else if (is("CAMR", "RCAM")) {
+                const stage_camera2_data_class* e =
+                    &((const stage_camera_class*)node)->m_entries[k];
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                l.str("type", e->m_cam_type, sizeof(e->m_cam_type));
+                l.ints("args", e->m_arrow_idx, e->field_0x11, e->field_0x12, e->field_0x13);
+            } else if (is("AROB", "RARO")) {
+                const stage_arrow_data_class* e = &((const stage_arrow_class*)node)->m_entries[k];
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                cXyz pos = e->position;
+                csXyz angle = e->angle;
+                l.floats("pos", pos.x, pos.y, pos.z);
+                l.ints("angle", angle.x, angle.y, angle.z);
+                l.ints("f12", (s16)e->field_0x12);
+            } else if (is("EVNT")) {
+                const dStage_Event_dt_c* e = &((const dStage_EventInfo_c*)node)->events[k];
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                l.ints("b00", e->field_0x0);
+                l.str("name", e->mName, sizeof(e->mName));
+                l.ints("args", e->field_0x10, e->field_0x11, e->field_0x12, e->mSpawnSwitchNo);
+                l.ints("b14", e->field_0x14);
+                l.ints("args2", e->field_0x15, e->field_0x16, e->field_0x17);
+            } else if (is("2DMA", "2Dma")) {
+                const stage_map_info_class* e =
+                    &((const stage_map_info_dummy_class*)node)->m_entries[k];
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                l.floats("f", e->field_0x00, e->field_0x04, e->field_0x08, e->field_0x0C,
+                         e->field_0x10, e->field_0x14, e->field_0x18, e->field_0x1C, e->field_0x20,
+                         e->field_0x24, e->field_0x28, e->field_0x2c, e->field_0x30);
+                l.ints("bytes", e->field_0x34, e->field_0x35, e->mOceanXZ, e->field_0x37[0]);
+            } else if (is("SOND")) {
+                const stage_sound_data* e = &((const dStage_SoundInfo_c*)node)->m_entries[k];
+                if (!entryAt(e, raw, c, k, esize)) {
+                    break;
+                }
+                Vec pos = e->field_0x8;
+                l.str("name", e->field_0x0, sizeof(e->field_0x0));
+                l.floats("pos", pos.x, pos.y, pos.z);
+                l.ints("bytes", e->field_0x14, e->field_0x15, e->field_0x16, e->field_0x17,
+                       e->field_0x18, e->field_0x19, e->field_0x1a);
+            }
+            l.write(fd);
+        }
+    }
+}
+
+// The relocating loaders through dStage_dt_c_decode, then their results against the file.
+void checkRelocs(uint8_t* data, const RawFile& raw, const RawRelocs& r, bool isStage,
+                 const String& name, int fd) {
+    dStage_stageDt_c stageDt;
+    dStage_roomDt_c roomDt;
+    dStage_dt_c* dt = isStage ? (dStage_dt_c*)&stageDt : (dStage_dt_c*)&roomDt;
+    dt->init();
+    static FuncTable sStageTable[] = {
+        {"RTBL", dStage_roomReadInit}, {"PPNT", dStage_ppntInfoInit},
+        {"PATH", dStage_pathInfoInit}, {"RPPN", dStage_rppnInfoInit},
+        {"RPAT", dStage_rpatInfoInit},
+    };
+    static FuncTable sRoomTable[] = {
+        {"RTBL", dStage_roomReadInit},
+        {"RPPN", dStage_rppnInfoInit},
+        {"RPAT", dStage_rpatInfoInit},
+    };
+    if (isStage) {
+        dStage_dt_c_decode(data, dt, sStageTable, ARRAY_SIZE(sStageTable));
+    } else {
+        dStage_dt_c_decode(data, dt, sRoomTable, ARRAY_SIZE(sRoomTable));
+    }
+
+    roomRead_class* rtbl = isStage ? dt->getRoom() : nullptr;
+    if (r.rtblEntries.empty() != (rtbl == nullptr || rtbl->num == 0)) {
+        fail("RTBL: %zu entries in the file, the stage data has %p", r.rtblEntries.size(),
+             (void*)rtbl);
+    } else if (rtbl != nullptr) {
+        if ((size_t)(int)rtbl->num != r.rtblEntries.size()) {
+            fail("RTBL: %d entries, the file has %zu", (int)rtbl->num, r.rtblEntries.size());
+        }
+        for (size_t i = 0; i < r.rtblEntries.size() && i < (size_t)(int)rtbl->num; i++) {
+            roomRead_data_class* e = rtbl->m_entries[i];
+            if ((const uint8_t*)e != raw.base + r.rtblEntries[i]) {
+                fail("RTBL entry %zu at %p, the file has 0x%x", i, (void*)e, r.rtblEntries[i]);
+                continue;
+            }
+            if (e->num != r.rtblNums[i] || (const uint8_t*)(u8*)e->m_rooms !=
+                                               raw.base + r.rtblRooms[i]) {
+                fail("RTBL entry %zu: %u rooms at %p, the file has %u at 0x%x", i, e->num,
+                     (void*)(u8*)e->m_rooms, r.rtblNums[i], r.rtblRooms[i]);
+                continue;
+            }
+            // Step 4.9c: the entry's fields and room list, as the game reads them.
+            RecLine l(name, raw.find("RTBL"), (int)i, "RTBL");
+            l.ints("num", e->num);
+            l.ints("b01", e->field_0x1);
+            l.ints("b02", e->field_0x2);
+            l.key("rooms");
+            for (int k = 0; k < e->num; k++) {
+                char n[8];
+                snprintf(n, sizeof(n), k == 0 ? "%u" : ",%u", ((u8*)e->m_rooms)[k]);
+                l.text += n;
+            }
+            l.write(fd);
+        }
+    }
+
+    struct PathCase {
+        const char* tag;
+        const char* pntTag;
+        dStage_dPath_c* path;
+        dStage_dPnt_c* pnt;
+        const Vector<uint32_t>* want;
+    };
+    PathCase cases[2] = {
+        {"PATH", "PPNT", isStage ? dt->getPathInf() : nullptr,
+         isStage ? dt->getPntInf() : nullptr, &r.pathPoints},
+        {"RPAT", "RPPN", dt->getPath2Inf(), dt->getPnt2Inf(), &r.rpatPoints},
+    };
+    for (const PathCase& pc : cases) {
+        int pntChunk = raw.find(pc.pntTag);
+        if (pc.want->empty()) {
+            continue;
+        }
+        if (pc.path == nullptr || pc.pnt == nullptr || pntChunk < 0) {
+            fail("%s: %zu paths in the file, the stage data has %p / %s %p", pc.tag,
+                 pc.want->size(), (void*)pc.path, pc.pntTag, (void*)pc.pnt);
+            continue;
+        }
+        const uint8_t* pntBase = raw.base + raw.chunks[pntChunk].offset;
+        dPath* paths = pc.path->m_path;
+        for (size_t i = 0; i < pc.want->size(); i++) {
+            const uint8_t* got = (const uint8_t*)(dPnt*)paths[i].m_points;
+            if (got != pntBase + (*pc.want)[i]) {
+                fail("%s path %zu: points at %p, the file has %s + 0x%x", pc.tag, i,
+                     (const void*)got, pc.pntTag, (*pc.want)[i]);
+            }
+        }
+    }
+}
+
 void sweepData(const String& name, uint8_t* data, uint32_t size, bool isStage, int fd) {
     RawFile raw;
     if (!parseRaw(data, size, raw)) {
@@ -589,7 +815,8 @@ void sweepData(const String& name, uint8_t* data, uint32_t size, bool isStage, i
     }
 
     checkActors(file, raw, name, fd);
-    checkRelocs(data, raw, relocs, isStage);
+    checkRecords(file, raw, name, fd);
+    checkRelocs(data, raw, relocs, isStage, name, fd);
     sTotals.rtbl += relocs.rtblEntries.size();
     sTotals.paths += relocs.pathPoints.size() + relocs.rpatPoints.size();
     sTotals.files++;
@@ -744,7 +971,8 @@ void sweepMenu(JKRHeap* heap) {
     int fd = openRunFile("stage_sweep.txt");
     if (fd >= 0) {
         writef(fd, "# stage-sweep (COS_SMOKE=stage-sweep): the dzs/dzr chunk tables as the game "
-                   "read them (and the actor records), in disc_manifest.py's names\n");
+                   "read them (and the actor, room, file and path records), in "
+                   "disc_manifest.py's names\n");
     }
     for (const String& path : archives) {
         sweepArchive(path, heap, fd);
@@ -760,9 +988,9 @@ void sweepMenu(JKRHeap* heap) {
     }
     writef(STDERR_FILENO,
            "[cos] stage-sweep: %u archives, %u dzs/dzr files, %u chunks, %u actor records, %u "
-           "RTBL entries, %u paths relocated; %llu ms; %d error(s)%s\n",
-           sTotals.archives, sTotals.files, sTotals.chunks, sTotals.actors, sTotals.rtbl,
-           sTotals.paths,
+           "room/file/path records, %u RTBL entries, %u paths relocated; %llu ms; %d error(s)%s\n",
+           sTotals.archives, sTotals.files, sTotals.chunks, sTotals.actors, sTotals.records,
+           sTotals.rtbl, sTotals.paths,
            (unsigned long long)(elapsedMs() - start), sErrors,
            gConfig.runDir != nullptr ? " (report in stage_sweep.txt)" : "");
     bool pass = sErrors == 0 && sTotals.archives == archives.size() && sTotals.files > 0;

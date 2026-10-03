@@ -48,7 +48,10 @@ Usage
                                                   files: every file's chunk count, every chunk's
                                                   tag, entry count and offset, every actor
                                                   record's name, parameters, position, angle and
-                                                  set id (exit 0 equal, 1 different)
+                                                  set id, and every field of the RTBL, STAG,
+                                                  FILI, MULT, SCLS, PATH/PPNT, RPAT/RPPN,
+                                                  CAMR/RCAM, AROB/RARO, EVNT, 2DMA and SOND
+                                                  records (exit 0 equal, 1 different)
   disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
 
 Manifest (JSON)
@@ -67,7 +70,8 @@ Manifest (JSON)
               colors_fnv (FNV-1a 64 of the colour table)
               bti: the ResTIMG header;  jpc: emitters [{res_id, blocks, keys, fields, textures,
               tags}], textures [names];  stb: version, blocks [{type, id}];  dzs/dzr: chunks
-              [{tag, num}] and actors {tag: [{name, params, pos, angle, set_id}]};  dzb: counts
+              [{tag, num}], actors {tag: [{name, params, pos, angle, set_id}]} and records
+              {chunk index: {tag, entries}} (RTBL and the STAGE_RECORDS tags);  dzb: counts
               and the vertex bounding box;  aaf: sections [{type, offset, size, count}]
   summary   per-format counts and the number of parse errors
 """
@@ -98,7 +102,8 @@ GC_MAGIC = b"\xC2\x33\x9F\x3D"
 
 # 2: "size" is always the stored size (a format's own size field moved to header_size).
 # 3: BMG INF1 message counts and ID digest, BMC colour tables (step 4.6).
-MANIFEST_VERSION = 3
+# 4: dzs/dzr records of the room, file and path chunks (step 4.9c).
+MANIFEST_VERSION = 4
 
 EXIT_OK = 0
 EXIT_DIFFERENT = 1
@@ -473,6 +478,44 @@ ACTOR_TAGS_20 = {"ACTR", "TGOB", "TRES", "PLYR"} | {"ACT" + c for c in "01234567
 ACTOR_TAGS_24 = {"SCOB", "TGSC", "DOOR", "TGDR"} | {"SCO" + c for c in "0123456789ab"}
 
 
+# Step 4.9c: the records of the room, file and path chunks, read at the format's offsets. Per tag:
+# (entry size, [(field, offset, type, count)]); type f is an f32 (kept as its bit pattern), strN a
+# string of at most N bytes, the rest big-endian integers. The names are the ones
+# COS_SMOKE=stage-sweep writes.
+STAGE_RECORDS = {
+    "STAG": (0x20, [("near", 0x00, "f", 1), ("far", 0x04, "f", 1),
+                    ("camera_tool", 0x08, "u8", 1), ("prop", 0x09, "u8", 1),
+                    ("particle", 0x0A, "u16", 1), ("type_schbit", 0x0C, "u32", 1),
+                    ("schbit_far", 0x10, "u32", 1),
+                    ("f14", 0x14, "u32", 1), ("f18", 0x18, "u32", 1), ("f1c", 0x1C, "u32", 1)]),
+    "FILI": (0x08, [("param", 0x00, "u32", 1), ("sea_level", 0x04, "f", 1)]),
+    "MULT": (0x0C, [("trans", 0x00, "f", 2), ("angle", 0x08, "s16", 1), ("room", 0x0A, "u8", 1),
+                    ("wave_max", 0x0B, "u8", 1)]),
+    "SCLS": (0x0C, [("stage", 0x00, "str8", 1), ("start", 0x08, "u8", 1), ("room", 0x09, "u8", 1),
+                    ("wipe", 0x0A, "u8", 1), ("b0b", 0x0B, "u8", 1)]),
+    "PATH": (0x0C, [("num", 0x00, "u16", 1), ("next", 0x02, "u16", 1), ("args", 0x04, "u8", 4)]),
+    "PPNT": (0x10, [("args", 0x00, "u8", 4), ("pos", 0x04, "f", 3)]),
+    "CAMR": (0x14, [("type", 0x00, "str16", 1), ("args", 0x10, "u8", 4)]),
+    "AROB": (0x14, [("pos", 0x00, "f", 3), ("angle", 0x0C, "s16", 3), ("f12", 0x12, "s16", 1)]),
+    "EVNT": (0x18, [("b00", 0x00, "u8", 1), ("name", 0x01, "str15", 1), ("args", 0x10, "u8", 4),
+                    ("b14", 0x14, "s8", 1), ("args2", 0x15, "u8", 3)]),
+    "2DMA": (0x38, [("f", 0x00, "f", 13), ("bytes", 0x34, "u8", 4)]),
+    "SOND": (0x1C, [("name", 0x00, "str8", 1), ("pos", 0x08, "f", 3), ("bytes", 0x14, "u8", 7)]),
+}
+for _alias, _tag in (("RPAT", "PATH"), ("RPPN", "PPNT"), ("RCAM", "CAMR"), ("RARO", "AROB"),
+                     ("2Dma", "2DMA")):
+    STAGE_RECORDS[_alias] = STAGE_RECORDS[_tag]
+
+
+def stage_field(b, o, typ, count):
+    """One field of a STAGE_RECORDS record: an int, a string, or a list when count > 1."""
+    if typ.startswith("str"):
+        return cstr(b, o, int(typ[3:]))
+    fmt = {"u8": "B", "s8": "b", "u16": "H", "s16": "h", "u32": "I", "f": "I"}[typ]
+    vals = list(struct.unpack_from(">%d%s" % (count, fmt), b, o))
+    return vals[0] if count == 1 else vals
+
+
 def parse_stage(b):
     need(len(b) >= 4, "dzs/dzr: short")
     n = s32(b, 0)
@@ -496,6 +539,40 @@ def parse_stage(b):
                                "angle": list(struct.unpack_from(">3h", b, e + 0x18)),
                                "set_id": u16(b, e + 0x1E)})
             rec["actors"][tag] = actors
+    # Step 4.9c: the records of the first chunk of each room, file and path tag (the chunk
+    # dStage_dt_c_decode hands out), keyed by the chunk's index. An offset of 0 is "no data" (the
+    # game's relocation leaves it null).
+    rec["records"] = {}
+    first = {}
+    for i, c in enumerate(rec["chunks"]):
+        first.setdefault(c["tag"], i)
+    for tag, i in sorted(first.items(), key=lambda t: t[1]):
+        c = rec["chunks"][i]
+        num, off = c["num"], c["offset"]
+        if off == 0:
+            continue
+        if tag == "RTBL":
+            # A table of u32 file offsets, each to {u8 num, u8, u8, pad, u32 room list offset}.
+            need(off + num * 4 <= len(b), "dzs/dzr: RTBL entries past the end")
+            entries = []
+            for k in range(num):
+                e = u32(b, off + k * 4)
+                need(e + 8 <= len(b), "dzs/dzr: RTBL entry %d past the end" % k)
+                rooms = u32(b, e + 4)
+                need(rooms + b[e] <= len(b), "dzs/dzr: RTBL entry %d rooms past the end" % k)
+                entries.append({"num": b[e], "b01": b[e + 1], "b02": b[e + 2],
+                                "rooms": list(b[rooms:rooms + b[e]])})
+            rec["records"][str(i)] = {"tag": tag, "entries": entries}
+            continue
+        spec = STAGE_RECORDS.get(tag)
+        if spec is None:
+            continue
+        esize, fields = spec
+        need(off + num * esize <= len(b), "dzs/dzr: %s entries past the end" % tag)
+        rec["records"][str(i)] = {"tag": tag, "entries": [
+            {name: stage_field(b, off + k * esize + fo, typ, count)
+             for name, fo, typ, count in fields}
+            for k in range(num)]}
     return rec
 
 
@@ -1033,10 +1110,66 @@ def check_jpa(manifest, jpa_path):
 
 # ---- stage chunk tables (step 4.9a) -------------------------------------------------------------
 
+def check_stage_record(rec, path, parts, ln, problems, rec_seen, dec):
+    """One 'REC <path> <chunk index> <entry> tag=XXXX <field>=<value>...' line of
+    stage_sweep.txt (step 4.9c) against the manifest's record; a list is comma-separated, an f32
+    in decimal (compared as the f32 it rounds to), a string percent-encoded. True if compared."""
+    try:
+        index, entry = int(parts[2]), int(parts[3])
+        fields = dict(p.partition("=")[::2] for p in parts[4:])
+    except (ValueError, IndexError):
+        problems.append("line %d: malformed: %r" % (ln, " ".join(parts)))
+        return False
+    want_chunk = rec.get("records", {}).get(str(index))
+    if want_chunk is None or fields.get("tag") != want_chunk["tag"] or \
+            not 0 <= entry < len(want_chunk["entries"]):
+        problems.append("line %d: %s chunk %d (%s) entry %d: the manifest has %s"
+                        % (ln, path, index, fields.get("tag"), entry,
+                           "no records there" if want_chunk is None else
+                           "%d %s records" % (len(want_chunk["entries"]), want_chunk["tag"])))
+        return False
+    got_set = rec_seen.setdefault((path, index), set())
+    if entry in got_set:
+        problems.append("line %d: %s chunk %d entry %d reported twice" % (ln, path, index, entry))
+    got_set.add(entry)
+    tag = want_chunk["tag"]
+    want = want_chunk["entries"][entry]
+    if tag == "RTBL":
+        types = {"num": "u8", "b01": "u8", "b02": "u8", "rooms": "list"}
+    else:
+        types = {name: typ for name, _, typ, _ in STAGE_RECORDS[tag][1]}
+    for name, typ in types.items():
+        text = fields.get(name)
+        if text is None:
+            problems.append("line %d: %s %s entry %d: no %s" % (ln, path, tag, entry, name))
+            continue
+        try:
+            if typ.startswith("str"):
+                got = dec(text)
+            elif typ == "f":
+                got = [struct.unpack(">I", struct.pack(">f", float(v)))[0]
+                       for v in text.split(",")]
+            else:
+                got = [int(v) for v in text.split(",")] if text else []
+        except (ValueError, OverflowError):
+            problems.append("line %d: %s %s entry %d: malformed %s=%s"
+                            % (ln, path, tag, entry, name, text))
+            continue
+        if isinstance(got, list) and not isinstance(want[name], list):
+            got = got[0] if len(got) == 1 else got
+        if got != want[name]:
+            problems.append("line %d: %s chunk %d %s entry %d %s=%s, the manifest has %s"
+                            % (ln, path, index, tag, entry, name, text, want[name]))
+    for name in set(fields) - set(types) - {"tag"}:
+        problems.append("line %d: unexpected field %s" % (ln, name))
+    return True
+
+
 def check_stage(manifest, stage_path):
     """stage_sweep.txt lines (fields separated by single spaces): 'STG <path> chunk_count=N',
     'CHUNK <path> <index> tag=XXXX num=N offset=N' and (step 4.9b) 'ACTOR <path> <chunk index>
-    <entry> name=<s> params=N pos=X,Y,Z angle=A,B,C set_id=N', <path> being the manifest's name of
+    <entry> name=<s> params=N pos=X,Y,Z angle=A,B,C set_id=N' and (step 4.9c) REC lines (see
+    check_stage_record), <path> being the manifest's name of
     the file ('<archive>:dzs/stage.dzs' or '<archive>:dzr/room.dzr'); the name is percent-encoded
     (a space, '%' and bytes outside printable ASCII as %XX). Every dzs/dzr of the disc, every one
     of its chunks and every actor record of the manifest must be there; positions are compared
@@ -1057,13 +1190,15 @@ def check_stage(manifest, stage_path):
     chunks = 0
     actors = 0
     actor_seen = {}  # (path, tag) -> set of entry indices
+    records = 0
+    rec_seen = {}  # (path, chunk index) -> set of entry indices (step 4.9c)
     with open(stage_path, encoding="utf-8", errors="replace") as f:
         for ln, line in enumerate(f, 1):
             line = line.rstrip("\n")
             if not line or line.startswith("#"):
                 continue
             parts = line.split(" ")
-            if len(parts) < 3 or parts[0] not in ("STG", "CHUNK", "ACTOR"):
+            if len(parts) < 3 or parts[0] not in ("STG", "CHUNK", "ACTOR", "REC"):
                 problems.append("line %d: malformed: %r" % (ln, line))
                 continue
             kind, path = parts[0], parts[1]
@@ -1078,6 +1213,10 @@ def check_stage(manifest, stage_path):
                 if fields.get("chunk_count") != str(rec["chunk_count"]):
                     problems.append("line %d: %s chunk_count=%s, the manifest has %d"
                                     % (ln, path, fields.get("chunk_count"), rec["chunk_count"]))
+                continue
+            if kind == "REC":
+                if check_stage_record(rec, path, parts, ln, problems, rec_seen, dec):
+                    records += 1
                 continue
             if kind == "ACTOR":
                 try:
@@ -1151,8 +1290,14 @@ def check_stage(manifest, stage_path):
             if n != len(want_list):
                 problems.append("%s: %d of %d %s records reported" % (path, n, len(want_list),
                                                                         tag))
-    print("disc_manifest: stage_sweep.txt: %d dzs/dzr files (the disc has %d), %d chunks and "
-          "%d actor records compared" % (len(seen), len(all_stage), chunks, actors))
+        for index, want in sorted(rec.get("records", {}).items(), key=lambda t: int(t[0])):
+            n = len(rec_seen.get((path, int(index)), ()))
+            if n != len(want["entries"]):
+                problems.append("%s: %d of %d %s records reported (chunk %s)"
+                                % (path, n, len(want["entries"]), want["tag"], index))
+    print("disc_manifest: stage_sweep.txt: %d dzs/dzr files (the disc has %d), %d chunks, "
+          "%d actor records and %d room/file/path records compared"
+          % (len(seen), len(all_stage), chunks, actors, records))
     return report_problems(problems, "stage_sweep.txt equals the manifest")
 
 
