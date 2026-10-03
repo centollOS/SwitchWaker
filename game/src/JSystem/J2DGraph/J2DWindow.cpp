@@ -22,7 +22,7 @@ J2DWindow::J2DWindow(J2DPane* param_0, JSURandomInputStream* param_1)
       mpContentsTexture(NULL),
       mpPalette(NULL) {
     s32 local_188 = param_1->getPosition();
-    u32 header[2];
+    BE(u32) header[2]; // the big-endian block header (BE(T) is T on the original target)
     param_1->read(header, 8);
     mMagic = header[0];
     s32 end = local_188 + header[1];

@@ -189,6 +189,11 @@ JSystem/J3DGraphAnimator/J3DAnimation.h
     J3DAnmTransformKeyData
     J3DAnmClusterKeyData
 
+# 4.13: J2D screens (SCRNblo1): the pane block headers
+JSystem/J2DGraph/J2DPane.h
+    J2DPaneHeader                       size=0x8
+    J2DPane::J2DScrnBlockHeader         size=0x8
+
 # 4.16: event data (event_list.dat)
 d/d_event_data.h
     event_binary_data_header

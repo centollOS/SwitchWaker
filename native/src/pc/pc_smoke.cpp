@@ -25,6 +25,8 @@
 //   JParticle and compared with an independent reading, every emitter calculated for 30 frames.
 // - stage-sweep (step 4.9a, pc_stage.cpp): every dzs/dzr chunk table relocated and decoded through
 //   d_stage.cpp, its RTBL and paths relocated by the game's loaders, and /res/Menu/Menu1.dat.
+// - blo-sweep (step 4.13, pc_blo.cpp): every BLO screen of the disc built by J2DScreen::set and its
+//   panes compared with an independent reading.
 // In the booted game:
 // - pad-echo (step 6.3, pc_input.cpp): the COS_INPUT script read back from g_mDoCPd_cpadInfo after
 //   each mDoCPd_Read.
@@ -236,6 +238,9 @@ void requireWatchdog(const char* test, double seconds, const char* var) {
     if (strcmp(name, "stage-sweep") == 0) {
         smokeStageSweep();
     }
+    if (strcmp(name, "blo-sweep") == 0) {
+        smokeBloSweep();
+    }
     writef(STDERR_FILENO, "[cos] smoke %s has no runner\n", name);
     pc_exit(PC_EXIT_USAGE);
 }
@@ -266,6 +271,7 @@ const Smoke kSmokes[] = {
     {"msg-sweep", kAfterHeaps},
     {"jpa-sweep", kAfterHeaps},
     {"stage-sweep", kAfterHeaps},
+    {"blo-sweep", kAfterHeaps},
     {"pad-echo", kInGame},
 };
 

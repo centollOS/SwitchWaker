@@ -4,6 +4,7 @@
 #include "JSystem/JGeometry.h"
 #include "JSystem/JSupport/JSUList.h"
 #include "dolphin/mtx/mtx.h"
+#include "helpers/endian.h"
 
 class J2DGrafContext;
 class JSURandomInputStream;
@@ -26,16 +27,18 @@ enum J2DBasePosition {
     J2DBasePosition_BottomRight,
 };
 
+// Block headers of the BLO (SCRNblo1) disc data, stored big-endian: BE(T) is T on the original
+// target (step 4.13 of docs/NATIVE_PORT_PHASE4_6.md).
 struct J2DPaneHeader {
-    /* 0x0 */ u32 mMagic;
-    /* 0x4 */ u32 mSize;
+    /* 0x0 */ BE(u32) mMagic;
+    /* 0x4 */ BE(u32) mSize;
 };
 
 class J2DPane {
 public:
     struct J2DScrnBlockHeader {
-        /* 0x00 */ u32 mMagic;
-        /* 0x04 */ u32 mSize;
+        /* 0x00 */ BE(u32) mMagic;
+        /* 0x04 */ BE(u32) mSize;
     };
 
     J2DPane();

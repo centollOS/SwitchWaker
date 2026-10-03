@@ -1806,6 +1806,31 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   492 LGTV, 605 Colo, 1317 Pale, 845 Virt, 841 EnvR REC lines equal the manifest), smoke and
   `cos_pc_tests` ok, `--gc-verify` 1021, census equal, `--dups` 0, inventory ok (60 open), static-init..logo-res and
   sweeps 0, `--uncapped` 0; `opening` 13 in `JAIZelBasic::talkOut` as before.
+- **4.13 J2D BLO screens** (2026-10-03): `COS_SMOKE=blo-sweep` 0 x4; the report equals the manifest
+  (63 BLO files, nested `dat/file_select.arc` included; 4196 panes).
+  - **The screen stream was read host-order.** `J2DScreen::set` builds every pane from a
+    `JSUMemoryInputStream` over the big-endian SCRNblo1 file. `JSUInputStream`'s 16- and 32-bit
+    reads (`readU16/S16/U32/S32`, `read16b/32b`) now read through `BE(T)` locals, as Dusklight's
+    `JSUInputStream.h` does (only J2D uses them); the block headers read whole into structs
+    (`J2DPaneHeader`, `J2DPane::J2DScrnBlockHeader`, the file header in `checkSignature`, INF1 in
+    `getScreenInformation`, `J2DWindow`'s header words) have `BE(u32)`/`BE(u16)` fields. Tags,
+    bounds, colours (through `TColor`'s 0xRRGGBBAA form), spacing and font sizes then come out as on
+    the GameCube; `BE(T)` is `T` there. `J2DPane.h`'s two headers join `layout_headers.txt`
+    (1027 GameCube checks).
+  - **Harness:** new `native/src/pc/pc_blo.cpp` (after M2). Every `.arc` under `/res` is mounted
+    in main RAM, or in ARAM when it stores compressed files (the logo scene's `aramMount` archives
+    under `/res/Msg`; a MEM mount hands those out still compressed); the nested archive is mounted
+    with `mountFixed` as `d_s_name` does; `fontres.arc` stays mounted. Each BLO is read
+    independently (big-endian loads: INF1, the BGN1/END1/EXT1 tree, every pane field and its
+    kind's fields) and built with `J2DScreen::set(<name>, archive)`; the pane tree in pre-order
+    must match in kind, depth and every field; texture references to the same archive must give a
+    `JUTTexture` on that ResTIMG (2487 checked; 1769 references to other archives are counted, as
+    are the USA disc's missing `rock_24_20_4i*`/`rodb_16_11_4i` fonts); deleting the screen must
+    give the test heap back. `blo_sweep.txt` goes to `disc_manifest.py --check-blo` (pane counts
+    per file, every BLO of the disc). Negative check: with HEAD's `JSUInputStream.h` every one of the
+    4196 panes differs (tags reversed, bounds and rotations byte-swapped); exit 1.
+  Verified: build 0 errors; `cos_pc_tests` ok; inventory ok (60 open); logo-res, font, msg-sweep 0.
+  Reviewed (round 1): `blo-sweep` 0 (63 BLO, 4196 panes, 0 errors); `regress.sh -j 3` all checks passed.
 
 - **6.3 Input injection** (2026-10-03): `COS_SMOKE=pad-echo` 0 x5 (4 capped, 1 `--uncapped`);
   M10 `file-select` not reachable yet: the boot still stops at M7 (`file-select` 13 in

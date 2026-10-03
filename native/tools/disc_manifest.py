@@ -52,6 +52,11 @@ Usage
                                                   FILI, MULT, SCLS, PATH/PPNT, RPAT/RPPN,
                                                   CAMR/RCAM, AROB/RARO, EVNT, 2DMA and SOND
                                                   records (exit 0 equal, 1 different)
+  disc_manifest.py --check-blo BLO [--out FILE]  compare the panes J2DScreen built in COS_SMOKE=
+                                                  blo-sweep (<run dir>/blo_sweep.txt) with the
+                                                  manifest's BLO files: every file of the disc
+                                                  (nested archives included) and its PAN1, PIC1,
+                                                  WIN1 and TBX1 counts (exit 0 equal, 1 different)
   disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
 
 Manifest (JSON)
@@ -1047,6 +1052,21 @@ def check_msg(manifest, msg_path):
     return report_problems(problems, "msg_sweep.txt equals the manifest")
 
 
+def check_blo(manifest, blo_path):
+    """blo_sweep.txt: what COS_SMOKE=blo-sweep built through J2DScreen::set, one line per file in
+    the font.txt syntax: 'BLO <path> PAN1=n PIC1=n WIN1=n TBX1=n', the panes of each kind in the
+    game's pane tree against the file's blocks of that tag. Every BLO of the disc must be there."""
+    problems = []
+    files, _ = check_jut_lines(manifest, blo_path, {"BLO": "blo"}, problems)
+    all_blo = [r for r in records_by_path(manifest).values() if r.get("format") == "blo"]
+    panes = sum(sum(r.get("panes", {}).values()) for r in all_blo)
+    print("disc_manifest: blo_sweep.txt: %d BLO (the disc has %d, %d panes)"
+          % (files["BLO"], len(all_blo), panes))
+    if files["BLO"] != len(all_blo):
+        problems.append("%d BLO files reported, the disc has %d" % (files["BLO"], len(all_blo)))
+    return report_problems(problems, "blo_sweep.txt equals the manifest")
+
+
 def check_jpa(manifest, jpa_path):
     """jpa_sweep.txt lines (fields separated by single spaces): 'JPC <path> emitter_count=N
     texture_count=N', 'EMTR <path> <index> res_id= blocks= keys= fields= textures= tags=A,B,...'
@@ -1477,6 +1497,8 @@ def main():
                     help="compare a COS_SMOKE=jpa-sweep report with the manifest")
     ap.add_argument("--check-stage", metavar="STG",
                     help="compare a COS_SMOKE=stage-sweep report with the manifest")
+    ap.add_argument("--check-blo", metavar="BLO",
+                    help="compare a COS_SMOKE=blo-sweep report with the manifest")
     ap.add_argument("--summary", action="store_true", help="print an existing manifest's counts")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
@@ -1493,6 +1515,8 @@ def main():
         return check_jpa(load_manifest(args.out), args.check_jpa)
     if args.check_stage:
         return check_stage(load_manifest(args.out), args.check_stage)
+    if args.check_blo:
+        return check_blo(load_manifest(args.out), args.check_blo)
     if args.summary:
         print_summary(load_manifest(args.out))
         return EXIT_OK
