@@ -116,8 +116,8 @@ console. The parts game glue needs to know:
   `COSSdkGetErrorHandler` returns them.
 - `src/os/OSModule.cpp` (step 2.9) defines the REL module list `__OSModuleList` and
   `__OSStringTable`, which the decomp's `OSLink.h` placed at fixed addresses. The list stays empty;
-  `OSLink`, `OSLinkFixed`, `OSUnlink` and `OSSetStringTable` are not provided (step 3.5 removes
-  their callers).
+  `OSLink`, `OSLinkFixed`, `OSUnlink` and `OSSetStringTable` are not provided: step 3.5 put
+  their callers in `DynamicLink.cpp` and `c_dylink.cpp` under `!TARGET_PC`.
 
 ## VI retrace and GX gaps (step 2.6c)
 

@@ -24,9 +24,9 @@ costs about 0.9 host instructions per guest instruction against 27 for the trans
 
 Phase 1 of `docs/NATIVE_PORT_PLAN.md`: every game unit compiles to an object with Apple clang
 (arm64, C++20 / C11) under `TARGET_PC`, against the host C and C++ libraries instead of
-Metrowerks' MSL. Nothing is linked yet. Since step 2.8 of `docs/NATIVE_PORT_PHASE2_3.md` the game
-compiles against Aurora's SDK headers (see "Aurora (phase 2)" below), so every configure brings in
-Aurora.
+Metrowerks' MSL. Phase 3 links them into one executable (see "The executable `centollos` (phase 3)"
+below). Since step 2.8 of `docs/NATIVE_PORT_PHASE2_3.md` the game compiles against Aurora's SDK
+headers (see "Aurora (phase 2)" below), so every configure brings in Aurora.
 
 Requirements: Xcode command line tools (Apple clang), CMake 3.28 or newer (Aurora's FetchContent
 needs it), Ninja, and the network on the first configure unless a local Aurora checkout is given.
@@ -56,7 +56,7 @@ in `COS_MODULES_READY` (`cmake/modules.cmake`) compile and default to on (curren
 | `m_Do` | `COS_MODULE_m_Do` | `m_Do` |
 | `d-core` | `COS_MODULE_d_core` | `d/*.cpp` |
 | `actors-1` … `actors-6` | `COS_MODULE_actors_N` | `d/actor`, sorted, in six equal chunks |
-| `audio` | `COS_MODULE_audio` | `JSystem/JAudio` (steps 3.7a and 3.7b; its four DSP `.c` units compile as C++, as the decomp's `-lang c++`); `JAZelAudio` follows in a later 3.7 step |
+| `audio` | `COS_MODULE_audio` | `JSystem/JAudio` and `JAZelAudio`, 74 units (steps 3.7a to 3.7c; the four DSP `.c` units compile as C++, as the decomp's `-lang c++`); silent until phase 5 |
 
 ```sh
 cmake -S native -B build/native-mac -DCOS_MODULE_framework=ON  # or -DCOS_ALL_MODULES=ON
@@ -64,11 +64,11 @@ ninja -C build/native-mac -k 0 SSystem                         # one module at a
 ninja -C build/native-mac cos_deferred                         # deferred units and reasons
 ```
 
-Never part of the build in phase 1 (their headers may still be included): `src/dolphin` (the SDK
-over Aurora is phase 2), `src/REL` (phase 3), `src/JSystem/JAudio` and `src/JAZelAudio` (compiled for the phase 3 link
-since step 3.7, silent until phase 5),
-`src/PowerPC_EABI_Support`, `src/TRK_MINNOW_DOLPHIN`, `src/OdemuExi2`, `src/odenotstub`,
-`src/amcstubs`.
+Never part of the build (their headers may still be included): `src/dolphin` (the SDK is Aurora
+plus `native/sdk`, phase 2), `src/REL` (the REL runtime: on PC the REL units are linked statically,
+phase 3), `src/PowerPC_EABI_Support`, `src/TRK_MINNOW_DOLPHIN`, `src/OdemuExi2`, `src/odenotstub`,
+`src/amcstubs`. `src/JSystem/JAudio` and `src/JAZelAudio` were left out in phase 1 and are built by
+the `audio` module since step 3.7.
 
 ### Layout
 
@@ -193,10 +193,12 @@ ninja -C build/native-mac cos_scaffold_check cos_sdk_header_check cos_sdk_shadow
   duplicates are made local in copies of the objects (`ld -r`) and the census still links; the
   report counts them. (Phase 1's decomp SDK headers defined the hardware registers, `__VIRegs`,
   `OS_*`..., in every unit; Aurora's headers do not.)
-- Phase 2 exit (step 2.9): the list must equal `native/check/expected_unresolved_phase2.txt`, which
-  holds only the REL symbol `g_fpcPfLst_ProfileList` (which `f_pc_profile.cpp` points at on PC
-  since step 3.4; the REL loader's `OSLink`, `OSLinkFixed`, `OSUnlink` and `OSSetStringTable` are
-  gone since step 3.5) and the JAudio/JAZel ones (step 3.7, phase 5):
+- Phase 2 exit (step 2.9), kept up to date through phase 3: the list must equal
+  `native/check/expected_unresolved_phase2.txt`. Since step 3.7c it holds a single symbol, the
+  REL symbol `g_fpcPfLst_ProfileList`: `f_pc_profile.cpp` points at it on PC (step 3.4) and the
+  REL unit `f_pc_profile_lst.cpp`, which the census leaves out, defines it. The REL loader's
+  `OSLink`, `OSLinkFixed`, `OSUnlink` and `OSSetStringTable` are gone since step 3.5, and the
+  JAudio/JAZel symbols since step 3.7c (the `audio` module is a main.dol module):
 
   ```sh
   ninja -C build/native-mac cos_link_census
@@ -227,3 +229,77 @@ native/tools/symbol_census.py --all --dups      # the step 3.2 check
 
 The REL list is regenerated with
 `native/tools/link_census.py rel-units --configure <decomp>/configure.py --out native/cmake/rel_units.txt --game-src game/src`.
+
+## The executable `centollos` (phase 3)
+
+Phase 3 of `docs/NATIVE_PORT_PHASE2_3.md` links the main.dol units, the 415 REL actors and
+`f_pc_profile_lst` statically into one executable, following Dusklight's `c_dylink`. It is a
+link and static-initialisation milestone only: the game does not boot yet (64-bit and endianness
+are phase 4, audio is silent until phase 5, Aurora's event loop and the boot to the title are
+phase 6).
+
+```sh
+cmake -S native -B build/native-mac -G Ninja      # all modules are on by default
+ninja -C build/native-mac -k 0 cos_modules         # 914 objects: 424 main.dol, 416 REL, 74 audio
+ninja -C build/native-mac centollos                      # build/native-mac/centollos (not part of `all`)
+COS_SMOKE=static-init build/native-mac/centollos; echo $?
+#   static-init: 502 of 502 profile slots filled, 0 error(s)
+#   0
+```
+
+- `native/cmake/executable.cmake` defines `centollos`. Its only source is a generated empty unit; the
+  objects of every module (nothing is recompiled) go in through
+  `build/native-mac/cos_exe/objects.rsp` in this order: the main.dol units, then the REL units of
+  `native/cmake/rel_units.txt` (`f_pc_profile_lst` first), then `audio`. ld64 runs static
+  initialisers in input order, so the REL units see main.dol's globals already initialised, as a
+  REL's `_prolog` did after boot. It links `cos_sdk` (which carries `COS_AURORA_LIBS`) and
+  `aurora::main`, which owns the process entry point and calls the game's `main` (renamed
+  `aurora_main` by `<aurora/main.h>` in `m_Do_main.cpp`). There is no
+  `-undefined dynamic_lookup`: `nm -u build/native-mac/centollos` lists only system, framework and
+  Homebrew library symbols. The target is skipped when `cos_sdk` or any module is not enabled.
+- The REL loader is replaced under `TARGET_PC`: `c_dylink.cpp`'s name table is empty and
+  `cDyl_Link`/`cDyl_LinkASync` report the module as linked; `DynamicLink.cpp` keeps the class
+  shell without the loading and linking (`OSLink*`). `cDyl_InitAsync` still runs its callback on
+  the DVD thread, so the boot order (the logo scene waits for it) is unchanged.
+- The profile list is static: `g_fpcPf_ProfileList_p` points at `g_fpcPfLst_ProfileList` from the
+  start (constant initialisation), `fpcPf_Get` checks bounds and NULL, and every `g_profile_*` is
+  declared with the type its unit defines it with (decision D5).
+- `COS_SMOKE=static-init` (step 3.9) makes `main` stop before any SDK initialisation: reaching it
+  proves every static constructor (main.dol, REL, audio and Aurora) ran, and it checks the profile
+  list (`g_fpcPf_ProfileList_p`, the NULL terminator, `mProcName == i`, `fpcPf_Get(i)`). It leaves
+  with `_Exit`, without the game's static destructors. Running `centollos` without `COS_SMOKE` enters the
+  game's `main`, which is not expected to work before phases 4 to 6.
+- `native/check/expected_unresolved_phase2.txt` and the symbol census stay the link checks: the
+  census over every object reports 0 duplicate strong definitions, 0 weak data size mismatches, 0
+  weak definitions overridden by a strong one and 0 types defined in more than one source file
+  (steps 3.1 to 3.3). Same-named unit-local types are kept apart under `TARGET_PC` with unnamed
+  namespaces, since the linker would otherwise merge their vtables silently.
+- Phase 1 deferred no unit, so no actor needs a zeroed placeholder profile (step 3.6), and every
+  JAudio/JAZel symbol is defined by the `audio` module, so no trap list (part (b) of step 3.7)
+  exists.
+
+### Targets
+
+| Target | In `all` | What it is |
+| --- | --- | --- |
+| `cos_modules` (and each module) | yes | Every game unit as an object (`OBJECT` libraries) |
+| `cos_deferred` | no | Prints the deferred units and their reasons (none) |
+| `cos_scaffold_check` | yes | Toolchain and base header sanity check |
+| `cos_sdk_header_check` | yes | Every SDK header name the decomp has compiles |
+| `cos_sdk_shadow_check` | no | No SDK header of that unit resolves under `game/include/dolphin` |
+| `cos_sdk`, `cos_sdk_gf` | yes | The game SDK over Aurora (`native/sdk`) |
+| `cos_sdk_smoke` | yes | Headless test of `cos_sdk` (prints `ok`) |
+| `cos_sdk_smoke_tsan` | no | The same under ThreadSanitizer |
+| `cos_link_census` | no | Links the main.dol units with `-undefined dynamic_lookup` and lists what they still need |
+| `cos_symbol_census` | no | `symbol_census.py --all` over every object, to `build/native-mac/symbol_census.txt` |
+| `centollos` | no | The game executable |
+
+Full check after a change, from a clean build directory:
+
+```sh
+ninja -C build/native-mac -k 0 all cos_sdk_shadow_check cos_link_census cos_symbol_census centollos
+build/native-mac/cos_sdk_smoke
+diff -u native/check/expected_unresolved_phase2.txt build/native-mac/link_census_unresolved.txt
+native/tools/symbol_census.py --all --dups
+COS_SMOKE=static-init build/native-mac/centollos
+```

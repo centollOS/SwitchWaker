@@ -813,3 +813,42 @@ Each phase lands as its own commits; this file records decisions and measured re
   Reviewed in round 1: `unifdef -UTARGET_PC` of the 3 sources reproduces HEAD, every default
   target rc=0, smoke ok, link census unchanged (REL 1), and `COS_SMOKE=static-init centollos` prints
   "502 of 502 profile slots filled, 0 error(s)" and exits 0 on two runs.
+- **3.10 Phase 3 log and README:** `native/README.md` gains "The executable `centollos` (phase 3)" (how
+  to build `centollos` and run the static-init smoke, the link order of `executable.cmake`, the REL
+  loader and profile list changes, the link checks) and a table of every target and whether it is
+  in `all`; the stale phase 1 notes (nothing linked, JAudio left out, `JAZelAudio` to follow, the
+  expected unresolved list still holding JAudio/JAZel) are brought up to date. `native/sdk/README.md`
+  says where the `OSLink*` callers went. `RIGHTS_AND_LICENSES.md` gains "Code adapted from
+  Dusklight in the native port": Dusklight is CC0 (`ref/dusklight` at `40457c6`, not in the
+  repository), and lists every file with adapted or copied Dusklight code, each of which carries a
+  provenance comment (16 in `native/sdk/src`, 7 in `game`); the Aurora MIT notice was already
+  there. Final clean build of `build/native-mac` (`ninja -t clean`, then `cmake --fresh` with the
+  default options plus `FETCHCONTENT_SOURCE_DIR_AURORA`): configure 0 errors, every module
+  "0 deferred"; `ninja -k 0 all` rc=0, 0 errors, in 73 s on 10 cores (Aurora, `cos_sdk`,
+  `cos_sdk_gf`, the 914 game objects: 424 main.dol, 416 REL, 74 audio); then `centollos`,
+  `cos_link_census`, `cos_symbol_census`, `cos_deferred` and `cos_sdk_shadow_check` rc=0.
+  `cos_sdk_smoke` prints ok; shadow check ok (82 names); link census equal to
+  `expected_unresolved_phase2.txt` (REL 1: `g_fpcPfLst_ProfileList`); symbol census over 940
+  objects (498 main.dol, 416 REL, 26 cos_sdk): 0 duplicate strong, 0 weak data size mismatches,
+  0 weak overridden, 0 duplicate types, 11 weak code size mismatches (per-unit inlining of
+  `setBlendRatio`, `~J3DMtxCalcAnm` and `~dBgS_ObjAcch` with its thunks, plus the deliberate weak
+  `OSPanic`/`OSVReport` of `cos_sdk` and the `DSPAddTask` pair of step 3.7b); `--all --dups` and
+  `--dol` exit 0; `centollos` links without `-undefined dynamic_lookup` against system frameworks,
+  libc++ and Homebrew's libpng/freetype/zstd only; `COS_SMOKE=static-init build/native-mac/centollos`
+  prints "502 of 502 profile slots filled, 0 error(s)" and exits 0 on two runs.
+  Reviewed in round 1: docs only; every listed Dusklight file carries its provenance comment;
+  a second clean configure and build gives the same results (`all` and the extra targets rc=0 in
+  75 s, smoke ok, link census unchanged, 0 duplicate strong, 11 weak code size mismatches,
+  static-init 502 of 502).
+- **Phase 3 done:** the main.dol units, the 416 REL units (`f_pc_profile_lst` and 415 actors)
+  and JAudio/JAZelAudio link statically into one executable, `build/native-mac/centollos`, with
+  `cos_sdk` and Aurora and nothing left unresolved; every static constructor runs before `main`
+  and the profile list is complete and in order. On the way: 3 duplicate strong symbols removed
+  (3.2) and 8 same-named types kept apart, one of them (`MyScreen`) a real silent vtable merge
+  (3.3); the profile list is static and typed (3.4, D5); the REL loader is gone while
+  `cDyl_InitAsync` keeps the boot order (3.5); JAudio and JAZelAudio compile for real and silent
+  (3.7a-c, D4) with the real 64-bit pointer bugs they had fixed, so no trap list was needed; two
+  constructors that crashed before `main` fixed (3.9). Steps 3.6 (deferred actors) and 3.7's trap
+  generator were not needed. Not done here, by design: the game's `main` without `COS_SMOKE`
+  (phase 6), the `TODO(native phase 4)` pointer-in-32-bit-field and big-endian data notes, and
+  the `TODO(native phase 5)` DSP and streaming semantics.
