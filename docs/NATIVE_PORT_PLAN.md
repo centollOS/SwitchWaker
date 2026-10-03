@@ -500,3 +500,15 @@ Each phase lands as its own commits; this file records decisions and measured re
   and checks rebuilt (13 steps), 0 errors.
   Review: rerun independently (d-core rebuilt from clean in aurora mode, 136/136 units, 0 errors;
   smoke ok; edited files force-rebuilt in the default decomp configuration, 0 errors).
+- **2.7 actors-1:** compiles in aurora header mode (all 74 units, `d_a_acorn_leaf` .. `d_a_fan`,
+  0 errors; the first aurora build compiled all 74) and still in decomp mode. First aurora build:
+  1 unit failed on 1 error (no unit near clang's 50-per-unit limit): `d_a_bgn` calls the game-only
+  `GFSetCullMode` but includes only `dolphin/gf/GFGeometry.h`, a name both trees have, so it
+  resolves to Aurora's, which lacks it. Fix, as `cos_gf_extras.h` prescribes: under
+  `TARGET_PC && defined(COS_SDK_AURORA)` `d_a_bgn` includes the `dolphin/gf/GF.h` forwarder instead
+  (original include kept). No forwarder change, no `STATIC_ASSERT` fired. Aurora mode: SSystem, the
+  four JSystem modules, framework, m_Do, d-core, actors-1, `cos_sdk`, smoke (ok), scaffold, header
+  and shadow checks (82 names, ok) build; default configuration: `cos_modules` and checks rebuilt
+  (1 step), 0 errors.
+  Review: rerun independently (actors-1 rebuilt from clean in aurora mode, 74/74 units, 0 errors;
+  smoke ok; `d_a_bgn` force-rebuilt in the default decomp configuration, 0 errors).
