@@ -13,6 +13,11 @@
 #include "m_Do/m_Do_controller_pad.h"
 #include "d/d_auction_screen.h"
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): NpcDatStruct is also defined by other NPC units. All units link into
+// one executable on PC, so keep this definition local to the unit.
+namespace {
+#endif
 struct NpcDatStruct {
     /* 0x00 */ f32 field_0x00;
     /* 0x04 */ f32 field_0x04;
@@ -20,6 +25,9 @@ struct NpcDatStruct {
     /* 0x0A */ s16 mBidIncMax; // Maximum bid increment
     /* 0x0C */ s16 mSpendingLimit;
 };
+#if TARGET_PC
+} // namespace
+#endif
 
 struct NpcMsgDatStruct {
     /* 0x00 */ s16 field_0x00;

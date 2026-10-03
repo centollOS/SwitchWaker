@@ -3864,6 +3864,11 @@ static int l_get_item_no[] = {
     dItemNo_COLLECT_MAP_15_e,
 };
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): PsoData is also defined by d_a_npc_photo.cpp. All units link into
+// one executable on PC, so keep this definition local to the unit.
+namespace {
+#endif
 struct PsoData {
     /* 0x00 */ f32 field_0x00;
     /* 0x04 */ f32 field_0x04;
@@ -3875,6 +3880,9 @@ struct PsoData {
     /* 0x17 */ s8 field_0x17;
     /* 0x18 */ u8 photoNo;
 }; // Size: 0x19
+#if TARGET_PC
+} // namespace
+#endif
 
 static PsoData l_pso_uo2 = {
     0.0f,

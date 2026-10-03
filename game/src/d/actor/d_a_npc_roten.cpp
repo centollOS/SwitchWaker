@@ -115,6 +115,11 @@ static sRotenAnmDat l_npc_anm_wind[] = {
     },
 };
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): NpcDatStruct is also defined by other NPC units. All units link into
+// one executable on PC, so keep this definition local to the unit.
+namespace {
+#endif
 struct NpcDatStruct {
     /* 0x00 */ f32 field_0x00;
     /* 0x04 */ s16 field_0x04;
@@ -147,6 +152,9 @@ struct NpcDatStruct {
     /* 0x50 */ s16 field_0x50;
     /* 0x52 */ s16 field_0x52;
 }; // Size: 0x54
+#if TARGET_PC
+} // namespace
+#endif
 
 static NpcDatStruct l_npc_dat[] = {
     {
@@ -1486,12 +1494,20 @@ static const int l_diff_flag_tbl[] = {
     0x37461622,
 };
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): SaveDatStruct is also defined by d_a_npc_photo.cpp. All units link into
+// one executable on PC, so keep this definition local to the unit.
+namespace {
+#endif
 struct SaveDatStruct {
     /* 0x00 */ u16 field_0x00;
     /* 0x02 */ u16 field_0x02;
     /* 0x04 */ u16 field_0x04;
     /* 0x06 */ u16 field_0x06;
 }; // Size: 0x08
+#if TARGET_PC
+} // namespace
+#endif
 
 static const SaveDatStruct l_save_dat[] = {
     {

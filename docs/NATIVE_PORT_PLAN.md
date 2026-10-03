@@ -665,3 +665,24 @@ Each phase lands as its own commits; this file records decisions and measured re
   `d_a_fganon.cpp` and `d_a_shand.cpp` after `nm -m` over all objects showed no other reference.
   Reviewed in round 1: `symbol_census.py --all --dups` reports 0 (866 objects), all default
   targets and checks rc=0, phase 2 unresolved diff empty.
+- **3.3 ODR audit:** the 8 types the census listed are wrapped under `TARGET_PC` in an unnamed
+  namespace per unit: `Attr_c` (`d_a_obj_shmrgrd.cpp` with its `attr()`, `d_wood.cpp` with
+  `AttrSway_c`), `NpcDatStruct` (`d_a_auction`, `d_a_npc_photo`, `d_a_npc_roten` and the headers
+  `d_a_npc_ah.h`/`mn.h`/`mt.h`, used only by their units' static data), `PsoData`, `SaveDatStruct`,
+  `SafetyCallback`, `attack_info_s` (both definitions each) and `fopMsg_prm_MGameTerm` in
+  `d_minigame_terminater.cpp`. `MyScreen` was a real merge: `d_file_error.cpp` defines its
+  `MyScreen` destructor out of line, so its strong vtable (with the `createPane` override) replaced
+  `d_menu_collect.cpp`'s weak one of the same size, which the size check cannot see. That one
+  moves to `namespace dMenu_Collect` (`d_menu_collect.h` forward-declares it there and types
+  `dMenu_Collect_c::scrn` with it), since the header refers to it. The census gains a section
+  "weak definitions overridden by a strong one" for that case. Result: 0 duplicate strong, 0 weak
+  data size mismatches, 0 weak overridden, 0 duplicate types (over d/actor alone too). The 10
+  weak code size mismatches remain and are not ODR: one inline source optimised differently per
+  unit (`setBlendRatio`, `~J3DMtxCalcAnm`, `~dBgS_ObjAcch` and thunks inline the out-of-line
+  callees of their own unit) plus the deliberate weak `OSPanic`/`OSVReport` defaults of
+  `cos_sdk` (step 2.6b); `d_mesg.cpp`, still unbalanced for the scan, defines no types.
+  Reviewed in round 1: census over 866 objects reports 0 duplicate strong, 0 weak data size
+  mismatches, 0 weak overridden, 0 duplicate types; an independent scan of d/actor, d, f_op and
+  m_Do with `TARGET_PC` on finds 0 duplicate class names outside namespaces (6 with it off), and
+  `nm -m` over all objects finds no weak/strong pair. All default targets and checks rc=0, phase 2
+  unresolved diff empty.

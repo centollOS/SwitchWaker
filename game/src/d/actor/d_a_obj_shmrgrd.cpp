@@ -10,6 +10,11 @@
 #include "d/d_com_inf_game.h"
 #include "d/actor/d_a_player.h"
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): d_wood.cpp also defines Attr_c and attr(). All units link into one
+// executable on PC, so keep these definitions local to the unit.
+namespace {
+#endif
 struct Attr_c {
     /* 0x00 */ f32 mVSpring;
     /* 0x04 */ f32 mIntVSpeedDecay;
@@ -37,6 +42,9 @@ const Attr_c L_attr = {
 };
 
 inline const Attr_c & attr() { return L_attr; }
+#if TARGET_PC
+} // namespace
+#endif
 
 int daObjShmrgrd_c::M_damage;
 short daObjShmrgrd_c::M_damage_dir;

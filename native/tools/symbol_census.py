@@ -8,7 +8,11 @@ Reports, across a set of Mach-O object files:
      vtables, template instances) whose size differs between the objects that define it. For data
      (vtables, typeinfo, static members) this is a strong sign of an ODR violation: two classes of
      the same name with different layouts, merged silently by the linker. For code it is only a
-     hint, since each unit optimises its copy of an inline function on its own.
+     hint, since each unit optimises its copy of an inline function on its own;
+  3. weak definitions overridden by a strong one (step 3.3): an external symbol one object defines
+     weak and another strong. The linker keeps the strong one without a word, so two classes of
+     the same name, one with an out-of-line key function, share one vtable even when the sizes
+     match.
 
 Mach-O has no symbol sizes, so a symbol's size is the distance to the next symbol of its section
 (local symbols included) or to the end of the section.
@@ -229,6 +233,16 @@ def weak_size_mismatches(objects: list[ObjectSymbols]) -> dict[str, list[Definit
     return {n: ds for n, ds in defs.items() if len({d.size for d in ds}) > 1}
 
 
+def weak_overridden(objects: list[ObjectSymbols]) -> dict[str, list[Definition]]:
+    """Symbol -> definitions for external symbols defined weak by one object and strong by another."""
+    defs: dict[str, list[Definition]] = {}
+    for o in objects:
+        for d in o.defined:
+            defs.setdefault(d.name, []).append(d)
+    return {n: ds for n, ds in defs.items()
+            if any(d.weak for d in ds) and any(not d.weak for d in ds)}
+
+
 def demangle(names: list[str]) -> dict[str, str]:
     """Mangled (with Mach-O's leading '_') -> readable, through one c++filt call."""
     if not names:
@@ -425,8 +439,10 @@ def format_report(objects: list[ObjectSymbols], dups: dict[str, list[str]],
                   limit: int = 0, rel: set[str] | None = None,
                   types: dict[str, list[str]] | None = None, groups: str = "",
                   unscanned: list[str] | None = None,
-                  dups_only: bool = False) -> str:
-    names = sorted(set(dups) | (set() if dups_only else set(weak)))
+                  dups_only: bool = False,
+                  overridden: dict[str, list[Definition]] | None = None) -> str:
+    overridden = {} if dups_only else (overridden or {})
+    names = sorted(set(dups) | (set() if dups_only else set(weak) | set(overridden)))
     pretty = demangle(names)
     if dups_only:
         weak = {}
@@ -442,6 +458,7 @@ def format_report(objects: list[ObjectSymbols], dups: dict[str, list[str]],
     if not dups_only:
         lines.append(f"weak definitions with differing sizes: {len(weak_data)} data, "
                      f"{len(weak_code)} code")
+        lines.append(f"weak definitions overridden by a strong one: {len(overridden)}")
     if types is not None and not dups_only:
         lines.append(f"types defined in more than one source file: {len(types)}"
                      f" ({len(unscanned or [])} sources with unbalanced braces)")
@@ -465,6 +482,13 @@ def format_report(objects: list[ObjectSymbols], dups: dict[str, list[str]],
             sizes = sorted({d.size for d in ds})
             lines.append(f"{pretty[n]}  [{n}]  sizes {', '.join(map(str, sizes))}")
             lines.extend(f"    {d.size:>6}  {obj_label(d.obj)}" for d in ds)
+        lines.append("")
+    if overridden:
+        lines.append(f"== weak definitions overridden by a strong one ({len(overridden)}) ==")
+        for n in cap(sorted(overridden, key=lambda s: pretty[s])):
+            lines.append(f"{pretty[n]}  [{n}]")
+            lines.extend(f"    {'weak' if d.weak else 'strong':>6}  {obj_label(d.obj)}"
+                         for d in overridden[n])
         lines.append("")
     src_root = os.path.dirname(_NATIVE_ROOT)
     if types and not dups_only:
@@ -554,9 +578,10 @@ def main(argv: list[str] | None = None) -> int:
     objects = scan(paths)
     dups = duplicate_strong(objects)
     weak = weak_size_mismatches(objects)
+    overridden = weak_overridden(objects)
     types, unscanned = (type_definitions(paths) if args.all and not args.dups else (None, None))
     report = format_report(objects, dups, weak, args.root, args.limit, rel_paths, types, groups,
-                           unscanned, dups_only=args.dups)
+                           unscanned, dups_only=args.dups, overridden=overridden)
     if args.out:
         with open(args.out, "w", encoding="utf-8") as f:
             f.write(report + "\n")

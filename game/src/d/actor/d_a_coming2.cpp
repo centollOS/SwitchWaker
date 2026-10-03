@@ -107,10 +107,18 @@ BOOL daComing2::Act_c::no_ship_obstacle(cXyz* pos) {
     return FALSE;
 }
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): SafetyCallback is also defined by d_a_coming3.cpp. All units link into
+// one executable on PC, so keep this definition local to the unit.
+namespace {
+#endif
 struct SafetyCallback {
     /* 0x00 */ cXyz* pos;
     /* 0x04 */ BOOL ret;
 }; // size = 0x08
+#if TARGET_PC
+} // namespace
+#endif
 
 /* 00000AB8-00000B50       .text position_is_safety_call_back__9daComing2FPvPv */
 void* daComing2::position_is_safety_call_back(void* ac, void* cb) {

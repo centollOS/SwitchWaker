@@ -14,7 +14,13 @@
 #include "d/d_lib.h"
 #include "JSystem/J2DGraph/J2DOrthoGraph.h"
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): d_menu_collect.cpp's MyScreen is not d_file_error.h's MyScreen; on
+// PC it lives in its own namespace so the two classes do not share a vtable.
+namespace dMenu_Collect { class MyScreen; }
+#else
 class MyScreen;
+#endif
 
 struct fopMsgM_pane_class;
 class JKRArchive;
@@ -121,7 +127,11 @@ public:
 
 private:
     /* 0x0000 */ // vtable
+#if TARGET_PC
+    /* 0x0004 */ dMenu_Collect::MyScreen* scrn;
+#else
     /* 0x0004 */ MyScreen* scrn;
+#endif
     /* 0x0008 */ fopMsgM_pane_class m008;
     /* 0x0040 */ fopMsgM_pane_class m040;
     /* 0x0078 */ fopMsgM_pane_class m078;

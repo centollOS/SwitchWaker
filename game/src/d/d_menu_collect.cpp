@@ -12,10 +12,20 @@
 #include "JAZelAudio/JAZelAudio_SE.h"
 #include "d/d_meter.h"
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): d_file_error.h also defines a MyScreen. Its destructor is out of
+// line, so d_file_error.cpp's strong vtable would replace this class's weak one in the PC
+// executable. This one lives in its own namespace (d_menu_collect.h declares it there too).
+namespace dMenu_Collect {
+#endif
 class MyScreen : public J2DScreen {
 public:
     virtual ~MyScreen() {}
 };
+#if TARGET_PC
+} // namespace dMenu_Collect
+using dMenu_Collect::MyScreen;
+#endif
 
 dMc_HIO_c g_mcHIO;
 

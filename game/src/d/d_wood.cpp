@@ -32,6 +32,11 @@ enum AttrSway_e {
     SWAY_PUSH,
 };
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): d_a_obj_shmrgrd.cpp also defines Attr_c. All units link into one
+// executable on PC, so keep these definitions local to the unit.
+namespace {
+#endif
 struct AttrSway_c {
     /* 0x0 */ s16 phaseVelY;
     /* 0x2 */ s16 ampY;
@@ -59,6 +64,9 @@ struct Attr_c {
     /* 0x94 */ u8 kPushBackCountdown;   // = 23
     /* 0x95 */ u8 L_Alpha_Cutoff;       // = 0x80;
 };
+#if TARGET_PC
+} // namespace
+#endif
 
 typedef void (dWood::Anm_c::*modeProcFunc)(dWood::Packet_c *);
 

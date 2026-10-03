@@ -63,11 +63,19 @@ static int mo2_attack_go_SE[] = {JA_SE_CV_MO_JAB, JA_SE_CV_MO_HOOK, JA_SE_CV_MO_
 static int mo2_attack_AP[] = {1, 2, 4, 0, 1, 2};
 static f32 br_set_tm[] = {-100.0f, 28.0f, 38.0f, -100.0f, -100.0f, -100.0f};
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): attack_info_s is also defined by d_a_bk.cpp. All units link into
+// one executable on PC, so keep this definition local to the unit.
+namespace {
+#endif
 struct attack_info_s {
     /* 0x00 */ int bckFileIdx;
     /* 0x04 */ f32 speed;
     /* 0x08 */ int soundFileIdx;
 };
+#if TARGET_PC
+} // namespace
+#endif
 
 static attack_info_s Atsuki_info[] = {
     {dRes_INDEX_MO2_BCK_ATSUKI01_e, 1.0f, dRes_INDEX_MO2_BAS_ATSUKI01_e},

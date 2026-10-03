@@ -12,6 +12,11 @@ struct sAhAnmDat {
     /* 0x02 */ s8 field_0x02;
 }; // Size: 0x03
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): NpcDatStruct is also defined by other NPC units. All units link into
+// one executable on PC, so keep this definition local to each unit that includes this header.
+namespace {
+#endif
 struct NpcDatStruct {
     /* 0x00 */ s16 mMax_head_x;
     /* 0x02 */ s16 mMax_head_y;
@@ -47,6 +52,9 @@ struct NpcDatStruct {
     /* 0x52 */ s8 field_0x52;
     /* 0x53 */ s8 field_0x53;
 }; // Size: 0x54
+#if TARGET_PC
+} // namespace
+#endif
 
 class daNpcAh_c : public fopNpc_npc_c {
 public:

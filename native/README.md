@@ -210,8 +210,10 @@ native/tools/symbol_census.py build/native-mac/CMakeFiles/SSystem.dir --root bui
 Full symbol census (step 3.1): `--all` takes every object the phase 3 executable links (main.dol
 units, the REL units, marked `(REL)`, and `cos_sdk`) and adds a source-level section: types
 (class/struct/union) defined at namespace scope, outside unnamed namespaces, in more than one
-source file, since a plain struct leaves no symbol for `nm` to compare. It only reports; `--dups`
-prints only the duplicate strong definitions and exits 1 if there is any.
+source file, since a plain struct leaves no symbol for `nm` to compare. It also lists weak
+definitions that a strong definition in another object overrides (step 3.3): the linker keeps the
+strong one silently, so two same-named classes can share a vtable even when the sizes match. It
+only reports; `--dups` prints only the duplicate strong definitions and exits 1 if there is any.
 
 ```sh
 ninja -C build/native-mac cos_symbol_census     # writes build/native-mac/symbol_census.txt

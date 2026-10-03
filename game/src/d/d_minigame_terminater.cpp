@@ -32,12 +32,20 @@ static s16 dMgtem_yougot_tex = 6;
 static s16 dMgtem_remain_tex = 13;
 #endif
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): fopMsg_prm_MGameTerm is also defined by f_op_msg_mng.cpp. All units link into
+// one executable on PC, so keep this definition local to the unit.
+namespace {
+#endif
 struct fopMsg_prm_MGameTerm : public fopMsg_prm_class {
     /* 0x1C */ u32 mTime;
     /* 0x20 */ u32 mRupee;
     /* 0x24 */ s16 field_0x24;
     /* 0x26 */ s16 mFinishType;
 };
+#if TARGET_PC
+} // namespace
+#endif
 
 /* 80206FC0-80207164       .text _create__22dMinigame_Terminater_cFv */
 cPhs_State dMinigame_Terminater_c::_create() {

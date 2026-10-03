@@ -86,6 +86,11 @@ static sPhotoAnmDat l_npc_anm_talk4[] = {
     },
 };
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): NpcDatStruct is also defined by other NPC units. All units link into
+// one executable on PC, so keep this definition local to the unit.
+namespace {
+#endif
 struct NpcDatStruct {
     /* 0x00 */ f32 field_0x00;
     /* 0x04 */ s16 field_0x04;
@@ -119,6 +124,9 @@ struct NpcDatStruct {
     /* 0x52 */ bool field_0x52;
     /* 0x53 */ bool field_0x53;
 }; // Size: 0x54
+#if TARGET_PC
+} // namespace
+#endif
 
 static NpcDatStruct l_npc_dat = {
     0.0f,
@@ -516,12 +524,20 @@ static const int l_btp_ix_tbl[] = {
     dRes_ID_PO_BTP_MABA02_e
 };
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): SaveDatStruct is also defined by d_a_npc_roten.cpp. All units link into
+// one executable on PC, so keep this definition local to the unit.
+namespace {
+#endif
 struct SaveDatStruct {
     /* 0x00 */ u16 field_0x00;
     /* 0x02 */ u16 field_0x02;
     /* 0x04 */ u16 field_0x04;
     /* 0x06 */ u16 field_0x06;
 }; // Size: 0x08
+#if TARGET_PC
+} // namespace
+#endif
 
 static const SaveDatStruct l_save_dat = {
     dSv_event_flag_c::UNK_1208,
@@ -531,6 +547,11 @@ static const SaveDatStruct l_save_dat = {
 };
 
 
+#if TARGET_PC
+// Native port step 3.3 (ODR): PsoData is also defined by d_a_npc_people.cpp. All units link into
+// one executable on PC, so keep this definition local to the unit.
+namespace {
+#endif
 struct PsoData {
     /* 0x00 */ f32 field_0x00;
     /* 0x04 */ f32 field_0x04;
@@ -541,6 +562,9 @@ struct PsoData {
     /* 0x16 */ u8 field_0x16;
     /* 0x17 */ u8 field_0x17;
 };  // Size: 0x18
+#if TARGET_PC
+} // namespace
+#endif
 
 static PsoData l_pso_photo = {
     0.0f,
