@@ -2758,6 +2758,21 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: VrTest/M_DragB/MiniHyo reach their frames; a second sweep gives 139 of 155 (16 fail)
   with no wrap-mode abort; regression passes.
 
+- **Boot-sweep fix 4: actor heap size -1 kept as "all free memory"** (2026-10-03, lane outset,
+  host-semantics, H5). Most common signature left (3 of 16): SIGSEGV addr=0x0 in
+  `J3DModel::J3DModel` (J3DModel.cpp:21) <- `mDoExt_J3DModel__create` (K_Test9, Opub, Siren; from
+  `daObjTable::Act_c::CreateHeap` and other `MoveBGCreate(..., -1)` actors). Root cause: the H5
+  doubling in `fopAcM_entrySolidHeap` also doubled the sentinel -1 ("take all free memory") to
+  0xFFFFFFFE, which `mDoExt_createSolidHeap` does not recognise; `ALIGN_NEXT(0xFFFFFFFE, 0x10)`
+  wraps to 0, so the actor got a header-only heap and its first `new J3DModel` returned NULL.
+  Under `#if TARGET_PC` 0 and -1 are now passed through unchanged (and a size above 0x7FFFFFFF
+  becomes -1 instead of wrapping). Sweep: 139 -> 142 of 155 (13 fail, 1 skipped); K_Test9, Opub
+  and Siren pass. ADMumi (`cBgW::Set` <- `daObjDoguuD_c::CreateHeap`, estimate 0x1460) is the
+  other cause noted in fix 2 (NULL from `operator new` not checked on the host) and still fails.
+  Regression passes.
+  Reviewed: K_Test9/Opub/Siren reach frame 600; a second sweep gives 142 of 155 (13 fail) with no
+  J3DModel NULL crash; regression passes.
+
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
   variable values checked, max |v| 500000). Builds on the boot loops' STB/FVB big-endian
