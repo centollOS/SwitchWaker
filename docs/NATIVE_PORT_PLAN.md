@@ -47,7 +47,7 @@ instructions per guest instruction against about 27 for the translation
    under 33 ms at 1020 MHz).
 7. **The Switch:** cross-compile with devkitA64, reuse `switch/` (Aurora, shim, NRO, SD, logs).
 
-Phase 2 and 3 step plan and decisions: `docs/NATIVE_PORT_PHASE2_3.md`.
+Phase 2 and 3 step plan and decisions: `docs/NATIVE_PORT_PHASE2_3.md`. Phases 4-6: `docs/NATIVE_PORT_PHASE4_6.md`.
 
 Each phase lands as its own commits; this file records decisions and measured results as they come.
 
