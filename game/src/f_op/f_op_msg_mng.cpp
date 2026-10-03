@@ -569,7 +569,13 @@ char* fopMsgM_messageGet(char* i_dest, u32 i_msgNo) {
 
     while (*src != '\0') {
         if ((u8)*src == 0x1A) {
+#if TARGET_PC
+            // The tag's length, group and code bytes, read as the big-endian u32 the GameCube
+            // loads (step 4.6).
+            u32 next_as_int = *(BE(u32)*)(++src);
+#else
             u32 next_as_int = *(u32*)(++src);
+#endif
             if ((next_as_int & 0xFFFFFF) == 0x1E) {
                 *dst = 0x1A;
                 dst++;
@@ -636,7 +642,13 @@ char* fopMsgM_passwordGet(char* i_dest, u32 i_msgNo) {
 
     while (*src != '\0') {
         if ((u8)*src == 0x1A) {
+#if TARGET_PC
+            // The tag's length, group and code bytes, read as the big-endian u32 the GameCube
+            // loads (step 4.6).
+            u32 next_as_int = *(BE(u32)*)(++src);
+#else
             u32 next_as_int = *(u32*)(++src);
+#endif
             if ((next_as_int & 0xFFFFFF) == 0) {
 #if VERSION <= VERSION_JPN
                 const char* player_name_p = dComIfGs_getPlayerName();

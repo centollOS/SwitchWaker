@@ -240,7 +240,11 @@ bool TProcessor::process_onCharacterEnd_select_(TProcessor* proc) {
 /* 8029F40C-8029F428       .text process_select_limited___Q28JMessage10TProcessorFPQ28JMessage10TProcessor */
 const char* TProcessor::process_select_limited_(TProcessor* proc) {
     SelectCallBackWork* work = (SelectCallBackWork*) &proc->mStatusData.mCallBackWork;
+#if TARGET_PC
+    u16 offs = ((const BE(u16)*)work->mTable)[0]; // the select table is big-endian (step 4.6)
+#else
     u16 offs = ((const u16*)work->mTable)[0];
+#endif
     work->mTable = (const char*)work->mTable + sizeof(offs);
     return &work->mBase[offs];
 }
@@ -249,7 +253,11 @@ const char* TProcessor::process_select_limited_(TProcessor* proc) {
 const char* TProcessor::process_select_(TProcessor* proc) {
     SelectCallBackWork* work = (SelectCallBackWork*) &proc->mStatusData.mCallBackWork;
     u32 offs;
+#if TARGET_PC
+    const BE(u32)* table = (const BE(u32)*)work->mTable; // big-endian select table (step 4.6)
+#else
     const u32* table = (const u32*)work->mTable;
+#endif
     offs = *table;
     work->mTable = table + 1;
     return &work->mBase[offs];
@@ -493,14 +501,22 @@ bool TSequenceProcessor::process_jump_(TSequenceProcessor* proc) {
 /* 8029FA88-8029FAB8       .text process_branch_limited___Q28JMessage18TSequenceProcessorFPQ28JMessage18TSequenceProcessorUl */
 bool TSequenceProcessor::process_branch_limited_(TSequenceProcessor* proc, u32 choice) {
     BranchCallBackWork* work = (BranchCallBackWork*) &proc->mStatusData.mCallBackWork;
+#if TARGET_PC
+    choice = ((const BE(u16)*)work->mTable)[choice]; // the branch table is big-endian (step 4.6)
+#else
     choice = ((const u16*)work->mTable)[choice];
+#endif
     return process_setMessage_index_(proc->getControl(), choice);
 }
 
 /* 8029FAB8-8029FAE8       .text process_branch___Q28JMessage18TSequenceProcessorFPQ28JMessage18TSequenceProcessorUl */
 bool TSequenceProcessor::process_branch_(TSequenceProcessor* proc, u32 choice) {
     BranchCallBackWork* work = (BranchCallBackWork*) &proc->mStatusData.mCallBackWork;
+#if TARGET_PC
+    choice = ((const BE(u32)*)work->mTable)[choice]; // the branch table is big-endian (step 4.6)
+#else
     choice = ((const u32*)work->mTable)[choice];
+#endif
     return process_setMessage_code_(proc->getControl(), choice);
 }
 

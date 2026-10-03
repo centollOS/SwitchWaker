@@ -445,7 +445,12 @@ void dDlst_2DOutFont_c::messageSet(u32 i_msgNo) {
 
     while (*message != '\0') {
         if ((u8)*message == 0x1A) {
+#if TARGET_PC
+            // The tag's length, group and code bytes as a big-endian u32 (step 4.6).
+            u32 uvar6 = *(BE(u32)*)(++message) & 0xFFFFFF;
+#else
             u32 uvar6 = *(u32*)(++message) & 0xFFFFFF;
+#endif
             if (uvar6 == (0xFF0000 | MsgSpclCode_COLOR)) {
                 char sp50[28];
                 sprintf(sp50, "\x1b""CC[%08x]\x1bGM[0]", fopMsgM_getColorTable(message[4]));

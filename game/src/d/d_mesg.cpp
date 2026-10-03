@@ -695,7 +695,11 @@ bool dMesg_tSequenceProcessor::do_tag(u32 param_1, const void* param_2, u32 para
             break;
         case 4:
             r29 = true;
+#if TARGET_PC
+            mWaitRest = *(BE(u16)*)param_2; // tag data is big-endian (step 4.6)
+#else
             mWaitRest = *(u16*)param_2;
+#endif
 #if VERSION > VERSION_DEMO
             field_0x160 = 1;
 #endif
@@ -707,7 +711,11 @@ bool dMesg_tSequenceProcessor::do_tag(u32 param_1, const void* param_2, u32 para
             break;
         case 7:
             r29 = true;
+#if TARGET_PC
+            mWaitRest = *(BE(u16)*)param_2; // tag data is big-endian (step 4.6)
+#else
             mWaitRest = *(u16*)param_2;
+#endif
 #if VERSION > VERSION_DEMO
             field_0x160 = 1;
 #endif
@@ -969,7 +977,11 @@ bool dMesg_tSequenceProcessor::do_systemTagCode(u16 param_1, const void* param_2
     case 1:
     case 6:
         if (param_3 == 2) {
+#if TARGET_PC
+            u16 tmp = *(BE(u16)*)param_2; // tag data is big-endian (step 4.6)
+#else
             u16 tmp = *(u16*)param_2;
+#endif
             int r31 = mesgControl->getNowFontSize();
             int r29 = (tmp * mesgControl->getInitFontSize()) / 100.0f + 0.5f;
             mesgControl->setNowFontSize(r29);
@@ -1364,7 +1376,11 @@ bool dMesg_tMeasureProcessor::do_systemTagCode(u16 param_1, const void* param_2,
     switch (param_1) {
     case 1:
         if (param_3 == 2) {
+#if TARGET_PC
+            var1 = *(BE(u16)*)param_2; // tag data is big-endian (step 4.6)
+#else
             var1 = *(u16*)param_2;
+#endif
             mesgControl->setNowFontSize((var1 * mesgControl->getInitFontSize()) / 100.0f + 0.5f);
             if (var2 >= 1 && var2 <= 2 && (var1 & 0xFFFF) > 100u && m_strSizeFlag == 0) {
                 linemax--;

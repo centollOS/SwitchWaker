@@ -3,6 +3,9 @@
 
 #include "dolphin/types.h"
 #include "JSystem/JGadget/search.h"
+#if TARGET_PC
+#include "helpers/endian.h"
+#endif
 
 namespace JGadget {
 namespace binary {
@@ -74,7 +77,13 @@ struct TParseValue_raw : public TParseValue_raw_<T> {
 
 template <typename T>
 struct TParseValue_endian_big_ : public TParseValue_raw_<T> {
+#if TARGET_PC
+    // The value is big-endian (the name says so); only the GameCube can read it raw (step 4.6:
+    // JMessage tag parameters). TParseValue_raw_ itself is left to its JStudio users (step 4.17).
+    static T parse(const void* data) { return *(const BE(T)*)data; }
+#else
     static T parse(const void* data) { return TParseValue_raw_<T>::parse(data); }
+#endif
 };
 
 template <class Parser>
