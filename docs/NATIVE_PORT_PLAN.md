@@ -2870,6 +2870,26 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `CP_REG_ARRAYBASE_ID is not supported` on every frame (already listed below).
   Review: `new-game` reached at frame 1522 (uncapped, 11 s); `outset-real` still waits for the
   PLAY scene at frame 27,822 (timeout); `regress.sh -j 3` all checks passed.
+- R5-cpu-skinning (lane boot, render): two root causes. (1) Every paired-single routine of
+  J3DTransform had no host body (`__MWERKS__` asm only): the four `J3DPSMulMtxVec` overloads and
+  `J3DPSCalcInverseTranspose`, `J3DScaleNrmMtx`/`J3DScaleNrmMtx33`, `J3DMtxProjConcat`,
+  `J3DPSMtx33Copy`/`CopyFrom34`, `J3DPSMtxArrayConcat`, `__MTGQR7`; so besides CPU skinning, J3D
+  normal matrices, weighted-envelope draw matrices and projected texture matrices were never
+  written on the host. Under `TARGET_PC` they are plain C (after Dusklight, CC0), the S16Vec forms
+  keeping GQR7's load/store scales (`j3dHostGQR7`, truncate and clamp as Dolphin's
+  `ScaleAndClamp`). (2) `J3DSkinDeform::deformVtx*` read the model's big-endian VTX1 arrays host
+  order: under `TARGET_PC` they read each source vector big-endian and store the result big-endian
+  (the order `loadVtxArray` declares to Aurora), and `dBgWDeform`, whose collision used the model's
+  current positions as its host-order vertex table, gets a host-order copy (`mHostVtx`).
+  Check: `run --stage Omori:0:3 --frames 900 --shot 490,890` (Forest Haven): before, the Great Deku
+  Tree (`daNpc_De1_c`, CPU-skinned through `dBgWDeform`, 938 F32 positions) is missing, after it
+  draws with its face and branches; `run --frames 1310 --shot 900,1300` (title) and
+  `run --stage sea:44:206 --frames 1500 --shot 400,800,1200,1490` (Outset) unchanged but for the
+  wind streaks now drawn on the title; `unifdef -UTARGET_PC` of the five files equals HEAD (one
+  blank line). See render issues.
+  Reviewed: before/after `Omori:0:3` shot 890 rerun (tree missing, then drawn), Outset shot
+  unchanged, GameCube path unchanged (unifdef), regress passes. Committed as two commits (the
+  J3DTransform host bodies, then the skin deform byte order).
 
 ### Phase 6 render issues
 
@@ -3001,7 +3021,14 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   do, so a CPU-skinned model (`dDoor_key2_c` boss-key lock, `dBgWDeform` users d_a_sk2 and
   d_a_npc_de1) draws from those unwritten arrays until this is fixed. The port should read the
   source big-endian and write the output big-endian (the byte order `loadVtxArray` declares).
-  Part of the J3DSkinDeform item split off from 4.11. Open.
+  Part of the J3DSkinDeform item split off from 4.11. **Fixed** by R5-cpu-skinning: host C bodies
+  for every J3DTransform paired-single routine (also the normal, envelope and projection matrix
+  helpers, which were never written either), GQR7 scales kept for the S16 forms; the skin deform
+  reads and writes the vertex arrays big-endian, and `dBgWDeform` hands its collision a host-order
+  copy. The Great Deku Tree in Forest Haven (`Omori:0:3`), missing before, now draws. Not
+  exercised yet: the S16 position/normal paths (the Deku Tree is F32, positions only) and the
+  other CPU-skinned models (`dDoor_key2_c`, the ship's body, d_a_sk2); the title's King of Red
+  Lions ran no skin deform in the title runs, so its dark colour (entry above) is not this issue.
 - **Outset grass draws as spiky green squares with purple and blue** (found by R4-arraybase,
   `run --stage sea:44:206 --shot 800`, lower right): the grass tufts below the lookout show their
   whole quads (no alpha cut-out) with purple/blue texels, before and after R4-arraybase. On the

@@ -469,6 +469,40 @@ void J3DSkinDeform::calcNrmMtx(J3DModel* model) {
     }
 }
 
+#if TARGET_PC
+// The model's vertex arrays (VTX1 positions and normals) stay big-endian on the host, as Aurora
+// reads them, and so do the CPU skinning's transformed arrays: J3DShape::loadVtxArray declares
+// every array it binds big-endian (GX_AURORA_LOAD_ARRAYBASE). The deformers below therefore read
+// each source vector big-endian, transform it in host order and store the result big-endian.
+static inline void J3DSkinLoadBE(const void* src, Vec* v) {
+    const BE(f32)* p = (const BE(f32)*)src;
+    v->x = p[0];
+    v->y = p[1];
+    v->z = p[2];
+}
+
+static inline void J3DSkinStoreBE(void* dst, const Vec* v) {
+    BE(f32)* p = (BE(f32)*)dst;
+    p[0] = v->x;
+    p[1] = v->y;
+    p[2] = v->z;
+}
+
+static inline void J3DSkinLoadBE(const void* src, S16Vec* v) {
+    const BE(s16)* p = (const BE(s16)*)src;
+    v->x = p[0];
+    v->y = p[1];
+    v->z = p[2];
+}
+
+static inline void J3DSkinStoreBE(void* dst, const S16Vec* v) {
+    BE(s16)* p = (BE(s16)*)dst;
+    p[0] = v->x;
+    p[1] = v->y;
+    p[2] = v->z;
+}
+#endif
+
 /* 802F4850-802F4974       .text deformVtxPos_F32__13J3DSkinDeformCFP8J3DModel */
 void J3DSkinDeform::deformVtxPos_F32(J3DModel* model) const {
     Mtx* mtxArr[2];
@@ -482,7 +516,14 @@ void J3DSkinDeform::deformVtxPos_F32(J3DModel* model) const {
 
     for (int i = 0; i < vtxNum; i++) {
         Mtx* mtx = mtxArr[model->getModelData()->getDrawMtxFlag(mPosUseMtx[i])];
+#if TARGET_PC
+        Vec src, dst;
+        J3DSkinLoadBE(&curVtxPos[i], &src);
+        J3DPSMulMtxVec(mtx[model->getModelData()->getDrawMtxIndex(mPosUseMtx[i])], &src, &dst);
+        J3DSkinStoreBE(&transformedVtxPos[i], &dst);
+#else
         J3DPSMulMtxVec(mtx[model->getModelData()->getDrawMtxIndex(mPosUseMtx[i])], &curVtxPos[i], &transformedVtxPos[i]);
+#endif
     }
 
     DCStoreRange(model->getVertexBuffer()->getTransformedVtxPos(0), model->getModelData()->getVtxNum() * sizeof(Vec));
@@ -504,7 +545,14 @@ void J3DSkinDeform::deformVtxPos_S16(J3DModel* model) const {
 
     for (int i = 0; i < vtxNum; i++) {
         Mtx* mtx = mtxArr[model->getModelData()->getDrawMtxFlag(mPosUseMtx[i])];
+#if TARGET_PC
+        S16Vec src, dst;
+        J3DSkinLoadBE(&curVtxPos[i], &src);
+        J3DPSMulMtxVec(mtx[model->getModelData()->getDrawMtxIndex(mPosUseMtx[i])], &src, &dst);
+        J3DSkinStoreBE(&transformedVtxPos[i], &dst);
+#else
         J3DPSMulMtxVec(mtx[model->getModelData()->getDrawMtxIndex(mPosUseMtx[i])], &curVtxPos[i], &transformedVtxPos[i]);
+#endif
     }
 
     DCStoreRange(model->getVertexBuffer()->getTransformedVtxPos(0), model->getModelData()->getVtxNum() * sizeof(SVec));
@@ -520,7 +568,14 @@ void J3DSkinDeform::deformVtxNrm_F32(J3DModel* model) const {
     Vec* transformedVtxNrm = (Vec*)model->getVertexBuffer()->getTransformedVtxNrm(0);
 
     for (int i = 0; i < vtxNum; i++) {
+#if TARGET_PC
+        Vec src, dst;
+        J3DSkinLoadBE(&curVtxNrm[i], &src);
+        J3DPSMulMtxVec(mNrmMtx[mNrmUseMtx[i]], &src, &dst);
+        J3DSkinStoreBE(&transformedVtxNrm[i], &dst);
+#else
         J3DPSMulMtxVec(mNrmMtx[mNrmUseMtx[i]], &curVtxNrm[i], &transformedVtxNrm[i]);
+#endif
     }
 
     DCStoreRange(model->getVertexBuffer()->getTransformedVtxNrm(0), model->getModelData()->getNrmNum() * sizeof(Vec));
@@ -537,7 +592,14 @@ void J3DSkinDeform::deformVtxNrm_S16(J3DModel* model) const {
     S16Vec* transformedVtxNrm = (S16Vec*)model->getVertexBuffer()->getTransformedVtxNrm(0);
 
     for (int i = 0; i < vtxNum; i++) {
+#if TARGET_PC
+        S16Vec src, dst;
+        J3DSkinLoadBE(&curVtxNrm[i], &src);
+        J3DPSMulMtxVec(mNrmMtx[mNrmUseMtx[i]], &src, &dst);
+        J3DSkinStoreBE(&transformedVtxNrm[i], &dst);
+#else
         J3DPSMulMtxVec(mNrmMtx[mNrmUseMtx[i]], &curVtxNrm[i], &transformedVtxNrm[i]);
+#endif
     }
 
     DCStoreRange(model->getVertexBuffer()->getTransformedVtxNrm(0), model->getModelData()->getNrmNum() * sizeof(SVec));

@@ -19,6 +19,13 @@ bool dBgWDeform::Set(cBgD_t* bgd, J3DModel* pmodel, u32 flag) {
     }
     pmodel->offFlag(J3DMdlFlag_SkinNrmCpu);
     pmodel->onFlag(J3DMdlFlag_SkinPosCpu);
+#if TARGET_PC
+    // Host-order copy of the model's big-endian positions for the collision (MoveAfterAnmCalc).
+    mHostVtx = new Vec[GetVtxNum()];
+    if (mHostVtx == NULL) {
+        return true;
+    }
+#endif
     if (ChkNoCrrPos()) {
         return false;
     }
