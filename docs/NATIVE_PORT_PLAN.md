@@ -2057,6 +2057,57 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   - Review (round 1): accepted; `audio-parse` equal to the manifest, inventory check ok,
     `regress.sh -j 3` all checks passed. Committed as one root cause per commit (owner tags,
     stream pointer tables, DVD command pointer, audio heap, physical addresses, markers and log).
+- **5.A `mDoAud_Create` with `COS_AUDIO=on`** (2026-10-03, decision H10; pulls in 5.4 option B
+  of H6): the handshake needs a DSP that answers (`DspHandShake`, `DSPSendCommands2`,
+  `DsetupTable`, `DsetDolbyDelay` wait for its mails and interrupts), so cos_sdk's silent DSP
+  stubs are replaced by an emulated DSP. JAudio's DSP code runs unchanged. Committed as:
+  - **DSP backend (H6 B).** `native/dsp_hle`: this repository's
+    `runtime/host/src/dsp_hle_backend.cpp` (and the Core::System stubs of
+    `dsp_adapter_donor_stubs.cpp`, the Common shim of `apple/ios/src/dsp_common_shim.cpp`)
+    adapted behind `cos_dsp_hle.h` (control register, both mailboxes, Update; the interrupt is
+    delivered at once instead of latched). `native/cmake/dsp_hle.cmake` compiles Dolphin's DSPHLE,
+    its ucodes and `DSPAccelerator.cpp` from `COS_RECOMPCORE_DIR` (default `ref/recompcore`, or
+    the main checkout's from a worktree) with Aurora's fmt. GPLv2+ code in a GPLv3 repository.
+  - **cos_sdk DSP over it.** `src/audio/DSPStubs.cpp` becomes `DSP.cpp`: mailboxes and DSPCR go to
+    the DSP (MEM1 by physical address, Aurora's ARAM, created at `DSPInit`); the SDK's
+    `__DSP_boot_task`/`__DSP_exec_task` mail sequences; a "DSP interrupt" host thread calls the
+    `__OS_INTERRUPT_DSP_DSP` handler with the OS lock held while DSPCR's interrupt bit is set
+    (and runs the ucode's Update every 1 ms). A weak `__DSPHandler` only acknowledges (JAudio's
+    wins). `cos_sdk_smoke audio` now checks the boot ROM's 0x8071FEED, its 0xFEEE reply,
+    `DSPReset` and task boots against the real DSP.
+  - **`__DSPHandler` acknowledges through cos_sdk** (`osdsp_task.c`, `TARGET_PC`): it wrote the
+    console register `__DSPRegs[5]` (0xCC00500A); it now uses `COSDSPRead/WriteControlRegister`
+    (`cos_dsp_extras.h`).
+  - **Audio thread start-up order** (`JASAudioThread.cpp`, `TARGET_PC`; review round 1): on the
+    console the audio thread has priority main-3, so `OSResumeThread` in `TAudioThread::start`
+    preempts main and `audioproc`'s start-up (`Kernel::init`, `TDSP_DACBuffer::init`, `DspBoot`,
+    `Driver::init`, the AI set-up) ends before `start` returns. Host threads ran at once, so
+    `JAInter::Fx::init` could reach `FXBuffer::setFXLine` with FX_BUF still null (SIGSEGV in
+    `mDoAud_Create`, about 1 run in 30 under load). `start` now waits on a message `audioproc`
+    sends right before its loop. Checked with `regress.sh -j 3` 10x and 26 rounds of 5-6
+    concurrent milestones (frame-loop, logo-scene, static-init, gfx-create, heaps, logo-res):
+    148 runs, no failure.
+  - **DSP state outlives exit** (`DSP.cpp`, `dsp_hle_backend.cpp`; review round 1): the DSP
+    interrupt thread is detached and keeps calling the DSP every 1 ms while `exit` runs the static
+    destructors, which destroyed the DSPHLE object (`std::unique_ptr`) and the DSP locks, so a
+    process could crash after it finished (`cos_sdk_smoke` exited 139 with no `ok`, 2 runs in
+    240 under load). The DSPHLE object and the locks now live in never-destroyed storage, as
+    `Lock()` and the alarm state do. 0 failures in 720 runs since.
+  - **Harness:** `run.sh` defaults to `COS_AUDIO=on`; `pc_frame.cpp` logs
+    `[cos] audio: mDoAud_Create done at frame N; DSP handshake done` and logo-res fails (check
+    failed) if the scene changes with audio on but JAudio not up.
+  Result: Dolphin recognises the uploaded `jdsp` (JAudio ucode, it handles `DsetDolbyDelay`'s
+  CMD 0D), `mDoAud_Create` finishes at frame 2 with the handshake done, logo-res 0 x3 capped and
+  once uncapped with audio on; `regress.sh -j 3` all checks passed (every milestone
+  static-init..logo-res now runs with `COS_AUDIO=on`). `run.sh opening` gets past
+  `dComIfG_changeOpeningScene` -> `mDoAud_setSceneName` (no fault) and the logo scene's delete,
+  then panics in `dPa_modelControl_c` (`d_particle.cpp:288`, the particle solid heap of H10/H5,
+  the M7 boot loop's). Still silent: the AI raises no DMA interrupt, so the audio thread never
+  asks the DSP for a frame (5.3); CH_BUF, FX_BUF and the filter tables are written host-order
+  and the JAudio ucode reads them big-endian (5.4/5.5).
+  - Review (round 2): accepted; `regress.sh -j 3` all checks passed 5x with `COS_AUDIO=on`
+    the default, `unifdef -UTARGET_PC` of `JASAudioThread.cpp`/`osdsp_task.c` equals HEAD,
+    `run.sh opening` logs the handshake done and panics only later in `dPa_modelControl_c`.
 
 - **4.12 J3D animation and runtime** (2026-10-03): `COS_SMOKE=anm-sweep` 0 x3; the report equals
   the manifest (1319 archives, 6227 J3D1 files: 3444 BCK, 1070 BTK, 444 BRK, 13 BPK, 1255 BTP,

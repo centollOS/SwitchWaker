@@ -18,7 +18,9 @@
 // aurora_begin_frame waits and retries instead of skipping the game frame.
 #include "pc_internal.h"
 
+#include "JSystem/JAudio/osdsp_task.h"
 #include "JSystem/JUtility/JUTTexture.h"
+#include "m_Do/m_Do_audio.h"
 
 #include <aurora/aurora.h>
 #include <aurora/event.h>
@@ -145,6 +147,8 @@ uint64_t sUploadSinceLogo = 0;
 int sLogoResGaps = 0;
 bool sLogoResSynced = false;
 bool sLogoResLogged = false;
+// Step 5.A: mDoAud_Create has finished (COS_AUDIO=on).
+bool sAudioLogged = false;
 
 // Drains Aurora's events. A quit request (window closed) ends the process: exit 0 for a plain
 // run, 1 when a milestone or COS_FRAMES was still expected.
@@ -252,6 +256,14 @@ void pc_frame_end(void) {
     pc_frame_tick();
 
     const unsigned int frames = pc_frame_count();
+    // Step 5.A (decision H10): with COS_AUDIO=on, mDoAud_Execute retries mDoAud_Create every frame
+    // until JAudio is up (JAIZelBasic::init, the audio thread's DSP boot and handshake), then sets
+    // the init flag the logo scene waits for.
+    if (gConfig.audio && !sAudioLogged && mDoAud_zelAudio_c::isInitFlag()) {
+        sAudioLogged = true;
+        writef(STDERR_FILENO, "[cos] audio: mDoAud_Create done at frame %u; DSP handshake %s\n",
+               frames, Dsp_Running_Check() ? "done" : "not done");
+    }
     if (!sFrameLoopLogged && frames >= kFrameLoopFrames) {
         const uint32_t retraces = VIGetRetraceCount() - sLoopStartRetrace;
         if (retraces > 0 && sMaxDrawCalls > 0) {
@@ -303,6 +315,11 @@ void pc_logo_res_synced(int archives, int files, int missing) {
 void pc_opening_scene_called(void) {
     if (sLogoResSynced && !sLogoResLogged) {
         sLogoResLogged = true;
+        if (gConfig.audio && !mDoAud_zelAudio_c::isInitFlag()) {
+            // The logo scene waits for it, so this would be a harness or game-flow error.
+            writef(STDERR_FILENO, "[cos] logo-res: COS_AUDIO=on but mDoAud_Create has not finished\n");
+            pc_exit(PC_EXIT_CHECK_FAILED);
+        }
         writef(STDERR_FILENO, "[cos] logo-res: dComIfG_changeOpeningScene called\n");
         pc_milestone("logo-res");
     }

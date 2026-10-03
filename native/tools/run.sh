@@ -16,7 +16,7 @@
 #   --frames N       exit 0 after N game frames (COS_FRAMES)
 #   --trace LIST     trace channels (COS_TRACE), e.g. res,scene
 #   --uncapped       COS_UNCAPPED=1
-#   --audio on|off   COS_AUDIO (default: off, until phase 5)
+#   --audio on|off   COS_AUDIO (default: on since step 5.A, decision H10: JAudio and the DSP run)
 #   --disc PATH      COS_DISC, default /path/to/GZLE01.iso
 #   --input PATH     COS_INPUT, the controller script (step 6.3; a relative path is taken from the
 #                    current directory, else from the repository); pad-echo defaults to
@@ -67,7 +67,7 @@ stall_s=30
 frames=""
 trace="${COS_TRACE:-}"
 uncapped="${COS_UNCAPPED:-}"
-audio="${COS_AUDIO:-off}"
+audio="${COS_AUDIO:-on}"
 disc="${COS_DISC:-/path/to/GZLE01.iso}"
 input="${COS_INPUT:-}"
 do_build=0
