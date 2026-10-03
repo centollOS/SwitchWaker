@@ -36,6 +36,16 @@ void JASystem::DSPInterface::setFilterTable(s16* dest, s16* src, u32 size) {
     }
 }
 
+#if TARGET_PC
+// The DSP reads the channel's filter taps big-endian (DSPBuffer's BE(s16) fields); the game's
+// taps (TChannelMgr) are host-order.
+void JASystem::DSPInterface::setFilterTable(BE(s16)* dest, s16* src, u32 size) {
+    for (int i = 0; i < size; i++) {
+        *dest++ = *src++;
+    }
+}
+
+#endif
 /* 8028A168-8028A19C       .text flushBuffer__Q28JASystem12DSPInterfaceFv */
 void JASystem::DSPInterface::flushBuffer() {
     DCFlushRange(CH_BUF, sizeof(DSPBuffer) * 64);
@@ -72,8 +82,13 @@ void JASystem::DSPInterface::setupBuffer() {
         sDspResFilter = (u16*)Kernel::allocFromSysDram(sizeof(DSPRES_FILTER));
         sDspAdpcmFilter = (u16*)Kernel::allocFromSysDram(sizeof(DSPADPCM_FILTER));
         sDolbyDelayBuf = (u32*)Kernel::allocFromSysDram(sizeof(DOLBY2_DELAY_BUF));
-        memcpy(sDspResFilter, DSPRES_FILTER, sizeof(DSPRES_FILTER));
-        memcpy(sDspAdpcmFilter, DSPADPCM_FILTER, sizeof(DSPADPCM_FILTER));
+        // The DSP reads both tables as big-endian u16 words (as from the console's RAM).
+        for (u32 i = 0; i < ARRAY_SIZE(DSPRES_FILTER); i++) {
+            sDspResFilter[i] = RES_U16(DSPRES_FILTER[i]);
+        }
+        for (u32 i = 0; i < ARRAY_SIZE(DSPADPCM_FILTER); i++) {
+            sDspAdpcmFilter[i] = RES_U16(DSPADPCM_FILTER[i]);
+        }
         Calc::bzero(sDolbyDelayBuf, sizeof(DOLBY2_DELAY_BUF));
         DCStoreRange(sDspResFilter, sizeof(DSPRES_FILTER));
         DCStoreRange(sDspAdpcmFilter, sizeof(DSPADPCM_FILTER));
@@ -121,11 +136,11 @@ bool JASystem::DSPInterface::FXBuffer::setFXLine(s16* buffer, JASystem::DSPInter
         field_0x8 = SEND_TABLE[config->field_0x2];
         field_0xe = config->field_0x8;
         field_0xc = SEND_TABLE[config->field_0x6];
-        field_0x2 = config->field_0xc;
+        field_0x2 = (s16)config->field_0xc;
 #if TARGET_PC
         // The config is a big-endian record of JaiInit.aaf's fx scene table: its fields are read
         // through BE(T) (a value, not the BE<T> object, goes to the variadic report) and the
-        // filter taps are copied to host order.
+        // filter taps are copied tap by tap (both sides are BE(s16)).
         OSReport("FX LINE Buffer %p/ SIZE %d\n", buffer, (int)config->field_0xc);
         for (int i = 0; i < 8; i++) {
             field_0x10[i] = config->field_0x10[i];
@@ -225,7 +240,7 @@ void JASystem::DSPInterface::DSPBuffer::setWaveInfo(JASystem::Driver::Wave_* par
         field_0x104 = param_1->field_0x20;
         field_0x106 = param_1->field_0x22;
     } else {
-        field_0x114 = field_0x11c;
+        field_0x114 = (u32)field_0x11c;
     }
     if (param_3 && field_0x114 > param_3) {
         switch (param_1->field_0x1) {
@@ -257,7 +272,7 @@ void JASystem::DSPInterface::DSPBuffer::setOscInfo(u32 param_1) {
 /* 8028A714-8028A740       .text initAutoMixer__Q38JASystem12DSPInterface9DSPBufferFv */
 void JASystem::DSPInterface::DSPBuffer::initAutoMixer() {
     if (field_0x58) {
-        field_0x54 = field_0x56;
+        field_0x54 = (s16)field_0x56;
         return;
     }
     field_0x54 = 0;
@@ -287,7 +302,7 @@ void JASystem::DSPInterface::DSPBuffer::setMixerInitDelayMax(u8 param_1) {
 
 /* 8028A788-8028A7AC       .text setMixerInitVolume__Q38JASystem12DSPInterface9DSPBufferFUcsUc */
 void JASystem::DSPInterface::DSPBuffer::setMixerInitVolume(u8 param_1, s16 param_2, u8 param_3) {
-    u16* tmp = field_0x10[param_1];
+    BE(u16)* tmp = field_0x10[param_1];
     tmp[2] = param_2;
     tmp[1] = param_2;
     tmp[3] = param_3 << 8 | param_3;
@@ -298,7 +313,7 @@ void JASystem::DSPInterface::DSPBuffer::setMixerVolume(u8 param_1, s16 param_2, 
     if (field_0x10a) {
         return;
     }
-    u16* tmp = field_0x10[param_1];
+    BE(u16)* tmp = field_0x10[param_1];
     tmp[1] = param_2;
     tmp[3] = param_3 << 8 | tmp[3] & 0xff;
 }
@@ -372,7 +387,7 @@ void JASystem::DSPInterface::DSPBuffer::setBusConnect(u8 param_1, u8 param_2) {
         0x0000, 0x0D00, 0x0D60, 0x0DC0, 0x0E20, 0x0E80,
         0x0EE0, 0x0CA0, 0x0F40, 0x0FA0, 0x0B00, 0x09A0,
     };
-    u16* tmp = field_0x10[param_1];
+    BE(u16)* tmp = field_0x10[param_1];
     tmp[0] = connect_table[param_2];
 }
 

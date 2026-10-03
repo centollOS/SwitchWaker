@@ -35,20 +35,20 @@ namespace JASystem {
         public:
             bool setFXLine(s16* param_1, FxlineConfig_* param_2);
 
-            /* 0x00 */ s16 field_0x0;
-            /* 0x02 */ s16 field_0x2;
+            /* 0x00 */ BE(s16) field_0x0;
+            /* 0x02 */ BE(s16) field_0x2;
 #if TARGET_PC
             // The DSP reads this buffer's address: a MEM1 physical address (0 for none), so the
             // struct keeps the 0x20 bytes the DSP reads.
-            /* 0x04 */ u32 field_0x4;
+            /* 0x04 */ BE(u32) field_0x4;
 #else
             /* 0x04 */ s16* field_0x4;
 #endif
-            /* 0x08 */ s16 field_0x8;
-            /* 0x0A */ s16 field_0xa;
-            /* 0x0C */ s16 field_0xc;
-            /* 0x0E */ s16 field_0xe;
-            /* 0x10 */ s16 field_0x10[8];
+            /* 0x08 */ BE(s16) field_0x8;
+            /* 0x0A */ BE(s16) field_0xa;
+            /* 0x0C */ BE(s16) field_0xc;
+            /* 0x0E */ BE(s16) field_0xe;
+            /* 0x10 */ BE(s16) field_0x10[8];
         };
 
         class DSPBuffer {
@@ -73,55 +73,58 @@ namespace JASystem {
             void setDistFilter(s16 param_1);
             void setBusConnect(u8 param_1, u8 param_2);
 
-            /* 0x00 */ u16 field_0x0;
-            /* 0x02 */ u16 field_0x2;
-            /* 0x04 */ u16 field_0x4;
+            /* 0x00 */ BE(u16) field_0x0;
+            /* 0x02 */ BE(u16) field_0x2;
+            /* 0x04 */ BE(u16) field_0x4;
             /* 0x06 */ u8 field0x6[0x8 - 0x6];
-            /* 0x08 */ u16 field_0x8;
+            /* 0x08 */ BE(u16) field_0x8;
             /* 0x0A */ u8 field_0xa[0xc - 0xa];
-            /* 0x0C */ u16 field_0xc;
-            /* 0x0E */ u16 field_0xe;
-            /* 0x10 */ u16 field_0x10[1][4];
+            /* 0x0C */ BE(u16) field_0xc;
+            /* 0x0E */ BE(u16) field_0xe;
+            /* 0x10 */ BE(u16) field_0x10[1][4];
             /* 0x18 */ u8 field_0x18[0x50 - 0x18];
-            /* 0x50 */ u16 field_0x50;
-            /* 0x52 */ u16 field_0x52;
-            /* 0x54 */ s16 field_0x54;
-            /* 0x56 */ u16 field_0x56;
-            /* 0x58 */ u16 field_0x58;
+            /* 0x50 */ BE(u16) field_0x50;
+            /* 0x52 */ BE(u16) field_0x52;
+            /* 0x54 */ BE(s16) field_0x54;
+            /* 0x56 */ BE(u16) field_0x56;
+            /* 0x58 */ BE(u16) field_0x58;
             /* 0x5A */ u8 field_0x5a[0x60 - 0x5a];
-            /* 0x60 */ s16 field_0x60;
+            /* 0x60 */ BE(s16) field_0x60;
             /* 0x62 */ u8 field_0x62[0x64 - 0x62];
-            /* 0x64 */ s16 field_0x64;
-            /* 0x66 */ s16 field_0x66;
-            /* 0x68 */ int field_0x68;
-            /* 0x6C */ u32 field_0x6c;
+            /* 0x64 */ BE(s16) field_0x64;
+            /* 0x66 */ BE(s16) field_0x66;
+            /* 0x68 */ BE(int) field_0x68;
+            /* 0x6C */ BE(u32) field_0x6c;
             /* 0x70 */ u8 field_0x70[0x74 - 0x70];
-            /* 0x74 */ u32 field_0x74;
-            /* 0x78 */ s16 field_0x78[4];
-            /* 0x80 */ s16 field_0x80[20];
-            /* 0xA8 */ s16 field_0xa8[4];
-            /* 0xB8 */ u16 field_0xb0[16];
+            /* 0x74 */ BE(u32) field_0x74;
+            /* 0x78 */ BE(s16) field_0x78[4];
+            /* 0x80 */ BE(s16) field_0x80[20];
+            /* 0xA8 */ BE(s16) field_0xa8[4];
+            /* 0xB8 */ BE(u16) field_0xb0[16];
             /* 0xD0 */ u8 field_0xd0[0x100 - 0xd0];
-            /* 0x100 */ u16 field_0x100;
-            /* 0x102 */ u16 field_0x102;
-            /* 0x104 */ s16 field_0x104;
-            /* 0x106 */ s16 field_0x106;
-            /* 0x108 */ s16 field_0x108;
-            /* 0x10A */ u16 field_0x10a;
-            /* 0x10C */ u32 field_0x10c;
-            /* 0x110 */ u32 field_0x110;
-            /* 0x114 */ u32 field_0x114;
-            /* 0x118 */ u32 field_0x118;
-            /* 0x11C */ int field_0x11c;
-            /* 0x120 */ s16 field_0x120[8];
+            /* 0x100 */ BE(u16) field_0x100;
+            /* 0x102 */ BE(u16) field_0x102;
+            /* 0x104 */ BE(s16) field_0x104;
+            /* 0x106 */ BE(s16) field_0x106;
+            /* 0x108 */ BE(s16) field_0x108;
+            /* 0x10A */ BE(u16) field_0x10a;
+            /* 0x10C */ BE(u32) field_0x10c;
+            /* 0x110 */ BE(u32) field_0x110;
+            /* 0x114 */ BE(u32) field_0x114;
+            /* 0x118 */ BE(u32) field_0x118;
+            /* 0x11C */ BE(int) field_0x11c;
+            /* 0x120 */ BE(s16) field_0x120[8];
             /* 0x130 */ u8 field_0x130[0x148 - 0x130];
-            /* 0x148 */ s16 field_0x148[4];
-            /* 0x150 */ s16 field_0x150;
+            /* 0x148 */ BE(s16) field_0x148[4];
+            /* 0x150 */ BE(s16) field_0x150;
             /* 0x152 */ u8 field_0x152[0x180 - 0x152];
         };
 #if TARGET_PC
 
-        // Both are read by the DSP (DsetupTable gives it CH_BUF and FX_BUF) with these layouts.
+        // Both are read by the DSP (DsetupTable gives it CH_BUF and FX_BUF) with these layouts,
+        // as big-endian u16 words (Dolphin's Zelda ucode HLE, decision H6 (B), as the console's
+        // DSP): every field is BE(T) (a u32 is its high word first), and the DSP writes the
+        // first 0x100 bytes of each DSPBuffer back the same way.
         static_assert(sizeof(FXBuffer) == 0x20, "FXBuffer must keep the DSP's layout");
         static_assert(sizeof(DSPBuffer) == 0x180, "DSPBuffer must keep the DSP's layout");
 #endif
@@ -130,6 +133,9 @@ namespace JASystem {
         void setDSPMixerLevel(float param_1);
         DSPBuffer* getDSPHandle(u8 param_1);
         void setFilterTable(s16* param_1, s16* param_2, u32 param_3);
+#if TARGET_PC
+        void setFilterTable(BE(s16)* param_1, s16* param_2, u32 param_3);
+#endif
         void flushBuffer();
         void invalChannelAll();
         void clearBuffer();
