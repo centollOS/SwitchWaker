@@ -251,3 +251,27 @@ Each phase lands as its own commits; this file records decisions and measured re
   program, so the run uses `build/native-mac-tsan` configured with the Command Line Tools clang
   21 (recipe in `native/sdk/README.md`): 10 runs + 40 runs of `threads alarms`, no report. Census
   with `COS_WITH_AURORA=ON`: SDK/OS 56 → 18 (the rest is 2.6b: reset, console, PPC, `__OSBusClock`).
+- **2.6b OS misc:** `native/sdk/src/os/{OSReport,OSMisc,OSReset,OSSram,PPC,LC}.cpp`, adapted from
+  Dusklight's `OSReport.cpp` and the OS/PPC parts of `stubs.cpp` (provenance in each file).
+  `OSReport`/`OSVReport`/`OSPanic` are defined by the game (`m_Do_printf.cpp`), so cos_sdk only has
+  weak defaults (stderr; `OSPanic` aborts) in a file that defines nothing else: the archive member
+  is never loaded when the game is linked (the census bundle uses the game's strong ones).
+  `OSFatal`, `PPCHalt`, `PPCMtdmaL` with the trigger bit and the IPL-font getters abort.
+  `OSResetSystem` runs the SDK's priority-ordered reset functions (non-final passes until all are
+  ready, then the final pass with interrupts disabled), records the reset code (hot reset: the code;
+  restart: `0x80000000`) and the saved region, then calls the new reset hook
+  (`COSSdkSetResetHook` in `hooks.h`, for phase 6 to restart the game); it never returns: without a
+  hook, or if the hook returns, it logs, calls `COSSdkRequestShutdown` and ends the process with
+  exit code 0 (the game spins after the call). SRAM is the SDK's lock/unlock/checksum model over an
+  in-memory copy (stereo, NTSC, interlaced, English; not persisted), declared with the RTC
+  functions in the new `cos_sdk/sram.h`; `OSGetSoundMode` returns 0/1 as on the console (Dusklight
+  returns 2). PPC registers are emulated values: MSR[EE] is the interrupt state, MSR/FPSCR are per
+  thread, the decrementer counts at the timer clock, HID2[LCE] reads set (Aurora's locked cache is
+  always usable; `d_a_movie_player` checks it), and settings the host cannot honour (FP exception
+  enables, non-IEEE mode, performance counters, memory protection) are logged once. Aurora's
+  `OSCache.cpp` already has the cache ranges and `LC*` copies; `LC.cpp` adds the rest (`DCBlockZero`
+  clears its block; the others do nothing). `__OSBusClock` is a real variable for the decomp
+  headers (Aurora makes it a low-memory read). `OSSetErrorHandler` records handlers
+  (`COSSdkGetErrorHandler` for later glue). Test `misc` (`native/sdk/tests/sdk_misc.cpp`, death
+  checks in forked children with captured stderr); 20 runs of the whole smoke program and 10 TSan
+  runs, no failure or report. Census with `COS_WITH_AURORA=ON`: SDK/OS 18 → 0 (total 192 → 174).

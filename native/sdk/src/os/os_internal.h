@@ -29,6 +29,7 @@
 
 #include <dolphin/os.h>
 
+#include <atomic>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -106,9 +107,21 @@ bool ShuttingDownLocked();
 void NotifyAllLocked();
 void NotifyAlarmThreadLocked();
 
+// Sets the SRAM flag a hot reset with forceMenu sets (OSSram.cpp, for OSResetSystem).
+void SramSetForceMenu();
+
 // Logging to stderr with a "[cos_sdk]" prefix. Fatal aborts.
 void Log(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 [[noreturn]] void Fatal(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
+
+// Log() only the first time this line is reached (any thread).
+#define COS_SDK_LOG_ONCE(...)                                                                      \
+    do {                                                                                           \
+        static std::atomic<bool> cos_sdk_logged_{false};                                           \
+        if (!cos_sdk_logged_.exchange(true)) {                                                     \
+            ::cos_sdk::os::Log(__VA_ARGS__);                                                       \
+        }                                                                                          \
+    } while (0)
 
 // ---------------------------------------------------------------------------------------------
 // Intrusive OSThreadQueue helpers over OSThread::link (the console's macros, as functions).

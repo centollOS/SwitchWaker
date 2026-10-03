@@ -37,6 +37,31 @@ COSSdkThreadStartHook COSSdkSetThreadStartHook(COSSdkThreadStartHook hook);
 // The callback last passed to OSSetSwitchThreadCallback (NULL if none), for the game glue.
 OSSwitchThreadCallback COSSdkGetSwitchThreadCallback(void);
 
+// ---- Reset (step 2.6b) ------------------------------------------------------------------------
+
+// Called by OSResetSystem after the registered reset functions ran (final pass included), with
+// interrupts back at the caller's level. On the GameCube OSResetSystem never returns: the console
+// reboots (OS_RESET_RESTART), restarts the game (OS_RESET_HOTRESET) or stops (OS_RESET_SHUTDOWN).
+// The game glue (phase 6) does the host equivalent here and must not return: it ends the process,
+// or ends the calling OS thread (OSExitThread) while another thread restarts the game. If no hook
+// is set, or the hook returns, OSResetSystem logs, calls COSSdkRequestShutdown and ends the process
+// with exit code 0 (the game would otherwise spin forever after the call). Returns the previous
+// hook. NULL removes it.
+typedef void (*COSSdkResetHook)(int reset, u32 resetCode, BOOL forceMenu);
+COSSdkResetHook COSSdkSetResetHook(COSSdkResetHook hook);
+
+// Sets what OSGetResetCode returns (0 at process start: a cold boot), for game glue that restarts
+// the game in a new process and passes the code along. OSResetSystem sets it itself: the reset code
+// for OS_RESET_HOTRESET, OS_RESETCODE_RESTART (0x80000000) for OS_RESET_RESTART.
+void COSSdkSetResetCode(u32 resetCode);
+
+// ---- Error handlers (step 2.6b) ---------------------------------------------------------------
+
+// The handler last installed with OSSetErrorHandler for `error` (NULL if none or out of range).
+// No hardware exception reaches them on the host; game glue that maps host faults (signals) to
+// GameCube errors calls them through this.
+OSErrorHandler COSSdkGetErrorHandler(OSError error);
+
 #ifdef __cplusplus
 }
 #endif

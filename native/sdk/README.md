@@ -94,3 +94,22 @@ another thread that is running game code act at its next OS call (both are logge
 (blocking message-queue calls return FALSE, alarms stop) and `COSSdkSetThreadStartHook` (runs on
 each new OS thread before its entry function; the game glue sets the thread's current `JKRHeap`
 there, since the switch-thread callback is never called on host threads).
+
+## OS misc (step 2.6b)
+
+`src/os/OSReport.cpp`, `OSMisc.cpp`, `OSReset.cpp`, `OSSram.cpp`, `PPC.cpp` and `LC.cpp`; test
+`misc` (`tests/sdk_misc.cpp`). Each file header says what it emulates and how it differs from the
+console. The parts game glue needs to know:
+
+- `OSReport`, `OSVReport` and `OSPanic` here are weak defaults for programs without the game; the
+  game's `m_Do_printf.cpp` defines the real ones. `OSFatal`, `OSPanic`, `PPCHalt` abort.
+- `OSResetSystem` never returns. It calls the hook set with `COSSdkSetResetHook` (`hooks.h`), which
+  must end the process or the calling OS thread; without one it ends the process (exit code 0).
+  `OSGetResetCode` and `OSGetSavedRegion` then describe that reset; `COSSdkSetResetCode` seeds the
+  code for a game restarted in a new process.
+- The SRAM (sound mode, progressive scan, EuRGB60, language, ...) lives in memory and starts from
+  defaults in every process; `cos_sdk/sram.h` declares `__OSLockSram`, the RTC functions and the
+  rest of the SDK-internal API.
+- PPC special registers are emulated values (`MSR[EE]` is the interrupt state, the decrementer
+  counts). Error handlers set with `OSSetErrorHandler` are recorded but no host fault reaches them;
+  `COSSdkGetErrorHandler` returns them.
