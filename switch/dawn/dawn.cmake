@@ -342,6 +342,28 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # On top of the statistics patch: CommandBuffer::Execute's LazyClearSyncScope lambda captured
+    # the OpenGLFunctions table by value, copying it (and its std::unordered_set<std::string> of
+    # GL extension names: hundreds of newlib mallocs) on every queue submit. Capture by reference
+    # (the lambda never outlives Execute).
+    set(DAWN_OPENGL_COMMAND_BUFFER "${dawn_SOURCE_DIR}/src/dawn/native/opengl/CommandBufferGL.cpp")
+    file(READ "${DAWN_OPENGL_COMMAND_BUFFER}" DAWN_OPENGL_COMMAND_BUFFER_TEXT)
+    if(DAWN_OPENGL_COMMAND_BUFFER_TEXT MATCHES "LazyClearSyncScope = \\[gl\\]")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-functions-by-ref.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_BYREF_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_BYREF_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_BYREF_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_BYREF_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL functions-by-reference patch:\n"
+                "${DAWN_GL_BYREF_PATCH_OUTPUT}${DAWN_GL_BYREF_PATCH_ERROR}")
+        endif()
+    endif()
+
     # On top of the statistics patch: binding a sampled texture sets only the glTexParameteri
     # values its GL texture object does not have yet. Mesa 20.1 treats every swizzle
     # glTexParameteri as a change (flush, all sampler views of the texture dropped and rebuilt
