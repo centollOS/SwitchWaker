@@ -36,6 +36,12 @@ Usage
                                                   INF1 counts and message-ID digest, DAT1 size),
                                                   the BMC colour tables and the message fonts'
                                                   BFN headers (exit 0 equal, 1 different)
+  disc_manifest.py --check-jpa JPA [--out FILE]  compare what JParticle read in COS_SMOKE=
+                                                  jpa-sweep (<run dir>/jpa_sweep.txt) with the
+                                                  manifest's JPC files: every file's counts, every
+                                                  emitter's user index, block, key, field and
+                                                  texture counts and block order, every texture's
+                                                  name and header (exit 0 equal, 1 different)
   disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
 
 Manifest (JSON)
@@ -945,6 +951,79 @@ def check_msg(manifest, msg_path):
     return report_problems(problems, "msg_sweep.txt equals the manifest")
 
 
+def check_jpa(manifest, jpa_path):
+    """jpa_sweep.txt lines (fields separated by single spaces): 'JPC <path> emitter_count=N
+    texture_count=N', 'EMTR <path> <index> res_id= blocks= keys= fields= textures= tags=A,B,...'
+    and 'TEX <path> <index> name= <ResTIMG field>=...', the keys being the manifest's (tags joined
+    by commas). Every JPC of the disc, every emitter and every texture must be there."""
+    by_path = records_by_path(manifest)
+    all_jpc = {p: r for p, r in by_path.items() if r.get("format") == "jpc"}
+    problems = []
+    seen = {}
+    emitters = textures = 0
+    with open(jpa_path, encoding="utf-8", errors="replace") as f:
+        for ln, line in enumerate(f, 1):
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split(" ")
+            if len(parts) < 3 or parts[0] not in ("JPC", "EMTR", "TEX"):
+                problems.append("line %d: malformed: %r" % (ln, line))
+                continue
+            kind, path = parts[0], parts[1]
+            rec = all_jpc.get(path)
+            if rec is None:
+                problems.append("line %d: %s is not a JPC file of the manifest" % (ln, path))
+                continue
+            got = seen.setdefault(path, {"JPC": 0, "EMTR": set(), "TEX": set()})
+            if kind == "JPC":
+                got["JPC"] += 1
+                target, fields = rec, parts[2:]
+            else:
+                try:
+                    index = int(parts[2])
+                except ValueError:
+                    problems.append("line %d: malformed index: %r" % (ln, line))
+                    continue
+                items = rec["emitters"] if kind == "EMTR" else rec["textures"]
+                if index >= len(items):
+                    problems.append("line %d: %s %s #%d: the file has %d" % (ln, path, kind, index,
+                                                                             len(items)))
+                    continue
+                got[kind].add(index)
+                target, fields = items[index], parts[3:]
+                if kind == "EMTR":
+                    emitters += 1
+                else:
+                    textures += 1
+            for field in fields:
+                key, _, value = field.partition("=")
+                if key not in target:
+                    problems.append("line %d: %s %s: no field %s in the manifest" % (ln, path, kind,
+                                                                                    key))
+                    continue
+                want = target[key]
+                if isinstance(want, list):
+                    want = ",".join(str(x) for x in want)
+                if str(want) != value:
+                    problems.append("line %d: %s %s %s=%s, the manifest has %s"
+                                    % (ln, path, kind, key, value, want))
+    for path, rec in sorted(all_jpc.items()):
+        got = seen.get(path)
+        if got is None or got["JPC"] != 1:
+            problems.append("%s: %d JPC lines" % (path, 0 if got is None else got["JPC"]))
+            continue
+        if len(got["EMTR"]) != len(rec["emitters"]):
+            problems.append("%s: %d of %d emitters reported" % (path, len(got["EMTR"]),
+                                                                len(rec["emitters"])))
+        if len(got["TEX"]) != len(rec["textures"]):
+            problems.append("%s: %d of %d textures reported" % (path, len(got["TEX"]),
+                                                                len(rec["textures"])))
+    print("disc_manifest: jpa_sweep.txt: %d JPC (the disc has %d), %d emitters, %d textures "
+          "compared" % (len(seen), len(all_jpc), emitters, textures))
+    return report_problems(problems, "jpa_sweep.txt equals the manifest")
+
+
 # ---- archive cross-check (step 4.4) -------------------------------------------------------------
 
 def check_arc(manifest, arc_path):
@@ -1105,6 +1184,8 @@ def main():
                     help="compare a COS_SMOKE=msg-sweep report with the manifest")
     ap.add_argument("--check-arc", metavar="ARC",
                     help="compare a COS_SMOKE=arc-sweep report with the manifest")
+    ap.add_argument("--check-jpa", metavar="JPA",
+                    help="compare a COS_SMOKE=jpa-sweep report with the manifest")
     ap.add_argument("--summary", action="store_true", help="print an existing manifest's counts")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
@@ -1117,6 +1198,8 @@ def main():
         return check_arc(load_manifest(args.out), args.check_arc)
     if args.check_msg:
         return check_msg(load_manifest(args.out), args.check_msg)
+    if args.check_jpa:
+        return check_jpa(load_manifest(args.out), args.check_jpa)
     if args.summary:
         print_summary(load_manifest(args.out))
         return EXIT_OK

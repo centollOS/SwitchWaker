@@ -58,7 +58,7 @@ void runDiscSmoke();
 // it never returns then.
 void runAuroraSmoke();
 // pc_smoke.cpp: runs COS_SMOKE if it is a test that runs once mDoMch_Create made the heaps (font,
-// arc-sweep, msg-sweep; from pc_heaps_created); it never returns then.
+// arc-sweep, msg-sweep, jpa-sweep; from pc_heaps_created); it never returns then.
 void runHeapsSmoke();
 // pc_heap.cpp: COS_SMOKE=heap.
 [[noreturn]] void smokeHeap();
@@ -74,6 +74,8 @@ int checkResFont(const char* test, const char* path, JUTResFont& font, const uin
                  uint32_t length, int reportFd);
 // pc_msg.cpp: COS_SMOKE=msg-sweep.
 [[noreturn]] void smokeMsgSweep();
+// pc_jpa.cpp: COS_SMOKE=jpa-sweep.
+[[noreturn]] void smokeJpaSweep();
 // pc_arc.cpp: COS_SMOKE=arc-sweep.
 [[noreturn]] void smokeArcSweep();
 bool isKnownSmoke(const char* name);
