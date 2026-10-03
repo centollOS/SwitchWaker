@@ -494,6 +494,12 @@ int daNpc_Ko1_c::btpNum_toResID(int idx) {
     default:
         return btp;
     }
+#if TARGET_PC
+    // Reached only when mType is neither 0 nor 1, which charDecide never leaves set on a created
+    // actor; the GameCube code then returns r3 unchanged (the this pointer). Return the table
+    // entry instead of falling off the end (undefined behaviour in C++).
+    return btp;
+#endif
 }
 
 /* 0000129C-000013AC       .text setBtp__11daNpc_Ko1_cFbi */

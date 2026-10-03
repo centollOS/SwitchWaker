@@ -72,6 +72,12 @@ int dOperate_wind_c::dOw_angleRegular(f32 angle) {
     else if (angle < 202.5f)
         return 180;
     // !@bug missing end return
+#if TARGET_PC
+    // The GameCube code returns r3 unchanged (the this pointer). The only caller passes angles in
+    // [-270, 90), so this is never reached; 225 continues the 45-degree steps instead of falling
+    // off the end (undefined behaviour in C++).
+    return 225;
+#endif
 }
 
 /* 8021E7E4-8021E974       .text dOw_stickControl__15dOperate_wind_cFis */

@@ -695,6 +695,11 @@ static f32 dummyfloat0(int _) {
         case 1:
             return 0.5f;
     }
+#if TARGET_PC
+    // Never called (it only places float constants for the GameCube build); return instead of
+    // falling off the end, which is undefined behaviour in C++.
+    return 0;
+#endif
 }
 
 static f64 dummyfloat1(int _) {
@@ -706,6 +711,11 @@ static f64 dummyfloat1(int _) {
         case 2:
             return 3.0;
     }
+#if TARGET_PC
+    // Never called (it only places float constants for the GameCube build); return instead of
+    // falling off the end, which is undefined behaviour in C++.
+    return 0;
+#endif
 }
 
 static f32 dummyfloat2(int _) {
@@ -713,6 +723,11 @@ static f32 dummyfloat2(int _) {
         case 0:
             return 2.0f;
     }
+#if TARGET_PC
+    // Never called (it only places float constants for the GameCube build); return instead of
+    // falling off the end, which is undefined behaviour in C++.
+    return 0;
+#endif
 }
 
 /* 8002C02C-8002C568       .text fopMsgM_selectMessageGet__FP7J2DPaneP7J2DPanePcPcPcPcUl */

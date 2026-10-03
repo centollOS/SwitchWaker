@@ -589,6 +589,11 @@ BOOL daBigelf_c::demoProcCom() {
     }
     lightProc();
     darkProc();
+#if TARGET_PC
+    // The GameCube code falls off the end (r3 is whatever darkProc left); no caller reads the
+    // result, and falling off a non-void function is undefined behaviour in C++.
+    return FALSE;
+#endif
 }
 
 /* 00001ACC-00001B14       .text getNowEventAction__10daBigelf_cFv */
@@ -642,7 +647,12 @@ BOOL daBigelf_c::demoProc() {
     case 10: demoProcFlDmAf(); break;
     default: dComIfGp_evmng_cutEnd(mStaffId); break;
     }
+#if TARGET_PC
+    // The GameCube code falls off the end (r3 is demoProcCom's result); no caller reads it.
+    return demoProcCom();
+#else
     demoProcCom();
+#endif
 }
 
 /* 00001CCC-00001CD8       .text getType__10daBigelf_cFv */

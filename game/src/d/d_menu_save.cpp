@@ -399,6 +399,12 @@ BOOL dMenu_save_c::closeForGameover() {
     case 1: return closeForGameover_1();
     case 0: return closeForGameover_2();
     }
+#if TARGET_PC
+    // Any other endStatus: the GameCube code returns r3 unchanged (the this pointer), which
+    // closeNormal's `rt == TRUE` sees as not done. FALSE gives the same result without falling
+    // off the end (undefined behaviour in C++).
+    return FALSE;
+#endif
 }
 
 /* 801D6EAC-801D704C       .text closeForGameover_1__12dMenu_save_cFv */
