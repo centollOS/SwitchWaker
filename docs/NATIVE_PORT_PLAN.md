@@ -2416,6 +2416,18 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   use the current heap (JKRHeap.cpp TODO, phase 6). Next blocker: SIGSEGV addr=0x10 in
   `wether_move_vrkumo` (dKyeff2_Execute), NAME_SCENE frame 756.
   Reviewed: regress passed; file-select gets past frame 752 and stops at the frame-756 blocker.
+- M10 boot loop (lane boot, iter 3, layout/H5): SIGSEGV addr=0x10 in `wether_move_vrkumo`
+  (d_kankyo_wether.cpp:813, `new (0x20) dKankyo_vrkumo_Packet()`), NAME_SCENE frame 756. The
+  current heap is the 0x68000 ExpHeap `dScnName_c::create` makes and leaves current; a temporary
+  allocation log showed about 1,150 blocks in it (J2D screens' ~1,000 panes, dFile_select_c,
+  dName_c, dFile_error_c, card_pictdata[9]), larger on the host because of 64-bit pointers, with
+  1,872 bytes left for the 4,464-byte packet. `new` returned NULL and the constructor wrote
+  through it (clang drops the game's NULL check after a non-noexcept `operator new`; a separate
+  host-semantics issue, not fixed here). Under `TARGET_PC` the scene heap is 0x68000 * 2 (H5).
+  Now NAME_SCENE runs and shows the memory-card "create a save file" prompt (shot at frame 1200);
+  the run ends in exit 10 at frame 5530 with frames advancing because nothing reports
+  `file-select` yet. Next: the M10 milestone probe.
+  Reviewed: regress passed; file-select gets past frame 756, no fault, timeout in NAME_SCENE at frame 5531.
 - M12 boot loop (lane outset, iter 1, host-semantics): SIGABRT in `aurora::gx::build_shader`
   (invalid WGSL `sampled0.a.r`) for an alpha stage using `GX_TEV_COMP_R8_GT`, sea room 44. First
   H11 patch, `native/patches/aurora/0001-alpha-stage-channel-compares.patch`, plus the patch

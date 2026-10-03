@@ -131,7 +131,14 @@ cPhs_State dScnName_c::create() {
 #if VERSION == VERSION_DEMO
         heap = mDoExt_createSolidHeapFromGameToCurrent(0x68000, 0);
 #else
+#if TARGET_PC
+        // The scene's J2D screens (about 1,000 panes), dFile_select_c, dName_c and the kankyo
+        // packets made while this heap is current hold 64-bit pointers: on the host they need
+        // more than the GameCube's 0x68000 (decision H5, doubled as for the other heaps).
+        heap = JKRCreateExpHeap(0x68000 * 2, mDoExt_getGameHeap(), false);
+#else
         heap = JKRCreateExpHeap(0x68000, mDoExt_getGameHeap(), false);
+#endif
 #endif
         JUT_ASSERT(VERSION_SELECT(303, 305, 456, 459), heap != NULL);
 
