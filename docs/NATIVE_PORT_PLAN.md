@@ -2944,6 +2944,31 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   then LkD01), Msmoke (disc data).
   Reviewed: Msmoke/Stage.arc re-read from the disc (no `door10.bdl`), getRes `strcmp` confirmed;
   regression passes; reviewer sweep 149 of 155 (Msmoke xfail, 1 failure I_SubAN `d_stage.cpp:1787`).
+- **Boot-sweep fix 15: the audio thread walks the port command lists under the interrupt lock**
+  (2026-10-03, lane outset, boot loop iteration 15). First sweep 147 of 155: Xboss1 and kazeMB
+  `CRASH SIGSEGV addr=0x0` (pc=0) in `JASystem::Kernel::portCmdMain` (JASCmdStack.cpp:121) <-
+  `subframeCallback` <- `finishDSPFrame` on the audio thread (also seen in Cave10, and twice in
+  `regress.sh`, see NG-memcard-sync), a port command with a null `mFunc`, a few frames after
+  a stage starts its BGM. Not reproducible on its own (about 1 in several hundred stage runs).
+  Cause (host semantics): on the console `portCmdMain` runs on the audio thread, above the game
+  thread's priority, so the game thread never runs while it walks `cmd_once`; the game thread's
+  `addPortCmd` disables interrupts and that suffices. `rootInit` -> `outerInit` (game thread,
+  `checkReadSeq`) stores `mFunc`/`mArgs` with `setPortCmd` and links the command right after
+  (`addPortCmdOnce`); on the host the audio thread read the list with no lock, so on arm64 it could
+  see the command linked before the `mFunc` store (lock acquire does not order earlier stores
+  against the ones inside the critical section, and the reader had no acquire), and
+  `getPortCmd` raced `addPortCmd` on `mFirst`/`mLast`. Fix (`JASCmdStack.cpp`, `TARGET_PC`):
+  `portCmdMain` holds `OSDisableInterrupts` (cos_sdk's OS lock) while it runs both lists, which
+  gives the console's exclusion and orders the writer's stores before the reads. Sweeps after:
+  149/150/150 of 155, no `portCmdMain` crash; regression passes. Left: I_SubAN (9:0)
+  `PANIC d_stage.cpp:1787` (about 1 run in 4): an enemy knocks the idle Link into the room's
+  `daWarpls` (at -39000, 6200; Link spawns 424 units away, the warp radius is 225), the warp's
+  SCLS 0 sends him to sea start 1 room 47, and the disc's sea Room47 PLYR has points 0, 100-103
+  and 5 only (no layers; the real Bomb Island submarine SubD43 exits to sea start 5). Disc data
+  of a leftover test stage, candidate for the expected-fail list.
+  Reviewed: cos_sdk's OS lock is per-thread re-entrant (port funcs that add commands do not
+  self-deadlock) and the audio thread already takes it in JASCallback; regression passes;
+  reviewer sweep 150 of 155 (0 failed, Xboss1 and kazeMB ok).
 
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million

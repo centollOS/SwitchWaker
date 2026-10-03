@@ -118,7 +118,21 @@ JASystem::Kernel::TPortCmd* JASystem::Kernel::getPortCmd(JASystem::Kernel::TPort
 
 /* 8027DB08-8027DB38       .text portCmdMain__Q28JASystem6KernelFPv */
 s32 JASystem::Kernel::portCmdMain(void*) {
+#if TARGET_PC
+    // On the console this DSP subframe callback runs on the audio thread, whose priority is above
+    // the game thread's, so the game thread never runs while it walks the lists: addPortCmd (game
+    // thread, e.g. rootInit's setPortCmd + addPortCmdOnce) disables interrupts and that is enough.
+    // Host threads run at the same time, and on a weakly ordered CPU an unlocked reader can see a
+    // command linked into cmd_once before the mFunc/mArgs that setPortCmd stored just before
+    // (pc=0 here), or race getPortCmd against addPortCmd. Holding the interrupt lock (cos_sdk's
+    // OS lock) gives the console's exclusion and orders those stores before the reads.
+    BOOL enable = OSDisableInterrupts();
     portCmdProcOnce(&cmd_once);
     portCmdProcStay(&cmd_stay);
+    OSRestoreInterrupts(enable);
+#else
+    portCmdProcOnce(&cmd_once);
+    portCmdProcStay(&cmd_stay);
+#endif
     return 0;
 }
