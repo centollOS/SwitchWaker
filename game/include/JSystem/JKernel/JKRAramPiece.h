@@ -10,7 +10,12 @@ class JKRAramBlock;
 class JKRDecompCommand;
 class JKRAMCommand {
 public:
+#if TARGET_PC
+    // The callback receives the command's address (a host pointer), which a u32 would truncate.
+    typedef void (*AsyncCallback)(uintptr_t);
+#else
     typedef void (*AsyncCallback)(u32);
+#endif
 
     JKRAMCommand();
     ~JKRAMCommand();
