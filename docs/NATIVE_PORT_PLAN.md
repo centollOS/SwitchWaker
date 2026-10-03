@@ -2164,6 +2164,15 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `regress.sh -j 3` all checks passed; committed as six commits, one root cause each, plus
   this log. The split-off items (J3DSkinDeform, J3DShape array base, J3DSys matrix count) stay open.
 
+- **M7 boot loop, iteration 1** (2026-10-03, layout, H5/H10): `opening` panicked at frame 272 in
+  `dPa_modelControl_c` (d_particle.cpp:288, `model->mModel != NULL`) from `dPa_control_c::createCommon`
+  in `dScnLogo_Delete`: the particle solid heap (0x16e800) is too small for 64-bit objects, since
+  createCommon needs 0x18e020 bytes on the host. Under `TARGET_PC` the heap is created at
+  0x16e800 * 2, and `mDoExt_adjustSolidHeap` trims it right after. Review: `regress.sh -j 3` all
+  checks passed; `opening` now reaches OPENING_SCENE(8) at frame 282 and stops on the next blocker,
+  SIGSEGV addr=0x18 in `fpcMtd_IsDelete` <- `fpcCtRq_Cancel` (null method table on a cancelled
+  create request). Note: after a rebase, build the `centollos` target explicitly (`ninja centollos`).
+
 ### Phase 6 render issues
 
 None yet.
