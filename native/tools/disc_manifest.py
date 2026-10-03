@@ -126,7 +126,9 @@ from collections import Counter
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
 BUILD = os.path.join(REPO, "build", "native-mac")
-DEFAULT_DISC = "/path/to/GZLE01.iso"
+# The maintainer's disc, used only when it exists and neither --disc nor COS_DISC is given.
+LEGACY_DISC = "/path/to/GZLE01.iso"
+DEFAULT_DISC = os.environ.get("COS_DISC") or (LEGACY_DISC if os.path.isfile(LEGACY_DISC) else None)
 DEFAULT_OUT = os.path.join(BUILD, "disc_manifest.json")
 DISC_CHECK_CACHE = os.path.join(BUILD, "runs", "disc_check.txt")
 
@@ -2311,7 +2313,8 @@ def print_summary(m):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0],
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--disc", default=os.environ.get("COS_DISC", DEFAULT_DISC))
+    ap.add_argument("--disc", default=DEFAULT_DISC,
+                    help="the GZLE01 revision 0 .iso (default: $COS_DISC)")
     ap.add_argument("--out", default=DEFAULT_OUT)
     ap.add_argument("--verify", action="store_true", help="only check the SHA-1 of the disc")
     ap.add_argument("--check-ls", metavar="LS", help="compare a disc-ls listing with the manifest")
@@ -2365,6 +2368,10 @@ def main():
         print_summary(load_manifest(args.out))
         return EXIT_OK
 
+    if not args.disc:
+        print("disc_manifest: no disc image: pass --disc PATH or set COS_DISC "
+              "(the GZLE01 revision 0 .iso)", file=sys.stderr)
+        return EXIT_DISC
     ok, iso_sha, dsha = verify_disc(args.disc, args.quiet)
     if not ok:
         return EXIT_DISC

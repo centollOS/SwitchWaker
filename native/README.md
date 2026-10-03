@@ -343,7 +343,7 @@ COS_DISC=/nonexistent build/native-mac/centollos; echo $?   # 14
 
 | Variable | Meaning |
 | --- | --- |
-| `COS_DISC` | the GZLE01 revision 0 `.iso` (required to boot; `run.sh` defaults it to `/path/to/GZLE01.iso`, never committed) |
+| `COS_DISC` | the GZLE01 revision 0 `.iso` (required to boot; `run.sh --disc PATH` sets it, and `run.sh`, `regress.sh` and `disc_manifest.py` stop with exit 14 when neither is given) |
 | `COS_SMOKE` | a smoke test: `static-init`, and the harness self-tests `crash-test`, `panic-test`, `stall-test`, `timeout-test` |
 | `COS_MILESTONE` | exit 0 when this milestone (M0-M14 names: `static-init`, `aurora-up`, `heaps`, ...) is logged |
 | `COS_TIMEOUT_S`, `COS_STALL_S` | watchdog: exit 10 after this long; exit 11 when the game frame counter is frozen this long (0/unset: off) |

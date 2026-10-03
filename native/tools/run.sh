@@ -17,7 +17,9 @@
 #   --trace LIST     trace channels (COS_TRACE), e.g. res,scene
 #   --uncapped       COS_UNCAPPED=1
 #   --audio on|off   COS_AUDIO (default: on since step 5.A, decision H10: JAudio and the DSP run)
-#   --disc PATH      COS_DISC, default /path/to/GZLE01.iso
+#   --disc PATH      COS_DISC, the GZLE01 revision 0 .iso: required (option or environment) for
+#                    every target that boots the game; without either, the maintainer's
+#                    /path/to/GZLE01.iso is used only if it exists
 #   --input PATH     COS_INPUT, the controller script (step 6.3; a relative path is taken from the
 #                    current directory, else from the repository); pad-echo defaults to
 #                    native/check/input/pad-echo.txt
@@ -73,7 +75,9 @@ frames=""
 trace="${COS_TRACE:-}"
 uncapped="${COS_UNCAPPED:-}"
 audio="${COS_AUDIO:-on}"
-disc="${COS_DISC:-/path/to/GZLE01.iso}"
+disc="${COS_DISC:-}"
+legacy_disc=/path/to/GZLE01.iso
+[ -z "$disc" ] && [ -f "$legacy_disc" ] && disc="$legacy_disc"
 input="${COS_INPUT:-}"
 stage="${COS_BOOT_STAGE:-}"
 shot="${COS_SHOT:-}"
@@ -103,6 +107,13 @@ done
 case "$timeout_s" in ''|*[!0-9.]*) echo "run: --timeout needs seconds" >&2; exit 2 ;; esac
 case "$stall_s" in ''|*[!0-9.]*) echo "run: --stall needs seconds" >&2; exit 2 ;; esac
 
+needs_disc=1
+case "$target" in static-init|crash-test|panic-test|stall-test|timeout-test) needs_disc=0 ;; esac
+if [ "$needs_disc" = 1 ] && [ -z "$disc" ]; then
+    echo "run: no disc image: pass --disc PATH or set COS_DISC (the GZLE01 revision 0 .iso)" >&2
+    exit 14
+fi
+
 if [ "$do_build" = 1 ]; then
     ninja -C "$build" centollos >/dev/null || { echo "run: build failed" >&2; exit 2; }
 fi
@@ -114,8 +125,6 @@ mkdir -p "$runs"
 # --- disc: SHA-1 of the image and of main.dol on first use (decision H9) -----------------------
 # Only when the target boots the game: a smoke test that runs before the disc check needs none.
 # A missing file is left to centollos, which exits 14 with its own message.
-needs_disc=1
-case "$target" in static-init|crash-test|panic-test|stall-test|timeout-test) needs_disc=0 ;; esac
 if [ "$needs_disc" = 1 ] && [ -f "$disc" ]; then
     python3 "$disc_manifest" --verify --quiet --disc "$disc" || exit 14
 fi

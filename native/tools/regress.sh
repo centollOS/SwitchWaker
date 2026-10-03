@@ -68,7 +68,14 @@ check phase4_inventory python3 "$script_dir/phase4_inventory.py" --check \
     "$repo/native/check/phase4_baseline.txt"
 
 # The disc manifest is written once here, so parallel runs never race to create it.
-disc="${COS_DISC:-/path/to/GZLE01.iso}"
+disc="${COS_DISC:-}"
+legacy_disc=/path/to/GZLE01.iso # the maintainer's, used only if it exists
+[ -z "$disc" ] && [ -f "$legacy_disc" ] && disc="$legacy_disc"
+if [ -z "$disc" ]; then
+    echo "regress: no disc image: set COS_DISC (the GZLE01 revision 0 .iso)" >&2
+    exit 14
+fi
+export COS_DISC="$disc"
 python3 "$script_dir/disc_manifest.py" --verify --quiet --disc "$disc" > "$out/disc.log" 2>&1 ||
     report disc_verify FAIL "$out/disc.log"
 manifest_version="$(sed -n 's/^MANIFEST_VERSION = \([0-9]*\)$/\1/p' "$script_dir/disc_manifest.py")"
