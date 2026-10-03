@@ -33,8 +33,10 @@ Manifest (JSON)
               path, entry, offset, size, format, and per format:
               yaz0: {"size": decompressed size}   (then the decompressed content is parsed)
               rarc: nodes [{type, name, dirs, files, first}], entries (raw file table count,
-                    "." and ".." included), files [{path, id, flags, size, format, ...}]
-              j3d / bmg / bfn / blo: magic, size, blocks [{tag, size, ...counts}]
+                    "." and ".." included), files [{path, id, flags, size, offset, format, ...}]
+              size is always the stored size (FST or archive entry); a format's own size field
+              is header_size
+              j3d / bmg / bfn / blo: magic, header_size, blocks [{tag, size, ...counts}]
               bti: the ResTIMG header;  jpc: emitters [{res_id, blocks, keys, fields, textures,
               tags}], textures [names];  stb: version, blocks [{type, id}];  dzs/dzr: chunks
               [{tag, num}] and actors {tag: [{name, params, pos, angle, set_id}]};  dzb: counts
@@ -65,6 +67,9 @@ DISC_CHECK_CACHE = os.path.join(BUILD, "runs", "disc_check.txt")
 EXPECTED_ISO_SHA1 = "0289e70f470dc758c73be9b8bcd8c865fb82d8ae"
 EXPECTED_DOL_SHA1 = "8d28bab68bb5078c38e43f29206f0bd01f7e7a67"
 GC_MAGIC = b"\xC2\x33\x9F\x3D"
+
+# 2: "size" is always the stored size (a format's own size field moved to header_size).
+MANIFEST_VERSION = 2
 
 EXIT_OK = 0
 EXIT_DIFFERENT = 1
@@ -519,21 +524,28 @@ def parse_content(name, b, rec, errors, where):
     rec["format"] = fmt
     try:
         if fmt == "rarc":
-            rec.update(parse_rarc(b, errors, where))
+            fields = parse_rarc(b, errors, where)
         elif fmt in ("j3d", "bmg", "bfn", "blo"):
-            rec.update(parse_jut_file(b, fmt))
+            fields = parse_jut_file(b, fmt)
         elif fmt == "jpc":
-            rec.update(parse_jpc(b))
+            fields = parse_jpc(b)
         elif fmt == "stb":
-            rec.update(parse_stb(b))
+            fields = parse_stb(b)
         elif fmt == "bti":
-            rec.update(parse_bti(b))
+            fields = parse_bti(b)
         elif fmt in ("dzs", "dzr"):
-            rec.update(parse_stage(b))
+            fields = parse_stage(b)
         elif fmt == "dzb":
-            rec.update(parse_dzb(b))
+            fields = parse_dzb(b)
         elif fmt == "aaf":
-            rec.update(parse_aaf(b))
+            fields = parse_aaf(b)
+        else:
+            fields = {}
+        # The size a format's header gives is header_size: "size" stays the stored size of the
+        # file (FST or archive entry), which the cross-checks compare.
+        if "size" in fields:
+            fields["header_size"] = fields.pop("size")
+        rec.update(fields)
     except (ParseError, struct.error, IndexError) as e:
         rec["error"] = str(e) or type(e).__name__
         errors.append("%s: %s" % (where, rec["error"]))
@@ -703,7 +715,7 @@ def build_manifest(disc, iso_sha, dsha, progress=True):
             count_arc(r)
     manifest = {
         "tool": "native/tools/disc_manifest.py",
-        "manifest_version": 1,
+        "manifest_version": MANIFEST_VERSION,
         "disc": {"path": disc, "size": os.path.getsize(disc), "sha1": iso_sha, "dol_sha1": dsha,
                  "game_id": head[0:6].decode("latin-1"), "revision": head[7]},
         "fst": {"entries": len(entries), "files": n_files,

@@ -32,8 +32,8 @@
 # main.dol are checked against the supported revision (native/tools/disc_manifest.py --verify,
 # which holds the expected hashes); the result is cached in build/native-mac/runs/disc_check.txt.
 # disc-ls (step 4.0d) and font (step 4.3) are then compared with the disc manifest
-# (build/native-mac/disc_manifest.json, written by disc_manifest.py if missing): a difference turns
-# exit 0 into 1.
+# (build/native-mac/disc_manifest.json, written by disc_manifest.py if missing or of an older
+# MANIFEST_VERSION): a difference turns exit 0 into 1.
 # Nothing the run writes is meant for git (build/ is ignored).
 set -u
 
@@ -172,7 +172,9 @@ case "$target" in
 esac
 if [ -n "$check_arg" ] && [ "$rc" = 0 ]; then
     manifest="$build/disc_manifest.json"
-    if [ ! -f "$manifest" ] || ! grep -qF "\"path\": \"$disc\"" "$manifest"; then
+    manifest_version="$(sed -n 's/^MANIFEST_VERSION = \([0-9]*\)$/\1/p' "$disc_manifest")"
+    if [ ! -f "$manifest" ] || ! grep -qF "\"path\": \"$disc\"" "$manifest" ||
+        ! grep -qF "\"manifest_version\": $manifest_version," "$manifest"; then
         echo "run: writing $manifest" >> "$run_dir/run.log"
         python3 "$disc_manifest" --quiet --disc "$disc" --out "$manifest" >> "$run_dir/run.log" 2>&1 || rc=1
     fi
