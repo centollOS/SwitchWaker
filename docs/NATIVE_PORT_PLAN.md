@@ -368,3 +368,16 @@ Each phase lands as its own commits; this file records decisions and measured re
   3 TSan runs clean, census reproduced, no audio/MSL name of any compiled unit unresolved against
   cos_sdk and Aurora, DTK.cpp matches Dusklight's dtk.c apart from the listed changes, default
   configuration (`cos_modules` and checks) unchanged.
+- **2.7 SSystem:** compiles in aurora header mode (36/36 units, 0 errors) and still in decomp mode.
+  Fixes are headers only, under `TARGET_PC`: Aurora's `GXColor`/`GXRenderModeObj` are typedefs of
+  unnamed structs, so the forward `typedef struct _GX* ...` lines go (`c_cc_d.h` includes
+  `dolphin/gx/GXStruct.h`; `JUTXfb.h`/`JFWDisplay.h` already get it through `JUTVideo.h`);
+  `JUTVideo::isAntiAliasing` reads Aurora's `aa` (same u8 at 0x19) under `defined(COS_SDK_AURORA)`,
+  which the aurora-only `cos_sdk_extras.h` defines (TODO 2.8: remove with decomp mode); `global.h`
+  undefines Aurora's `ASSERT` before its own (both empty without `DEBUG`). No `STATIC_ASSERT`
+  fired. Pattern for later modules: the other `typedef struct _GX*` forwards (`m_Do_lib.h`,
+  `J3DModelData.h`, `JUTException.h`, ...) and `JFWDisplay.cpp`'s `antialiasing` need the same fix.
+  Aurora-mode builds use the gitignored `build/native-mac-aurora` (offline, sources from
+  `build/native-mac/_deps` and `build/aurora-3227d76`). Reviewed in round 1: SSystem rebuilt
+  from clean in aurora mode with the shadow, header and scaffold checks and smoke ok; default
+  configuration (`cos_modules` and checks) rebuilt, 0 errors.

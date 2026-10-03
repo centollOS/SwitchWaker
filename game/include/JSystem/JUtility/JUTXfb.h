@@ -3,7 +3,13 @@
 
 #include "JSystem/JUtility/JUTVideo.h"
 
+#if TARGET_PC
+// GXRenderModeObj comes from dolphin/gx/GXStruct.h through JUTVideo.h. Aurora defines it as a
+// typedef of an unnamed struct, so a forward declaration through the tag _GXRenderModeObj would
+// declare a second, different type.
+#else
 typedef struct _GXRenderModeObj GXRenderModeObj;
+#endif
 class JKRHeap;
 
 class JUTXfb {

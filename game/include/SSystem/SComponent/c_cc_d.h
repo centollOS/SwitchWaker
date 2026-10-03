@@ -15,7 +15,13 @@ class cCcD_TriAttr;
 class cCcD_AabAttr;
 class cCcD_CylAttr;
 class cCcD_SphAttr;
+#if TARGET_PC
+// Aurora's GXColor is a typedef of an unnamed struct, so a forward declaration through the tag
+// _GXColor would declare a second, different type. Take the real definition instead.
+#include "dolphin/gx/GXStruct.h"
+#else
 typedef struct _GXColor GXColor;
+#endif
 
 enum cCcD_AtSPrm_e {
     /* 0x01 */ cCcD_AtSPrm_Set_e = 0x01,

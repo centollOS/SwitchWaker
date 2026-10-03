@@ -24,6 +24,13 @@
 #define UNUSED(x) ((void)(x))
 
 #define JUT_EXPECT(...)
+#if TARGET_PC
+// Aurora's <dolphin/os.h> defines ASSERT(cond) as ASSERTLINE, which is (void)0 without DEBUG,
+// as this one is. Whichever header comes last wins; undefine first so either order is silent.
+#ifdef ASSERT
+#undef ASSERT
+#endif
+#endif
 #define ASSERT(...)
 #define LOGF(FMT, ...)
 
