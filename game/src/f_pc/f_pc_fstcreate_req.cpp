@@ -36,7 +36,13 @@ base_process_class* fpcFCtRq_Request(layer_class* i_layer, s16 i_procTypeID,
     if (!fpcLd_Use(i_procTypeID)) {
         return NULL;
     } else {
+#if TARGET_PC
+        // The GameCube size 0x50 is smaller than the host struct (64-bit pointers): allocating
+        // it made mpFastCreateFunc/mpFastCreateData overwrite the next heap block.
+        fast_create_request* request = (fast_create_request*)fpcCtRq_Create(i_layer, sizeof(fast_create_request), &submethod);
+#else
         fast_create_request* request = (fast_create_request*)fpcCtRq_Create(i_layer, 0x50, &submethod);
+#endif
         if (request != NULL) {
             base_process_class* proc;
             fpcLy_SetCurrentLayer(i_layer);

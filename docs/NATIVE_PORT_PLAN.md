@@ -2856,6 +2856,28 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   game's own "見積もりヒープサイズ(000028c0)で登録失敗" and reaches frame 600 on the retry. Sweep:
   145 -> 146 of 155 (6 fail, 3 expected fails, 1 skipped). Regression passes.
 
+- **Boot-sweep fix 10: the fast create request allocated at its host size** (2026-10-03, lane
+  outset, layout). Every failure of a 146/155 sweep again had its own signature; this one is on
+  the main sea stage: SIGSEGV addr=0x128020000000138 in `cNd_LengthOf` (c_node.cpp:20) <-
+  `cLs_Addition` <- `cTg_Addition` <- `fpcCtRq_Create` <- `fpcFCtRq_Request` <-
+  `daObj_Canon_c::attackCannon` (sea 1:0, frame 480, a cannon's `fopAcM_fastCreate` of a bomb).
+  Root cause: `fpcFCtRq_Request` (f_pc_fstcreate_req.cpp) allocated its request with the
+  GameCube literal 0x50, while `fast_create_request` is larger on the host (64-bit pointers in
+  `create_request`), so writing `mpFastCreateFunc`/`mpFastCreateData` overran the block into the
+  next heap block and corrupted a create-request list node; the next create walked into it.
+  Under `TARGET_PC` it now allocates `sizeof(fast_create_request)` (GameCube literal kept in
+  `#else`); the standard create request already used `sizeof`, and no other `memalignB` takes a
+  literal size. sea 1:0 now reaches frame 900. Sweep: sea passes, but I_SubAN (9:0) now fails
+  3 runs out of 3 (the build without this fix passes it 3 out of 3): at frame 452 an event
+  starts that did not start before, its Ywarp00 (params 0xFF: no switch, active from the start)
+  sends Link out by room 9's SCLS 0 (sea, start 1, room 47), and `dStage_playerInit` stops at
+  `PANIC d_stage.cpp:1787` (`i != num`) because sea room 47's PLYR list has points 0, 5 and
+  100-103 but no 1. I_SubAN is a test stage the game never reaches; whether that SCLS is broken
+  data or the event is reached for another reason is left for the next iteration. 146 of 155
+  (6 fail, 3 expected fails, 1 skipped). Regression passes. Review: regression passes; sea 1:0
+  reaches frame 900 capped and uncapped; the reviewer's sweep gave 147 of 155 with I_SubAN passing
+  (5 fail: E3ROOP, ENDumi, the castle stage, K_Testd, Msmoke), so I_SubAN's warp-out is timing-dependent.
+
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
   variable values checked, max |v| 500000). Builds on the boot loops' STB/FVB big-endian
