@@ -12,7 +12,13 @@
 #include "d/d_com_inf_game.h"
 #include "d/d_s_play.h"
 
+#if TARGET_PC
+// Internal: every REL is linked into one executable, and d_a_fganon.cpp also defines hio_set.
+// No other object references it (nm -m over all objects, step 3.2).
+static bool hio_set;
+#else
 bool hio_set;
+#endif
 static daShand_HIO_c l_HIO;
 
 /* 000000EC-00000114       .text __ct__13daShand_HIO_cFv */

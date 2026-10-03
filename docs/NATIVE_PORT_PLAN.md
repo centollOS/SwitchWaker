@@ -659,3 +659,9 @@ Each phase lands as its own commits; this file records decisions and measured re
   alternatives in one file); weak size mismatches 0 data / 10 code; `d_mesg.cpp` braces do not
   balance for the scan and is listed. Reviewed in round 1: census rc=0, `--dups` rc=1 (3), all
   default targets rc=0, smoke ok, phase 2 unresolved diff empty, `--dol` 0 duplicates.
+- **3.2 Duplicate strong symbols:** `ModuleProlog`/`ModuleEpilog` in `f_pc_profile_lst.cpp` under
+  `#if !TARGET_PC` (on PC `DynamicLink.cpp`'s empty defaults remain, `REL/executor.c` is not built,
+  and step 3.4 sets `g_fpcPf_ProfileList_p`); `hio_set` made `static` under `TARGET_PC` in
+  `d_a_fganon.cpp` and `d_a_shand.cpp` after `nm -m` over all objects showed no other reference.
+  Reviewed in round 1: `symbol_census.py --all --dups` reports 0 (866 objects), all default
+  targets and checks rc=0, phase 2 unresolved diff empty.

@@ -20,7 +20,13 @@
 #include "f_op/f_op_camera.h"
 
 fganon_class* master;
+#if TARGET_PC
+// Internal: every REL is linked into one executable, and d_a_shand.cpp also defines hio_set.
+// No other object references it (nm -m over all objects, step 3.2).
+static u8 hio_set;
+#else
 u8 hio_set;
+#endif
 static daFganon_HIO_c l_HIO;
 
 /* 000000EC-000001A0       .text __ct__14daFganon_HIO_cFv */

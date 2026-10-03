@@ -516,6 +516,11 @@ process_profile_definition* g_fpcPfLst_ProfileList[] = {
     NULL,
 };
 
+// On TARGET_PC this unit is linked into the executable with main.dol, whose DynamicLink.cpp
+// defines the empty default ModuleProlog/ModuleEpilog, and no REL _prolog calls these (REL/
+// executor.c is not built). Step 3.4 makes f_pc_profile.cpp point g_fpcPf_ProfileList_p at the
+// static list instead.
+#if !TARGET_PC
 /* 00000078-0000008C       .text ModuleProlog */
 void ModuleProlog() {
     g_fpcPf_ProfileList_p = g_fpcPfLst_ProfileList;
@@ -525,3 +530,4 @@ void ModuleProlog() {
 void ModuleEpilog() {
     g_fpcPf_ProfileList_p = NULL;
 }
+#endif
