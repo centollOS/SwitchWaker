@@ -1187,6 +1187,66 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   disc-ls 0, crash/panic 13/12, census equal, inventory check ok, `unifdef -UTARGET_PC` equal
   to HEAD). Committed as six commits (block header, host addresses, async callbacks,
   `operator new` alignment, H5 sizes, harness) plus this log and the baseline.
+- **4.3 System font, ResTIMG and console:** struct fields as `BE(T)` (the shim makes them `T` on
+  the GameCube: with `BE(T)` expanded, `unifdef -UTARGET_PC` of every changed game file equals
+  HEAD's), code changes under `TARGET_PC`.
+  - Data block headers: `JUTDataBlockHeader` and `JUTDataFileHeader` are big-endian (as in
+    Dusklight's `J3DAnimation.h`). `JUTResFont::countBlock`/`setBlock` read the block tags and
+    sizes little-endian, so no INF1 was ever found and `JFWSystem::init` faulted in
+    `JUTResFont::getWidth` (the M2 failure of step 4.2). The header is shared by every JSystem
+    format (J3D, BMG, BCK...), all disc data. `d_resorce.cpp`'s BCK `mSeAnmOffset` is now read as
+    a host value: `(char*)pRes + (u32)mSeAnmOffset` (its group C marker goes).
+  - `ResFONT` (INF1/WID1/MAP1/GLY1 and the file header) as in Dusklight's `JUTFont.h`; the MAP1
+    table pointers in `getFontCode` and `convertSjis`'s parameter are `BE(u16)*`; `loadImage`
+    casts the texture format through `u16`.
+  - `ResTIMG` (width, height, numColors, paletteOffset, LODBias, imageOffset; Dusklight's
+    `JUTTexture.h`, the offsets kept `u32`), `ResTLUT::numColors`, `ResNTAB` and its entries.
+    `JUTTexture::initTexObj`'s `imageOffset ? imageOffset : 0x20` reads the field as `u32` (the
+    conditional is ambiguous on a `BE`). The ResTIMG marker of `d_a_player_main.cpp` (group L)
+    goes: its `imageOffset` read is now right.
+  - `JUTResFONT_Ascfont_fix12` is 32-byte aligned on the host (`ATTRIBUTE_ALIGN(32)` on the
+    definition, as in Dusklight): the header's `ALIGN_DECL(32)` is empty off MWCC, and GX reads
+    the glyph page in place.
+  - Not changed: `JUTCacheFont::setBlock`/`getFontFromAram` read the block tags and sizes through
+    raw `int*` (`*pData`, `pData[1]`); it serves the fonts `mDoExt` loads from archives
+    (step 4.6).
+  - Layout check: `layout_check.py` read `BE(u16) width;` as a function declaration and skipped
+    it, dropping 40 checks once the fields became `BE`; it now reads `BE`/`LE`/`OFFSET_PTR(_V0)`
+    as a type (1050 checks again, the same list as before the change).
+  - Milestone M3: `LOAD_COPYDATE` (run by the DVD thread, queued by `main01` after `mDoGph_Create`
+    and `mDoCPd_Create`) calls `pc_copydate_loaded`, which logs the date and `gfx-create` when
+    `/COPYDATE` was read.
+  - Harness: `COS_SMOKE=font` (`native/src/pc/pc_font.cpp`, run by `pc_heaps_created` once M2's
+    checks held, so after `JFWSystem::init`): the system font and `/res/Menu/kanfont_fix16.bfn`
+    (Shift-JIS, 27 MAP1 blocks of methods 1 and 2, read into the game heap) against an
+    independent reading of the same bytes (big-endian loads at the BFN offsets, no struct):
+    block counts, INF1 through the accessors, `getFontCode` and `getWidthEntry` for every mapped
+    code (256 and 4902), `loadImage`'s cell and texture object (data, size, format),
+    `getWidth('A')`; then a `JUTConsole` with the system font prints a line (found in its
+    buffer) and draws it in one Aurora frame, whose counters must show draw calls and a texture
+    upload (2 draws, 131072 bytes: the fill box has no texture, the upload is the glyph page).
+    It writes `font.txt` (what `JUTResFont` read from the disc font), which `run.sh` compares
+    with the manifest (`disc_manifest.py --check-font`: block counts, INF1, every WID1/MAP1/GLY1
+    field).
+  Verified: `run.sh font` exit 0 (3 runs; manifest equal, 30 block headers), `heaps` exit 0
+  (3 runs, M2 now reached), `gfx-create` exit 0 (3 runs, COPYDATE "03/02/19 11:43:53"). The test
+  fails with GLY1 `numRows` and WID1 `endCode` left little-endian (cell positions), and without
+  the font's alignment; `--check-font` reports a changed MAP1 entry count. Next: `frame-loop`
+  stalls (frame counter at 0; step 6.2).
+  Inventory: C 5 -> 4, L 2 -> 1, 80 -> 78 open; warnings (option on): int-to-pointer-cast
+  36 -> 35; `native/check/phase4_baseline.txt` regenerated.
+  Regression: `ninja -k 0 centollos cos_sdk_smoke` with `COS_PHASE4_WARNINGS=ON` 0 errors and
+  `--log --check` ok; with it off `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check
+  cos_sdk_shadow_check cos_link_census` 0 errors, smoke ok, `cos_pc_tests` ok, layout check ok
+  (1050 hold on the GameCube), shadow check ok, census equal to
+  `expected_unresolved_phase2.txt`, `--all --dups` 0, static-init 0 x3 (M0), aurora-up 0 x3 (M1),
+  disc-ls 0, heap 0, crash/panic/timeout/stall-test 13/12/10/11, no disc 14.
+- **4.3 review (round 1):** approved; rerun independently: targets up to date with 0 errors,
+  smoke and `cos_pc_tests` ok, census diff empty, layout `--gc-verify` 1050 hold, inventory
+  `--check` ok (78 open); font 0 x3 (manifest equal, 4902 codes, 2 draws), heaps 0 x3,
+  gfx-create 0 x3, static-init 0 x3, aurora-up 0 x3, disc-ls 0, heap 0, crash/panic 13/12.
+  Committed as six commits (layout check, block headers, ResFONT, ResTIMG/TLUT/NTAB, font
+  alignment, M3 and font harness) plus this log and the baseline.
 
 ### Phase 6 render issues
 
