@@ -28,6 +28,8 @@ list(SORT _pc_sources)
 add_library(cos_pc STATIC ${_pc_sources})
 target_link_libraries(cos_pc PRIVATE cos_game_headers)
 target_include_directories(cos_pc PRIVATE "${COS_NATIVE_ROOT}/src/pc")
+# pc_main.cpp (step 6.1) sets cos_sdk's thread hooks (cos_sdk/hooks.h); centollos itself links cos_sdk.
+target_include_directories(cos_pc PRIVATE "${COS_NATIVE_ROOT}/sdk/include")
 if (TARGET cos_link_census)
     target_link_libraries(cos_link_census PRIVATE cos_pc)
 endif ()

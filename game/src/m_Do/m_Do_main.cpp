@@ -535,7 +535,12 @@ void parse_args(int argc, const char* argv[]) {
 #endif
 
 #if VERSION > VERSION_DEMO
+#if TARGET_PC
+// main01 runs on the process main thread, which cos_sdk runs as its default thread (step 6.1).
+OSThread& mainThread = *pc_main_thread();
+#else
 OSThread mainThread;
+#endif
 #endif
 
 /* 80006464-800065DC       .text main */
@@ -550,13 +555,23 @@ int main(int argc, const char* argv[]) {
     // watchdog, the COS_SMOKE tests that need no SDK (static-init, which ends here as it did in
     // step 3.9), then the COS_DISC check. Returns only when the game boots.
     pc_harness_init(argc, argv);
+    // Aurora's window and device, the disc (aurora_dvd_open, GZLE01 version 0), OSInit (run by
+    // __start on the GameCube), the thread hooks and COS_AUDIO=off (step 6.1, pc_main.cpp).
+    pc_aurora_init(argc, argv);
 #endif
 #if VERSION == VERSION_DEMO
     OSThread mainThread;
 #endif
 
     OSThread* current_thread = OSGetCurrentThread();
+#if TARGET_PC
+    // main01 runs right here on the process main thread (SDL and Metal need it), as mainThread.
+    if (current_thread != &mainThread) {
+        OSPanic(__FILE__, __LINE__, "main does not run as mainThread (cos_sdk's default thread)");
+    }
+#else
     u8 ALIGN_DECL(0x20) stack[0xF000];
+#endif
 
     mDoMain::sPowerOnTime = OSGetTime();
     OSReportInit();
@@ -610,15 +625,17 @@ int main(int argc, const char* argv[]) {
 #endif
 #endif
 
-    OSPriority priority = OSGetThreadPriority(current_thread);
 #if TARGET_PC
-    // Aurora declares the entry point with its real type, void* (*)(void*); the game passes a function
-    // of another signature, as it did through the decomp's void*.
-    OSCreateThread(&mainThread, (void* (*)(void*))main01, 0, stack + sizeof(stack), sizeof(stack), priority, 0);
+    // Instead of a new OS thread for main01 and suspending this one (Dusklight does the same): the
+    // window and the Metal device belong to the process main thread. main01 never returns.
+    pc_milestone("aurora-up");
+    main01();
+    return 0;
 #else
+    OSPriority priority = OSGetThreadPriority(current_thread);
     OSCreateThread(&mainThread, (void*)main01, 0, stack + sizeof(stack), sizeof(stack), priority, 0);
-#endif
     OSResumeThread(&mainThread);
     OSSetThreadPriority(current_thread, 0x1F);
     return OSSuspendThread(current_thread);
+#endif
 }

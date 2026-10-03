@@ -41,6 +41,16 @@ enum {
    Returns only when the game should boot. */
 void pc_harness_init(int argc, char* argv[]);
 
+/* Aurora bring-up (step 6.1, pc_main.cpp), called by main right after pc_harness_init: Aurora's
+   window and device (MEM1 256 MiB, ARAM 16 MiB), aurora_dvd_open(COS_DISC) with the disc ID check
+   (exit 14 unless GZLE01 version 0), OSInit, the cos_sdk thread hooks that give each new OS thread
+   the current JKRHeap of the thread that resumed it, and COS_AUDIO=off. Exits on failure. */
+void pc_aurora_init(int argc, char* argv[]);
+
+/* The OSThread record the process main thread runs as (cos_sdk's default thread), which runs
+   main01 on PC: m_Do_main.cpp binds mainThread to it. Usable during static initialisation. */
+struct OSThread* pc_main_thread(void);
+
 /* Logs "[cos] MILESTONE <name> frame= retrace= ms=" and exits 0 if <name> is COS_MILESTONE. */
 void pc_milestone(const char* name);
 

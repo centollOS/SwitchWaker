@@ -1046,6 +1046,40 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   DIFF; `COS_DISC=/nonexistent` 14; build 0 errors, smoke and `cos_pc_tests` ok, census diff
   empty, 0 duplicate strong, static-init 0 x2, crash/panic/stall/timeout-test 13/12/11/10.
   `--check-ls` compares directories by count only (file entries by number, path and size).
+- **6.1 Aurora bring-up in `main`:** new `native/src/pc/pc_main.cpp` (`pc_aurora_init`, called
+  by `main` right after `pc_harness_init`): `aurora_initialize` with `mem1Size` 256 MiB (H5),
+  `mem2Size` 16 MiB, user/cache paths `<exe dir>/user` and `<exe dir>/user/cache`
+  (`build/native-mac/user`, ignored), vsync off when `COS_UNCAPPED`, log level info; then
+  `aurora_dvd_open(COS_DISC)` and `DVDGetCurrentDiskID` must be GZLE01 version 0 (else 14); then
+  `OSInit` (the GameCube's `__start` ran it before `main`; Aurora's needs `mem1Size` first, and
+  `main`'s `OSAllocFromArenaLo` needs the arena); `COS_AUDIO=off` calls
+  `mDoAud_zelAudio_c::onInitFlag()` (Dusklight's `DUSK_AUDIO_DISABLED`). `main` keeps its order
+  (reset data, `g_dComIfG_gameInfo.ct()`, development mode from the disc ID) and, under
+  `TARGET_PC`, logs `aurora-up` and calls `main01` on the process main thread instead of
+  `OSCreateThread` + suspend (GameCube code in `#else`). `mainThread` must stay the record
+  `main01` runs as (`m_Do_ext.cpp` asserts it, `DynamicLink.cpp` checks it), so on PC it is an
+  `OSThread&` bound to cos_sdk's default thread (`COSSdkGetDefaultThread`, new, via
+  `pc_main_thread`); `main` panics if it does not run as that record. Per-thread current heap:
+  `JKRHeap::sCurrentHeap` is `thread_local` on PC (as in Dusklight); the new cos_sdk launch hook
+  (`COSSdkSetThreadLaunchHook`, called on the thread whose `OSResumeThread` starts an
+  `OSCreateThread` thread; its result goes to the start hook, whose signature gains
+  `launchValue`) hands the resuming thread's current heap to the new thread, which is the heap
+  the GameCube's single `sCurrentHeap` holds when that thread is first switched to. Host threads
+  not made by `OSCreateThread` (Aurora, SDL, Dawn) start with no current heap, so the global
+  `operator new` gives them host memory. Not reproduced: `~JKRHeap` moves only the destroying
+  thread's current heap off the dead heap (on the GameCube the single value moved for all).
+  New cos_sdk smoke test `thread_hooks`.
+  Verified: `run.sh aurora-up` exit 0 (4 runs, ~2 s; Metal on Apple M4, window 960x720,
+  framebuffer 1920x1440; `[cos] dvd: GZLE01 version 0`), `--uncapped` exit 0 with vsync 0;
+  `COS_DISC=/nonexistent` 14. Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests
+  cos_layout_check cos_sdk_shadow_check cos_link_census` 0 errors, smoke ok, `cos_pc_tests` ok,
+  shadow check ok, census equal to `expected_unresolved_phase2.txt`, `--all --dups` 0,
+  static-init 0 x3, disc-ls 0, crash/panic/timeout/stall-test 13/12/10/11, inventory unchanged
+  (263). Next (M2, step 4.2): `heaps` faults in `JKRExpHeap::createRoot` (`JKRHeap` constructor
+  on the `initArena` result, address 0), the expected PC `initArena` path.
+  Review (round 1): rebuilt and reran: aurora-up 0 x3, static-init 0 x2, disc-ls 0, no disc 14,
+  crash/panic-test 13/12, smoke (incl. `thread_hooks`) and `cos_pc_tests` ok, census diff empty,
+  0 duplicate strong; committed as three commits (cos_sdk hooks, per-thread heap, bring-up).
 
 ### Phase 6 render issues
 

@@ -9,7 +9,13 @@ class JKRExpHeap;
 void version_check();
 s32 LOAD_COPYDATE(void*);
 
+#if TARGET_PC
+// main01 runs on the process main thread (docs/NATIVE_PORT_PHASE4_6.md, step 6.1), which runs as
+// cos_sdk's default thread: mainThread names that record (m_Do_main.cpp).
+extern OSThread& mainThread;
+#else
 extern OSThread mainThread;
+#endif
 
 const int HeapCheckTableNum = 6;
 
