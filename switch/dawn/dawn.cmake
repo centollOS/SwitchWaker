@@ -342,6 +342,28 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # On top of the statistics patch: binding a sampled texture sets only the glTexParameteri
+    # values its GL texture object does not have yet. Mesa 20.1 treats every swizzle
+    # glTexParameteri as a change (flush, all sampler views of the texture dropped and rebuilt
+    # by the next draw), and Dawn set base/max level and the four swizzles on every bind.
+    set(DAWN_OPENGL_TEXTURE_HEADER "${dawn_SOURCE_DIR}/src/dawn/native/opengl/TextureGL.h")
+    file(READ "${DAWN_OPENGL_TEXTURE_HEADER}" DAWN_OPENGL_TEXTURE_HEADER_TEXT)
+    if(NOT DAWN_OPENGL_TEXTURE_HEADER_TEXT MATCHES "AppliedSamplingParams")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-texture-params.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_TEXPARAM_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_TEXPARAM_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_TEXPARAM_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_TEXPARAM_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL texture parameter patch:\n"
+                "${DAWN_GL_TEXPARAM_PATCH_OUTPUT}${DAWN_GL_TEXPARAM_PATCH_ERROR}")
+        endif()
+    endif()
+
     set(DAWN_WGPU_HELPERS_SOURCE
         "${dawn_SOURCE_DIR}/src/dawn/native/utils/WGPUHelpers.cpp")
     file(READ "${DAWN_WGPU_HELPERS_SOURCE}" DAWN_WGPU_HELPERS_TEXT)

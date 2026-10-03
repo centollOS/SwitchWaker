@@ -264,6 +264,10 @@ what the replay issued: draws, pipeline switches (`glUseProgram` plus the pipeli
 bind group applications, sampled-texture binds and the `glTexParameteri` calls made while binding
 them ("skipped" ones were left out because the texture object already had the value),
 `glUniform` uploads of immediates, staging-to-buffer copies.
+Dawn used to set a texture's base and max level and its four swizzles on every bind; Mesa 20.1
+handles each swizzle `glTexParameteri` as a change (a flush, and every sampler view of the texture
+dropped and rebuilt by the next draw), so `switch/dawn/patches/dawn-switch-gl-texture-params.patch`
+remembers what each GL texture object has and sets only what differs.
 
 "begin" of the perf line is `events` (Aurora's event pump) plus `aurora_begin_frame`, which mostly
 waits for a free frame slot (the render worker still has two frames in flight: GPU-bound or
