@@ -8,6 +8,9 @@
 #include "JSystem/JAudio/osdsp_task.h"
 #include "JSystem/JAudio/dspproc.h"
 #include "dolphin/dsp.h"
+#if TARGET_PC
+#include "cos_dsp_extras.h" // __DSP_*_task (Aurora's dolphin/dsp.h lacks the SDK internals)
+#endif
 #include "dolphin/os/OSContext.h"
 
 u32 sync_stack[3];

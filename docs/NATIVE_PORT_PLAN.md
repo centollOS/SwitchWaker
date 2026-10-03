@@ -739,3 +739,32 @@ Each phase lands as its own commits; this file records decisions and measured re
   link census lists 180 symbols (REL 1, JAudio/JAZel 179: the DSP task functions and the JAS units
   of the second half are now referenced (86 new), 27 JAI symbols are resolved), SDK 0, and
   `expected_unresolved_phase2.txt` is updated to that list.
+- **3.7b JAudio, second half:** the `audio` module now globs all of `src/JSystem/JAudio`, 66 units
+  (the second sorted half is `JASDriverIF.cpp` … `osdsp_task.c`, 33 units); `JAZelAudio` follows
+  in a later 3.7 step. The four DSP units (`dspproc.c`, `dsptask.c`, `osdsp.c`, `osdsp_task.c`)
+  are compiled as C++ (`LANGUAGE CXX` in `modules.cmake`), as the decomp's `configure.py` builds
+  them with `-lang c++`: their headers are C++ and their non-`extern "C"` functions have C++
+  linkage (`DSPReleaseHalt2__FUl`). New `native/include/sdk/cos_dsp_extras.h` declares the SDK's
+  DSP task list (`__DSP_{first,last,curr,tmp}_task`, `__DSP_{exec,boot,insert,add,remove}_task`,
+  C linkage, all defined by cos_sdk's `DSPStubs.cpp`), which Aurora's `dolphin/dsp.h` lacks;
+  `osdsp.c` and `osdsp_task.c` include it under `TARGET_PC`. Changes, each under `TARGET_PC` with
+  the original in `#else` (`unifdef -UTARGET_PC` reproduces HEAD): `TSolidHeap`'s base, current
+  and last-allocation fields are `uintptr_t` (`streamHeap` hands out main-memory pointers, which
+  the u32/int fields truncated) and `init`/`alloc` keep whole addresses; `THeap::initRootHeap` and
+  `THeap::alloc` subtract pointers through `uintptr_t`; `ResArcLoader::loadResource` tests its
+  `OSMessage` whole; `HardStream::setLastAddr` reads Aurora's `DVDFileInfo::startAddr` (the game:
+  `start_address`); `TTrack::loadTbl` returns 0 for an unknown table type instead of falling off
+  the end (undefined in C++). `TODO(native phase 4)`: `TSeqParser`'s address registers
+  (0x28..0x2b) are 32-bit, both where `cmdJmp` starts a sequence from one and in the `cmdPrintf`
+  debug print. `ninja -k 0 audio` 0 errors, 0 deferred. The census covers 932 objects (490
+  main.dol, 416 REL, 26 cos_sdk): 0 duplicate strong definitions, 0 weak data size mismatches, 0
+  duplicate types. Note for 3.8: Aurora declares `DSPAddTask` `DECL_WEAK`, so `osdsp.c`'s
+  definition is weak too and the census lists it with cos_sdk's (weak code, sizes 104 and 272);
+  ld64 keeps the first weak definition it sees, so linking the game objects before `cos_sdk`'s
+  archive (as 3.8 does) keeps JAudio's. The link census lists 93 symbols (REL 1, JAudio/JAZel 92,
+  all `JAIZelBasic`/`JAIZelInst`/`JAIZelAnime`, i.e. `JAZelAudio`), SDK 0, and
+  `expected_unresolved_phase2.txt` is updated to that list.
+- **3.7b review:** independent rebuild of the touched units, `ninja -k 0` on every default target
+  0 errors, link census equal to the expected list (93), census `--dups` clean, `cos_sdk_smoke` ok.
+  `cos_sdk_smoke_tsan` exits 139, but its binary predates 3.7a and links no `game` code, so
+  it is tracked separately.

@@ -261,7 +261,13 @@ int JASystem::TSeqParser::cmdJmp(TTrack* track, u32* args) {
 
     if (conditionCheck(track, flag)) {
         if (usetrackptr) {
+#if TARGET_PC
+            // TODO(native phase 4): the sequence registers 0x28..0x2b (TRegisterParam::getAddress)
+            // hold a 32-bit address; a 64-bit one would need pointer-sized registers.
+            track->getSeq()->start((void*)(intptr_t)trackptr, 0);
+#else
             track->getSeq()->start((void*)trackptr, 0);
+#endif
         } else {
             track->getSeq()->jump(data);
         }
@@ -683,7 +689,13 @@ int JASystem::TSeqParser::cmdPrintf(TTrack* track, u32* args) {
     for (i = 0; i < count; i++) {
         registers[i] = track->getSeq()->readByte();
         if (byteArray[i] == 2) {
+#if TARGET_PC
+            // TODO(native phase 4): the debug print shows the address as an int (%x); a 64-bit
+            // address loses its upper half here. Only the printed value is affected.
+            registers[i] = (int)(intptr_t)track->getSeq()->getAddr(registers[i]);
+#else
             registers[i] = (int)track->getSeq()->getAddr(registers[i]);
+#endif
         } else if (byteArray[i] == 5) {
             registers[i] = track->mRoute;
         } else if (byteArray[i] >= 3) {

@@ -1004,6 +1004,11 @@ int JASystem::TTrack::loadTbl(u32 param_1, u32 param_2, u32 param_3) {
     case 8:
         return mSeqCtrl.get32(param_1 + param_2);
     }
+#if TARGET_PC
+    // Falling off the end is undefined behaviour in C++ (clang may emit a trap); on the console
+    // the caller got whatever r3 held. Return 0 for an unknown table type instead.
+    return 0;
+#endif
 }
 
 /* 80282D80-80282DC0       .text exchangeRegisterValue__Q28JASystem6TTrackFUc */

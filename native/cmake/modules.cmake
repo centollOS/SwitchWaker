@@ -86,13 +86,20 @@ endforeach ()
 
 # Audio (phase 3, step 3.7, decision D4): JSystem/JAudio and JAZelAudio, compiled for the phase 3
 # link and silent over cos_sdk's audio-hardware stubs (step 2.6f); their DSP and streaming
-# semantics are phase 5. Brought in a sorted half at a time: step 3.7a takes the first half of
-# src/JSystem/JAudio (JAIAnimation.cpp .. JASDSPInterface.cpp); later 3.7 steps add the second half
-# and src/JAZelAudio.
-_cos_glob(_jaudio DIRS JSystem/JAudio)
-list(LENGTH _jaudio _n_jaudio)
-math(EXPR _jaudio_half "(${_n_jaudio} + 1) / 2")
-list(SUBLIST _jaudio 0 ${_jaudio_half} COS_SRC_audio)
+# semantics are phase 5. Brought in a step at a time: step 3.7a took the first sorted half of
+# src/JSystem/JAudio (JAIAnimation.cpp .. JASDSPInterface.cpp), step 3.7b the second half
+# (JASDriverIF.cpp .. osdsp_task.c), so the module now holds all of src/JSystem/JAudio; a later
+# 3.7 step adds src/JAZelAudio.
+_cos_glob(COS_SRC_audio DIRS JSystem/JAudio)
+# The decomp builds JAudio's four DSP .c units with "-lang c++" (configure.py): their headers rely
+# on C++ (JSystem.h, JSUList.h, ...) and their non-extern "C" functions have C++ linkage
+# (e.g. DSPReleaseHalt2__FUl), which the C++ callers expect. Compile them as C++ here too.
+set_source_files_properties(
+        "${COS_ROOT}/src/JSystem/JAudio/dspproc.c"
+        "${COS_ROOT}/src/JSystem/JAudio/dsptask.c"
+        "${COS_ROOT}/src/JSystem/JAudio/osdsp.c"
+        "${COS_ROOT}/src/JSystem/JAudio/osdsp_task.c"
+        PROPERTIES LANGUAGE CXX)
 
 get_property(_deferred GLOBAL PROPERTY COS_DEFERRED_UNITS)
 

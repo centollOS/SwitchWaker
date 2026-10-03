@@ -25,7 +25,12 @@ void JASystem::Kernel::THeap::initRootHeap(void* ptr, u32 size, Type type) {
     OSLockMutex(&mMutex);
     mBase = (u8*)OSRoundUpPtr(ptr, 0x20);
     field_0x44 = NULL;
+#if TARGET_PC
+    // Pointer arithmetic through uintptr_t: u32 would truncate a 64-bit address.
+    mSize = size - u32((uintptr_t)mBase - (uintptr_t)ptr);
+#else
     mSize = size - (u32(mBase) - u32(ptr));
+#endif
     mType = type;
     OSUnlockMutex(&mMutex);
 }
@@ -60,7 +65,12 @@ bool JASystem::Kernel::THeap::alloc(THeap* mother, u32 param_2) {
         if (r29 >= mother->mBase + local_2c) {
             break;
         }
+#if TARGET_PC
+        // Pointer arithmetic through uintptr_t: u32 would truncate a 64-bit address.
+        u32 local_3c = u32((uintptr_t)it->mBase - (uintptr_t)r29);
+#else
         u32 local_3c = u32(it->mBase) - u32(r29);
+#endif
         if (local_3c >= param_2 && local_3c < r27) {
             local_30 = *it;
             local_34 = r29;
@@ -205,7 +215,11 @@ void* JASystem::Kernel::TSolidHeap::alloc(s32 size) {
         OSReport("[Nas_HeapAlloc] ヒープが取得できません（ヒープ取得元存在せず）。\n");
         return 0;
     }
+#if TARGET_PC
+    uintptr_t tmp2 = field_0x4; // a whole address (see TSolidHeap in JASHeapCtrl.h)
+#else
     u32 tmp2 = field_0x4;
+#endif
     if (field_0x4 + tmp1 <= field_0x0 + field_0x8) {
         field_0x4 = tmp2 + tmp1;
     } else {
@@ -235,7 +249,11 @@ void JASystem::Kernel::TSolidHeap::init(u8* param_1, s32 param_2) {
     } else {
         field_0x0 = OSRoundUp32B(param_1);
         field_0x4 = field_0x0;
+#if TARGET_PC
+        field_0x8 = param_2 - (int)(field_0x0 - (uintptr_t)param_1);
+#else
         field_0x8 = param_2 - (field_0x0 - u32(param_1));
+#endif
         field_0x10 = 0;
     }
 }

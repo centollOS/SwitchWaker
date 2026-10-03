@@ -56,7 +56,7 @@ in `COS_MODULES_READY` (`cmake/modules.cmake`) compile and default to on (curren
 | `m_Do` | `COS_MODULE_m_Do` | `m_Do` |
 | `d-core` | `COS_MODULE_d_core` | `d/*.cpp` |
 | `actors-1` … `actors-6` | `COS_MODULE_actors_N` | `d/actor`, sorted, in six equal chunks |
-| `audio` | `COS_MODULE_audio` | `JSystem/JAudio`, first sorted half (`JAIAnimation.cpp` … `JASDSPInterface.cpp`, step 3.7a); the rest of JAudio and `JAZelAudio` follow in later 3.7 steps |
+| `audio` | `COS_MODULE_audio` | `JSystem/JAudio` (steps 3.7a and 3.7b; its four DSP `.c` units compile as C++, as the decomp's `-lang c++`); `JAZelAudio` follows in a later 3.7 step |
 
 ```sh
 cmake -S native -B build/native-mac -DCOS_MODULE_framework=ON  # or -DCOS_ALL_MODULES=ON
@@ -154,9 +154,10 @@ decomp's headers, which stay in the tree).
   `<dolphin/os.h>` plus the game-only declarations Aurora lacks).
 - `native/include/sdk/cos_sdk_extras.h`, force-included in every game unit, restores what the
   decomp's `dolphin/types.h` had beyond Aurora's (`uint`, `READU32_BE`, `FLOAT_MIN`/`FLOAT_MAX`).
-- Two names both trees have but whose game-only content Aurora lacks come from headers a unit
-  includes under `#if TARGET_PC`: `cos_card_extras.h` (`CARD_ERROR_*`) and `cos_thp_extras.h`
-  (the THP player types, instead of `dolphin/thp.h`).
+- Three names both trees have but whose game-only content Aurora lacks come from headers a unit
+  includes under `#if TARGET_PC`: `cos_card_extras.h` (`CARD_ERROR_*`), `cos_thp_extras.h`
+  (the THP player types, instead of `dolphin/thp.h`) and `cos_dsp_extras.h` (the SDK's DSP task
+  list, `__DSP_*_task`, for JAudio's `osdsp.c`/`osdsp_task.c`).
 - Hardware registers the decomp defines in its headers (`__VIRegs`, `OS_PI_INTR_*`...) are left
   out on purpose.
 

@@ -49,11 +49,21 @@ namespace JASystem {
             void init(u8* param_1, s32 param_2);
             int getRemain();
 
+#if TARGET_PC
+            // The heap's base, current and last-allocation addresses, pointer-sized: streamHeap
+            // (JAIStreamMgr) hands out main-memory pointers, which a u32 would truncate.
+            /* 0x00 */ uintptr_t field_0x0;
+            /* 0x04 */ uintptr_t field_0x4;
+            /* 0x08 */ int field_0x8;
+            /* 0x0C */ int field_0xc;
+            /* 0x10 */ uintptr_t field_0x10;
+#else
             /* 0x00 */ u32 field_0x0;
             /* 0x04 */ int field_0x4;
             /* 0x08 */ int field_0x8;
             /* 0x0C */ int field_0xc;
             /* 0x10 */ int field_0x10;
+#endif
         };
     }
 }

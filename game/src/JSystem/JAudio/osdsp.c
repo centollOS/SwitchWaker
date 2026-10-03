@@ -7,6 +7,9 @@
 
 #include "JSystem/JAudio/osdsp.h"
 #include "JSystem/JAudio/osdsp_task.h"
+#if TARGET_PC
+#include "cos_dsp_extras.h" // __DSP_*_task (Aurora's dolphin/dsp.h lacks the SDK internals)
+#endif
 #include "dolphin/types.h"
 
 /* 8028EB80-8028EC04       .text DSPAddTask */

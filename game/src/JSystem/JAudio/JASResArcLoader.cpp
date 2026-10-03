@@ -51,7 +51,12 @@ u32 JASystem::ResArcLoader::loadResource(JKRArchive* archive, u16 id, u8* buffer
         return 0;
     }
     OSReceiveMessage(&queue, &receiveMsg, OS_MESSAGE_BLOCK);
+#if TARGET_PC
+    // The OSMessage is a pointer-sized value; test it whole (u32 would truncate it).
+    return size & ~-((uintptr_t)receiveMsg != 0);
+#else
     return size & ~-(u32(receiveMsg) != 0);
+#endif
 }
 
 /* 8027D658-8027D6B0       .text loadResourceAsync__Q28JASystem12ResArcLoaderFP10JKRArchiveUsPUcUlPFUlUl_vUl */
