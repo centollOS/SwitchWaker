@@ -2238,6 +2238,19 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   and stops on the next blocker, PANIC GFGeometry.cpp:263 (`GFSetArray(attr 9, stride 3)` needs
   `GFSetArraySized`) in `dWood::Packet_c::draw` <- `J3DDrawBuffer::drawHead`.
 
+- **M7 boot loop, iteration 8** (2026-10-03, host-semantics): PANIC GFGeometry.cpp:263
+  (`GFSetArray` has no array size on Aurora) in `dWood::Packet_c::draw` <- `J3DDrawBuffer::drawHead`
+  (ROOM_SCENE frame 302). Aurora ignores CP_REG_ARRAYBASE; `GFSetArraySized` (pointer, byte size,
+  byte order) existed in GFGeometry.cpp but was never declared or called. GFGeometry.h now declares
+  it under `TARGET_PC`, and `dWood::Packet_c::draw`, `dTree_packet_c::draw` and
+  `dGrass_packet_c::draw` pass the static, host-endian asset arrays with their byte sizes (grass
+  picks the `l_Vmori_*` or `l_*` set its pointers name). Still unconverted: the `GFSetArray`
+  callers in m_Do_graphic.cpp, d_drawlist.cpp, d_a_bwdg.cpp and d_a_mant.cpp (dynamic arrays,
+  sized case by case when reached). Fixer and reviewer: `regress.sh -j 3` all checks passed;
+  `opening` gets past the wood/grass draw to ROOM_SCENE frame 656 (sea_T Room0) and stops on the
+  next blocker, PANIC JAISoundTable.cpp:61 in `JAInter::SoundTable::getInfoPointer` <-
+  `JAIBasic::startSoundActor` <- `JAIZelAnime::startAnimSound` <- `daPy_lk_c::execute`.
+
 ### Phase 6 render issues
 
 None yet.

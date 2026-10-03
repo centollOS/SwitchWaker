@@ -6,6 +6,10 @@
 void GFSetVtxDescv(GXVtxDescList*);
 void GFSetVtxAttrFmtv(GXVtxFmt, GXVtxAttrFmtList*);
 void GFSetArray(GXAttr, void*, u8);
+#if TARGET_PC
+// Aurora needs the array's byte size and byte order (see GFGeometry.cpp).
+void GFSetArraySized(GXAttr attr, void* base_ptr, u32 size, u8 stride, bool le);
+#endif
 void GFSetCullMode(GXCullMode);
 
 inline void GFWrite_u8(u8 data) {

@@ -395,8 +395,14 @@ void dTree_packet_c::draw() {
 #endif
     GFSetVtxDescv(l_shadowVtxDescList);
     GFSetVtxAttrFmtv(GX_VTXFMT0, l_shadowVtxAttrFmtList);
+#if TARGET_PC
+    // Aurora's GX needs each array's byte size and byte order (u8 data: either works).
+    GFSetArraySized(GX_VA_POS, g_dTree_shadowPos, sizeof(g_dTree_shadowPos), 3, true);
+    GFSetArraySized(GX_VA_TEX0, g_dTree_shadowTexCoord, sizeof(g_dTree_shadowTexCoord), 2, true);
+#else
     GFSetArray(GX_VA_POS, g_dTree_shadowPos, 3);
     GFSetArray(GX_VA_TEX0, g_dTree_shadowTexCoord, 2);
+#endif
     GXCallDisplayList(g_dTree_shadowMatDL, 0x80);
     GFSetTevColor(GX_TEVREG0, l_shadowColor);
 
@@ -414,9 +420,16 @@ void dTree_packet_c::draw() {
 
     GFSetVtxDescv(l_vtxDescList);
     GFSetVtxAttrFmtv(GX_VTXFMT0, l_vtxAttrFmtList);
+#if TARGET_PC
+    // Aurora's GX needs each array's byte size and byte order (the static asset arrays are host-endian).
+    GFSetArraySized(GX_VA_POS, l_pos, sizeof(l_pos), sizeof(cXyz), true);
+    GFSetArraySized(GX_VA_CLR0, l_color, sizeof(l_color), sizeof(GXColor), true);
+    GFSetArraySized(GX_VA_TEX0, l_texCoord, sizeof(l_texCoord), sizeof(cXy), true);
+#else
     GFSetArray(GX_VA_POS, l_pos, sizeof(cXyz));
     GFSetArray(GX_VA_CLR0, l_color, sizeof(GXColor));
     GFSetArray(GX_VA_TEX0, l_texCoord, sizeof(cXy));
+#endif
     GXCallDisplayList(l_matDL, 0xA0);
 
     room = &mRoom[0];

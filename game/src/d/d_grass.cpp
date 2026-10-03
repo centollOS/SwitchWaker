@@ -291,9 +291,18 @@ void dGrass_packet_c::draw() {
 
     GFSetVtxDescv(l_vtxDescList);
     GFSetVtxAttrFmtv(GX_VTXFMT0, l_vtxAttrFmtList);
+#if TARGET_PC
+    // Aurora's GX needs each array's byte size and byte order. The pointers name one of the two
+    // static, host-endian asset sets chosen in the constructor; take that set's sizes.
+    bool vmori = mpPosArr == l_Vmori_pos;
+    GFSetArraySized(GX_VA_POS, mpPosArr, vmori ? sizeof(l_Vmori_pos) : sizeof(l_pos), sizeof(cXyz), true);
+    GFSetArraySized(GX_VA_CLR0, mpColorArr, vmori ? sizeof(l_Vmori_color) : sizeof(l_color), sizeof(*mpColorArr), true);
+    GFSetArraySized(GX_VA_TEX0, mpTexCoordArr, vmori ? sizeof(l_Vmori_texCoord) : sizeof(l_texCoord), sizeof(cXy), true);
+#else
     GFSetArray(GX_VA_POS, mpPosArr, sizeof(cXyz));
     GFSetArray(GX_VA_CLR0, mpColorArr, sizeof(*mpColorArr));
     GFSetArray(GX_VA_TEX0, mpTexCoordArr, sizeof(cXy));
+#endif
     GXCallDisplayList(mpMatDL, mMatDLSize);
 
     dGrass_room_c* room = &mGrassRoom[0];
