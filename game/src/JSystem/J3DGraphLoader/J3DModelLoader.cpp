@@ -16,6 +16,16 @@
 #include "dolphin/os/OS.h"
 #if TARGET_PC
 #include "helpers/endian_gx.hpp"
+
+// The material IDs (mDiffFlag) are built from addresses: (u32)ptr, or (u32)ptr >> 4. On the
+// GameCube every heap address is in MEM1 (0x80000000-0x817FFFFF), so (u32)ptr has bit 31 set and
+// bit 30 clear, and ptr >> 4 has both clear; J3DMatPacket::isSame and isChanged read bit 31 as
+// "changed". Every JKR heap lives in Aurora's MEM1 block (256 MiB, decision H5), so the low 30 bits
+// of a host address are unique among materials: this gives them the GameCube's upper two bits.
+static inline u32 J3DGCAddressBits(const void* p) {
+    return 0x80000000 | ((u32)(uintptr_t)p & 0x3FFFFFFF);
+}
+
 // The end of the EVP1 table at `offset`: the next table of the block or the block's end (the
 // tables are back to back; the block size is 32-byte aligned).
 static u32 J3DTableEnd(const JUTDataBlockHeader* i_block, u32 offset, const BE(u32)* offsets,
@@ -362,8 +372,8 @@ void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
         vertex_data.mNrmNum = 0;
     } else if (nrm_end != NULL) {
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        vertex_data.mNrmNum = ((u32)(uintptr_t)nrm_end - (u32)(uintptr_t)vertex_data.mVtxNrmArray) / nrm_size + 1;
+        // Both arrays are in the same VTX1 block: the distance fits in 32 bits.
+        vertex_data.mNrmNum = (u32)((uintptr_t)nrm_end - (uintptr_t)vertex_data.mVtxNrmArray) / nrm_size + 1;
 #else
         vertex_data.mNrmNum = ((u32)nrm_end - (u32)vertex_data.mVtxNrmArray) / nrm_size + 1;
 #endif
@@ -387,8 +397,8 @@ void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
         vertex_data.mColNum = 0;
     } else if (color0_end != NULL) {
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        vertex_data.mColNum = ((u32)(uintptr_t)color0_end - (u32)(uintptr_t)vertex_data.mVtxColorArray[0]) / 4 + 1;
+        // Both arrays are in the same VTX1 block: the distance fits in 32 bits.
+        vertex_data.mColNum = (u32)((uintptr_t)color0_end - (uintptr_t)vertex_data.mVtxColorArray[0]) / 4 + 1;
 #else
         vertex_data.mColNum = ((u32)color0_end - (u32)vertex_data.mVtxColorArray[0]) / 4 + 1;
 #endif
@@ -540,8 +550,8 @@ void J3DModelLoader_v26::readMaterial(const J3DMaterialBlock* i_block, u32 i_fla
             factory.create(&mpMaterialTable->mMaterialBase[i],
                            J3DMaterialFactory::MATERIAL_TYPE_NORMAL, i, i_flags);
 #if TARGET_PC
-            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-            mpMaterialTable->mMaterialBase[i].mDiffFlag = (u32)(uintptr_t)&mpMaterialTable->mMaterialBase[i] >> 4;
+            // The material ID is built from a GameCube address (J3DGCAddressBits).
+            mpMaterialTable->mMaterialBase[i].mDiffFlag = J3DGCAddressBits(&mpMaterialTable->mMaterialBase[i]) >> 4;
 #else
             mpMaterialTable->mMaterialBase[i].mDiffFlag = (u32)&mpMaterialTable->mMaterialBase[i] >> 4;
 #endif
@@ -554,9 +564,9 @@ void J3DModelLoader_v26::readMaterial(const J3DMaterialBlock* i_block, u32 i_fla
     if (i_flags & 0x200000) {
         for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
 #if TARGET_PC
-            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+            // The material ID is built from a GameCube address (J3DGCAddressBits).
             mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
-                (u32)(uintptr_t)&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)] >> 4;
+                J3DGCAddressBits(&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)]) >> 4;
 #else
             mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
                 (u32)&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)] >> 4;
@@ -567,9 +577,9 @@ void J3DModelLoader_v26::readMaterial(const J3DMaterialBlock* i_block, u32 i_fla
     } else {
         for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
 #if TARGET_PC
-            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+            // The material ID is built from a GameCube address (J3DGCAddressBits).
             mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
-                ((u32)(uintptr_t)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
+                (J3DGCAddressBits(mpMaterialTable->mMaterialNodePointer) >> 4) + factory.getMaterialID(i);
 #else
             mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
                 ((u32)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
@@ -599,8 +609,8 @@ void J3DModelLoader_v21::readMaterial_v21(const J3DMaterialBlock_v21* i_block, u
         for (u16 i = 0; i < mpMaterialTable->mUniqueMatNum; i++) {
             factory.create(&mpMaterialTable->mMaterialBase[i], i, i_flags);
 #if TARGET_PC
-            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-            mpMaterialTable->mMaterialBase[i].mDiffFlag = (u32)(uintptr_t)&mpMaterialTable->mMaterialBase[i] >> 4;
+            // The material ID is built from a GameCube address (J3DGCAddressBits).
+            mpMaterialTable->mMaterialBase[i].mDiffFlag = J3DGCAddressBits(&mpMaterialTable->mMaterialBase[i]) >> 4;
 #else
             mpMaterialTable->mMaterialBase[i].mDiffFlag = (u32)&mpMaterialTable->mMaterialBase[i] >> 4;
 #endif
@@ -612,9 +622,9 @@ void J3DModelLoader_v21::readMaterial_v21(const J3DMaterialBlock_v21* i_block, u
     if (i_flags & 0x200000) {
         for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
 #if TARGET_PC
-            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+            // The material ID is built from a GameCube address (J3DGCAddressBits).
             mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
-                (u32)(uintptr_t)&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)] >> 4;
+                J3DGCAddressBits(&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)]) >> 4;
 #else
             mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
                 (u32)&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)] >> 4;
@@ -681,9 +691,9 @@ void J3DModelLoader_v26::readMaterialTable(const J3DMaterialBlock* i_block, u32 
     }
     for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        // The material ID is built from a GameCube address (J3DGCAddressBits).
         mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
-            (u32)(uintptr_t)mpMaterialTable->mMaterialNodePointer + factory.getMaterialID(i);
+            J3DGCAddressBits(mpMaterialTable->mMaterialNodePointer) + factory.getMaterialID(i);
 #else
         mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
             (u32)mpMaterialTable->mMaterialNodePointer + factory.getMaterialID(i);
@@ -708,9 +718,9 @@ void J3DModelLoader_v21::readMaterialTable_v21(const J3DMaterialBlock_v21* i_blo
     }
     for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        // The material ID is built from a GameCube address (J3DGCAddressBits).
         mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
-            ((u32)(uintptr_t)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
+            (J3DGCAddressBits(mpMaterialTable->mMaterialNodePointer) >> 4) + factory.getMaterialID(i);
 #else
         mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
             ((u32)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
@@ -747,9 +757,9 @@ void J3DModelLoader::readPatchedMaterial(const J3DMaterialBlock* i_block, u32 i_
         mpMaterialTable->mMaterialNodePointer[i] =
             factory.create(NULL, J3DMaterialFactory::MATERIAL_TYPE_PATCHED, i, i_flags);
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        // The material ID is built from a GameCube address (J3DGCAddressBits).
         mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
-            ((u32)(uintptr_t)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
+            (J3DGCAddressBits(mpMaterialTable->mMaterialNodePointer) >> 4) + factory.getMaterialID(i);
 #else
         mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
             ((u32)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);

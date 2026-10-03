@@ -21,7 +21,7 @@ group B	0
 group C	4
 group D	7
 group E	1
-group F	30
+group F	11
 group G	9
 group H	0
 group I	6
