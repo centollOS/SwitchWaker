@@ -17,11 +17,20 @@
 // - VIGetNextField alternates with the retrace count instead of always returning 0, so code that
 //   waits for a given field (d_a_movie_player with field-based THP video) sees it within two
 //   retraces;
-// - VISetBlack(TRUE) is logged once: Aurora keeps presenting frames, it does not blank the screen.
+// - VISetBlack(TRUE) is logged once: Aurora keeps presenting frames, it does not blank the screen;
+// - retraces are spaced in OS time (F1-vi-stall): a retrace waits until OSGetTick has advanced
+//   COS_SDK_VI_MIN_RETRACE_US past the end of the previous pre-retrace callback. On the console
+//   two retraces are a field apart, so JUTVideo::preRetraceProc's measured interval
+//   (sVideoInterval, an OSGetTick delta) is never 0; here a burst of retraces (JFWDisplay's
+//   waitForTick catching up, JKRDvdRipper polling) could give two callbacks the same tick, or the
+//   same frozen tick while Aurora pauses its game clock (window hidden or minimised), and
+//   JFWDisplay::calcCombinationRatio, which steps by that interval, then never ends. The wait is
+//   made with the OS lock released (unless the caller has interrupts disabled), so other threads
+//   (alarms, audio) run during it.
 //
-// Pacing is not done here: VIWaitForRetrace returns at once. The main loop paces frames
-// (phase 6); a thread that polls with VIWaitForRetrace (JKRDvdRipper while a read is pending)
-// spins and produces retraces as it goes.
+// Pacing is not done here: VIWaitForRetrace returns at once, bar the microsecond of spacing above.
+// The main loop paces frames (phase 6); a thread that polls with VIWaitForRetrace (JKRDvdRipper
+// while a read is pending) spins and produces retraces as it goes.
 #include "../os/os_internal.h"
 
 #include <dolphin/vi.h>
@@ -29,6 +38,8 @@
 #include "cos_sdk/hooks.h"
 
 #include <atomic>
+#include <chrono>
+#include <thread>
 
 using namespace cos_sdk::os;
 
@@ -41,25 +52,58 @@ void* sNextFrameBuffer = nullptr;                 // guarded by Lock()
 void* sCurrentFrameBuffer = nullptr;              // guarded by Lock()
 bool sFrameBufferSet = false;                     // guarded by Lock(); latched at the next retrace
 BOOL sBlack = FALSE;                              // guarded by Lock()
+bool sRetraced = false;                           // guarded by Lock(): sLastRetraceTick is set
+OSTick sLastRetraceTick = 0; // guarded by Lock(): OSGetTick after the last pre-retrace callback
 
-} // namespace
+// COS_SDK_VI_MIN_RETRACE_US in OSGetTick units (OS_TIMER_CLOCK is set at run time by Aurora).
+u32 MinRetraceTicks() {
+    const u32 ticks = static_cast<u32>(OSMicrosecondsToTicks(
+        static_cast<u64>(COS_SDK_VI_MIN_RETRACE_US)));
+    return ticks != 0 ? ticks : 1;
+}
 
-extern "C" {
-
-void VIWaitForRetrace(void) {
-    // On the console the caller sleeps until the retrace interrupt; here the call is the retrace.
-    Guard guard;
+// One retrace, as vi.c's __VIRetraceHandler: count, pre-retrace callback, frame buffer latch,
+// post-retrace callback. Needs Lock().
+void RetraceLocked() {
     const u32 count = sRetraceCount.load(std::memory_order_relaxed) + 1;
     sRetraceCount.store(count, std::memory_order_release);
     if (sPreRetraceCallback != nullptr) {
         sPreRetraceCallback(count);
     }
+    sRetraced = true;
+    sLastRetraceTick = OSGetTick();
     if (sFrameBufferSet) {
         sCurrentFrameBuffer = sNextFrameBuffer;
         sFrameBufferSet = false;
     }
     if (sPostRetraceCallback != nullptr) {
         sPostRetraceCallback(count);
+    }
+}
+
+} // namespace
+
+extern "C" {
+
+void VIWaitForRetrace(void) {
+    // On the console the caller sleeps until the retrace interrupt; here the call is the retrace,
+    // once OS time has moved on from the previous one (see the top of the file). The check and the
+    // retrace are under one Guard, so a retrace from another thread cannot come in between.
+    const u32 minTicks = MinRetraceTicks();
+    for (u32 spins = 0;; spins++) {
+        {
+            Guard guard;
+            if (!sRetraced || OSGetTick() - sLastRetraceTick >= minTicks) {
+                RetraceLocked();
+                return;
+            }
+        }
+        // Normally a microsecond at most; longer only while Aurora's game clock is paused.
+        if (spins < 1000) {
+            std::this_thread::yield();
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
     }
 }
 

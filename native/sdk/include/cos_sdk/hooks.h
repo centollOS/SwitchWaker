@@ -85,6 +85,13 @@ OSErrorHandler COSSdkGetErrorHandler(OSError error);
 // TRUE.
 BOOL COSSdkVIIsBlack(void);
 
+// The least time, in microseconds, between two retraces as the pre-retrace callbacks see it on
+// OSGetTick: VIWaitForRetrace delays a retrace until OSGetTick has advanced this much since the
+// previous pre-retrace callback returned (src/vi/VIRetrace.cpp). On the console retraces are a
+// field (~16.7 ms) apart; the host makes them on demand, often back to back, and JUTVideo's
+// measured retrace interval (JFWDisplay::calcCombinationRatio loops by it) must never be 0.
+#define COS_SDK_VI_MIN_RETRACE_US 1
+
 #ifdef __cplusplus
 }
 #endif

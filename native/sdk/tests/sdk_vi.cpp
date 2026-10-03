@@ -28,6 +28,10 @@ u32 sPostLastCount = 0;
 bool sCallbackHadInterruptsOn = false;
 bool sPostSawLatchedBuffer = true;
 void* sExpectedBuffer = nullptr;
+// As JUTVideo::preRetraceProc: the OSGetTick delta between two pre-retrace callbacks.
+bool sPreTicked = false;
+OSTick sPreLastTick = 0;
+u32 sPreMinInterval = 0xFFFFFFFFu;
 
 void PreRetrace(u32 retraceCount) {
     // Interrupts are already disabled inside the retrace "interrupt": Disable returns FALSE.
@@ -37,6 +41,12 @@ void PreRetrace(u32 retraceCount) {
     }
     sPreCalls++;
     sPreLastCount = retraceCount;
+    const OSTick tick = OSGetTick();
+    if (sPreTicked && tick - sPreLastTick < sPreMinInterval) {
+        sPreMinInterval = tick - sPreLastTick;
+    }
+    sPreTicked = true;
+    sPreLastTick = tick;
 }
 
 void PostRetrace(u32 retraceCount) {
@@ -153,6 +163,17 @@ COS_SMOKE_TEST(vi) {
         OSRestoreInterrupts(level);
         COS_SMOKE_CHECK(preCalls - preBefore == 1000);
         COS_SMOKE_CHECK(lastCount == VIGetRetraceCount());
+    }
+
+    // Back-to-back retraces, from one thread and from two, are still apart in OS time as the
+    // pre-retrace callback measures it (F1-vi-stall: JFWDisplay::calcCombinationRatio steps by
+    // JUTVideo's measured interval and never ends on 0).
+    {
+        const BOOL level = OSDisableInterrupts();
+        const u32 minInterval = sPreMinInterval;
+        OSRestoreInterrupts(level);
+        COS_SMOKE_CHECK(minInterval >= OSMicrosecondsToTicks(COS_SDK_VI_MIN_RETRACE_US));
+        COS_SMOKE_CHECK(minInterval > 0);
     }
 
     COS_SMOKE_CHECK(VISetPreRetraceCallback(nullptr) == PreRetrace);

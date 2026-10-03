@@ -49,3 +49,7 @@ outset-debug 0 --stage sea:44:206
 
 # milestone M13 (step 6.6, lane outset): Link is controllable in Outset after Aryll's lookout event
 outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.txt
+
+# F1-vi-stall (lane outset): M13 uncapped, retraces back to back; JUTVideo's measured retrace
+# interval must never be 0 (JFWDisplay::calcCombinationRatio loops by it)
+outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.txt --uncapped

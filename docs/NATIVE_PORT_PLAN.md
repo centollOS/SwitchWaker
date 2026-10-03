@@ -2546,6 +2546,25 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   132-133 s, identical positions. Adds the target to the regression list.
   Reviewed: regression passes; 3/3 capped runs reach M13 at frame 4100 (132 s) with identical
   probe lines. M13 reached.
+- **F1-vi-stall: retraces spaced in OS time** (2026-10-03, lane outset, host-semantics). The
+  uncapped Outset stall in `JFWDisplay::calcCombinationRatio` (render issues below): its loop steps
+  by `JUTVideo::sVideoInterval`, the `OSGetTick` delta between two pre-retrace callbacks, and never
+  ends on 0. On the console retraces are a field apart; the host VI made them on demand, so a burst
+  (waitForTick catching up, JKRDvdRipper polling) gave callbacks a few ticks apart (instrumented
+  uncapped run: about half the retraces 5-9 ticks after the previous one), and two in the same
+  tick, or on Aurora's game clock while it is paused (window hidden or minimised: `OSGetTime` stops),
+  give 0. `VIWaitForRetrace` (`native/sdk/src/vi/VIRetrace.cpp`) now holds a retrace until
+  `OSGetTick` has advanced `COS_SDK_VI_MIN_RETRACE_US` (1 us, `cos_sdk/hooks.h`) past the end of the
+  previous pre-retrace callback, waiting with the OS lock released; GameCube code unchanged. The
+  `vi` SDK smoke test checks the measured interval over 1000 back-to-back retraces from two
+  threads (fails without the change). The 4.16 stall did not reproduce before the change either
+  (it is timing-dependent); after it: an uncapped 7000-frame Outset run tapping A from frame 400
+  to 6400, 3/3 without a stall (8.35 ms a frame, as before); `outset-control` uncapped 2/2 (22-26
+  s) and capped 1/1 (133 s); `run --frames 600` capped pacing ratio 1.0001. Adds
+  `outset-control --uncapped` to the regression list.
+  Reviewed: regression passes; `vi` smoke fails with the old VIRetrace.cpp and passes with the
+  fix; uncapped `outset-control` and an uncapped 6200-frame Outset run with input pass; capped
+  `run --frames 600` pacing ratio 1.0001.
 
 ### Phase 6 render issues
 
@@ -2573,6 +2592,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `JUTVideo::sVideoInterval` (OSGetTick delta between two pre-retrace callbacks) is 0, which the
   host VI (`VIRetrace.cpp`: every `VIWaitForRetrace` call is a retrace, a polling thread makes them
   back to back) can produce. Not a render issue strictly, but host timing; blocks uncapped M13.
+  **Fixed** by F1-vi-stall: `VIWaitForRetrace` spaces retraces by at least 1 us of `OSGetTick`.
 - **Outset (sea room 44) draws badly** (found by M12, `--shot`; after step 4.16 the event camera
   shows the lookout and island geometry, so the missing island was event/camera state; character
   models (Link, Aryll) draw as black silhouettes with noisy faces): at frame 400 the backdrop band
