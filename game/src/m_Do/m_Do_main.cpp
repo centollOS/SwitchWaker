@@ -462,7 +462,14 @@ void main01() {
     cDyl_InitAsync();  // init RELs
 
 #if VERSION > VERSION_DEMO
+#if TARGET_PC
+    // Decision H5: doubled for 8-byte pointers and the larger JKR block headers, as Dusklight
+    // doubles its audio heap (ref/dusklight/src/m_Do/m_Do_main.cpp, audioHeapSize, CC0); JAudio
+    // also takes the MEM1 copies of the DSP ucode and tables from it (step 5.2).
+    g_mDoAud_audioHeap = JKRSolidHeap::create(0x166800 * 2, JKRHeap::getCurrentHeap(), false);
+#else
     g_mDoAud_audioHeap = JKRSolidHeap::create(0x166800, JKRHeap::getCurrentHeap(), false);
+#endif
 
     static u32 frame;
 #endif
