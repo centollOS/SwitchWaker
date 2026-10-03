@@ -1428,6 +1428,11 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   1.0002, 1.0008, no assertion or panic; M4 uncapped 0 x3; static-init/aurora-up/heaps 0 x3;
   heap/disc-ls/font/arc-sweep 0; crash/panic/timeout/stall 13/12/10/11, no disc 14; census diff
   empty, `--dups` 0, inventory ok (78 open), smoke and `cos_pc_tests` ok. Accepted.
+- M4 reached (boot loop, 2026-10-03, HEAD d12e91c, no code change): `frame-loop` capped 0 x3
+  (120 frames, 120 retraces, up to 3 draw calls; ratio 1.0004, 1.0002, 1.0002), uncapped 0;
+  static-init/aurora-up/heaps/gfx-create 0 x3; heap/disc-ls/font/arc-sweep 0;
+  crash/panic/timeout/stall 13/12/10/11; census diff empty, `--dups` 0, inventory ok (78 open),
+  smoke and `cos_pc_tests` ok.
 
 ### Phase 6 render issues
 
