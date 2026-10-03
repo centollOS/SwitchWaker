@@ -4,11 +4,28 @@
 //
 
 #include "f_pc/f_pc_profile.h"
+#if TARGET_PC
+#include "f_pc/f_pc_name.h"
+#endif
 
+#if TARGET_PC
+// On PC every REL is linked into the executable, so the list exists from static initialisation and
+// no ModuleProlog of the f_pc_profile_lst REL sets this pointer (adapted from Dusklight's
+// src/f_pc/f_pc_profile.cpp, CC0; its mod-registered actors are left out).
+process_profile_definition** g_fpcPf_ProfileList_p = g_fpcPfLst_ProfileList;
+#else
 process_profile_definition** g_fpcPf_ProfileList_p;
+#endif
 
 /* 8004003C-80040050       .text fpcPf_Get__Fs */
 process_profile_definition* fpcPf_Get(s16 i_profName) {
+#if TARGET_PC
+    // A name outside the list (or a list that is not set) gives no profile instead of reading out
+    // of bounds; fpcBs_Create then fails the create (its TARGET_PC NULL check).
+    if (g_fpcPf_ProfileList_p == NULL || i_profName < 0 || i_profName >= fpcNm_MAX_NUM_e) {
+        return NULL;
+    }
+#endif
     int profName = i_profName;
     return g_fpcPf_ProfileList_p[profName];
 }

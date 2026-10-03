@@ -90,6 +90,13 @@ base_process_class* fpcBs_Create(s16 i_profName, fpc_ProcID i_procID, void* i_da
     u32 size;
 
     procProfDef = (process_profile_definition*)fpcPf_Get(i_profName);
+#if TARGET_PC
+    // fpcPf_Get returns NULL for a name outside the profile list or without a profile; fail the
+    // create like an allocation failure instead of reading through NULL (as Dusklight does).
+    if (procProfDef == NULL) {
+        return NULL;
+    }
+#endif
     size = procProfDef->mSize + procProfDef->mSizeOther;
     procClass = (base_process_class*)cMl::memalignB(-4, size);
     if (procClass == NULL) {

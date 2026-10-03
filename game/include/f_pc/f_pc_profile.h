@@ -21,5 +21,10 @@ typedef struct process_profile_definition {
 struct leaf_process_profile_definition;
 process_profile_definition* fpcPf_Get(s16 profileID);
 extern process_profile_definition** g_fpcPf_ProfileList_p;
+#if TARGET_PC
+// Defined by f_pc_profile_lst.cpp (also declared in f_pc/f_pc_profile_lst.h); declared here too so
+// f_pc_profile.cpp can point g_fpcPf_ProfileList_p at it without the typed profile declarations.
+extern process_profile_definition* g_fpcPfLst_ProfileList[];
+#endif
 
 #endif

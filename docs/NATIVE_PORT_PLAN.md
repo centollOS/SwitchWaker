@@ -686,3 +686,17 @@ Each phase lands as its own commits; this file records decisions and measured re
   m_Do with `TARGET_PC` on finds 0 duplicate class names outside namespaces (6 with it off), and
   `nm -m` over all objects finds no weak/strong pair. All default targets and checks rc=0, phase 2
   unresolved diff empty.
+- **3.4 Static profile list:** under `TARGET_PC`, `f_pc_profile.cpp` initialises
+  `g_fpcPf_ProfileList_p = g_fpcPfLst_ProfileList` (constant initialisation, no static
+  constructor; `f_pc_profile.h` declares the list) in place of the REL's `ModuleProlog`, and
+  `fpcPf_Get` returns NULL for a NULL list or a name outside `[0, fpcNm_MAX_NUM_e)`;
+  `fpcBs_Create` returns NULL for a NULL profile (as Dusklight's does) instead of reading through
+  it. D5: `f_pc_profile_lst.h` declares each `g_profile_*` with the type its unit defines it with
+  (503: 452 actor, 2 `actor_process_profile_definition2` (PLAYER, BG), 16 msg, 12 scene, 10 kankyo,
+  9 overlap, 2 camera) and `f_pc_profile_lst.cpp` takes the embedded `process_profile_definition`
+  (`.base.base`, `.def.base.base`, camera `.base.base.base`), same order and `VERSION` branches,
+  with a `static_assert` that the list has `fpcNm_MAX_NUM_e` entries plus the NULL; the original
+  declarations and list stay in the `#else` branches. `g_profile_*` and `g_fpcPfLst_ProfileList`
+  are unresolved nowhere over the 866 objects. The main.dol-only link census now also lists `REL
+  g_fpcPfLst_ProfileList` (referenced by `f_pc_profile.cpp`, defined in the REL unit), added to
+  `expected_unresolved_phase2.txt` (125 symbols).

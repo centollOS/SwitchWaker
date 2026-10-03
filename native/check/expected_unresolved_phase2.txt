@@ -2,6 +2,7 @@ REL	_OSLink
 REL	_OSLinkFixed
 REL	_OSSetStringTable
 REL	_OSUnlink
+REL	_g_fpcPfLst_ProfileList
 JAudio/JAZel	__ZN10JAIZelInst10melodyPlayEi
 JAudio/JAZel	__ZN10JAIZelInst10melodyStopEv
 JAudio/JAZel	__ZN10JAIZelInst11ambientPlayEv
