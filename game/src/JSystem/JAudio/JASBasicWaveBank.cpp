@@ -56,7 +56,12 @@ void JASystem::TBasicWaveBank::setWaveTableSize(u32 param_1) {
     delete[] mWaveTable;
     mWaveTable = new (getCurrentHeap(), 0) TWaveInfo*[param_1];
     JUT_ASSERT(70, mWaveTable != NULL);
+#if TARGET_PC
+    // A table of pointers: 8 bytes per entry on the host, not the GameCube's 4.
+    Calc::bzero(mWaveTable, param_1 * sizeof(TWaveInfo*));
+#else
     Calc::bzero(mWaveTable, param_1 * 4);
+#endif
     mWaveCount = param_1;
 }
 

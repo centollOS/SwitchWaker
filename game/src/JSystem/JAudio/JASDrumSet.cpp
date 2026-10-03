@@ -110,7 +110,12 @@ void JASystem::TDrumSet::TPerc::setEffectCount(u32 param_1) {
     }
     mEffect = new (TBank::getCurrentHeap(), 0) TInstEffect*[param_1];
     JUT_ASSERT(146, mEffect != NULL);
+#if TARGET_PC
+    // A table of pointers: 8 bytes per entry on the host, not the GameCube's 4.
+    Calc::bzero(mEffect, param_1 * sizeof(TInstEffect*));
+#else
     Calc::bzero(mEffect, param_1 * 4);
+#endif
 }
 
 /* 80285664-802856F8       .text setVeloRegionCount__Q38JASystem8TDrumSet5TPercFUl */

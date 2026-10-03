@@ -111,7 +111,12 @@ void JASystem::TBasicInst::setEffectCount(u32 num) {
     }
     mEffect = new (TBank::getCurrentHeap(), 0) TInstEffect*[num];
     JUT_ASSERT(157, mEffect != NULL);
+#if TARGET_PC
+    // A table of pointers: 8 bytes per entry on the host, not the GameCube's 4.
+    Calc::bzero(mEffect, num * sizeof(TInstEffect*));
+#else
     Calc::bzero(mEffect, num * 4);
+#endif
 }
 
 /* 80284CC4-80284D7C       .text setEffect__Q28JASystem10TBasicInstFiPQ28JASystem11TInstEffect */
@@ -131,7 +136,12 @@ void JASystem::TBasicInst::setOscCount(u32 num) {
     }
     mOsc = new (TBank::getCurrentHeap(), 0) TOscillator::Osc_*[num];
     JUT_ASSERT(193, mOsc != NULL);
+#if TARGET_PC
+    // A table of pointers: 8 bytes per entry on the host, not the GameCube's 4.
+    Calc::bzero(mOsc, num * sizeof(TOscillator::Osc_*));
+#else
     Calc::bzero(mOsc, num * 4);
+#endif
 }
 
 /* 80284E30-80284EE8       .text setOsc__Q28JASystem10TBasicInstFiPQ38JASystem11TOscillator4Osc_ */

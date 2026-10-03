@@ -30,7 +30,12 @@ u16* JASystem::BankMgr::sVir2PhyTable;
 
 /* 80288594-80288698       .text init__Q28JASystem7BankMgrFi */
 void JASystem::BankMgr::init(int param_1) {
+#if TARGET_PC
+    // A table of pointers: 8 bytes per entry on the host, not the GameCube's 4.
+    u32 r31 = param_1 * sizeof(TBank*);
+#else
     u32 r31 = param_1 * 4;
+#endif
     sBankArray = (TBank**)new (JASDram, 0) u8[r31];
     JUT_ASSERT(69, sBankArray != NULL);
     sVir2PhyTable = new (JASDram, 0) u16[param_1];

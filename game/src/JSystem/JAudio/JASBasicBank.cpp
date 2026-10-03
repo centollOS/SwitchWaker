@@ -26,7 +26,12 @@ void JASystem::TBasicBank::setInstCount(u32 param_1) {
     delete[] mInstTable;
     mInstTable = new (getCurrentHeap(), 0) TInst*[param_1];
     JUT_ASSERT(36, mInstTable != NULL);
+#if TARGET_PC
+    // A table of pointers: 8 bytes per entry on the host, not the GameCube's 4.
+    Calc::bzero(mInstTable, param_1 * sizeof(TInst*));
+#else
     Calc::bzero(mInstTable, param_1 * 4);
+#endif
     mInstCount = param_1;
 }
 

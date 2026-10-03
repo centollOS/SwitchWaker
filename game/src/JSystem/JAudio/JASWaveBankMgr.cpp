@@ -21,7 +21,12 @@ JASystem::TWaveBank** JASystem::WaveBankMgr::sWaveBank;
 
 /* 802882CC-8028835C       .text init__Q28JASystem11WaveBankMgrFi */
 void JASystem::WaveBankMgr::init(int param_1) {
+#if TARGET_PC
+    // A table of pointers: 8 bytes per entry on the host, not the GameCube's 4.
+    u32 size = param_1 * sizeof(TWaveBank*);
+#else
     u32 size = param_1 * 4;
+#endif
     sWaveBank = (TWaveBank**) new (JASDram, 0) u8[size];
     JUT_ASSERT(39, sWaveBank != NULL);
     Calc::bzero(sWaveBank, size);
