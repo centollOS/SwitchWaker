@@ -56,6 +56,33 @@ if (COS_PERF_BUILD)
     message(STATUS "cos_native: COS_PERF_BUILD (Release -O2, -march=armv8-a, Tracy off)")
 endif ()
 
+# AddressSanitizer variant (docs/NATIVE_PORT_PHASE4_6.md, step 6.9), in a build directory of its own:
+#   D=$PWD/build/native-mac/_deps CLT=/Library/Developer/CommandLineTools/usr/bin
+#   cmake -S native -B build/native-mac-asan -G Ninja -DCOS_ASAN=ON \
+#       -DCMAKE_C_COMPILER=$CLT/clang -DCMAKE_CXX_COMPILER=$CLT/clang++ \
+#       -DFETCHCONTENT_SOURCE_DIR_AURORA=$PWD/build/aurora-3227d76 \
+#       -DCOS_ASSETS_DIR=$PWD/build/native-mac/assets/GZLE01 \
+#       (plus the FETCHCONTENT_SOURCE_DIR_* of native/sdk/README.md, "ThreadSanitizer run")
+#   ninja -C build/native-mac-asan -j4 centollos
+#   native/tools/run.sh <target> --exe build/native-mac-asan/centollos
+# Xcode 26's Apple clang 17 ASan runtime deadlocks in its own initialisation on macOS 26.6 (even
+# for an empty program: AsanInitInternal -> get_dyld_hdr -> malloc -> AsanInitFromRtl spins), so
+# the variant is built with the Command Line Tools clang (21), as the TSan build is.
+# Every target compiled here (the game, cos_sdk, Aurora and its source-built dependencies; not the
+# prebuilt Dawn and nod) gets -fsanitize=address. ASan does not see inside the JKR heaps (one
+# malloc'd arena), but catches stack, global and malloc errors. ASAN_OPTIONS in the environment
+# reaches the game through run.sh. Findings: step 6.9b in docs/NATIVE_PORT_PLAN.md.
+option(COS_ASAN "AddressSanitizer build: -fsanitize=address on every target (step 6.9)" OFF)
+if (COS_ASAN)
+    if (COS_PERF_BUILD)
+        message(FATAL_ERROR "COS_ASAN and COS_PERF_BUILD exclude each other")
+    endif ()
+    # Before any target (Aurora and its dependencies included), so all of them get it.
+    add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address)
+    message(STATUS "cos_native: COS_ASAN (AddressSanitizer on every target)")
+endif ()
+
 if (APPLE AND NOT CMAKE_OSX_SYSROOT)
     # If the Xcode SDK is lagging behind the system version, CMake needs this done first
     execute_process(COMMAND xcrun --sdk macosx --show-sdk-path
