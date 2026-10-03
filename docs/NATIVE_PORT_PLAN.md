@@ -2416,6 +2416,12 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   use the current heap (JKRHeap.cpp TODO, phase 6). Next blocker: SIGSEGV addr=0x10 in
   `wether_move_vrkumo` (dKyeff2_Execute), NAME_SCENE frame 756.
   Reviewed: regress passed; file-select gets past frame 752 and stops at the frame-756 blocker.
+- M12 boot loop (lane outset, iter 1, host-semantics): SIGABRT in `aurora::gx::build_shader`
+  (invalid WGSL `sampled0.a.r`) for an alpha stage using `GX_TEV_COMP_R8_GT`, sea room 44. First
+  H11 patch, `native/patches/aurora/0001-alpha-stage-channel-compares.patch`, plus the patch
+  mechanism in `native/cmake/Aurora.cmake` / `aurora_apply_patches.cmake` (see render issues).
+  Reviewed: regress passed; `outset-debug --stage sea:44:206` runs ROOM_SCENE to frame 3732 in
+  120 s with no fault (timeout: nothing reports M12 yet); shared Aurora checkout left clean.
 
 ### Phase 6 render issues
 
@@ -2426,4 +2432,14 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   lib/gx/shader.cpp:376 formats `{0}.r` on the alpha stage's scalar operands) and Aurora aborts (SIGABRT on its pipeline worker thread). The bad pipeline is then
   in `build/native-mac/user/cache/pipeline_cache.db`, which Aurora recompiles at start-up, so every
   later run, even `logo-res`, aborts right after gfx-create until that file is deleted. The fix is
-  in Aurora (stop condition: needs a decision); it blocks M12.
+  in Aurora (stop condition: needs a decision); it blocks M12. **Fixed** (decision H11) by
+  `native/patches/aurora/0001-alpha-stage-channel-compares.patch`: an alpha stage's R8/GR16/BGR24
+  compares now read the stage's colour inputs A and B, latched before the colour half writes its
+  register, as Dolphin's `tevin_a`/`tevin_b` do. The Aurora patch mechanism (H11):
+  `native/cmake/Aurora.cmake` applies `native/patches/aurora/*.patch` in name order through
+  `native/cmake/aurora_apply_patches.cmake` (idempotent), as the FetchContent `PATCH_COMMAND`, and,
+  with `FETCHCONTENT_SOURCE_DIR_AURORA`, to a per-build-dir copy in `_deps/aurora-patched-src`
+  (redone when the checkout's commit, its `git status` or the patch set change), so the shared
+  checkout is never modified. `outset-debug --stage sea:44:206` now runs ROOM_SCENE past frame 5500
+  without a fault (timeout: nothing reports M12 yet). Still open, not fatal: about 470k
+  `CP_REG_ARRAYBASE_ID is not supported` log lines per 180 s run in sea room 44.

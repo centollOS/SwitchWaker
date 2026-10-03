@@ -49,26 +49,94 @@ if (APPLE AND CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
             "How to provide nod: auto, vendor (build from source), system (find_package/imported), package (download prebuilt)")
 endif ()
 
-include(FetchContent)
-FetchContent_Declare(aurora
-        GIT_REPOSITORY "${COS_AURORA_REPOSITORY}"
-        GIT_TAG "${COS_AURORA_COMMIT}"
-        EXCLUDE_FROM_ALL)
-FetchContent_MakeAvailable(aurora)
+# Aurora patches (decision H11): native/patches/aurora/*.patch, applied in name order by
+# aurora_apply_patches.cmake. The FetchContent download gets them as its PATCH_COMMAND (the patch
+# set's hash is part of the command, so a changed set reruns the idempotent step; a removed patch
+# needs a fresh download: delete _deps/aurora-src and _deps/aurora-subbuild). A local
+# FETCHCONTENT_SOURCE_DIR_AURORA checkout is never patched in place, since several build dirs
+# share it: each build dir patches its own copy in _deps/aurora-patched-src, refreshed whenever the
+# checkout's commit, its local changes or the patch set change, and builds from that copy.
+set(COS_AURORA_PATCH_DIR "${CMAKE_CURRENT_LIST_DIR}/../patches/aurora")
+get_filename_component(COS_AURORA_PATCH_DIR "${COS_AURORA_PATCH_DIR}" ABSOLUTE)
+set(_cos_aurora_patch_script "${CMAKE_CURRENT_LIST_DIR}/aurora_apply_patches.cmake")
+file(GLOB _cos_aurora_patches LIST_DIRECTORIES false CONFIGURE_DEPENDS "${COS_AURORA_PATCH_DIR}/*.patch")
+list(SORT _cos_aurora_patches)
+set(_cos_aurora_patch_key "")
+foreach (_patch IN LISTS _cos_aurora_patches)
+    file(SHA256 "${_patch}" _hash)
+    get_filename_component(_name "${_patch}" NAME)
+    string(APPEND _cos_aurora_patch_key "${_name}=${_hash};")
+endforeach ()
+string(SHA256 _cos_aurora_patch_hash "${_cos_aurora_patch_key}")
+
+find_package(Git QUIET)
 
 # A local source directory (FETCHCONTENT_SOURCE_DIR_AURORA) must be at the pin.
-find_package(Git QUIET)
-if (GIT_FOUND AND EXISTS "${aurora_SOURCE_DIR}/.git")
-    execute_process(COMMAND "${GIT_EXECUTABLE}" -C "${aurora_SOURCE_DIR}" rev-parse HEAD
+if (FETCHCONTENT_SOURCE_DIR_AURORA AND GIT_FOUND AND EXISTS "${FETCHCONTENT_SOURCE_DIR_AURORA}/.git")
+    execute_process(COMMAND "${GIT_EXECUTABLE}" -C "${FETCHCONTENT_SOURCE_DIR_AURORA}" rev-parse HEAD
             OUTPUT_VARIABLE _cos_aurora_head
             OUTPUT_STRIP_TRAILING_WHITESPACE
             ERROR_QUIET)
     if (_cos_aurora_head AND NOT _cos_aurora_head STREQUAL COS_AURORA_COMMIT)
-        message(WARNING "cos_native: Aurora at ${aurora_SOURCE_DIR} is ${_cos_aurora_head}, "
+        message(WARNING "cos_native: Aurora at ${FETCHCONTENT_SOURCE_DIR_AURORA} is ${_cos_aurora_head}, "
                 "not the pinned ${COS_AURORA_COMMIT}")
     endif ()
-    unset(_cos_aurora_head)
 endif ()
+
+if (FETCHCONTENT_SOURCE_DIR_AURORA AND _cos_aurora_patches)
+    set(_cos_aurora_local "${FETCHCONTENT_SOURCE_DIR_AURORA}")
+    set(_cos_aurora_copy "${CMAKE_BINARY_DIR}/_deps/aurora-patched-src")
+    # The copy is redone when the checkout or the patch set changes (commit plus `git status` of
+    # the checkout, or the newest file time when it is not a git checkout).
+    set(_cos_aurora_state "")
+    if (GIT_FOUND AND EXISTS "${_cos_aurora_local}/.git")
+        execute_process(COMMAND "${GIT_EXECUTABLE}" -C "${_cos_aurora_local}" status --porcelain
+                OUTPUT_VARIABLE _cos_aurora_status ERROR_QUIET)
+        set(_cos_aurora_state "${_cos_aurora_head}\n${_cos_aurora_status}")
+    else ()
+        file(GLOB_RECURSE _files LIST_DIRECTORIES false "${_cos_aurora_local}/*")
+        foreach (_file IN LISTS _files)
+            file(TIMESTAMP "${_file}" _time "%s" UTC)
+            string(APPEND _cos_aurora_state "${_file}@${_time};")
+        endforeach ()
+    endif ()
+    string(SHA256 _cos_aurora_stamp "${_cos_aurora_local}\n${_cos_aurora_state}\n${_cos_aurora_patch_hash}")
+    set(_cos_aurora_stamp_file "${CMAKE_BINARY_DIR}/_deps/aurora-patched-src.stamp")
+    set(_cos_aurora_old_stamp "")
+    if (EXISTS "${_cos_aurora_stamp_file}" AND EXISTS "${_cos_aurora_copy}")
+        file(READ "${_cos_aurora_stamp_file}" _cos_aurora_old_stamp)
+    endif ()
+    if (NOT _cos_aurora_old_stamp STREQUAL _cos_aurora_stamp)
+        message(STATUS "cos_native: copying Aurora from ${_cos_aurora_local} to ${_cos_aurora_copy} for patching")
+        file(REMOVE_RECURSE "${_cos_aurora_copy}")
+        file(MAKE_DIRECTORY "${_cos_aurora_copy}")
+        file(GLOB _entries LIST_DIRECTORIES true "${_cos_aurora_local}/*" "${_cos_aurora_local}/.*")
+        list(FILTER _entries EXCLUDE REGEX "/\\.git$")
+        file(COPY ${_entries} DESTINATION "${_cos_aurora_copy}")
+        execute_process(COMMAND "${CMAKE_COMMAND}" -DCOS_AURORA_SRC=${_cos_aurora_copy}
+                -DCOS_AURORA_PATCH_DIR=${COS_AURORA_PATCH_DIR} -P "${_cos_aurora_patch_script}"
+                RESULT_VARIABLE _result)
+        if (NOT _result EQUAL 0)
+            message(FATAL_ERROR "cos_native: patching the Aurora copy failed")
+        endif ()
+        file(WRITE "${_cos_aurora_stamp_file}" "${_cos_aurora_stamp}")
+    endif ()
+    # A normal variable shadows the cache entry for this configure only; the cache keeps pointing
+    # at the shared checkout.
+    set(FETCHCONTENT_SOURCE_DIR_AURORA "${_cos_aurora_copy}")
+endif ()
+
+include(FetchContent)
+FetchContent_Declare(aurora
+        GIT_REPOSITORY "${COS_AURORA_REPOSITORY}"
+        GIT_TAG "${COS_AURORA_COMMIT}"
+        PATCH_COMMAND "${CMAKE_COMMAND}" -DCOS_AURORA_SRC=<SOURCE_DIR>
+            -DCOS_AURORA_PATCH_DIR=${COS_AURORA_PATCH_DIR}
+            -DCOS_AURORA_PATCH_HASH=${_cos_aurora_patch_hash}
+            -P "${_cos_aurora_patch_script}"
+        EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(aurora)
+unset(_cos_aurora_head)
 
 # As in Dusklight. Off GEKKO, Aurora's <dolphin/mtx.h> maps the PSMTX* names to the C_MTX*
 # functions by macro (PSMTXConcat -> MTXConcat -> C_MTXConcat), so the library exports C_MTX*.

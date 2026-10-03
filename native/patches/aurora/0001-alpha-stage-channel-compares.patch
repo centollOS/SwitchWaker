@@ -1,0 +1,72 @@
+Alpha-stage R8/GR16/BGR24 TEV compares read the stage's colour inputs
+
+GameCube behaviour: in an alpha TEV stage, GX_TEV_COMP_R8_*, GX_TEV_COMP_GR16_* and
+GX_TEV_COMP_BGR24_* compare the colour channels (R, GR, BGR) of the stage's colour
+inputs A and B, then select the alpha input C (or zero) and add D. Only
+GX_TEV_COMP_A8_* (== RGB8) compares the alpha inputs. Dolphin models this with tevin_a /
+tevin_b, which hold the colour inputs in .rgb and the alpha inputs in .a, as read at the
+start of the stage.
+
+Aurora 3227d76 passed the scalar alpha inputs to tev_op, which emits `<a>.r`, `<a>.rg`
+or `<a>.rgb` and so builds invalid WGSL ("cannot index into expression of type f32"),
+aborting in aurora::gx::build_shader (the game, sea room 44). The fix latches the
+stage's colour inputs A and B into `let` locals before the colour result is written and
+uses them for those three compares in the alpha half.
+
+Upstream status: not reported upstream yet (encounter/aurora at 3227d76).
+
+--- a/lib/gx/shader.cpp	2026-10-03 16:25:18
++++ b/lib/gx/shader.cpp	2026-10-03 16:25:35
+@@ -363,6 +363,23 @@
+   }
+ }
+ 
++// The R8, GR16 and BGR24 compares read colour channels. In an alpha stage the hardware takes them
++// from the colour inputs A and B of the same stage (Dolphin: tevin_a.r / .rg / .rgb), not from the
++// scalar alpha inputs; only A8 (== RGB8) compares the alpha inputs.
++bool tev_op_is_channel_compare(GXTevOp op) {
++  switch (op) {
++  case GX_TEV_COMP_R8_GT:
++  case GX_TEV_COMP_R8_EQ:
++  case GX_TEV_COMP_GR16_GT:
++  case GX_TEV_COMP_GR16_EQ:
++  case GX_TEV_COMP_BGR24_GT:
++  case GX_TEV_COMP_BGR24_EQ:
++    return true;
++  default:
++    return false;
++  }
++}
++
+ std::string tev_op(GXTevOp op, std::string_view bias, std::string_view scale, std::string_view a, std::string_view b,
+                    std::string_view c, std::string_view d, std::string_view zero) {
+   switch (op) {
+@@ -1094,7 +1111,14 @@
+       std::string op = tev_color_op(stage.colorOp.op, tev_bias(stage.colorOp.bias), tev_scale(stage.colorOp.scale),
+                                     stage.colorOp.clamp, color_arg(stage.colorPass.a), color_arg(stage.colorPass.b),
+                                     color_arg(stage.colorPass.c), color_arg_reg(stage.colorPass.d, idx, config, stage));
+-      fragmentFn += fmt::format("\n    // TEV stage {2}\n    {0} = vec4f({1}, {0}.a);", outReg, op, idx);
++      fragmentFn += fmt::format("\n    // TEV stage {}", idx);
++      if (tev_op_is_channel_compare(stage.alphaOp.op)) {
++        // Latch the colour inputs before the colour result is written: both halves of a stage
++        // read the registers as they were at the start of the stage.
++        fragmentFn += fmt::format("\n    let tev{0}_cmp_a = {1};\n    let tev{0}_cmp_b = {2};", idx,
++                                  color_arg(stage.colorPass.a), color_arg(stage.colorPass.b));
++      }
++      fragmentFn += fmt::format("\n    {0} = vec4f({1}, {0}.a);", outReg, op);
+       colorNormalized[stage.colorOp.outReg] = stage.colorOp.clamp;
+     }
+     {
+@@ -1106,8 +1130,11 @@
+         return fmt::format("tev_overflow_f32({})", value);
+       };
+       std::string_view outReg = regName[stage.alphaOp.outReg];
++      const bool channelCompare = tev_op_is_channel_compare(stage.alphaOp.op);
++      std::string argA = channelCompare ? fmt::format("tev{}_cmp_a", idx) : alpha_arg(stage.alphaPass.a);
++      std::string argB = channelCompare ? fmt::format("tev{}_cmp_b", idx) : alpha_arg(stage.alphaPass.b);
+       std::string op = tev_alpha_op(stage.alphaOp.op, tev_bias(stage.alphaOp.bias), tev_scale(stage.alphaOp.scale),
+-                                    stage.alphaOp.clamp, alpha_arg(stage.alphaPass.a), alpha_arg(stage.alphaPass.b),
++                                    stage.alphaOp.clamp, argA, argB,
+                                     alpha_arg(stage.alphaPass.c), alpha_arg_reg(stage.alphaPass.d, idx, config, stage));
+       fragmentFn += fmt::format("\n    {0}.a = {1};", outReg, op);
+       alphaNormalized[stage.alphaOp.outReg] = stage.alphaOp.clamp;
