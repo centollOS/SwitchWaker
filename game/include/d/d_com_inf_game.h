@@ -16,6 +16,7 @@
 #include "d/d_save.h"
 #include "d/d_stage.h"
 #include "d/d_vibration.h"
+#include "helpers/endian.h"
 #include "d/d_demo.h"
 #include "d/d_timer.h"
 
@@ -154,10 +155,11 @@ STATIC_ASSERT(sizeof(dComIfG_camera_info_class) == 0x34);
 
 // This is /res/ItemTable/item_table.bin
 // The real name of this struct is not currently known, this is a fake name.
+// Disc data, stored big-endian (BE(T) is T on the GameCube; phase 4, step 4.8).
 struct ItemTableList {
     u8 mMagic[0xA]; // "ITEM_TABLE"
-    short mEntryCount; // 0x1E
-    u32 mPadding;
+    BE(short) mEntryCount; // 0x1E
+    BE(u32) mPadding;
     u8 mItemTables[0x1E][0x10];
 };
 

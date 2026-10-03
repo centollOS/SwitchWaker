@@ -65,6 +65,10 @@ JSystem/JParticle/JPAKeyBlock.h
 JSystem/JParticle/JPATexture.h
     JPATextureData
 
+# 4.8: logo-scene resources (item_table.bin)
+d/d_com_inf_game.h
+    ItemTableList           size=0x1F0 mMagic=0x0 mEntryCount=0xA mPadding=0xC mItemTables=0x10
+
 # 4.9a-d: stage and room chunks (dzs/dzr); the {num, pointer} pairs overlay a chunk's
 # {m_entryNum, m_offset} once relocated in place
 d/d_stage.h
