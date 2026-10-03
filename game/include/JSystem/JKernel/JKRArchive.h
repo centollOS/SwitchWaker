@@ -3,29 +3,33 @@
 
 #include "JSystem/JKernel/JKRCompression.h"
 #include "JSystem/JKernel/JKRFileLoader.h"
+#include "helpers/endian.h"
 
 class JKRArcFinder;
 class JKRHeap;
 
+// The RARC structures below are read in place from the archive file, which is big-endian: on PC
+// their fields are BE(T) (Dusklight's JKRArchive.h, CC0, ref/dusklight at 40457c6; BE(T) is T on
+// the GameCube, see helpers/endian.h).
 struct SArcHeader {
-    /* 0x00 */ u32 signature;
-    /* 0x04 */ u32 file_length;
-    /* 0x08 */ u32 header_length;
-    /* 0x0C */ u32 file_data_offset;
-    /* 0x10 */ u32 file_data_length;
-    /* 0x14 */ u32 field_0x14;
-    /* 0x18 */ u32 field_0x18;
-    /* 0x1C */ u32 field_0x1c;
+    /* 0x00 */ BE(u32) signature;
+    /* 0x04 */ BE(u32) file_length;
+    /* 0x08 */ BE(u32) header_length;
+    /* 0x0C */ BE(u32) file_data_offset;
+    /* 0x10 */ BE(u32) file_data_length;
+    /* 0x14 */ BE(u32) field_0x14;
+    /* 0x18 */ BE(u32) field_0x18;
+    /* 0x1C */ BE(u32) field_0x1c;
 };
 
 struct SArcDataInfo {
-    /* 0x00 */ u32 num_nodes;
-    /* 0x04 */ u32 node_offset;
-    /* 0x08 */ u32 num_file_entries;
-    /* 0x0C */ u32 file_entry_offset;
-    /* 0x10 */ u32 string_table_length;
-    /* 0x14 */ u32 string_table_offset;
-    /* 0x18 */ u16 next_free_file_id;
+    /* 0x00 */ BE(u32) num_nodes;
+    /* 0x04 */ BE(u32) node_offset;
+    /* 0x08 */ BE(u32) num_file_entries;
+    /* 0x0C */ BE(u32) file_entry_offset;
+    /* 0x10 */ BE(u32) string_table_length;
+    /* 0x14 */ BE(u32) string_table_offset;
+    /* 0x18 */ BE(u16) next_free_file_id;
     /* 0x1A */ bool sync_file_ids_and_indices;
     /* 0x1B */ u8 field_1b[5];
 };
@@ -40,6 +44,15 @@ inline u16 read_big_endian_u16(void* ptr) {
     return ((u16)uptr[0] << 8) | ((u16)uptr[1]);
 }
 
+#if TARGET_PC
+// The resource pointer of a file entry. The GameCube stored it in the entry itself (`data`, in the
+// archive's own file table); a host pointer does not fit those 4 bytes, so on PC the entry holds
+// its index and the pointer lives in the archive's side table mFileData (Dusklight's JKAR_DATA).
+#define JKAR_DATA(entry) getFileDataPointer((entry)->index)
+#else
+#define JKAR_DATA(entry) (entry)->data
+#endif
+
 class JKRArchive : public JKRFileLoader {
 public:
     struct SDirEntry {
@@ -50,20 +63,27 @@ public:
     };
 
     struct SDIDirEntry {
-        u32 type;
-        u32 name_offset;
-        u16 field_0x8;
-        u16 num_entries;
-        u32 first_file_index;
+        BE(u32) type;
+        BE(u32) name_offset;
+        BE(u16) field_0x8;
+        BE(u16) num_entries;
+        BE(u32) first_file_index;
     };
 
     struct SDIFileEntry {
-        u16 file_id;
-        u16 name_hash;
-        u32 type_flags_and_name_offset;
-        u32 data_offset;
-        u32 data_size;
+        BE(u16) file_id;
+        BE(u16) name_hash;
+        BE(u32) type_flags_and_name_offset;
+        BE(u32) data_offset;
+        BE(u32) data_size;
+#if TARGET_PC
+        // The entry's index in the file table, written when the archive is opened (host order,
+        // only the host reads it); the resource pointer is mFileData[index] (JKAR_DATA). As in
+        // Dusklight's JKRArchive.h (CC0, ref/dusklight at 40457c6).
+        u32 index;
+#else
         void* data;
+#endif
 
         u32 getNameOffset() const { return type_flags_and_name_offset & 0xFFFFFF; }
         u16 getNameHash() const { return name_hash; }
@@ -116,6 +136,10 @@ protected:
     JKRArchive();
     JKRArchive(s32, EMountMode);
 
+#if TARGET_PC
+    void*& getFileDataPointer(u32 index) const;
+    bool initFileDataPointers();
+#endif
 public:
     bool getDirEntry(SDirEntry*, u32) const;
     void* getIdxResource(u32);
@@ -181,6 +205,11 @@ protected:
     /* 0x58 */ u32 field_0x58;
     /* 0x5C */ JKRCompression mCompression;
     /* 0x60 */ EMountDirection mMountDirection;
+#if TARGET_PC
+    // The resource pointers of the file entries (SDIFileEntry::index), allocated by
+    // initFileDataPointers when the archive's file table is loaded.
+    void** mFileData;
+#endif
 
 public:
     static JKRArchive* check_mount_already(s32);

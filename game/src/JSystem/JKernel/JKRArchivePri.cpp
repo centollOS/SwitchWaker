@@ -17,6 +17,9 @@ u32 JKRArchive::sCurrentDirID;
 JKRArchive::JKRArchive() {
     mIsMounted = false;
     mMountDirection = MOUNT_DIRECTION_HEAD;
+#if TARGET_PC
+    mFileData = NULL;
+#endif
 }
 
 /* 802B8E48-802B8EE8       .text __ct__10JKRArchiveFlQ210JKRArchive10EMountMode */
@@ -25,6 +28,9 @@ JKRArchive::JKRArchive(s32 entryNumber, JKRArchive::EMountMode mountMode) {
     mMountMode = mountMode;
     mMountCount = 1;
     field_0x58 = 1;
+#if TARGET_PC
+    mFileData = NULL;
+#endif
 
     mHeap = JKRHeap::findFromRoot(this);
     if (mHeap == NULL) {
@@ -39,7 +45,16 @@ JKRArchive::JKRArchive(s32 entryNumber, JKRArchive::EMountMode mountMode) {
 }
 
 /* 802B8EE8-802B8F48       .text __dt__10JKRArchiveFv */
+#if TARGET_PC
+JKRArchive::~JKRArchive() {
+    if (mFileData != NULL) {
+        JKRFree(mFileData);
+        mFileData = NULL;
+    }
+}
+#else
 JKRArchive::~JKRArchive() {}
+#endif
 
 /* 802B8F48-802B8F94       .text isSameName__10JKRArchiveCFRQ210JKRArchive8CArcNameUlUs */
 bool JKRArchive::isSameName(JKRArchive::CArcName& name, u32 nameOffset, u16 nameHash) const {
@@ -158,7 +173,7 @@ JKRArchive::SDIFileEntry* JKRArchive::findNameResource(const char* name) const {
 JKRArchive::SDIFileEntry* JKRArchive::findPtrResource(const void* resource) const {
     SDIFileEntry* fileEntry = mFiles;
     for (int i = 0; i < mArcInfoBlock->num_file_entries; fileEntry++, i++) {
-        if (fileEntry->data == resource) {
+        if (JKAR_DATA(fileEntry) == resource) {
             return fileEntry;
         }
     }
@@ -240,3 +255,42 @@ u32 JKRArchive::getExpandSize(SDIFileEntry* fileEntry) const {
 
     return mExpandedSize[index];
 }
+
+#if TARGET_PC
+// The side table of the resource pointers (JKAR_DATA), after Dusklight's JKRArchivePri.cpp (CC0,
+// ref/dusklight at 40457c6), which allocates it from the system heap. Here it comes from the
+// archive's heap, where the GameCube kept these pointers (inside the file table it loaded there):
+// its size follows the archive, and the 64 KiB the system heap keeps beside the zelda heap stay
+// for what the game puts there. A failed allocation fails the mount like the other allocations of
+// open().
+void*& JKRArchive::getFileDataPointer(u32 index) const {
+    if (mFileData == NULL || mArcInfoBlock == NULL || index >= mArcInfoBlock->num_file_entries) {
+        OSPanic(__FILE__, __LINE__, "JKRArchive: file entry index %u out of range (%u entries)",
+                index, mArcInfoBlock != NULL ? (u32)mArcInfoBlock->num_file_entries : 0);
+    }
+    return mFileData[index];
+}
+
+// Called by every open() once mArcInfoBlock and mFiles point at the loaded file table: numbers the
+// entries and clears their resource pointers (the GameCube's `data` fields are 0 in the file).
+bool JKRArchive::initFileDataPointers() {
+    if (mFileData != NULL) {
+        JKRFree(mFileData);
+        mFileData = NULL;
+    }
+
+    u32 count = mArcInfoBlock->num_file_entries;
+    int alignment = mMountDirection == MOUNT_DIRECTION_TAIL ? -(int)sizeof(void*) : (int)sizeof(void*);
+    mFileData = (void**)JKRAllocFromHeap(mHeap, count != 0 ? count * sizeof(void*) : sizeof(void*),
+                                         alignment);
+    if (mFileData == NULL) {
+        return false;
+    }
+
+    memset(mFileData, 0, count * sizeof(void*));
+    for (u32 i = 0; i < count; i++) {
+        mFiles[i].index = i;
+    }
+    return true;
+}
+#endif

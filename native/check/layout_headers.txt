@@ -35,7 +35,7 @@ JSystem/JKernel/JKRArchive.h
     SArcHeader              size=0x20
     SArcDataInfo            size=0x20
     JKRArchive::SDIDirEntry size=0x10 type=0x0 name_offset=0x4 field_0x8=0x8 num_entries=0xA first_file_index=0xC
-    JKRArchive::SDIFileEntry size=0x14 file_id=0x0 name_hash=0x2 type_flags_and_name_offset=0x4 data_offset=0x8 data_size=0xC data=0x10
+    JKRArchive::SDIFileEntry size=0x14 file_id=0x0 name_hash=0x2 type_flags_and_name_offset=0x4 data_offset=0x8 data_size=0xC
 
 # 4.6: BMG messages
 JSystem/JMessage/data.h

@@ -7,9 +7,6 @@
 # as a 32-bit offset (8 bytes on the host); none is an endian problem, which offsets cannot see.
 # Current failures with the host offsets: native/tools/layout_check.py --discover
 
-# 4.4: RARC file entry (the in-file data pointer becomes Dusklight's index plus a side table)
-JKRArchive::SDIFileEntry             # 1/7 fail: sizeof
-
 # 4.9a-c: stage chunks relocated in place ({num, pointer} pairs become OFFSET_PTR)
 stage_tresure_class                  # 2/3 fail: m_entries, sizeof
 stage_scls_info_dummy_class          # 2/3 fail: m_entries, sizeof

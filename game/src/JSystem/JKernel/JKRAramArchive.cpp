@@ -39,8 +39,8 @@ JKRAramArchive::~JKRAramArchive() {
         if (mArcInfoBlock != NULL) {
             SDIFileEntry* entry = mFiles;
             for (int i = 0; i < mArcInfoBlock->num_file_entries; entry++, i++) {
-                if (entry->data != NULL) {
-                    JKRFreeToHeap(mHeap, entry->data);
+                if (JKAR_DATA(entry) != NULL) {
+                    JKRFreeToHeap(mHeap, JKAR_DATA(entry));
                 }
             }
 
@@ -106,6 +106,14 @@ bool JKRAramArchive::open(s32 entryNum) {
             mStringTable = (char *)((u8 *)mArcInfoBlock + mArcInfoBlock->string_table_offset);
             mExpandedSize = NULL;
 
+#if TARGET_PC
+            if (!initFileDataPointers()) {
+                JKRFree(mArcInfoBlock);
+                mArcInfoBlock = NULL;
+                mMountMode = 0;
+                goto cleanup;
+            }
+#endif
             u8 compressedFiles = 0; // maybe a check for if the last file is compressed?
 
             SDIFileEntry *fileEntry = mFiles;
@@ -168,7 +176,7 @@ void* JKRAramArchive::fetchResource(SDIFileEntry* pEntry, u32* pOutSize) {
     }
 
     JKRCompression compression = JKRConvertAttrToCompressionType(pEntry->getFlags());
-    if (pEntry->data == NULL) {
+    if (JKAR_DATA(pEntry) == NULL) {
         u32 size = JKRAramArchive::fetchResource_subroutine(
             pEntry->data_offset + mBlock->getAddress(), pEntry->data_size, mHeap, compression,
             &outBuf);
@@ -178,7 +186,7 @@ void* JKRAramArchive::fetchResource(SDIFileEntry* pEntry, u32* pOutSize) {
             return NULL;
         }
 
-        pEntry->data = outBuf;
+        JKAR_DATA(pEntry) = outBuf;
         if (compression == COMPRESSION_YAZ0) {
             this->setExpandSize(pEntry, *pOutSize);
         }
@@ -190,7 +198,7 @@ void* JKRAramArchive::fetchResource(SDIFileEntry* pEntry, u32* pOutSize) {
         }
     }
 
-    return pEntry->data;
+    return JKAR_DATA(pEntry);
 }
 
 /* 802BA640-802BA788       .text fetchResource__14JKRAramArchiveFPvUlPQ210JKRArchive12SDIFileEntryPUl */
@@ -201,7 +209,7 @@ void* JKRAramArchive::fetchResource(void* buffer, u32 bufferSize, SDIFileEntry* 
         size = bufferSize;
     }
     JKRCompression compression = JKRConvertAttrToCompressionType(pEntry->getFlags());
-    if (pEntry->data == NULL) {
+    if (JKAR_DATA(pEntry) == NULL) {
         bufferSize = (s32)ALIGN_PREV(bufferSize, 0x20);
         size = JKRAramArchive::fetchResource_subroutine(pEntry->data_offset + mBlock->getAddress(),
                                                         size, (u8*)buffer, bufferSize, compression);
@@ -215,7 +223,7 @@ void* JKRAramArchive::fetchResource(void* buffer, u32 bufferSize, SDIFileEntry* 
         if (size > bufferSize) {
             size = bufferSize;
         }
-        JKRHeap::copyMemory(buffer, pEntry->data, size);
+        JKRHeap::copyMemory(buffer, JKAR_DATA(pEntry), size);
     }
     if (resourceSize != NULL) {
         *resourceSize = size;

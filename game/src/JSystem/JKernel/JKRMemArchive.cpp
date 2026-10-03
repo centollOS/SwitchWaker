@@ -91,6 +91,14 @@ void JKRMemArchive::unmountFixed() {
     if (mIsOpen && mArcHeader) {
         JKRHeap::free(mArcHeader, mHeap);
     }
+#if TARGET_PC
+    // The side table open() allocated: an archive mounted with mountFixed is not destroyed after
+    // this (d_s_name keeps the object), so ~JKRArchive would not free it.
+    if (mFileData != NULL) {
+        JKRFree(mFileData);
+        mFileData = NULL;
+    }
+#endif
     sVolumeList.remove(&mFileLoaderLink);
     mIsMounted = false;
 }
@@ -127,6 +135,19 @@ bool JKRMemArchive::open(s32 entryNum, JKRArchive::EMountDirection mountDirectio
         mFiles = (SDIFileEntry *)((u8 *)&mArcInfoBlock->num_nodes + mArcInfoBlock->file_entry_offset);
         mStringTable = (char *)((u8 *)&mArcInfoBlock->num_nodes + mArcInfoBlock->string_table_offset);
 
+#if TARGET_PC
+        if (!initFileDataPointers()) {
+            JKRFreeToHeap(mHeap, mArcHeader);
+            mArcHeader = NULL;
+            mArcInfoBlock = NULL;
+            mNodes = NULL;
+            mFiles = NULL;
+            mStringTable = NULL;
+            mMountMode = UNKNOWN_MOUNT_MODE;
+            OSReport(":::Cannot alloc memory [%s][%d]\n", __FILE__, __LINE__);
+            return false;
+        }
+#endif
         mArchiveData =
 #if TARGET_PC
             (u8 *)((uintptr_t)mArcHeader + mArcHeader->header_length + mArcHeader->file_data_offset);
@@ -158,21 +179,27 @@ bool JKRMemArchive::open(void* buffer, u32 bufferSize, JKRMemBreakFlag flag) {
     mIsOpen = (flag == JKRMEMBREAK_FLAG_UNKNOWN1) ? true : false; // mIsOpen might be u8
     mHeap = JKRHeap::findFromRoot(buffer);
     mCompression = COMPRESSION_NONE;
+#if TARGET_PC
+    if (!initFileDataPointers()) {
+        OSReport(":::Cannot alloc memory [%s][%d]\n", __FILE__, __LINE__);
+        return false;
+    }
+#endif
     return true;
 }
 
 /* 802B9B90-802B9C34       .text fetchResource__13JKRMemArchiveFPQ210JKRArchive12SDIFileEntryPUl */
 void* JKRMemArchive::fetchResource(SDIFileEntry* fileEntry, u32* resourceSize) {
     JUT_ASSERT(535, isMounted());
-    if (!fileEntry->data) {
-        fileEntry->data = mArchiveData + fileEntry->data_offset;
+    if (!JKAR_DATA(fileEntry)) {
+        JKAR_DATA(fileEntry) = mArchiveData + fileEntry->data_offset;
     }
 
     if (resourceSize) {
         *resourceSize = fileEntry->data_size;
     }
 
-    return fileEntry->data;
+    return JKAR_DATA(fileEntry);
 }
 
 /* 802B9C34-802B9D38       .text fetchResource__13JKRMemArchiveFPvUlPQ210JKRArchive12SDIFileEntryPUl */
@@ -183,8 +210,8 @@ void* JKRMemArchive::fetchResource(void* buffer, u32 bufferSize, SDIFileEntry* f
         srcLength = bufferSize;
     }
 
-    if (fileEntry->data != NULL) {
-        memcpy(buffer, fileEntry->data, srcLength);
+    if (JKAR_DATA(fileEntry) != NULL) {
+        memcpy(buffer, JKAR_DATA(fileEntry), srcLength);
     } else {
         JKRCompression compression = JKRConvertAttrToCompressionType(fileEntry->getAttr());
         void* data = mArchiveData + fileEntry->data_offset;
@@ -212,8 +239,8 @@ void JKRMemArchive::removeResourceAll() {
     // first fileEntry will clear/remove the resource data.
     SDIFileEntry* fileEntry = mFiles;
     for (int i = 0; i < mArcInfoBlock->num_file_entries; i++) {
-        if (fileEntry->data) {
-            fileEntry->data = NULL;
+        if (JKAR_DATA(fileEntry)) {
+            JKAR_DATA(fileEntry) = NULL;
         }
     }
 }
@@ -226,7 +253,7 @@ bool JKRMemArchive::removeResource(void* resource) {
     if (!fileEntry)
         return false;
 
-    fileEntry->data = NULL;
+    JKAR_DATA(fileEntry) = NULL;
     return true;
 }
 
