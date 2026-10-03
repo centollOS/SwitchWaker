@@ -563,3 +563,10 @@ Each phase lands as its own commits; this file records decisions and measured re
   `STATIC_ASSERT` fired. Aurora mode: SSystem, the four JSystem modules, framework, m_Do, d-core,
   actors-1 to actors-5, `cos_sdk`, smoke (ok), scaffold, header and shadow checks (82 names, ok)
   build; default configuration: `cos_modules` and checks rebuilt (4 units), 0 errors.
+- **2.7 actors-6:** compiles in aurora header mode with no source change: the first build compiled
+  all 71 units (`d_a_shop_item` .. `d_a_yougan`) with 0 errors (only the existing phase 4 warnings:
+  null-conversion and int-to-pointer casts). The forwarders and per-header fixes of the earlier 2.7
+  steps already cover every SDK use in this chunk. No forwarder change, no `game` change, no
+  `STATIC_ASSERT` fired. Aurora mode: SSystem, the four JSystem modules, framework, m_Do, d-core,
+  actors-1 to actors-6, `cos_sdk`, smoke (ok), scaffold, header and shadow checks build; default
+  configuration: `cos_modules` and checks build with 0 errors.
