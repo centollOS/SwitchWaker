@@ -215,6 +215,20 @@ void JKRDecomp::decodeSZS(u8* src_buffer, u8* dst_buffer, u32 srcSize, u32 dstSi
     s32 chunkBitsLeft = 0;
     s32 chunkBits;
 
+#if TARGET_PC
+    // The Yaz0 header is big-endian: the expanded size at 4 and, compared with dstSize as the
+    // GameCube did, the magic at 0 (as Dusklight's JKRDecomp.cpp reads the size, CC0,
+    // ref/dusklight at 40457c6).
+    decompEnd = dst_buffer + (s32)JKRDecompExpandSize(src_buffer) - dstSize;
+
+    if (srcSize == 0) {
+        return;
+    }
+    if (dstSize > ((u32)src_buffer[0] << 24 | (u32)src_buffer[1] << 16 | (u32)src_buffer[2] << 8 |
+                   (u32)src_buffer[3])) {
+        return;
+    }
+#else
     decompEnd = dst_buffer + *(int*)(src_buffer + 4) - dstSize;
 
     if (srcSize == 0) {
@@ -223,6 +237,7 @@ void JKRDecomp::decodeSZS(u8* src_buffer, u8* dst_buffer, u32 srcSize, u32 dstSi
     if (dstSize > *(u32*)src_buffer) {
         return;
     }
+#endif
 
     u8* curSrcPos = src_buffer + 0x10;
     do {

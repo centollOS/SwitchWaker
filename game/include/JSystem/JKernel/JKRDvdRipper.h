@@ -3,6 +3,7 @@
 
 #include "JSystem/JKernel/JKRCompression.h"
 #include "JSystem/JSupport/JSUList.h"
+#include "helpers/endian.h"
 
 enum JKRExpandSwitch {
     EXPAND_SWITCH_UNKNOWN0 = 0,
@@ -10,9 +11,11 @@ enum JKRExpandSwitch {
     EXPAND_SWITCH_UNKNOWN2 = 2,
 };
 
+// The first bytes of a Yaz0 stream, read in place (big-endian like the file; BE(T) is T on the
+// GameCube, see helpers/endian.h).
 struct SYaz0Header {
-    u32 signature;
-    u32 length;
+    BE(u32) signature;
+    BE(u32) length;
 };
 
 class JKRDMCommand {

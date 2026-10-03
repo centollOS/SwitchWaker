@@ -390,7 +390,12 @@ static int JKRDecompressFromAramToMainRam(u32 src, void* dst, u32 srcLength, u32
     maxDest = dstLength;
 
     u8* data = firstSrcData();
+#if TARGET_PC
+    // The Yaz0 header's expanded size, big-endian.
+    u32 decompressedSize = JKRDecompExpandSize(data);
+#else
     u32 decompressedSize = ((u32*)data)[1];
+#endif
     decompSZS_subroutine(data, (u8 *)dst);
     JKRFree(szpBuf);
     if (refBuf) {

@@ -260,7 +260,13 @@ static int JKRDecompressFromDVD(JKRDvdFile* dvdFile, void* dst, u32 fileSize, u3
     maxDest = inMaxDest;
     u8 *data = firstSrcData();
     u32 result = (data != NULL) ? decompSZS_subroutine(data, (u8 *)dst) : -1; // figure out correct datatypes
+#if TARGET_PC
+    // The Yaz0 header's expanded size, big-endian (and none when the first read failed, where the
+    // GameCube read address 4).
+    u32 decompressedSize = data != NULL ? JKRDecompExpandSize(data) : 0;
+#else
     u32 decompressedSize = ((u32*)data)[1];
+#endif
     JKRFree(szpBuf);
     if (refBuf) {
         JKRFree(refBuf);
