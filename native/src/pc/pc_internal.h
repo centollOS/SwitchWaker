@@ -220,4 +220,10 @@ void perfFlush();
 // before it).
 void writePacing(int fd);
 
+// pc_precompile.cpp: Aurora's boot pipeline warm-up (COS_PRECOMPILE, COS_PRECOMPILE_LOG).
+// precompileInit runs right after aurora_initialize; precompileFrame from pc_frame_end every game
+// frame.
+void precompileInit();
+void precompileFrame(unsigned int frames);
+
 } // namespace pc

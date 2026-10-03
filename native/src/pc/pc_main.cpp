@@ -181,6 +181,7 @@ void pc_aurora_init(int argc, char* argv[]) {
            (unsigned int)info.windowSize.height, (unsigned int)info.windowSize.fb_width,
            (unsigned int)info.windowSize.fb_height, config.vsync ? 1 : 0,
            config.blockingPipelines ? "sync" : "async", sUserPath);
+    precompileInit();
 
     // Before DVDInit (Aurora's rule); pc_harness_init already checked COS_DISC is set and readable.
     if (!aurora_dvd_open(gConfig.disc)) {

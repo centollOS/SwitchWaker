@@ -1,0 +1,193 @@
+Switch: report and end the boot pipeline warm-up (aurora_switch_get_precompile/_stop_precompile)
+
+At start Aurora queues every pipeline its cache knows (the player's pipeline_cache.db, seeded from
+the bundled initial_pipeline_cache.db next to the NRO) on the compile thread's background queue, in
+order of first use, and builds them all. On the Switch each build holds the single GL context for
+0.1-0.4 s (Mesa 20.1 compiles and links every program from source; it has no program binaries), so
+the render worker draws about one frame per build: with 271 known pipelines the boot logos ran at
+7 frames/s for 29 s. A warm-up that keeps going into gameplay is a stutter per pipeline.
+
+This patch counts the warm-up (pipelines queued, built - by it or first for a draw -, pending,
+dropped, compile thread time) for the harness's "[cos] precompile" lines, and adds
+aurora_switch_stop_precompile: the warm-up entries no draw has asked for leave the queue (a draw
+queues them again as usual), a later render target layout change queues no new warm-up, and the
+Dawn cache prune that follows a completed warm-up is skipped (it would delete the cache entries
+of every dropped pipeline). Nothing changes unless the harness calls it.
+
+Switch only (switch/native/aurora/patches); not for upstream.
+
+diff --git a/include/aurora/switch_precompile.h b/include/aurora/switch_precompile.h
+new file mode 100644
+index 0000000..d4b0eae
+--- /dev/null
++++ b/include/aurora/switch_precompile.h
+@@ -0,0 +1,34 @@
++#pragma once
++
++/* Switch build (switch/native/aurora/patches): the boot pipeline warm-up. At start Aurora queues every
++ * pipeline its pipeline cache knows (the player's pipeline_cache.db, seeded from the bundled
++ * initial_pipeline_cache.db) for its compile thread, in order of first use. This reports how far
++ * that got, and ends it: on the Switch every pipeline build holds the one GL context for 0.1-0.4 s,
++ * so warming up is only worth it while the game shows logos and menus. */
++
++#include <stdbool.h>
++#include <stdint.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++typedef struct {
++  uint32_t total;     /* pipelines the warm-up queued */
++  uint32_t done;      /* of those, built (by the warm-up, or first because a draw needed it) */
++  uint32_t pending;   /* still to build */
++  uint32_t dropped;   /* taken off the queue by aurora_switch_stop_precompile */
++  uint64_t compileNs; /* compile thread time spent on the built ones */
++  bool stopped;       /* aurora_switch_stop_precompile was called */
++} AuroraSwitchPrecompile;
++
++void aurora_switch_get_precompile(AuroraSwitchPrecompile* out);
++
++/* Ends the warm-up: the pipelines it has not built yet (and no draw has asked for) leave the
++ * compile queue and are built when first drawn; a later render target layout change queues none.
++ * Returns how many were dropped. */
++uint32_t aurora_switch_stop_precompile(void);
++
++#ifdef __cplusplus
++}
++#endif
+diff --git a/lib/gfx/pipeline_cache.cpp b/lib/gfx/pipeline_cache.cpp
+index a192df9..6562519 100644
+--- a/lib/gfx/pipeline_cache.cpp
++++ b/lib/gfx/pipeline_cache.cpp
+@@ -11,6 +11,7 @@
+ #endif
+ #include "../sqlite_utils.hpp"
+ #include "../webgpu/gpu.hpp"
++#include <aurora/switch_precompile.h>
+ #include <aurora/switch_stats.h>
+ 
+ #include <algorithm>
+@@ -93,6 +94,23 @@ static std::deque<PendingPipeline> g_backgroundPipelineQueue;
+ static absl::flat_hash_set<PipelineRef> g_pendingPipelines;
+ static std::atomic_bool g_gpuCachePrunePending = false;
+ 
++// Switch: the boot warm-up (switch/native/aurora/patches, aurora_switch_get_precompile). The
++// pipelines rebuild_pipeline_cache queued in the background and not built yet; those built, by the
++// warm-up or first for a draw; those dropped by aurora_switch_stop_precompile. Under g_pipelineMutex.
++static absl::flat_hash_set<PipelineRef> g_warmupPending;
++static uint32_t g_warmupTotal = 0;
++static uint32_t g_warmupDone = 0;
++static uint32_t g_warmupDropped = 0;
++static uint64_t g_warmupNs = 0;
++static bool g_warmupStopped = false;
++
++static void warmup_built(PipelineRef hash, uint64_t ns) {
++  if (g_warmupPending.erase(hash) != 0) {
++    ++g_warmupDone;
++    g_warmupNs += ns;
++  }
++}
++
+ static sqlite3* g_pipelineCacheDb = nullptr;
+ static sqlite3_stmt* g_pipelineCacheLoadStmt = nullptr;
+ static sqlite3_stmt* g_pipelineCacheUpsertStmt = nullptr;
+@@ -473,6 +491,7 @@ static PipelineRef find_pipeline_impl(PipelineRef runtimeKey, NewPipelineCallbac
+           const uint64_t compileStart = switch_stats::now_ns();
+           auto result = pending->create();
+           switch_stats::add_pipeline_compile(switch_stats::now_ns() - compileStart);
++          warmup_built(runtimeKey, switch_stats::now_ns() - compileStart);
+           pipelineCount = result.pipeline_count();
+           g_pipelines.try_emplace(runtimeKey, std::move(result));
+           pipelineReady = true;
+@@ -501,6 +520,9 @@ static PipelineRef find_pipeline_impl(PipelineRef runtimeKey, NewPipelineCallbac
+       switch (priority) {
+       case PipelinePriority::Background:
+         g_backgroundPipelineQueue.emplace_back(std::move(pending));
++        if (g_warmupPending.insert(runtimeKey).second) {
++          ++g_warmupTotal;
++        }
+         break;
+       case PipelinePriority::Normal:
+         g_pipelineQueue.emplace_back(std::move(pending));
+@@ -1022,10 +1044,12 @@ static void pipeline_worker() {
+     }
+     const uint64_t compileStart = switch_stats::now_ns();
+     auto result = pending.create();
+-    switch_stats::add_pipeline_compile(switch_stats::now_ns() - compileStart);
++    const uint64_t compileNs = switch_stats::now_ns() - compileStart;
++    switch_stats::add_pipeline_compile(compileNs);
+     const auto pipelineCount = result.pipeline_count();
+     {
+       std::lock_guard lock{g_pipelineMutex};
++      warmup_built(pending.hash, compileNs);
+       g_pipelines.try_emplace(pending.hash, std::move(result));
+       g_pendingPipelines.erase(pending.hash);
+       hasMore = !g_pipelineQueue.empty() || !g_backgroundPipelineQueue.empty();
+@@ -1162,6 +1186,11 @@ void rebuild_pipeline_cache() {
+   std::vector<KnownPipeline> known;
+   {
+     std::lock_guard lock{g_pipelineMutex};
++    if (g_warmupStopped) {
++      // Switch: the warm-up was stopped (aurora_switch_stop_precompile); pipelines are built when
++      // first drawn, also for a new render target layout.
++      return;
++    }
+     known.reserve(g_knownPipelines.size());
+     for (const auto& pipeline : g_knownPipelines | std::views::values) {
+       known.push_back(pipeline);
+@@ -1224,6 +1253,10 @@ void shutdown_pipeline_cache() {
+   g_pipelineQueue.clear();
+   g_backgroundPipelineQueue.clear();
+   g_pendingPipelines.clear();
++  g_warmupPending.clear();
++  g_warmupTotal = g_warmupDone = g_warmupDropped = 0;
++  g_warmupNs = 0;
++  g_warmupStopped = false;
+ 
+   queuedPipelines = 0;
+   createdPipelines = 0;
+@@ -1255,3 +1288,43 @@ bool get_pipeline(PipelineRef ref, CompiledPipeline& pipeline) {
+ }
+ 
+ } // namespace aurora::gfx
++
++// Switch: progress of the boot warm-up, and a way to end it (switch/native/aurora/patches).
++void aurora_switch_get_precompile(AuroraSwitchPrecompile* out) {
++  using namespace aurora::gfx;
++  if (out == nullptr) {
++    return;
++  }
++  std::lock_guard lock{g_pipelineMutex};
++  out->total = g_warmupTotal;
++  out->done = g_warmupDone;
++  out->pending = static_cast<uint32_t>(g_warmupPending.size());
++  out->dropped = g_warmupDropped;
++  out->compileNs = g_warmupNs;
++  out->stopped = g_warmupStopped;
++}
++
++uint32_t aurora_switch_stop_precompile(void) {
++  using namespace aurora::gfx;
++  uint32_t dropped = 0;
++  {
++    std::lock_guard lock{g_pipelineMutex};
++    g_warmupStopped = true;
++    // Entries a draw already asked for were promoted to g_pipelineQueue and stay; the rest of the
++    // warm-up queue goes. A pipeline dropped here is queued again when a draw first needs it.
++    for (const auto& pending : g_backgroundPipelineQueue) {
++      g_pendingPipelines.erase(pending.hash);
++      g_warmupPending.erase(pending.hash);
++      ++dropped;
++    }
++    g_backgroundPipelineQueue.clear();
++    g_warmupDropped += dropped;
++  }
++  for (uint32_t i = 0; i < dropped; ++i) {
++    --queuedPipelines;
++  }
++  // The Dawn cache prune after the warm-up would delete the entries of every pipeline not built
++  // this session, i.e. the dropped ones; skip it.
++  g_gpuCachePrunePending = false;
++  return dropped;
++}

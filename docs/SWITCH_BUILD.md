@@ -176,6 +176,7 @@ scripts/switch/build_native.sh       # build/switch-native/centollos.nro and cen
 scripts/switch/push.sh --disc /path/to/GZLE01.iso   # once: the disc image (skipped if already there)
 scripts/switch/push.sh native                       # the NRO, read back and checked by SHA-256
 scripts/switch/push.sh --native-env my-env.txt      # optional: run options (see below)
+scripts/switch/push.sh --pipeline-cache             # optional: the bundled pipeline cache (see "Pipeline precompile")
 ```
 
 `--game` (the translated port's data) puts the disc image in the same place, so `--disc` is not
@@ -185,6 +186,7 @@ needed after it. SD card layout:
 |---|---|
 | `switch/centollos/centollos.nro` | the app: "the game (native)" in the Homebrew Menu |
 | `switch/centollos/GZLE01.iso` | your disc image, shared with the translated port |
+| `switch/centollos/initial_pipeline_cache.db` | optional: pipelines to precompile at boot, made on the Mac from your disc (never committed) |
 | `switch/centollos/native/env.txt` | optional run options |
 | `switch/centollos/native/centollos.log`, `centollos.prev.log` | this run's log and the previous one's |
 | `switch/centollos/native/user/` | memory card (`USA/Card A`), Aurora's caches |
@@ -315,6 +317,54 @@ again every run. On the Switch they now keep no journal file (`journal_mode=MEMO
 0006, with exclusive locking and in-memory temp files in the sqlite build); a cache that still
 fails is deleted and created once more (`Removed ... and retrying` in the log), and sqlite's own
 error log is in the run log as `[sqlite] (code) message` lines, which name the failing check.
+
+### Pipeline precompile
+
+Every new pipeline costs 0.1-0.4 s on the console, and the game stutters for that long: Dawn's GL
+backend links one GL program per pipeline on the single GL context (with `gl_defer` the render
+worker waits for it), and Mesa 20.1 compiles every program from GLSL on every run. There is no
+binary to keep: Dawn already stores `glGetProgramBinary` results in its blob cache
+(`dawn_cache.db`) where the driver offers them, but the devkitPro `switch-mesa` 20.1.0 build
+reports `GL_NUM_PROGRAM_BINARY_FORMATS` 0. Its meson rule compiles the disk shader cache out on
+Horizon (`-DENABLE_SHADER_CACHE` only when `host_machine.system() != 'horizon'`), so nouveau's
+`get_disk_shader_cache` returns NULL, Mesa's state tracker sets `NumProgramBinaryFormats` only
+when there is a disk cache, and `MESA_GLSL_CACHE_DIR`/`MESA_SHADER_CACHE_DIR` do nothing (no
+`disk_cache_create` in `libEGL.a`). What remains is to compile fewer programs and to compile them
+before they are needed:
+
+- `switch/dawn/patches/dawn-switch-gl-program-share.patch`: pipelines whose stages translate to the
+  same GLSL share one linked program. Aurora's GX pipelines that differ only in blend, depth, cull or
+  polygon offset state do: of the 1015 GX pipelines the Mac recorded over the boot path and every
+  stage, 823 have distinct shaders (about a fifth fewer compiles).
+- Aurora queues every pipeline its cache knows (`user/cache/pipeline_cache.db`) on its compile thread
+  at start, in order of first use. `native/tools/gen_pipeline_cache.sh` (on the Mac, with your disc)
+  records the pipelines of the logos, title and file select, a new game through the prologue,
+  Outset with Link controllable and a 600-frame boot of every stage, and merges them into
+  `build/pipeline-cache/initial_pipeline_cache.db` (about 1000 rows, 4 MB; ordered so the boot path
+  comes first). `scripts/switch/push.sh --pipeline-cache` copies it next to the NRO, where Aurora
+  merges it into the player's cache at every start (`Seeded pipeline cache from ...`). It holds
+  Aurora's pipeline keys (GX TEV stage and combiner selectors, vertex formats, blend, depth and cull
+  state) recorded from the game's materials: no textures, models, text, audio or code, but it is
+  derived from the disc, so it stays out of git like the disc itself.
+- Building them all takes minutes at the console's speed and each one still holds the GL context,
+  so the harness ends the warm-up when the game first enters its PLAY scene (`COS_PRECOMPILE=boot`,
+  the default; Aurora Switch patch 0007): what is left is built when first drawn, as before.
+  `COS_PRECOMPILE=all` keeps building into gameplay, `COS_PRECOMPILE=off` builds nothing ahead.
+
+The log shows the warm-up (`COS_PRECOMPILE_LOG=0` hides the progress lines; values vary):
+
+```
+[info] [aurora::gfx::pipeline_cache] Seeded pipeline cache from '/switch/centollos/initial_pipeline_cache.db' (R rows merged, 0 rows skipped)
+[cos] precompile: M pipelines queued from the pipeline cache (boot: until the first PLAY scene)
+[cos] precompile N/M pipelines, T s, compile C s (X ms each); GL programs L linked, S shared; frame F, scene LOGO_SCENE
+[cos] precompile stopped (PLAY scene; D left to build when first drawn) at N/M pipelines, ...
+[cos] precompile done: M/M pipelines, ...                       <- instead, if it finished first
+```
+
+Every start compiles again (nothing survives in Mesa), so the logos and menus run slowly while it
+works: about one frame per pipeline built. On the Mac the same file is read only if it is copied
+next to `build/native-mac/centollos`; there the whole warm-up of 995 pipelines took 83 s of the compile
+thread with a warm Dawn cache, and frames captured with and without it are identical.
 
 Threads: the game thread runs on core 0; JAudio's, the DVD thread, Aurora's and Dawn's
 workers prefer cores 1 and 2 (`switch/native/source/thread_wrap.c`). Every 15 seconds, at exit
