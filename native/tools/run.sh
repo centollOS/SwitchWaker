@@ -9,6 +9,8 @@
 # (crash-test, ... see COS_SMOKE). static-init is milestone M0 and runs the static-init smoke test.
 # `run` boots the game with neither: it ends with --frames (exit 0), the timeout or a fault, e.g.
 #   native/tools/run.sh run --frames 600 [--uncapped]      (prints the [cos] pacing line)
+# `boot-sweep` boots every stage of the disc in turn (step F4-boot-sweep): it hands its options to
+# native/tools/boot_sweep.py (see its --help), which runs this script once per stage.
 #
 # Options:
 #   --timeout S      in-process watchdog timeout (COS_TIMEOUT_S), default 180
@@ -34,6 +36,8 @@
 #                    n-th frame; COS_SHOT_DIR: another directory)
 #   --build          run `ninja -C build/native-mac centollos` first
 #   --exe PATH       the executable (default build/native-mac/centollos)
+#   --run-dir DIR    put the run in DIR (created; must not exist yet) instead of
+#                    build/native-mac/runs/<target>-<timestamp>
 #   --quiet          do not print the tail of the log on failure
 # Other COS_* variables already in the environment are passed through.
 #
@@ -72,6 +76,9 @@ usage() {
 target="$1"
 shift
 case "$target" in -h|--help) usage ;; esac
+if [ "$target" = boot-sweep ]; then
+    exec python3 "$script_dir/boot_sweep.py" "$@"
+fi
 
 timeout_s=180
 stall_s=30
@@ -90,6 +97,7 @@ sound=0
 do_build=0
 exe="$build/centollos"
 quiet=0
+run_dir_opt=""
 extra=()
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -108,6 +116,7 @@ while [ $# -gt 0 ]; do
         --build) do_build=1; shift ;;
         --exe) exe="$2"; shift 2 ;;
         --quiet) quiet=1; shift ;;
+        --run-dir) run_dir_opt="$2"; shift 2 ;;
         --) shift; extra=("$@"); break ;;
         *) echo "run: unknown option $1" >&2; usage ;;
     esac
@@ -138,11 +147,17 @@ if [ "$needs_disc" = 1 ] && [ -f "$disc" ]; then
 fi
 
 # --- environment ------------------------------------------------------------------------------
-ts="$(date +%Y%m%d-%H%M%S)"
-run_dir="$runs/$target-$ts"
-n=1
-while [ -e "$run_dir" ]; do run_dir="$runs/$target-$ts-$n"; n=$((n + 1)); done
-mkdir -p "$run_dir"
+if [ -n "$run_dir_opt" ]; then
+    [ -e "$run_dir_opt" ] && { echo "run: --run-dir $run_dir_opt exists" >&2; exit 2; }
+    mkdir -p "$run_dir_opt" || exit 2
+    run_dir="$(cd "$run_dir_opt" && pwd)"
+else
+    ts="$(date +%Y%m%d-%H%M%S)"
+    run_dir="$runs/$target-$ts"
+    n=1
+    while [ -e "$run_dir" ]; do run_dir="$runs/$target-$ts-$n"; n=$((n + 1)); done
+    mkdir -p "$run_dir"
+fi
 
 unset COS_SMOKE COS_MILESTONE
 if [ "$target" = "run" ]; then

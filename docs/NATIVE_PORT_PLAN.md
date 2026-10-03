@@ -2657,6 +2657,56 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   panics on a separate cause: `GFSetArray(attr 9, stride 12)` without an array size on Aurora from
   `dDlst_alphaModelData_c::draw` (not fixed here).
   Reviewed: regression passes; `sea:44:206` still reaches its milestone.
+- **F4-boot-sweep: every stage of the disc booted** (2026-10-03, lane outset, harness). New
+  diagnostic target `native/tools/run.sh boot-sweep` (driver `native/tools/boot_sweep.py`;
+  `run.sh` gained `--run-dir DIR`). It lists the 156 stages on the disc (`/res/Stage/<name>/
+  Stage.arc`, from the disc manifest, written first if missing), picks each start from the stage
+  data and boots it with `run.sh run --stage <stage>:<room>:<point> --frames 600 --uncapped
+  --audio on`, 4 at a time (`--jobs`), each run in `<sweep dir>/<stage>/`; the report
+  `boot_sweep.txt` (stage, spec, source, exit code, PLAY start frame, last frame, signature) is in
+  `build/native-mac/runs/boot-sweep-<ts>/`. Exit 0 only if every stage ran to its last frame.
+  The start: the PLYR records `dStage_playerInit` would use (stage.dzs's when it has any, room =
+  parameters & 0x3F; else each Room<N>.dzr's whose room bits name that room; point = angle.z &
+  0xFF); a spawn point that some SCLS exit of the disc leads to (same room and start point) is
+  preferred (108 stages), else the lowest room and point (47); the layer is left to the game.
+  `Name` (the name-entry stage) has no PLYR record and is reported as skipped. `--list` prints
+  the choices; `--only a,b` runs a subset. COS_FRAMES counts from boot: the PLAY scene starts the
+  stage at frame 281-300, so a pass is about 300 frames in the stage. Runs of identical log lines
+  (Aurora's per-draw `CP_REG_ARRAYBASE_ID` warnings) are collapsed to one line and a count (the
+  whole sweep is 3.5 MB). Not in `regress_targets.txt` yet (the boot loop adds it once it passes).
+  Current result, 2 sweeps identical (about 2 min each): 83 of 155 stages pass, 72 fail, 1
+  skipped. A stage stops at its first fault, so a later fault of the same stage is hidden until
+  the first is fixed. Failures (start `0:0` unless given):
+
+  | Stages | n | Signature |
+  |---|---|---|
+  | Abesso, Abship, Asoko, Cave03, Cave04, Cave05, Cave06, Cave09, Comori, Edaichi, Ekaze, GanonB, GanonD, GanonE, GanonL, GanonN, Hyroom, I_SubAN (9:0), I_TestM, I_TestR, K_Testa, K_Testc, LinkRM (0:1), M2tower (0:16), M_DaiB, M_DaiMB (12:0), M_NewD2, MajyuE, Mjtower (0:16), Obshop (1:0), Omori, Otkura, Pnezumi, ShipD, SubD42, TF_03, TF_05, TF_07 (1:0), TyuTyu, WarpD, Xboss2, kindan, ma2room, ma3room, majroom, sea (1:0) | 46 | `PANIC GFGeometry.cpp:263, ROOM_SCENE, GFSetArray <- dDlst_alphaModelData_c::draw (d_drawlist.cpp:810)` (attr 9, stride 12, no array size on Aurora) |
+  | PShip, SubD45, kenroom | 3 | `PANIC GFGeometry.cpp:263, ROOM_SCENE, GFSetArray <- dDlst_alphaModelData_c::draw (d_drawlist.cpp:902)` |
+  | K_Test5 | 1 | `PANIC GFGeometry.cpp:263, ROOM_SCENE, GFSetArray <- dDlst_alphaModelData_c::draw (d_drawlist.cpp:819)` |
+  | Xboss3, kazeB | 2 | `PANIC GFGeometry.cpp:263, ROOM_SCENE, GFSetArray <- daBwdg_packet_c::draw (d_a_bwdg.cpp:127)` |
+  | GanonJ (1:0) | 1 | `PANIC GFGeometry.cpp:263, ROOM_SCENE, GFSetArray <- daMant_packet_c::draw (d_a_mant.cpp:236)` |
+  | M_DragB, MiniHyo, VrTest, Xboss0 | 4 | `CRASH SIGABRT, ROOM_SCENE, aurora::gfx::TextureBind::get_descriptor (texture.cpp:332) <- aurora::gx::build_bind_groups (gx.cpp:518)` |
+  | GTower, M2ganon | 2 | `CRASH SIGSEGV addr=0x0, ROOM_SCENE, JUTNameTab::getIndex (JUTNameTab.cpp:34) <- J3DAnmTextureSRTKey::searchUpdateMaterialID (J3DAnimation.cpp:908)` |
+  | GanonA, Siren | 2 | `CRASH SIGSEGV addr=0x0, ROOM_SCENE, cBgW::Set (c_bg_w.cpp:337) <- daBg_c::createHeap (d_a_bg.cpp:211)` |
+  | GanonM, M_Dai | 2 | `CRASH SIGSEGV addr=0x0, ROOM_SCENE, cBgW::Set (c_bg_w.cpp:332) <- daBg_c::createHeap (d_a_bg.cpp:211)` |
+  | ADMumi (0:100) | 1 | `CRASH SIGSEGV addr=0x0, ROOM_SCENE, cBgW::Set (c_bg_w.cpp:332) <- daObjDoguuD_c::CreateHeap (d_a_obj_doguu_demo.cpp:41)` |
+  | K_Test9, Opub | 2 | `CRASH SIGSEGV addr=0x0, ROOM_SCENE, J3DModel::J3DModel (J3DModel.cpp:21) <- mDoExt_J3DModel__create (m_Do_ext.cpp:3294)` |
+  | K_Testd | 1 | `CRASH SIGSEGV addr=0x0, ROOM_SCENE, daWarphr_c::_draw (d_a_warphr.cpp:428) <- daWarphr_Draw (d_a_warphr.cpp:483)` |
+  | E3ROOP | 1 | `CRASH SIGSEGV addr=0x8, ROOM_SCENE, C_MTXMultVec (mtxvec.c:11) <- JAInter::SeMgr::checkNextFrameSe (JAISeMgr.cpp:187)` |
+  | the castle stage | 1 | `CRASH SIGSEGV addr=0x0, PLAY_SCENE (before the stage started), JAIZelBasic's per-frame BGM work (JAIZelBasic.cpp:470) <- JAIZelBasic::gframeProcess (JAIZelBasic.cpp:629)` |
+  | GanonK | 1 | `PANIC JAISoundTable.cpp:61, ROOM_SCENE, JAInter::SoundTable::getInfoPointer (JAISoundTable.cpp:51) <- JAIBasic::startSoundVec (JAIBasic.cpp:220)` |
+  | ENDumi | 1 | `PANIC d_event_data.cpp:1070, ROOM_SCENE, dEvDtStaff_c::specialProcPackage (d_event_data.cpp:802) <- dEvDtEvent_c::specialStaffProc (d_event_data.cpp:119)` |
+  | Msmoke | 1 | `PANIC d_a_door10.cpp:356, PLAY_SCENE, daDoor10_c::CreateHeap (d_a_door10.cpp:268) <- fopAcM_entrySolidHeap (f_op_actor_mng.cpp:324)` |
+
+  Passing (83): A_R00, A_mori, A_nami, A_umikz, Adanmae, Amos_T, Atorizk, Cave01, Cave02,
+  Cave07, Cave08, Cave10 (1:0), Cave11 (1:0), DmSpot0, Ebesso, Fairy01-06, GanonC, H_test,
+  ITest61-63, KATA_HB, KATA_RM (18:1), K_Test2/3/4/6/8/b/e, Kaisen, LinkUG (0:1), M_Dra09 (9:0),
+  MiniKaz, Mukao, Nitiyou, Obombh, Ocean, Ocmera, Ocrogh, Ojhous, Ojhous2 (1:0), Omasao, Onobuta,
+  Orichh, PShip2, PShip3, Pdrgsh, Pfigure, Pjavdou, SirenB, SirenMB (23:0), SubD43, SubD44,
+  SubD51, SubD71, TEST, TF_01, TF_02, TF_04, TF_06, Xboss1, figureA-G, kazan, kaze (15:15),
+  kazeMB (6:0), kinBOSS, kinMB (10:0), morocam, sea_E, sea_T (44:0), tincle.
+  No crash fixed in this step.
+  Reviewed: third sweep gives the same 83/72/1 result and the same signatures; regression passes.
 
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
