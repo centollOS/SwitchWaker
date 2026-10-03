@@ -62,6 +62,13 @@ void COSSdkSetResetCode(u32 resetCode);
 // GameCube errors calls them through this.
 OSErrorHandler COSSdkGetErrorHandler(OSError error);
 
+// ---- VI (step 2.6c) ---------------------------------------------------------------------------
+
+// The value last passed to VISetBlack (FALSE at start). Aurora keeps presenting frames while the
+// game has blanked the video output; the game glue (phase 6) presents black frames while it is
+// TRUE.
+BOOL COSSdkVIIsBlack(void);
+
 #ifdef __cplusplus
 }
 #endif

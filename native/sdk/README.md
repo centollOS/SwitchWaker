@@ -113,3 +113,18 @@ console. The parts game glue needs to know:
 - PPC special registers are emulated values (`MSR[EE]` is the interrupt state, the decrementer
   counts). Error handlers set with `OSSetErrorHandler` are recorded but no host fault reaches them;
   `COSSdkGetErrorHandler` returns them.
+
+## VI retrace and GX gaps (step 2.6c)
+
+`src/vi/VIRetrace.cpp`, `src/gx/GXExtras.cpp`; tests `vi` and `gx` (`tests/sdk_vi.cpp`). What game
+glue needs to know:
+
+- There is no VI interrupt: each `VIWaitForRetrace` call is one retrace (count, pre-retrace
+  callback, next frame buffer becomes current, post-retrace callback, with interrupts disabled).
+  It returns at once; pacing is the main loop's job (phase 6).
+- `VISetBlack` does not blank Aurora's output; `COSSdkVIIsBlack` (`hooks.h`) returns the value.
+- `GXSetDrawSync` calls the draw sync callback before it returns. `GXPeekARGB` reads white (no EFB
+  colour read-back yet). `GXSetMisc(GX_MT_DL_SAVE_CONTEXT, 0)` does not reach Aurora's private
+  display-list state. Each is logged once. `GXGetFifoBase`/`GXGetFifoSize` abort.
+- `cos_sdk/gx.h` declares the GX functions Aurora's headers lack (`GXSetDrawSync`,
+  `GXSetGPMetric`, `GXClearGPMetric`).

@@ -275,3 +275,27 @@ Each phase lands as its own commits; this file records decisions and measured re
   (`COSSdkGetErrorHandler` for later glue). Test `misc` (`native/sdk/tests/sdk_misc.cpp`, death
   checks in forked children with captured stderr); 20 runs of the whole smoke program and 10 TSan
   runs, no failure or report. Census with `COS_WITH_AURORA=ON`: SDK/OS 18 → 0 (total 192 → 174).
+- **2.6c VI retrace and GX gaps:** `native/sdk/src/vi/VIRetrace.cpp` and
+  `native/sdk/src/gx/GXExtras.cpp`, adapted from the VI and GX sections of Dusklight's `stubs.cpp`
+  (provenance in each file); the GX list is the plan's plus the census's SDK/GX bucket
+  (`GXInitTexCacheRegion`, `GXPeekARGB`, `GXPokeAlphaRead`, `GXReadXfRasMetric` besides the
+  planned names). Each `VIWaitForRetrace` call is one retrace, run as the SDK's handler does
+  (count, pre-retrace callback, next frame buffer latched, post-retrace callback) with interrupts
+  disabled; it does not pace (phase 6). `VISetBlack` is recorded for the glue
+  (`COSSdkVIIsBlack` in `hooks.h`; Aurora keeps presenting, logged once), `VIGetNextField`
+  alternates with the retrace count, `VIGetDTVStatus` is 0 (no progressive-scan prompt).
+  `GXGetNumXfbLines`/`GXGetYScaleFactor` and `GXInitTexCacheRegion` use the SDK's algorithms
+  (Dusklight returns 0, which would size JUTXfb's buffers to 0 lines). The GX thread is kept as in
+  the SDK, starting as the default (main) OS thread (new `DefaultThreadLocked` in `os_internal.h`),
+  since `mDoRst_reset` cancels it when it is not the caller. `GXSetDrawSync` delivers the token at
+  once, inside the call (Aurora's public API has no GPU-signalled token). Logged once where the host
+  differs: draw sync, `GXSetMisc(GX_MT_DL_SAVE_CONTEXT, 0)` (Aurora's private `dlSaveContext` stays
+  1), `GXPeekARGB` (no EFB colour read-back: white, alpha from `GXPokeAlphaRead`, which d_snap reads
+  as "no object"; TODO phase 6), the counters (0); `GXAbortFrame` logs every call.
+  `GXGetFifoBase`/`GXGetFifoSize` abort (Aurora's FIFO objects keep no base or size; nothing in the game calls them). Not added:
+  `GXWaitDrawDone` is static in the game's SDK, and the metric functions beyond the game's three. Tests `vi`
+  (the plan's three retraces, plus frame buffer latch, fields, 1000 retraces from two threads) and
+  `gx` (`native/sdk/tests/sdk_vi.cpp`); 20 runs of the whole smoke program and 10 TSan runs, no
+  failure or report. Census with `COS_WITH_AURORA=ON`: SDK/GX 13 → 0, SDK/VI 7 → 0 (total
+  174 → 154). Reviewed in round 1: smoke `vi`/`gx`, 18 more whole-program runs and 8 TSan runs
+  clean, census reproduced, default configuration (`cos_modules` and checks) unchanged.

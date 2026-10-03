@@ -74,6 +74,10 @@ private:
 // get a record of their own that lives as long as the host thread. Needs Lock().
 void AdoptCurrentLocked();
 
+// The default (main) thread: the OSThread of the first thread that called the SDK, or null if no
+// thread has yet. Inside a Guard it is never null. Needs Lock().
+OSThread* DefaultThreadLocked();
+
 // Exits the calling thread if it was cancelled, and blocks it while it is suspended. Needs Lock().
 void CheckpointLocked();
 

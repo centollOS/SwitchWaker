@@ -286,6 +286,10 @@ void AdoptCurrentLocked() {
     tCurrent = record;
 }
 
+OSThread* DefaultThreadLocked() {
+    return sDefaultClaimed ? &sDefaultThread : nullptr;
+}
+
 void CheckpointLocked() {
     HostThread* host = tHost;
     if (host == nullptr || host->alarmThread) {
