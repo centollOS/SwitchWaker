@@ -11,6 +11,9 @@
 #include "d/actor/d_a_bwd.h"
 #include "f_op/f_op_actor_mng.h"
 #include "dolphin/gf/GF.h"
+#if TARGET_PC
+#include "m_Do/m_Do_lib.h"
+#endif
 
 static bwd_class* boss;
 
@@ -137,6 +140,10 @@ void daBwdg_packet_c::draw() {
 #endif
     GFSetTevColorS10(GX_TEVREG0, mpTevStr->mColorC0);
     GFSetTevColor(GX_TEVREG1, mpTevStr->mColorK0);
+#if TARGET_PC
+    // The material list names its texture by physical address (see mDoLib_loadDLTexImage).
+    mDoLib_loadDLTexImage(l_matDL, 0xA0, l_B_sand2TEX);
+#endif
     GXCallDisplayList(l_matDL, 0xA0);
     GFLoadPosMtxImm(getMtx(), GX_PNMTX0);
     Mtx sp14;

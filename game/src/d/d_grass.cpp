@@ -303,6 +303,10 @@ void dGrass_packet_c::draw() {
     GFSetArray(GX_VA_CLR0, mpColorArr, sizeof(*mpColorArr));
     GFSetArray(GX_VA_TEX0, mpTexCoordArr, sizeof(cXy));
 #endif
+#if TARGET_PC
+    // The material list names its texture by physical address (see mDoLib_loadDLTexImage).
+    mDoLib_loadDLTexImage(mpMatDL, mMatDLSize, vmori ? l_K_kusa_00TEX : l_Txa_ob_kusa_aTEX);
+#endif
     GXCallDisplayList(mpMatDL, mMatDLSize);
 
     dGrass_room_c* room = &mGrassRoom[0];

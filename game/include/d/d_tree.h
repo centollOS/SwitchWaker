@@ -16,6 +16,10 @@ extern u8 g_dTree_shadowMatDL[];
 extern u8 g_dTree_Oba_kage_32DL[];
 extern const u32 g_dTree_shadowMatDL_SIZE;
 extern const u32 g_dTree_Oba_kage_32DL_SIZE;
+#if TARGET_PC
+// The image g_dTree_shadowMatDL names by physical address, for mDoLib_loadDLTexImage (d_wood too).
+extern u8 l_Txa_kage_32TEX[];
+#endif
 
 class dTree_data_c {
 public:

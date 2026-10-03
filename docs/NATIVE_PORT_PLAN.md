@@ -2911,6 +2911,13 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: before/after `Omori:0:3` shot 890 rerun (tree missing, then drawn), Outset shot
   unchanged, GameCube path unchanged (unifdef), regress passes. Committed as two commits (the
   J3DTransform host bodies, then the skin deform byte order).
+- R6-grass (lane boot, render): the GX-direct packet material lists (grass, flowers, trees, bushes,
+  chains, hookshot, bwdg sand, tree shadows) name their texture by physical address in BP
+  SETIMAGE3, which Aurora never reads; under `TARGET_PC` `mDoLib_loadDLTexImage` loads a cached
+  `GXTexObj` built from the list's own SETMODE0/1 and SETIMAGE0 before each list. See render
+  issues. Reviewed: `run --stage sea:44:206 --frames 820 --shot 800` (white flowers cut out on the
+  sand) and `run --stage Omori:0:3 --frames 500 --shot 490` rerun and inspected, all changes under
+  `TARGET_PC`, `regress.sh -j 3` all checks passed.
 
 - **Fix NG-run-dir (M11 boot loop, lane audio, harness): parallel runs of one target shared a run
   directory.** `run.sh` tested a directory name for existence and then created it with
@@ -3088,4 +3095,24 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `run --stage sea:44:206 --shot 800`, lower right): the grass tufts below the lookout show their
   whole quads (no alpha cut-out) with purple/blue texels, before and after R4-arraybase. On the
   GameCube they are alpha-tested blade tufts. Not triaged (`dGrass_packet_c::draw`'s texture or
-  alpha-compare state vs. its vertex arrays). Open.
+  alpha-compare state vs. its vertex arrays). **Fixed** by R6-grass. The tufts at that spot are
+  Outset's flowers (`dFlower_packet_c`: skipping its draw removes them, skipping grass, wood or
+  tree does not), but grass, bushes and trees share the root cause: every static packet material
+  display list from the DOL (`l_matDL*` of d_grass, d_flower x3, d_tree, d_wood, d_chain,
+  d_a_hookshot, d_a_bwdg and `g_dTree_shadowMatDL`) names its texture with a BP SETIMAGE3 write of
+  the image's physical address >> 5 (`IMAGE_ADDR`), which cannot hold a host pointer. Aurora binds
+  a texture's image only through `GXLoadTexObj` (its BP handler stores SETIMAGE3 but never reads
+  it), and the list's SETIMAGE0 then overwrote the slot's size and format, so these lists sampled
+  whatever image was last loaded in GX_TEXMAP0, decoded as their own CMPR/I4 size: garbage texels,
+  and garbage alpha for the GREATER-0 alpha test (whole quads). Same cause as the J3D materials
+  fixed by 3c3f2ae, in the GX-direct packets. Under `TARGET_PC` the new `mDoLib_loadDLTexImage(dl,
+  size, image)` (m_Do_lib.cpp) reads the list's own SETMODE0/1 and SETIMAGE0 registers for each
+  map it names through SETIMAGE3, builds one cached `GXTexObj` per image and register set, and
+  loads it right before every such `GXCallDisplayList` (as Dusklight's grass loads a
+  `GXTexObj` before its material lists); the list then writes the same size, format and modes
+  again. Check (COS_SHOT, inspected): `run --stage sea:44:206 --frames 820 --shot 800` draws white
+  flowers with green stems and leaves cut out against the sand (before: green/purple/blue quads
+  with blue stalks); `run --stage Omori:0:3 --frames 500 --shot 490` draws Forest Haven's grass
+  blades (`l_Vmori_*` set) and bushes (dWood) green and leafy (before: dark blue grass and
+  blue/beige bush balls). Not seen on screen yet: dTree trees and shadows, the Outset grass set
+  (`l_Txa_ob_kusa_a`), chains, the hookshot chain and d_a_bwdg sand (same helper, same lists).

@@ -339,6 +339,10 @@ void dFlower_packet_c::draw() {
     GXSetArray(GX_VA_CLR0, l_color, 0x4);
     GXSetArray(GX_VA_TEX0, l_texCoord, 0x8);
 #endif
+#if TARGET_PC
+    // The material list names its texture by physical address (see mDoLib_loadDLTexImage).
+    mDoLib_loadDLTexImage(l_matDL, 0xA0, l_Txo_ob_flower_white_64x64TEX);
+#endif
     GXCallDisplayList(l_matDL, 0xA0);
 
     dFlower_room_c* pRoom = &mRoom[0];
@@ -377,6 +381,11 @@ void dFlower_packet_c::draw() {
     GXSetArray(GX_VA_POS, field_0x4608, 0xC);
     GXSetArray(GX_VA_CLR0, field_0x460c, 0x4);
     GXSetArray(GX_VA_TEX0, field_0x4610, 0x8);
+#endif
+#if TARGET_PC
+    // The material list names its texture by physical address (see mDoLib_loadDLTexImage).
+    mDoLib_loadDLTexImage(field_0x4614, field_0x4618,
+                          field_0x4614 == l_matDL3 ? l_Txq_bessou_hanaTEX : l_Txo_ob_flower_pink_64x64TEX);
 #endif
     GXCallDisplayList(field_0x4614, field_0x4618);
 

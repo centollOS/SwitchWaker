@@ -8,6 +8,9 @@
 #include "d/d_a_obj.h"
 #include "d/d_s_play.h"
 #include "m_Do/m_Do_mtx.h"
+#if TARGET_PC
+#include "m_Do/m_Do_lib.h"
+#endif
 
 #include "assets/l_chainS3TCTEX__d_chain.h"
 const u16 l_chainS3TCTEX__width = 32;
@@ -50,6 +53,10 @@ void dChain_packet_c::draw() {
     GXSetArray(GX_VA_TEX0, l_texCoord, sizeof(*l_texCoord));
 #endif
     dKy_GxFog_tevstr_set(mpTevStr);
+#if TARGET_PC
+    // The material list names its texture by physical address (see mDoLib_loadDLTexImage).
+    mDoLib_loadDLTexImage(l_matDL, 0xa0, l_chainS3TCTEX);
+#endif
     GXCallDisplayList(l_matDL, 0xa0);
     GXSetTevColorS10(GX_TEVREG0, mpTevStr->mColorC0);
     GXSetTevColor(GX_TEVREG1, mpTevStr->mColorK0);

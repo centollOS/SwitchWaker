@@ -902,6 +902,10 @@ void dWood::Packet_c::draw() {
     GFSetArray(GX_VA_TEX0, g_dTree_shadowTexCoord, 2);
 #endif
     dKy_GxFog_set();
+#if TARGET_PC
+    // The material list names its texture by physical address (see mDoLib_loadDLTexImage).
+    mDoLib_loadDLTexImage(g_dTree_shadowMatDL, g_dTree_shadowMatDL_SIZE & ~0b11111, l_Txa_kage_32TEX);
+#endif
     GXCallDisplayList(g_dTree_shadowMatDL, g_dTree_shadowMatDL_SIZE & ~0b11111);
     GFSetTevColor(GX_TEVREG0, l_shadowColor);
 
@@ -931,6 +935,10 @@ void dWood::Packet_c::draw() {
     GFSetArray(GX_VA_POS, l_pos, sizeof(*l_pos));
     GFSetArray(GX_VA_CLR0, l_color, sizeof(*l_color));
     GFSetArray(GX_VA_TEX0, l_texCoord, sizeof(*l_texCoord));
+#endif
+#if TARGET_PC
+    // The material list names its texture by physical address (see mDoLib_loadDLTexImage).
+    mDoLib_loadDLTexImage(l_matDL, 0xa0, l_Txa_swood_bTEX);
 #endif
     GXCallDisplayList(l_matDL, 0xa0);
     GFSetAlphaCompare(GX_GREATER, L_attr.L_Alpha_Cutoff, GX_AOP_OR, GX_GREATER, L_attr.L_Alpha_Cutoff);

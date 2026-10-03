@@ -403,6 +403,10 @@ void dTree_packet_c::draw() {
     GFSetArray(GX_VA_POS, g_dTree_shadowPos, 3);
     GFSetArray(GX_VA_TEX0, g_dTree_shadowTexCoord, 2);
 #endif
+#if TARGET_PC
+    // The material list names its texture by physical address (see mDoLib_loadDLTexImage).
+    mDoLib_loadDLTexImage(g_dTree_shadowMatDL, 0x80, l_Txa_kage_32TEX);
+#endif
     GXCallDisplayList(g_dTree_shadowMatDL, 0x80);
     GFSetTevColor(GX_TEVREG0, l_shadowColor);
 
@@ -429,6 +433,10 @@ void dTree_packet_c::draw() {
     GFSetArray(GX_VA_POS, l_pos, sizeof(cXyz));
     GFSetArray(GX_VA_CLR0, l_color, sizeof(GXColor));
     GFSetArray(GX_VA_TEX0, l_texCoord, sizeof(cXy));
+#endif
+#if TARGET_PC
+    // The material list names its texture by physical address (see mDoLib_loadDLTexImage).
+    mDoLib_loadDLTexImage(l_matDL, 0xA0, l_Txa_swood_aTEX);
 #endif
     GXCallDisplayList(l_matDL, 0xA0);
 

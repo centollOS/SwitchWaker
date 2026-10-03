@@ -7,6 +7,9 @@
 #include "d/actor/d_a_hookshot.h"
 #include "d/d_com_inf_game.h"
 #include "m_Do/m_Do_mtx.h"
+#if TARGET_PC
+#include "m_Do/m_Do_lib.h"
+#endif
 #include "SSystem/SComponent/c_counter.h"
 #include "d/actor/d_a_player_main.h"
 #include "d/actor/d_a_ship.h" // IWYU pragma: keep
@@ -51,6 +54,10 @@ void daHookshot_shape::draw() {
     GXSetArray(GX_VA_TEX0, &l_texCoord, sizeof(l_texCoord[0]));
 #endif
     dKy_GxFog_set();
+#if TARGET_PC
+    // The material list names its texture by physical address (see mDoLib_loadDLTexImage).
+    mDoLib_loadDLTexImage(&l_matDL, sizeof(l_matDL) - 0x08, l_chainS3TCTEX);
+#endif
     // Not sure why the size passed here is smaller than l_matDL's size in the symbol maps.
     GXCallDisplayList(&l_matDL, sizeof(l_matDL) - 0x08);
     GXSetTevColorS10(GX_TEVREG0, hookshot->tevStr.mColorC0);

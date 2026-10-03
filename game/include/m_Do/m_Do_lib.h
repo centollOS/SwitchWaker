@@ -52,5 +52,11 @@ u32 mDoLib_setResTimgObj(ResTIMG* res, GXTexObj* o_texObj, u32 tlut_name, GXTlut
 void mDoLib_pos2camera(Vec* src, Vec* dst);
 u32 mDoLib_cnvind32(u32 r3);
 u16 mDoLib_cnvind16(u16 r3);
+#if TARGET_PC
+// Host form of the texture address a static material display list carries (fix R6-grass, see
+// m_Do_lib.cpp): binds `image` to the texture map(s) the list `dl` (`size` bytes) names through
+// BP SETIMAGE3. Call it right before GXCallDisplayList(dl, size).
+void mDoLib_loadDLTexImage(const void* dl, u32 size, const void* image);
+#endif
 
 #endif /* M_DO_M_DO_LIB_H */
