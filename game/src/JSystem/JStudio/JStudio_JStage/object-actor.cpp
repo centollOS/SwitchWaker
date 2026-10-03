@@ -240,8 +240,12 @@ void TAdaptor_actor::TVVOutput_ANIMATION_FRAME_::operator()(f32 p1, JStudio::TAd
     JStage::TActor* actor = static_cast<TAdaptor_actor*>(adaptor)->mObject;
     // not sure what this bit is
 #if TARGET_PC
-    // TODO(native phase 4): address arithmetic at host pointer width; offsets come from 32-bit data.
-    u32 idx = *(u32*)(((uintptr_t)adaptor - 1) + _08);
+    // _08 is the GameCube offset (plus 1) of the play-mode word this output reads: 0x13C, m13C
+    // (ANIMATION_MODE), or 0x140, m140 (TEXTURE_ANIMATION_MODE). The host layout of the adaptor
+    // differs (8-byte pointers and vptr), so the field is named instead (as Dusklight's
+    // object-actor.cpp does, CC0).
+    const TAdaptor_actor* self = static_cast<const TAdaptor_actor*>(adaptor);
+    u32 idx = (_08 - 1 == 0x13C) ? self->m13C : self->m140;
 #else
     u32 idx = *(u32*)(((u32)adaptor - 1) + _08);
 #endif
