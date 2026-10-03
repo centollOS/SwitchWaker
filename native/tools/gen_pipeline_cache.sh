@@ -6,6 +6,7 @@
 #   native/tools/gen_pipeline_cache.sh [--out DIR] [--no-build] [--no-sweep] [--no-prologue]
 #                                      [--sweep-jobs N] [--sweep-frames N] [--sweep-only LIST]
 #                                      [--disc PATH]
+#   native/tools/gen_pipeline_cache.sh --mark-priority DB
 #
 # Aurora's pipeline cache keeps pipeline *configurations* (GX TEV/blend/vertex-format state, clear
 # and RmlUi pipeline keys), not compiled code, so the Mac's Metal runs record the same set the
@@ -21,6 +22,12 @@
 #   4  boot-sweep      every stage of the disc, --sweep-frames frames each (--no-sweep skips it)
 # Tiers 0-3 run in parallel, then the sweep. A run that fails still contributes what it recorded
 # (the report says so). The merge keeps one row per (type, hash), the lowest tier's frame.
+#
+# The file also gets a pipeline_priority table (type, hash, priority): priority 0 for the rows of
+# tiers 0-3 (the boot path, logos to Outset: priority_tiers below), 1 for the rest. The Switch
+# build's Aurora (switch/native/aurora/patches/0008) warms the priority-0 pipelines up first and the
+# loading screen at boot waits for them (COS_PRECOMPILE=boot); unpatched Aurora ignores the table.
+# --mark-priority DB only (re)writes that table in an existing file.
 #
 # Output (default build/pipeline-cache/, gitignored): initial_pipeline_cache.db, report.txt and the
 # runs. The file is derived from running the game with the player's own disc, so it is never
@@ -45,6 +52,9 @@ sweep_jobs=4
 sweep_frames=600
 sweep_only=""
 disc_args=()
+mark_only=""
+# Tiers below this are the boot path: priority 0 in pipeline_priority (see above).
+priority_tiers=4
 while [ $# -gt 0 ]; do
     case "$1" in
         --out) out="$2"; shift 2 ;;
@@ -55,11 +65,33 @@ while [ $# -gt 0 ]; do
         --sweep-frames) sweep_frames="$2"; shift 2 ;;
         --sweep-only) sweep_only="$2"; shift 2 ;;
         --disc) disc_args=(--disc "$2"); shift 2 ;;
+        --mark-priority) mark_only="$2"; shift 2 ;;
         -h|--help) sed -n '2,/^set -u/p' "${BASH_SOURCE[0]}" | sed '$d' | sed 's/^# \{0,1\}//'; exit 2 ;;
         *) echo "gen_pipeline_cache: unknown option $1" >&2; exit 2 ;;
     esac
 done
 command -v sqlite3 > /dev/null || { echo "gen_pipeline_cache: sqlite3 not found" >&2; exit 2; }
+
+# pipeline_priority: priority 0 for the rows first used on the boot path (tier < priority_tiers).
+mark_priority() { # db
+    sqlite3 "$1" "DROP TABLE IF EXISTS pipeline_priority;
+CREATE TABLE pipeline_priority (
+  type INTEGER NOT NULL,
+  hash INTEGER NOT NULL,
+  priority INTEGER NOT NULL,
+  PRIMARY KEY (type, hash)
+);
+INSERT INTO pipeline_priority (type, hash, priority)
+  SELECT type, hash, CASE WHEN first_frame_used < $priority_tiers * 10000000 THEN 0 ELSE 1 END
+  FROM pipeline_cache;" || return 1
+    echo "pipeline_priority: $(sqlite3 "$1" 'SELECT COUNT(*) FROM pipeline_priority WHERE priority = 0') of $(sqlite3 "$1" 'SELECT COUNT(*) FROM pipeline_priority') rows priority 0 (tiers 0-$((priority_tiers - 1)))"
+}
+if [ -n "$mark_only" ]; then
+    [ -s "$mark_only" ] || { echo "gen_pipeline_cache: no file $mark_only" >&2; exit 2; }
+    mark_priority "$mark_only" || exit 1
+    sqlite3 "$mark_only" 'VACUUM;' || exit 1
+    exit 0
+fi
 
 if [ "$do_build" = 1 ]; then
     ninja -C "$build" centollos > /dev/null || { echo "gen_pipeline_cache: build failed" >&2; exit 2; }
@@ -159,9 +191,11 @@ for line in "${merged[@]}"; do
         merge_tier "$tier" "$name" "$rc" "$runs/$tier-$name/cache/pipeline_cache.db"
     fi
 done
+priority_note="$(mark_priority "$tmp")" || exit 1
 sqlite3 "$tmp" 'VACUUM;' || exit 1
 mv -f "$tmp" "$db"
 {
+    echo "$priority_note"
     echo "rows by type (0 clear, 1 GX, 2 RmlUi) and config version:"
     sqlite3 "$db" 'SELECT type, config_version, COUNT(*), config_size FROM pipeline_cache GROUP BY 1, 2, 4;'
     echo "total $(sqlite3 "$db" 'SELECT COUNT(*) FROM pipeline_cache') rows, $(wc -c < "$db" | tr -d ' ') bytes: $db"
