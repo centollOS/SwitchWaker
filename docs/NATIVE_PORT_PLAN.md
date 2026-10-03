@@ -1582,6 +1582,68 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   1874 textures, 0 errors; M0-M5 0 x3, uncapped 0; sweeps 0; harness tests 13/12/10/11, no disc
   14; census equal, dups 0, inventory ok (78 open), smoke and `cos_pc_tests` ok); committed as two
   commits plus this log.
+- **4.8 Remaining logo resources** (M6 `logo-res`). The boot loop hit, in order, three root
+  causes in files 4.11/4.12 own (fixed only as far as M6 needs, under the ownership rule), then
+  step 4.8's own markers. Each is meant as its own commit:
+  - **J3D animation blocks read in host order.** `J3DAnmKeyLoader_v15::load` built name tables
+    from offsets read little-endian (`JUTNameTab::setResource` faulted on BTK/BPK/BRK). The data
+    block structs of `J3DAnimation.h` (`J3DAnm*Data`) use `BE(T)`; their file offsets are
+    `J3D_ANM_OFFSET(T)`: `T` on the GameCube, on `TARGET_PC` a big-endian s32 with an explicit
+    `void*` cast, so the loader's `(void*)data->m...Offset` calls stay as they are. The key
+    tables and value arrays the animations read at run time are 4.12's (not touched).
+  - **J3D model blocks: file offsets as host pointers and host-order fields.** In
+    `J3DModelLoader.h` the block offsets are `OFFSET_PTR_V0` (`void*` on the GameCube, a BE u32 on
+    PC, as Dusklight) and the counts `BE(T)`; `J3DJointBlock`/`J3DShapeBlock` hold BE u32 offsets
+    under `TARGET_PC`. `BE(T)` in `J3DModelHierarchy`, `J3DJointInitData` (the transform as
+    `J3DTransformInfoData` on PC, converted by `getTransformInfo`), `J3DShapeInitData`,
+    `J3DShapeMtxInitData`, `J3DShapeDrawInitData`, `J3DMaterialInitData`, `J3DPatchingInfo`,
+    `J3DDisplayListInit`; the factories' index/texture/material-ID tables are `BE(u16)*`, the cull
+    modes `BE(GXCullMode)*`, the TEV colours `BE(GXColorS10)*`, `J3DShapeMtx*`'s use-matrix tables
+    `BE(u16)*`. The J3DStruct.h infos are host objects too, so on PC the material factory copies
+    the tex-matrix, fog, NBT-scale and indirect-matrix infos with their multi-byte members swapped,
+    and builds `J3DCurrentMtxInfo` from the two BE words. The vertex attribute format list and the
+    vertex descriptor lists become host-order copies on the model's heap (no swap in place, so a
+    resource can be loaded twice). Vertex arrays and display lists stay big-endian. Ten structs
+    left `layout_xfail.txt`; `J3DModelHierarchy` joined `layout_headers.txt`. Not done (4.11/4.12):
+    the MAT2 v21 factory, `J3DClusterBlock`, the envelope/draw-matrix tables
+    (`mWEvlpMix*`, `mInvJointMtx`, `mDrawMtxIndex`) the runtime reads, the vertex data the CPU reads.
+  - **GD vertex array commands.** `J3DShape::makeVtxArrayCmd` used `GDSetArray`, which is fatal
+    in Aurora 3227d76 ("GDSetArray is not supported on Aurora"). On PC it uses `GDSetArraySized`
+    (64-bit pointer, size, `le = false`), with `J3DVertexData::getVtxArraySize` (an array ends at
+    the next array of the VTX1 block or at its end, recorded by `readVertex`), and
+    `kVcdVatDLSize` is 0x180 (Dusklight's value) since the Aurora commands are longer.
+  - **Step 4.8's markers (group C 4 -> 2).** `dADM::SetData` relocated ActorDat.bin's block and
+    name-table offsets in place into u32 pointers, and read them host-order. On PC `FindTag` reads
+    the BE headers and returns file offsets, and a `dADM_CharTbl::SetData(void* base, ...)`
+    builds host `char*` tables on the heap holding the file. `ItemTableList`'s count and padding
+    are `BE(T)` (`layout_headers.txt`). The two `d_com_inf_game.cpp` markers left are already
+    `uintptr_t` (harmless). The fmap check-point data (`dMap_FmapChkPnt`) is read by `d_map` (4.16).
+  - **Harness:** `dvdWaitDraw` reports, once, every object archive the logo scene keeps (System,
+    Logo, Always, Link, Agb: files vs. converted resources, equal to the manifest's 2/7/113/91/2)
+    and the commands (26 archives mounted, 4 files in main RAM); `dComIfG_changeOpeningScene`
+    logs M6 on entry (`pc_logo_res_object`, `pc_logo_res_synced`, `pc_opening_scene_called`).
+  M6 `logo-res` 0 x3 capped and 0 uncapped (milestone at frame 244, about 0.9-4.4 s).
+  **Beyond M6 (blockers for M7, not fixed):**
+  - With `COS_AUDIO=off`, `dComIfG_changeOpeningScene` -> `mDoAud_setSceneName` ->
+    `JAIZelBasic::setSceneName` -> `talkOut` -> `checkStreamPlaying` faults (address 0x18):
+    `JAInter::StreamMgr::streamUpdate` is only allocated by `mDoAud_Create`, which `onInitFlag`
+    skips. The game's JAudio1 interface is not usable uninitialised (unlike Dusklight's Z2 in Dusklight), so
+    audio-off needs a decision: initialise JAudio without output (needs 5.1's AAF parsing) or
+    gate the interface on PC.
+  - Probed only with a temporary local guard (reverted): `dScnLogo_Delete` then stops at
+    `JUT_ASSERT(288)` in `dPa_modelControl_c`: 128 `mDoExt_J3DModel__create` in the particle
+    solid heap (0x16e800, not scaled for 64-bit objects, decision H5).
+  Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check
+  cos_link_census` 0 errors; smoke ok; `cos_pc_tests` ok; census equal to
+  `expected_unresolved_phase2.txt`; `--all --dups` 0; inventory `--check` ok (67 open, C 2,
+  F 21); static-init, aurora-up, heaps, gfx-create, frame-loop, logo-scene, logo-res 0 x3,
+  frame-loop, logo-scene and logo-res `--uncapped` 0; disc-ls, heap, font, arc-sweep, msg-sweep,
+  jpa-sweep 0; crash/panic/timeout/stall-test 13/12/10/11; no disc 14.
+  Reviewed in round 1 (2026-10-03): `unifdef -UTARGET_PC` leaves the .cpp files as before up to
+  the `BE(T)` shims; rerun by the reviewer: build 0 errors, smoke and `cos_pc_tests` ok, census
+  equal, `--dups` 0, inventory ok (67 open); M0-M5 0 x3, logo-res 0 x3, frame-loop/logo-scene/
+  logo-res `--uncapped` 0, sweeps 0, harness tests 13/12/10/11, no disc 14. Accepted and committed
+  as six commits (one cause each) plus this log; the audio-off crash before M7 needs a decision.
 
 ### Phase 6 render issues
 
