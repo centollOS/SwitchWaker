@@ -99,6 +99,12 @@ void pc_stage_created(const char* stageName, int roomNo, int stageFiles, int has
    emitter set once); 60 such frames in a row log "title". */
 void pc_title_drawn(void);
 
+/* Milestone M10 file-select (boot loop, pc_file_select.cpp), called at the end of
+   dScnName_c::draw with the name scene's main, memory card check and draw procedure indices.
+   pc_frame_end counts the frames in which the name scene was drawn with a screen up (any draw
+   procedure but NoneDraw); 60 such frames in a row log "file-select". */
+void pc_name_scene_drawn(int mainProc, int memCardCheckProc, int drawProc);
+
 /* Debug stage boot (step 6.4, decision H4, pc_boot.cpp). COS_BOOT_STAGE=<stage>:<room>[:<point>
    [:<layer>]] (point 0 and layer -1 when left out; the new game starts at sea:44:206) makes the
    logo scene, once its resources synced, start a new file and go straight to the PLAY scene at

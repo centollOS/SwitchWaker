@@ -2428,6 +2428,19 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   the run ends in exit 10 at frame 5530 with frames advancing because nothing reports
   `file-select` yet. Next: the M10 milestone probe.
   Reviewed: regress passed; file-select gets past frame 756, no fault, timeout in NAME_SCENE at frame 5531.
+- M10 boot loop (lane boot, iter 4, harness): the game already reached M10 (NAME_SCENE drawn from
+  frame 757, the memory-card "create a save file" prompt on screen), but no code reported it, so
+  `file-select` timed out (exit 10) in NAME_SCENE at frame 5534 with frames advancing.
+  `dScnName_c::draw` now calls `pc_name_scene_drawn(mMainProc, mMemCardCheckProc, mDrawProc)`
+  (under `TARGET_PC`) at its end, and the new `native/src/pc/pc_file_select.cpp` polls from
+  `pc_frame_end`, reading only what the hook recorded. A frame counts when the name scene drew
+  since the previous frame with a screen up (draw procedure other than `NoneDraw`); after 60 such
+  frames in a row it reports `file-select`. Runs log "name scene first drawn at frame 757" and
+  "60 frames in a row with FileErrorDraw; main proc 0, memory card check proc 9" (MemCardCheckMain,
+  MemCardMakeGameFileSel: the user card image has no the save file file yet) and MILESTONE file-select at
+  frame 816, 3 of 3. Adds `file-select 0 --input native/check/input/file-select.txt` to the
+  regression targets.
+  Reviewed: regress passed (file-select included); 3 of 3 capped runs reach MILESTONE file-select at frame 816.
 - M12 boot loop (lane outset, iter 1, host-semantics): SIGABRT in `aurora::gx::build_shader`
   (invalid WGSL `sampled0.a.r`) for an alpha stage using `GX_TEV_COMP_R8_GT`, sea room 44. First
   H11 patch, `native/patches/aurora/0001-alpha-stage-channel-compares.patch`, plus the patch

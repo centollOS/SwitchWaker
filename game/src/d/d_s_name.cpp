@@ -36,6 +36,9 @@
 #if VERSION == VERSION_PAL
 #include "stdio.h"
 #endif
+#if TARGET_PC
+#include "pc/pc_harness.h"
+#endif
 
 dSn_HIO_c g_snHIO;
 
@@ -603,6 +606,10 @@ BOOL dScnName_c::draw() {
     }
     (this->*(DrawProc[mDrawProc]))();
     dComIfGd_set2DOpa(&btnIcon);
+#if TARGET_PC
+    // Milestone M10 file-select (pc_file_select.cpp): the name scene drew this frame.
+    pc_name_scene_drawn(mMainProc, mMemCardCheckProc, mDrawProc);
+#endif
     return TRUE;
 }
 

@@ -19,6 +19,7 @@ logo-res 0
 opening 0
 title-stage 0
 title 0
+file-select 0 --input native/check/input/file-select.txt
 
 # smoke tests and format sweeps
 disc-ls 0

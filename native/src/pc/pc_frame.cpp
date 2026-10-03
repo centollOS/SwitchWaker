@@ -348,6 +348,7 @@ void pc_frame_end(void) {
     titleStageFrame(frames);
     titleFrame(frames);
     outsetFrame(frames);
+    fileSelectFrame(frames);
     // Step 5.A (decision H10): with COS_AUDIO=on, mDoAud_Execute retries mDoAud_Create every frame
     // until JAudio is up (JAIZelBasic::init, the audio thread's DSP boot and handshake), then sets
     // the init flag the logo scene waits for.
