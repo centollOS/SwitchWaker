@@ -49,7 +49,12 @@ public:
     void getData(TData*) const;
 
     const void* get() const { return getRaw(); }
+#if TARGET_PC
+    // The sequence head is a big-endian word of the file (as Dusklight's stb-data-parse.h).
+    u32 get_head() const { return *(const BE(u32)*)get(); }
+#else
     u32 get_head() const { return *(u32*)get(); }
+#endif
 };
 
 class TParse_TParagraph : public TParseData_aligned<4> {

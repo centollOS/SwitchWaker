@@ -2318,6 +2318,21 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Dolby logo) and `run --frames 3000 --shot 300,1500,3000` (`opening` itself ends at frame 281):
   frame 300 black (stage fade-in), 1500 and 3000 the title over sea room 44 with Link and the HUD.
 
+- **M8 boot loop, iteration 1** (2026-10-03, endian): the title demo printed
+  "デモデータ読み込みエラー！！" because `JStudio::stb::TParse` read the STB container in host
+  order: `memcmp` against the host-order `ga4cSignature`, then the header, block and object
+  fields, the sequence heads, the variable-length paragraph headers
+  (`JGadget::binary::parseVariableUInt_16_32_following`) and the reserved paragraphs (flag, wait,
+  jump). Under `TARGET_PC` (Dusklight's stb-data.h/stb.cpp/binary.cpp, CC0): `stb-data.h` fields
+  are `BE(T)` and `ga4cSignature` is `BE(u32)`; `get_head`, the reserved paragraphs and
+  `parseVariableUInt_16_32_following` read `BE(T)`. The STB header now parses (`STB` 0xFEFF
+  version 3, target `jstudio` 3, 5 blocks); the parse stops at the first block, `JFVB`, whose
+  FVB header and blocks are still host order (`fvb-data.h`): that is the next root cause, and
+  the paragraph payloads (`TParseValue_raw_`, `jstudio-object` values) follow it (step 4.17's
+  format). `title-stage` itself still times out (exit 10, frames advancing): no M8 probe yet.
+  Reviewed: regress passed; a temporary (removed) trace confirmed the STB header passes (5
+  blocks) and the first block, `JFVB` (3928 bytes), is the one rejected now.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,

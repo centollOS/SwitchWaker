@@ -217,6 +217,17 @@ void TObject::process_sequence_() {
 /* 802750DC-802751C4       .text process_paragraph_reserved___Q37JStudio3stb7TObjectFUlPCvUl */
 void TObject::process_paragraph_reserved_(u32 arg1, const void* pContent, u32 uSize) {
     switch (arg1) {
+#if TARGET_PC
+    // The reserved paragraphs hold one big-endian word of the STB file (as Dusklight's stb.cpp).
+    case 0x1:
+        setFlag_operation_(*(const BE(u32)*)pContent);
+        break;
+    case 0x2:
+        setWait(*(const BE(u32)*)pContent);
+        break;
+    case 0x3: {
+        const void* seq = getSequence_offset(*(const BE(s32)*)pContent);
+#else
     case 0x1:
         setFlag_operation_(*(u32*)pContent);
         break;
@@ -225,6 +236,7 @@ void TObject::process_paragraph_reserved_(u32 arg1, const void* pContent, u32 uS
         break;
     case 0x3: {
         const void* seq = getSequence_offset(*(s32*)pContent);
+#endif
         setSequence_next(seq);
         break;
     }

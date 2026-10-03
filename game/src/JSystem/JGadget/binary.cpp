@@ -17,6 +17,25 @@ const void* parseVariableUInt_16_32_following(const void* buffer, u32* param_1, 
     if (bit == NULL) {
         bit = &temp;
     }
+#if TARGET_PC
+    // The value is big-endian file data (JStudio STB and FVB paragraphs), as in Dusklight's
+    // binary.cpp (CC0, ref/dusklight).
+    const BE(u16)* pu16 = (const BE(u16)*)buffer;
+    u32 uVar1 = pu16[0];
+    if ((uVar1 & 0x8000) == 0) {
+        bit->value = 0x10;
+        *param_1 = uVar1;
+        *param_2 = pu16[1];
+        return (u8*)buffer + 4;
+    }
+    bit->value = 0x20;
+    uVar1 <<= 16;
+    uVar1 &= 0x7fff0000;
+    uVar1 |= pu16[1];
+    *param_1 = uVar1;
+    *param_2 = *(const BE(u32)*)((u8*)buffer + 4);
+    return (u8*)buffer + 8;
+#else
     u32 uVar1 = *(u16*)buffer;
     if ((uVar1 & 0x8000) == 0) {
         bit->value = 0x10;
@@ -31,6 +50,7 @@ const void* parseVariableUInt_16_32_following(const void* buffer, u32* param_1, 
     *param_1 = uVar1;
     *param_2 = *(u32*)((u8*)buffer + 4);
     return (u8*)buffer + 8;
+#endif
 }
 
 /* 802BFAAC-802BFAF4       .text __dt__Q37JGadget6binary19TParse_header_blockFv */
