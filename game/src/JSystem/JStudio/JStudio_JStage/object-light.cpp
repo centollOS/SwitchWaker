@@ -7,6 +7,9 @@
 
 #include "JSystem/JStudio/JStudio_JStage/object-light.h"
 #include "math.h"
+#include "helpers/endian.h"
+// BE(T): STB operation operands (IDs, modes, flags) are big-endian on disc; BE(T) is T on GameCube
+// (after Dusklight, CC0).
 
 namespace JStudio_JStage {
 
@@ -130,7 +133,7 @@ void TAdaptor_light::adaptor_do_FACULTY(JStudio::data::TEOperationData op, const
     switch (op) {
     case JStudio::data::TEOD_Unknown_02:
         JStage::TELight lightType;
-        switch (((int*)data)[0]) {
+        switch (*(const BE(s32)*)data) {
         case 0x301:
             lightType = JStage::TELIGHT_Unk1;
             break;

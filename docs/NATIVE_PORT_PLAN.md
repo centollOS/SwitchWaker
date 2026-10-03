@@ -2362,6 +2362,16 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   on GameCube; Dusklight pattern, CC0). The title demo now runs forward; title-stage stops at
   frame 301 in an OSPanic from `daPy_lk_c::changeDemoProc` (d_a_player_main.cpp:9342), the next
   root cause. Reviewed: regress passed; title-stage gets past `update_functionValue_`.
+- M7 boot loop (lane boot, M8 iter 5): the `JStudio_JStage` adaptors (`TAdaptor_object_`,
+  `TAdaptor_actor`, `TAdaptor_camera`, `TAdaptor_light`) read their STB operation operands (data
+  ID, ENABLE flag, SHAPE/ANIMATION/TEXTURE_ANIMATION ids and modes, PARENT/RELATION node ids and
+  enables, light FACULTY type) in host order. The player's demo actor got a byte-swapped animation
+  id, so `daPy_lk_c::changeDemoProc` hit its `demo_mode < DEMO_LAST_e` assert (OSPanic at
+  d_a_player_main.cpp:9342, frame 301). The reads now go through `BE(T)` (no-op on GameCube;
+  Dusklight pattern, CC0). The title demo now plays through without a fault: title-stage times out
+  at frame 5534 in OPEN2_SCENE with frames advancing; nothing calls `pc_milestone("title-stage")`
+  yet, the next root cause. Reviewed: regress passed; title-stage gets past `changeDemoProc` (no
+  fault through frame 3732, OPEN2_SCENE).
 
 ### Phase 6 render issues
 

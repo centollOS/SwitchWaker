@@ -7,6 +7,9 @@
 
 #include "JSystem/JStudio/JStudio_JStage/object-actor.h"
 #include "dolphin/types.h"
+#include "helpers/endian.h"
+// BE(T): STB operation operands (IDs, modes, flags) are big-endian on disc; BE(T) is T on GameCube
+// (after Dusklight, CC0).
 
 namespace JStudio_JStage {
 
@@ -122,7 +125,7 @@ void TAdaptor_actor::adaptor_do_ANIMATION_MODE(JStudio::data::TEOperationData op
     if (operation != JStudio::data::TEOD_Unknown_02) {
         return;
     }
-    m13C = *(u32*)p2;
+    m13C = *(const BE(u32)*)p2;
 }
 
 /* 80276848-802768A0       .text adaptor_do_TEXTURE_ANIMATION__Q214JStudio_JStage14TAdaptor_actorFQ37JStudio4data15TEOperationDataPCvUl */
@@ -135,7 +138,7 @@ void TAdaptor_actor::adaptor_do_TEXTURE_ANIMATION_MODE(JStudio::data::TEOperatio
     if (operation != JStudio::data::TEOD_Unknown_02) {
         return;
     }
-    m140 = *(u32*)p2;
+    m140 = *(const BE(u32)*)p2;
 }
 
 /* 802768B4-80276908       .text adaptor_do_PARENT__Q214JStudio_JStage14TAdaptor_actorFQ37JStudio4data15TEOperationDataPCvUl */
@@ -158,7 +161,7 @@ void TAdaptor_actor::adaptor_do_PARENT_NODE(JStudio::data::TEOperationData opera
         }
         break;
     case JStudio::data::TEOD_Unknown_19:
-        m130 = *(u32*)p2;
+        m130 = *(const BE(u32)*)p2;
         break;
     default:
         break;
@@ -169,7 +172,7 @@ void TAdaptor_actor::adaptor_do_PARENT_NODE(JStudio::data::TEOperationData opera
 void TAdaptor_actor::adaptor_do_PARENT_ENABLE(JStudio::data::TEOperationData operation, const void* p2, u32 p3) {
     switch (operation) {
     case JStudio::data::TEOD_Unknown_02: {
-        bool v0 = (*(u32*)p2 != 0);
+        bool v0 = (*(const BE(u32)*)p2 != 0);
         JStage::TObject* object = NULL;
         u32 v1 = 0xFFFFFFFF;
         if (v0 != 0) {
@@ -203,7 +206,7 @@ void TAdaptor_actor::adaptor_do_RELATION_NODE(JStudio::data::TEOperationData ope
         }
         break;
     case JStudio::data::TEOD_Unknown_19:
-        m138 = *(u32*)p2;
+        m138 = *(const BE(u32)*)p2;
         break;
     default:
         break;
@@ -214,7 +217,7 @@ void TAdaptor_actor::adaptor_do_RELATION_NODE(JStudio::data::TEOperationData ope
 void TAdaptor_actor::adaptor_do_RELATION_ENABLE(JStudio::data::TEOperationData operation, const void* p2, u32 p3) {
     switch (operation) {
     case JStudio::data::TEOD_Unknown_02:
-        mObject->JSGSetRelation(*(u32*)p2, m134, m138);
+        mObject->JSGSetRelation(*(const BE(u32)*)p2, m134, m138);
         break;
     default:
         break;
@@ -225,7 +228,7 @@ void TAdaptor_actor::adaptor_do_RELATION_ENABLE(JStudio::data::TEOperationData o
 void TAdaptor_actor::setJSG_ID_(IDFunction function, JStudio::data::TEOperationData operation, const void* p3, u32 p4) {
     switch (operation) {
     case JStudio::data::TEOD_Unknown_19:
-        (mObject->*function)(*(u32*)p3);
+        (mObject->*function)(*(const BE(u32)*)p3);
         break;
     default:
         break;

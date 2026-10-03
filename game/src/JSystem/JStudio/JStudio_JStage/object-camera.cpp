@@ -7,6 +7,9 @@
 
 #include "JSystem/JStudio/JStudio_JStage/object-camera.h"
 #include "dolphin/types.h"
+#include "helpers/endian.h"
+// BE(T): STB operation operands (IDs, modes, flags) are big-endian on disc; BE(T) is T on GameCube
+// (after Dusklight, CC0).
 
 namespace JStudio_JStage {
 
@@ -123,7 +126,7 @@ void TAdaptor_camera::adaptor_do_PARENT_NODE(JStudio::data::TEOperationData oper
         }
         break;
     case JStudio::data::TEOD_Unknown_19:
-        mF4 = *(u32*)p2;
+        mF4 = *(const BE(u32)*)p2;
         break;
     default:
         break;
@@ -136,7 +139,7 @@ void TAdaptor_camera::adaptor_do_PARENT_ENABLE(JStudio::data::TEOperationData op
     case JStudio::data::TEOD_Unknown_02: {
         JStage::TObject* parent = NULL;
         u32 idx                 = -1;
-        if (*(u32*)p2 != 0) {
+        if (*(const BE(u32)*)p2 != 0) {
             parent = mF0;
             idx    = mF4;
         }
