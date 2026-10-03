@@ -414,6 +414,7 @@ COS_DISC=/nonexistent build/native-mac/centollos; echo $?   # 14
 | `COS_FRAMES` | exit 0 after this many game frames |
 | `COS_SHOT`, `COS_SHOT_EVERY`, `COS_SHOT_DIR` | save the presented image of these game frames (`1500` or `300,1500`), or of every n-th frame, as `shot-<frame>.png` in the run directory or `COS_SHOT_DIR` (`native/src/pc/pc_shot.cpp`; `run.sh --shot`) |
 | `COS_UNCAPPED`, `COS_AUDIO` | frame pacing off (step 6.2); `off` keeps audio silent (step 6.1, phase 5) |
+| `COS_PERF_EVERY` | every this many game frames, a `[cos] perf` line: the game thread's time per frame (average, maximum), the pace wait, frames and VI retraces a second (0/unset: off) |
 | `COS_RUN_DIR` | where `backtrace.txt` and `stall.txt` go (set by `run.sh`) |
 
 Exit codes: 0 reached, 1 smoke check failed, 2 usage error, 10 timeout, 11 stall, 12 panic

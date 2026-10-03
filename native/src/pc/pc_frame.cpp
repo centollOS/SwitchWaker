@@ -6,6 +6,11 @@
 //   JFWDisplay::beginRender, makes the VI retraces), aurora_end_frame after it. Then the frame
 //   counts (pc_frame_tick: stall watchdog, COS_FRAMES) and milestones M4 frame-loop and M5
 //   logo-scene are checked.
+// - COS_PERF_EVERY=<n> (phase 7, for the Switch at its stock 1020 MHz): every n frames one line
+//   with the game thread's busy time per frame (the frame minus the pace wait: average and
+//   maximum, and the aurora_begin_frame/aurora_end_frame parts), the average wait, the frame rate
+//   and the VI retrace rate (60 a second is full speed). Off by default (the Switch build turns it
+//   on).
 // - pc_frame_pace is the wait of JFWDisplay's waitForTick (JFWDisplay.cpp, TARGET_PC): it sleeps
 //   until the period the game asked for has passed since the previous wait, with Dusklight's
 //   limiter (mach_wait_until for all but the last 2 ms, then a spin). COS_UNCAPPED skips it.
@@ -151,6 +156,56 @@ bool sLogoResLogged = false;
 // Step 5.A: mDoAud_Create has finished (COS_AUDIO=on).
 bool sAudioLogged = false;
 
+// COS_PERF_EVERY: sums over the frames since the last perf line.
+struct PerfWindow {
+    bool started = false;
+    unsigned int frames = 0;
+    uint64_t startNs = 0;      // pc_frame_begin of the window's first frame
+    uint32_t startRetrace = 0;
+    uint64_t busyNs = 0;       // the frame minus the pace wait
+    uint64_t maxBusyNs = 0;
+    uint64_t waitNs = 0;
+    uint64_t beginNs = 0;      // pumpEvents + aurora_begin_frame
+    uint64_t endFrameNs = 0;   // aurora_end_frame
+} sPerf;
+
+void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now) {
+    if (gConfig.perfEvery == 0) {
+        return;
+    }
+    if (!sPerf.started) {
+        sPerf.started = true;
+        sPerf.startNs = sLoopStartNs;
+        sPerf.startRetrace = sLoopStartRetrace;
+    }
+    const uint64_t waitNs = sPaceEndNs > sPaceStartNs ? sPaceEndNs - sPaceStartNs : 0;
+    const uint64_t frameNs = now - sFrameStartNs;
+    const uint64_t busyNs = frameNs > waitNs ? frameNs - waitNs : 0;
+    sPerf.frames++;
+    sPerf.busyNs += busyNs;
+    sPerf.maxBusyNs = busyNs > sPerf.maxBusyNs ? busyNs : sPerf.maxBusyNs;
+    sPerf.waitNs += waitNs;
+    sPerf.beginNs += sBeginDoneNs - sFrameStartNs;
+    sPerf.endFrameNs += now - endFrameStartNs;
+    if (sPerf.frames < gConfig.perfEvery) {
+        return;
+    }
+    const double n = sPerf.frames;
+    const double wallS = (now - sPerf.startNs) / 1e9;
+    const uint32_t retrace = VIGetRetraceCount();
+    const unsigned int last = pc_frame_count() + 1;
+    writef(STDERR_FILENO, "[cos] perf frames %u-%u: game thread %.2f ms avg, %.2f ms max (begin %.2f, "
+                          "aurora_end_frame %.2f); pace wait %.2f ms avg; %.1f fps, %.1f retraces/s "
+                          "(60 = full speed)\n",
+           last - sPerf.frames + 1, last, sPerf.busyNs / n / 1e6, sPerf.maxBusyNs / 1e6,
+           sPerf.beginNs / n / 1e6, sPerf.endFrameNs / n / 1e6, sPerf.waitNs / n / 1e6,
+           wallS > 0 ? n / wallS : 0.0, wallS > 0 ? (retrace - sPerf.startRetrace) / wallS : 0.0);
+    sPerf = PerfWindow{};
+    sPerf.started = true;
+    sPerf.startNs = now;
+    sPerf.startRetrace = retrace;
+}
+
 // Drains Aurora's events. A quit request (window closed) ends the process: exit 0 for a plain
 // run, 1 when a milestone or COS_FRAMES was still expected.
 void pumpEvents() {
@@ -286,6 +341,7 @@ void pc_frame_end(void) {
         (sLogoCreated ? sUploadSinceLogo : sUploadBeforeLogo) += stats->lastTextureUploadSize;
     }
 
+    perfFrameEnd(endFrameStartNs, monotonicNs());
     pc_frame_tick();
 
     const unsigned int frames = pc_frame_count();
