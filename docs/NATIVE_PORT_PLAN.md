@@ -1123,6 +1123,70 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   census diff empty, `--all --dups` 0; static-init 0 x3, aurora-up 0 x2, disc-ls 0, crash-test 13.
   Committed as five commits (user areas, `TVector::size`, missing returns, `f_op_msg_mng`
   buffers, `J2DPrint` notes) plus this log and the baseline.
+- **4.2 Heaps:** everything under `TARGET_PC`, GameCube code in `#else` (`unifdef -UTARGET_PC` of
+  every changed game file equals HEAD's).
+  - `JKRExpHeap::CMemBlock` is padded to 0x20 on the host (Dusklight's `_pad`, with a
+    `static_assert`): with 8-byte pointers the fields end at 0x18, and a header that is not a
+    multiple of 16 breaks `JKRHeap::getMaxAllocatableSize`, which takes a block's content to have
+    the block's address modulo 16 (masks it with 0xf), so `JKRExpHeap::create(-1, ...)` could be
+    promised a size it is then refused. `getBlock` subtracts `sizeof(CMemBlock)`. The two header
+    literals of `JKRExpHeap.cpp` become `sizeof(CMemBlock)` (`do_freeAll`) and
+    `expHeapSize + sizeof(CMemBlock)` (`create`'s minimum, 0xa0 on the GameCube); every other 0x10
+    there is an alignment and stays.
+  - Host addresses held in 32 bits in the heap code: `JKRExpHeap::allocFromTail(size, align)`
+    built the block pointer from a `u32 start`; `JKRSolidHeap::allocFromHead`/`allocFromTail`
+    returned a `u32 alignedStart` as the pointer; `JKRExpHeap::joinTwoBlocks` compared block
+    addresses as `u32` (wrong across a 4 GiB boundary); `JKRHeap::dispose_subroutine` took the
+    range as `u32`, so `freeTail`/`dispose(ptr, size)` never found the disposers in it. All
+    `uintptr_t` now (and `allocFromHead(size, align)`'s aligned content address).
+  - `JKRAMCommand::AsyncCallback` and `JKRDecompCommand::AsyncCallback` take `uintptr_t`: both
+    are called with the command's address (`JKRDecomp` passed `(uintptr_t)command` into the `u32`
+    parameter). No caller passes a callback yet; group B 2 -> 0.
+  - The global `operator new`/`new[]` without an alignment pass `__STDCPP_DEFAULT_NEW_ALIGNMENT__`
+    (16) instead of 4 (Dusklight passes `alignof(max_align_t)`): the host's operator new must
+    return memory aligned for any type and the compiler assumes it. The forms with an alignment
+    keep the game's. The fallback to the host allocator before any heap exists (static
+    constructors, Aurora's threads) is the one of step 3.9.
+  - `JKRHeap::initArena` needs no PC path: Aurora implements `OSInitAlloc`, `OSPhysicalToCached`
+    and the boot info over its MEM1 block, so the GameCube code takes the whole arena; the root
+    heap lies inside MEM1 (finding 4). The fault step 6.1 logged in `createRoot` no longer occurs
+    at HEAD (the run now reaches `JFWSystem::init`).
+  - Heap sizes (decision H5, Dusklight's multipliers): in `mDoMch_Create` the arena bounds are
+    `uintptr_t` (two group I markers go; Aurora's MEM1 is above 4 GiB, so the GameCube's
+    development-console test always lowers the arena by 24 MiB, leaving 232 MiB), the system heap
+    is a fixed 32 MiB, command and archive heaps x2, game heap x20: about 109 MiB.
+    `fopAcM_entrySolidHeap` doubles each actor's estimate (an estimate with room to spare is
+    shrunk by `mDoExt_adjustSolidHeap`, as on the GameCube).
+  - Harness: `COS_SMOKE=heap` (`native/src/pc/pc_heap.cpp`, run by `pc_aurora_init` once Aurora
+    and `OSInit` are up): `operator new` before any heap gives host memory; `createRoot`
+    (`initArena`) inside MEM1; below it the heaps of `mDoMch_Create` with their PC sizes (system,
+    main in system, command, archive, game); in each 10,000 random allocations (head and tail,
+    alignments 0-0x80), frees and resizes, every block inside its heap, aligned, its contents
+    intact, `check()` every 500 operations, `getMaxAllocatableSize(0x10)` allocatable every 50,
+    and the free size back to its start once all is freed; `freeTail` disposes the objects of
+    tail blocks only; a solid heap (head and tail, every alignment); `operator new` in the current
+    heap 16-byte aligned; `freeAll` leaves one free block over the whole heap. Milestone M2:
+    `main01` calls `pc_heaps_created` right after `mDoMch_Create` (`check()` on the root, system,
+    main, game, archive and command heaps, then `heaps`).
+  Verified: `run.sh heap` exit 0 (3 runs, about 1 s). Each fix reverted on its own makes it
+  fail: `u32` solid heap pointer exit 1 (blocks outside the heap), `u32` tail start exit 13,
+  `u32` dispose range exit 1 (freeTail disposed nothing), operator new alignment 4 exit 1, no
+  `CMemBlock` padding exit 1 (`getMaxAllocatableSize(0x10)` refused). **M2 is not reached:**
+  `heaps` still ends with exit 13 in `JFWSystem::init` (called by `mDoMch_Create` before the
+  command, archive, game and main heaps exist): `JUTResFont::getWidth` reads a NULL
+  `mInfoBlock` because the system font's `ResFONT` block tags are read little-endian, which is
+  step 4.3's work (its own verification is M3). M2 is to be checked together with step 4.3.
+  Inventory: B 2 -> 0, I 8 -> 6, 84 -> 80 open; warnings (option on): int-to-pointer-cast
+  37 -> 36, int-to-void-pointer-cast 100 -> 95; `native/check/phase4_baseline.txt` regenerated.
+  Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check
+  cos_link_census` 0 errors, smoke ok, `cos_pc_tests` ok, layout check ok, shadow check ok,
+  census equal to `expected_unresolved_phase2.txt`, `--all --dups` 0, static-init 0 x3 (M0),
+  aurora-up 0 x3 (M1), disc-ls 0, crash/panic-test 13/12, no disc 14.
+  Review (round 1): accepted with M2 deferred to step 4.3 (rerun: heap 0 x3, `heaps` 13 at
+  `JUTResFont::getWidth` addr 0xe from `JFWSystem::init`, static-init 0 x3, aurora-up 0 x3,
+  disc-ls 0, crash/panic 13/12, census equal, inventory check ok, `unifdef -UTARGET_PC` equal
+  to HEAD). Committed as six commits (block header, host addresses, async callbacks,
+  `operator new` alignment, H5 sizes, harness) plus this log and the baseline.
 
 ### Phase 6 render issues
 

@@ -17,22 +17,22 @@
 # Warning counts are distinct file:line:column sites in a full game build with
 # -DCOS_PHASE4_WARNINGS=ON.
 group A	0
-group B	2
+group B	0
 group C	5
 group D	7
 group E	1
 group F	30
 group G	9
 group H	0
-group I	8
+group I	6
 group J	7
 group K	13
 group L	2
 unclassified	0
-markers open	84
+markers open	80
 markers justified	4
-warning -Wint-to-pointer-cast	37
+warning -Wint-to-pointer-cast	36
 warning -Wpointer-to-int-cast	0
-warning -Wint-to-void-pointer-cast	100
+warning -Wint-to-void-pointer-cast	95
 warning -Wreturn-type	0
 warning -Wfortify-source	0
