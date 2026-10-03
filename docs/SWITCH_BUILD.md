@@ -280,6 +280,13 @@ sampled-texture bind are therefore timed apart from the remaining ones, with the
 each group. The counts are the `glBindBufferRange` of uniform buffers, `glBindVertexArray` and
 index buffer binds issued. The frame-rate panel (`COS_FPS_OVERLAY`) shows pipeline changes per
 frame and the time of the draw calls and of the state set before them.
+Dawn gave every render pipeline its own VAO, so each of the ~200 pipeline changes of an Outset
+frame switched VAOs, which on Mesa 20.1 makes the next draw revalidate the vertex arrays, and
+rebound the index buffer; Aurora's `SetIndexBuffer` before every draw also rebound it each time.
+With `switch/dawn/patches/dawn-switch-gl-shared-vao.patch` the pipelines without vertex attributes
+(all of Aurora's GX pipelines, which pull vertices from storage buffers) share one VAO, the index
+buffer is rebound only when it or the VAO changes, and primitive restart is set only when it
+changes ("VAO binds" and "index binds" in the third line).
 
 "begin" of the perf line is `events` (Aurora's event pump) plus `aurora_begin_frame`, which mostly
 waits for a free frame slot (the render worker still has two frames in flight: GPU-bound or

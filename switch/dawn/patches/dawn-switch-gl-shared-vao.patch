@@ -1,0 +1,215 @@
+diff --git a/src/dawn/native/opengl/CommandBufferGL.cpp b/src/dawn/native/opengl/CommandBufferGL.cpp
+index 3ddcdb5..9fd8782 100644
+--- a/src/dawn/native/opengl/CommandBufferGL.cpp
++++ b/src/dawn/native/opengl/CommandBufferGL.cpp
+@@ -207,8 +207,11 @@ bool VertexFormatIsInt(wgpu::VertexFormat format) {
+ class VertexStateBufferBindingTracker {
+   public:
+     void OnSetIndexBuffer(BufferBase* buffer) {
+-        mIndexBufferDirty = true;
++        // The element array buffer is VAO state: rebind it only when the VAO bound now does not
++        // have it already (a SetIndexBuffer per draw with the same buffer at other offsets
++        // changes only the draw's index pointer).
+         mIndexBuffer = ToBackend(buffer);
++        mIndexBufferDirty = mIndexBuffer != mBoundIndexBuffer;
+     }
+ 
+     void OnSetVertexBuffer(VertexBufferSlot slot, BufferBase* buffer, uint64_t offset) {
+@@ -222,7 +225,13 @@ class VertexStateBufferBindingTracker {
+             return;
+         }
+ 
+-        mIndexBufferDirty = true;
++        // A pipeline with another VAO (a VAO switch) needs the index buffer bound again;
++        // pipelines that share one (RenderPipeline::CreateVAOForVertexState) keep it.
++        if (mLastPipeline == nullptr || ToBackend(mLastPipeline)->GetVertexArrayObject() !=
++                                            ToBackend(pipeline)->GetVertexArrayObject()) {
++            mIndexBufferDirty = true;
++            mBoundIndexBuffer = nullptr;
++        }
+         mDirtyVertexBuffers |= pipeline->GetVertexBuffersUsed();
+ 
+         mLastPipeline = pipeline;
+@@ -242,6 +251,7 @@ class VertexStateBufferBindingTracker {
+         if (mIndexBufferDirty && mIndexBuffer != nullptr) {
+             DAWN_GL_TRY(gl, BindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndexBuffer->GetHandle()));
+             DAWN_SWITCH_STAT(kIndexBufferBinds, 1);
++            mBoundIndexBuffer = mIndexBuffer;
+             mIndexBufferDirty = false;
+         }
+ 
+@@ -289,6 +299,8 @@ class VertexStateBufferBindingTracker {
+   private:
+     bool mIndexBufferDirty = false;
+     raw_ptr<Buffer> mIndexBuffer = nullptr;
++    // The index buffer the bound VAO has as its element array buffer (nullptr: not known).
++    raw_ptr<Buffer> mBoundIndexBuffer = nullptr;
+ 
+     VertexBufferMask mDirtyVertexBuffers;
+     PerVertexBuffer<Buffer*> mVertexBuffers;
+@@ -1479,6 +1491,22 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
+     BindGroupTracker bindGroupTracker = {};
+     ImmediateTracker<RenderImmediatesTracker> immediates = {};
+ 
++    // GL_PRIMITIVE_RESTART_FIXED_INDEX as this pass last set it (-1: not set yet), so that
++    // indexed draws set it only when it changes.
++    int primitiveRestart = -1;
++    auto setPrimitiveRestart = [&](bool enable) -> MaybeError {
++        if (primitiveRestart == int(enable)) {
++            return {};
++        }
++        primitiveRestart = int(enable);
++        if (enable) {
++            DAWN_GL_TRY(gl, Enable(GL_PRIMITIVE_RESTART_FIXED_INDEX));
++        } else {
++            DAWN_GL_TRY(gl, Disable(GL_PRIMITIVE_RESTART_FIXED_INDEX));
++        }
++        return {};
++    };
++
+     auto DoRenderBundleCommand = [&](CommandIterator* iter, Command type) -> MaybeError {
+         switch (type) {
+             case Command::Draw: {
+@@ -1514,11 +1542,8 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
+                     DAWN_SWITCH_TIME(kVertexStateTicks);
+                     DAWN_TRY(vertexStateBufferBindingTracker.Apply(gl, draw->baseVertex,
+                                                                    draw->firstInstance));
+-                    if (topology == GL_LINE_STRIP || topology == GL_TRIANGLE_STRIP) {
+-                        DAWN_GL_TRY(gl, Enable(GL_PRIMITIVE_RESTART_FIXED_INDEX));
+-                    } else {
+-                        DAWN_GL_TRY(gl, Disable(GL_PRIMITIVE_RESTART_FIXED_INDEX));
+-                    }
++                    DAWN_TRY(setPrimitiveRestart(topology == GL_LINE_STRIP ||
++                                                 topology == GL_TRIANGLE_STRIP));
+                 }
+                 {
+                     DAWN_SWITCH_TIME(kBindGroupTicks);
+@@ -1580,11 +1605,8 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
+                 DAWN_ASSERT(indirectBuffer != nullptr);
+ 
+                 const auto topology = lastPipeline->GetGLPrimitiveTopology();
+-                if (topology == GL_LINE_STRIP || topology == GL_TRIANGLE_STRIP) {
+-                    DAWN_GL_TRY(gl, Enable(GL_PRIMITIVE_RESTART_FIXED_INDEX));
+-                } else {
+-                    DAWN_GL_TRY(gl, Disable(GL_PRIMITIVE_RESTART_FIXED_INDEX));
+-                }
++                DAWN_TRY(setPrimitiveRestart(topology == GL_LINE_STRIP ||
++                                             topology == GL_TRIANGLE_STRIP));
+ 
+                 DAWN_GL_TRY(gl, BindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer->GetHandle()));
+                 DAWN_GL_TRY(gl, DrawElementsIndirect(topology, indexBufferFormat,
+diff --git a/src/dawn/native/opengl/PersistentPipelineStateGL.h b/src/dawn/native/opengl/PersistentPipelineStateGL.h
+index 4107fe5..9708d83 100644
+--- a/src/dawn/native/opengl/PersistentPipelineStateGL.h
++++ b/src/dawn/native/opengl/PersistentPipelineStateGL.h
+@@ -45,6 +45,11 @@ class PersistentPipelineState {
+                                       uint32_t stencilReadMask);
+     MaybeError SetStencilReference(const OpenGLFunctions& gl, uint32_t stencilReference);
+ 
++    // The VAO a pipeline of this render pass last bound (0: not known yet), so that switching
++    // between pipelines that share a VAO does not rebind it.
++    GLuint GetBoundVertexArray() const { return mBoundVertexArray; }
++    void SetBoundVertexArray(GLuint vao) { mBoundVertexArray = vao; }
++
+   private:
+     MaybeError CallGLStencilFunc(const OpenGLFunctions& gl);
+ 
+@@ -52,6 +57,7 @@ class PersistentPipelineState {
+     GLenum mStencilFrontCompareFunction = GL_ALWAYS;
+     GLuint mStencilReadMask = 0xffffffff;
+     GLuint mStencilReference = 0;
++    GLuint mBoundVertexArray = 0;
+ };
+ 
+ }  // namespace dawn::native::opengl
+diff --git a/src/dawn/native/opengl/RenderPipelineGL.cpp b/src/dawn/native/opengl/RenderPipelineGL.cpp
+index 738da6a..7838b53 100644
+--- a/src/dawn/native/opengl/RenderPipelineGL.cpp
++++ b/src/dawn/native/opengl/RenderPipelineGL.cpp
+@@ -260,10 +260,12 @@ RenderPipeline::~RenderPipeline() = default;
+ void RenderPipeline::DestroyImpl(DestroyReason reason) {
+     RenderPipelineBase::DestroyImpl(reason);
+     IgnoreErrors(ToBackend(GetDevice())
+-                     ->EnqueueDestroyGL(this, &RenderPipeline::GetVertexArrayObject, reason,
++                     ->EnqueueDestroyGL(this, &RenderPipeline::GetOwnedVertexArrayObject, reason,
+                                         [](const OpenGLFunctions& gl, GLuint vao) -> MaybeError {
+-                                            DAWN_GL_TRY_IGNORE_ERRORS(gl,
+-                                                                      DeleteVertexArrays(1, &vao));
++                                            if (vao != 0) {
++                                                DAWN_GL_TRY_IGNORE_ERRORS(
++                                                    gl, DeleteVertexArrays(1, &vao));
++                                            }
+                                             DAWN_GL_TRY_IGNORE_ERRORS(gl, BindVertexArray(0));
+                                             return {};
+                                         }));
+@@ -288,12 +290,34 @@ GLuint RenderPipeline::GetVertexArrayObject() const {
+     return mVertexArrayObject;
+ }
+ 
++GLuint RenderPipeline::GetOwnedVertexArrayObject() const {
++    return mSharesVertexArrayObject ? 0 : mVertexArrayObject;
++}
++
+ VertexAttributeMask RenderPipeline::GetAttributesUsingVertexBuffer(VertexBufferSlot slot) const {
+     DAWN_ASSERT(!IsError());
+     return mAttributesUsingVertexBuffer[slot];
+ }
+ 
+ MaybeError RenderPipeline::CreateVAOForVertexState(const OpenGLFunctions& gl) {
++#if defined(__SWITCH__)
++    // A pipeline without vertex attributes (all of Aurora's GX pipelines pull their vertices
++    // from storage buffers) has a VAO in the default state but for the element array buffer,
++    // which the render pass binds before drawing. Such pipelines share one VAO, so that a
++    // pipeline change does not switch VAOs: on Mesa 20.1 that makes the next draw revalidate
++    // the vertex arrays and Dawn rebind the index buffer. The Switch build has one device and
++    // all GL work runs on its one context (gl_defer), so the shared VAO is a plain static that
++    // is never deleted.
++    if (!GetAttributeLocationsUsed().any()) {
++        static GLuint sSharedVertexArrayObject = 0;
++        if (sSharedVertexArrayObject == 0) {
++            DAWN_GL_TRY(gl, GenVertexArrays(1, &sSharedVertexArrayObject));
++        }
++        mVertexArrayObject = sSharedVertexArrayObject;
++        mSharesVertexArrayObject = true;
++        return {};
++    }
++#endif
+     DAWN_GL_TRY(gl, GenVertexArrays(1, &mVertexArrayObject));
+     DAWN_GL_TRY(gl, BindVertexArray(mVertexArrayObject));
+ 
+@@ -330,8 +354,11 @@ MaybeError RenderPipeline::ApplyNow(const OpenGLFunctions& gl,
+     DAWN_TRY(PipelineGL::ApplyNow(gl, ToBackend(GetLayout())));
+ 
+     DAWN_ASSERT(mVertexArrayObject);
+-    DAWN_GL_TRY(gl, BindVertexArray(mVertexArrayObject));
+-    DAWN_SWITCH_STAT(kVertexArrayBinds, 1);
++    if (persistentPipelineState.GetBoundVertexArray() != mVertexArrayObject) {
++        DAWN_GL_TRY(gl, BindVertexArray(mVertexArrayObject));
++        persistentPipelineState.SetBoundVertexArray(mVertexArrayObject);
++        DAWN_SWITCH_STAT(kVertexArrayBinds, 1);
++    }
+ 
+     DAWN_TRY(ApplyFrontFaceAndCulling(gl, GetFrontFace(), GetCullMode()));
+ 
+diff --git a/src/dawn/native/opengl/RenderPipelineGL.h b/src/dawn/native/opengl/RenderPipelineGL.h
+index fd7a4b4..3f71e8b 100644
+--- a/src/dawn/native/opengl/RenderPipelineGL.h
++++ b/src/dawn/native/opengl/RenderPipelineGL.h
+@@ -47,6 +47,9 @@ class RenderPipeline final : public RenderPipelineBase, public PipelineGL {
+ 
+     GLenum GetGLPrimitiveTopology() const;
+     GLuint GetVertexArrayObject() const;
++    // The VAO this pipeline deletes on destruction: 0 when it uses the shared VAO of pipelines
++    // without vertex attributes (Switch).
++    GLuint GetOwnedVertexArrayObject() const;
+     GLuint GetProgramHandle() const;
+ 
+     VertexAttributeMask GetAttributesUsingVertexBuffer(VertexBufferSlot slot) const;
+@@ -68,6 +71,7 @@ class RenderPipeline final : public RenderPipelineBase, public PipelineGL {
+ 
+     // TODO(yunchao.he@intel.com): vao need to be deduplicated between pipelines.
+     GLuint mVertexArrayObject;
++    bool mSharesVertexArrayObject = false;
+     GLenum mGlPrimitiveTopology;
+ 
+     PerVertexBuffer<VertexAttributeMask> mAttributesUsingVertexBuffer;

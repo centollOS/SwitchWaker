@@ -385,6 +385,28 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
                 "${DAWN_GL_TIMERS_PATCH_OUTPUT}${DAWN_GL_TIMERS_PATCH_ERROR}")
         endif()
     endif()
+
+    # On top of the timers patch: pipelines without vertex attributes (all of Aurora's GX
+    # pipelines) share one VAO, so a pipeline change no longer switches VAOs (on Mesa 20.1 the
+    # next draw then revalidates the vertex arrays) nor rebinds the index buffer; the index
+    # buffer is rebound only when it changes, primitive restart set only when it changes.
+    set(DAWN_OPENGL_RENDER_PIPELINE_HEADER "${dawn_SOURCE_DIR}/src/dawn/native/opengl/RenderPipelineGL.h")
+    file(READ "${DAWN_OPENGL_RENDER_PIPELINE_HEADER}" DAWN_OPENGL_RENDER_PIPELINE_HEADER_TEXT)
+    if(NOT DAWN_OPENGL_RENDER_PIPELINE_HEADER_TEXT MATCHES "mSharesVertexArrayObject")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-shared-vao.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_SHARED_VAO_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_SHARED_VAO_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_SHARED_VAO_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_SHARED_VAO_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL shared VAO patch:\n"
+                "${DAWN_GL_SHARED_VAO_PATCH_OUTPUT}${DAWN_GL_SHARED_VAO_PATCH_ERROR}")
+        endif()
+    endif()
     endif()
 
     set(DAWN_WGPU_HELPERS_SOURCE
