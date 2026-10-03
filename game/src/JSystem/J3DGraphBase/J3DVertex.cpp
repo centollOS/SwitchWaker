@@ -32,7 +32,32 @@ J3DVertexData::J3DVertexData() {
     mVtxPosType = GX_F32;
     mVtxNrmFrac = 0;
     mVtxNrmType = GX_F32;
+#if TARGET_PC
+    mVtxBlockEnd = NULL;
+#endif
 }
+
+#if TARGET_PC
+u32 J3DVertexData::getVtxArraySize(const void* array) const {
+    if (array == NULL || mVtxBlockEnd == NULL) {
+        return 0;
+    }
+    const u8* start = (const u8*)array;
+    const u8* end = (const u8*)mVtxBlockEnd;
+    const void* arrays[] = {
+        mVtxPosArray, mVtxNrmArray, mVtxNBTArray, mVtxColorArray[0], mVtxColorArray[1],
+        mVtxTexCoordArray[0], mVtxTexCoordArray[1], mVtxTexCoordArray[2], mVtxTexCoordArray[3],
+        mVtxTexCoordArray[4], mVtxTexCoordArray[5], mVtxTexCoordArray[6], mVtxTexCoordArray[7],
+    };
+    for (int i = 0; i < ARRAY_SIZE(arrays); i++) {
+        const u8* other = (const u8*)arrays[i];
+        if (other > start && other < end) {
+            end = other;
+        }
+    }
+    return end > start ? (u32)(end - start) : 0;
+}
+#endif
 
 /* 802D9D9C-802D9DD8       .text __dt__13J3DVertexDataFv */
 J3DVertexData::~J3DVertexData() {

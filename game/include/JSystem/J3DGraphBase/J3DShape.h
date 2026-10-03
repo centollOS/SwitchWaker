@@ -96,7 +96,13 @@ public:
     }
 
     enum {
+#if TARGET_PC
+        // Aurora's array commands (GDSetArraySized: a 64-bit pointer, the size and the byte order)
+        // are longer than the GameCube's CP writes; the same size as Dusklight's J3DShape.h.
+        kVcdVatDLSize = 0x180,
+#else
         kVcdVatDLSize = 0xC0,
+#endif
     };
 
     void initialize();

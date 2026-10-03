@@ -169,12 +169,24 @@ void J3DShape::makeVtxArrayCmd() {
         }
     }
 
+#if TARGET_PC
+    // Aurora has no 32-bit array base (GDSetArray/GDSetArrayRaw are fatal there): its
+    // GDSetArraySized records the host pointer, the array's size and its byte order. The model's
+    // vertex arrays stay big-endian as on the disc (le = false).
+    for (s32 i = 0; i < 0x0C; i++) {
+        if (array[i] != 0)
+            GDSetArraySized((GXAttr)(i + GX_VA_POS), array[i], mVertexData->getVtxArraySize(array[i]), stride[i], false);
+        else
+            GDSetArraySized((GXAttr)(i + GX_VA_POS), NULL, 0, stride[i], false);
+    }
+#else
     for (s32 i = 0; i < 0x0C; i++) {
         if (array[i] != 0)
             GDSetArray((GXAttr)(i + GX_VA_POS), array[i], stride[i]);
         else
             GDSetArrayRaw((GXAttr)(i + GX_VA_POS), NULL, stride[i]);
     }
+#endif
 }
 
 /* 802DD6B8-802DD72C       .text makeVcdVatCmd__8J3DShapeFv */

@@ -49,6 +49,11 @@ public:
     void setVtxNrmType(GXCompType type) { mVtxNrmType = type; }
     u8 getVtxNrmFrac() const { return mVtxNrmFrac; }
     void setVtxNrmFrac(u8 frac) { mVtxNrmFrac = frac; }
+#if TARGET_PC
+    // Aurora takes each vertex array with its size (GDSetArraySized): an array ends where the next
+    // array of the VTX1 block starts, or at the end of the block (set by J3DModelLoader).
+    u32 getVtxArraySize(const void* array) const;
+#endif
 
 private:
     friend class J3DModelLoader;
@@ -68,6 +73,9 @@ private:
     /* 0x50 */ u8 mVtxNrmFrac;
     /* 0x54 */ GXCompType mVtxNrmType;
     /* 0x58 */ u32 mPacketNum;
+#if TARGET_PC
+    const void* mVtxBlockEnd;
+#endif
 };
 
 class J3DVertexBuffer {

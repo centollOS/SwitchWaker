@@ -316,6 +316,7 @@ void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
         }
         vertex_data.mVtxAttrFmtList = list;
     }
+    vertex_data.mVtxBlockEnd = (const u8*)i_block + i_block->mSize;
 #else
     vertex_data.mVtxAttrFmtList =
         JSUConvertOffsetToPtr<GXVtxAttrFmtList>(i_block, i_block->mpVtxAttrFmtList);
