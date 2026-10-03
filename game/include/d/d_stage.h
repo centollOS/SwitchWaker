@@ -9,6 +9,7 @@
 #include "JSystem/JUtility/JUTAssert.h"
 #include "global.h"
 #include "f_op/f_op_actor_mng.h"
+#include "helpers/endian_ssystem.h"
 #include "helpers/offset_ptr.h"
 
 void dStage_SetErrorRoom();
@@ -57,10 +58,36 @@ struct stage_vrbox_info_class {
     /* 0x1E */ color_RGB_class mKasumiMaeColor;
 };  // Size: 0x24
 
+#if TARGET_PC
+// The disc form of fopAcM_prmBase_class, as the ACTR/TRES/SCOB/TGOB/DOOR... records (and their
+// layer variants) hold it: big-endian, read in place in the dzs/dzr. fopAcM_prm_class stays a host
+// object, so the record is swapped once, where it is copied into one (the conversion below, or the
+// field-by-field copies, which go through BE<T>'s conversions).
+struct dStage_prmBase_class {
+    /* 0x00 */ BE(u32) parameters;
+    /* 0x04 */ BE(cXyz) position;
+    /* 0x10 */ BE(csXyz) angle;
+    /* 0x16 */ BE(u16) setID;
+
+    operator fopAcM_prmBase_class() const {
+        fopAcM_prmBase_class prm;
+        prm.parameters = parameters;
+        prm.position = position;
+        prm.angle = angle;
+        prm.setID = setID;
+        return prm;
+    }
+};  // Size: 0x18
+
+#endif
 // TRES
 struct stage_tresure_data_class {
     /* 0x00 */ char name[8];
+#if TARGET_PC
+    /* 0x08 */ dStage_prmBase_class base;
+#else
     /* 0x08 */ fopAcM_prmBase_class base;
+#endif
 };  // Size: 0x20
 
 struct stage_tresure_class {
@@ -198,7 +225,11 @@ struct stage_arrow_class {
 // ACT
 struct stage_actor_data_class {
     /* 0x00 */ char name[8];
+#if TARGET_PC
+    /* 0x08 */ dStage_prmBase_class base;
+#else
     /* 0x08 */ fopAcM_prmBase_class base;
+#endif
 };  // Size: 0x20
 
 struct stage_actor_class {
@@ -209,7 +240,11 @@ struct stage_actor_class {
 // TGSC / SCOB / DOOR / TGDR
 struct stage_tgsc_data_class {
     /* 0x00 */ char name[8];
+#if TARGET_PC
+    /* 0x08 */ dStage_prmBase_class base;
+#else
     /* 0x08 */ fopAcM_prmBase_class base;
+#endif
     /* 0x20 */ fopAcM_prmScale_class scale;
 };  // Size: 0x24
 
