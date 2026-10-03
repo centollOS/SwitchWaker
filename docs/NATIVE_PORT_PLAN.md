@@ -2251,7 +2251,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   CPU skinning `J3DSkinDeform` (display-list reads of `vtxCount`/indices and the big-endian
   source positions and normals, used by doors, the ship and `dBgWDeform`), `J3DShape`'s
   `J3DLoadArrayBasePtr` (CP 0xA0, which Aurora rejects: needs `GX_AURORA_LOAD_ARRAYBASE` with the
-  array size and byte order of the transformed arrays) and `J3DSys`'s matrix count for
+  array size and byte order of the transformed arrays; done by R4-arraybase) and `J3DSys`'s matrix count for
   `GXSETARRAY` (the two remaining group F markers). Clusters (`J3DDeformer`) have no BLS on the
   disc.
   Step verification: anm-sweep 0 x3 equal to the manifest, logo-res 0, j3d-sweep 0 equal,
@@ -2784,6 +2784,11 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: the before-run (lane shot, 14:47) predates the STB commits 5395c07..8eb9db8
   (14:56-15:21); reran both runs on 28c72a8, no HUD and no demo-data error; regress passes.
 
+- R4-arraybase (lane boot, render): `J3DShape::loadVtxArray` wrote CP 0xA0+n array bases (341205
+  "not supported" lines in 1500 frames of sea room 44); under `TARGET_PC` it now sends
+  `GX_AURORA_LOAD_ARRAYBASE` with pointer, size and byte order. Reviewed: rerun logs 0 lines, shots
+  match the ones before, GameCube path unchanged (unifdef), regress passes. See render issues.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
@@ -2803,7 +2808,8 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   (redone when the checkout's commit, its `git status` or the patch set change), so the shared
   checkout is never modified. `outset-debug --stage sea:44:206` now runs ROOM_SCENE past frame 5500
   without a fault (timeout: nothing reports M12 yet). Still open, not fatal: about 470k
-  `CP_REG_ARRAYBASE_ID is not supported` log lines per 180 s run in sea room 44.
+  `CP_REG_ARRAYBASE_ID is not supported` log lines per 180 s run in sea room 44 (**fixed** by
+  R4-arraybase, entry below).
 - **Uncapped stall in `JFWDisplay::calcCombinationRatio`** (found by step 4.16, Outset with A
   taps, uncapped only, frame 5856): the main thread spins at `JFWDisplay.cpp:320`. The loop
   `for (i = vidInterval; i < field_0x34 * 2; i += vidInterval)` never ends when
@@ -2887,3 +2893,35 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   900/1300): after the J3D texture fix the boat's head and hull draw dark olive/brown with little
   of the red of the GameCube title. Not triaged (lighting/colour registers of its materials vs.
   texture). Open.
+- **Thousands of `CP_REG_ARRAYBASE_ID is not supported` lines once a stage loads** (step
+  R4-arraybase, lane boot): **fixed**. The writer was `J3DShape::loadVtxArray`, called on every J3D
+  shape draw (`drawFast`, `simpleDraw`, `simpleDrawCache`): its `J3DLoadArrayBasePtr` wrote CP
+  0xA0+n (POS, NRM, CLR0) with a pointer truncated to 32 bits, three per shape, which Aurora
+  rejects and ignores (341205 lines in 1500 frames of `run --stage sea:44:206`). For static models
+  nothing showed, because the shape's VCD/VAT list (`makeVtxArrayCmd`, `GDSetArraySized`) had
+  already bound the same arrays; but every array the vertex buffer swaps in at draw time (the CPU
+  deformers' `mTransformedVtx*`/`mVtxPosArray[1]` output) never reached Aurora, and a shape drawn
+  again without its VCD/VAT list (`sOldVcdVatCmd` unchanged) kept the previous draw's array. Under
+  `TARGET_PC` `J3DLoadArrayBasePtr` writes `GX_AURORA_LOAD_ARRAYBASE` (64-bit pointer, byte size,
+  byte order, after Dusklight's J3DShape.cpp) on every call, as the GameCube does: the model's own
+  VTX1 array with `J3DVertexData::getVtxArraySize` (the size the VCD/VAT list gives, so Aurora
+  keeps its cached upload), any other array with the vertex/normal/colour count times the stride
+  of its type; all big-endian (`J3DVertexData::getColNum` added for the colour count). Check:
+  `run --stage sea:44:206 --frames 1500 --shot 400,800,1200,1490` logs 0 such lines (before
+  341205) and the shots equal the ones before (Outset lookout, Aryll, Link close-up), title
+  `run --frames 610 --shot 600` unchanged and 0 lines. Two independent issues seen while checking
+  are the next two entries.
+- **CPU skinning computes nothing on the host** (found by R4-arraybase): the C++ bodies of the
+  four `J3DPSMulMtxVec` overloads (J3DTransform.h) are `__MWERKS__` paired-single asm only, so on
+  the host `J3DSkinDeform::deformVtxPos_*`/`deformVtxNrm_*` leave the transformed arrays
+  unwritten, and they read the model's arrays host-order although those are big-endian. Before
+  R4-arraybase the transformed arrays never reached Aurora (models drew in bind pose); now they
+  do, so a CPU-skinned model (`dDoor_key2_c` boss-key lock, `dBgWDeform` users d_a_sk2 and
+  d_a_npc_de1) draws from those unwritten arrays until this is fixed. The port should read the
+  source big-endian and write the output big-endian (the byte order `loadVtxArray` declares).
+  Part of the J3DSkinDeform item split off from 4.11. Open.
+- **Outset grass draws as spiky green squares with purple and blue** (found by R4-arraybase,
+  `run --stage sea:44:206 --shot 800`, lower right): the grass tufts below the lookout show their
+  whole quads (no alpha cut-out) with purple/blue texels, before and after R4-arraybase. On the
+  GameCube they are alpha-tested blade tufts. Not triaged (`dGrass_packet_c::draw`'s texture or
+  alpha-compare state vs. its vertex arrays). Open.

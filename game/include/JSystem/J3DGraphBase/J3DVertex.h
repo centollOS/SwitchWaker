@@ -53,6 +53,7 @@ public:
     // Aurora takes each vertex array with its size (GDSetArraySized): an array ends where the next
     // array of the VTX1 block starts, or at the end of the block (set by J3DModelLoader).
     u32 getVtxArraySize(const void* array) const;
+    u32 getColNum() const { return mColNum; }
 #endif
 
 private:
