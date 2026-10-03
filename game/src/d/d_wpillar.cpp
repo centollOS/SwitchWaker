@@ -128,7 +128,15 @@ static BOOL dWpillar_Delete(dWpillar_c* i_this) {
 
 /* 8023EE28-8023F5B0       .text create__10dWpillar_cFv */
 cPhs_State dWpillar_c::create() {
+#if TARGET_PC
+    // MWCC treats this value-initialising placement new as default-initialisation; clang zero-fills
+    // the whole object first (the class has no user-provided constructor), wiping the process
+    // header fpcBs_Create filled in (mpPcMtd, mProcName, mParameters, ...). Default-initialise, as
+    // fopAcM_ct_placement does for actors.
+    new (this) dWpillar_c;
+#else
     new (this) dWpillar_c();
+#endif
 
     J3DModelData* modelData;
     BOOL is_anm_init;

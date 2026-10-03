@@ -109,7 +109,15 @@ static BOOL dWindArrow_Delete(dWindArrow_c* i_this) {
 }
 
 cPhs_State dWindArrow_c::create() {
+#if TARGET_PC
+    // MWCC treats this value-initialising placement new as default-initialisation; clang zero-fills
+    // the whole object first (the class has no user-provided constructor), wiping the process
+    // header fpcBs_Create filled in (mpPcMtd, mProcName, mParameters, ...). Default-initialise, as
+    // fopAcM_ct_placement does for actors.
+    new (this) dWindArrow_c;
+#else
     new (this) dWindArrow_c();
+#endif
     
     J3DModelData* modelData = (J3DModelData*)dComIfG_getObjectRes("Always", dRes_INDEX_ALWAYS_BDL_YA_e);
     JUT_ASSERT(0x56, modelData != NULL);

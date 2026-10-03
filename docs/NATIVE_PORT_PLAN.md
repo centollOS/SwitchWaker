@@ -2395,6 +2395,16 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   "60 frames drawn with the logo at alpha 255, 25 title smoke particle(s), sparkle emitter set"
   at frame 560, 3 of 3. Adds "title 0" to the regression targets.
   Reviewed: regress passed; title reached 3 of 3 (one capped, frame 560; two uncapped, frame 562).
+- M10 boot loop (lane boot, iter 1, host-semantics): after START, d_a_title requests NAME_SCENE
+  and its second create phase crashed (SIGSEGV addr=0 in `fpcMtd_Create`, frame 752).
+  `dScnName_Create` runs `new (i_scn) dScnName_c()` on every phase; the class has no
+  user-provided constructor, so clang value-initialises and zero-fills the process header that
+  `fpcBs_Create` set (mpPcMtd, mProcName, ...). MWCC default-initialises. Same bug as actors in
+  352bd0c. The scene and the five kankyo processes with the same pattern (dWpotWater_c,
+  dWpillar_c, dWaterMark_c, dWindArrow_c, dThunder_c) use `new (p) T;` under `TARGET_PC`. Adds
+  `native/check/input/file-select.txt` (START at frames 600/720/840). Next blocker: SIGSEGV
+  addr=0x20 in `aurora::gfx::enqueue_pass` from `aurora_end_frame`, NAME_SCENE frame 752.
+  Reviewed: regress passed; file-select now enters NAME_SCENE and gets past the create crash.
 
 ### Phase 6 render issues
 

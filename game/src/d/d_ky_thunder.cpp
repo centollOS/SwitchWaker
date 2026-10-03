@@ -112,7 +112,15 @@ cPhs_State dThunder_c::create() {
     dScnKy_env_light_c& envLight = dKy_getEnvlight();
     camera_process_class *pCamera = (camera_process_class*)dComIfGp_getCamera(0);
 
+#if TARGET_PC
+    // MWCC treats this value-initialising placement new as default-initialisation; clang zero-fills
+    // the whole object first (the class has no user-provided constructor), wiping the process
+    // header fpcBs_Create filled in (mpPcMtd, mProcName, mParameters, ...). Default-initialise, as
+    // fopAcM_ct_placement does for actors.
+    new (this) dThunder_c;
+#else
     new (this) dThunder_c();
+#endif
     J3DModelData* modelData = (J3DModelData*)dComIfG_getObjectRes("Always", dRes_INDEX_ALWAYS_BDL_YTHDR00_e);
     JUT_ASSERT(DEMO_SELECT(111, 110), modelData != NULL);
 

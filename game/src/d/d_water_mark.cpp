@@ -119,7 +119,15 @@ static cPhs_State dWaterMark_Create(kankyo_class* kankyo) {
 
 /* 8023DFA0-8023E29C       .text create__12dWaterMark_cFv */
 cPhs_State dWaterMark_c::create() {
+#if TARGET_PC
+    // MWCC treats this value-initialising placement new as default-initialisation; clang zero-fills
+    // the whole object first (the class has no user-provided constructor), wiping the process
+    // header fpcBs_Create filled in (mpPcMtd, mProcName, mParameters, ...). Default-initialise, as
+    // fopAcM_ct_placement does for actors.
+    new (this) dWaterMark_c;
+#else
     new (this) dWaterMark_c();
+#endif
     
     field_0x12e = mParam >> 0x10;
     mParam &= 0xFFFF;

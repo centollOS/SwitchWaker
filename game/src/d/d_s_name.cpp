@@ -1480,7 +1480,15 @@ static BOOL dScnName_Delete(dScnName_c* i_this) {
 
 /* 802323A8-802323F8       .text dScnName_Create__FP11scene_class */
 static cPhs_State dScnName_Create(scene_class* i_scn) {
+#if TARGET_PC
+    // MWCC treats this value-initialising placement new as default-initialisation; clang zero-fills
+    // the whole object first (the class has no user-provided constructor), wiping the process
+    // header fpcBs_Create filled in (mpPcMtd, mProcName, mParameters, ...). Default-initialise, as
+    // fopAcM_ct_placement does for actors.
+    dScnName_c* i_this = new (i_scn) dScnName_c;
+#else
     dScnName_c* i_this = new (i_scn) dScnName_c();
+#endif
     return i_this->create();
 }
 

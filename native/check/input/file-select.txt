@@ -1,0 +1,12 @@
+# Controller script of milestone M10 file-select (docs/NATIVE_PORT_PHASE4_6.md; syntax in
+# native/src/pc/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each line holding until the
+# next. d_a_title is created about frame 290 and has faded its logo in by about frame 560
+# (M9). The first START makes the title skip to its "press START" state (enter mode 1), the
+# second one makes it request the name scene (fpcNm_NAME_SCENE_e). Later taps only cover a slower
+# run; each START is held two frames, so it triggers once.
+600  START  0  0
+602  -      0  0
+720  START  0  0
+722  -      0  0
+840  START  0  0
+842  -      0  0

@@ -61,7 +61,15 @@ static BOOL dWpotWater_Delete(dWpotWater_c* i_this) {
 }
 
 cPhs_State dWpotWater_c::create() {
+#if TARGET_PC
+    // MWCC treats this value-initialising placement new as default-initialisation; clang zero-fills
+    // the whole object first (the class has no user-provided constructor), wiping the process
+    // header fpcBs_Create filled in (mpPcMtd, mProcName, mParameters, ...). Default-initialise, as
+    // fopAcM_ct_placement does for actors.
+    new (this) dWpotWater_c;
+#else
     new (this) dWpotWater_c();
+#endif
     dComIfGp_particle_set(dPa_name::ID_IT_SN_WPOT_BITYA, &mPos);
     dComIfGp_particle_set(dPa_name::ID_IT_SN_WPOT_SHIBUKI, &mPos);
     emtr = dComIfGp_particle_set(dPa_name::ID_IT_SN_WPOT_YUKA, &mPos, NULL, NULL, 0xAA, &dWpotWater_c::mEcallback);
