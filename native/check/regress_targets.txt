@@ -59,3 +59,8 @@ outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.tx
 # F1-vi-stall (lane outset): M13 uncapped, retraces back to back; JUTVideo's measured retrace
 # interval must never be 0 (JFWDisplay::calcCombinationRatio loops by it)
 outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.txt --uncapped
+
+# M11 new-game (lane audio): title -> name scene on a clean card -> save file made -> name entry
+# -> OPEN scene. Guards the memory card save race (fix NG-memcard-sync) and per-run card folders
+# (fix NG-run-dir)
+new-game 0 --input native/check/input/new-game.txt

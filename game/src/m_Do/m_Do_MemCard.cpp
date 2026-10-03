@@ -22,6 +22,28 @@ u8 MemCardWorkArea0[0xa000] ALIGN_DECL(32);
 
 mDoMemCd_Ctrl_c g_mDoMemCd_control;
 
+#if TARGET_PC
+// The *Sync functions and getStatus report "busy" (0 / 14) when OSTryLockMutex fails, i.e. while the
+// memory card thread holds mMutex for a command. On the GameCube that thread (priority + 1) takes a
+// command posted by save() / load() / format() / update() as soon as the game thread waits for the
+// retrace, so from the next frame on these readers see either the lock held or the command done.
+// Host threads are preemptive: under load the card thread may not have taken the command yet when the
+// next frame's reader wins the lock, and SaveSync() then reads the old state (field_0x1660 == 2) as a
+// failed save. A command still waiting in mCommand counts as the card thread's here, as on the console.
+static BOOL mDoMemCd_tryLockIdle(OSMutex* mutex, const s32* command) {
+    if (!OSTryLockMutex(mutex))
+        return FALSE;
+    if (*command != mDoMemCd_Ctrl_c::CARD_NO_COMMAND) {
+        OSUnlockMutex(mutex);
+        return FALSE;
+    }
+    return TRUE;
+}
+#define mDoMemCd_tryLockForSync() mDoMemCd_tryLockIdle(&mMutex, &mCommand)
+#else
+#define mDoMemCd_tryLockForSync() OSTryLockMutex(&mMutex)
+#endif
+
 /* 80018D6C-80018D70       .text __ct__15mDoMemCd_Ctrl_cFv */
 mDoMemCd_Ctrl_c::mDoMemCd_Ctrl_c() {
 }
@@ -211,7 +233,7 @@ void mDoMemCd_Ctrl_c::load() {
 /* 80019288-8001931C       .text LoadSync__15mDoMemCd_Ctrl_cFPvUlUl */
 s32 mDoMemCd_Ctrl_c::LoadSync(void* dst, u32 size, u32 offset) {
     s32 ret = 0;
-    if (OSTryLockMutex(&mMutex)) {
+    if (mDoMemCd_tryLockForSync()) {
         if (field_0x1660 == 3) {
             memcpy(dst, &mData[offset], size);
             field_0x1660 = 1;
@@ -228,7 +250,7 @@ s32 mDoMemCd_Ctrl_c::LoadSync(void* dst, u32 size, u32 offset) {
 /* 8001931C-8001939C       .text SaveSync__15mDoMemCd_Ctrl_cFv */
 s32 mDoMemCd_Ctrl_c::SaveSync() {
     s32 ret = 0;
-    if (OSTryLockMutex(&mMutex)) {
+    if (mDoMemCd_tryLockForSync()) {
         if (field_0x1660 == 4) {
             field_0x1660 = 1;
             ret = 1;
@@ -273,7 +295,7 @@ void mDoMemCd_Ctrl_c::load2() {
 
 s32 mDoMemCd_Ctrl_c::LoadSync2() {
     s32 ret = 0;
-    if (OSTryLockMutex(&mMutex)) {
+    if (mDoMemCd_tryLockForSync()) {
         if (field_0x1660 == 3) {
             field_0x1660 = 1;
             ret = 1;
@@ -288,7 +310,7 @@ s32 mDoMemCd_Ctrl_c::LoadSync2() {
 
 /* 8001939C-80019480       .text getStatus__15mDoMemCd_Ctrl_cFUl */
 u32 mDoMemCd_Ctrl_c::getStatus(u32) {
-    if (OSTryLockMutex(&mMutex)) {
+    if (mDoMemCd_tryLockForSync()) {
         s32 ret;
         switch (field_0x1660) {
         case 1: ret = 2; break;
@@ -326,7 +348,7 @@ void mDoMemCd_Ctrl_c::format() {
 /* 800194CC-8001953C       .text FormatSync__15mDoMemCd_Ctrl_cFv */
 s32 mDoMemCd_Ctrl_c::FormatSync() {
     s32 ret = 0;
-    if (OSTryLockMutex(&mMutex)) {
+    if (mDoMemCd_tryLockForSync()) {
         if (field_0x1660 == 5) {
             field_0x1660 = 2;
             ret = 1;

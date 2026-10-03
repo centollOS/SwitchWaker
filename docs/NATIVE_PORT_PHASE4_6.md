@@ -166,8 +166,9 @@ loop:
 - Verify: `run.sh new-game --input native/check/input/new-game.txt` exits 0 three times
   (uncapped) and once capped; `outset-real` with the same script runs and its log says where it
   stops. `new-game` joins the regression list only once it passes under parallel load (4 runs at
-  once); until then the M11 boot loop owns the memory card save race it hits (see the NG-probe
-  log).
+  once). Shared run directories were one cause of the failures under load (fix NG-run-dir); the
+  other was the memory card save race (fix NG-memcard-sync). With both fixed, repeated uncapped
+  runs and 4 parallel runs pass and `new-game` is in the list.
 
 **6.7 Performance instrumentation**
 - Per game frame:

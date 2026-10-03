@@ -2871,16 +2871,9 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
     `regress.sh -j 3`) about half the runs fail: `MemCardMakeGameFile` lasts 1 frame (912 ->
     913) instead of about 12, `mDoMemCd_SaveSync()` returns 2, the scene goes
     `MemCardMakeGameFileCheck` -> `MemCardErrMsgWaitKey` (message 0x18) -> `MemCardStatCheck` and
-    stays there until the timeout (exit 10). Suspected cause, a host thread race in
-    `m_Do_MemCard.cpp`: `save()` sets `mCommand = CARD_STORE` and signals `mCond`, but the next
-    frame's `SaveSync()` wins `OSTryLockMutex` before the memory card thread has taken the command,
-    sees a state other than 4 (done) or 1 (idle) and returns 2. On the GameCube the card thread
-    runs while the game thread waits for the retrace; on the host, under load, it may not run in
-    time. So `new-game` is NOT in the regression list yet: the M11 boot loop fixes the root cause
-    (host OS-thread wake / priority semantics, so that a signalled card thread takes its command
-    before the game thread's next frame) in its own commit, then adds
-    `new-game 0 --input native/check/input/new-game.txt` to `regress_targets.txt` once 4 parallel
-    runs pass repeatedly. `save` and `file-select` still pass.
+    stays there until the timeout (exit 10). Two causes, fixed in the M11 boot loop: fix
+    NG-run-dir (parallel runs shared one card) and fix NG-memcard-sync (the save race the NG-probe
+    suspected), both below. `save` and `file-select` still pass.
   - **M14 outset-real: where the run stops.** The prologue plays all its states (0 -> 44, frame
     ~1460 -> ~8000, no input) and the OPEN scene requests the PLAY scene for the save's return
     place (sea room 44 point 206). The PLAY scene is then never created: no resource is requested
@@ -2928,6 +2921,30 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   parallel load only: the `MemCardMakeGameFile` 1-frame failure still happened with a private card
   (1 of 3 sequential runs, uncapped, reviewer run `new-game-20261003-191900`: no card error in the
   log, `01-GZLE-<save file>.gci` written, but `SaveSync()` returned 2); see fix NG-memcard-sync.
+
+- **Fix NG-memcard-sync (M11 boot loop, lane audio, host-semantics): the game read a posted but not
+  yet taken memory card command as a failed save.** `mDoMemCd_Ctrl_c::save()` sets
+  `mCommand = CARD_STORE` under `mMutex` and signals `mCond`; the memory card thread takes the
+  command by locking `mMutex` and holds it until the command is done. The readers (`SaveSync`,
+  `LoadSync`, `FormatSync`, `LoadSync2`, `getStatus`) report busy (0 / 14) when
+  `OSTryLockMutex` fails. On the GameCube the card thread (priority + 1) runs as soon as the game
+  thread waits for the retrace, so the next frame's reader sees the lock held or the command done.
+  Host threads are preemptive and, under load or uncapped, the card thread may not have taken the
+  command yet: the next frame's `SaveSync()` won the lock, read `field_0x1660 == 2` (no file yet)
+  and returned 2, the name scene showed message 0x18 and waited in `MemCardStatCheck` forever while
+  the card thread then wrote the file. Under `TARGET_PC` (m_Do_MemCard.cpp) the readers take the
+  lock only when no command is pending (`mDoMemCd_tryLockIdle`), so a posted command counts as
+  the card thread's, as on the console; the command posters and the card thread are unchanged.
+  Verified: 9 sequential uncapped runs, 4-way parallel capped and uncapped, and two rounds of 8
+  parallel uncapped runs all pass; `MemCardMakeGameFile` lasts 3-22 frames in all 33 runs (no
+  1-frame case). `new-game 0 --input native/check/input/new-game.txt` is now in
+  `regress_targets.txt`. Open, not this cause: `regress.sh -j 3` failed 2 of 6 runs on an
+  audio thread crash, SIGSEGV pc=0 in `JASystem::Kernel::portCmdMain` (from `TAudioThread` ->
+  `updateDac` -> `mixDSP` -> `finishDSPFrame` -> `subframeCallback`), once in `new-game` (frame
+  431, title demo room) and once in `outset-control` (frame 305): a port command with a null
+  function, likely the game thread's port command list racing the audio thread.
+  Review: 3 `regress.sh -j 3` runs passed (new-game in the list); `new-game` reached 2 times
+  uncapped (7 s), once capped (47 s) and 4 of 4 in parallel uncapped, each run in its own run dir.
 
 ### Phase 6 render issues
 
