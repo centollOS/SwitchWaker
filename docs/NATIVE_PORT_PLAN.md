@@ -2195,6 +2195,15 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   on the next blocker, SIGABRT (stack buffer overflow, `__stack_chk_fail`) in
   `J3DSkinDeform::initMtxIndexArray` (the J3DSkinDeform item split off from 4.11).
 
+- **M7 boot loop, iteration 4** (2026-10-03, endian): SIGABRT (`__stack_chk_fail`) in
+  `J3DSkinDeform::initMtxIndexArray` during the player's create. J3D shape display lists stay
+  big-endian on the host (Aurora consumes them as GX streams), but the strip/fan vertex count and
+  the GX_INDEX16 position/normal indices were read host-order, so the loop ran with a bogus count
+  and overran the 10-entry `useMtxIdxBuf`. Under `TARGET_PC` those reads go through `BE(u16)`, and
+  `changeFastSkinDL` reads and writes the vertex count big-endian. Review: `regress.sh -j 3`
+  all checks passed; `opening` now stops on the next blocker, SIGSEGV addr=0xc in
+  `daPy_lk_c::playerInit` (d_a_player_main.cpp:12293, `createAnimeHeap` area) <- `phase_2`.
+
 ### Phase 6 render issues
 
 None yet.

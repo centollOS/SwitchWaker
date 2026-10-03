@@ -319,15 +319,26 @@ int J3DSkinDeform::initMtxIndexArray(J3DModelData* modelData) {
                 if (cmd != GX_TRIANGLEFAN && cmd != GX_TRIANGLESTRIP)
                     break;
 
+#if TARGET_PC
+                // The display list stays big-endian (GX command stream): the vertex count and
+                // the GX_INDEX16 position and normal indices are big-endian u16s.
+                int vtxCount = *(BE(u16)*)dl;
+#else
                 int vtxCount = *(u16*)dl;
+#endif
                 dl += 2;
 
                 u16 useMtxIdxBuf[10];
                 for (int k = 0; k < vtxCount; k++) {
                     u8* src = &dl[vtxSize * k];
                     u8 pnmtxIdx = (u32)*(u8*)&src[pnmtxIdxOffs] / 3;
+#if TARGET_PC
+                    u16 posIdx = *(BE(u16)*)&src[posOffs];
+                    u16 nrmIdx = *(BE(u16)*)&src[nrmOffs];
+#else
                     u16 posIdx = *(u16*)&src[posOffs];
                     u16 nrmIdx = *(u16*)&src[nrmOffs];
+#endif
 
                     u16 useMtxIdx = shapeMtx->getUseMtxIndex(pnmtxIdx);
                     if (useMtxIdx == 0xFFFF) {
@@ -389,9 +400,17 @@ void J3DSkinDeform::changeFastSkinDL(J3DModelData* pModelData) {
                     if (cmd != GX_TRIANGLEFAN && cmd != GX_TRIANGLESTRIP)
                         break;
 
+#if TARGET_PC
+                    // Big-endian display list (see initMtxIndexArray): read and write the vertex
+                    // count big-endian so the rewritten list stays a valid GX command stream.
+                    int vtxCount = *(BE(u16)*)dl;
+                    dl += 2;
+                    *(BE(u16)*)dst = vtxCount;
+#else
                     int vtxCount = *(u16*)dl;
                     dl += 2;
                     *(u16*)dst = vtxCount;
+#endif
                     dst += 2;
 
                     for (int k = 0; k < vtxCount; k++) {
