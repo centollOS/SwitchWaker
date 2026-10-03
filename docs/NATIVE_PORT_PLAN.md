@@ -1247,6 +1247,100 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   gfx-create 0 x3, static-init 0 x3, aurora-up 0 x3, disc-ls 0, heap 0, crash/panic 13/12.
   Committed as six commits (layout check, block headers, ResFONT, ResTIMG/TLUT/NTAB, font
   alignment, M3 and font harness) plus this log and the baseline.
+- **4.4 Archives:** struct fields as `BE(T)`, code changes under `TARGET_PC` (with `BE(T)` and
+  `JKAR_DATA(e)` expanded to `T` and `e->data`, `unifdef -UTARGET_PC` of every changed game file
+  equals HEAD's apart from the added include, comments and the GameCube `JKAR_DATA` definition).
+  - RARC tables: `SArcHeader`, `SArcDataInfo`, `SDIDirEntry` and `SDIFileEntry` are big-endian (as
+    in Dusklight's `JKRArchive.h`). The entry's `void* data` (written in place into the loaded file
+    table) is `u32 index` on PC, and the resource pointer lives in `JKRArchive::mFileData`, read
+    through `JKAR_DATA(entry)` (Dusklight's macro; `entry->data` on the GameCube) at every site of
+    the archive classes. `initFileDataPointers` numbers the entries and clears the table in each
+    `open()` (Mem x2, Dvd, Aram, Comp). Unlike Dusklight (system heap) the table comes from the
+    archive's heap, where the GameCube kept these pointers: the system heap keeps only 64 KiB
+    beside the main heap. A failed allocation fails the mount like `open()`'s other allocations
+    (mDoDvdThd then retries in the main heap). Freed by `~JKRArchive` and by
+    `JKRMemArchive::unmountFixed` (d_s_name keeps the object after it); `~JKRCompArchive` skips
+    the resource loop when the table was never made.
+  - Yaz0 headers: `SYaz0Header` is big-endian (the rippers' `decompSZS_subroutine` read `length`
+    little-endian); `JKRDecomp::decodeSZS` reads the expanded size and the magic big-endian; the
+    `((u32*)data)[1]` sizes of `JKRDecompressFromDVD`/`FromAramToMainRam` use
+    `JKRDecompExpandSize` (and none when the first read failed). These were latent on this disc:
+    `maxDest` (the caller's correct size) clamps the end pointer and `decodeSZS` stops on its
+    length count, so the sweep also passes with them reverted; they are fixed for correctness.
+  - ARAM transfers: `JKRAMCommand::mSrc`/`mDst`, `JKRAramPiece::prepareCommand`/`orderAsync`/
+    `orderSync` and `JKRAramPcs` take `uintptr_t` (as in Dusklight): one side is a main-memory
+    host pointer, which every caller already cast to `uintptr_t` and the `u32` parameter
+    truncated; `firstSrcData`'s destination is `uintptr_t`; `orderAsync`'s report prints them with
+    `%lx`. `JKRADCommand::mCallback`/`loadToAram_Async` take `uintptr_t` (the command's address,
+    as step 4.2 did for `JKRAMCommand`; no caller passes one yet).
+  - `JKRCompArchive::field_0x64` (the host address of the main-memory part) is `intptr_t` (as in
+    Dusklight): an `int` truncated it.
+  - `JKRDvdFile::doneProcess` finds `mDvdFile` at `offsetof(mDvdFile) - offsetof(mFileInfo)` past
+    the `DVDFileInfo` (as in Dusklight): 0x3C is the GameCube distance, Aurora's `DVDFileInfo` is
+    larger. Every asynchronous `JKRDvdFile::readData` (the DVD-to-ARAM stream) went through it.
+  - Host bookkeeping off the game heaps (its own commit, before the archive fixes): one sweep
+    run in 11 ended with exit 13, `FATAL: a blocking OS call was made from an alarm handler`.
+    The alarm thread's `state.pending.erase` freed a map node through the global operator
+    delete, which on PC is the game's (`JKRHeap.cpp`: `JKRExpHeap::do_free` takes the heap's
+    `OSMutex`) while the main thread held that mutex. New `cos_sdk/host_alloc.h`
+    (`HostAllocator`, `HostNew`/`HostDelete`, `HostMakeShared`/`HostMakeUnique`, `HostString`/
+    `HostVector`/`HostMap`/`HostUnorderedMap`, over malloc/free). cos_sdk's alarm queue and
+    pending table, the thread side table, `HostThread`/`ForeignThread`/launch records and the OS
+    lock use it. The alarm timer thread is a pthread, because libc++'s `std::thread` allocates its
+    start state with global new. The `cos_sdk_smoke` test `host_alloc` replaces the global
+    operator new/delete with counting forms. Alarms (one-shot, periodic, cancelled, cancelled by
+    tag), an OS thread that is created, run and joined, and an adopted host thread must call them
+    0 times. Before the fix the test fails. The sweep's own strings, vectors and maps use the same
+    allocator, so they stay out of the heaps it measures. `JKRHeap.cpp`'s TODO(native phase 6)
+    now covers only Aurora/SDL/libc++ allocations.
+  - Harness: `COS_SMOKE=arc-sweep` (`native/src/pc/pc_arc.cpp`, run by `pc_heaps_created`): every
+    `.arc` of the FST (1319 under `/res`, `/RELS.arc`, one under `/Audiores`) read independently
+    (DVDReadPrio, a Yaz0 decoder of its own, big-endian loads at the RARC offsets, every
+    compressed entry expanded), then mounted with `JKRArchive::mount` in MEM, ARAM, DVD and COMP
+    modes into a 48 MiB test heap and compared: node and entry counts, the tree walked through
+    `mNodes`/`mFiles`/`mStringTable` (paths, IDs, flags, sizes, offsets), `index`, `getDirEntry`
+    of every entry; per file `readResource` before the fetch (the DVD, ARAM and decompression
+    paths), `getResource` by path and its bytes (stored where the mode keeps them: MEM, COMP's
+    main-memory part; expanded otherwise), `getResSize`, `getExpandedResSize` (COMP answers the
+    stored size when it has no expanded-size table, as on the GameCube), `findIdResource`,
+    `getResource(0, name)` for unique names, `readResource` after the fetch; d_resorce's lookup
+    (`getFirstResource(type)`, the finder, `getResource(type, name)`) for every directory with a
+    unique type; after `unmount` the test, system and ARAM heaps back to their free size. The
+    archive inside `/res/Stage/Name/Stage.arc` is mounted with `mountFixed` as d_s_name does (its
+    heap must be back after `unmountFixed`, before the object is deleted). It writes
+    `arc_sweep.txt` (the MEM mount's counts, nodes and files), which `run.sh` compares with the
+    manifest (`disc_manifest.py --check-arc`: every archive, nested ones included, counts, nodes,
+    every file's path, ID, flags, size, offset and expanded size). Names are percent-encoded there
+    (some archive names hold spaces).
+  - Manifest: a format's own size field (BLO/BMG/J3D/BFN headers, STB) overwrote the record's
+    `size`, the stored size of the archive entry or FST file; it is now `header_size`, and
+    `MANIFEST_VERSION` 2 makes `run.sh` rewrite an older manifest. disc-ls and font still
+    equal it.
+  - Layout check: `JKRArchive::SDIFileEntry` leaves the xfail list; `SYaz0Header` is added
+    (132 structs, 1052 checks; `--gc-verify` holds).
+  - Not changed: `JKRMemArchive::mountFixed` uses the buffer's address cut to `s32` as the
+    archive's entry number (only compared for "already mounted"); `JSupport.h`'s group L marker
+    concerns the J3D offset fields declared as pointers (step 4.11).
+  Verified: `run.sh arc-sweep` exit 0 on 36 runs in a row (about 5 s each): 1321 archives,
+  5284 mounts, 1 nested `mountFixed`, 55106 file checks, 54902 finder lookups, 1054 MiB compared;
+  manifest equal (1322 archives, 13808 files). Each fix reverted on its own: `u32` ARAM addresses exit 13 in
+  `ARQPostRequest` (JKRAram thread), `int` `field_0x64` exit 13 in
+  `JKRMemArchive::fetchResource_subroutine` from `JKRCompArchive::fetchResource`, the 0x3C offset
+  exit 13 in `OSSendMessage` on the DVD worker, the side table left in `unmountFixed` exit 1 (456
+  bytes lost). Next: 6.2 (`frame-loop` still stalls with the frame counter at 0).
+  Inventory: markers unchanged (78 open); warnings (option on): int-to-pointer-cast 35 -> 34,
+  int-to-void-pointer-cast 95 -> 90; `native/check/phase4_baseline.txt` regenerated.
+  Regression: `ninja -k 0 centollos cos_sdk_smoke` with `COS_PHASE4_WARNINGS=ON` 0 errors and
+  `--log --check` ok; with it off `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check
+  cos_sdk_shadow_check cos_link_census` 0 errors, smoke ok (`host_alloc` included),
+  `cos_pc_tests` ok, layout check ok, census equal to `expected_unresolved_phase2.txt`, `--all --dups` 0, static-init 0 x3 (M0),
+  aurora-up 0 x3 (M1), heaps 0 x3 (M2), gfx-create 0 x3 (M3), heap 0, disc-ls 0, font 0,
+  crash/panic/timeout/stall-test 13/12/10/11, no disc 14.
+  Review (round 2): approved; rerun by the reviewer: `cos_sdk_smoke` (`host_alloc` included) and
+  `cos_pc_tests` ok, census equal, `--dups` 0, inventory ok, arc-sweep 0 x22, M0-M3 0 x2,
+  heap/disc-ls/font 0. Committed as eight commits (host allocator, RARC BE and side table, Yaz0
+  header, ARAM `uintptr_t`, `field_0x64`, `doneProcess` offset, manifest `header_size`, arc-sweep
+  harness) plus this log and the baseline.
 
 ### Phase 6 render issues
 

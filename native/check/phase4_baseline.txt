@@ -31,8 +31,8 @@ group L	1
 unclassified	0
 markers open	78
 markers justified	4
-warning -Wint-to-pointer-cast	35
+warning -Wint-to-pointer-cast	34
 warning -Wpointer-to-int-cast	0
-warning -Wint-to-void-pointer-cast	95
+warning -Wint-to-void-pointer-cast	90
 warning -Wreturn-type	0
 warning -Wfortify-source	0
