@@ -1,0 +1,36 @@
+diff --git a/lib/imgui.cpp b/lib/imgui.cpp
+index 07a0ec1..3b1c007 100644
+--- a/lib/imgui.cpp
++++ b/lib/imgui.cpp
+@@ -18,9 +18,30 @@
+ #include "window.hpp"
+ 
+ #define IMGUI_IMPL_WEBGPU_BACKEND_DAWN
++#include "backends/imgui_impl_wgpu.h"
++#if defined(__SWITCH__)
++#include <chrono>
++// The Switch has no SDL platform or renderer backend for ImGui (its SDL is the small shim in
++// switch/aurora/sdl3_shim). ImGui draws through imgui_impl_wgpu; these stand-ins supply the one
++// thing the SDL platform backend's NewFrame would, the frame time (new_frame sets the display size).
++static bool ImGui_ImplSDL3_InitForSDLRenderer(SDL_Window*, SDL_Renderer*) { return true; }
++static void ImGui_ImplSDL3_Shutdown() {}
++static bool ImGui_ImplSDL3_ProcessEvent(const SDL_Event*) { return false; }
++static void ImGui_ImplSDL3_NewFrame() {
++  static auto last = std::chrono::steady_clock::now();
++  const auto now = std::chrono::steady_clock::now();
++  const float delta = std::chrono::duration<float>(now - last).count();
++  last = now;
++  ImGui::GetIO().DeltaTime = delta > 0.0f ? delta : 1.0f / 60.0f;
++}
++static bool ImGui_ImplSDLRenderer3_Init(SDL_Renderer*) { return false; }
++static void ImGui_ImplSDLRenderer3_Shutdown() {}
++static void ImGui_ImplSDLRenderer3_NewFrame() {}
++static void ImGui_ImplSDLRenderer3_RenderDrawData(ImDrawData*, SDL_Renderer*) {}
++#else
+ #include "backends/imgui_impl_sdl3.h"
+ #include "backends/imgui_impl_sdlrenderer3.h"
+-#include "backends/imgui_impl_wgpu.h"
++#endif
+ #include "tracy/Tracy.hpp"
+ 
+ namespace aurora::imgui {

@@ -1,0 +1,20 @@
+diff --git a/lib/webgpu/gpu.cpp b/lib/webgpu/gpu.cpp
+index 6e3263b..9c96237 100644
+--- a/lib/webgpu/gpu.cpp
++++ b/lib/webgpu/gpu.cpp
+@@ -1003,12 +1003,13 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+     Log.info("Enabling features: {}", featureList);
+ #ifdef WEBGPU_DAWN
+     wgpu::DawnCacheDeviceDescriptor cacheDescriptor({.nextInChain = nullptr});
++    // Not noexcept: the Switch's Dawn (266c1cf, switch/dawn) does not take noexcept callbacks.
+     cacheDescriptor.SetDawnLoadCacheDataCallback(
+-        [](std::span<const std::byte> key, std::span<std::byte> value) noexcept -> size_t {
++        [](std::span<const std::byte> key, std::span<std::byte> value) -> size_t {
+           return load_from_cache(key.data(), key.size(), value.data(), value.size(), nullptr);
+         });
+     cacheDescriptor.SetDawnStoreCacheDataCallback(
+-        [](std::span<const std::byte> key, std::span<const std::byte> value) noexcept {
++        [](std::span<const std::byte> key, std::span<const std::byte> value) {
+           store_to_cache(key.data(), key.size(), value.data(), value.size(), nullptr);
+         });
+ 
