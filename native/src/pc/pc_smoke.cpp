@@ -279,6 +279,9 @@ void requireWatchdog(const char* test, double seconds, const char* var) {
     if (strcmp(name, "stb-sweep") == 0) {
         smokeStbSweep();
     }
+    if (strcmp(name, "blur-pos") == 0) {
+        smokeBlurPos();
+    }
     writef(STDERR_FILENO, "[cos] smoke %s has no runner\n", name);
     pc_exit(PC_EXIT_USAGE);
 }
@@ -317,6 +320,7 @@ const Smoke kSmokes[] = {
     {"anm-sweep", kAfterHeaps},
     {"amp-sweep", kAfterHeaps},
     {"stb-sweep", kAfterHeaps},
+    {"blur-pos", kAfterHeaps},
     {"pad-echo", kInGame},
     {"title-audio", kInGame},
     {"actor-sweep", kInGame},

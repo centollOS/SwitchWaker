@@ -135,6 +135,8 @@ const char* runCardGciPath();
 [[noreturn]] void smokeAmpSweep();
 // pc_stb.cpp: COS_SMOKE=stb-sweep.
 [[noreturn]] void smokeStbSweep();
+// pc_blur.cpp: COS_SMOKE=blur-pos (bug B3, the sword blur positions).
+[[noreturn]] void smokeBlurPos();
 // pc_arc.cpp: COS_SMOKE=arc-sweep.
 [[noreturn]] void smokeArcSweep();
 bool isKnownSmoke(const char* name);

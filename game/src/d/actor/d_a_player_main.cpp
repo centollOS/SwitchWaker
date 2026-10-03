@@ -31,6 +31,9 @@
 #include "m_Do/m_Do_controller_pad.h"
 #include "m_Do/m_Do_mtx.h"
 #include "m_Do/m_Do_lib.h"
+#if TARGET_PC
+#include "helpers/endian.h"
+#endif
 #include "d/d_material.h"
 #include "JSystem/J3DGraphLoader/J3DAnmLoader.h"
 #include "d/actor/d_a_hookshot.h"
@@ -583,9 +586,28 @@ JKRHeap* daPy_lk_c::setItemHeap() {
     return setAnimeHeap(mpItemHeaps[mCurrItemHeapIdx]);
 }
 
+#if TARGET_PC
+// A *_POS resource of LkAnm.arc (the sword blur: a root and a tip Vec per animation frame) is a
+// raw array of big-endian f32, copied as is by JKRReadIdxResource: swap each one to host order,
+// or the blur quads get garbage corners and cover the screen (bug B3). Also used by the
+// COS_SMOKE=blur-pos check (native/src/pc/pc_blur.cpp). Returns the size read.
+u32 daPy_readBlurPosResource(Vec* buffer, u32 bufferSize, u16 index, JKRArchive* arc) {
+    u32 size = JKRReadIdxResource(buffer, bufferSize, index, arc);
+    u32* words = reinterpret_cast<u32*>(buffer);
+    for (u32 i = 0; i < size / sizeof(u32); i++) {
+        words[i] = RES_U32(words[i]);
+    }
+    return size;
+}
+#endif
+
 /* 80104240-80104280       .text setBlurPosResource__9daPy_lk_cFUs */
 void daPy_lk_c::setBlurPosResource(u16 index) {
+#if TARGET_PC
+    daPy_readBlurPosResource(mSwBlur.mpPosBuffer, sizeof(Vec) * 2 * 0x300, index, dComIfGp_getAnmArchive());
+#else
     JKRReadIdxResource(mSwBlur.mpPosBuffer, sizeof(Vec) * 2 * 0x300, index, dComIfGp_getAnmArchive());
+#endif
 }
 
 /* 80104280-80104364       .text getItemAnimeResource__9daPy_lk_cFUs */
