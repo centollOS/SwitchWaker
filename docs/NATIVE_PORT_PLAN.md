@@ -2058,6 +2058,61 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
     `regress.sh -j 3` all checks passed. Committed as one root cause per commit (owner tags,
     stream pointer tables, DVD command pointer, audio heap, physical addresses, markers and log).
 
+- **4.12 J3D animation and runtime** (2026-10-03): `COS_SMOKE=anm-sweep` 0 x3; the report equals
+  the manifest (1319 archives, 6227 J3D1 files: 3444 BCK, 1070 BTK, 444 BRK, 13 BPK, 1255 BTP,
+  1 BVA; 2799678 values at the first, middle and last frame). Builds on 4.8's animation block
+  headers; each item below is meant as its own commit:
+  - **Animation tables and value arrays read host-order.** The tables the getters index
+    (`J3DAnmKeyTableBase`, the colour/transform/visibility/tex-pattern/cluster full tables) are
+    `BE(u16)`; the value arrays the `J3DAnm*` objects point into are `BE(f32)*`/`BE(s16)*`/
+    `BE(u16)*`/`BE(Vec)*` (u8 arrays stay as they are), and `J3DGetKeyFrameInterpolation` is
+    instantiated on the BE types. No swap at load (decision H1 allows one for CPU-hot arrays with
+    a double-swap guard): `searchUpdateMaterialID` writes material IDs back into the file data,
+    `dRes_info_c` binds BCKs with `setResource` and the player loads the same buffers again, so
+    reading in place needs no "swapped once" mark. The `bswap` per key read is one instruction.
+  - **`J3DHermiteInterpolationS` was empty on PC.** Its body is paired-single assembly only, so
+    every interpolated BCK/BTK rotation and BXK colour returned an uninitialised register. On PC
+    it is the same operations in C, in the assembly's order.
+  - **Vertex-colour index records relocated in place.** `J3DAnmVtxColorIndexData::mpData` holds a
+    file index the GameCube loader overwrites with a 32-bit pointer; on PC the 8-byte record
+    stays as in the file (`BE(u16)`, `BE(u32)`) and `J3DAnmVtxColor::colorAddressBase` keeps the
+    two index tables (Dusklight's base), with `getVtxColorIndexPointer` resolving a record. No
+    BXK/BXA is on the disc (compiled, not exercised). The record joined `layout_headers.txt`.
+  - **`J3DMaterial::getMaterialAnm` dropped animations by a truncated address.** The GameCube
+    test `< 0xC0000000` read the low 32 bits of the host pointer; on PC it returns the pointer
+    (Dusklight's `J3DMaterial.h`), and `J3DMatPacket::setMaterialAnmID` keeps the whole pointer
+    (`uintptr_t`), which the draw buffer compares. The two `J3DDrawBuffer` truncations are only
+    hashes (marked harmless).
+  - **`J3DTexture::setResTIMG` offsets.** The entry's image/palette offsets become relative to
+    the entry and can be negative (a 32-bit wrap on the GameCube); on PC the distance is checked
+    to fit in 32 bits (every ResTIMG passed is in a MEM1 heap, H5; OSPanic otherwise) and
+    `loadTexNo` adds the offsets sign-extended. Group F 11 -> 2.
+  - **Harness:** `pc_anm.cpp` mounts every archive under /res, expands Yaz0 entries (LkAnm,
+    LkD00, LkD01, as `readResource` does) and loads every J3D1 file as the game does (BCK:
+    `mDoExt_transAnmBas` + `setResource`, as `dRes_info_c`; the rest `J3DAnmLoaderDataBase::load`)
+    in a solid heap, evaluates it through the game's getters at frames 0, max/2 and max, checks
+    every value finite, |scale| < 1e3, |translation| < 1e6, loads the file a second time
+    (`load`) and requires the same values bit for bit. `anm_sweep.txt` goes to
+    `disc_manifest.py --check-anm` (manifest version 7), which evaluates the same animations from
+    the file bytes in emulated f32 and compares per file the block tag, attribute, frame count,
+    track and name counts and, per family, count, sum, sum of |v| and max |v| (tolerance: integer
+    results within 1e-3 of a truncation boundary, 1e-5 of the magnitude for floats). Negative
+    checks: HEAD's `J3DAnimation.h/.cpp` and `J3DAnmLoader.cpp` give 8526 errors (scale and
+    translation out of range); a broken `J3DHermiteInterpolationS` gives 7017 manifest DIFFs.
+  Not done (split off; the runtime of drawn and skinned models, verified once models draw): the
+  CPU skinning `J3DSkinDeform` (display-list reads of `vtxCount`/indices and the big-endian
+  source positions and normals, used by doors, the ship and `dBgWDeform`), `J3DShape`'s
+  `J3DLoadArrayBasePtr` (CP 0xA0, which Aurora rejects: needs `GX_AURORA_LOAD_ARRAYBASE` with the
+  array size and byte order of the transformed arrays) and `J3DSys`'s matrix count for
+  `GXSETARRAY` (the two remaining group F markers). Clusters (`J3DDeformer`) have no BLS on the
+  disc.
+  Step verification: anm-sweep 0 x3 equal to the manifest, logo-res 0, j3d-sweep 0 equal,
+  `cos_pc_tests` ok, layout check (GameCube 1451 checks), inventory `--check` ok (37 open);
+  `unifdef -UTARGET_PC` of the changed game files equals HEAD but for `BE(T)` shims and comments.
+  Review (2026-10-03): approved; anm-sweep 0 x3 equal to the manifest, logo-res 0, j3d-sweep 0,
+  `regress.sh -j 3` all checks passed; committed as six commits, one root cause each, plus
+  this log. The split-off items (J3DSkinDeform, J3DShape array base, J3DSys matrix count) stay open.
+
 ### Phase 6 render issues
 
 None yet.
