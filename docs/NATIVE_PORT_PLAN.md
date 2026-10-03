@@ -3034,6 +3034,23 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `--input` no START reaches the title, the game stays in OPEN2_SCENE and times out: a run-command
   mistake, not a game bug (the regress line has `--input`).
   Review: `regress.sh -j 3` passed; `new-game` reached 3/3 (2 uncapped, 11-12 s; 1 capped, 47 s).
+- **M14 outset-real reached** (2026-10-03, lane audio, boot loop iteration 1, no code change):
+  `outset-real --input native/check/input/new-game.txt --timeout 480`, capped, passes 3/3 (~410 s
+  each, two of them in parallel): OPEN scene gone at frame ~8020, PLAY scene in sea room 44 at
+  ~8060, the intro event and its STB demo run 2973 demo frames (to ~11040), Link is free, the
+  script's fourth stick hold moves him 356 units, milestone at frame 12420. The NG-probe's "PLAY
+  scene never created" was a pacing artifact, not a stream leak: `dScnPly` `phase_00` waits until
+  the prologue's streamed BGM (JA_STRM_DEMO_01_01, ~218 s real time) has ended and freed the stream
+  buffer, which is GameCube behaviour; uncapped, the prologue's 6560 frames take ~25 s while the
+  stream still plays in real time, so the PLAY scene comes up ~190 s later (seen at frame 42955,
+  then the 240 s timeout ran out during the intro event). The script's provisional timing after
+  frame 8200 works as is, capped. Not in `regress_targets.txt`: `regress.sh` runs every
+  target uncapped, and uncapped the PLAY scene comes up near frame 40,000, long after the script's
+  B taps, so the intro event waits on its first message until the timeout (seen: 480 s, demo
+  mode 1 throughout). A capped line would also add ~410 s to the ~15 s suite. Run it by hand:
+  `run.sh outset-real --input native/check/input/new-game.txt --timeout 480` (capped).
+  Review: `regress.sh -j 3` passed; `outset-real` reached 3/3 capped (3 parallel runs, 410 s
+  each, milestone frame 12420).
 
 ### Phase 6 render issues
 
