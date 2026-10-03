@@ -52,6 +52,11 @@ void runEarlySmoke();
 // pc_smoke.cpp: runs COS_SMOKE if it is a test that runs right after the disc check (disc-ls); it
 // never returns then.
 void runDiscSmoke();
+// pc_smoke.cpp: runs COS_SMOKE if it is a test that runs right after the Aurora bring-up (heap);
+// it never returns then.
+void runAuroraSmoke();
+// pc_heap.cpp: COS_SMOKE=heap.
+[[noreturn]] void smokeHeap();
 bool isKnownSmoke(const char* name);
 void printSmokes(int fd);
 

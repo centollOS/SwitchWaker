@@ -414,6 +414,10 @@ void main01() {
     // Setup heaps, setup exception manager, set RNG seed, setup DVDError Thread, setup Memory card
     // Thread
     mDoMch_Create();
+#if TARGET_PC
+    // Milestone M2 (docs/NATIVE_PORT_PHASE4_6.md): every heap made and consistent.
+    pc_heaps_created();
+#endif
 
     // setup FrameBuffer and ZBuffer, init display lists
     mDoGph_Create();

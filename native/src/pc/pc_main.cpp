@@ -180,6 +180,9 @@ void pc_aurora_init(int argc, char* argv[]) {
         // Dusklight: "Pretend the audio engine initialized already. This is a lie, but needed to boot."
         mDoAud_zelAudio_c::onInitFlag();
     }
+
+    // Smoke tests that need Aurora and OSInit but none of the game's main code (heap) end here.
+    runAuroraSmoke();
 }
 
 } // extern "C"

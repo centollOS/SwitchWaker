@@ -51,6 +51,11 @@ void pc_aurora_init(int argc, char* argv[]);
    main01 on PC: m_Do_main.cpp binds mainThread to it. Usable during static initialisation. */
 struct OSThread* pc_main_thread(void);
 
+/* Milestone M2 (step 4.2, pc_heap.cpp), called by main01 right after mDoMch_Create returned:
+   check() on the root, system, main, game, archive and command heaps; logs "heaps" if all hold,
+   else exits 1. */
+void pc_heaps_created(void);
+
 /* Logs "[cos] MILESTONE <name> frame= retrace= ms=" and exits 0 if <name> is COS_MILESTONE. */
 void pc_milestone(const char* name);
 

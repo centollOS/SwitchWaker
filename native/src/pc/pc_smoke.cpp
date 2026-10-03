@@ -13,6 +13,8 @@
 //       F <entrynum> <size> <path>        a file, size from DVDFastOpen's DVDFileInfo
 //   native/tools/run.sh then compares it with the manifest native/tools/disc_manifest.py reads
 //   from the same image independently (disc_manifest.py --check-ls).
+// After the Aurora bring-up (runAuroraSmoke, from pc_aurora_init), before the game's main code:
+// - heap (step 4.2, pc_heap.cpp): the JKR heaps on the host.
 // The format sweeps and the other smoke tests of phases 4-6 add their names to kSmokes; one that
 // runs after some of the boot is started by the boot code at that point, not by runEarlySmoke.
 #include "pc_internal.h"
@@ -203,6 +205,9 @@ void requireWatchdog(const char* test, double seconds, const char* var) {
     if (strcmp(name, "disc-ls") == 0) {
         smokeDiscLs();
     }
+    if (strcmp(name, "heap") == 0) {
+        smokeHeap();
+    }
     writef(STDERR_FILENO, "[cos] smoke %s has no runner\n", name);
     pc_exit(PC_EXIT_USAGE);
 }
@@ -210,6 +215,7 @@ void requireWatchdog(const char* test, double seconds, const char* var) {
 enum SmokeStage {
     kEarly,     // runs from pc_harness_init, before the SDK and the disc check
     kAfterDisc, // runs from pc_harness_init once the disc check passed
+    kAfterAurora, // runs from pc_aurora_init once Aurora, the disc and OSInit are up
 };
 
 struct Smoke {
@@ -224,6 +230,7 @@ const Smoke kSmokes[] = {
     {"stall-test", kEarly},
     {"timeout-test", kEarly},
     {"disc-ls", kAfterDisc},
+    {"heap", kAfterAurora},
 };
 
 const Smoke* findSmoke(const char* name) {
@@ -268,6 +275,10 @@ void runEarlySmoke() {
 
 void runDiscSmoke() {
     runSmokeAt(kAfterDisc);
+}
+
+void runAuroraSmoke() {
+    runSmokeAt(kAfterAurora);
 }
 
 } // namespace pc
