@@ -150,7 +150,10 @@ scripts/switch/build_native.sh       # build/switch-native/centollos.nro and cen
 - Aurora is `build/aurora-3227d76` copied into the build directory with the shared Aurora patches
   every Mac build gets (`native/patches/aurora`, decision H11) applied first, then
   `switch/native/aurora/patches` (the window surface on libnx's NWindow through Dawn's OpenGL ES backend, `gl_defer`, ImGui
-  without SDL's backends), the mechanism `switch/aurora` uses for the translated port. Dawn is the
+  without SDL's backends, Dawn's cache callbacks, and `OSTicksToCalendarTime` on the console's
+  time zone rule instead of libstdc++'s time zone database, which has no data on Horizon and
+  faulted in `std::chrono::reload_tzdb` from the name scene's `dKyeff_Create`), the mechanism
+  `switch/aurora` uses for the translated port. Dawn is the
   translated port's (`switch/dawn`, encounter/dawn `266c1cf` with its Horizon patches), the one that
   has presented Aurora's frames on the console; the Dawn source fetched by the translated port's Dawn
   probe (`build/switch-dawn-probe/_deps/dawn-src`) is reused when it is there.

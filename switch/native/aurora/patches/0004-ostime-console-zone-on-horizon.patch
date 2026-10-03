@@ -1,0 +1,61 @@
+--- a/lib/dolphin/os/OSTime.cpp
++++ b/lib/dolphin/os/OSTime.cpp
+@@ -1,4 +1,5 @@
+ #include <chrono>
++#include <cstdint>
+ #include <ctime>
+ #include <mutex>
+ 
+@@ -19,8 +20,38 @@
+ std::once_flag s_gameEpochOnce;
+ OSTime s_gameEpochOffset;
+ 
++#if defined(__SWITCH__)
++// Horizon: libstdc++'s time zone database has no tzdata to read there (current_zone() faults in
++// reload_tzdb), and newlib's localtime knows only TZ. The console's own rule (libnx's time
++// service, opened by libnx at start) gives the local offset; without it, UTC.
++struct HorizonCalendarTime {
++  uint16_t year;
++  uint8_t month, day, hour, minute, second, pad;
++};
++struct HorizonCalendarAdditionalInfo {
++  uint32_t wday, yday;
++  char timezoneName[8];
++  uint32_t dst;
++  int32_t offset; // seconds east of UTC
++};
++extern "C" uint32_t timeToCalendarTimeWithMyRule(uint64_t timestamp, HorizonCalendarTime* caltime,
++                                                 HorizonCalendarAdditionalInfo* info);
++
++SystemDuration horizon_local_offset(SystemTime time) {
++  const std::time_t wallClock = chrono::system_clock::to_time_t(time);
++  HorizonCalendarTime cal{};
++  HorizonCalendarAdditionalInfo info{};
++  if (wallClock < 0 || timeToCalendarTimeWithMyRule(static_cast<uint64_t>(wallClock), &cal, &info) != 0) {
++    return SystemDuration::zero();
++  }
++  return chrono::duration_cast<SystemDuration>(chrono::seconds{info.offset});
++}
++#endif
++
+ LocalTime system_time_to_local_time(SystemTime time) {
+-#if defined(__cpp_lib_chrono) && __cpp_lib_chrono >= 201907L
++#if defined(__SWITCH__)
++  return LocalTime{time.time_since_epoch() + horizon_local_offset(time)};
++#elif defined(__cpp_lib_chrono) && __cpp_lib_chrono >= 201907L
+   return chrono::zoned_time(chrono::current_zone(), time).get_local_time();
+ #else
+   // Apple libc++ currently ships <chrono> with the C++20 timezone database API disabled
+@@ -49,7 +80,11 @@
+ }
+ 
+ SystemTime local_time_to_system_time(LocalTime time) {
+-#if defined(__cpp_lib_chrono) && __cpp_lib_chrono >= 201907L
++#if defined(__SWITCH__)
++  // The offset at the local time read as UTC: off by the offset's change only across a DST switch.
++  const SystemTime approx{time.time_since_epoch()};
++  return SystemTime{time.time_since_epoch() - horizon_local_offset(approx)};
++#elif defined(__cpp_lib_chrono) && __cpp_lib_chrono >= 201907L
+   return chrono::zoned_time(chrono::current_zone(), time).get_sys_time();
+ #else
+   // Apple libc++ currently ships <chrono> with the C++20 timezone database API disabled
