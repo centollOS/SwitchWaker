@@ -2560,9 +2560,10 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
      `TParseValue_misaligned_` now assembles big-endian values on the host, and d_demo's ids go
      through it (`DEMO_PRM`). The rest of the STB raw values stay with 4.17.
   d_cam_param/d_cam_style/d_cam_type are compiled-in tables (no disc data); the game has no
-  d_msg_flow (its flow is in code and the STB message objects above). Not done: `mDoLib_cnvind16/32`
-  byte-swap the little-endian AGB `.amp` dungeon maps (`map_dt_c`) and GBA buffers, which on a
-  little-endian host is wrong; no run reaches a floor map yet.
+  d_msg_flow (its flow is in code and the STB message objects above). Not done here:
+  `mDoLib_cnvind16/32` byte-swap the little-endian AGB `.amp` dungeon maps (`map_dt_c`) and GBA
+  buffers, which on a little-endian host is wrong; no run reaches a floor map yet (fixed by
+  F2-agb-map below).
   Result: `outset-debug --stage sea:44:206` 3/3; an uncapped 4,000-frame run plays Aryll's
   lookout event with its messages ("I knew you'd be here!") with no fault; a capped 6,400-frame
   run tapping A through the event ends with Link free on the lookout, no fault. Uncapped, the
@@ -2604,6 +2605,27 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: regression passes; `vi` smoke fails with the old VIRetrace.cpp and passes with the
   fix; uncapped `outset-control` and an uncapped 6200-frame Outset run with input pass; capped
   `run --frames 600` pacing ratio 1.0001.
+- **F2-agb-map: AGB data in host order** (2026-10-03, lane outset, layout). The dungeon floor maps
+  `m<N>.amp` (`map_dt_c`, read by `dMap_2DAGBScrDsp_c` and `dMap_RoomInfo_c`) are AGB data, stored
+  little-endian, and the GBA link buffers (`dMap_c::mAgbSendBuf`) go to the GBA little-endian; the
+  game converts both with `mDoLib_cnvind16/32`, a byte swap on the big-endian GameCube, which on a
+  little-endian host turned every field into garbage (a 6054-byte map gave `getMapDtSize`
+  1779826748 and its tile map at 0xfc010000 instead of 0x1fc). Under `TARGET_PC &&
+  TARGET_LITTLE_ENDIAN` both functions return the value unchanged (`m_Do_lib.cpp`); GameCube code
+  unchanged. No run reaches a floor map yet: a debug boot into a dungeon (`--stage kindan:0:0`)
+  panics first in `dStage_memaInfoInit` (`d_stage.cpp:2932`: the MEMA chunk's
+  `OFFSET_PTR(u32) m_entries` are read raw, so the room heap size is byte-swapped; not fixed here),
+  and with `--audio off` faults earlier in `JAIZelBasic::sceneChange`. So the new smoke
+  `COS_SMOKE=amp-sweep` (`native/src/pc/pc_amp.cpp`) mounts every `/res/Stage` archive (705) and
+  puts each of the 180 `.amp` maps with its `m<N>.bti` through `dMap_2DAGBScrDsp_c::init`, then
+  reads `getMapDtSize`, the pixel size, the tile map offset and every tile's info word (497,289) as
+  the game does, against an independent little-endian reading: the file must be 0x3C header +
+  graphics + tile map exactly, the pixel size must fit the tile count and every tile's texture
+  cell must lie inside the `.bti`; a value stored as `dMap_c` fills the GBA buffer must give its
+  little-endian bytes. Fails without the change (every map), passes with it 4/4. Adds `amp-sweep`
+  to the regression list.
+  Reviewed: regression passes (with `amp-sweep`); `amp-sweep` fails with the old m_Do_lib.cpp
+  (705 archives, 0 maps, 541 errors) and passes with the fix (180 maps, 497,289 tiles, 0 errors).
 
 ### Phase 6 render issues
 

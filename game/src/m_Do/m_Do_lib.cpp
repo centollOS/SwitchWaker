@@ -11,6 +11,9 @@
 #include "JSystem/JUtility/JUTAssert.h"
 #include "JSystem/JUtility/JUTTexture.h"
 #include "dolphin/gx/GX.h"
+#if TARGET_PC
+#include "helpers/endian.h"
+#endif
 
 /* 80017530-800176BC       .text mDoLib_setResTimgObj__FP7ResTIMGP9_GXTexObjUlP10_GXTlutObj */
 u32 mDoLib_setResTimgObj(ResTIMG* i_img, GXTexObj* o_texObj, u32 i_tlut_name, GXTlutObj * o_tlutObj) {
@@ -109,6 +112,19 @@ void mDoLib_pos2camera(Vec* src, Vec* dst) {
     cMtx_multVec(dComIfGd_getView()->mViewMtx, src, dst);
 }
 
+// mDoLib_cnvind32/16 convert between the CPU's byte order and the little-endian one of AGB data: the
+// .amp floor maps (map_dt_c, d_map.cpp) and the GBA link buffers. On the GameCube that is a byte
+// swap; on a little-endian host (TARGET_PC) the orders already match and the value is returned as
+// is (fix F2-agb-map, docs/NATIVE_PORT_PLAN.md).
+#if TARGET_PC && TARGET_LITTLE_ENDIAN
+u32 mDoLib_cnvind32(u32 r3) {
+    return r3;
+}
+
+u16 mDoLib_cnvind16(u16 r3) {
+    return r3;
+}
+#else
 /* 80017960-80017994       .text mDoLib_cnvind32__FUl */
 u32 mDoLib_cnvind32(u32 r3) {
     u8 sp0C[4];
@@ -130,3 +146,4 @@ u16 mDoLib_cnvind16(u16 r3) {
     sp08[1] = sp0C[0];
     return *(u16*)sp08;
 }
+#endif

@@ -37,6 +37,9 @@
 //   loaders with the game's flags and compared with an independent reading.
 // - anm-sweep (step 4.12, pc_anm.cpp): every J3D animation of the disc loaded as the game loads it
 //   and evaluated at its first, middle and last frame through the game's getters.
+// - amp-sweep (fix F2-agb-map, pc_amp.cpp): every AGB floor map (m<N>.amp) of the room archives
+//   read through dMap_2DAGBScrDsp_c and mDoLib_cnvind16/32 and compared with an independent
+//   little-endian reading, and the GBA buffer byte order.
 // In the booted game:
 // - pad-echo (step 6.3, pc_input.cpp): the COS_INPUT script read back from g_mDoCPd_cpadInfo after
 //   each mDoCPd_Read.
@@ -266,6 +269,9 @@ void requireWatchdog(const char* test, double seconds, const char* var) {
     if (strcmp(name, "anm-sweep") == 0) {
         smokeAnmSweep();
     }
+    if (strcmp(name, "amp-sweep") == 0) {
+        smokeAmpSweep();
+    }
     writef(STDERR_FILENO, "[cos] smoke %s has no runner\n", name);
     pc_exit(PC_EXIT_USAGE);
 }
@@ -302,6 +308,7 @@ const Smoke kSmokes[] = {
     {"audio-parse", kAfterHeaps},
     {"j3d-sweep", kAfterHeaps},
     {"anm-sweep", kAfterHeaps},
+    {"amp-sweep", kAfterHeaps},
     {"pad-echo", kInGame},
     {"title-audio", kInGame},
 };
