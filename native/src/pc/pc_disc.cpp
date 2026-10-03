@@ -30,7 +30,12 @@ int checkDisc() {
     unsigned char header[0x20];
     ssize_t got = -1;
     if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode)) {
+#if defined(__SWITCH__)
+        // Horizon's C library has no pread.
+        got = lseek(fd, 0, SEEK_SET) == 0 ? read(fd, header, sizeof(header)) : -1;
+#else
         got = pread(fd, header, sizeof(header), 0);
+#endif
     }
     close(fd);
     if (got != (ssize_t)sizeof(header)) {

@@ -41,6 +41,9 @@
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
 #endif
+#if defined(__SWITCH__)
+#include "cos_switch.h"
+#endif
 
 namespace pc {
 
@@ -60,8 +63,13 @@ void makeDir(const char* path) {
     }
 }
 
-// <directory of the executable>/user and <directory of the executable>/user/cache.
+// <directory of the executable>/user and <directory of the executable>/user/cache; on the Switch
+// <COS_SWITCH_ROOT>/user (the native port's directory on the SD card, switch/native/source).
 void makeUserPaths(const char* argv0) {
+#if defined(__SWITCH__)
+    (void)argv0;
+    snprintf(sUserPath, sizeof(sUserPath), "%s/user", COS_SWITCH_ROOT);
+#else
     char exe[PATH_MAX] = {};
 #if defined(__APPLE__)
     uint32_t size = sizeof(exe);
@@ -81,6 +89,7 @@ void makeUserPaths(const char* argv0) {
         dirLen = 1;
     }
     snprintf(sUserPath, sizeof(sUserPath), "%.*s/user", dirLen, path);
+#endif
     snprintf(sCachePath, sizeof(sCachePath), "%s/cache", sUserPath);
     makeDir(sUserPath);
     makeDir(sCachePath);

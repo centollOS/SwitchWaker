@@ -12,6 +12,10 @@
 // - pc_panic (called by OSPanic on PC) prints the same state and backtrace, then exits 12.
 // - dumpAllThreads (the stall report) suspends every other thread and walks its frame chain.
 // Memory is read with vm_read_overwrite, so a corrupt frame chain cannot fault the handler.
+// On the Switch (phase 7) there are no signals: libnx's exception handler in switch/native/source
+// writes the crash report and calls writeState through cos_switch_set_crash_state_writer; pc_panic
+// and the frame walk read memory through svcQueryMemory, and frames are printed as offsets into
+// centollos.elf for addr2line (there is no backtrace_symbols_fd).
 // No Dusklight code: borealis::crash is not available there.
 #include "pc_internal.h"
 
@@ -21,12 +25,16 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
-#include <dlfcn.h>
-#include <execinfo.h>
 #include <fcntl.h>
 #include <pthread.h>
-#include <signal.h>
 #include <unistd.h>
+#if defined(__SWITCH__)
+#include "cos_switch.h"
+#else
+#include <dlfcn.h>
+#include <execinfo.h>
+#include <signal.h>
+#endif
 
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
@@ -81,6 +89,8 @@ bool readWord(uintptr_t addr, uintptr_t* out) {
     kern_return_t kr = vm_read_overwrite(mach_task_self(), (vm_address_t)addr, sizeof(uintptr_t),
                                          (vm_address_t)out, &got);
     return kr == KERN_SUCCESS && got == sizeof(uintptr_t);
+#elif defined(__SWITCH__)
+    return cos_switch_read_word(addr, out) != 0;
 #else
     *out = *(const uintptr_t*)addr;
     return true;
@@ -101,10 +111,14 @@ int collectFrames(uintptr_t pc, uintptr_t lr, uintptr_t fp, void** frames, int m
     // itself. So lr is listed only when it is not the first chain entry and lies in another
     // function than pc.
     if (lr != 0 && lr != firstRet && n < max) {
+#if defined(__SWITCH__)
+        const bool samePlace = false; // no dladdr: lr is listed, possibly stale
+#else
         Dl_info pcInfo = {};
         Dl_info lrInfo = {};
         bool samePlace = dladdr((void*)pc, &pcInfo) != 0 && dladdr((void*)lr, &lrInfo) != 0 &&
                          pcInfo.dli_saddr == lrInfo.dli_saddr;
+#endif
         if (!samePlace) {
             frames[n++] = (void*)lr;
         }
@@ -136,6 +150,10 @@ void writeImageBase(int fd) {
     const struct mach_header* header = _dyld_get_image_header(0);
     writef(fd, "[cos] image %s load=0x%llx slide=0x%llx\n", _dyld_get_image_name(0),
            (unsigned long long)(uintptr_t)header, (unsigned long long)_dyld_get_image_vmaddr_slide(0));
+#elif defined(__SWITCH__)
+    // The frames below are printed as offsets into centollos.elf, the ELF next to the NRO.
+    writef(fd, "[cos] image base=0x%llx: aarch64-none-elf-addr2line -f -C -i -e centollos.elf <offset>\n",
+           (unsigned long long)cos_switch_image_base());
 #else
     (void)fd;
 #endif
@@ -159,17 +177,34 @@ void writeFrames(int fd, void** frames, int n, int exact) {
         writef(fd, " 0x%llx", (unsigned long long)a);
     }
     writef(fd, "\n");
+#if defined(__SWITCH__)
+    const uintptr_t base = cos_switch_image_base();
+    for (int i = 0; i < n; i++) {
+        const uintptr_t a = (uintptr_t)sites[i];
+        if (a >= base && a - base < (1ull << 30)) {
+            writef(fd, "[cos]   #%d centollos.elf+0x%llx\n", i, (unsigned long long)(a - base));
+        } else {
+            writef(fd, "[cos]   #%d 0x%llx\n", i, (unsigned long long)a);
+        }
+    }
+#else
     backtrace_symbols_fd(sites, n, fd);
+#endif
 }
 
 void writeThreadName(int fd) {
+#if defined(__SWITCH__)
+    writef(fd, "[cos] thread %llu\n", (unsigned long long)cos_switch_thread_id());
+#else
     char name[64] = "";
     pthread_getname_np(pthread_self(), name, sizeof(name));
     uint64_t tid = 0;
     pthread_threadid_np(nullptr, &tid);
     writef(fd, "[cos] thread %llu \"%s\"\n", (unsigned long long)tid, name);
+#endif
 }
 
+#if !defined(__SWITCH__)
 void crashReport(int fd, int sig, siginfo_t* info, ucontext_t* uc) {
     uintptr_t addr = (uintptr_t)info->si_addr;
     writef(fd, "[cos] CRASH %s (%d) code=%d addr=0x%llx\n", signalName(sig), sig, info->si_code,
@@ -229,6 +264,7 @@ void crashHandler(int sig, siginfo_t* info, void* context) {
     }
     pc_exit(PC_EXIT_SIGNAL);
 }
+#endif // !__SWITCH__
 
 } // namespace
 
@@ -280,6 +316,11 @@ void writeState(int fd) {
 }
 
 void installCrashHandler() {
+#if defined(__SWITCH__)
+    // libnx's exception handler (switch/native/source/cos_switch.cpp) reports crashes; it adds
+    // this state line.
+    cos_switch_set_crash_state_writer(writeState);
+#else
     // Alternate signal stack for this (the main) thread, so a stack overflow still reports.
     static char sAltStack[256 * 1024];
     stack_t ss = {};
@@ -296,6 +337,7 @@ void installCrashHandler() {
     for (int sig : signals) {
         sigaction(sig, &sa, nullptr);
     }
+#endif
 }
 
 void dumpAllThreads(int fd) {
@@ -397,7 +439,12 @@ void pc_trace_resource(const char* path, int entryNum) {
 
 void pc_panic(const char* file, int line) {
     void* frames[kMaxFrames];
+#if defined(__SWITCH__)
+    int n = collectFrames((uintptr_t)__builtin_return_address(0), 0,
+                          (uintptr_t)__builtin_frame_address(0), frames, kMaxFrames);
+#else
     int n = backtrace(frames, kMaxFrames);
+#endif
     for (int pass = 0; pass < 2; pass++) {
         int fd = pass == 0 ? STDERR_FILENO : openRunFile("backtrace.txt");
         if (fd < 0) {

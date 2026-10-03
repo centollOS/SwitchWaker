@@ -18,7 +18,9 @@ namespace {
 uint64_t sWatchStartNs = 0;
 
 void* watchdogMain(void*) {
+#if defined(__APPLE__)
     pthread_setname_np("decomp-watchdog");
+#endif
     const uint64_t timeoutNs = (uint64_t)(gConfig.timeoutS * 1e9);
     const uint64_t stallNs = (uint64_t)(gConfig.stallS * 1e9);
     unsigned int lastFrames = pc_frame_count();

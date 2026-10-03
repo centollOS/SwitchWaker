@@ -10,6 +10,10 @@
 #include <ctime>
 #include <unistd.h>
 
+#if defined(__SWITCH__)
+#include "cos_switch.h"
+#endif
+
 namespace pc {
 
 Config gConfig;
@@ -64,6 +68,16 @@ bool envFlag(const char* name, bool fallback) {
 }
 
 } // namespace
+
+void waitForever() {
+    for (;;) {
+#if defined(__SWITCH__)
+        usleep(1000 * 1000);
+#else
+        pause();
+#endif
+    }
+}
 
 uint64_t monotonicNs() {
     struct timespec ts;
@@ -165,9 +179,7 @@ void pc_exit(int code) {
     if (!sExiting.compare_exchange_strong(expected, 1)) {
         // Another thread is already leaving (a crash during a watchdog exit, two crashes...):
         // let it finish with its own code.
-        for (;;) {
-            pause();
-        }
+        waitForever();
     }
     // _Exit, not exit: exit runs the game's static destructors, which the GameCube never ran and
     // which assume a booted game (~dComIfG_inf_c reaches dVibration_c::Kill, which stops the motor
@@ -181,7 +193,12 @@ void pc_exit(int code) {
             funlockfile(f);
         }
     }
+#if defined(__SWITCH__)
+    // Writes the logs out (SD card, USB) and ends the process (switch/native/source).
+    cos_switch_exit(code);
+#else
     _Exit(code);
+#endif
 }
 
 } // extern "C"
