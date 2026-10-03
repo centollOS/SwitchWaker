@@ -3,8 +3,14 @@
 
 #include "JSystem/J3DU/J3DUClipper.h"
 
+#if TARGET_PC
+// Aurora defines GXTexObj and GXTlutObj as typedefs of unnamed structs, so forward declarations
+// through the tags _GXTexObj/_GXTlutObj would declare second, different types. Take the real ones.
+#include "dolphin/gx/GXStruct.h"
+#else
 typedef struct _GXTexObj GXTexObj;
 typedef struct _GXTlutObj GXTlutObj;
+#endif
 typedef struct Vec Vec;
 struct ResTIMG;
 

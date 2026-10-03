@@ -565,11 +565,14 @@ extern "C" void ModuleUnresolved() {
     OSReport_Error("\nError: リンクされていない関数が呼び出されました.\n");
     OSReport_Error("Address:      Back Chain    LR Save\n");
     u32 i = 0;
-    u32* stackPtr = (u32*)OSGetStackPointer();
 #if TARGET_PC
+    // Aurora declares OSGetStackPointer as returning u32 (the decomp: u8*); go through uintptr_t
+    // so both header modes compile alike. cos_sdk returns 0, so nothing is walked.
     // TODO(native phase 4): walks the PowerPC back chain of 32-bit stack words.
+    u32* stackPtr = (u32*)(uintptr_t)OSGetStackPointer();
     while ((stackPtr != NULL) && ((u32)(uintptr_t)stackPtr != 0xFFFFFFFF) && (i++ < 0x10)) {
 #else
+    u32* stackPtr = (u32*)OSGetStackPointer();
     while ((stackPtr != NULL) && ((u32)stackPtr != 0xFFFFFFFF) && (i++ < 0x10)) {
 #endif
         OSReport_Error("0x%08x:   0x%08x    0x%08x\n", stackPtr, *stackPtr, *(stackPtr + 1));

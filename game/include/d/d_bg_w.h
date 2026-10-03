@@ -14,7 +14,13 @@ class dBgS_CrrPos;
 class cBgS_PolyInfo;
 class fopAc_ac_c;
 class dBgS_CaptPoly;
+#if TARGET_PC
+// Aurora defines GXColor as a typedef of an unnamed struct, so a forward declaration through the
+// tag _GXColor would declare a second, different type. Take the real one.
+#include "dolphin/gx/GXStruct.h"
+#else
 typedef struct _GXColor GXColor;
+#endif
 
 class dBgW : public cBgW {
 public:

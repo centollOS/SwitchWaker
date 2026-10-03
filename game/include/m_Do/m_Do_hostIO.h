@@ -3,6 +3,11 @@
 
 #include "dolphin/types.h"
 #include <string.h>
+#if TARGET_PC
+// The genMessage bodies of the HIO classes use UNUSED() from global.h, which the decomp's SDK
+// headers bring in (dolphin/gx/GXStruct.h); Aurora's do not (COS_SDK_HEADERS=aurora).
+#include "global.h"
+#endif
 
 // move JOR stuff later
 class JOREventListener;

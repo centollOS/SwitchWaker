@@ -596,7 +596,15 @@ public:
     void update(u16 i_segs, GXColor& i_color, dKy_tevstr_c* i_tevStr);
     // some calls to these functions define i_color inline which is illegal in C++ for a non-const
     // reference parameter - we add these overloads to enable standard compiler compatibility
-#if !__MWERKS__
+#if TARGET_PC
+    // Aurora's GXColor is a typedef of an unnamed struct (no _GXColor tag); name the typedef.
+    void update(u16 i_segs, f32 i_size, const GXColor& i_color, u16 i_space, dKy_tevstr_c* i_tevStr) {
+        update(i_segs, i_size, const_cast<GXColor&>(i_color), i_space, i_tevStr);
+    }
+    void update(u16 i_segs, const GXColor& i_color, dKy_tevstr_c* i_tevStr) {
+        update(i_segs, const_cast<GXColor&>(i_color), i_tevStr);
+    }
+#elif !__MWERKS__
     void update(u16 i_segs, f32 i_size, const _GXColor& i_color, u16 i_space, dKy_tevstr_c* i_tevStr) {
         update(i_segs, i_size, const_cast<_GXColor&>(i_color), i_space, i_tevStr);
     }

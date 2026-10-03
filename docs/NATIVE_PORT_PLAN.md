@@ -440,3 +440,18 @@ Each phase lands as its own commits; this file records decisions and measured re
   JSystem-studio (rebuilt from clean), `cos_sdk`, smoke, scaffold, header and shadow checks (82
   names, ok) build; default configuration: `cos_modules` and checks rebuilt (every includer of the
   header), 0 errors.
+- **2.7 framework:** compiles in aurora header mode (all 57 units of f_pc, f_op, f_ap, c and
+  `DynamicLink.cpp`, 0 errors) and still in decomp mode. `build/native-mac-aurora` now takes the
+  asset headers from `build/native-mac` (`-DCOS_ASSETS_DIR=.../build/native-mac/assets/GZLE01`,
+  cache only). First aurora build: 12 units failed on 7 distinct errors, all from headers (none hit
+  clang's 50-per-unit limit): the `_GXColor` forwards in `d_bg_w.h` and the `_GXColor` overloads
+  of `mDoExt_3DlineMat0_c::update` in `m_Do_ext.h`, the `_GXTexObj`/`_GXTlutObj` forwards in
+  `m_Do_lib.h`, and `UNUSED` in `f_ap_game.h`. Fixes in `game`, all under `TARGET_PC` with
+  the original kept: `d_bg_w.h` and `m_Do_lib.h` include `dolphin/gx/GXStruct.h`; the
+  `m_Do_ext.h` overloads name `GXColor`; `m_Do_hostIO.h` includes `global.h`, which the decomp's
+  `GXStruct.h` brings in, so every HIO class's `genMessage` gets `UNUSED`; `ModuleUnresolved`
+  (`DynamicLink.cpp`) casts Aurora's `u32 OSGetStackPointer()` through `uintptr_t` (the decomp's
+  returns `u8*`; cos_sdk returns 0, TODO phase 4 as before), so both modes give the same warnings.
+  No forwarder change, no `STATIC_ASSERT` fired. Aurora mode: SSystem, the four JSystem modules,
+  framework (rebuilt from clean), `cos_sdk`, smoke, scaffold, header and shadow checks (82 names,
+  ok) build; default configuration: `cos_modules` and checks rebuilt (617 steps), 0 errors.
