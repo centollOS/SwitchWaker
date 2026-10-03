@@ -38,6 +38,12 @@ Report columns (tab-separated, one line per stage, after a header):
   last_frame (the last game frame the run reported), signature (ok, or the crash/panic/stall
   site: kind, fault address or assert file:line, scene, and the first two functions of the
   backtrace past the harness, with file:line).
+Expected fails (EXPECTED_FAIL below): a stage the debug boot cannot enter the way the real game
+does (it needs a story event flag or a cutscene first) may be listed with the reason and the
+signature its debug boot stops at. Such a stage is reported "xfail" and does not fail the sweep
+only while it fails with exactly that signature; any other failure fails the sweep as usual, and
+a pass is reported "xpass" (the entry should then be removed). The list is never for a crash in
+game code.
 Run logs are kept; runs of identical consecutive lines (Aurora's per-draw warnings) are collapsed
 to one line plus a count to keep the sweep directory small. Nothing here is meant for git.
 """
@@ -63,6 +69,17 @@ LEGACY_DISC = "/path/to/GZLE01.iso"
 
 MEANING = {0: "reached", 1: "check failed", 2: "usage error", 10: "timeout", 11: "stall",
            12: "panic", 13: "signal", 14: "disc problem"}
+
+# Stages the debug boot cannot enter the way the game does: stage -> (signature regex, reason).
+# Documented in docs/NATIVE_PORT_PLAN.md ("boot-sweep expected fails").
+_LKD01 = ("needs event flag 0x2D01 (set by M2tower's rescue.stb before the game ever reaches the "
+          "stage): d_s_play.cpp phase_0 mounts Link's demo animations LkD01.arc only with it, "
+          "the debug boot's new file mounts LkD00.arc, and the stage's Link cutscene asks for "
+          "LkD01 file ids (id 355 is a .btk in LkD01, a .btp in LkD00)")
+EXPECTED_FAIL = {
+    "GTower": (r"JUTNameTab::getIndex .*<- J3DAnmTextureSRTKey::searchUpdateMaterialID", _LKD01),
+    "M2ganon": (r"JUTNameTab::getIndex .*<- J3DAnmTextureSRTKey::searchUpdateMaterialID", _LKD01),
+}
 
 STAGE_ARC = re.compile(r"^/res/Stage/([^/]+)/Stage\.arc$")
 ROOM_ARC = re.compile(r"^/res/Stage/([^/]+)/Room(\d+)\.arc$")
@@ -272,6 +289,16 @@ def run_stage(args, sweep_dir, stage, room, point):
             "signature": signature(run_dir, rc, log), "seconds": int(time.time() - start)}
 
 
+def expectation(stage, r):
+    """"xfail" when a listed stage fails with its listed signature, "xpass" when it passes,
+    "" otherwise (unlisted, or a listed stage failing some other way: a real failure)."""
+    if stage not in EXPECTED_FAIL:
+        return ""
+    if r["rc"] == 0:
+        return "xpass"
+    return "xfail" if re.search(EXPECTED_FAIL[stage][0], r["signature"]) else ""
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--jobs", type=int, default=4)
@@ -329,12 +356,14 @@ def main():
         for fut in concurrent.futures.as_completed(futures):
             stage = futures[fut]
             r = fut.result()
+            r["expect"] = expectation(stage, r)
             results[stage] = r
-            print("boot-sweep: %-8s exit %-3s %3ds  %s" % (stage, r["rc"], r["seconds"],
-                                                         r["signature"]), flush=True)
+            print("boot-sweep: %-8s exit %-3s %3ds  %s%s" % (
+                stage, r["rc"], r["seconds"], r["signature"],
+                "  [%s]" % r["expect"] if r["expect"] else ""), flush=True)
 
     report = os.path.join(sweep_dir, "boot_sweep.txt")
-    failed = 0
+    failed = xfail = xpass = 0
     with open(report, "w") as f:
         f.write("stage\tspec\tsource\texit\tmeaning\tplay_frame\tlast_frame\tsignature\n")
         for stage, room, point, source in starts:
@@ -344,17 +373,31 @@ def main():
                 meaning = "skip"
             else:
                 meaning = MEANING.get(r["rc"], "unexpected exit")
-                failed += r["rc"] != 0
+                if r.get("expect") == "xfail":
+                    meaning += " (xfail)"
+                    xfail += 1
+                elif r.get("expect") == "xpass":
+                    meaning += " (xpass)"
+                    xpass += 1
+                else:
+                    failed += r["rc"] != 0
             f.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
                 stage, spec, source, "-" if r["rc"] is None else r["rc"], meaning,
                 r["play_frame"], r["last_frame"], r["signature"]))
         ran = sum(1 for s in starts if s[1] is not None)
-        f.write("# %d stages, %d run, %d passed, %d failed, %d skipped; %d frames each, %ds\n" % (
-            len(starts), ran, ran - failed, failed, len(starts) - ran, args.frames,
-            int(time.time() - t0)))
-    print("boot-sweep: %d of %d stages passed, %d failed, %d skipped in %ds; report %s" % (
-        ran - failed, ran, failed, len(starts) - ran, int(time.time() - t0),
-        os.path.relpath(report, REPO)))
+        for stage in sorted(results):
+            if results[stage].get("expect") == "xfail":
+                f.write("# xfail %s: %s\n" % (stage, EXPECTED_FAIL[stage][1]))
+            elif results[stage].get("expect") == "xpass":
+                f.write("# xpass %s: listed as an expected fail but passed; remove it\n" % stage)
+        f.write("# %d stages, %d run, %d passed, %d failed, %d expected fails, %d skipped; "
+                "%d frames each, %ds\n" % (len(starts), ran, ran - failed - xfail, failed, xfail,
+                                           len(starts) - ran, args.frames, int(time.time() - t0)))
+    print("boot-sweep: %d of %d stages passed, %d failed, %d expected fails, %d skipped in %ds; "
+          "report %s" % (ran - failed - xfail, ran, failed, xfail, len(starts) - ran,
+                         int(time.time() - t0), os.path.relpath(report, REPO)))
+    if xpass:
+        print("boot-sweep: %d expected fail(s) passed; remove them from EXPECTED_FAIL" % xpass)
     return 1 if failed else 0
 
 

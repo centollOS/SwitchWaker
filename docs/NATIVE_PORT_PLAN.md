@@ -2773,6 +2773,31 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: K_Test9/Opub/Siren reach frame 600; a second sweep gives 142 of 155 (13 fail) with no
   J3DModel NULL crash; regression passes.
 
+- **Boot-sweep fix 5: boot-sweep expected fails (GTower, M2ganon)** (2026-10-03, lane outset,
+  harness). Signature (2 of 14 in a 141/155 sweep, tied with `d_bg_w_hf.cpp:365` and
+  `JAISoundTable.cpp`): SIGSEGV addr=0x0 in `JUTNameTab::getIndex` (JUTNameTab.cpp:34) <-
+  `J3DAnmTextureSRTKey::searchUpdateMaterialID` from `daPy_lk_c::dProcTool` ->
+  `setDemoTextureAnime` (GTower, M2ganon). Cause: the debug boot, not game code. Link's stage
+  cutscene asks for demo texture animations by file id (btp 368, btk 355); `phase_0` of
+  d_s_play.cpp mounts `LkD01.arc` only when event flag 0x2D01 is set (by M2tower's `rescue.stb`,
+  which the game always plays before these stages) and `LkD00.arc` otherwise. The debug boot's
+  new file has no such flag, so it mounts LkD00, where id 355 is a `.btp`
+  (`23_cl_cut07_gwaitturn_o.btp`; in LkD01 it is `42_cl_cut1_l.btk`); the loader builds a
+  texture-pattern animation that is then used as an SRT animation. Checked: with LkD01 forced
+  (temporary edit, reverted) both stages reach frame 600. `boot_sweep.py` gained
+  `EXPECTED_FAIL` (stage -> signature regex and reason): a listed stage that fails with exactly
+  that signature is reported `xfail` with the reason and does not fail the sweep; any other
+  failure still fails it, and a pass is reported `xpass` (remove the entry). **Boot-sweep
+  expected fails:** GTower and M2ganon, reason above. Found on the way, not fixed here (next
+  candidate, own commit): `dProcTool` reads the btp id with a native `*(u16*)` of the STB
+  parameter data (`setDemoTextureAnime(*(u16*)(sp9C.begin() + 1).get(), ...)`,
+  d_a_player_dproc.inc), so on the host it is byte-swapped (368 -> 28673) and
+  `findIdResource` indexes `mFiles + 28673` out of bounds before its search; the btk id goes
+  through the big-endian iterator and is right.
+  Reviewed: a full sweep reports GTower and M2ganon as xfail with the listed signature (141 of
+  155 pass, 12 fail, 2 expected fails; Xboss0's d_particle.cpp:50 crash is intermittent and
+  unrelated); regression passes.
+
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
   variable values checked, max |v| 500000). Builds on the boot loops' STB/FVB big-endian
