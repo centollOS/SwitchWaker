@@ -1645,6 +1645,12 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   logo-res `--uncapped` 0, sweeps 0, harness tests 13/12/10/11, no disc 14. Accepted and committed
   as six commits (one cause each) plus this log; the audio-off crash before M7 needs a decision.
 
+- **M6 reached** (`logo-res`, boot loop iteration 1, 2026-10-03): no code change at 69b1894;
+  reviewer rerun: logo-res 0 x3 (milestone at frame 243, retrace 244, about 4.34 s; 26 archives
+  mounted, 4 files in main RAM, 0 empty), M0-M5 0 x3, frame-loop/logo-scene/logo-res `--uncapped`
+  0; sweeps 0; harness tests 13/12/10/11; build 0 errors, smoke and `cos_pc_tests` ok, census
+  equal, `--dups` 0, inventory ok (67 open). Next: M7 (`opening`), blocked by the audio-off fault above.
+
 ### Phase 6 render issues
 
 None yet.
