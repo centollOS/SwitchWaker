@@ -382,3 +382,62 @@ COS_SMOKE_TEST(alarms) {
     }
     return true;
 }
+
+// ---- launch and start hooks (step 6.1) -------------------------------------------------------
+
+namespace {
+
+thread_local std::uintptr_t tHookTag = 0; // stands in for the game's per-thread current JKRHeap
+OSThread sHooked;
+Stack sHookedStack;
+std::atomic<OSThread*> sLaunchThread{nullptr};
+std::atomic<OSThread*> sLaunchCaller{nullptr};
+std::atomic<OSThread*> sStartThread{nullptr};
+std::atomic<OSThread*> sStartCaller{nullptr};
+
+void* LaunchHook(OSThread* thread) {
+    sLaunchThread.store(thread);
+    sLaunchCaller.store(OSGetCurrentThread());
+    return AsMessage(tHookTag);
+}
+
+void StartHook(OSThread* thread, void* launchValue) {
+    sStartThread.store(thread);
+    sStartCaller.store(OSGetCurrentThread());
+    tHookTag = FromMessage(launchValue);
+}
+
+void* HookedThread(void*) {
+    return AsMessage(tHookTag); // what the start hook set on this thread
+}
+
+} // namespace
+
+COS_SMOKE_TEST(thread_hooks) {
+    // The tests run on the process main thread, which runs as the default thread.
+    OSThread* self = OSGetCurrentThread();
+    COS_SMOKE_CHECK(self == COSSdkGetDefaultThread());
+
+    COS_SMOKE_CHECK(COSSdkSetThreadLaunchHook(LaunchHook) == nullptr);
+    COS_SMOKE_CHECK(COSSdkSetThreadStartHook(StartHook) == nullptr);
+    tHookTag = 0x1234;
+    COS_SMOKE_CHECK(OSCreateThread(&sHooked, HookedThread, nullptr, sHookedStack.top(), kStackSize,
+                                   16, 0));
+    // Created suspended: no hook has run yet.
+    COS_SMOKE_CHECK(sLaunchThread.load() == nullptr && sStartThread.load() == nullptr);
+    OSResumeThread(&sHooked);
+    // The launch hook ran inside OSResumeThread, on this thread.
+    COS_SMOKE_CHECK(sLaunchThread.load() == &sHooked);
+    COS_SMOKE_CHECK(sLaunchCaller.load() == self);
+    tHookTag = 0x5678; // the new thread keeps what this thread had at the resume
+    void* result = nullptr;
+    COS_SMOKE_CHECK(OSJoinThread(&sHooked, &result));
+    COS_SMOKE_CHECK(FromMessage(result) == 0x1234);
+    COS_SMOKE_CHECK(sStartThread.load() == &sHooked);
+    COS_SMOKE_CHECK(sStartCaller.load() == &sHooked);
+
+    COS_SMOKE_CHECK(COSSdkSetThreadLaunchHook(nullptr) == LaunchHook);
+    COS_SMOKE_CHECK(COSSdkSetThreadStartHook(nullptr) == StartHook);
+    tHookTag = 0;
+    return true;
+}

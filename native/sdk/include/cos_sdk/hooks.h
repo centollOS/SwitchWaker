@@ -26,13 +26,29 @@ BOOL COSSdkIsShuttingDown(void);
 
 // ---- Per-thread state -------------------------------------------------------------------------
 
-// Called on every thread made by OSCreateThread, on that thread, right before its entry function.
 // On the GameCube JKRThreadSwitch gives each thread its own current JKRHeap from the switch-thread
 // callback. Host threads run in parallel and never "switch", so cos_sdk never calls the
-// OSSetSwitchThreadCallback callback; the game glue uses this hook instead to set up per-thread
-// state such as the thread's current heap. Returns the previous hook. NULL removes it.
-typedef void (*COSSdkThreadStartHook)(OSThread* thread);
+// OSSetSwitchThreadCallback callback; the game glue uses these two hooks instead to set up
+// per-thread state such as the thread's current heap.
+//
+// The launch hook is called when OSResumeThread starts the host thread of an OSCreateThread thread
+// (its first resume), on the thread that called OSResumeThread, with interrupts disabled; it must
+// not block. On the GameCube that resume is where the new thread first gets switched to, so the
+// hook captures what the new thread inherits from the resuming thread. Its result is passed to the
+// start hook as launchValue (NULL without a launch hook).
+//
+// The start hook is called on every thread made by OSCreateThread, on that thread, right before its
+// entry function. Each setter returns the previous hook. NULL removes it.
+typedef void* (*COSSdkThreadLaunchHook)(OSThread* thread);
+COSSdkThreadLaunchHook COSSdkSetThreadLaunchHook(COSSdkThreadLaunchHook hook);
+typedef void (*COSSdkThreadStartHook)(OSThread* thread, void* launchValue);
 COSSdkThreadStartHook COSSdkSetThreadStartHook(COSSdkThreadStartHook hook);
+
+// The OSThread record of the default thread: the first host thread that needs an OSThread (normally
+// the process main thread, through its first OSGetCurrentThread or other OS call) runs as this
+// record, as the GameCube's boot thread does. The address is fixed from static initialisation on,
+// so game glue can bind a game-side name to it (m_Do_main.cpp's mainThread) before it is claimed.
+OSThread* COSSdkGetDefaultThread(void);
 
 // The callback last passed to OSSetSwitchThreadCallback (NULL if none), for the game glue.
 OSSwitchThreadCallback COSSdkGetSwitchThreadCallback(void);

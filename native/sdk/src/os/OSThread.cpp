@@ -78,6 +78,7 @@ OSThreadQueue& sActiveQueue = __OSActiveThreadQueue;
 s32 sSchedulerSuspendCount = 0;
 OSSwitchThreadCallback sSwitchThreadCallback = nullptr;
 COSSdkThreadStartHook sThreadStartHook = nullptr;
+COSSdkThreadLaunchHook sThreadLaunchHook = nullptr;
 bool sShuttingDown = false;
 bool sLoggedSwitchCallback = false;
 bool sLoggedIdleFunction = false;
@@ -188,6 +189,7 @@ void ClaimDefaultThreadLocked() {
 struct Launch {
     OSThread* thread;
     std::shared_ptr<HostThread> host;
+    void* launchValue; // what the launch hook returned on the resuming thread
 };
 
 void* ThreadEntry(void* arg) {
@@ -196,6 +198,7 @@ void* ThreadEntry(void* arg) {
     tHostRef = launch->host;
     tHost = tHostRef.get();
     tCurrent = thread;
+    void* const launchValue = launch->launchValue;
     launch.reset();
 
     void* (*func)(void*);
@@ -208,7 +211,7 @@ void* ThreadEntry(void* arg) {
         startHook = sThreadStartHook;
     }
     if (startHook != nullptr) {
-        startHook(thread);
+        startHook(thread, launchValue);
     }
     // Returning from the entry function is OSExitThread with its result, as on the GameCube
     // (the entry's link register points at OSExitThread).
@@ -229,7 +232,9 @@ void LaunchLocked(OSThread* thread, const std::shared_ptr<HostThread>& host) {
                               ? static_cast<u32>(base - end)
                               : 0;
     pthread_attr_setstacksize(&attr, HostStackSize(requested));
-    auto* launch = new Launch{thread, host};
+    // The launch hook runs here, on the thread that called OSResumeThread (with the lock held).
+    void* const launchValue = sThreadLaunchHook != nullptr ? sThreadLaunchHook(thread) : nullptr;
+    auto* launch = new Launch{thread, host, launchValue};
     pthread_t handle;
     const int err = pthread_create(&handle, &attr, &ThreadEntry, launch);
     pthread_attr_destroy(&attr);
@@ -698,7 +703,8 @@ OSSwitchThreadCallback OSSetSwitchThreadCallback(OSSwitchThreadCallback callback
     if (callback != nullptr && !sLoggedSwitchCallback) {
         sLoggedSwitchCallback = true;
         Log("OSSetSwitchThreadCallback: host threads never switch, so the callback is not called; "
-            "per-thread state goes through COSSdkSetThreadStartHook (cos_sdk/hooks.h)");
+            "per-thread state goes through COSSdkSetThreadLaunchHook/COSSdkSetThreadStartHook "
+            "(cos_sdk/hooks.h)");
     }
     return previous;
 }
@@ -760,6 +766,17 @@ COSSdkThreadStartHook COSSdkSetThreadStartHook(COSSdkThreadStartHook hook) {
     COSSdkThreadStartHook previous = sThreadStartHook;
     sThreadStartHook = hook;
     return previous;
+}
+
+COSSdkThreadLaunchHook COSSdkSetThreadLaunchHook(COSSdkThreadLaunchHook hook) {
+    Guard guard;
+    COSSdkThreadLaunchHook previous = sThreadLaunchHook;
+    sThreadLaunchHook = hook;
+    return previous;
+}
+
+OSThread* COSSdkGetDefaultThread(void) {
+    return &sDefaultThread; // a fixed address; the record is set up when a thread claims it
 }
 
 OSSwitchThreadCallback COSSdkGetSwitchThreadCallback(void) {

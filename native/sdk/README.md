@@ -92,9 +92,12 @@ another thread that is running game code act at its next OS call (both are logge
 `OSInitContext`, `OSSaveContext`, `OSLoadContext`, `OSSwitchStack` and `OSSwitchFiber` abort.
 
 `include/cos_sdk/hooks.h` replaces Dusklight's couplings to the game: `COSSdkRequestShutdown`
-(blocking message-queue calls return FALSE, alarms stop) and `COSSdkSetThreadStartHook` (runs on
-each new OS thread before its entry function; the game glue sets the thread's current `JKRHeap`
-there, since the switch-thread callback is never called on host threads).
+(blocking message-queue calls return FALSE, alarms stop), `COSSdkSetThreadLaunchHook` (runs on
+the thread whose `OSResumeThread` starts a new OS thread; its result goes to the start hook) and
+`COSSdkSetThreadStartHook` (runs on each new OS thread before its entry function). The game glue
+(step 6.1) gives each new thread the current `JKRHeap` of the thread that resumed it through these
+two, since the switch-thread callback is never called on host threads. `COSSdkGetDefaultThread`
+returns the record the main thread runs as (the game binds its `mainThread` to it).
 
 ## OS misc (step 2.6b)
 
