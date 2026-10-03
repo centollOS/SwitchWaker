@@ -44,8 +44,10 @@ signature its debug boot stops at; so may a stage whose disc data the original g
 either (a leftover test stage whose archive lacks a file its own actors ask for, checked against
 the disc). Such a stage is reported "xfail" and does not fail the sweep
 only while it fails with exactly that signature; any other failure fails the sweep as usual, and
-a pass is reported "xpass" (the entry should then be removed). The list is never for a crash in
-game code.
+a pass is reported "xpass" (the entry should then be removed), except for an entry marked
+intermittent: a stage whose run reaches that disc-data failure only on some runs (the timing of
+an enemy or of the loads decides it) passes as usual and only its listed failure is an xfail.
+The list is never for a crash in game code.
 Run logs are kept; runs of identical consecutive lines (Aurora's per-draw warnings) are collapsed
 to one line plus a count to keep the sweep directory small. Nothing here is meant for git.
 """
@@ -72,7 +74,8 @@ LEGACY_DISC = "/path/to/GZLE01.iso"
 MEANING = {0: "reached", 1: "check failed", 2: "usage error", 10: "timeout", 11: "stall",
            12: "panic", 13: "signal", 14: "disc problem"}
 
-# Stages the debug boot cannot enter the way the game does: stage -> (signature regex, reason).
+# Stages the debug boot cannot enter the way the game does: stage -> (signature regex, reason[,
+# "intermittent" when the stage reaches that failure on some runs only and passes otherwise).
 # Documented in docs/NATIVE_PORT_PLAN.md ("boot-sweep expected fails").
 _LKD01 = ("needs event flag 0x2D01 (set by M2tower's rescue.stb before the game ever reaches the "
           "stage): d_s_play.cpp phase_0 mounts Link's demo animations LkD01.arc only with it, "
@@ -89,12 +92,21 @@ _MSMOKE = ("leftover test stage with incomplete disc data: its stage.dzs places 
            "door10.bdl by name; the disc's Msmoke/Stage.arc has no such file (only "
            "bmdc/door10.bmd and a root file named \"bdl\"), so dRes_control_c::getRes returns "
            "NULL and the original game stops at the same JUT_ASSERT (d_a_door10.cpp:356)")
+_I_SUBAN = ("leftover test stage with incomplete disc data, reached on some runs only: the "
+            "sweep's start (room 9) is 424 units from the room's daWarpls (radius 225), and when "
+            "an enemy knocks the idle Link into it the warp's SCLS 0 sends him to sea start 1 "
+            "room 47; the disc's sea Room47 PLYR has points 0, 5 and 100-103 only, so "
+            "dStage_playerInit finds no point 1 and stops at its JUT_ASSERT (d_stage.cpp:1787; a "
+            "retail build reads past the PLYR list). Whether the knock-back happens within the "
+            "run depends on timing (enemy behaviour after the asynchronous loads), so the stage "
+            "also passes")
 EXPECTED_FAIL = {
     "GTower": (_LKD01_SIG, _LKD01),
     "M2ganon": (_LKD01_SIG, _LKD01),
     "GanonK": (_LKD01_SIG, _LKD01),
     "ENDumi": (r"^PANIC d_event_data\.cpp:1070 .* in dEvDtStaff_c::specialProcPackage ", _ENDING),
     "Msmoke": (r"^PANIC d_a_door10\.cpp:356 .* in daDoor10_c::CreateHeap ", _MSMOKE),
+    "I_SubAN": (r"^PANIC d_stage\.cpp:1787 .* in dStage_playerInit ", _I_SUBAN, "intermittent"),
 }
 
 STAGE_ARC = re.compile(r"^/res/Stage/([^/]+)/Stage\.arc$")
@@ -311,7 +323,7 @@ def expectation(stage, r):
     if stage not in EXPECTED_FAIL:
         return ""
     if r["rc"] == 0:
-        return "xpass"
+        return "" if "intermittent" in EXPECTED_FAIL[stage][2:] else "xpass"
     return "xfail" if re.search(EXPECTED_FAIL[stage][0], r["signature"]) else ""
 
 
