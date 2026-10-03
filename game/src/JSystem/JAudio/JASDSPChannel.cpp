@@ -28,12 +28,20 @@ void JASystem::TDSPChannel::init(u8 param_1) {
 }
 
 /* 80289694-80289720       .text allocate__Q28JASystem11TDSPChannelFUl */
+#if TARGET_PC
+int JASystem::TDSPChannel::allocate(TDSPChannelSign param_1) {
+#else
 int JASystem::TDSPChannel::allocate(u32 param_1) {
+#endif
     if (mStatus != 1) {
         return false;
     }
     if (!checkSign(0)) {
+#if TARGET_PC
+        OSReport("sign %lx があるのにCH.%d はFREE\n", (unsigned long)field_0x8, mNumber);
+#else
         OSReport("sign %x があるのにCH.%d はFREE\n", field_0x8, mNumber);
+#endif
     }
     mStatus = 0;
     field_0x8 = param_1;
@@ -113,7 +121,11 @@ void JASystem::TDSPChannel::initAll() {
 int JASystem::TDSPChannel::smnFree = 64;
 
 /* 80289994-80289A54       .text alloc__Q28JASystem11TDSPChannelFUlUl */
+#if TARGET_PC
+JASystem::TDSPChannel* JASystem::TDSPChannel::alloc(u32 param_1, TDSPChannelSign param_2) {
+#else
 JASystem::TDSPChannel* JASystem::TDSPChannel::alloc(u32 param_1, u32 param_2) {
+#endif
     if (param_1) {
         OSReport("----- JASDSPChannel::alloc : 多チャネルモードはサポートされていません\n");
         return NULL;
@@ -131,7 +143,11 @@ JASystem::TDSPChannel* JASystem::TDSPChannel::alloc(u32 param_1, u32 param_2) {
 }
 
 /* 80289A54-80289AF4       .text free__Q28JASystem11TDSPChannelFPQ28JASystem11TDSPChannelUl */
+#if TARGET_PC
+int JASystem::TDSPChannel::free(JASystem::TDSPChannel* dspch, TDSPChannelSign param_2) {
+#else
 int JASystem::TDSPChannel::free(JASystem::TDSPChannel* dspch, u32 param_2) {
+#endif
     if (!dspch) {
         OSReport("----- JASDSPChannel::free : NULL のチャネルを解放しようとしました\n");
         return -1;

@@ -5,6 +5,13 @@
 
 namespace JASystem {
     class TChannel;
+#if TARGET_PC
+
+    // The owner tag of a TDSPChannel: its owner's address (a TChannel*, or StreamLib's assign_ch
+    // slot), which getLogicalChannel turns back into a pointer. Pointer-sized on the host, where
+    // a u32 would truncate it.
+    typedef uintptr_t TDSPChannelSign;
+#endif
 
     namespace DSPInterface {
         class DSPBuffer;
@@ -22,15 +29,24 @@ namespace JASystem {
         }
         ~TDSPChannel() {}
         void init(u8);
+#if TARGET_PC
+        int allocate(TDSPChannelSign);
+#else
         int allocate(u32);
+#endif
         void free();
         bool forceStop();
         void forceDelete();
         void play();
         void stop();
         static void initAll();
+#if TARGET_PC
+        static TDSPChannel* alloc(u32, TDSPChannelSign);
+        static int free(TDSPChannel*, TDSPChannelSign);
+#else
         static TDSPChannel* alloc(u32, u32);
         static int free(TDSPChannel*, u32);
+#endif
         static TDSPChannel* getLower();
         static TDSPChannel* getLowerActive();
         static BOOL breakLower(u8);
@@ -54,7 +70,6 @@ namespace JASystem {
         }
         TChannel* getLogicalChannel() {
             if (mCallback != NULL) {
-                // TODO(native phase 4): field_0x8 is the owner tag, a pointer truncated to u32 by alloc.
                 return (TChannel*)field_0x8; // ?? is this userdata?
             } else {
                 return NULL;
@@ -68,7 +83,11 @@ namespace JASystem {
             }
         }
         // is this right?
+#if TARGET_PC
+        BOOL checkSign(TDSPChannelSign value) {
+#else
         BOOL checkSign(u32 value) {
+#endif
             if (field_0x8 == value) {
                 return TRUE;
             } else {
@@ -86,7 +105,11 @@ namespace JASystem {
         /* 0x03 */ u8 mPriority;
         /* 0x04 */ u16 mPriorityTime;
         /* 0x06 */ u16 mCBInterval;
+#if TARGET_PC
+        /* 0x08 */ TDSPChannelSign field_0x8;
+#else
         /* 0x08 */ u32 field_0x8;
+#endif
         /* 0x0C */ DSPInterface::DSPBuffer* field_0xc;
         /* 0x10 */ int (*mCallback)(TDSPChannel*, u32);
 

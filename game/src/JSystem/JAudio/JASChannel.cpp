@@ -338,10 +338,8 @@ BOOL TChannel::stopLogicalChannel() {
     field_0x20->setCBInterval(0);
     field_0x20->stop();
 #if TARGET_PC
-    // TODO(native phase 4): TDSPChannel keeps its owner as a u32 tag. alloc and free truncate the
-    // same pointer the same way, so the tags still match, but TDSPChannel::getLogicalChannel
-    // (JASDSPChannel.h) turns the tag back into a TChannel*, which a 64-bit pointer does not survive.
-    TDSPChannel::free(field_0x20, u32(uintptr_t(this)));
+    // TDSPChannel's owner tag is pointer-sized on the host (JASDSPChannel.h).
+    TDSPChannel::free(field_0x20, uintptr_t(this));
 #else
     TDSPChannel::free(field_0x20, u32(this));
 #endif

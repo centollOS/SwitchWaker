@@ -828,9 +828,8 @@ void JAInter::StreamLib::__start() {
     for (u32 i = 0; i < 2; i++) {
         if (assign_ch[i] && assign_ch[i]->field_0x8 != 0) {
 #if TARGET_PC
-            // TODO(native phase 4): TDSPChannel keeps its owner as a u32 tag. alloc and free truncate the
-            // same pointer the same way, so the tags still match.
-            JASystem::TDSPChannel::free(assign_ch[i], (u32)(uintptr_t)&assign_ch[i]);
+            // TDSPChannel's owner tag is pointer-sized on the host (JASDSPChannel.h).
+            JASystem::TDSPChannel::free(assign_ch[i], (uintptr_t)&assign_ch[i]);
 #else
             JASystem::TDSPChannel::free(assign_ch[i], (u32)&assign_ch[i]);
 #endif
@@ -866,10 +865,9 @@ s32 JAInter::StreamLib::callBack(void*) {
     }
     if (!assign_ch[0]) {
 #if TARGET_PC
-        // TODO(native phase 4): TDSPChannel keeps its owner as a u32 tag. alloc and free truncate the
-        // same pointer the same way, so the tags still match.
-        assign_ch[0] = TDSPChannel::alloc(0, (u32)(uintptr_t)&assign_ch[0]);
-        assign_ch[1] = TDSPChannel::alloc(0, (u32)(uintptr_t)&assign_ch[1]);
+        // TDSPChannel's owner tag is pointer-sized on the host (JASDSPChannel.h).
+        assign_ch[0] = TDSPChannel::alloc(0, (uintptr_t)&assign_ch[0]);
+        assign_ch[1] = TDSPChannel::alloc(0, (uintptr_t)&assign_ch[1]);
 #else
         assign_ch[0] = TDSPChannel::alloc(0, (u32)&assign_ch[0]);
         assign_ch[1] = TDSPChannel::alloc(0, (u32)&assign_ch[1]);
@@ -925,10 +923,9 @@ s32 JAInter::StreamLib::callBack(void*) {
             if (adpcmbuf_state != 1) {
 #endif
 #if TARGET_PC
-                // TODO(native phase 4): TDSPChannel keeps its owner as a u32 tag. alloc and free truncate the
-                // same pointer the same way, so the tags still match.
-                TDSPChannel::free(assign_ch[0], (u32)(uintptr_t)&assign_ch[0]);
-                TDSPChannel::free(assign_ch[1], (u32)(uintptr_t)&assign_ch[1]);
+                // TDSPChannel's owner tag is pointer-sized on the host (JASDSPChannel.h).
+                TDSPChannel::free(assign_ch[0], (uintptr_t)&assign_ch[0]);
+                TDSPChannel::free(assign_ch[1], (uintptr_t)&assign_ch[1]);
 #else
                 TDSPChannel::free(assign_ch[0], (u32)&assign_ch[0]);
                 TDSPChannel::free(assign_ch[1], (u32)&assign_ch[1]);
@@ -977,10 +974,9 @@ s32 JAInter::StreamLib::callBack(void*) {
 #endif
             {
 #if TARGET_PC
-                // TODO(native phase 4): TDSPChannel keeps its owner as a u32 tag. alloc and free truncate the
-                // same pointer the same way, so the tags still match.
-                TDSPChannel::free(assign_ch[0], (u32)(uintptr_t)&assign_ch[0]);
-                TDSPChannel::free(assign_ch[1], (u32)(uintptr_t)&assign_ch[1]);
+                // TDSPChannel's owner tag is pointer-sized on the host (JASDSPChannel.h).
+                TDSPChannel::free(assign_ch[0], (uintptr_t)&assign_ch[0]);
+                TDSPChannel::free(assign_ch[1], (uintptr_t)&assign_ch[1]);
 #else
                 TDSPChannel::free(assign_ch[0], (u32)&assign_ch[0]);
                 TDSPChannel::free(assign_ch[1], (u32)&assign_ch[1]);
