@@ -139,6 +139,11 @@ The SDK libraries the game will link are listed in `COS_AURORA_LIBS`. The game f
 test `cos_sdk_smoke` (`native/cmake/sdk.cmake`); see
 `native/sdk/README.md`.
 
+The DSP behind `cos_sdk` is Dolphin's high-level DSP emulation (step 5.A, decision H6:
+`native/dsp_hle`, `native/cmake/dsp_hle.cmake`), compiled from the RecompCore checkout in
+`COS_RECOMPCORE_DIR`. It defaults to `ref/recompcore`, or to the main checkout's when the source
+tree is a git worktree (`build/lanes/<lane>`); pass `-DCOS_RECOMPCORE_DIR=...` otherwise.
+
 ### SDK headers
 
 Aurora's headers are the only SDK headers the game compiles against (`cmake/GameConfig.cmake`,

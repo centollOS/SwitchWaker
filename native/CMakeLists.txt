@@ -54,6 +54,8 @@ include(cmake/deferred.cmake)
 include(cmake/modules.cmake)
 # Aurora, the GameCube SDK over WebGPU (phase 2); already included by GameConfig.cmake.
 include(cmake/Aurora.cmake)
+# cos_dsp_hle, Dolphin's high-level DSP behind cos_sdk's DSP library (step 5.A, decision H6).
+include(cmake/dsp_hle.cmake)
 # cos_sdk, the game-specific SDK over Aurora, and its headless test cos_sdk_smoke.
 include(cmake/sdk.cmake)
 # The game's GF sources (game/src/dolphin/gf) compiled into cos_sdk.
