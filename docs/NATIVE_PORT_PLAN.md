@@ -2727,6 +2727,24 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: a second sweep gives 132 of 155 (23 fail, 1 skipped) with no `GFSetArray` panic left;
   regression passes.
 
+- **Boot-sweep fix 2: room memory blocks sized for host objects** (2026-10-03, lane outset,
+  host-semantics, H5). Most common sweep signature left (5 of 23): SIGSEGV addr=0x0 in
+  `cBgW::Set` (c_bg_w.cpp:332/337) from `daBg_c::createHeap` (GanonA, GanonM, M_Dai, Siren) and
+  `daObjDoguuD_c::CreateHeap` (ADMumi). Root cause for the daBg cases: the MEMA chunk gives the
+  room heap sizes in GameCube bytes; `daBg_c` builds the room's models, tev blocks and collision
+  in a solid heap that takes the whole room block, and with 8-byte pointers and 16-byte aligned
+  `operator new` it runs out, so `new cBgW_RwgElm[]` returns NULL and the constructor loop writes
+  through it. `dStage_roomControl_c::createMemoryBlock` now doubles the size under `#if
+  TARGET_PC`, as Dusklight does (CC0). Sweep: 132 -> 135 of 155 pass (20 fail, 1 skipped);
+  GanonA, GanonM and M_Dai pass, Siren gets further and now fails in `J3DModel::J3DModel` like
+  K_Test9/Opub. ADMumi is a different case (an actor solid heap from an estimate, not a room
+  block) and still fails in `cBgW::Set`. Both remaining kinds share a second cause: on the host,
+  `new T[n]` / `new T` with a constructor do not check a NULL result from the replaceable
+  `operator new` (the game relies on NULL to fall back to a bigger heap); to be fixed separately.
+  Regression passes.
+  Reviewed: a second sweep gives 135 of 155 with no `cBgW::Set` crash from `daBg_c::createHeap`
+  left (only ADMumi's actor heap); regression passes.
+
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
   variable values checked, max |v| 500000). Builds on the boot loops' STB/FVB big-endian

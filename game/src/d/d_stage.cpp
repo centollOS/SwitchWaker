@@ -362,6 +362,12 @@ int dStage_roomControl_c::getDarkMode() {
 
 /* 80041370-800413D4       .text createMemoryBlock__20dStage_roomControl_cFiUl */
 JKRExpHeap* dStage_roomControl_c::createMemoryBlock(int i_blockIdx, u32 i_heapSize) {
+#if TARGET_PC
+    // The MEMA block sizes on the disc are GameCube sizes; the room actors' objects (8-byte
+    // pointers, 16-byte aligned operator new) need more. Doubled as in Dusklight
+    // (ref/dusklight/src/d/d_stage.cpp, dStage_roomControl_c::createMemoryBlock, CC0), H5.
+    i_heapSize *= 2;
+#endif
 #if VERSION > VERSION_DEMO
     archiveHeap->getCurrentGroupId();
 #endif
