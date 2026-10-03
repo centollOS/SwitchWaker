@@ -25,7 +25,13 @@ public:
     /* 0x34 */ int field_0x34;
     /* 0x38 */ int field_0x38;
     /* 0x3C */ int field_0x3c;
+#if TARGET_PC
+    // Called with the command's address (a host pointer), which a u32 would truncate (as
+    // JKRAMCommand::AsyncCallback, step 4.2).
+    /* 0x40 */ void (*mCallback)(uintptr_t);
+#else
     /* 0x40 */ void (*mCallback)(u32);
+#endif
     /* 0x44 */ int field_0x44;
     /* 0x48 */ bool field_0x48;
     /* 0x4C */ JKRAramStreamCommand* mStreamCommand;
@@ -36,8 +42,13 @@ class JKRDvdAramRipper {
 public:
     static JKRAramBlock* loadToAram(s32, u32, JKRExpandSwitch, u32, u32);
     static JKRAramBlock* loadToAram(JKRDvdFile*, u32, JKRExpandSwitch, u32, u32);
+#if TARGET_PC
+    static JKRADCommand* loadToAram_Async(JKRDvdFile*, u32, JKRExpandSwitch, void (*)(uintptr_t), u32,
+                                          u32);
+#else
     static JKRADCommand* loadToAram_Async(JKRDvdFile*, u32, JKRExpandSwitch, void (*)(u32), u32,
                                           u32);
+#endif
     static JKRADCommand* callCommand_Async(JKRADCommand*);
     static bool syncAram(JKRADCommand*, int);
 

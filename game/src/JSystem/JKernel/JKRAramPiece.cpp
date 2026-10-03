@@ -12,7 +12,11 @@
 #include "dolphin/os/OS.h"
 
 /* 802B5C14-802B5C94       .text prepareCommand__12JKRAramPieceFiUlUlUlP12JKRAramBlockPFUl_v */
+#if TARGET_PC
+JKRAMCommand* JKRAramPiece::prepareCommand(int direction, uintptr_t src, uintptr_t dst, u32 length, JKRAramBlock* block, JKRAMCommand::AsyncCallback callback) {
+#else
 JKRAMCommand* JKRAramPiece::prepareCommand(int direction, u32 src, u32 dst, u32 length, JKRAramBlock* block, JKRAMCommand::AsyncCallback callback) {
+#endif
     JKRAMCommand* command = new (JKRHeap::getSystemHeap(), -4) JKRAMCommand();
     command->mTransferDirection = direction;
     command->mSrc = src;
@@ -32,12 +36,21 @@ JSUList<JKRAMCommand> JKRAramPiece::sAramPieceCommandList;
 OSMutex JKRAramPiece::mMutex;
 
 /* 802B5CB4-802B5E0C       .text orderAsync__12JKRAramPieceFiUlUlUlP12JKRAramBlockPFUl_v */
+#if TARGET_PC
+JKRAMCommand* JKRAramPiece::orderAsync(int direction, uintptr_t source, uintptr_t destination, u32 length, JKRAramBlock* block, JKRAMCommand::AsyncCallback callback) {
+#else
 JKRAMCommand* JKRAramPiece::orderAsync(int direction, u32 source, u32 destination, u32 length, JKRAramBlock* block, JKRAMCommand::AsyncCallback callback) {
+#endif
     lock();
     if ((source & 0x1f) != 0 || (destination & 0x1f) != 0) {
         OSReport("direction = %x\n", direction);
+#if TARGET_PC
+        OSReport("source = %lx\n", (unsigned long)source);
+        OSReport("destination = %lx\n", (unsigned long)destination);
+#else
         OSReport("source = %x\n", source);
         OSReport("destination = %x\n", destination);
+#endif
         OSReport("length = %x\n", length);
         OSPanic(__FILE__, 102, "Abort.");
     }
@@ -81,7 +94,11 @@ BOOL JKRAramPiece::sync(JKRAMCommand* command, int is_non_blocking) {
 }
 
 /* 802B5ED4-802B5F68       .text orderSync__12JKRAramPieceFiUlUlUlP12JKRAramBlock */
+#if TARGET_PC
+BOOL JKRAramPiece::orderSync(int direction, uintptr_t source, uintptr_t destination, u32 length, JKRAramBlock* block) {
+#else
 BOOL JKRAramPiece::orderSync(int direction, u32 source, u32 destination, u32 length, JKRAramBlock* block) {
+#endif
     lock();
 
     JKRAMCommand* command =

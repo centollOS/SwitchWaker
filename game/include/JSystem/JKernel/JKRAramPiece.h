@@ -27,8 +27,16 @@ public:
 
     /* 0x40 */ s32 mTransferDirection;
     /* 0x44 */ u32 mDataLength;
+#if TARGET_PC
+    // One side of a transfer is main memory, a host pointer; the other an ARAM offset (as in
+    // Dusklight's JKRAramPiece.h, CC0, ref/dusklight at 40457c6). Aurora's ARQPostRequest takes
+    // both as uintptr_t.
+    /* 0x48 */ uintptr_t mSrc;
+    /* 0x4C */ uintptr_t mDst;
+#else
     /* 0x48 */ u32 mSrc;
     /* 0x4C */ u32 mDst;
+#endif
     /* 0x50 */ JKRAramBlock* mAramBlock;
     /* 0x54 */ u32 field_0x54;
     /* 0x58 */ AsyncCallback mCallback;
@@ -55,13 +63,25 @@ public:
     };
 
 public:
+#if TARGET_PC
+    // Source and destination: a main-memory host pointer or an ARAM offset (see mSrc).
+    static JKRAMCommand* prepareCommand(int, uintptr_t, uintptr_t, u32, JKRAramBlock*,
+                                        JKRAMCommand::AsyncCallback);
+#else
     static JKRAMCommand* prepareCommand(int, u32, u32, u32, JKRAramBlock*,
                                         JKRAMCommand::AsyncCallback);
+#endif
     static void sendCommand(JKRAMCommand*);
 
+#if TARGET_PC
+    static JKRAMCommand* orderAsync(int, uintptr_t, uintptr_t, u32, JKRAramBlock*, JKRAMCommand::AsyncCallback);
+    static BOOL sync(JKRAMCommand*, int);
+    static BOOL orderSync(int, uintptr_t, uintptr_t, u32, JKRAramBlock*);
+#else
     static JKRAMCommand* orderAsync(int, u32, u32, u32, JKRAramBlock*, JKRAMCommand::AsyncCallback);
     static BOOL sync(JKRAMCommand*, int);
     static BOOL orderSync(int, u32, u32, u32, JKRAramBlock*);
+#endif
     static void startDMA(JKRAMCommand*);
 #if TARGET_PC
     // Aurora's ARQCallback takes the request address as uintptr_t (a host pointer).
@@ -75,8 +95,13 @@ private:
     static void unlock() { OSUnlockMutex(&mMutex); }
 };
 
+#if TARGET_PC
+inline BOOL JKRAramPcs(int direction, uintptr_t source, uintptr_t destination, u32 length,
+                       JKRAramBlock* block) {
+#else
 inline BOOL JKRAramPcs(int direction, u32 source, u32 destination, u32 length,
                        JKRAramBlock* block) {
+#endif
     return JKRAramPiece::orderSync(direction, source, destination, length, block);
 }
 

@@ -544,7 +544,7 @@ static u8* firstSrcData() {
 
     u32 src = (u32)(srcAddress + srcOffset);
 #if TARGET_PC
-    u32 dst = (uintptr_t)buffer;
+    uintptr_t dst = (uintptr_t)buffer;
 #else
     u32 dst = (u32)buffer;
 #endif
