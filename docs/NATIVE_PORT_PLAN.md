@@ -1736,6 +1736,42 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `--uncapped` 0, disc-ls/heap/font/arc/msg/jpa sweeps 0, crash/panic-test 13/12. Accepted with
   the sweep half; M7 (`opening`, 13 in `JAIZelBasic::talkOut`) waits for the audio-off decision.
 
+- **4.9c Rooms and files** (2026-10-03): `COS_SMOKE=stage-sweep` 0 x5 (3 on the final build); the
+  report equals the manifest (651 dzs/dzr files, 6063 chunks, 20207 actor records, 21443
+  room/file/path records). M7 still stops at the audio-off fault of 4.8 (`opening` 13 in
+  `JAIZelBasic::talkOut`, unchanged).
+  - **The room, file and path records were read host-order.** In `d_stage.h` the STAG
+    (`stage_stag_info_class`: planes, particle scene, stage type and schbit words), FILI
+    (`dStage_FileList_dt_c`), MULT (`dStage_Mult_info`), AROB/RARO (`stage_arrow_data_class`,
+    `BE(cXyz)`/`BE(csXyz)`), 2DMA (`stage_map_info_class`'s 13 floats) and SOND
+    (`stage_sound_data::field_0x8`, `BE(Vec)`) fields are `BE(T)`; in `d_path.h` `dPath::m_num`/
+    `m_nextID` are `BE(u16)` and, under `TARGET_PC`, `dPnt::m_position` is `BE(cXyz)` (the
+    readers copy it into a cXyz; GameCube keeps `Vec`). `daShip_c::checkOutRange` keeps pointers
+    to point positions: under `TARGET_PC` they are `BE(cXyz)*` (`unifdef -UTARGET_PC` equals
+    HEAD). RTBL entries, SCLS, CAMR/RCAM and EVNT hold only bytes and strings: no change, checked
+    by the sweep. Every reader goes through `BE<T>`'s conversions (it compiles without a cast);
+    a `-fsyntax-only -Wclass-varargs` pass over every game and harness unit finds no `BE<T>`
+    passed to a variadic function. `d_stage.h` and `d_path.h` are in `layout_headers.txt` and hold.
+  - **Harness:** `pc_stage.cpp` reads the records of the first chunk of each of these tags
+    through the struct its chunk loader uses (STAG/FILI through the node's offset, the others
+    through their `{num, pointer}` struct, RTBL after `dStage_roomReadInit`), checks each entry's
+    address and the struct size, and writes a REC line per entry; `disc_manifest.py` (manifest
+    version 4) decodes the same records at the format's offsets (`STAGE_RECORDS`) and
+    `--check-stage` compares every field (an f32 as the f32 its decimal rounds to) and requires
+    every record. A chunk with offset 0 is "no data", as the relocation leaves it (four stage.dzs
+    have a 2DMA chunk of 1 entry at offset 0). Negative check: with HEAD's `d_stage.h`/`d_path.h`
+    the sweep reports 20015 differences and exits 1.
+  Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check
+  cos_link_census` 0 errors (layout check 1021 GameCube checks); smoke ok; `cos_pc_tests` ok;
+  census equal to `expected_unresolved_phase2.txt`; `--all --dups` 0; inventory `--check` ok (60
+  open); static-init, aurora-up, heaps, gfx-create, frame-loop, logo-scene, logo-res 0 x3;
+  frame-loop, logo-scene, logo-res `--uncapped` 0; disc-ls, heap, font, arc-sweep, msg-sweep,
+  jpa-sweep 0.
+- **4.9c review (round 1):** approved; rerun independently: build 0 errors, smoke ok,
+  `cos_pc_tests` ok, census equal, `--all --dups` 0, `unifdef -UTARGET_PC` of `d_a_ship.cpp` equals
+  HEAD, stage-sweep 0 (21443 records equal), static-init..logo-res 0, `--uncapped` 0, sweeps 0;
+  M7 `opening` still 13 in `JAIZelBasic::talkOut` (audio-off decision pending).
+
 ### Phase 6 render issues
 
 None yet.
