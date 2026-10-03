@@ -3,6 +3,7 @@
 
 #include "JSystem/JUtility/JUTResFont.h"
 #include "f_op/f_op_scene.h"
+#include "helpers/offset_ptr.h"
 
 class mDoDvdThd_toMainRam_c;
 
@@ -15,6 +16,8 @@ public:
 
 class menu_of_scene_class : public scene_class {
 public:
+    // /res/Menu/Menu1.dat, read in place. Its two offsets are from the start of the file and
+    // relocated in place by phase_2 (OFFSET_PTR on PC: a host pointer does not fit their 4 bytes).
     struct room_inf {
         char name[0x20];
         u8 field_0x20;
@@ -30,12 +33,12 @@ public:
         u8 roomNum;
         u8 field_0x22;
         u8 field_0x23;
-        room_inf* roomPtr;
+        OFFSET_PTR(room_inf) roomPtr;
     };
 
     struct menu_inf {
         u8 num;
-        stage_inf* stage;
+        OFFSET_PTR(stage_inf) stage;
     };
 
     /* 0x1C4 */ request_of_phase_process_class mPhs;

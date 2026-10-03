@@ -347,15 +347,14 @@ cPhs_State phase_2(menu_of_scene_class* i_this) {
     delete i_this->command;
     menu_of_scene_class::menu_inf* info = i_this->info;
 #if TARGET_PC
-    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-    info->stage = (menu_of_scene_class::stage_inf*)((u32)(uintptr_t)info->stage + (uintptr_t)info);
+    // Offsets from the start of the file, relocated in place into self-relative OFFSET_PTRs.
+    info->stage.setBase(info);
 #else
     info->stage = (menu_of_scene_class::stage_inf*)(u32(info->stage) + u32(info));
 #endif
     for (int i = 0; i < info->num; i++) {
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        info->stage[i].roomPtr = (menu_of_scene_class::room_inf*)((u8*)info + (u32)(uintptr_t)info->stage[i].roomPtr);
+        info->stage[i].roomPtr.setBase(info);
 #else
         info->stage[i].roomPtr = (menu_of_scene_class::room_inf*)((u8*)info + u32(info->stage[i].roomPtr));
 #endif

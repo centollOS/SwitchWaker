@@ -119,6 +119,11 @@ d/d_stage.h
 d/d_path.h
     dPnt                    size=0x10
     dPath                   size=0xC
+# 4.9a: the debug map select's /res/Menu/Menu1.dat (offsets relocated in place, as the chunks)
+d/d_s_menu.h
+    menu_of_scene_class::menu_inf  size=0x8 num=0x0 stage=0x4
+    menu_of_scene_class::stage_inf size=0x28 name=0x0 field_0x20=0x20 roomNum=0x21 field_0x22=0x22 field_0x23=0x23 roomPtr=0x24
+    menu_of_scene_class::room_inf  size=0x2C name=0x0 field_0x20=0x20 stageName=0x21 roomNo=0x29 startCode=0x2A layerNo=0x2B
 
 # 4.10: collision (dzb)
 SSystem/SComponent/c_bg_w.h
