@@ -7,6 +7,7 @@
 
 #include "JSystem/JStudio/JStudio/jstudio-object.h"
 #include "dolphin/types.h"
+#include "helpers/endian.h"
 
 namespace JStudio {
     namespace {
@@ -214,13 +215,15 @@ void JStudio::TAdaptor::adaptor_setVariableValue_VOID_(JStudio::TAdaptor* param_
 /* 8026F07C-8026F0A8       .text adaptor_setVariableValue_IMMEDIATE___Q27JStudio8TAdaptorFPQ27JStudio8TAdaptorPQ27JStudio7TObjectUlPCvUl */
 void JStudio::TAdaptor::adaptor_setVariableValue_IMMEDIATE_(JStudio::TAdaptor* param_1, JStudio::TObject* param_2, u32 param_3, const void* param_4, u32 param_5) {
     TVariableValue* value = &param_1->mVariableValues[param_3];
-    value->setValue_immediate(*(f32*)param_4);
+    // BE(T): STB variable-value operands are big-endian on disc (no-op on GameCube; after Dusklight, CC0).
+    value->setValue_immediate(*(BE(f32)*)param_4);
 }
 
 /* 8026F0A8-8026F0D4       .text adaptor_setVariableValue_TIME___Q27JStudio8TAdaptorFPQ27JStudio8TAdaptorPQ27JStudio7TObjectUlPCvUl */
 void JStudio::TAdaptor::adaptor_setVariableValue_TIME_(JStudio::TAdaptor* param_1, JStudio::TObject* param_2, u32 param_3, const void* param_4, u32 param_5) {
     TVariableValue* value = &param_1->mVariableValues[param_3];
-    value->setValue_time(*(f32*)param_4);
+    // BE(T): STB variable-value operands are big-endian on disc (no-op on GameCube; after Dusklight, CC0).
+    value->setValue_time(*(BE(f32)*)param_4);
 }
 
 /* 8026F0D4-8026F144       .text adaptor_setVariableValue_FVR_NAME___Q27JStudio8TAdaptorFPQ27JStudio8TAdaptorPQ27JStudio7TObjectUlPCvUl */
@@ -232,7 +235,8 @@ void JStudio::TAdaptor::adaptor_setVariableValue_FVR_NAME_(JStudio::TAdaptor* pa
 /* 8026F144-8026F1B0       .text adaptor_setVariableValue_FVR_INDEX___Q27JStudio8TAdaptorFPQ27JStudio8TAdaptorPQ27JStudio7TObjectUlPCvUl */
 void JStudio::TAdaptor::adaptor_setVariableValue_FVR_INDEX_(JStudio::TAdaptor* param_1, JStudio::TObject* param_2, u32 param_3, const void* param_4, u32 param_5) {
     TVariableValue* value = &param_1->mVariableValues[param_3];
-    value->setValue_functionValue(param_2->getControl()->getFunctionValue_index(*(u32*)param_4));
+    // BE(T): STB variable-value operands are big-endian on disc (no-op on GameCube; after Dusklight, CC0).
+    value->setValue_functionValue(param_2->getControl()->getFunctionValue_index(*(BE(u32)*)param_4));
 }
 
 /* 8026F1B0-8026F234       .text __dt__Q27JStudio7TObjectFv */

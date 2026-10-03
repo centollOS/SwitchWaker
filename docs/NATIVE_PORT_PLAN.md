@@ -2355,6 +2355,13 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   created; title-stage stops at frame 301 in `TVariableValue::update_functionValue_` (null, via
   `TObject::do_wait` during `stb::TControl::forward`), the next root cause.
   Reviewed: regress passed; title-stage gets past `JStudio::TFactory::create`.
+- M7 boot loop (lane boot, M8 iter 4): `JStudio::TAdaptor::adaptor_setVariableValue_IMMEDIATE_`,
+  `_TIME_` (f32) and `_FVR_INDEX_` (u32) read the STB operand payloads in host order, so the
+  swapped function-value index made `getFunctionValue_index` return NULL and
+  `TVariableValue::update_functionValue_` faulted. The three reads now go through `BE(T)` (no-op
+  on GameCube; Dusklight pattern, CC0). The title demo now runs forward; title-stage stops at
+  frame 301 in an OSPanic from `daPy_lk_c::changeDemoProc` (d_a_player_main.cpp:9342), the next
+  root cause. Reviewed: regress passed; title-stage gets past `update_functionValue_`.
 
 ### Phase 6 render issues
 
