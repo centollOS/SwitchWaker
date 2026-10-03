@@ -2251,6 +2251,23 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   next blocker, PANIC JAISoundTable.cpp:61 in `JAInter::SoundTable::getInfoPointer` <-
   `JAIBasic::startSoundActor` <- `JAIZelAnime::startAnimSound` <- `daPy_lk_c::execute`.
 
+- **M7 boot loop, iteration 9** (2026-10-03, endian + layout): PANIC JAISoundTable.cpp:61
+  (`_category < getParamSeCategoryMax()`) in `JAInter::SoundTable::getInfoPointer` <-
+  `JAIBasic::startSoundActor` <- `JAIZelAnime::startAnimSound` <- `JAIAnimeSound::setAnimSoundVec`
+  <- `daPy_lk_c::execute` (ROOM_SCENE frame 656). The BAS animation sound data (the .bas used next
+  to a BCK) is big-endian disc data used in place, but `JAIAnimeSoundData` and
+  `JAIAnimeFrameSoundData` were read in host order, and the header's 4-byte `field_0x04` was a
+  `void*`, which on the 64-bit host moved `mAfsData` from 0x08 to 0x10, so the sound IDs were garbage.
+  Under `TARGET_PC`, JAIAnimation.h declares the multi-byte fields as BE(T) and `field_0x04` as
+  `BE(u32)` (it is never read); the GameCube structs stay in `#else`. Both structs went into
+  layout_headers.txt. `regress.sh -j 3`: all checks passed. `opening` no longer crashes: it runs
+  the sea_T opening to the 180 s timeout (exit 10, ROOM_SCENE frame 5534, frames advancing). The
+  run still cannot pass: nothing calls `pc_milestone("opening")` yet (the M7 probe for "`sea_T`
+  stage arc mounted; `dStage_Create` done" is not wired). The log also prints the game's
+  "デモデータ読み込みエラー" (demo data load error) once; it was already in the iteration 8 run.
+  Reviewed: regress passed again; an independent `opening --timeout 180` run reached exit 10 at
+  ROOM_SCENE frame 5534 with no PANIC.
+
 ### Phase 6 render issues
 
 None yet.

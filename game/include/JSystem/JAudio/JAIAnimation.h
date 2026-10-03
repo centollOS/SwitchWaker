@@ -2,6 +2,7 @@
 #define JAIANIMATION_H
 
 #include "dolphin/types.h"
+#include "helpers/endian.h"
 
 struct Vec;
 class JAISound;
@@ -10,6 +11,32 @@ namespace JAInter {
     class Actor;
 };
 
+#if TARGET_PC
+// A BAS file (the .bas next to a BCK) is big-endian disc data used in place: the multi-byte fields
+// are BE(T), and the header's 4-byte field_0x04 is a u32 rather than a void*, which on a 64-bit
+// host would grow the header to 0x10 and move mAfsData off the file's 0x08 (decision H1).
+struct JAIAnimeFrameSoundData {
+    /* 0x00 */ BE(u32) mSoundID;
+    /* 0x04 */ BE(f32) mStartFrame;
+    /* 0x08 */ BE(f32) mEndFrame;
+    /* 0x0C */ BE(f32) mPitch;
+    /* 0x10 */ BE(u32) mPlayFlags;
+    /* 0x14 */ u8 mVolume;
+    /* 0x15 */ s8 mPitchFactor;
+    /* 0x16 */ u8 mLoopCount;
+    /* 0x17 */ u8 mPanning;
+    /* 0x18 */ s8 mVolumeFactor;
+    /* 0x19 */ u8 field_0x19[0x20 - 0x19]; // Padding
+};  // Size: 0x20
+
+// BAS header
+struct JAIAnimeSoundData {
+    /* 0x00 */ BE(u16) datas; // Entry count
+    /* 0x02 */ BE(u16) field_0x02;
+    /* 0x04 */ BE(u32) field_0x04;
+    /* 0x08 */ JAIAnimeFrameSoundData mAfsData[];
+};
+#else
 // BAS sound entry
 struct JAIAnimeFrameSoundData {
     /* 0x00 */ u32 mSoundID;
@@ -32,6 +59,8 @@ struct JAIAnimeSoundData {
     /* 0x04 */ void* field_0x04;
     /* 0x08 */ JAIAnimeFrameSoundData mAfsData[];
 };
+
+#endif
 
 struct JAIAnimeSound__Slot {
     /* 0x0 */ u8 mbIsPlaying;
