@@ -12071,7 +12071,14 @@ void daPy_lk_c::createAnimeHeap(JKRSolidHeap** pHeap, daPy_HEAP_TYPE heapType) {
     } else { // heapType == HEAP_TYPE_TEXTURE_SCROLL_e
         heapSize = 0xA0;
     }
-    
+#if TARGET_PC
+    // Decision H5: doubled for 8-byte pointers. On the host the objects below are
+    // J3DAnmTransformKey 0x48, J3DAnmTexPattern 0x58, mDoExt_transAnmBas 0x50 and
+    // J3DAnmTextureSRTKey 0xF0 bytes, more than the GameCube sizes; mDoExt_adjustSolidHeap
+    // trims the unused part below.
+    heapSize *= 2;
+#endif
+
     *pHeap = mDoExt_createSolidHeapFromGameToCurrent(heapSize, 0x20);
     
     if (heapType == HEAP_TYPE_ITEM_ANIME_e) {

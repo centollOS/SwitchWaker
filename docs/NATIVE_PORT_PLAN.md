@@ -2204,6 +2204,16 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   all checks passed; `opening` now stops on the next blocker, SIGSEGV addr=0xc in
   `daPy_lk_c::playerInit` (d_a_player_main.cpp:12293, `createAnimeHeap` area) <- `phase_2`.
 
+- **M7 boot loop, iteration 5** (2026-10-03, truncation/H5): SIGSEGV addr=0xc in
+  `daPy_lk_c::playerInit` <- `phase_2`. `createAnimeHeap` sizes its small solid heaps with
+  GameCube magic numbers (0x40/0x50/0xA0); on the host `J3DAnmTransformKey` is 0x48,
+  `J3DAnmTexPattern` 0x58, `mDoExt_transAnmBas` 0x50 and `J3DAnmTextureSRTKey` 0xF0 bytes, so the
+  `new` failed and the constructor wrote through NULL. Under `TARGET_PC` the size is doubled
+  (decision H5); `mDoExt_adjustSolidHeap` trims the rest. Fixer: `regress.sh -j 3` all checks
+  passed; `opening` now stops on the next blocker, SIGSEGV addr=0xd7a46cc60 in `strcmp` <-
+  `dEvent_manager_c::getEventIdx` <- `dEvt_info_c::setEventName` <- `daAgb_Create`.
+  Reviewer: regress all checks passed; `opening` confirmed past `playerInit`, stops in `daAgb_Create`.
+
 ### Phase 6 render issues
 
 None yet.
