@@ -141,6 +141,17 @@ void dEvent_manager_c::setData(const char* data) {
         return;
 
     mList.setHeaderP((event_binary_data_header*)data);
+#if TARGET_PC
+    // The FData (f32) and IData (int) arrays are big-endian disc data that callers read through
+    // getMySubstanceP as plain f32*/Vec*/int*, so they are swapped to host order in place once,
+    // as in Dusklight's dEvDtBase_c::init (src/d/d_event_data.cpp, CC0, ref/dusklight at
+    // 40457c6). unk[0] (zero on the disc) records that the buffer was swapped, so setData on the
+    // same resident buffer again does not swap it back.
+    event_binary_data_header* header = mList.getHeaderP();
+    JUT_ASSERT(__LINE__, header->unk[0] == 0 || header->unk[0] == 1);
+    bool needSwap = header->unk[0] == 0;
+    header->unk[0] = 1;
+#endif
     if (mList.getEventNum() > 0)
         mList.setEventP((dEvDtEvent_c*)(data + mList.getEventTop()));
     if (mList.getStaffNum() > 0)
@@ -149,10 +160,20 @@ void dEvent_manager_c::setData(const char* data) {
         mList.setCutP((dEvDtCut_c*)(data + mList.getCutTop()));
     if (mList.getDataNum() > 0)
         mList.setDataP((dEvDtData_c*)(data + mList.getDataTop()));
-    if (mList.getFDataNum() > 0)
+    if (mList.getFDataNum() > 0) {
         mList.setFDataP((f32*)(data + mList.getFDataTop()));
-    if (mList.getIDataNum() > 0)
+#if TARGET_PC
+        if (needSwap)
+            be_swap(mList.getFDataP(0), (u32)mList.getFDataNum());
+#endif
+    }
+    if (mList.getIDataNum() > 0) {
         mList.setIDataP((int*)(data + mList.getIDataTop()));
+#if TARGET_PC
+        if (needSwap)
+            be_swap(mList.getIDataP(0), (u32)mList.getIDataNum());
+#endif
+    }
     if (mList.getSDataNum() > 0)
         mList.setSDataP((char*)(data + mList.getSDataTop()));
 }
