@@ -3194,6 +3194,41 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   feet); an independent parse of the disc's `Pale` chunks confirmed BG1 C0/K0 = (255,255,255) in
   all four K_Testc palettes and (140,164,192)/(15,56,53) in Omori; `regress.sh -j 3` all
   checks passed.
+- RA-A5 (lane boot, render audit A5): not a defect, and not a billboard. The X consists of two
+  authored light beams. They are the two `LTag1` actors (`daTagLight`, type 1, params `00fffffd`:
+  no switch, no schedule, cone ratio 15/15 so `mspot.bdl`, not `mspocn`), placed at
+  (3075,975,975) and (3062.9,975,-1097.3) with angles (-16384,8192,0) and (16384,-8192,0) and
+  scale y 15 (30 after `_create`'s doubling). `mspot.bdl` is a 16-sided open cylinder of radius
+  51 along local +Y (y 0..100, 96 positions). The beams leave the side walls near the entrance
+  (local y=100, which `get_base_model_light_start_offset` uses as the light's start), run
+  horizontally at 45 degrees, cross above the Ecube pillar and end near the far wall. The base
+  matrix the actor builds, (0.707,-0.707,0,3075 / 0,0,1,975 / -0.707,-0.707,0,975), maps +Y to
+  (-0.707,0,-0.707), and that is the crossing seen in the shot. No joint is a billboard: all three
+  joints have mtx type 0, `checkBBoardFlag()` is 0, and every SHP1 matrix type is 0. So
+  `J3DCalcBBoardMtx`/`J3DCalcYBBoardMtx` are never involved. Materials (J3D data and Aurora
+  pipeline state match): `Kogen1_v_x` uses a 16x16 I4 texture that is solid 0xFF, an identity
+  texgen, TEXC*RASC and TEXA*RASA*K3A, blend SRCALPHA/INVSRCALPHA, z compare on, z update off,
+  no culling, and PERSP_LIN fog. Its RGBA8 vertex colours (big-endian, decoded right) are white
+  with alpha 0x73/0x40/0x33 or 0x59/0x40/0x00 along the beam. So it is a translucent white
+  cylinder (at most 45%) that fades along its length, and its edges are naturally hard. The
+  console draws the same: Dolphin's blend and TEV give the same result, and the measured pixels
+  (about 125 over a background of 25,33,45) match one 45% white layer.
+  `Hokori_v_x` adds the dust: two scrolling 128x128 I4 layers, additive (SRCALPHA/ONE), 3 BTK
+  texture matrices. Hiding `daTagLight::_draw` removes the X, and nothing else changes. The
+  "opaque white quads" in the audit were these translucent beams. Not checked against a console
+  capture (no Dolphin or console image of this grotto was available), but every input was
+  checked: actor params and angles, geometry, joints, shape matrix types, vertex colours and
+  texcoords, texture, TEV, blend, z and fog. How it was found (all temporary code removed: an
+  actor census in `dStage_actorCreate`, a joint, material and display-list dump in
+  `daTagLight::_draw`, and a GX state dump in the build dir's Aurora copy keyed on the model's
+  position array): the census found `LTag1`, hiding its draw confirmed it, and the dumps covered
+  the rest. Nothing was changed in the code. Shots inspected: the repro `run --stage SubD43:0:0
+  --frames 1200 --uncapped --shot 900` before and after (the same scene, with only the dust and
+  sparkle animation differing), and the same run with the tag-light draw hidden (no X). See render
+  issues (A5).
+  Review: `mDoMtx_ZXYrotM` (M*Ry*Rx*Rz) with x=-16384, y=8192 maps local +Y to (-0.707,0,-0.707),
+  so the horizontal crossing comes from the authored angles; the repro shot shows translucent
+  beams; `regress.sh -j 3` all checks passed.
 
 - **Fix NG-run-dir (M11 boot loop, lane audio, harness): parallel runs of one target shared a run
   directory.** `run.sh` tested a directory name for existence and then created it with
@@ -3544,6 +3579,6 @@ loop. Open defects, most visible first (one probable root cause per row):
 | A2 | Kalle Demos (the `Bmd` actor) draws as large flat blue, magenta and cyan polygons with jagged leaves. (Seen with the camera under the arena floor, A1; after RA-A1 the frame-900 view is behind Link and the boss is out of view: recheck A2 from a shot that frames it.) On the GameCube it has a textured red bulb and green tentacles. | kinBOSS | **Not a defect; resolved by RA-A1** (checked in RA-A2): the flat blue/magenta/cyan polygons were the undersides of the boss's open flower (material `hana_sitahana`), seen from A1's under-floor camera. The flower's colours come from its own `bkm_body` CMPR texture (cyan/blue/violet, a green-to-magenta band), decoded independently from the disc; the TEV stages sample it unswizzled and `bkm.brk` animates only the death fade. With the camera fixed, the fight (Link walks to the flower) shows the blue-violet yellow-spotted bulb, the green/cyan petals, the barbed tentacles and the ceiling vines. Their geometry is intact and the skinned vines bend smoothly. The "red bulb" in the audit was a wrong expectation. | `native/tools/run.sh run --stage kinBOSS:0:0 --frames 2500 --uncapped --input native/check/input/kinboss-fight.txt --shot 1100,1800,2400` |
 | A3 | Orca's message box shows its dark panel, the Next button and the arrow but no text, at frames 590, 900 and 1190. The Ojhous2 and Outset boxes show their text. | Ojhous | **Fixed** by RA-A3: not a game or decode issue, a harness timing artefact. Aurora skips a draw until its pipeline is compiled (`PipelinePriority::Normal`, "async skip draw"). In the parallel boot sweep, several game processes were compiling Metal pipelines at once and contending for the shared Dawn cache ("database is locked"), so about 300 pipelines were still queued at frame 1100 and the text's and most of the HUD's draws never showed. The game state matched good runs exactly: message 0x961, the same status sequence, and `output_text` "Link! Is that you? ..." complete by frame ~620. The BMG text, font and colours are fine. Aurora patch 0005 adds `AuroraConfig::blockingPipelines`, and `COS_SYNC_PIPELINES` (default on with `COS_SHOT`/`COS_SHOT_EVERY`) turns it on, so a captured frame shows every draw, as the console and Dolphin's default synchronous shader mode do. Checked (COS_SHOT, inspected): with cold caches and 6 parallel runs, async gave 0/6 with text at 900/1190 (no characters, HUD or box), sync 6/6; with the shared cache, 10/10 parallel runs show the text. | `native/tools/run.sh run --stage Ojhous:0:0 --frames 1200 --uncapped --shot 900,1190` (to reproduce the old behaviour: run 8 at once with `COS_SYNC_PIPELINES=0` and fresh user dirs) |
 | A4 | Link's real-time shadow is drawn as a bright white lobed blob on the floor. Elsewhere (VrTest, A_umikz, Kaisen) it is dark. | K_Testc | **Not a defect** (checked in RA-A4). The blob is not a shadow: Link's real-time shadow is the dark shape at his feet and is correct. The white shapes are three `Obj_Ygush00` springs that the test map places in front of Link. Their toon water material `suimen` lerps the palette's BG1 K0 (water) to BG1 C0 (foam). K_Testc's `Pale` chunk on the disc sets both to (255,255,255) in every palette, so the console draws them white too. Hiding the shadow pass keeps the blob, and hiding `drawOpaList` removes it. With Omori's BG1 colours forced on (diagnostic only), the springs show dark teal water and scrolling light-blue foam rings, so the textures, BTK and TEV compare are right. | `native/tools/run.sh run --stage K_Testc:0:0 --frames 1200 --uncapped --shot 590,900` |
-| A5 | Two crossed opaque white quads (an X) hang in the cave in every shot. They look like a light-shaft or billboard model that keeps its bind orientation. | SubD43 | A billboard joint (`J3DMtxCalc` billboard / `J3DCalcBBoardMtx` path) not applied on the host, or a light-shaft material without its alpha/blend. Not confirmed against the GameCube. | `native/tools/run.sh run --stage SubD43:0:0 --frames 1200 --uncapped --shot 900` |
+| A5 | Two crossed opaque white quads (an X) hang in the cave in every shot. They look like a light-shaft or billboard model that keeps its bind orientation. | SubD43 | **Not a defect** (checked in RA-A5). The X is the cave's two authored light beams: two `LTag1` (`daTagLight` type 1) actors, each drawing `mspot.bdl`, a 16-sided cylinder (radius 51, 3000 units long after scale). Their authored angles (x ±90°, y ±45°) make the beams run horizontally from the side walls and cross above the Ecube pillar. No joint or shape is a billboard (all matrix types 0, BBoard flag 0). The `Kogen1_v_x` material is a solid-white I4 texture times vertex alpha 0x00-0x73 with SRCALPHA/INVSRCALPHA blend, so it is a translucent white shaft (at most 45%) that fades along its length, and the `Hokori_v_x` dust adds on top. The J3D material data, the Aurora pipeline state and the disc's vertex data agree. The beams are translucent, not opaque. | `native/tools/run.sh run --stage SubD43:0:0 --frames 1200 --uncapped --shot 900` |
 | A6 | Tingle Tower's walls and floor show a huge blocky, smeared Tingle mural (texels several screen pixels wide). The easel painting is sharp. | tincle | Either the authentic low-resolution mural texture or a wrong mip/LOD or texture size for that material. Needs a GameCube reference before work starts. | `native/tools/run.sh run --stage tincle:0:0 --frames 1200 --uncapped --shot 900` |
 | A7 | The island is untextured flat sand and blue, and the house and pier are pure white silhouettes. | Ebesso | Possibly authentic unfinished test geometry (a pre-release Outset). If the GameCube shows textures, the house's materials sample nothing. Low priority, verify first. | `native/tools/run.sh run --stage Ebesso:0:0 --frames 1200 --uncapped --shot 590` |
