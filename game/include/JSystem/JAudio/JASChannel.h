@@ -24,11 +24,23 @@ namespace JASystem {
 
         union MixConfig {
             u16 mWhole;
+#if TARGET_PC
+            // The parts of the host-order mWhole as on the big-endian console: u is the high byte,
+            // l0 the high and l1 the low nibble of the low byte. A little-endian host stores the
+            // low byte first and allocates bit-fields from the least significant bit.
+            static_assert(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__, "MixConfig assumes a little-endian host");
+            struct {
+                u8 l1 : 4;
+                u8 l0 : 4;
+                u8 u;
+            } mParts;
+#else
             struct {
                 u8 u;
                 u8 l0 : 4;
                 u8 l1 : 4;
             } mParts;
+#endif
         };
 
         TChannel() : field_0x4(NULL), field_0x8(NULL), field_0x20(NULL), mNext(NULL), field_0xd8(this) {

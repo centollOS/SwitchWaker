@@ -377,8 +377,15 @@ BOOL TChannel::playLogicalChannel() {
         union {
             u16 asS16;
             struct {
+#if TARGET_PC
+                // hi is the high byte of asS16, as on the big-endian console: a little-endian
+                // host stores the low byte first.
+                u8 lo;
+                u8 hi;
+#else
                 u8 hi;
                 u8 lo;
+#endif
             } asP;
         } s;
         s.asS16 = mMixConfigs[i].mWhole;
