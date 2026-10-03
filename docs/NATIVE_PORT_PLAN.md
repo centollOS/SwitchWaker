@@ -2669,6 +2669,14 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   -UTARGET_PC` of every changed game file equals HEAD; committed as three commits (actor play
   mode, group G markers, harness).
 
+- R1-lighting (lane boot, render): characters and J3D models drew black or posterised grey.
+  Cause 1: J3D textures were never bound (Aurora ignores the BP image-pointer writes of
+  `loadTexNo`); `J3DTexture` keeps GX texture/TLUT objects and `J3DTevBlock::loadTexture` loads
+  them before each material display list (TARGET_PC, Dusklight pattern). Cause 2 (Aurora's
+  `GX_TG_SRTG` texgen) is fixed separately. See render issues.
+  Reviewed: regress passed; title shots 900/1300 show sky, clouds, subtitle and Link in his
+  colours; outset-debug shot 400 shows the horizon cloud band.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
@@ -2702,4 +2710,38 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   behind the clouds is a grid of garbage-coloured blocks (a texture decoded or sampled wrongly) and
   the island geometry is missing (only a distant grey silhouette and the sea); by frame 1450 the
   view shows only the sea under the letterbox. Not yet triaged (render vs. camera/event state); M12
-  does not depend on it, M13 may.
+  does not depend on it, M13 may. The backdrop band is **fixed** by the J3D texture fix below (step
+  R1-lighting): it was the horizon cloud model drawn with stale textures, and now shows the cloud
+  band. The missing island and the sea-only view after frame 1000 remain open.
+- **Characters and J3D models draw black or posterised grey** (step R1-lighting, lane boot): Link and
+  Aryll solid black in Outset, Link a streaky grey on the title, "the game" subtitle of the
+  title logo and the title's sky backdrop a grid of garbage blocks. Two independent causes:
+  1. (main, **fixed**) J3D textures were never bound. `loadTexNo` puts a material's textures in its display
+     list as BP writes (image pointer `OSCachedToPhysical(ptr) >> 5`, attributes, TLUT load), and
+     Aurora takes a texture's image and TLUT only from `GXLoadTexObj`/`GXLoadTlut`
+     (`GX_AURORA_LOAD_TEXOBJ`): its BP handler keeps the image-pointer register but never resolves
+     it, so every J3D material sampled whatever texture object was last loaded in that texture map,
+     read with the material's size and format. Fix in `game` under `TARGET_PC`, the Dusklight
+     pattern (CC0): `J3DTexture` keeps a `GXTexObj`/`GXTlutObj` per entry, built from its ResTIMG in
+     the constructor and again in `setResTIMG` (toon images, frame-buffer copies, swapped textures);
+     `J3DTevBlock::loadTexture` (blocks 1/2/4/16/Patched) loads `mTexNo[i]` into texture map i, and
+     `J3DMaterial`/`J3DPatchedMaterial`/`J3DLockedMaterial::load` and `loadSharedDL` call it just
+     before the material display list. Known limit (as in Dusklight): a texture number that a
+     model instance's diff display list changes (`diffTexNo`, texture-pattern animation of models
+     sharing one J3DModelData) shows the material's current `mTexNo` at draw time, not the value
+     the instance had when its diff list was built. Likewise `J3DMatPacket::draw` binds the
+     J3DTexture the packet got at model creation, so a material table swapped in only while the
+     display list is rebuilt (`mDoExt_McaMorf::updateDL(J3DMaterialTable*)`, `setMaterialTable`
+     with `J3DMatCopyFlag_Texture`) has its texture numbers resolved in the model's own table, not
+     the swapped one as on the GameCube. Not seen yet; open if such a model draws wrong textures.
+  2. (open) Aurora feeds `GX_TG_SRTG` texgens the raw vertex colour instead of the lit colour
+     channel, so the toon ramp is sampled at its shadow end.
+  Checked with COS_SHOT: `run --frames 1310 --shot 900,1300` (title) shows the logo with its
+  subtitle, the sky and clouds, the King of Red Lions and Link in his blue shirt and orange
+  trousers, uniformly in the toon ramp's shadow colours (cause 2).
+  `outset-debug --stage sea:44:206 --shot 400` shows the horizon cloud band instead of the garbage
+  blocks; Outset's island and characters are not in view in that run (open entry above).
+- **King of Red Lions dark on the title** (found while reviewing R1-lighting, title frames
+  900/1300): after the J3D texture fix the boat's head and hull draw dark olive/brown with little
+  of the red of the GameCube title. Not triaged (lighting/colour registers of its materials vs.
+  texture). Open.

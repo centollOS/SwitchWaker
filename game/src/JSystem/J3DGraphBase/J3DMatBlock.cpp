@@ -579,6 +579,25 @@ void J3DTexGenBlockPatched::diffTexGen() {
     }
 }
 
+#if TARGET_PC
+// J3DTevBlock::loadTexture (see J3DTexture.h): texture map i shows mTexNo[i], as in loadTexNo.
+// Adapted from Dusklight (ref/dusklight/libs/JSystem/src/J3DGraphBase/J3DMatBlock.cpp,
+// J3DTevBlock*::loadTexture, CC0).
+static void J3DLoadTexNoArray(const u16* texNo, u32 num) {
+    for (u32 i = 0; i < num; i++) {
+        if (texNo[i] != 0xffff) {
+            j3dSys.getTexture()->loadGX(texNo[i], GXTexMapID(GX_TEXMAP0 + i));
+        }
+    }
+}
+
+void J3DTevBlockPatched::loadTexture() { J3DLoadTexNoArray(mTexNo, ARRAY_SIZE(mTexNo)); }
+void J3DTevBlock1::loadTexture() { J3DLoadTexNoArray(mTexNo, ARRAY_SIZE(mTexNo)); }
+void J3DTevBlock2::loadTexture() { J3DLoadTexNoArray(mTexNo, ARRAY_SIZE(mTexNo)); }
+void J3DTevBlock4::loadTexture() { J3DLoadTexNoArray(mTexNo, ARRAY_SIZE(mTexNo)); }
+void J3DTevBlock16::loadTexture() { J3DLoadTexNoArray(mTexNo, ARRAY_SIZE(mTexNo)); }
+#endif
+
 /* 802E2ED0-802E3110       .text load__12J3DTevBlock1Fv */
 void J3DTevBlock1::load() {
     mTexNoOffset = GDGetCurrOffset();

@@ -33,10 +33,27 @@ class J3DTexture {
 private:
     /* 0x0 */ u16 mNum;
     /* 0x4 */ ResTIMG* mpRes;
+#if TARGET_PC
+    // Aurora binds a texture only through GXLoadTexObj/GXLoadTlut: it does not resolve the image
+    // and TLUT addresses that the material display lists write to the BP registers (loadTexNo).
+    // Each entry therefore keeps a texture object (and TLUT object), built from its ResTIMG, which
+    // J3DTevBlock::loadTexture loads when the material is drawn. Pattern of Dusklight
+    // (ref/dusklight/libs/JSystem/include/JSystem/J3DGraphBase/J3DTexture.h, CC0).
+    GXTexObj* mpTexObj;
+    GXTlutObj* mpTlutObj;
+
+    void initTexObj(u16 index);
+#endif
 
 public:
+#if TARGET_PC
+    J3DTexture(u16 num, ResTIMG* res);
+    virtual ~J3DTexture();
+    void loadGX(u16 index, GXTexMapID texMapID) const;
+#else
     J3DTexture(u16 num, ResTIMG* res) : mNum(num), mpRes(res) {}
     virtual ~J3DTexture() {}
+#endif
 
     u16 getNum() const { return mNum; }
     ResTIMG* getResTIMG(u16 index) const {
@@ -58,6 +75,7 @@ public:
         }
         mpRes[index].imageOffset = (u32)((s32)(u32)mpRes[index].imageOffset + (s32)delta);
         mpRes[index].paletteOffset = (u32)((s32)(u32)mpRes[index].paletteOffset + (s32)delta);
+        initTexObj(index);
 #else
         mpRes[index].imageOffset = ((mpRes[index].imageOffset + (u32)&timg - (u32)(mpRes + index)));
         mpRes[index].paletteOffset = ((mpRes[index].paletteOffset + (u32)&timg - (u32)(mpRes + index)));

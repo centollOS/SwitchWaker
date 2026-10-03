@@ -189,6 +189,11 @@ class J3DTevBlock {
 public:
     virtual void reset(J3DTevBlock*) {}
     virtual void load() {}
+#if TARGET_PC
+    // Loads the textures of the material's texture maps through GXLoadTexObj before its display
+    // list is called (see J3DTexture.h; Dusklight pattern, CC0).
+    virtual void loadTexture() {}
+#endif
     virtual void diff(u32);
     virtual void diffTexNo() {}
     virtual void diffTevReg() {}
@@ -253,6 +258,9 @@ public:
     void initialize();
 
     virtual void reset(J3DTevBlock*);
+#if TARGET_PC
+    virtual void loadTexture();
+#endif
     virtual void load() {}
     virtual void diffTexNo();
     virtual void diffTevReg();
@@ -330,6 +338,9 @@ public:
     void initialize();
 
     virtual void reset(J3DTevBlock*);
+#if TARGET_PC
+    virtual void loadTexture();
+#endif
     virtual void load();
     virtual void diffTexNo();
     virtual void diffTevReg();
@@ -408,6 +419,9 @@ public:
     void initialize();
 
     virtual void reset(J3DTevBlock*);
+#if TARGET_PC
+    virtual void loadTexture();
+#endif
     virtual void load();
     virtual void diffTexNo();
     virtual void diffTevReg();
@@ -486,6 +500,9 @@ public:
     void initialize();
 
     virtual void reset(J3DTevBlock*);
+#if TARGET_PC
+    virtual void loadTexture();
+#endif
     virtual void load();
     virtual void diffTexNo();
     virtual void diffTevReg();
@@ -567,6 +584,9 @@ public:
     void initialize();
 
     virtual void reset(J3DTevBlock*);
+#if TARGET_PC
+    virtual void loadTexture();
+#endif
     virtual void load();
     virtual void diffTexNo();
     virtual void diffTevReg();
