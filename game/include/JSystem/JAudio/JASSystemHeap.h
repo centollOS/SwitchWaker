@@ -15,6 +15,12 @@ namespace JASystem {
         void* allocFromSysDram(u32);
         void sysAramSetup(u32);
         void* allocFromSysAramFull(u32*);
+#if TARGET_PC
+        // The MEM1 physical address of `ptr`, for an address the DSP or the AI reads (they take
+        // 32-bit physical addresses; a host pointer does not fit). Panics if `ptr` is not inside
+        // Aurora's MEM1, where every JKR heap (and so JASDram) lives.
+        u32 toPhysical(const void* ptr);
+#endif
 
         extern TSolidHeap audioAramHeap;
         extern u32 audioDramSize;

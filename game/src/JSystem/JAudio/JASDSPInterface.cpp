@@ -62,10 +62,26 @@ u32 JASystem::DSPInterface::DOLBY2_DELAY_BUF[600];
 /* 8028A240-8028A28C       .text setupBuffer__Q28JASystem12DSPInterfaceFv */
 void JASystem::DSPInterface::setupBuffer() {
 #if TARGET_PC
-    // TODO(native phase 5): the DSP task takes 32-bit main-memory addresses; with no DSP (cos_sdk's
-    // silent stubs) they are never dereferenced.
-    DsetupTable(64, (u32)(uintptr_t)CH_BUF, (u32)(uintptr_t)&DSPRES_FILTER, (u32)(uintptr_t)&DSPADPCM_FILTER, (u32)(uintptr_t)FX_BUF);
-    DsetDolbyDelay((u32)(uintptr_t)&DOLBY2_DELAY_BUF, 10);
+    // The DSP takes MEM1 physical addresses. CH_BUF and FX_BUF come from JASDram (MEM1); the two
+    // filter tables and the Dolby delay buffer are static data outside MEM1, so the DSP gets MEM1
+    // copies of them from JASDram (the delay buffer is the DSP's work area: a zeroed one).
+    static u16* sDspResFilter;
+    static u16* sDspAdpcmFilter;
+    static u32* sDolbyDelayBuf;
+    if (sDspResFilter == NULL) {
+        sDspResFilter = (u16*)Kernel::allocFromSysDram(sizeof(DSPRES_FILTER));
+        sDspAdpcmFilter = (u16*)Kernel::allocFromSysDram(sizeof(DSPADPCM_FILTER));
+        sDolbyDelayBuf = (u32*)Kernel::allocFromSysDram(sizeof(DOLBY2_DELAY_BUF));
+        memcpy(sDspResFilter, DSPRES_FILTER, sizeof(DSPRES_FILTER));
+        memcpy(sDspAdpcmFilter, DSPADPCM_FILTER, sizeof(DSPADPCM_FILTER));
+        Calc::bzero(sDolbyDelayBuf, sizeof(DOLBY2_DELAY_BUF));
+        DCStoreRange(sDspResFilter, sizeof(DSPRES_FILTER));
+        DCStoreRange(sDspAdpcmFilter, sizeof(DSPADPCM_FILTER));
+        DCStoreRange(sDolbyDelayBuf, sizeof(DOLBY2_DELAY_BUF));
+    }
+    DsetupTable(64, Kernel::toPhysical(CH_BUF), Kernel::toPhysical(sDspResFilter),
+                Kernel::toPhysical(sDspAdpcmFilter), Kernel::toPhysical(FX_BUF));
+    DsetDolbyDelay(Kernel::toPhysical(sDolbyDelayBuf), 10);
 #else
     DsetupTable(64, (u32)CH_BUF, (u32)&DSPRES_FILTER, (u32)&DSPADPCM_FILTER, (u32)FX_BUF);
     DsetDolbyDelay((u32)&DOLBY2_DELAY_BUF, 10);
@@ -121,7 +137,11 @@ bool JASystem::DSPInterface::FXBuffer::setFXLine(s16* buffer, JASystem::DSPInter
     }
     if (buffer && config) {
         u32 bufsize = config->field_0xc * 0xa0;
+#if TARGET_PC
+        field_0x4 = Kernel::toPhysical(buffer);
+#else
         field_0x4 = buffer;
+#endif
         Calc::bzero(buffer, bufsize);
 #if TARGET_PC
         // Alignment test on the low bits: through uintptr_t, a u32 cast does not compile for a 64-bit pointer.
@@ -132,7 +152,11 @@ bool JASystem::DSPInterface::FXBuffer::setFXLine(s16* buffer, JASystem::DSPInter
         JUT_ASSERT(220, (bufsize & 0x1f) == 0);
         DCFlushRange(buffer, bufsize);
     } else if (!config || buffer) {
+#if TARGET_PC
+        field_0x4 = buffer ? Kernel::toPhysical(buffer) : 0;
+#else
         field_0x4 = buffer;
+#endif
     }
     if (field_0x4) {
         field_0x0 = config->field_0x0;

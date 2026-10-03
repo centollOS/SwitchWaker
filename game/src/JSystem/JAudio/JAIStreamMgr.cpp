@@ -384,9 +384,9 @@ void JAInter::StreamMgr::checkPlayingStream() {
 void JAInter::StreamLib::Play_DirectPCM(JASystem::TDSPChannel* param_1, s16* param_2, u16 param_3, u32 param_4, s16 param_5, u16 param_6) {
     JASystem::DSPInterface::DSPBuffer* buffer = JASystem::DSPInterface::getDSPHandle(param_1->mNumber);
 #if TARGET_PC
-    // TODO(native phase 5): the DSP buffer holds 32-bit DSP addresses; the stream is silent until
-    // phase 5 gives JAudio a real mixer, so the truncated value is never used as an address.
-    buffer->field_0x118 = (u32)(uintptr_t)param_2;
+    // The DSP reads the PCM at a MEM1 physical address; the loop buffers come from the stream
+    // buffer (JASDram or a game heap, all in MEM1).
+    buffer->field_0x118 = JASystem::Kernel::toPhysical(param_2);
 #else
     buffer->field_0x118 = (u32)param_2;
 #endif
@@ -398,9 +398,7 @@ void JAInter::StreamLib::Play_DirectPCM(JASystem::TDSPChannel* param_1, s16* par
         buffer->field_0x74 = param_4;
     }
 #if TARGET_PC
-    // TODO(native phase 5): the DSP buffer holds 32-bit DSP addresses; the stream is silent until
-    // phase 5 gives JAudio a real mixer, so the truncated value is never used as an address.
-    buffer->field_0x110 = (u32)(uintptr_t)param_2;
+    buffer->field_0x110 = JASystem::Kernel::toPhysical(param_2);
 #else
     buffer->field_0x110 = (u32)param_2;
 #endif

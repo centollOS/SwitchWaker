@@ -10,6 +10,11 @@
 #include "JSystem/JAudio/osdsp_task.h"
 #include "dolphin/dsp.h"
 #include "global.h"
+#if TARGET_PC
+#include "JSystem/JAudio/JASSystemHeap.h"
+#include "dolphin/os/OSCache.h"
+#include <string.h>
+#endif
 
 /* 8028E860-8028E898       .text DspHandShake__FPv */
 void DspHandShake(void* param_1) {
@@ -496,10 +501,32 @@ static u8 AUDIO_YIELD_BUFFER[8192] ALIGN_DECL(32);
 void DspBoot(void (*param_1)(void*)) {
     DspInitWork();
     audio_task.priority = 0xf0;
+#if TARGET_PC
+    // The DSP loads the ucode from, and saves its DRAM to, MEM1 physical addresses. On the
+    // GameCube `jdsp + 0x80000000` turns the cached address 0x80xxxxxx into the physical one; on
+    // the host the static arrays are outside MEM1, so the ucode is copied to, and the yield buffer
+    // allocated in, JASDram (MEM1), and their physical addresses go into the task (as the u16*
+    // the SDK's DSPTaskInfo declares, like CARDUnlock's task).
+    static u8* sJdspMem1;
+    static u8* sYieldBufMem1;
+    if (sJdspMem1 == NULL) {
+        sJdspMem1 = (u8*)JASystem::Kernel::allocFromSysDram(sizeof(jdsp));
+        sYieldBufMem1 = (u8*)JASystem::Kernel::allocFromSysDram(sizeof(AUDIO_YIELD_BUFFER));
+        memcpy(sJdspMem1, jdsp, sizeof(jdsp));
+        memset(sYieldBufMem1, 0, sizeof(AUDIO_YIELD_BUFFER));
+        DCStoreRange(sJdspMem1, sizeof(jdsp));
+        DCStoreRange(sYieldBufMem1, sizeof(AUDIO_YIELD_BUFFER));
+    }
+    audio_task.iram_mmem_addr = (u16*)(uintptr_t)JASystem::Kernel::toPhysical(sJdspMem1);
+    audio_task.iram_length = sizeof(jdsp);
+    audio_task.iram_addr = 0;
+    audio_task.dram_mmem_addr = (u16*)(uintptr_t)JASystem::Kernel::toPhysical(sYieldBufMem1);
+#else
     audio_task.iram_mmem_addr = (u16*)(jdsp + 0x80000000);
     audio_task.iram_length = sizeof(jdsp);
     audio_task.iram_addr = 0;
     audio_task.dram_mmem_addr = (u16*)(AUDIO_YIELD_BUFFER + 0x80000000);
+#endif
     audio_task.dram_length = sizeof(AUDIO_YIELD_BUFFER);
     audio_task.dram_addr = 0;
     audio_task.dsp_init_vector = 0;

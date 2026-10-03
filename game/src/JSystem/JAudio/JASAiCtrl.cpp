@@ -42,9 +42,8 @@ void JASystem::Kernel::initSystem() {
     }
     AIInit(NULL);
 #if TARGET_PC
-    // Aurora's AIInitDMA takes the full address as a uintptr_t (cos_sdk's silent AI stub, step 2.6f).
-    // TODO(native phase 5): real audio output.
-    AIInitDMA(uintptr_t(dac[2]), getDacSize() * 2);
+    // The AI reads the DAC buffer at a MEM1 physical address; dac[] comes from JASDram (MEM1).
+    AIInitDMA(toPhysical(dac[2]), getDacSize() * 2);
 #else
     AIInitDMA(u32(dac[2]), getDacSize() * 2);
 #endif
@@ -106,9 +105,8 @@ void JASystem::Kernel::updateDac() {
     }
     if (useRspMadep) {
 #if TARGET_PC
-        // Aurora's AIInitDMA takes the full address as a uintptr_t (cos_sdk's silent AI stub, step 2.6f).
-        // TODO(native phase 5): real audio output.
-        AIInitDMA(uintptr_t(useRspMadep), getDacSize() * 2);
+        // The AI reads the DAC buffer at a MEM1 physical address (see initSystem).
+        AIInitDMA(toPhysical(useRspMadep), getDacSize() * 2);
 #else
         AIInitDMA(u32(useRspMadep), getDacSize() * 2);
 #endif

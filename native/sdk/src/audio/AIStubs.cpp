@@ -11,7 +11,8 @@
 //   that never comes; it blocks, it does not spin. AIInit logs this once.
 // - AIInitDMA keeps the full 64-bit address (Aurora declares it with a uintptr_t under
 //   TARGET_PC). AIGetDMAStartAddr returns a u32 as on the console, so it aborts when the address
-//   does not fit instead of handing back a truncated pointer.
+//   does not fit instead of handing back a truncated pointer. JAudio passes a MEM1 physical
+//   address (JASystem::Kernel::toPhysical, step 5.2 of docs/NATIVE_PORT_PHASE4_6.md).
 // - The SDK's ASSERT that the DMA length is a multiple of 32 bytes aborts here too: on the
 //   console the low 5 bits are dropped (the length register counts 32-byte blocks).
 // - AISetDSPSampleRate, AISetStreamSampleRate and __AI_set_stream_sample_rate follow the SDK's

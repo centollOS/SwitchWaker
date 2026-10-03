@@ -316,7 +316,7 @@ struct GLOBAL_MEMORY {
 #define OSPhysicalToCached(paddr) ((void*)((u32)(paddr) + OS_BASE_CACHED))
 #define OSPhysicalToUncached(paddr) ((void*)((u32)(paddr) + OS_BASE_UNCACHED))
 #if TARGET_PC
-// TODO(native phase 4): GameCube physical addresses are 32-bit; host pointers are 64-bit.
+// NOTE(native phase 4, harmless): never compiled (native/check/check_sdk_shadow.sh: the native build reaches Aurora's <dolphin/os.h>, whose OSCachedToPhysical is MEM1-relative; JAudio checks the range with JASystem::Kernel::toPhysical, step 5.2).
 #define OSCachedToPhysical(caddr) ((u32)((uintptr_t)(caddr)-OS_BASE_CACHED))
 #define OSUncachedToPhysical(ucaddr) ((u32)((uintptr_t)(ucaddr)-OS_BASE_UNCACHED))
 #else

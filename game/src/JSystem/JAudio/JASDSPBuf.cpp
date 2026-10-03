@@ -109,9 +109,8 @@ void JASystem::TDSP_DACBuffer::finishDSPFrame() {
     TAudioThread::snIntCount = Kernel::getSubFrames();
     Kernel::probeStart(7, "DSP-MAIN");
 #if TARGET_PC
-    // TODO(native phase 5): DsyncFrame2 hands the DSP 32-bit main-memory addresses; with no DSP
-    // (cos_sdk's silent stubs) they are never dereferenced.
-    DsyncFrame2(Kernel::getSubFrames(), u32(uintptr_t(dsp_buf[writeBuffer])), u32(uintptr_t(&dsp_buf[writeBuffer][frameSamples])));
+    // The DSP writes the frame to MEM1 physical addresses; dsp_buf comes from JASDram (MEM1).
+    DsyncFrame2(Kernel::getSubFrames(), Kernel::toPhysical(dsp_buf[writeBuffer]), Kernel::toPhysical(&dsp_buf[writeBuffer][frameSamples]));
 #else
     DsyncFrame2(Kernel::getSubFrames(), u32(dsp_buf[writeBuffer]), u32(&dsp_buf[writeBuffer][frameSamples]));
 #endif

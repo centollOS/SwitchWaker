@@ -37,7 +37,13 @@ namespace JASystem {
 
             /* 0x00 */ s16 field_0x0;
             /* 0x02 */ s16 field_0x2;
+#if TARGET_PC
+            // The DSP reads this buffer's address: a MEM1 physical address (0 for none), so the
+            // struct keeps the 0x20 bytes the DSP reads.
+            /* 0x04 */ u32 field_0x4;
+#else
             /* 0x04 */ s16* field_0x4;
+#endif
             /* 0x08 */ s16 field_0x8;
             /* 0x0A */ s16 field_0xa;
             /* 0x0C */ s16 field_0xc;
@@ -113,6 +119,12 @@ namespace JASystem {
             /* 0x150 */ s16 field_0x150;
             /* 0x152 */ u8 field_0x152[0x180 - 0x152];
         };
+#if TARGET_PC
+
+        // Both are read by the DSP (DsetupTable gives it CH_BUF and FX_BUF) with these layouts.
+        static_assert(sizeof(FXBuffer) == 0x20, "FXBuffer must keep the DSP's layout");
+        static_assert(sizeof(DSPBuffer) == 0x180, "DSPBuffer must keep the DSP's layout");
+#endif
 
 
         void setDSPMixerLevel(float param_1);

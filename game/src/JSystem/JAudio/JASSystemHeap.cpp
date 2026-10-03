@@ -36,6 +36,20 @@ void* JASystem::Kernel::allocFromSysDram(u32 size) {
     return ptr;
 }
 
+#if TARGET_PC
+u32 JASystem::Kernel::toPhysical(const void* ptr) {
+    // Aurora's OSCachedToPhysical only asserts the range, and not in a release build.
+    uintptr_t mem1 = (uintptr_t)OSPhysicalToCached(0);
+    uintptr_t mem1Size = ((OSBootInfo*)OSPhysicalToCached(0))->memorySize;
+    uintptr_t addr = (uintptr_t)ptr;
+    if (addr < mem1 || addr - mem1 >= mem1Size) {
+        OSPanic(__FILE__, __LINE__, "JASKernel::toPhysical: %p is not inside MEM1 (%p, size 0x%lx)",
+                ptr, (void*)mem1, (unsigned long)mem1Size);
+    }
+    return OSCachedToPhysical((void*)ptr);
+}
+
+#endif
 JASystem::Kernel::TSolidHeap JASystem::Kernel::audioAramHeap;
 u32 JASystem::Kernel::audioAramSize = 0x00400000;
 int JASystem::Kernel::audioAramTop;
