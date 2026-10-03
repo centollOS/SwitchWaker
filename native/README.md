@@ -93,7 +93,19 @@ the player's disc. They go under `build/native-mac/assets/GZLE01/` (`include/ass
 git; `-DCOS_ASSETS_DIR=` points elsewhere.
 
 From `framework` on, most units need them (`d/d_com_inf_game.h` includes `res/Object/Always.h`).
-With a built checkout of the decomp (`python configure.py && ninja` for GZLE01), copy them in:
+`native/tools/gen_assets.sh` generates them: it checks out the decomp
+(the decompilation fork at `b09eebc`, the commit `game` was imported
+from) under `build/decomp`, links the disc into its `orig/GZLE01/`, runs its `configure.py`
+and builds only the targets that write headers (the `dtk dol split`, which also checks main.dol's
+SHA-1, and the model data converters; no Metrowerks compiler is downloaded), then copies the
+decomp's `assets/GZLE01/res` and the generated `build/GZLE01/include/assets` into place. It needs
+Python 3.10 or newer and, the first time, the network:
+
+```sh
+native/tools/gen_assets.sh --disc /path/to/GZLE01.iso    # or COS_DISC=...; --out DIR for another COS_ASSETS_DIR
+```
+
+By hand, with a built checkout of the decomp (`python configure.py && ninja` for GZLE01):
 
 ```sh
 mkdir -p build/native-mac/assets/GZLE01/include
