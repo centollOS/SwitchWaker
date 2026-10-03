@@ -468,6 +468,12 @@ void main01() {
 #endif
 
     do {
+#if TARGET_PC
+        // Step 6.2 (pc_frame.cpp): Aurora's events, then its frame opens. Everything below,
+        // including the GX that fapGm_Execute encodes and the VI retraces JFWDisplay's wait makes,
+        // belongs to this frame.
+        pc_frame_begin();
+#endif
 #if VERSION > VERSION_DEMO
         frame++;
         if (fillcheck_check_frame != 0 && frame % fillcheck_check_frame == 0) {
@@ -508,6 +514,10 @@ void main01() {
         Debug_console(g_mDoCPd_gamePad[2]);
 #else
         debug();           // run debugger
+#endif
+#if TARGET_PC
+        // aurora_end_frame, the game frame count (stall watchdog, COS_FRAMES) and milestone M4.
+        pc_frame_end();
 #endif
     } while (true);
 }

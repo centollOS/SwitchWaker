@@ -70,4 +70,8 @@ void printSmokes(int fd);
 // pc_watchdog.cpp
 void startWatchdog();
 
+// pc_frame.cpp: "[cos] pacing: frames= wall= requested= ..." since the frame loop started (nothing
+// before it).
+void writePacing(int fd);
+
 } // namespace pc

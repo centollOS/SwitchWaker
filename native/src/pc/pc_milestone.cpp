@@ -86,6 +86,7 @@ void pc_frame_tick(void) {
     if (gConfig.frames != 0 && n >= gConfig.frames) {
         writef(STDERR_FILENO, "[cos] FRAMES %u done retrace=%u ms=%llu\n", n,
                (unsigned int)VIGetRetraceCount(), (unsigned long long)elapsedMs());
+        writePacing(STDERR_FILENO);
         pc_exit(PC_EXIT_REACHED);
     }
 }

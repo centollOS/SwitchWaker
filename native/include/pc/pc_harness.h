@@ -9,8 +9,8 @@
  *   COS_MILESTONE  exit 0 as soon as this milestone is logged (static-init, aurora-up, ...)
  *   COS_TIMEOUT_S  in-process watchdog: exit 10 after this many seconds (0 or unset: off)
  *   COS_STALL_S    exit 11 when the game frame counter is frozen this long (0 or unset: off)
- *   COS_TRACE      comma list of trace channels: res, scene (or all)
- *   COS_UNCAPPED   1: no frame pacing (used from step 6.2)
+ *   COS_TRACE      comma list of trace channels: res, scene, frame (or all)
+ *   COS_UNCAPPED   1: no frame pacing and no vsync (pc_frame_pace, Aurora)
  *   COS_AUDIO      off: audio stays silent (used from step 6.1)
  *   COS_FRAMES     exit 0 after this many game frames
  *   COS_RUN_DIR    directory for backtrace.txt / stall.txt (set by native/tools/run.sh)
@@ -65,10 +65,23 @@ void pc_copydate_loaded(int status, const char* copydate);
 /* Logs "[cos] MILESTONE <name> frame= retrace= ms=" and exits 0 if <name> is COS_MILESTONE. */
 void pc_milestone(const char* name);
 
-/* One game frame done (called by the frame loop, step 6.2). Feeds the stall watchdog and
-   COS_FRAMES. */
+/* One game frame done (called by pc_frame_end). Feeds the stall watchdog and COS_FRAMES. */
 void pc_frame_tick(void);
 unsigned int pc_frame_count(void);
+
+/* The frame loop (step 6.2, pc_frame.cpp). main01 calls pc_frame_begin at the top of each
+   iteration (Aurora's event pump, then aurora_begin_frame, retried while the window cannot
+   present; a quit request exits) and pc_frame_end at the bottom (aurora_end_frame, pc_frame_tick,
+   milestone M4 frame-loop: 120 frames, the retrace count went up, Aurora counted draw calls). */
+void pc_frame_begin(void);
+void pc_frame_end(void);
+
+/* The wait of JFWDisplay's waitForTick (step 6.2): returns once periodNs have passed since the
+   previous call returned (Dusklight's limiter); returns at once with COS_UNCAPPED. */
+void pc_frame_pace(unsigned long long periodNs);
+
+/* One NTSC VI retrace (59.94 Hz): 1001/60000 s. */
+#define PC_RETRACE_PERIOD_NS 16683333ull
 
 /* Trace channels (COS_TRACE) and the state the crash handler prints. */
 int pc_trace_enabled(const char* channel);

@@ -1352,6 +1352,82 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   that is not a valid boot path before phase 5. Prerequisite for M4 under COS_AUDIO=off.
   Reviewed in round 1 (2026-10-03): guard only reached when the table is missing; `unifdef`
   equal to HEAD; committed on its own.
+- **6.2 Frame loop and pacing:** `TARGET_PC` code in the game files, GameCube code in `#else`
+  (`unifdef -UTARGET_PC` of `m_Do_main.cpp` and `JFWDisplay.cpp` equals HEAD's).
+  - New `native/src/pc/pc_frame.cpp`. `main01`'s loop calls `pc_frame_begin` first: Aurora's
+    events (`aurora_update`; a quit request exits 0, or 1 when a milestone or `COS_FRAMES` was
+    still expected), then `aurora_begin_frame` (retried every 10 ms while the window cannot
+    present, instead of Dusklight's skipped game frame). It calls `pc_frame_end` last:
+    `aurora_end_frame`, then `pc_frame_tick` (stall watchdog, `COS_FRAMES`), then milestone M4.
+    The pad read, audio, `fapGm_Execute` (GX, and the retraces below) and `debug()` all fall
+    inside Aurora's frame.
+  - `JFWDisplay`'s `waitForTick`: the console sleeps until `p1` ticks have passed (tick-rate
+    mode, an `OSAlarm`), or until JUTVideo's post-retrace message shows `p2` more retraces
+    (frame-rate mode). There is no VI interrupt on the host, so the PC code does two things.
+    First, `pc_frame_pace` waits out the same period with Dusklight's `Limiter` (CC0,
+    `src/dusk/time.h`: `mach_wait_until` up to 2 ms before the target, then a spin) on the
+    harness clock; `COS_UNCAPPED` skips it. Second, the retraces the console would count during
+    that wait happen right there through `VIWaitForRetrace`: `p2`, or the tick period over
+    `PC_RETRACE_PERIOD_NS` (1001/60000 s), rounded and at least 1. Retraces made elsewhere since
+    the last wait count toward them. JUTVideo's callbacks therefore show the drawn XFB before
+    the frame's exchange, which the double-buffer exchange requires, and the retrace count
+    rises like the console's (1 per frame at 60 fps, 2 at 30). JUTVideo's message queue is no
+    longer read, since this wait was its only reader.
+  - Milestone M4 `frame-loop`: at frame 120 or later, the retrace count has gone up since the
+    loop started, and Aurora reported draw calls (the largest `drawCallCount` seen after any
+    frame, because its counters arrive asynchronously). `[cos] pacing:` is logged with M4 and at
+    the end of `COS_FRAMES`. It gives the wall and requested time, overall and from the end of
+    the first wait (frame 1 carries about 165 ms of scene creation), and their ratio.
+    `COS_TRACE=frame` logs each frame's `aurora_begin_frame`, work, wait and `aurora_end_frame`
+    times.
+  - `run.sh run`: boots with neither a milestone nor a smoke test, for `--frames`.
+  - `cos_pc` gets SDL3's include directories (headers only) for `<aurora/event.h>`.
+  Verified (first attempt, before 4.4; restored on top of the 4.4 commits, no conflict in code):
+  - `gfx-create` (M3): exit 0, 3 runs (and 3 more after 4.4).
+  - `frame-loop` (M4) capped after 4.4: exit 0, 3 runs, about 2.3 s each. Each logs 120 frames,
+    120 retraces and up to 3 draw calls in a frame; no assertion or panic in the log.
+  - Pacing after frame 1: wall 1983.7 ms against 1983.4 ms requested (ratio 1.0002). The waits
+    measure 16.62 to 16.65 ms each.
+  - `--uncapped` M4: exit 0, Aurora present mode Immediate.
+  - Uncapped speed is about 105 fps. `aurora_begin_frame` blocks for 7 to 9 ms waiting for the
+    previous frame's presentation on the 120 Hz display (`COS_TRACE=frame`), and the game's
+    own work is under 0.1 ms. This is for step 6.7.
+  **Beyond 6.2 (handed to M5/M6 by the amended acceptance, commit 830d93d):**
+  - `Logo.arc` now mounts (the 4.4 RARC fix); the earlier `JUT_ASSERT(418, signature == 'RARC')`
+    is gone. `run --frames 600` passes M4 and then ends with exit 13 at frame 243 capped
+    (SIGBUS, about 4.3 s) and frame 244 uncapped (SIGSEGV, about 2.3 s), in the logo scene:
+    `main01` -> `fapGm_Execute` -> `dvdWaitDraw` -> `dRes_control_c::syncAllRes` ->
+    `dRes_info_c::loadResource` -> `J3DAnmLoaderDataBase::load` -> `J3DAnmKeyLoader_v15::load`
+    -> `JUTNameTab::setResource`. The name table pointer is the block base plus an offset read
+    little-endian (x9 = 0xffffffff94000000: 0x94 swapped and sign-extended). `J3DAnimation.h`
+    has no `BE(T)` field yet (J3D animation, step 4.12). Under the boot-loop ownership rule this
+    is the next fix of the boot loop toward M5/M6, not part of 6.2: the 600-frame runs left
+    6.2's acceptance (amended on 2026-10-03), which is M3, M4, the capped ratio over the first
+    120 frames and uncapped M4.
+  Regression (after 4.4):
+  - `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check
+    cos_link_census`: 0 errors.
+  - smoke ok, `cos_pc_tests` ok.
+  - Census equal to `expected_unresolved_phase2.txt`; `--all --dups` 0.
+  - Inventory `--check` ok (78 open).
+  - static-init, aurora-up and heaps 0 x3; gfx-create 0 x3; disc-ls, heap, font and arc-sweep 0.
+  - crash/panic/timeout/stall-test 13/12/10/11; no disc 14.
+  Verified against the amended acceptance (fixer, 2026-10-03, same working tree):
+  - `gfx-create` (M3) 0 x3 and `frame-loop` (M4) capped 0 x3, no assertion or panic in any log;
+    each M4 run logs 120 frames, 120 retraces, up to 3 draw calls.
+  - Capped pacing after frame 1 over the first 120 frames: ratio 1.0001, 1.0002, 1.0002
+    (wall 1983.5-1983.7 ms against 1983.4 ms requested), well inside 5 percent.
+  - `frame-loop --uncapped` 0 x3 (present mode Immediate, vsync=0; ratio about 0.49).
+  - Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check
+    cos_link_census` 0 errors; smoke ok; `cos_pc_tests` ok; shadow check ok; census equal to
+    `expected_unresolved_phase2.txt`; `--all --dups` 0; inventory `--check` ok (78 open);
+    static-init, aurora-up, heaps 0 x3; heap, disc-ls, font, arc-sweep 0;
+    crash/panic/timeout/stall-test 13/12/10/11; no disc 14. `unifdef -UTARGET_PC` of the three
+    game files equals HEAD's.
+  Reviewed in round 1 (2026-10-03): build 0 errors; M3 0 x3; M4 capped 0 x3, ratio 1.0002,
+  1.0002, 1.0008, no assertion or panic; M4 uncapped 0 x3; static-init/aurora-up/heaps 0 x3;
+  heap/disc-ls/font/arc-sweep 0; crash/panic/timeout/stall 13/12/10/11, no disc 14; census diff
+  empty, `--dups` 0, inventory ok (78 open), smoke and `cos_pc_tests` ok. Accepted.
 
 ### Phase 6 render issues
 

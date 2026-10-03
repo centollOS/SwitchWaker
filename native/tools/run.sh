@@ -7,6 +7,8 @@
 #
 # <target> is a milestone (static-init, aurora-up, heaps, ... see COS_MILESTONE) or a smoke test
 # (crash-test, ... see COS_SMOKE). static-init is milestone M0 and runs the static-init smoke test.
+# `run` boots the game with neither: it ends with --frames (exit 0), the timeout or a fault, e.g.
+#   native/tools/run.sh run --frames 600 [--uncapped]      (prints the [cos] pacing line)
 #
 # Options:
 #   --timeout S      in-process watchdog timeout (COS_TIMEOUT_S), default 180
@@ -110,7 +112,9 @@ while [ -e "$run_dir" ]; do run_dir="$runs/$target-$ts-$n"; n=$((n + 1)); done
 mkdir -p "$run_dir"
 
 unset COS_SMOKE COS_MILESTONE
-if [[ "$milestones" == *" $target "* ]]; then
+if [ "$target" = "run" ]; then
+    : # the game itself: no milestone, no smoke test
+elif [[ "$milestones" == *" $target "* ]]; then
     export COS_MILESTONE="$target"
     [ "$target" = "static-init" ] && export COS_SMOKE=static-init
 else

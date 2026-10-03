@@ -14,6 +14,9 @@
 #include "dolphin/gx/GX.h"
 #include "dolphin/os/OS.h"
 #include "global.h"
+#if TARGET_PC
+#include "pc/pc_harness.h"
+#endif
 
 JFWDisplay* JFWDisplay::sManager = NULL;
 
@@ -355,6 +358,35 @@ void JFWDisplay::waitBlanking(int duration) {
 
 /* 80255D34-80255E54       .text waitForTick__FUlUs */
 void waitForTick(u32 p1, u16 p2) {
+#if TARGET_PC
+    // Step 6.2 (docs/NATIVE_PORT_PHASE4_6.md). The console sleeps here until p1 ticks have passed
+    // since the last wait (tick-rate mode, an OSAlarm) or until the VI interrupt has counted p2
+    // more retraces (frame-rate mode, JUTVideo's post-retrace message). The host has no VI
+    // interrupt: pc_frame_pace (Dusklight's limiter, skipped with COS_UNCAPPED) waits out the same
+    // period, and the retraces the console would have counted during the wait happen here, so
+    // JUTVideo's retrace callbacks show the drawn XFB before this frame's exchange and the retrace
+    // count advances as on the console (one per frame at 60 fps, two at 30). Retraces made since
+    // the last wait by code that waits on VIWaitForRetrace (JKRDvdRipper) count towards them.
+    // JUTVideo's message queue is no longer read: only this wait read it.
+    static u32 nextCount = VIGetRetraceCount();
+    unsigned long long periodNs;
+    u32 retraces;
+    if (p1 != 0) {
+        periodNs = (unsigned long long)p1 * 1000000000ull / OS_TIMER_CLOCK;
+        retraces = (u32)((periodNs + PC_RETRACE_PERIOD_NS / 2) / PC_RETRACE_PERIOD_NS);
+        if (retraces == 0) {
+            retraces = 1;
+        }
+    } else {
+        retraces = (p2 == 0) ? 1 : p2;
+        periodNs = retraces * PC_RETRACE_PERIOD_NS;
+    }
+    pc_frame_pace(periodNs);
+    while ((s32)(VIGetRetraceCount() - nextCount) < 0) {
+        VIWaitForRetrace();
+    }
+    nextCount = VIGetRetraceCount() + retraces;
+#else
     if (p1 != 0) {
         static s64 nextTick = OSGetTime();
         s64 time = OSGetTime();
@@ -372,14 +404,10 @@ void waitForTick(u32 p1, u16 p2) {
             if (!OSReceiveMessage(JUTVideo::getManager()->getMessageQueue(), &msg, OS_MESSAGE_BLOCK)) {
                 msg = 0;
             }
-#if TARGET_PC
-        } while (((intptr_t)msg - (int)nextCount) < 0);
-        nextCount = (intptr_t)msg + uVar1;
-#else
         } while (((int)msg - (int)nextCount) < 0);
         nextCount = (int)msg + uVar1;
-#endif
     }
+#endif
 }
 
 /* 80255E54-80255E78       .text JFWThreadAlarmHandler__FP7OSAlarmP9OSContext */

@@ -30,6 +30,12 @@ target_link_libraries(cos_pc PRIVATE cos_game_headers)
 target_include_directories(cos_pc PRIVATE "${COS_NATIVE_ROOT}/src/pc")
 # pc_main.cpp (step 6.1) sets cos_sdk's thread hooks (cos_sdk/hooks.h); centollos itself links cos_sdk.
 target_include_directories(cos_pc PRIVATE "${COS_NATIVE_ROOT}/sdk/include")
+# pc_frame.cpp (step 6.2) reads Aurora's events (<aurora/event.h> includes SDL3's headers). Headers
+# only: centollos links SDL3 through Aurora, and the link census bundle must not gain a library.
+if (DEFINED AURORA_SDL3_TARGET AND TARGET ${AURORA_SDL3_TARGET})
+    target_include_directories(cos_pc PRIVATE
+            $<TARGET_PROPERTY:${AURORA_SDL3_TARGET},INTERFACE_INCLUDE_DIRECTORIES>)
+endif ()
 if (TARGET cos_link_census)
     target_link_libraries(cos_link_census PRIVATE cos_pc)
 endif ()
