@@ -62,6 +62,9 @@ include(cmake/sdk_gf.cmake)
 include(cmake/census.cmake)
 # The game executable (phase 3, step 3.8): `ninja centollos` links every module, cos_sdk and Aurora.
 include(cmake/executable.cmake)
+# Layout check (phase 4, step 4.0c): `ninja cos_layout_check` asserts the GameCube offsets of the
+# disc-mapped structs (check/layout_headers.txt) on the host, minus check/layout_xfail.txt.
+include(cmake/layout_check.cmake)
 
 # Scaffold check: proves the toolchain, the include paths and the PC config header work.
 add_library(cos_scaffold_check OBJECT

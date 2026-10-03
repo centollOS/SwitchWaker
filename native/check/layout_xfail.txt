@@ -1,0 +1,52 @@
+# Layout checks known to fail on the host (docs/NATIVE_PORT_PHASE4_6.md, step 4.0c).
+#
+# One entry per line: <struct> xfails the whole struct (at least one of its checks must still
+# fail), <struct>.<field> or <struct>.sizeof a single check. The list is strict: an entry whose
+# checks all hold fails cos_layout_check ("XPASS"), so the format step that fixes a struct
+# removes it here in the same commit. Every failure below comes from a pointer the file stores
+# as a 32-bit offset (8 bytes on the host); none is an endian problem, which offsets cannot see.
+# Current failures with the host offsets: native/tools/layout_check.py --discover
+
+# 4.4: RARC file entry (the in-file data pointer becomes Dusklight's index plus a side table)
+JKRArchive::SDIFileEntry             # 1/7 fail: sizeof
+
+# 4.9a-c: stage chunks relocated in place ({num, pointer} pairs become OFFSET_PTR)
+stage_tresure_class                  # 2/3 fail: m_entries, sizeof
+stage_scls_info_dummy_class          # 2/3 fail: m_entries, sizeof
+stage_map_info_dummy_class           # 2/3 fail: m_entries, sizeof
+stage_camera_class                   # 2/3 fail: m_entries, sizeof
+stage_arrow_class                    # 2/3 fail: m_entries, sizeof
+stage_actor_class                    # 2/3 fail: m_entries, sizeof
+stage_tgsc_class                     # 2/3 fail: m_entries, sizeof
+roomRead_data_class                  # 2/5 fail: m_rooms, sizeof
+roomRead_class                       # 2/3 fail: m_entries, sizeof
+dStage_MemoryMap_c                   # 2/3 fail: m_entries, sizeof
+dStage_MemoryConfig_c                # 2/3 fail: m_entries, sizeof
+dStage_dPath_c                       # 2/3 fail: m_path, sizeof
+dStage_Multi_c                       # 2/3 fail: m_entries, sizeof
+dStage_SoundInfo_c                   # 2/3 fail: m_entries, sizeof
+dStage_FloorInfo_c                   # 2/3 fail: m_entries, sizeof
+dStage_Lbnk_c                        # 2/3 fail: m_entries, sizeof
+dStage_DMap_c                        # 2/3 fail: entries, sizeof
+dStage_EventInfo_c                   # 2/3 fail: events, sizeof
+dStage_Ship_c                        # 2/3 fail: m_entries, sizeof
+
+# 4.9c / 4.16: paths
+dPath                                # 1/8 fail: sizeof
+
+# 4.10: collision (dzb)
+cBgD_Grp_t                           # 11/12 fail: m_scale, m_rotation, m_translation, ...
+cBgD_t                               # 13/14 fail: m_v_tbl, m_t_num, m_t_tbl, ...
+
+# 4.11: J3D model data (file offsets declared as pointers become OFFSET_PTR_V0 / BE)
+J3DModelInfoBlock                    # 2/5 fail: mpHierarchy, sizeof
+J3DVertexBlock                       # 6/7 fail: mpVtxPosArray, mpVtxNrmArray, mpVtxNBTArray, ...
+J3DEnvelopBlock                      # 5/6 fail: mpWEvlpMixMtxNum, mpWEvlpMixMtxIndex, mpWEvlpMixWeight, ...
+J3DDrawBlock                         # 3/4 fail: mpDrawMtxFlag, mpDrawMtxIndex, sizeof
+J3DMaterialBlock                     # 30/31 fail: mpMaterialInitData, mpMaterialID, mpNameTable, ...
+J3DMaterialBlock_v21                 # 27/28 fail: mpMaterialInitData, mpMaterialID, mpNameTable, ...
+J3DMaterialDLBlock                   # 6/7 fail: mpDisplayListInit, mpPatchingInfo, mpCurrentMtxInfo, ...
+J3DTextureBlock                      # 2/3 fail: mpTextureRes, mpNameTable
+J3DJointBlock                        # 4/8 fail: mpJointInitData, mpIndexTable, mpNameTable, ...
+J3DShapeBlock                        # 9/13 fail: mpShapeInitData, mpIndexTable, mpNameTable, ...
+J3DClusterBlock                      # 7/12 fail: mClusterPointer, mClusterKeyPointer, mClusterVertex, ...

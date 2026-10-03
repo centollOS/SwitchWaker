@@ -295,11 +295,12 @@ COS_SMOKE=static-init build/native-mac/centollos; echo $?
 | `cos_symbol_census` | no | `symbol_census.py --all` over every object, to `build/native-mac/symbol_census.txt` |
 | `cos_pc` | yes | The run harness (`native/src/pc/pc_*.cpp`), linked into `centollos` and the link census |
 | `centollos` | no | The game executable |
+| `cos_layout_check` | no | The GameCube offsets of the disc-mapped structs (`native/check/layout_headers.txt`) hold on the host, minus `layout_xfail.txt`, and the decomp's offset comments hold for the GameCube (`native/tools/layout_check.py`, step 4.0c) |
 
 Full check after a change, from a clean build directory:
 
 ```sh
-ninja -C build/native-mac -k 0 all cos_sdk_shadow_check cos_link_census cos_symbol_census centollos
+ninja -C build/native-mac -k 0 all cos_sdk_shadow_check cos_link_census cos_symbol_census centollos cos_layout_check
 build/native-mac/cos_sdk_smoke
 diff -u native/check/expected_unresolved_phase2.txt build/native-mac/link_census_unresolved.txt
 native/tools/symbol_census.py --all --dups

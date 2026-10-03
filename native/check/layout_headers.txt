@@ -1,0 +1,193 @@
+# Disc-mapped structs checked by cos_layout_check (docs/NATIVE_PORT_PHASE4_6.md, step 4.0c).
+#
+# A struct belongs here when the game reads it straight out of a file loaded from the disc (or a
+# file it writes, like the save): its host layout must equal the GameCube layout, which the
+# decomp records as /* 0xNN */ comments before each field and `// Size: 0xNN` after the brace.
+# native/tools/layout_check.py turns those into static_asserts; the checks that fail until their
+# format step lands are listed in layout_xfail.txt. A struct changed to BE(T)/OFFSET_PTR by a
+# phase 4 step goes (or stays) here.
+#
+# Format: a header path relative to game/include at the start of a line, then its structs
+# indented, one per line, by qualified name. A struct line may add `size=0xNN` and
+# `<field>=0xNN` for what the decomp does not comment (they must agree with any comment there).
+# Each group names the step that owns it.
+
+# 4.3, 4.5: block headers shared by the J3D, J2D, JMessage and font files; textures and fonts
+JSystem/JUtility/JUTDataHeader.h
+    JUTDataBlockHeader      size=0x8
+    JUTDataFileHeader
+JSystem/JUtility/JUTTexture.h
+    ResTIMG
+JSystem/JUtility/JUTPalette.h
+    ResTLUT                 size=0x4 format=0x0 transparency=0x1 numColors=0x2
+JSystem/JUtility/JUTNameTab.h
+    ResNTAB                 size=0x8 mEntryNum=0x0 mPad0=0x2 mEntries=0x4
+    ResNTAB::Entry          size=0x4 mKeyCode=0x0 mOffs=0x2
+JSystem/JUtility/JUTFont.h
+    ResFONT                 size=0x20
+    ResFONT::INF1           size=0x14
+    ResFONT::WID1           size=0x10
+    ResFONT::MAP1           size=0x14
+    ResFONT::GLY1           size=0x20
+
+# 4.4: RARC archives
+JSystem/JKernel/JKRArchive.h
+    SArcHeader              size=0x20
+    SArcDataInfo            size=0x20
+    JKRArchive::SDIDirEntry size=0x10 type=0x0 name_offset=0x4 field_0x8=0x8 num_entries=0xA first_file_index=0xC
+    JKRArchive::SDIFileEntry size=0x14 file_id=0x0 name_hash=0x2 type_flags_and_name_offset=0x4 data_offset=0x8 data_size=0xC data=0x10
+
+# 4.6: BMG messages
+JSystem/JMessage/data.h
+    JMessage::data::JUTMesgInfo
+    JMessage::data::JUTMesgIDData
+
+# 4.7: JParticle (JPAC1-00)
+JSystem/JParticle/JPABaseShape.h
+    JPABaseShapeData
+JSystem/JParticle/JPAExtraShape.h
+    JPAExtraShapeData
+JSystem/JParticle/JPASweepShape.h
+    JPASweepShapeData
+JSystem/JParticle/JPAExTexShape.h
+    JPAExTexShapeData
+JSystem/JParticle/JPADynamicsBlock.h
+    JPADynamicsBlockData
+JSystem/JParticle/JPAFieldBlock.h
+    JPAFieldBlockData
+JSystem/JParticle/JPAKeyBlock.h
+    JPAKeyBlockData
+JSystem/JParticle/JPATexture.h
+    JPATextureData
+
+# 4.9a-d: stage and room chunks (dzs/dzr); the {num, pointer} pairs overlay a chunk's
+# {m_entryNum, m_offset} once relocated in place
+d/d_stage.h
+    dStage_nodeHeader       size=0xC
+    dStage_fileHeader
+    stage_vrbox_info_class
+    stage_tresure_data_class
+    stage_tresure_class     size=0x8
+    stage_stag_info_class
+    stage_scls_info_class
+    stage_scls_info_dummy_class size=0x8
+    stage_lightvec_info_class
+    stage_pselect_info_class
+    stage_plight_info_class
+    stage_palet_info_class
+    stage_map_info_class
+    stage_map_info_dummy_class size=0x8
+    stage_envr_info_class
+    stage_camera2_data_class
+    stage_camera_class      size=0x8
+    stage_arrow_data_class
+    stage_arrow_class       size=0x8
+    stage_actor_data_class
+    stage_actor_class       size=0x8
+    stage_tgsc_data_class
+    stage_tgsc_class        size=0x8
+    roomRead_data_class
+    roomRead_class          size=0x8
+    dStage_MemoryMap_c      size=0x8
+    dStage_MemoryConfig_data
+    dStage_MemoryConfig_c   size=0x8
+    dStage_dPath_c          size=0x8
+    dStage_dPnt_c
+    dStage_Mult_info
+    dStage_Multi_c          size=0x8
+    stage_sound_data
+    dStage_SoundInfo_c      size=0x8
+    dStage_FileList_dt_c
+    dStage_FloorInfo_dt_c
+    dStage_FloorInfo_c      size=0x8
+    dStage_Lbnk_c           size=0x8
+    dStage_DMap_dt_c
+    dStage_DMap_c           size=0x8
+    dStage_Event_dt_c
+    dStage_EventInfo_c
+    dStage_Ship_dt_c
+    dStage_Ship_c           size=0x8
+d/d_path.h
+    dPnt                    size=0x10
+    dPath                   size=0xC
+
+# 4.10: collision (dzb)
+SSystem/SComponent/c_bg_w.h
+    cBgD_Blk_t              size=0x2
+    cBgD_Ti_t               size=0x10
+    cBgD_Tri_t              size=0xA
+    cBgD_Grp_t
+    cBgD_Tree_t
+    cBgD_t                  size=0x34
+
+# 4.11: J3D model data (BMD/BDL)
+JSystem/J3DGraphLoader/J3DModelLoader.h
+    J3DModelInfoBlock
+    J3DVertexBlock
+    J3DEnvelopBlock
+    J3DDrawBlock
+    J3DMaterialBlock
+    J3DMaterialBlock_v21
+    J3DMaterialDLBlock
+    J3DTextureBlock
+JSystem/J3DGraphLoader/J3DJointFactory.h
+    J3DJointInitData
+    J3DJointBlock
+JSystem/J3DGraphLoader/J3DShapeFactory.h
+    J3DShapeInitData
+    J3DShapeMtxInitData
+    J3DShapeDrawInitData
+    J3DShapeBlock
+JSystem/J3DGraphLoader/J3DMaterialFactory.h
+    J3DMaterialInitData
+    J3DIndInitData
+    J3DPatchingInfo
+    J3DDisplayListInit
+JSystem/J3DGraphLoader/J3DMaterialFactory_v21.h
+    J3DMaterialInitData_v21
+JSystem/J3DGraphLoader/J3DClusterLoader.h
+    J3DClusterBlock
+
+# 4.12: J3D animation data (BCK/BCA/BTK/BTP/BRK/BPK/BVA/BLA/BLK)
+JSystem/J3DGraphAnimator/J3DAnimation.h
+    J3DAnmKeyTableBase
+    J3DAnmColorKeyTable
+    J3DAnmColorFullTable
+    J3DAnmVisibilityFullTable
+    J3DAnmTransformKeyTable
+    J3DAnmTransformFullTable
+    J3DAnmTexPatternFullTable
+    J3DAnmCRegKeyTable
+    J3DAnmKRegKeyTable
+    J3DAnmClusterKeyTable
+    J3DAnmVtxColorFullData
+    J3DAnmVisibilityFullData
+    J3DAnmTransformFullData
+    J3DAnmColorKeyData
+    J3DAnmTextureSRTKeyData
+    J3DAnmVtxColorKeyData
+    J3DAnmTexPatternFullData
+    J3DAnmTevRegKeyData
+    J3DAnmColorFullData
+    J3DAnmClusterFullData
+    J3DAnmTransformKeyData
+    J3DAnmClusterKeyData
+
+# 4.16: event data (event_list.dat)
+d/d_event_data.h
+    event_binary_data_header
+    dEvDtData_c
+    dEvDtCut_c
+    dEvDtStaff_c
+    dEvDtEvent_c
+
+# 4.17: JStudio demos (STB, FVB)
+JSystem/JStudio/JStudio/stb-data.h
+    JStudio::stb::data::THeader
+    JStudio::stb::data::THeader::Target
+    JStudio::stb::data::TBlock
+    JStudio::stb::data::TBlock_object
+    JStudio::stb::data::TParagraph
+JSystem/JStudio/JStudio/fvb-data.h
+    JStudio::fvb::data::TBlock
+    JStudio::fvb::data::THeader

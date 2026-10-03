@@ -963,6 +963,49 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `run.sh static-init` exit 0 (3 runs), inventory unchanged (263 open).
   Review (round 1): accepted, including `OSPanic` in place of the game's `JUT_ASSERT` (which always
   ends in `OSPanic` too); rerun tests ok, range-check mutation fails the test, census equal.
+- **4.0c Layout check:** `native/tools/layout_check.py` reads `native/check/layout_headers.txt`
+  (131 disc-mapped structs under 28 headers, grouped by the step that owns them: data block
+  headers, ResTIMG/ResTLUT/ResNTAB/ResFONT, RARC, BMG, the JPA blocks, the dzs/dzr chunks and
+  paths, dzb, the J3D model and animation blocks, event data, STB/FVB) and turns each
+  `/* 0xNN */` field comment and `// Size: 0xNN` comment into a `static_assert` on
+  `__builtin_offsetof`/`sizeof`, 1050 checks in all. A struct line can add `size=` and
+  `<field>=` where the decomp has no comment (`SDIDirEntry`, `SDIFileEntry`, `ResTLUT`,
+  `ResNTAB`, the `{num, pointer}` chunk pairs). Headers are read with a small preprocessor
+  (TARGET_PC=1, VERSION 2), so the fields are the ones clang compiles; anonymous unions belong to
+  the enclosing struct; a comment without a data member is skipped, never guessed (`--list`
+  shows them; none in the list). A bitfield gets a check that always fails (bit order differs on
+  a little-endian host), so it must be xfailed until it becomes a mask; the list has none.
+  `native/check/layout_xfail.txt` is strict: `<struct>` asserts that at least one of its checks
+  still fails, `<struct>.<field>` that the check fails, and a name that is not a check stops the
+  generator, so a format step must remove what it fixes. It holds 34 structs, 165 failing
+  checks, every one caused by a file offset declared as a pointer (8 bytes on the host): RARC
+  `SDIFileEntry::data` (4.4), the 19 chunk pairs and `roomRead_data_class` (4.9a-c), `dPath`
+  (4.9c/4.16), `cBgD_Grp_t`/`cBgD_t` (4.10), the J3D model blocks (4.11). Offsets cannot see
+  endianness: that stays with the sweeps.
+  The comments are checked too: `--gc-verify` compiles the same checks, without the xfail list,
+  against the decomp's GameCube headers and MSL (no TARGET_PC, so every `#if TARGET_PC` takes its
+  `#else`) with clang `--target=powerpc-unknown-eabi`, whose layout rules match MWCC. It found
+  four wrong comments, corrected in the headers (comments only, no code or layout change):
+  `dStage_Event_dt_c::mName` 0x04 -> 0x01, `J3DJointInitData::mMax` 0x2C -> 0x34 and its size
+  0x30 -> 0x40, `J3DMaterialBlock_v21` `mpFogInfo`..`mpNBTScaleInfo` 0x68..0x80 -> 0x5C..0x74.
+  CMake (`native/cmake/layout_check.cmake`): the generated unit is
+  `build/native-mac/layout_check/cos_layout_check.cpp` (depfile over the tool, both lists and the
+  listed headers); `cos_layout_check_host` compiles it with the game's flags plus
+  `-fno-access-control` (offsetof of private members) and `-ferror-limit=0`; `cos_layout_check`
+  runs it and the GameCube verification (stamp). Neither is in `all`. `--discover` prints the
+  host offsets of every failing check, `--write-xfail` rewrites the list, `--scan <header>`
+  lists a header's structs to choose new entries.
+  Verified: `ninja cos_layout_check` passes; removing `dPath` from the xfail list fails it
+  (`dPath.sizeof`), adding `ResTIMG` or `ResTIMG.width` fails it (XPASS), an unknown name stops
+  the generator, and a wrong `size=` fails `--gc-verify`. Regression: `ninja all centollos
+  cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check cos_link_census` 0 errors,
+  smoke ok, `cos_pc_tests` ok, shadow check ok, link census equal to
+  `expected_unresolved_phase2.txt`, `symbol_census.py --all --dups` 0, inventory unchanged (263
+  open), `run.sh static-init` exit 0 (3 runs).
+  Review (round 1): accepted; the four comment fixes went into their own commit first.
+  Rerun from a clean `layout_check/`: 826 checks hold, 224 xfailed, 1050 hold on the GameCube;
+  dropping an xfail entry, an XPASS entry and a wrong header comment each fail the target, and
+  the original comments fail `--gc-verify` on exactly the 10 corrected checks; regression equal.
 
 ### Phase 6 render issues
 
