@@ -8,6 +8,10 @@
 
 // The animation data blocks below are disc data, stored big-endian: BE(T) is T on the GameCube and
 // a swapping field on TARGET_PC (phase 4; Dusklight declares them the same way in J3DAnimation.h).
+// The tables the animations index at run time (J3DAnm*Table) and the value arrays the J3DAnm*
+// objects point into are read in place through BE(T) as well, never swapped: searchUpdateMaterialID
+// writes material IDs back into the file data, and the same resource can be loaded or bound
+// (setResource) more than once, so an in-place swap would need a "swapped once" mark in the data.
 // J3D_ANM_OFFSET(T) is a block-relative file offset, which J3DAnmLoader casts to void* for
 // JSUConvertOffsetToPtr: plain T on the GameCube; on TARGET_PC a big-endian s32 with that cast
 // (sign-extended, as the GameCube's 32-bit add) so the loader's calls stay as they are.
@@ -24,9 +28,9 @@ static_assert(sizeof(J3DAnmDataOffset) == 4, "file offsets are 4 bytes");
 #endif
 
 struct J3DAnmKeyTableBase {
-    /* 0x00 */ u16 mMaxFrame;
-    /* 0x02 */ u16 mOffset;
-    /* 0x04 */ u16 mType;
+    /* 0x00 */ BE(u16) mMaxFrame;
+    /* 0x02 */ BE(u16) mOffset;
+    /* 0x04 */ BE(u16) mType;
 };  // Size = 0x6
 
 struct J3DAnmColorKeyTable {
@@ -40,19 +44,19 @@ struct J3DAnmColorKeyTable {
 };  // Size = 0x18
 
 struct J3DAnmColorFullTable {
-    /* 0x00 */ u16 mRMaxFrame;
-    /* 0x02 */ u16 mROffset;
-    /* 0x04 */ u16 mGMaxFrame;
-    /* 0x06 */ u16 mGOffset;
-    /* 0x08 */ u16 mBMaxFrame;
-    /* 0x0A */ u16 mBOffset;
-    /* 0x0C */ u16 mAMaxFrame;
-    /* 0x0E */ u16 mAOffset;
+    /* 0x00 */ BE(u16) mRMaxFrame;
+    /* 0x02 */ BE(u16) mROffset;
+    /* 0x04 */ BE(u16) mGMaxFrame;
+    /* 0x06 */ BE(u16) mGOffset;
+    /* 0x08 */ BE(u16) mBMaxFrame;
+    /* 0x0A */ BE(u16) mBOffset;
+    /* 0x0C */ BE(u16) mAMaxFrame;
+    /* 0x0E */ BE(u16) mAOffset;
 };  // Size = 0x10
 
 struct J3DAnmVisibilityFullTable {
-    u16 mMaxFrame;
-    u16 mOffset;
+    BE(u16) mMaxFrame;
+    BE(u16) mOffset;
 };  // Size = 0x4
 
 struct J3DAnmTransformKeyTable {
@@ -62,19 +66,19 @@ struct J3DAnmTransformKeyTable {
 };  // Size = 0x12
 
 struct J3DAnmTransformFullTable {
-    /* 0x00 */ u16 mScaleMaxFrame;
-    /* 0x02 */ u16 mScaleOffset;
-    /* 0x04 */ u16 mRotationMaxFrame;
-    /* 0x06 */ u16 mRotationOffset;
-    /* 0x08 */ u16 mTranslateMaxFrame;
-    /* 0x0A */ u16 mTranslateOffset;
+    /* 0x00 */ BE(u16) mScaleMaxFrame;
+    /* 0x02 */ BE(u16) mScaleOffset;
+    /* 0x04 */ BE(u16) mRotationMaxFrame;
+    /* 0x06 */ BE(u16) mRotationOffset;
+    /* 0x08 */ BE(u16) mTranslateMaxFrame;
+    /* 0x0A */ BE(u16) mTranslateOffset;
 };  // Size = 0xC
 
 struct J3DAnmTexPatternFullTable {
-    /* 0x00 */ u16 mMaxFrame;
-    /* 0x02 */ u16 mOffset;
+    /* 0x00 */ BE(u16) mMaxFrame;
+    /* 0x02 */ BE(u16) mOffset;
     /* 0x04 */ u8 mTexNo;
-    /* 0x06 */ u16 _6;
+    /* 0x06 */ BE(u16) _6;
 };  // Size = 0x8
 
 struct J3DAnmCRegKeyTable {
@@ -96,8 +100,8 @@ struct J3DAnmKRegKeyTable {
 };  // Size = 0x1C
 
 struct J3DAnmClusterFullTable {
-    u16 mMaxFrame;
-    u16 mOffset;
+    BE(u16) mMaxFrame;
+    BE(u16) mOffset;
 };
 
 struct J3DAnmClusterKeyTable {
@@ -348,7 +352,7 @@ protected:
 
 class J3DAnmTransform : public J3DAnmBase {
 public:
-    J3DAnmTransform(s16 i_frameMax, f32* scaleData, s16* rotData, f32* transData) : J3DAnmBase(i_frameMax) {
+    J3DAnmTransform(s16 i_frameMax, BE(f32)* scaleData, BE(s16)* rotData, BE(f32)* transData) : J3DAnmBase(i_frameMax) {
         mScaleData = scaleData;
         mRotData = rotData;
         mTransData = transData;
@@ -359,9 +363,9 @@ public:
     virtual void getTransform(u16, J3DTransformInfo*) const {}
 
 protected:
-    /* 0x10 */ f32* mScaleData;
-    /* 0x14 */ s16* mRotData;
-    /* 0x18 */ f32* mTransData;
+    /* 0x10 */ BE(f32)* mScaleData;
+    /* 0x14 */ BE(s16)* mRotData;
+    /* 0x18 */ BE(f32)* mTransData;
     /* 0x1C */ s16 field_0x1c;
     /* 0x1E */ s16 field_0x1e;
     /* 0x20 */ u16 field_0x20;
@@ -461,7 +465,7 @@ public:
     u16 getPostUpdateTexMtxID(u16 idx) const { return mPostUpdateTexMtxID[idx]; }
 
     u32 getTexMtxCalcType() { return mTexMtxCalcType; }
-    Vec& getSRTCenter(u16 idx) {
+    BE(Vec)& getSRTCenter(u16 idx) {
         J3D_ASSERT(1047, idx < mTrackNum / 3, "Error : range over.");
         return mSRTCenter[idx];
     }
@@ -473,13 +477,13 @@ private:
     /* 0x1C */ u16 mScaleNum;
     /* 0x1E */ u16 mRotNum;
     /* 0x20 */ u16 mTransNum;
-    /* 0x24 */ f32* mScaleData;
-    /* 0x28 */ s16* mRotData;
-    /* 0x2C */ f32* mTransData;
+    /* 0x24 */ BE(f32)* mScaleData;
+    /* 0x28 */ BE(s16)* mRotData;
+    /* 0x2C */ BE(f32)* mTransData;
     /* 0x30 */ u8* mUpdateTexMtxID;
-    /* 0x34 */ u16* mUpdateMaterialID;
+    /* 0x34 */ BE(u16)* mUpdateMaterialID;
     /* 0x38 */ JUTNameTab mUpdateMaterialName;
-    /* 0x48 */ Vec* mSRTCenter;
+    /* 0x48 */ BE(Vec)* mSRTCenter;
     /* 0x4C */ short field_0x4c;
     /* 0x4E */ short field_0x4e;
     /* 0x50 */ short field_0x50;
@@ -489,9 +493,9 @@ private:
     /* 0x60 */ u16 mPostTrackNum;
     /* 0x64 */ void * field_0x64;
     /* 0x68 */ u8* mPostUpdateTexMtxID;
-    /* 0x6C */ u16* mPostUpdateMaterialID;
+    /* 0x6C */ BE(u16)* mPostUpdateMaterialID;
     /* 0x70 */ JUTNameTab mPostUpdateMaterialName;
-    /* 0x80 */ Vec* mPostSRTCenter;
+    /* 0x80 */ BE(Vec)* mPostSRTCenter;
     /* 0x84 */ u32 mTexMtxCalcType;
 };  // Size: 0x88
 
@@ -550,11 +554,11 @@ public:
     virtual ~J3DAnmTexPattern() {}
 
 private:
-    /* 0x10 */ u16* mTextureIndex;
+    /* 0x10 */ BE(u16)* mTextureIndex;
     /* 0x14 */ J3DAnmTexPatternFullTable* mAnmTable;
     /* 0x18 */ u16 field_0x18;
     /* 0x1A */ u16 mUpdateMaterialNum;
-    /* 0x1C */ u16* mUpdateMaterialID;
+    /* 0x1C */ BE(u16)* mUpdateMaterialID;
     /* 0x20 */ JUTNameTab mUpdateMaterialName;
 };  // Size: 0x2C
 
@@ -622,20 +626,20 @@ private:
     /* 0x1E */ u16 mKRegDataCountG;
     /* 0x20 */ u16 mKRegDataCountB;
     /* 0x22 */ u16 mKRegDataCountA;
-    /* 0x24 */ u16* mCRegUpdateMaterialID;
+    /* 0x24 */ BE(u16)* mCRegUpdateMaterialID;
     /* 0x28 */ JUTNameTab mCRegUpdateMaterialName;
-    /* 0x38 */ u16* mKRegUpdateMaterialID;
+    /* 0x38 */ BE(u16)* mKRegUpdateMaterialID;
     /* 0x3C */ JUTNameTab mKRegUpdateMaterialName;
     /* 0x4C */ J3DAnmCRegKeyTable* mAnmCRegKeyTable;
     /* 0x50 */ J3DAnmKRegKeyTable* mAnmKRegKeyTable;
-    /* 0x54 */ s16 * mAnmCRegDataR;
-    /* 0x58 */ s16 * mAnmCRegDataG;
-    /* 0x5C */ s16 * mAnmCRegDataB;
-    /* 0x60 */ s16 * mAnmCRegDataA;
-    /* 0x64 */ s16 * mAnmKRegDataR;
-    /* 0x68 */ s16 * mAnmKRegDataG;
-    /* 0x6C */ s16 * mAnmKRegDataB;
-    /* 0x70 */ s16 * mAnmKRegDataA;
+    /* 0x54 */ BE(s16) * mAnmCRegDataR;
+    /* 0x58 */ BE(s16) * mAnmCRegDataG;
+    /* 0x5C */ BE(s16) * mAnmCRegDataB;
+    /* 0x60 */ BE(s16) * mAnmCRegDataA;
+    /* 0x64 */ BE(s16) * mAnmKRegDataR;
+    /* 0x68 */ BE(s16) * mAnmKRegDataG;
+    /* 0x6C */ BE(s16) * mAnmKRegDataB;
+    /* 0x70 */ BE(s16) * mAnmKRegDataA;
 };  // Size: 0x74
 
 // BPK
@@ -670,7 +674,7 @@ protected:
     /* 0x14 */ u16 field_0x14;
     /* 0x16 */ u16 field_0x16;
     /* 0x18 */ u16 mUpdateMaterialNum;
-    /* 0x1C */ u16* mUpdateMaterialID;
+    /* 0x1C */ BE(u16)* mUpdateMaterialID;
     /* 0x20 */ JUTNameTab mUpdateMaterialName;
 };  // Size: 0x30
 
@@ -690,10 +694,10 @@ public:
     virtual void getColor(u16, GXColor*) const;
 
 private:
-    /* 0x30 */ s16* mColorR;
-    /* 0x34 */ s16* mColorG;
-    /* 0x38 */ s16* mColorB;
-    /* 0x3C */ s16* mColorA;
+    /* 0x30 */ BE(s16)* mColorR;
+    /* 0x34 */ BE(s16)* mColorG;
+    /* 0x38 */ BE(s16)* mColorB;
+    /* 0x3C */ BE(s16)* mColorA;
     /* 0x40 */ J3DAnmColorKeyTable* mTable;
 };
 
@@ -765,10 +769,10 @@ public:
 
 protected:
     /* 0x1C */ J3DAnmColorKeyTable* mpTable[2];
-    /* 0x24 */ s16* mColorR;
-    /* 0x28 */ s16* mColorG;
-    /* 0x2C */ s16* mColorB;
-    /* 0x30 */ s16* mColorA;
+    /* 0x24 */ BE(s16)* mColorR;
+    /* 0x28 */ BE(s16)* mColorG;
+    /* 0x2C */ BE(s16)* mColorB;
+    /* 0x30 */ BE(s16)* mColorA;
 };
 
 class J3DAnmVtxColorFull : public J3DAnmVtxColor {
@@ -796,7 +800,7 @@ protected:
 
 class J3DAnmCluster : public J3DAnmBase {
 public:
-    J3DAnmCluster(s16 param_1, f32* param_2) : J3DAnmBase(0) {
+    J3DAnmCluster(s16 param_1, BE(f32)* param_2) : J3DAnmBase(0) {
         mWeight = param_2;
         mKind = param_1;
     }
@@ -804,7 +808,7 @@ public:
     virtual f32 getWeight(u16) const { return 1.0f; }
 
 protected:
-    /* 0x10 */ f32* mWeight;
+    /* 0x10 */ BE(f32)* mWeight;
 };  // Size: 0x14
 
 // BLA

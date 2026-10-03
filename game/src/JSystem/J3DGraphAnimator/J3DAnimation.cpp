@@ -321,7 +321,7 @@ void J3DAnmTransformFull::getTransform(u16 idx, J3DTransformInfo* dst) const {
 
 /* 802F06D8-802F072C       .text J3DHermiteInterpolationS__FfPsPsPsPsPsPs */
 #if TARGET_PC
-f32 J3DHermiteInterpolationS(f32 t, s16* time0, s16* value0, s16* tangent0, s16* time1, s16* value1, s16* tangent1) {
+f32 J3DHermiteInterpolationS(f32 t, BE(s16)* time0, BE(s16)* value0, BE(s16)* tangent0, BE(s16)* time1, BE(s16)* value1, BE(s16)* tangent1) {
     // The GameCube version below is paired-single assembly only (psq_l loads the s16 keys as
     // floats), which compiles to nothing here. The same operations, in the same order:
     f32 t0 = (s16)*time0;
@@ -393,7 +393,7 @@ f32 J3DHermiteInterpolationS(f32 t, s16* time0, s16* value0, s16* tangent0, s16*
 #endif
 
 /* 802F072C-802F0954       .text J3DGetKeyFrameInterpolationS__FfP18J3DAnmKeyTableBasePs */
-f32 J3DGetKeyFrameInterpolationS(f32 frame, J3DAnmKeyTableBase* table, s16* data) {
+f32 J3DGetKeyFrameInterpolationS(f32 frame, J3DAnmKeyTableBase* table, BE(s16)* data) {
     if (table->mType == 0) {
         if (frame < data[0]) {
             return data[1];
@@ -488,19 +488,19 @@ void J3DAnmTransformKey::calcTransform(f32 frame, u16 idx, J3DTransformInfo* dst
     switch (mAnmTable[idx*3 + 0].mScale.mMaxFrame) {
     case 0:  dst->mScale.x = 1.0f; break;
     case 1:  dst->mScale.x = mScaleData[mAnmTable[idx*3 + 0].mScale.mOffset]; break;
-    default: dst->mScale.x = J3DGetKeyFrameInterpolation<f32>(frame, &mAnmTable[idx*3 + 0].mScale, &mScaleData[mAnmTable[idx*3 + 0].mScale.mOffset]); break;
+    default: dst->mScale.x = J3DGetKeyFrameInterpolation<BE(f32)>(frame, &mAnmTable[idx*3 + 0].mScale, &mScaleData[mAnmTable[idx*3 + 0].mScale.mOffset]); break;
     }
 
     switch (mAnmTable[idx*3 + 1].mScale.mMaxFrame) {
     case 0:  dst->mScale.y = 1.0f; break;
     case 1:  dst->mScale.y = mScaleData[mAnmTable[idx*3 + 1].mScale.mOffset]; break;
-    default: dst->mScale.y = J3DGetKeyFrameInterpolation<f32>(frame, &mAnmTable[idx*3 + 1].mScale, &mScaleData[mAnmTable[idx*3 + 1].mScale.mOffset]); break;
+    default: dst->mScale.y = J3DGetKeyFrameInterpolation<BE(f32)>(frame, &mAnmTable[idx*3 + 1].mScale, &mScaleData[mAnmTable[idx*3 + 1].mScale.mOffset]); break;
     }
 
     switch (mAnmTable[idx*3 + 2].mScale.mMaxFrame) {
     case 0:  dst->mScale.z = 1.0f; break;
     case 1:  dst->mScale.z = mScaleData[mAnmTable[idx*3 + 2].mScale.mOffset]; break;
-    default: dst->mScale.z = J3DGetKeyFrameInterpolation<f32>(frame, &mAnmTable[idx*3 + 2].mScale, &mScaleData[mAnmTable[idx*3 + 2].mScale.mOffset]); break;
+    default: dst->mScale.z = J3DGetKeyFrameInterpolation<BE(f32)>(frame, &mAnmTable[idx*3 + 2].mScale, &mScaleData[mAnmTable[idx*3 + 2].mScale.mOffset]); break;
     }
 
     /* Rotation */
@@ -526,19 +526,19 @@ void J3DAnmTransformKey::calcTransform(f32 frame, u16 idx, J3DTransformInfo* dst
     switch (mAnmTable[idx*3 + 0].mTranslate.mMaxFrame) {
     case 0:  dst->mTranslate.x = 0.0f; break;
     case 1:  dst->mTranslate.x = mTransData[mAnmTable[idx*3 + 0].mTranslate.mOffset]; break;
-    default: dst->mTranslate.x = J3DGetKeyFrameInterpolation<f32>(frame, &mAnmTable[idx*3 + 0].mTranslate, &mTransData[mAnmTable[idx*3 + 0].mTranslate.mOffset]); break;
+    default: dst->mTranslate.x = J3DGetKeyFrameInterpolation<BE(f32)>(frame, &mAnmTable[idx*3 + 0].mTranslate, &mTransData[mAnmTable[idx*3 + 0].mTranslate.mOffset]); break;
     }
 
     switch (mAnmTable[idx*3 + 1].mTranslate.mMaxFrame) {
     case 0:  dst->mTranslate.y = 0.0f; break;
     case 1:  dst->mTranslate.y = mTransData[mAnmTable[idx*3 + 1].mTranslate.mOffset]; break;
-    default: dst->mTranslate.y = J3DGetKeyFrameInterpolation<f32>(frame, &mAnmTable[idx*3 + 1].mTranslate, &mTransData[mAnmTable[idx*3 + 1].mTranslate.mOffset]); break;
+    default: dst->mTranslate.y = J3DGetKeyFrameInterpolation<BE(f32)>(frame, &mAnmTable[idx*3 + 1].mTranslate, &mTransData[mAnmTable[idx*3 + 1].mTranslate.mOffset]); break;
     }
 
     switch (mAnmTable[idx*3 + 2].mTranslate.mMaxFrame) {
     case 0:  dst->mTranslate.z = 0.0f; break;
     case 1:  dst->mTranslate.z = mTransData[mAnmTable[idx*3 + 2].mTranslate.mOffset]; break;
-    default: dst->mTranslate.z = J3DGetKeyFrameInterpolation<f32>(frame, &mAnmTable[idx*3 + 2].mTranslate, &mTransData[mAnmTable[idx*3 + 2].mTranslate.mOffset]); break;
+    default: dst->mTranslate.z = J3DGetKeyFrameInterpolation<BE(f32)>(frame, &mAnmTable[idx*3 + 2].mTranslate, &mTransData[mAnmTable[idx*3 + 2].mTranslate.mOffset]); break;
     }
 }
 
@@ -548,13 +548,13 @@ void J3DAnmTextureSRTKey::calcTransform(f32 frame, u16 idx, J3DTextureSRTInfo* d
     switch (mAnmTable[idx*3 + 0].mScale.mMaxFrame) {
     case 0:  dst->mScaleX = 1.0f; break;
     case 1:  dst->mScaleX = mScaleData[mAnmTable[idx*3 + 0].mScale.mOffset]; break;
-    default: dst->mScaleX = J3DGetKeyFrameInterpolation<f32>(frame, &mAnmTable[idx*3 + 0].mScale, &mScaleData[mAnmTable[idx*3 + 0].mScale.mOffset]); break;
+    default: dst->mScaleX = J3DGetKeyFrameInterpolation<BE(f32)>(frame, &mAnmTable[idx*3 + 0].mScale, &mScaleData[mAnmTable[idx*3 + 0].mScale.mOffset]); break;
     }
 
     switch (mAnmTable[idx*3 + 1].mScale.mMaxFrame) {
     case 0:  dst->mScaleY = 1.0f; break;
     case 1:  dst->mScaleY = mScaleData[mAnmTable[idx*3 + 1].mScale.mOffset]; break;
-    default: dst->mScaleY = J3DGetKeyFrameInterpolation<f32>(frame, &mAnmTable[idx*3 + 1].mScale, &mScaleData[mAnmTable[idx*3 + 1].mScale.mOffset]); break;
+    default: dst->mScaleY = J3DGetKeyFrameInterpolation<BE(f32)>(frame, &mAnmTable[idx*3 + 1].mScale, &mScaleData[mAnmTable[idx*3 + 1].mScale.mOffset]); break;
     }
 
     /* Rotation */
@@ -568,13 +568,13 @@ void J3DAnmTextureSRTKey::calcTransform(f32 frame, u16 idx, J3DTextureSRTInfo* d
     switch (mAnmTable[idx*3 + 0].mTranslate.mMaxFrame) {
     case 0:  dst->mTranslationX = 0.0f; break;
     case 1:  dst->mTranslationX = mTransData[mAnmTable[idx*3 + 0].mTranslate.mOffset]; break;
-    default: dst->mTranslationX = J3DGetKeyFrameInterpolation<f32>(frame, &mAnmTable[idx*3 + 0].mTranslate, &mTransData[mAnmTable[idx*3 + 0].mTranslate.mOffset]); break;
+    default: dst->mTranslationX = J3DGetKeyFrameInterpolation<BE(f32)>(frame, &mAnmTable[idx*3 + 0].mTranslate, &mTransData[mAnmTable[idx*3 + 0].mTranslate.mOffset]); break;
     }
 
     switch (mAnmTable[idx*3 + 1].mTranslate.mMaxFrame) {
     case 0:  dst->mTranslationY = 0.0f; break;
     case 1:  dst->mTranslationY = mTransData[mAnmTable[idx*3 + 1].mTranslate.mOffset]; break;
-    default: dst->mTranslationY = J3DGetKeyFrameInterpolation<f32>(frame, &mAnmTable[idx*3 + 1].mTranslate, &mTransData[mAnmTable[idx*3 + 1].mTranslate.mOffset]); break;
+    default: dst->mTranslationY = J3DGetKeyFrameInterpolation<BE(f32)>(frame, &mAnmTable[idx*3 + 1].mTranslate, &mTransData[mAnmTable[idx*3 + 1].mTranslate.mOffset]); break;
     }
 }
 
@@ -592,7 +592,7 @@ f32 J3DAnmClusterFull::getWeight(u16 idx) const {
 /* 802F1188-802F120C       .text getWeight__16J3DAnmClusterKeyCFUs */
 f32 J3DAnmClusterKey::getWeight(u16 idx) const {
     if (mAnmTable[idx].mWeightTable.mMaxFrame != 0 && mAnmTable[idx].mWeightTable.mMaxFrame != 1) {
-        return J3DGetKeyFrameInterpolation<f32>(getFrame(), &mAnmTable[idx].mWeightTable, &mWeight[mAnmTable[idx].mWeightTable.mOffset]);
+        return J3DGetKeyFrameInterpolation<BE(f32)>(getFrame(), &mAnmTable[idx].mWeightTable, &mWeight[mAnmTable[idx].mWeightTable.mOffset]);
     } else if (mAnmTable[idx].mWeightTable.mMaxFrame == 0) {
         return 1.0f;
     } else {
@@ -787,7 +787,7 @@ void J3DAnmColorKey::getColor(u16 tableIndex, GXColor* outColor) const {
         outColor->r = mColorR[mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::RED].mOffset];
         break;
     default:
-        frame = J3DGetKeyFrameInterpolation<s16>(mFrame, &mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::RED],
+        frame = J3DGetKeyFrameInterpolation<BE(s16)>(mFrame, &mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::RED],
                                                  &mColorR[mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::RED].mOffset]);
         if (frame < 0.0f) {
             outColor->r = 0;
@@ -808,7 +808,7 @@ void J3DAnmColorKey::getColor(u16 tableIndex, GXColor* outColor) const {
         outColor->g = mColorG[mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::GREEN].mOffset];
         break;
     default:
-        frame = J3DGetKeyFrameInterpolation<s16>(mFrame, &mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::GREEN],
+        frame = J3DGetKeyFrameInterpolation<BE(s16)>(mFrame, &mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::GREEN],
                                                  &mColorG[mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::GREEN].mOffset]);
         if (frame < 0.0f) {
             outColor->g = 0;
@@ -829,7 +829,7 @@ void J3DAnmColorKey::getColor(u16 tableIndex, GXColor* outColor) const {
         outColor->b = mColorB[mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::BLUE].mOffset];
         break;
     default:
-        frame = J3DGetKeyFrameInterpolation<s16>(mFrame, &mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::BLUE],
+        frame = J3DGetKeyFrameInterpolation<BE(s16)>(mFrame, &mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::BLUE],
                                                  &mColorB[mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::BLUE].mOffset]);
         if (frame < 0.0f) {
             outColor->b = 0;
@@ -850,7 +850,7 @@ void J3DAnmColorKey::getColor(u16 tableIndex, GXColor* outColor) const {
         outColor->a = mColorA[mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::ALPHA].mOffset];
         break;
     default:
-        frame = J3DGetKeyFrameInterpolation<s16>(mFrame, &mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::ALPHA],
+        frame = J3DGetKeyFrameInterpolation<BE(s16)>(mFrame, &mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::ALPHA],
                                                  &mColorA[mTable[tableIndex].mColorInfo[J3DAnmColorKeyTable::ALPHA].mOffset]);
         if (frame < 0.0f) {
             outColor->a = 0;
@@ -936,7 +936,7 @@ void J3DAnmTevRegKey::getTevColorReg(u16 idx, GXColorS10* dst) const {
             dst->r = mAnmCRegDataR[getAnmCRegKeyTable()[idx].mRTable.mOffset];
             break;
         default:
-            f32 v = J3DGetKeyFrameInterpolation<s16>(getFrame(), &getAnmCRegKeyTable()[idx].mRTable, &mAnmCRegDataR[getAnmCRegKeyTable()[idx].mRTable.mOffset]);
+            f32 v = J3DGetKeyFrameInterpolation<BE(s16)>(getFrame(), &getAnmCRegKeyTable()[idx].mRTable, &mAnmCRegDataR[getAnmCRegKeyTable()[idx].mRTable.mOffset]);
             if (v < -1024.0f)
                 dst->r = -1024;
             if (v > 1023.0f)
@@ -955,7 +955,7 @@ void J3DAnmTevRegKey::getTevColorReg(u16 idx, GXColorS10* dst) const {
             dst->g = mAnmCRegDataG[getAnmCRegKeyTable()[idx].mGTable.mOffset];
             break;
         default:
-            f32 v = J3DGetKeyFrameInterpolation<s16>(getFrame(), &getAnmCRegKeyTable()[idx].mGTable, &mAnmCRegDataG[getAnmCRegKeyTable()[idx].mGTable.mOffset]);
+            f32 v = J3DGetKeyFrameInterpolation<BE(s16)>(getFrame(), &getAnmCRegKeyTable()[idx].mGTable, &mAnmCRegDataG[getAnmCRegKeyTable()[idx].mGTable.mOffset]);
             if (v < -1024.0f)
                 dst->g = -1024;
             if (v > 1023.0f)
@@ -974,7 +974,7 @@ void J3DAnmTevRegKey::getTevColorReg(u16 idx, GXColorS10* dst) const {
             dst->b = mAnmCRegDataB[getAnmCRegKeyTable()[idx].mBTable.mOffset];
             break;
         default:
-            f32 v = J3DGetKeyFrameInterpolation<s16>(getFrame(), &getAnmCRegKeyTable()[idx].mBTable, &mAnmCRegDataB[getAnmCRegKeyTable()[idx].mBTable.mOffset]);
+            f32 v = J3DGetKeyFrameInterpolation<BE(s16)>(getFrame(), &getAnmCRegKeyTable()[idx].mBTable, &mAnmCRegDataB[getAnmCRegKeyTable()[idx].mBTable.mOffset]);
             if (v < -1024.0f)
                 dst->b = -1024;
             if (v > 1023.0f)
@@ -993,7 +993,7 @@ void J3DAnmTevRegKey::getTevColorReg(u16 idx, GXColorS10* dst) const {
             dst->a = mAnmCRegDataA[getAnmCRegKeyTable()[idx].mATable.mOffset];
             break;
         default:
-            f32 v = J3DGetKeyFrameInterpolation<s16>(getFrame(), &getAnmCRegKeyTable()[idx].mATable, &mAnmCRegDataA[getAnmCRegKeyTable()[idx].mATable.mOffset]);
+            f32 v = J3DGetKeyFrameInterpolation<BE(s16)>(getFrame(), &getAnmCRegKeyTable()[idx].mATable, &mAnmCRegDataA[getAnmCRegKeyTable()[idx].mATable.mOffset]);
             if (v < -1024.0f)
                 dst->a = -1024;
             if (v > 1023.0f)
@@ -1016,7 +1016,7 @@ void J3DAnmTevRegKey::getTevKonstReg(u16 idx, GXColor* dst) const {
             dst->r = mAnmKRegDataR[getAnmKRegKeyTable()[idx].mRTable.mOffset];
             break;
         default:
-            f32 v = J3DGetKeyFrameInterpolation<s16>(getFrame(), &getAnmKRegKeyTable()[idx].mRTable, &mAnmKRegDataR[getAnmKRegKeyTable()[idx].mRTable.mOffset]);
+            f32 v = J3DGetKeyFrameInterpolation<BE(s16)>(getFrame(), &getAnmKRegKeyTable()[idx].mRTable, &mAnmKRegDataR[getAnmKRegKeyTable()[idx].mRTable.mOffset]);
             if (v < 0.0f)
                 dst->r = 0;
             if (v > 255.0f)
@@ -1035,7 +1035,7 @@ void J3DAnmTevRegKey::getTevKonstReg(u16 idx, GXColor* dst) const {
             dst->g = mAnmKRegDataG[getAnmKRegKeyTable()[idx].mGTable.mOffset];
             break;
         default:
-            f32 v = J3DGetKeyFrameInterpolation<s16>(getFrame(), &getAnmKRegKeyTable()[idx].mGTable, &mAnmKRegDataG[getAnmKRegKeyTable()[idx].mGTable.mOffset]);
+            f32 v = J3DGetKeyFrameInterpolation<BE(s16)>(getFrame(), &getAnmKRegKeyTable()[idx].mGTable, &mAnmKRegDataG[getAnmKRegKeyTable()[idx].mGTable.mOffset]);
             if (v < 0.0f)
                 dst->g = 0;
             if (v > 255.0f)
@@ -1054,7 +1054,7 @@ void J3DAnmTevRegKey::getTevKonstReg(u16 idx, GXColor* dst) const {
             dst->b = mAnmKRegDataB[getAnmKRegKeyTable()[idx].mBTable.mOffset];
             break;
         default:
-            f32 v = J3DGetKeyFrameInterpolation<s16>(getFrame(), &getAnmKRegKeyTable()[idx].mBTable, &mAnmKRegDataB[getAnmKRegKeyTable()[idx].mBTable.mOffset]);
+            f32 v = J3DGetKeyFrameInterpolation<BE(s16)>(getFrame(), &getAnmKRegKeyTable()[idx].mBTable, &mAnmKRegDataB[getAnmKRegKeyTable()[idx].mBTable.mOffset]);
             if (v < 0.0f)
                 dst->b = 0;
             if (v > 255.0f)
@@ -1073,7 +1073,7 @@ void J3DAnmTevRegKey::getTevKonstReg(u16 idx, GXColor* dst) const {
             dst->a = mAnmKRegDataA[getAnmKRegKeyTable()[idx].mATable.mOffset];
             break;
         default:
-            f32 v = J3DGetKeyFrameInterpolation<s16>(getFrame(), &getAnmKRegKeyTable()[idx].mATable, &mAnmKRegDataA[getAnmKRegKeyTable()[idx].mATable.mOffset]);
+            f32 v = J3DGetKeyFrameInterpolation<BE(s16)>(getFrame(), &getAnmKRegKeyTable()[idx].mATable, &mAnmKRegDataA[getAnmKRegKeyTable()[idx].mATable.mOffset]);
             if (v < 0.0f)
                 dst->a = 0;
             if (v > 255.0f)
