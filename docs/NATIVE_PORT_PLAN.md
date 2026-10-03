@@ -1475,6 +1475,62 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   heaps/gfx-create/frame-loop 0 x3, frame-loop uncapped 0; heap/disc-ls/font/arc-sweep 0;
   crash/panic/timeout/stall 13/12/10/11, no disc 14; census diff empty, `--dups` 0, inventory ok
   (78 open), smoke and `cos_pc_tests` ok.
+- **4.6 BMG and disc fonts** (`COS_SMOKE=msg-sweep`). Two root causes, meant as two commits, then
+  the sweep:
+  - **BMG/BMC container data in host order.** The BMG header and block headers that JMessage
+    reads through `TParse_THeader`/`TParse_TBlock` (`*(u32*)`), the `JUTMesgInfo`/`JUTMesgIDData`
+    fields, `ga4cSignature` (the `'MESG'` int compared with `memcmp`, so on the host every BMG
+    failed the signature and `dMesg_parse` built no resource), `TControl`'s `*(u32*)` entry offset,
+    `JMSMesgEntry_c` (offset, number, price, next) and f_op_msg_mng.cpp's `mesg_info` and BMC
+    `clt1_header`. Fields are `BE(T)` (struct shim, as Dusklight's JMessage `data.h`); the getters,
+    the signature and the two `TControl` reads are under `TARGET_PC`. Without it `getMesgEntry(0)`
+    read offset 0x1000000 and number 256 for 0x1 and 1.
+  - **Message text tag values in host order.** A control tag is 0x1A, length, group, code u16,
+    then parameters, all big-endian. `fopMsgM_messageGet`/`fopMsgM_passwordGet` and
+    `d_2dnumber` read length+group+code as `*(u32*)`; `d_mesg`'s four tag parameters (wait time,
+    font size) as `*(u16*)`; JMessage's select and branch tables as `u16`/`u32` arrays; and
+    `JGadget::binary::TParseValue_endian_big_` (system tag 5's message code, branch counts) was
+    raw. All read through `BE(T)` under `TARGET_PC`; `TParseValue_raw_` itself is left to JStudio
+    (4.17). Without it `fopMsgM_messageGet` kept the tags that hold the player name (message 13:
+    118 bytes instead of 119).
+  - **`COS_SMOKE=msg-sweep`** (new `native/src/pc/pc_msg.cpp`, after M2): mounts bmgres, bmgresh,
+    fontres and rubyres (MEM, archive heap) and sets them as d_s_logo's phase_2 does, sets the
+    player name "Link" (PAL language 0, clear count 0 required). Each BMG is read independently
+    (plain big-endian loads), then through the game: `JMessage::TParse` into one container as
+    `dMesg_parse`; per resource the header/INF1/DAT1 pointers, counts, group, encoding; for every
+    index `TControl::getMessageEntry`/`getMessageData` and a `TRenderingProcessor` run whose
+    characters and tags (count and digest) equal the independent walk; every INF1 entry through
+    `fopMsgM_msgGet_c::getMesgEntry` (all 24 bytes); per message number routed to that file by
+    `fopMsgM's language check`, `fopMsgM_msgGet_c`/`fopMsgM_itemMsgGet_c::getMessage` find
+    the first entry with it and `fopMsgM_messageGet` decodes it to the same text as an
+    independent decoder; `fopMsgM_getColorTable` for all 256 CLT1 colours; the message fonts
+    from `mDoExt_getMesgFont` (rock_24_20_4i_usa.bfn) and `mDoExt_getRubyFont` (the ruby font)
+    through the font smoke's checker, now `checkResFont` in pc_font.cpp (every MAP1 code). It
+    writes `msg_sweep.txt` (BMG/INF1/DAT1, BMC/CLT1, FONT lines); `run.sh` compares it with
+    the manifest (`disc_manifest.py --check-msg`).
+  - Manifest version 3: BMG INF1 gets `messages` (entries with text), `distinct_ids` and
+    `ids_fnv` (FNV-1a 64 of every entry's offset and number); BMC is a format (size in 32-byte
+    units like BMG) with CLT1 `entries`/`colors_fnv`. The font check now shares the BMG/BMC
+    check's line reader and finds files inside archives (`<arc>:<file>`); font.txt still equals.
+  - `cos_pc_tests` gains `testBmg` (header/block/INF1 getters, `JMSMesgEntry_c` in place and
+    copied, `TParseValue_endian_big_`); the layout check adds `JMSMesgEntry_c` (133 structs,
+    1070 checks on the GameCube configuration).
+  Verified: `run.sh msg-sweep` 0 x7, manifest equal: zel_00 group 0, 4411 entries, 4326
+  messages (4326 numbers), 4311 decoded by fopMsgM (15 route to zel_01); zel_01 group 1, 15
+  messages, 15 decoded; 4341 through JMessage's processor; 256 colours; rock_24_20_4i_usa.bfn
+  226 codes and the ruby font 34755 codes, 0 wrong; about 20 ms. Without the game changes: TParse
+  fails on both files and every entry is wrong (exit 1); with only the text-tag read reverted:
+  `fopMsgM_messageGet` differs (exit 1). `unifdef -UTARGET_PC` of every changed game file equals
+  HEAD's except the `BE(T)` struct fields and their `helpers/endian.h` includes.
+  Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check
+  cos_link_census` 0 errors; smoke ok; `cos_pc_tests` ok; census equal to
+  `expected_unresolved_phase2.txt`; `--all --dups` 0; inventory `--check` ok (78 open, warnings
+  unchanged); static-init, aurora-up, heaps, gfx-create, frame-loop, logo-scene 0 x3,
+  frame-loop and logo-scene `--uncapped` 0; heap, disc-ls, font, arc-sweep 0;
+  crash/panic/timeout/stall-test 13/12/10/11; no disc 14.
+  Review (round 1): accepted and rerun (msg-sweep 0 x3, manifest equal, 4341 messages through
+  JMessage, 0 errors; M0-M5 0 x3, uncapped 0; sweeps 0; harness tests 13/12/10/11; census equal,
+  dups 0, inventory ok, smoke and `cos_pc_tests` ok); committed as three commits plus this log.
 
 ### Phase 6 render issues
 
