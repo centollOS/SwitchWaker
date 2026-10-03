@@ -4,6 +4,9 @@
  */
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_meter.h"
 #include "JSystem/J2DGraph/J2DOrthoGraph.h"
 #include "JSystem/J2DGraph/J2DScreen.h"
@@ -83,6 +86,39 @@ dDlst_2Dm_c tekari;
 #define clock dMeter_clock
 #endif
 dDlst_2Dm_c clock[3];
+
+#if TARGET_PC
+// Widescreen (pc_aspect.h): a 16:9 Gecko code value interpolated for COS_ASPECT, rounded as
+// scripts/mods/widescreen_aspect.py rounds it.
+static s16 dMeter_pcLerpS16(f32 v43, f32 v169) {
+    f32 v = pc_aspect_lerp(v43, v169);
+    return (s16)(v < 0.0f ? v - 0.5f : v + 0.5f);
+}
+
+// The HUD tuning values the 16:9 code writes into g_meter_mapHIO and g_meterHIO (0x803E68E4 ..
+// 0x803E69A4: minimap left and hidden position, free icon x, HUD pane x offset, map button x).
+// Their constructors run before main, so before the Switch harness sets COS_ASPECT: dMeter_Create
+// sets them whenever it makes the meter, where the Gecko code rewrites them every frame.
+static void dMeter_pcAspectHIO() {
+    if (!pc_aspect_wide()) {
+        return;
+    }
+    g_meter_mapHIO.field_0x8 = dMeter_pcLerpS16(35.0f, -79.0f);
+    g_meter_mapHIO.field_0xc = dMeter_pcLerpS16(-180.0f, -256.0f);
+    g_meter_mapHIO.field_0x14 = dMeter_pcLerpS16(590.0f, 704.0f);
+    g_meterHIO.field_0x50 = dMeter_pcLerpS16(7.0f, 121.0f);
+    g_meterHIO.field_0x9c = dMeter_pcLerpS16(0.0f, -114.0f);
+}
+
+// The 16:9 code's added code at 0x800040C0, which dMeter_Draw calls instead of fopMsgM_setAlpha
+// for five panes: the pane's matrix x becomes its left + 114, then fopMsgM_setAlpha.
+static void dMeter_pcSetAlphaShifted(fopMsgM_pane_class* i_pane) {
+    if (pc_aspect_wide()) {
+        i_pane->pane->pcSetMtxTransX(i_pane->pane->getBounds().i.x + pc_aspect_hud_shift());
+    }
+    fopMsgM_setAlpha(i_pane);
+}
+#endif
 
 static void dummy(f32* m, u32 p2, s32 p3) {
     DEAD_STRING("cmap_tri.bti");
@@ -1110,6 +1146,16 @@ void dDlst_2DMETER1_c::draw() {
     graf->setPort();
     sMainParts3->draw(0.0f, 0.0f, graf);
     sMainParts1->draw(0.0f, 0.0f, graf);
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): the timers move right with the HUD (16:9 code, 0x801F0678/94).
+    if (sScrTimer1 != NULL) {
+        sScrTimer1->setScissor(true);
+        sScrTimer1->draw(pc_aspect_hud_shift(), 0.0f, graf);
+    }
+    if (sScrTimer2 != NULL) {
+        sScrTimer2->draw(pc_aspect_hud_shift(), 0.0f, graf);
+    }
+#else
     if (sScrTimer1 != NULL) {
         sScrTimer1->setScissor(true);
         sScrTimer1->draw(0.0f, 0.0f, graf);
@@ -1117,6 +1163,7 @@ void dDlst_2DMETER1_c::draw() {
     if (sScrTimer2 != NULL) {
         sScrTimer2->draw(0.0f, 0.0f, graf);
     }
+#endif
     sChoiceRoad->draw(0.0f, 0.0f, graf);
 }
 
@@ -1124,7 +1171,12 @@ void dDlst_2DMETER1_c::draw() {
 void dDlst_2DMETER2_c::draw() {
     J2DOrthoGraph* graf = dComIfGp_getCurrentGrafPort();
     graf->setPort();
+#if TARGET_PC
+    // Widescreen: main_parts2 moves right with the HUD (16:9 code, 0x801F0700).
+    sMainParts2->draw(pc_aspect_hud_shift(), 0.0f, graf);
+#else
     sMainParts2->draw(0.0f, 0.0f, graf);
+#endif
 }
 
 void dMeter_setNowHeartScaleXY(fopMsgM_pane_class*);
@@ -1193,7 +1245,12 @@ void dMeter_childPaneTransChildTrans(fopMsgM_pane_class* param_1, fopMsgM_pane_c
     y = param_1->mPosCenter.y - param_3->mPosCenter.y;
     param_1->mPosCenter.x += x * (param_5 - 1.0f);
     param_1->mPosCenter.y += y * (param_5 - 1.0f);
+#if TARGET_PC
+    // Widescreen: a fixed 110 instead of g_meterHIO.field_0x50 (16:9 code, 0x801F0B70).
+    param_1->mPosCenter.x += pc_aspect_wide() ? dMeter_pcLerpS16(7.0f, 110.0f) : g_meterHIO.field_0x50;
+#else
     param_1->mPosCenter.x += g_meterHIO.field_0x50;
+#endif
     param_1->mPosCenter.y += g_meterHIO.field_0x52;
     fopMsgM_paneScaleXY(param_1, param_5);
     J2DPane* j2dPane = param_1->pane;
@@ -1301,8 +1358,14 @@ void dMeter_heartScaleInit(sub_meter_class* i_Meter) {
             dMeter_PaneHide(&i_Meter->mHeartShadow[i]);
         }
 #if VERSION > VERSION_DEMO
+#if TARGET_PC
+        // Widescreen: the hearts move left with the HUD (16:9 code, 0x801F102C/3C).
+        fopMsgM_paneTrans(&i_Meter->mHeart[i], -pc_aspect_hud_shift(), 0.0f);
+        fopMsgM_paneTrans(&i_Meter->mHeartShadow[i], -pc_aspect_hud_shift(), 0.0f);
+#else
         fopMsgM_paneTrans(&i_Meter->mHeart[i], 0.0f, 0.0f);
         fopMsgM_paneTrans(&i_Meter->mHeartShadow[i], 0.0f, 0.0f);
+#endif
 #endif
         uVar2 = i_Meter->mCurrHP - 1;
         if ((i == uVar2 / 4) && i_Meter->mCurrHP != 0) {
@@ -4116,6 +4179,12 @@ void dMeter_magicInit(sub_meter_class* i_Meter) {
 #else
     dMeter_magicTransNowInit(i_Meter);
 #endif
+#if TARGET_PC
+    // Widescreen: the magic meter's original left moves left with the HUD (16:9 code, 0x801F8F00-10).
+    i_Meter->field_0x10f8.mPosTopLeftOrig.x -= pc_aspect_hud_shift();
+    i_Meter->field_0x11a0.mPosTopLeftOrig.x -= pc_aspect_hud_shift();
+    i_Meter->field_0x11d8.mPosTopLeftOrig.x -= pc_aspect_hud_shift();
+#endif
     fopMsgM_setInitAlpha(&i_Meter->field_0x10f8);
     fopMsgM_setInitAlpha(&i_Meter->field_0x11a0);
     fopMsgM_setInitAlpha(&i_Meter->field_0x11d8);
@@ -4415,8 +4484,14 @@ void dMeter_magicTransNowInit(sub_meter_class* i_Meter) {
     fVar2 = i_Meter->field_0x11d8.mPosCenter.x - i_Meter->field_0x11d8.mPosCenterOrig.x;
     fopMsgM_paneTrans(&i_Meter->field_0x11d8, fVar2, y);
     for (s32 i = 0; i < 8; i++) {
+#if TARGET_PC
+        // Widescreen: these eight go to the HUD's left offset (16:9 code, 0x801F9BD4/E0).
+        fVar2 = pc_aspect_wide() ? 0.0f : i_Meter->field_0x0f38[i].mPosCenter.x - i_Meter->field_0x0f38[i].mPosCenterOrig.x;
+        fopMsgM_paneTrans(&i_Meter->field_0x0f38[i], fVar2 - pc_aspect_hud_shift(), y);
+#else
         fVar2 = i_Meter->field_0x0f38[i].mPosCenter.x - i_Meter->field_0x0f38[i].mPosCenterOrig.x;
         fopMsgM_paneTrans(&i_Meter->field_0x0f38[i], fVar2, y);
+#endif
     }
 }
 #endif
@@ -4446,11 +4521,17 @@ void dMeter_magicInitTrans(sub_meter_class* i_Meter) {
     } else {
         y = 0.0f;
     }
-    fopMsgM_paneTrans(&i_Meter->field_0x10f8, 0.0f, y);
-    fopMsgM_paneTrans(&i_Meter->field_0x11a0, 0.0f, y);
-    fopMsgM_paneTrans(&i_Meter->field_0x11d8, 0.0f, y);
+#if TARGET_PC
+    // Widescreen: the magic meter moves left with the HUD (16:9 code, 0x801F9C5C-98).
+    const f32 x = -pc_aspect_hud_shift();
+#else
+    const f32 x = 0.0f;
+#endif
+    fopMsgM_paneTrans(&i_Meter->field_0x10f8, x, y);
+    fopMsgM_paneTrans(&i_Meter->field_0x11a0, x, y);
+    fopMsgM_paneTrans(&i_Meter->field_0x11d8, x, y);
     for (s32 i = 0; i < 8; i++) {
-        fopMsgM_paneTrans(&i_Meter->field_0x0f38[i], 0.0f, y);
+        fopMsgM_paneTrans(&i_Meter->field_0x0f38[i], x, y);
     }
 }
 #endif
@@ -4947,7 +5028,13 @@ void dMeter_menuPlusMove(sub_meter_class* i_Meter) {
     fopMsgM_paneTrans(&i_Meter->field_0x02c0, x, y);
     fopMsgM_paneTrans(&i_Meter->field_0x02f8, (dVar13 - 7.0f) + g_meterHIO.field_0x64, (dVar12 + 9.0f) + g_meterHIO.field_0x66);
     for (s32 i = 0; i < 3; i++) {
+#if TARGET_PC
+        // Widescreen: the buttons around the minimap take their x from the (moved) map alone;
+        // the 16:9 code adds y (field_0x9e) where the game adds x (0x801FBA20).
+        fopMsgM_paneTrans(&i_Meter->field_0x0100[i], (pc_aspect_wide() ? y : x) + local_98_x[i], y + local_98_y[i]);
+#else
         fopMsgM_paneTrans(&i_Meter->field_0x0100[i], x + local_98_x[i], y + local_98_y[i]);
+#endif
     }
     dVar13 = fopMsgM_valueIncrease(5, 5 - i_Meter->field_0x02c0.mUserArea, 0);
     fopMsgM_setNowAlpha(&i_Meter->field_0x02c0, dVar13);
@@ -5165,7 +5252,12 @@ void dMeter_rupyInit(sub_meter_class* i_Meter) {
         ((J2DPicture*)i_Meter->field_0x1b40[i].pane)->changeTexture(acStack_3c, 0);
     }
     g_dComIfG_gameInfo.play.mItemNowRupee = i_Meter->mRupyCount;
+#if TARGET_PC
+    // Widescreen: the rupee sparkle's screen centre (16:9 code, 0x801FC28C: 320 -> 206).
+    local_48.set(i_Meter->field_0x2a20.mPosCenter.x - pc_aspect_lerp(320.0f, 206.0f), i_Meter->field_0x2a20.mPosCenter.y - 240.0f, 0.0f);
+#else
     local_48.set(i_Meter->field_0x2a20.mPosCenter.x - 320.0f, i_Meter->field_0x2a20.mPosCenter.y - 240.0f, 0.0f);
+#endif
     i_Meter->mpRupyParticle = dComIfGp_particle_set2Dfore(dPa_name::ID_HM_J2_RUPYLIGHT, &local_48);
 }
 
@@ -5568,6 +5660,10 @@ void dMeter_compassDirOpen(sub_meter_class* i_Meter) {
             mDoAud_seStart(JA_SE_COMPASS_MOVE);
         }
     }
+#if TARGET_PC
+    // Widescreen: the compass moves left with the HUD (16:9 code, 0x801FD610-30).
+    dVar5 -= pc_aspect_hud_shift();
+#endif
     fopMsgM_paneTrans(&i_Meter->field_0x12f0, dVar5, 0.0f);
     fopMsgM_paneTrans(&i_Meter->field_0x16a8, dVar5, 0.0f);
     fopMsgM_paneTrans(&i_Meter->field_0x1948, dVar5, 0.0f);
@@ -5671,6 +5767,11 @@ void dMeter_compassDirClose(sub_meter_class* i_Meter) {
             mDoAud_seStart(JA_SE_COMPASS_MOVE);
         }
     }
+#if TARGET_PC
+    // Widescreen: the same shift as in dMeter_compassDirOpen, so that the compass slides out from
+    // where it is (the 16:9 code leaves this function alone; the compass then jumps back 114).
+    dVar5 -= pc_aspect_hud_shift();
+#endif
     fopMsgM_paneTrans(&i_Meter->field_0x12f0, dVar5, 0.0f);
     fopMsgM_paneTrans(&i_Meter->field_0x16a8, dVar5, 0.0f);
     fopMsgM_paneTrans(&i_Meter->field_0x1948, dVar5, 0.0f);
@@ -6041,7 +6142,13 @@ void dMeter_clockMultiMove(sub_meter_class* i_Meter) {
     static f32 scaleY[] = {0.667f, 0.583f, 0.604f};
 
     for (s32 i = 0; i < 3; i++) {
+#if TARGET_PC
+        // Widescreen: the clock follows the compass pane where it is now, not where it started
+        // (16:9 code, 0x801FEFB4: mPosTopLeft.x instead of mPosTopLeftOrig.x).
+        s16 sVar4 = (pc_aspect_wide() ? i_Meter->field_0x1948.mPosTopLeft.x : i_Meter->field_0x1948.mPosTopLeftOrig.x) + i_Meter->field_0x1830.mPosTopLeftOrig.x;
+#else
         s16 sVar4 = i_Meter->field_0x1948.mPosTopLeftOrig.x + i_Meter->field_0x1830.mPosTopLeftOrig.x;
+#endif
         s16 sVar5 = i_Meter->field_0x1948.mPosTopLeftOrig.y + i_Meter->field_0x1830.mPosTopLeftOrig.y;
         s16 x2 = sVar4 + i_Meter->field_0x1830.mSizeOrig.x;
         s16 y2 = sVar5 + i_Meter->field_0x1830.mSizeOrig.y;
@@ -6879,9 +6986,16 @@ void dMeter_swimTekariScroll(sub_meter_class* i_Meter) {
     s16 temp_r0_5 = temp_r0_4 + g_meterHIO.field_0x154;
     f32 dVar12;
     s16 var_r30;
-    s16 temp_r29 = (REG6_F(0) + (i_Meter->field_0x2c88.mPosCenterOrig.x - i_Meter->field_0x2c88.mSizeOrig.x / 2.0f));
+#if TARGET_PC
+    // Widescreen: the swim meter's shine moves right with the HUD; the 16:9 code loads 114 where
+    // the game reads REG6_F(0) (0x80201D8C).
+    const f32 reg6f0 = pc_aspect_wide() ? pc_aspect_hud_shift() : REG6_F(0);
+#else
+    const f32 reg6f0 = REG6_F(0);
+#endif
+    s16 temp_r29 = (reg6f0 + (i_Meter->field_0x2c88.mPosCenterOrig.x - i_Meter->field_0x2c88.mSizeOrig.x / 2.0f));
     s16 temp_r28 = (REG6_F(1) + (i_Meter->field_0x2c88.mPosCenterOrig.y - i_Meter->field_0x2c88.mSizeOrig.y / 2.0f));
-    s16 temp_r27 = (REG6_F(0) + (i_Meter->field_0x2c88.mPosCenterOrig.x + i_Meter->field_0x2c88.mSizeOrig.x / 2.0f));
+    s16 temp_r27 = (reg6f0 + (i_Meter->field_0x2c88.mPosCenterOrig.x + i_Meter->field_0x2c88.mSizeOrig.x / 2.0f));
     s16 temp_r26 = (REG6_F(1) + (i_Meter->field_0x2c88.mPosCenterOrig.y + i_Meter->field_0x2c88.mSizeOrig.y / 2.0f));
     s16 temp_r4 = i_Meter->field_0x2fc4;
     if (temp_r4 < g_meterHIO.field_0x14e) {
@@ -7468,6 +7582,12 @@ static BOOL dMeter_Draw(sub_meter_class* i_Meter) {
             clock[i].mBlack.a = 0;
         }
     }
+#if TARGET_PC
+    // Widescreen: these panes are drawn moved right with the HUD; the 16:9 code's added code
+    // (0x800040C0, called from 0x8020464C-88) sets the pane's matrix x to its left + 114 and then
+    // calls fopMsgM_setAlpha.
+#define fopMsgM_setAlpha dMeter_pcSetAlphaShifted
+#endif
     fopMsgM_setAlpha(&i_Meter->field_0x1980);
     fopMsgM_setAlpha(&i_Meter->field_0x19b8);
     for (s32 i = 0; i < 2; i++) {
@@ -7475,6 +7595,9 @@ static BOOL dMeter_Draw(sub_meter_class* i_Meter) {
         fopMsgM_setAlpha(&i_Meter->field_0x1c20[i]);
     }
     fopMsgM_setAlpha(&i_Meter->field_0x1c90);
+#if TARGET_PC
+#undef fopMsgM_setAlpha
+#endif
     dMeter_weponDraw(i_Meter);
     dMeter_actionDraw(i_Meter);
     dMeter_xyDraw(i_Meter);
@@ -7706,6 +7829,9 @@ static BOOL dMeter_Delete(sub_meter_class* i_Meter) {
 /* 80205034-802057B8       .text dMeter_Create__FP9msg_class */
 static cPhs_State dMeter_Create(msg_class* i_this) {
     sub_meter_class* i_Meter = (sub_meter_class*)i_this;
+#if TARGET_PC
+    dMeter_pcAspectHIO();
+#endif
 
 #if VERSION > VERSION_DEMO
     mapAlpha = 0;

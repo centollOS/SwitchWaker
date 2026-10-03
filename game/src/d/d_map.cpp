@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_map.h"
 #include "d/actor/d_a_agb.h"
 #include "d/d_com_inf_game.h"
@@ -2100,10 +2103,31 @@ inline int cnvFromVHtoVH2(int h) {
 
 /* 8004A3A4-8004A478       .text calcScissor__6dMap_cFv */
 void dMap_c::calcScissor() {
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): the minimap's scissor is in EFB pixels, converted from the 2D
+    // screen, which spans pc_aspect_2d_left()..pc_aspect_2d_right() instead of -9..650. The 16:9
+    // code (0x8004A428/44) keeps the 4:3 conversion and sets the width to 153 and a clipped x to
+    // 32; this conversion gives the same scissor at 16:9 (within a pixel) and the right one at
+    // any other aspect and map position.
+    int x;
+    int width;
+    if (pc_aspect_wide()) {
+        const f32 left = pc_aspect_2d_left();
+        const f32 span = pc_aspect_2d_right() - left;
+        x = (mDispPosLeftUpX - left) * 640.0f / span;
+        width = 120 * 640.0f / span;
+    } else {
+        x = cnvFromVXtoVX2(mDispPosLeftUpX);
+        width = cnvFromVWtoVW2(120);
+    }
+    int y = cnvFromVYtoVY2(mDispPosLeftUpY);
+    int height = cnvFromVHtoVH2(120);
+#else
     int x = cnvFromVXtoVX2(mDispPosLeftUpX);
     int y = cnvFromVYtoVY2(mDispPosLeftUpY);
     int width = cnvFromVWtoVW2(120);
     int height = cnvFromVHtoVH2(120);
+#endif
 
     if (x < 0) {
         width += x;

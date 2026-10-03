@@ -104,6 +104,12 @@ public:
         calcMtx();
     }
     void setInfluencedAlpha(bool v) { mInfluencedAlpha = v; }
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): two fields the 16:9 Gecko code writes directly.
+    void pcSetBoundsLeft(f32 x) { mBounds.i.x = x; }
+    void pcSetBoundsRight(f32 x) { mBounds.f.x = x; }
+    void pcSetMtxTransX(f32 x) { mMtx[0][3] = x; }
+#endif
 
 protected:
     /* 0x04 */ u32 mMagic;
