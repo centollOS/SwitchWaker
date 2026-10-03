@@ -41,8 +41,9 @@ build/native-mac/cos_sdk_smoke --list
 ```
 
 `basic` (step 2.2) checks `OSInit`, `OSGetTime` and `PSMTXConcat`. Aurora's `OSInit` does not need
-`aurora_initialize`: with the default (zeroed) config it allocates no MEM1 and leaves the arena
-unset, which is enough for the time and matrix functions.
+`aurora_initialize`. Since step 2.6e the smoke program sets `AuroraConfig.mem1Size` (24 MiB) and
+`mem2Size` (16 MiB) at static initialisation (`tests/sdk_devices.cpp`), so whichever test calls
+`OSInit` first allocates MEM1 and the arena, and `ARInit` gets ARAM; the `ar` test needs both.
 
 `threads` and `alarms` (step 2.6a, `tests/sdk_threads.cpp`): two OS threads exchange 1000
 messages each way through blocking message queues and are joined (one ends through
@@ -140,3 +141,30 @@ The game's own `game/src/dolphin/gf/*.cpp`, built by `native/cmake/sdk_gf.cmake`
 - `GFSetArray` stops with `OSPanic` on Aurora: a 32-bit `CP_REG_ARRAYBASE` cannot hold a host
   pointer and Aurora ignores it. Callers use `GFSetArraySized(attr, ptr, sizeBytes, stride, le)`
   (declared in `native/include/sdk/cos_gf_extras.h`), `le` true for arrays the host builds.
+
+## Devices: AR, GBA, EXI, SI, DB, amcstubs (step 2.6e)
+
+`src/ar/AR.cpp`, `src/gba/GBA.cpp`, `src/exi/EXI.cpp`, `src/si/SIExtras.cpp`, `src/db/DB.cpp`,
+`src/db/AmcExi2Stubs.cpp`; tests `ar`, `gba`, `exi`, `si` and `db` (`tests/sdk_devices.cpp`). DVD
+and CARD need nothing here: every DVD name the plan lists (`DVDLow*`, streaming, `DVDChangeDir`,
+`DVDCancel*`, `DVDGetDriveStatus`, `DVDCheckDisk`, `DVDSetAutoFatalMessaging`) is in
+`aurora_dvd`, and the CARD icon/banner accessors are macros in Aurora's `card.h`, with
+`CARDGetSerialNo` in `aurora_card`. What game glue needs to know:
+
+- `ARStartDMA` copies at once and calls the `ARRegisterDMACallback` callback with interrupts
+  disabled; `ARGetDMAStatus` is always 0. Its main-memory address is a **MEM1 physical address**
+  (`OSCachedToPhysical`, so the game must set `AuroraConfig.mem1Size` and allocate from the
+  arena); anything outside MEM1 or ARAM aborts with the arguments. `ARGetBaseAddress` is 0x4000,
+  what Aurora's `ARInit` returns. `ARReset`, `ARSetSize`, `ARQReset`, `ARQCheckInit` and
+  `__AR*Interrupt*` are left undefined (they need Aurora's private AR state; nothing calls them).
+- GBA: every port is empty. Requests return `GBA_NOT_READY` (async ones never call back);
+  `GBAGetProcessStatus` returns `GBA_READY` ("nothing in progress").
+- EXI: the lock and its unlock queue are real; every device selection fails (logged once).
+- SI: `SIGetType`/`SIGetStatus` follow Aurora's `SIProbe`; raw `SITransfer`s complete with
+  `SI_ERROR_NO_RESPONSE` on the alarm thread; polling words are kept but no polling interrupt or
+  response exists (PAD goes through Aurora).
+- DB: no debugger (`DBIsDebuggerPresent` FALSE); the debugger link refuses reads and writes;
+  `__DBExceptionDestination` aborts. amcstubs are the SDK's own no-op stubs (`AMC_IsStub` 1).
+- Aurora's `<dolphin/gba.h>` includes a bare `<types.h>` that only `native/include/sdk` has, and
+  cos_sdk compiles against Aurora's headers only, so `GBA.cpp` (and the game-only SI, DB and
+  amcstubs names) repeat their declarations; the tests call them through the forwarders.

@@ -323,3 +323,30 @@ Each phase lands as its own commits; this file records decisions and measured re
   Dusklight does. Reviewed in round 1: GF units rebuilt, `nm` shows the 15 GF functions, smoke
   `gf` and the whole program ok, census reproduced (SDK/GF 9, total 152), default configuration
   (`cos_modules` and checks) unchanged.
+- **2.6e Devices:** new `native/sdk/src/{ar,gba,exi,si,db}/*.cpp` (globbed; no CMake change).
+  A scan of every compiled unit (REL ones included) against `cos_sdk` and the Aurora libraries
+  found only the 7 `GBA*` functions of `JUTGba` missing among these prefixes, plus
+  `ARGetBaseAddress` for JAudio (`JASSystemHeap`, phase 5). Every DVD name the plan lists is
+  already in `aurora_dvd`, and the CARD icon/banner accessors are macros in Aurora's `card.h`, so
+  no `dvd/` or `card/` file was needed; the SDK-internal `__DVD*` and unused `CARD*`
+  (`CARDErase`, `CARDProgram`, vendor/disk-ID) stay undefined. Added: AR (`ARStartDMA` as an
+  immediate copy between a MEM1 physical address and Aurora's ARAM buffer, `ARGetStorageAddress`
+  standing in for its private `aramToHost`, callback with interrupts disabled, `ARGetDMAStatus` 0,
+  fatal on any range outside MEM1/ARAM; `ARGetBaseAddress` 0x4000, the value Aurora's `ARInit`
+  returns, so JKRAram and JAudio agree; `ARClear`, `ARGetInternalSize`, and the always-empty ARQ
+  queue functions), GBA (every request `GBA_NOT_READY`, async ones refused without callback,
+  `GBAGetProcessStatus` `GBA_READY` = idle), EXI (real lock/unlock queue from the decomp's
+  EXIBios.c, no device answers a selection), SI extras (`SIGetType`/`SIGetStatus` over Aurora's
+  `SIProbe`, `SITransfer` completing with `SI_ERROR_NO_RESPONSE` on the alarm thread, the SDK's
+  poll word and polling-handler table), DB (host `__DBInterface` with no debugger, the OdemuExi2
+  link refusing reads and writes, `__DBExceptionDestination` aborting) and amcstubs (the SDK's own
+  no-op stubs). Tests `ar` (4 KB round trip through `ARStartDMA` both ways, also seen by Aurora's
+  ARQ; aborts for a console address and an ARAM overrun), `gba`, `exi`, `si`, `db`
+  (`native/sdk/tests/sdk_devices.cpp`, which sets `AuroraConfig.mem1Size`/`mem2Size` for the smoke
+  program). 20 runs of the whole smoke program and 10 TSan runs, no failure or report. Census
+  with `COS_WITH_AURORA=ON` (decomp headers): SDK/GBA 7 → 0, total 152 → 145, duplicates still 30;
+  the only SDK names left are 2.6d's 9 GF enum-tag manglings.
+  Reviewed in round 1: smoke `ar`/`gba`/`exi`/`si`/`db` and the whole program ok (5 runs), 5 TSan
+  runs clean, census reproduced (SDK/GF 9, total 145), no cos_sdk/Aurora symbol overlap, default
+  configuration (`cos_modules` and checks) unchanged; `GBAGetProcessStatus` = `GBA_READY` accepted
+  (the SDK's idle value; JUTGba ignores the result).

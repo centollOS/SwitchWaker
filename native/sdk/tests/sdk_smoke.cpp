@@ -1,6 +1,7 @@
 // cos_sdk_smoke: the test runner, plus the "basic" test of step 2.2 (OSInit, OSGetTime,
 // PSMTXConcat), which needs no window and no GPU: Aurora's OSInit does not depend on
-// aurora_initialize (with the default config it allocates no MEM1 and leaves the arena alone).
+// aurora_initialize. (sdk_devices.cpp sets AuroraConfig.mem1Size/mem2Size at static
+// initialisation, so OSInit allocates MEM1 and the arena; nothing here depends on that.)
 #include "smoke.h"
 
 #include <dolphin/mtx.h>
