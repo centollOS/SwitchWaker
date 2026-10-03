@@ -458,6 +458,8 @@ void cos_switch_start(int argc, char** argv) {
     setDefault("COS_FPS_OVERLAY", "1");
     setDefault("COS_STALL_S", "90");
     setDefault("COS_ASPECT", "16:9");
+    // The internal resolution: 1280x720, the screen's (COS_FB_SCALE=1.125 960x540, 1.0 854x480).
+    setDefault("COS_FB_SCALE", "1.5");
 }
 
 void cos_switch_flush_logs(void) {

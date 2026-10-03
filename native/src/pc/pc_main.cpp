@@ -35,6 +35,7 @@
 
 #include <cerrno>
 #include <climits>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <sys/stat.h>
@@ -50,6 +51,9 @@
 
 #include <lib/gfx/render_worker.hpp>
 #endif
+
+// Aurora's (include/dolphin/vi.h); the game's <dolphin/vi.h> comes first on the include path.
+extern "C" void VISetFrameBufferScale(float scale);
 
 namespace pc {
 
@@ -144,6 +148,36 @@ void threadStartHook(OSThread* thread, void* launchValue) {
 #endif
 }
 
+// COS_FB_SCALE: the internal resolution, as Aurora's frame-buffer scale (VISetFrameBufferScale,
+// Dusklight's "internal resolution" setting): the EFB is the game's 640x480 times the scale, widened
+// to the window's aspect (16:9: 1.5 = 1280x720, 1.125 = 960x540, 1.0 = 854x480), and the present
+// pass resamples it to the window. Unset or 0: the window's own size (Aurora's default). EFB copies
+// scale with it. The Switch sets 1.5 (switch/native/source/cos_switch.cpp).
+void applyFrameBufferScale(const AuroraWindowSize& window) {
+    const char* v = getenv("COS_FB_SCALE");
+    if (v == nullptr || *v == '\0') {
+        return;
+    }
+    char* end = nullptr;
+    const float scale = strtof(v, &end);
+    if (end == v || *end != '\0' || !(scale >= 0.f) || scale > 8.f) {
+        writef(STDERR_FILENO, "[cos] COS_FB_SCALE=\"%s\" is not a scale between 0 and 8; ignored\n", v);
+        return;
+    }
+    VISetFrameBufferScale(scale);
+    if (scale == 0.f) {
+        writef(STDERR_FILENO, "[cos] fb scale: 0 (the window's size)\n");
+        return;
+    }
+    // What Aurora's get_window_size will make of it (lib/window.cpp scale_frame_buffer_to_aspect),
+    // for the log; the resize itself happens with the next event pump.
+    const double aspect = window.fb_height != 0 ? (double)window.fb_width / window.fb_height : 4.0 / 3.0;
+    const long h = lround(480.0 * scale);
+    const long w = aspect >= 640.0 / 480.0 ? lround(h * aspect) : lround(640.0 * scale);
+    const long hh = aspect >= 640.0 / 480.0 ? h : lround(w / aspect);
+    writef(STDERR_FILENO, "[cos] fb scale: %g (EFB about %ldx%ld)\n", (double)scale, w, hh);
+}
+
 } // namespace
 
 } // namespace pc
@@ -188,6 +222,7 @@ void pc_aurora_init(int argc, char* argv[]) {
         }
     });
 #endif
+    applyFrameBufferScale(info.windowSize);
     if (pc_aspect_wide()) {
         // The game draws an anamorphic picture into the 640x480 EFB (pc_aspect.h): Aurora presents
         // it at the wider aspect, letterboxed or pillarboxed in a window of another shape (patch

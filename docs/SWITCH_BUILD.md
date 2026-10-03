@@ -202,8 +202,19 @@ Run options come from `native/env.txt`, one `NAME=value` per line, with `#` comm
 ([switch/native/env.example.txt](../switch/native/env.example.txt)); they are the Mac's `COS_*`
 variables ([native/README.md](../native/README.md), "Running centollos"). Without the file:
 `COS_DISC=/switch/centollos/GZLE01.iso`, `COS_RUN_DIR=/switch/centollos/native`,
-`COS_PERF_EVERY=60`, `COS_HITCH_MS=50`, `COS_STALL_S=90` and `COS_ASPECT=16:9` (the widescreen
-option on the 1280x720 screen; `COS_ASPECT=4:3` gives the GameCube picture, pillarboxed).
+`COS_PERF_EVERY=60`, `COS_HITCH_MS=50`, `COS_STALL_S=90`, `COS_ASPECT=16:9` (the widescreen
+option on the 1280x720 screen; `COS_ASPECT=4:3` gives the GameCube picture, pillarboxed) and
+`COS_FB_SCALE=1.5` (the internal resolution, see below).
+
+Internal resolution: `COS_FB_SCALE` is Aurora's frame-buffer scale (`VISetFrameBufferScale`, the
+"internal resolution" setting of Dusklight): the game's 640x480 EFB times the scale, widened to the
+screen's 16:9. `1.5` is 1280x720 (the default, the screen's own size), `1.125` is 960x540 (44 %
+fewer pixels), `1.0` is 854x480 (the GameCube's vertical resolution, 56 % fewer); EFB copies
+(shadows, depth of field, haze) scale with it and the present pass resamples the picture to the
+screen, so the HUD and text are drawn at that resolution too. The docs/SWITCH_PERF_STUDY.md study
+expects the Outset frame to be GPU-bound: if the `perf-switch gpu` line says so, a smaller scale is
+the lever (`[cos] fb scale:` in the log confirms the value). The default stays 1.5 until a hardware
+run decides.
 
 What the log shows, in order (the same `[cos]` lines as on the Mac; values vary):
 
