@@ -6,6 +6,3 @@
 # removes it here in the same commit. Every failure below comes from a pointer the file stores
 # as a 32-bit offset (8 bytes on the host); none is an endian problem, which offsets cannot see.
 # Current failures with the host offsets: native/tools/layout_check.py --discover
-
-# 4.11: J3D model data (file offsets declared as pointers become OFFSET_PTR_V0 / BE)
-J3DClusterBlock                      # 7/12 fail: mClusterPointer, mClusterKeyPointer, mClusterVertex, ...
