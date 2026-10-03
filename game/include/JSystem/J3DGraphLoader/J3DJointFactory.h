@@ -24,7 +24,13 @@ struct J3DTransformInfoData {
 
 struct J3DJointInitData {
     /* 0x00 */ BE(u16) mKind;
+#if TARGET_PC
+    // The file stores 0, 1 or 0xFF (J3DJointFactory::create maps 0xFF to false). A bool holding
+    // 0xFF is undefined for clang, which then drops create's 0xFF test: read the byte as a u8.
+    /* 0x02 */ u8 mScaleCompensate;
+#else
     /* 0x02 */ bool mScaleCompensate;
+#endif
     /* 0x04 */ J3D_TRANSFORM_INFO_DATA mTransformInfo;
     /* 0x24 */ BE(f32) mRadius;
     /* 0x28 */ BE(Vec) mMin;
