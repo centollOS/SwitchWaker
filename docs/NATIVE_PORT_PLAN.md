@@ -1696,6 +1696,46 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   chunks, 690 RTBL entries, 1881 paths, Menu1.dat 40/468); M0-M6 0, frame-loop/logo-res
   `--uncapped` 0, disc-ls/heap/font/arc/msg/jpa sweeps 0, crash/panic-test 13/12.
 
+- **4.9b Actor records** (2026-10-03): `COS_SMOKE=stage-sweep` 0 x4; the report equals the
+  manifest (651 dzs/dzr files, 6063 chunks, 20207 actor records). M7 not reached: the audio-off
+  fault logged under 4.8 (`JAIZelBasic::talkOut` from `mDoAud_setSceneName`, still waiting for
+  its decision) stops `opening` before `sea_T` is mounted.
+  - **The actor records were read host-order.** ACTR/TGOB/PLYR/ACT0-b/TRE0-b
+    (`stage_actor_data_class`), TRES (`stage_tresure_data_class`) and SCOB/TGSC/DOOR/TGDR/SCO0-b
+    (`stage_tgsc_data_class`) embed an `fopAcM_prmBase_class`, which is also the host
+    `fopAcM_prm_class::base` every actor reads. Under `TARGET_PC` the records hold a new
+    `dStage_prmBase_class` (d_stage.h: `BE(u32)`, `BE(cXyz)`, `BE(csXyz)`, `BE(u16)`, same
+    offsets, size 0x18) with a conversion to `fopAcM_prmBase_class`, so `fopAcM_prm_class` stays
+    host order and the record is swapped once where a chunk loader copies it
+    (`dStage_actorInit`'s field copies go through `BE<T>`'s conversions, `dStage_tgscInfoInit`'s
+    `appen->base = actor_data->base` through the new operator). The other readers
+    (`dStage_playerInit`, `dStage_playerInitIkada`, `dStage_chkPlayerId`,
+    `dStage_decodeSearchIkada`, `d_menu_dmap`, `d_a_player_npc`) read the fields through the
+    same conversions; no source change was needed there. `unifdef -UTARGET_PC` of d_stage.h equals
+    HEAD's except the `helpers/endian_ssystem.h` include (a no-op shim on the GameCube). The three
+    record structs were already in `layout_headers.txt` and hold.
+  - **Harness:** `pc_stage.cpp` reads the first chunk of each actor tag (the one
+    `dStage_dt_c_decode` hands out) through the struct its loader uses, checks each entry's
+    address, copies it into an `fopAcM_prm_class` both ways the loaders do, and compares both
+    copies bit for bit with the file's big-endian fields (and SCOB-type scale); ACTOR lines
+    (name, params, pos, angle, set id) go to `stage_sweep.txt` and `disc_manifest.py
+    --check-stage` compares them with the manifest's actors (positions at its 3 decimals; every
+    record of the manifest must be reported). Negative check: with HEAD's d_stage.h the sweep
+    reports byte-swapped parameters and positions and exits 1.
+  Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check
+  cos_link_census` 0 errors; smoke ok; `cos_pc_tests` ok; layout check ok (1021 GameCube
+  checks); census equal to `expected_unresolved_phase2.txt`; `--all --dups` 0; inventory
+  `--check` ok (60 open); static-init, aurora-up, heaps, gfx-create, frame-loop, logo-scene,
+  logo-res 0 x3; frame-loop, logo-scene, logo-res `--uncapped` 0; disc-ls, heap, font, arc-sweep,
+  msg-sweep, jpa-sweep 0.
+  Reviewed in round 1: every reader of the three record structs (d_stage.cpp, d_menu_dmap,
+  d_a_player_npc) goes through `BE<T>`'s conversions; `unifdef -UTARGET_PC` of d_stage.h equals
+  HEAD's but the shim include; rerun: build 0 errors, smoke and `cos_pc_tests` ok, layout
+  `--gc-verify` 1021 checks, census equal, `--dups` 0, inventory ok (60 open); stage-sweep 0 x2
+  (20207 actor records equal to the manifest); M0-M6 0 x3, frame-loop/logo-scene/logo-res
+  `--uncapped` 0, disc-ls/heap/font/arc/msg/jpa sweeps 0, crash/panic-test 13/12. Accepted with
+  the sweep half; M7 (`opening`, 13 in `JAIZelBasic::talkOut`) waits for the audio-off decision.
+
 ### Phase 6 render issues
 
 None yet.
