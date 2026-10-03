@@ -33,6 +33,28 @@ void dADM_CharTbl::SetData(u32 offs, u32 row_num, u32 row_offs, u32 colum_num, u
     SetUpIndex();
 }
 
+#if TARGET_PC
+void dADM_CharTbl::SetData(void* base, u32 row_num, u32 row_offs, u32 colum_num, u32 colum_offs, u32 dat_size, u32 data_offs) {
+    // The tables live as long as the file data (allocated from the heap that holds it); the file
+    // itself is left as it is.
+    JKRHeap* heap = JKRHeap::findFromRoot(base);
+    const BE(u32)* row = (const BE(u32)*)((u8*)base + row_offs);
+    const BE(u32)* colum = (const BE(u32)*)((u8*)base + colum_offs);
+    char** pFmt = (char**)JKRHeap::alloc(row_num * sizeof(char*), sizeof(char*), heap);
+    char** pName = (char**)JKRHeap::alloc(colum_num * sizeof(char*), sizeof(char*), heap);
+    JUT_ASSERT(0x39, pFmt != NULL && pName != NULL);
+    for (u32 i = 0; i < row_num; i++)
+        pFmt[i] = (char*)base + (u32)row[i];
+    for (u32 i = 0; i < colum_num; i++)
+        pName[i] = (char*)base + (u32)colum[i];
+    u8* pData = (u8*)base + data_offs;
+
+    JUT_ASSERT(0x39, dat_size == row_num * colum_num);
+    cDT::Set(row_num, pFmt, colum_num, pName, pData);
+    SetUpIndex();
+}
+#endif
+
 /* 800C2844-800C2B40       .text SetUpIndex__12dADM_CharTblFv */
 void dADM_CharTbl::SetUpIndex() {
     mIndex_ARG = GetFormatIndex("ARG");
@@ -87,7 +109,13 @@ dADM::~dADM() {}
 
 /* 800C2C78-800C2CC0       .text FindTag__4dADMFUlPUlPUl */
 bool dADM::FindTag(u32 tag, u32* pSize, u32* pOffs) {
+#if TARGET_PC
+    // The block headers are big-endian {tag, size, offset}; the offset stays relative to the file
+    // (SetData does not relocate it in place on PC).
+    const BE(u32)* pData = (const BE(u32)*)mpData;
+#else
     u32 *pData = (u32*)mpData;
+#endif
     for (s32 i = 0; i < mBlockCount; i++) {
         if (tag == pData[0]) {
             *pSize = pData[1];
@@ -107,19 +135,22 @@ void dADM::SetData(void* pData) {
     u32 name, nameOffs;
     u32 dat_size, dataOffs;
 
+#if TARGET_PC
+    // ActorDat.bin is big-endian; its block offsets are relative to the file and are not turned
+    // into pointers in place (a host pointer does not fit the 32-bit field): FindTag returns them
+    // as file offsets and dADM_CharTbl::SetData adds the base.
+    mBlockCount = *((BE(s32)*)pData);
+    mpData = (u8*)pData + 4;
+#else
     mBlockCount = *((s32*)pData);
     mpData = (u8*)pData + 4;
 
     u32 *pHeader = (u32*)mpData;
     for (s32 i = 0; i < mBlockCount; i++) {
-#if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        pHeader[2] = pHeader[2] + (u32)(uintptr_t)pData;
-#else
         pHeader[2] = pHeader[2] + (u32)pData;
-#endif
         pHeader += 3;
     }
+#endif
 
     u32 tag;
     tag = 'ACFN';
@@ -137,8 +168,7 @@ void dADM::SetData(void* pData) {
 
     JUT_ASSERT(202, row * name == dat_size);
 #if TARGET_PC
-    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-    mCharTbl.SetData((u32)(uintptr_t)pData, row, rowOffs, name, nameOffs, dat_size, dataOffs);
+    mCharTbl.SetData(pData, row, rowOffs, name, nameOffs, dat_size, dataOffs);
 #else
     mCharTbl.SetData((u32)pData, row, rowOffs, name, nameOffs, dat_size, dataOffs);
 #endif

@@ -3,6 +3,7 @@
 
 #include "SSystem/SComponent/c_data_tbl.h"
 #include "global.h"
+#include "helpers/endian.h"
 
 class dADM_CharTbl : public cDT {
 public:
@@ -14,6 +15,11 @@ public:
     dADM_CharTbl();
     ~dADM_CharTbl();
     void SetData(u32, u32, u32, u32, u32, u32, u32);
+#if TARGET_PC
+    // ActorDat.bin's tables hold 32-bit big-endian file offsets, too small for host pointers:
+    // this builds host char* tables beside the file instead of relocating them in place.
+    void SetData(void* base, u32 row_num, u32 row_offs, u32 colum_num, u32 colum_offs, u32 dat_size, u32 data_offs);
+#endif
     void SetUpIndex();
     int GetNameIndex2(const char*, int) const;
 
