@@ -341,30 +341,53 @@ before they are needed:
   records the pipelines of the logos, title and file select, a new game through the prologue,
   Outset with Link controllable and a 600-frame boot of every stage, and merges them into
   `build/pipeline-cache/initial_pipeline_cache.db` (about 1000 rows, 4 MB; ordered so the boot path
-  comes first). `scripts/switch/push.sh --pipeline-cache` copies it next to the NRO, where Aurora
+  comes first). Its `pipeline_priority` table marks the rows recorded on the boot path (tiers 0-3,
+  logos to Outset: 176 of 1016 rows) priority 0 and the stage sweep's 1;
+  `gen_pipeline_cache.sh --mark-priority DB` rewrites only that table in an existing file.
+  `scripts/switch/push.sh --pipeline-cache` copies it next to the NRO, where Aurora
   merges it into the player's cache at every start (`Seeded pipeline cache from ...`). It holds
   Aurora's pipeline keys (GX TEV stage and combiner selectors, vertex formats, blend, depth and cull
   state) recorded from the game's materials: no textures, models, text, audio or code, but it is
   derived from the disc, so it stays out of git like the disc itself.
-- Building them all takes minutes at the console's speed and each one still holds the GL context,
-  so the harness ends the warm-up when the game first enters its PLAY scene (`COS_PRECOMPILE=boot`,
-  the default; Aurora Switch patch 0007): what is left is built when first drawn, as before.
-  `COS_PRECOMPILE=all` keeps building into gameplay, `COS_PRECOMPILE=off` builds nothing ahead.
+- Aurora Switch patch 0008 queues the priority-0 pipelines first (the player's own cache records
+  each run's frames, so by first use alone pipelines seen anywhere in the game would come first
+  after a few sessions) and counts them for the harness.
+- `COS_PRECOMPILE` (in `native/env.txt`) says how long to wait and when to stop:
+  - `boot` (the default): before the game starts (before the boot logo) a loading screen,
+    "Preparing shaders... N/M" and a bar drawn with Aurora's ImGui, until the priority pipelines are
+    built (about 20-25 s at 126-176 ms each). The screen keeps presenting frames (slowly: a build
+    holds the GL context) and pumping events, so HOME works. Then the game starts and the rest are
+    built behind the logos, title and menus, with "Shaders N/M" in the bottom-right corner, until
+    the game first enters its PLAY scene: there the warm-up ends (Aurora Switch patch 0007) and what
+    is left is built when first drawn, as before. A bundled file without the priority table (an
+    older `gen_pipeline_cache.sh`) gives no loading screen.
+  - `full`: the loading screen until every known pipeline is built (1094 at about 2.5 min); nothing
+    is left to stutter on a pipeline the cache knows.
+  - `all`: no loading screen; every known pipeline is built whatever the game does, into gameplay
+    (a stutter per pipeline), with the corner indicator until done.
+  - `off`: nothing is built ahead.
 
 The log shows the warm-up (`COS_PRECOMPILE_LOG=0` hides the progress lines; values vary):
 
 ```
 [info] [aurora::gfx::pipeline_cache] Seeded pipeline cache from '/switch/centollos/initial_pipeline_cache.db' (R rows merged, 0 rows skipped)
-[cos] precompile: M pipelines queued from the pipeline cache (boot: until the first PLAY scene)
+[info] [aurora::gfx::pipeline_cache] Bundled pipeline cache marks 176 pipelines as priority 0
+[cos] precompile: M pipelines queued from the pipeline cache, P of them priority (boot: loading screen for the priority set, then until the first PLAY scene)
+[cos] precompile loading screen: waiting for P priority pipelines
+[cos] precompile loading screen N/P, T s, F frames presented   <- once a second
+[cos] precompile loading screen done: P/P priority pipelines in T s, F frames presented; N/M of the warm-up built, the game starts
 [cos] precompile N/M pipelines, T s, compile C s (X ms each); GL programs L linked, S shared; frame F, scene LOGO_SCENE
 [cos] precompile stopped (PLAY scene; D left to build when first drawn) at N/M pipelines, ...
 [cos] precompile done: M/M pipelines, ...                       <- instead, if it finished first
 ```
 
-Every start compiles again (nothing survives in Mesa), so the logos and menus run slowly while it
-works: about one frame per pipeline built. On the Mac the same file is read only if it is copied
+Every start compiles again (nothing survives in Mesa), so the loading screen comes back at every
+start, and the logos and menus run slowly while the rest is built: about one frame per pipeline
+built. The game's frame counter does not move during the loading screen; the stall watchdog
+(`COS_STALL_S`) counts its frames instead. On the Mac the same file is read only if it is copied
 next to `build/native-mac/centollos`; there the whole warm-up of 995 pipelines took 83 s of the compile
-thread with a warm Dawn cache, and frames captured with and without it are identical.
+thread with a warm Dawn cache, and frames captured with and without it are identical. The Mac
+draws no loading screen or indicator unless `COS_PRECOMPILE` is set (native/README.md).
 
 Threads: the game thread runs on core 0; JAudio's, the DVD thread, Aurora's and Dawn's
 workers prefer cores 1 and 2 (`switch/native/source/thread_wrap.c`). Every 15 seconds, at exit

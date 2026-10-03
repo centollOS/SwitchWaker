@@ -140,6 +140,9 @@ void loadInput();
 
 // pc_watchdog.cpp
 void startWatchdog();
+// Counts as progress for COS_STALL_S while the game's frame counter cannot move (the shader
+// loading screen before the game starts). Any thread.
+void watchdogPulse();
 
 // pc_overlay.cpp: COS_FPS_OVERLAY's panel, drawn into this frame's ImGui frame (call between
 // aurora_begin_frame and aurora_end_frame). busyNs: this frame's game-thread busy time so far.
@@ -221,9 +224,13 @@ void perfFlush();
 void writePacing(int fd);
 
 // pc_precompile.cpp: Aurora's boot pipeline warm-up (COS_PRECOMPILE, COS_PRECOMPILE_LOG).
-// precompileInit runs right after aurora_initialize; precompileFrame from pc_frame_end every game
-// frame.
+// precompileInit runs right after aurora_initialize and precompileLoadingScreen after it (before
+// the game starts: returns once the loading screen's pipelines are built, or at once without one);
+// precompileOverlay from pc_frame_end before aurora_end_frame and precompileFrame after it, every
+// game frame.
 void precompileInit();
+void precompileLoadingScreen();
+void precompileOverlay();
 void precompileFrame(unsigned int frames);
 
 } // namespace pc

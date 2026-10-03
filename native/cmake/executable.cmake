@@ -42,12 +42,19 @@ endif ()
 set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_shot.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
         "${aurora_SOURCE_DIR}"
         "$<TARGET_PROPERTY:dawn::webgpu_dawn,INTERFACE_INCLUDE_DIRECTORIES>")
-# pc_overlay.cpp (COS_FPS_OVERLAY) draws with Aurora's ImGui. Headers only: aurora_core links imgui.
+# pc_overlay.cpp (COS_FPS_OVERLAY) and pc_precompile.cpp (the shader loading screen and indicator)
+# draw with Aurora's ImGui. Headers only: aurora_core links imgui.
 if (TARGET imgui)
-    set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_overlay.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
-            "$<TARGET_PROPERTY:imgui,INTERFACE_INCLUDE_DIRECTORIES>")
-    set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_overlay.cpp" APPEND PROPERTY COMPILE_DEFINITIONS
-            "$<TARGET_PROPERTY:imgui,INTERFACE_COMPILE_DEFINITIONS>")
+    set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_overlay.cpp" "${COS_NATIVE_ROOT}/src/pc/pc_precompile.cpp"
+            APPEND PROPERTY INCLUDE_DIRECTORIES "$<TARGET_PROPERTY:imgui,INTERFACE_INCLUDE_DIRECTORIES>")
+    set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_overlay.cpp" "${COS_NATIVE_ROOT}/src/pc/pc_precompile.cpp"
+            APPEND PROPERTY COMPILE_DEFINITIONS "$<TARGET_PROPERTY:imgui,INTERFACE_COMPILE_DEFINITIONS>")
+endif ()
+# pc_precompile.cpp reads the bundled pipeline cache's priority count on the Mac (COS_PRECOMPILE=boot
+# there). Headers only: aurora_core links sqlite3.
+if (APPLE AND TARGET sqlite3)
+    set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_precompile.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
+            "$<TARGET_PROPERTY:sqlite3,INTERFACE_INCLUDE_DIRECTORIES>")
 endif ()
 if (TARGET cos_link_census)
     target_link_libraries(cos_link_census PRIVATE cos_pc)

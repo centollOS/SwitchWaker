@@ -2,12 +2,14 @@
 // checks every 100 ms
 // - COS_TIMEOUT_S: the run has lasted this long -> exit 10 (frames may still be advancing; the
 //   report says whether they moved during the last second);
-// - COS_STALL_S: the game frame counter (pc_frame_tick) has not moved for this long, counted from
-//   start-up before the first frame -> a backtrace of every other thread (to stderr and
+// - COS_STALL_S: the game frame counter (pc_frame_tick) has not moved for this long (nor
+//   watchdogPulse been called: the shader loading screen), counted from start-up before the first
+//   frame -> a backtrace of every other thread (to stderr and
 //   <COS_RUN_DIR>/stall.txt), then exit 11. `sample` would need developer mode (decision H9), so
 //   the threads are suspended and walked in-process instead.
 #include "pc_internal.h"
 
+#include <atomic>
 #include <pthread.h>
 #include <unistd.h>
 
@@ -16,6 +18,7 @@ namespace pc {
 namespace {
 
 uint64_t sWatchStartNs = 0;
+std::atomic<unsigned int> sPulses{0}; // watchdogPulse
 
 void* watchdogMain(void*) {
 #if defined(__APPLE__)
@@ -24,6 +27,7 @@ void* watchdogMain(void*) {
     const uint64_t timeoutNs = (uint64_t)(gConfig.timeoutS * 1e9);
     const uint64_t stallNs = (uint64_t)(gConfig.stallS * 1e9);
     unsigned int lastFrames = pc_frame_count();
+    unsigned int lastPulses = sPulses.load(std::memory_order_relaxed);
     uint64_t lastChange = sWatchStartNs;
     unsigned int framesOneSecondAgo = lastFrames;
     uint64_t secondMark = sWatchStartNs;
@@ -32,8 +36,10 @@ void* watchdogMain(void*) {
         usleep(100 * 1000);
         const uint64_t now = monotonicNs();
         const unsigned int frames = pc_frame_count();
-        if (frames != lastFrames) {
+        const unsigned int pulses = sPulses.load(std::memory_order_relaxed);
+        if (frames != lastFrames || pulses != lastPulses) {
             lastFrames = frames;
+            lastPulses = pulses;
             lastChange = now;
         }
         unsigned int framesLastSecond = frames - framesOneSecondAgo;
@@ -70,6 +76,10 @@ void* watchdogMain(void*) {
 }
 
 } // namespace
+
+void watchdogPulse() {
+    sPulses.fetch_add(1, std::memory_order_relaxed);
+}
 
 void startWatchdog() {
     if (gConfig.timeoutS <= 0 && gConfig.stallS <= 0) {
