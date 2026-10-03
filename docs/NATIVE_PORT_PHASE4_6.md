@@ -371,4 +371,4 @@ Phase 3 is done (`centollos` links with nothing unresolved; `COS_SMOKE=static-in
 - **H6:** (B) reuse this repository's Dolphin JAudio ucode HLE adapter (`runtime/host/src/dsp_hle_backend.cpp`, GPLv2+, proven on this game and on the Switch); the repository is GPLv3.
 - **H7:** gate = game-thread p95 ≤ 25 ms on the pessimistic A57 estimate; it only counts once confirmed by a Switch measurement in phase 7.
 - **H8:** build with `-fno-strict-aliasing`.
-- **H9:** disc = `/path/to/GZLE01.iso` (SHA-1 checked on first use, never committed). macOS developer mode is off, so lldb may prompt or fail: the built-in crash handler with symbolised backtraces is the primary tool; lldb is used only when it works non-interactively.
+- **H9:** disc = `/path/to/GZLE01.iso` (SHA-1 checked on first use, never committed). macOS developer mode was enabled and its access dialogs approved on 2026-10-03: `lldb --batch` now launches `centollos` without prompting (checked with `COS_SMOKE=static-init`), so `lldb_crash.sh` is usable; the built-in crash handler stays the first tool.
