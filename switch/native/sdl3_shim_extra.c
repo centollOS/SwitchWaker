@@ -1,6 +1,7 @@
-// SDL 3 functions that Aurora 3227d76 (native/'s pin) calls beyond those the translated port's
-// Aurora needed (switch/aurora/sdl3_shim, which this file extends for the native port's NRO). Same
-// rules as the shim: what the Switch has, on libnx and newlib, or an explicit failure.
+// SDL 3 functions that Aurora 3227d76 (native/'s pin) and the SDK (native/sdk) call beyond those
+// the translated port's Aurora needed (switch/aurora/sdl3_shim, which this file extends for the
+// native port's NRO). Same rules as the shim: what the Switch has, on libnx and newlib, or an
+// explicit failure.
 #include <SDL3/SDL.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -72,3 +73,7 @@ SDL_Window* SDL_GetWindowFromEvent(const SDL_Event* event) {
     (void)event;
     return NULL;
 }
+
+// The SDK's AI output (native/sdk/src/audio/AI.cpp) names the driver in its log line; the shim's
+// one playback stream is libnx's audout (switch/aurora/sdl3_shim/sdl3_shim_audio.c).
+const char* SDL_GetCurrentAudioDriver(void) { return "audout"; }
