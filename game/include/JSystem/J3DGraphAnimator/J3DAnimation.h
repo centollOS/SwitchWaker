@@ -4,6 +4,24 @@
 #include "JSystem/J3DGraphAnimator/J3DModelData.h"
 #include "JSystem/JUtility/JUTNameTab.h"
 #include "JSystem/JUtility/JUTDataHeader.h"
+#include "helpers/endian.h"
+
+// The animation data blocks below are disc data, stored big-endian: BE(T) is T on the GameCube and
+// a swapping field on TARGET_PC (phase 4; Dusklight declares them the same way in J3DAnimation.h).
+// J3D_ANM_OFFSET(T) is a block-relative file offset, which J3DAnmLoader casts to void* for
+// JSUConvertOffsetToPtr: plain T on the GameCube; on TARGET_PC a big-endian s32 with that cast
+// (sign-extended, as the GameCube's 32-bit add) so the loader's calls stay as they are.
+#if TARGET_PC
+struct J3DAnmDataOffset {
+    BE(s32) value;
+    operator s32() const { return value; }
+    explicit operator void*() const { return (void*)(intptr_t)(s32)value; }
+};
+static_assert(sizeof(J3DAnmDataOffset) == 4, "file offsets are 4 bytes");
+#define J3D_ANM_OFFSET(T) J3DAnmDataOffset
+#else
+#define J3D_ANM_OFFSET(T) T
+#endif
 
 struct J3DAnmKeyTableBase {
     /* 0x00 */ u16 mMaxFrame;
@@ -90,17 +108,17 @@ struct J3DAnmVtxColorFullData {
     /* 0x00 */ JUTDataBlockHeader mHeader;
     /* 0x08 */ u8 field_0x8;
     /* 0x09 */ u8 field_0x9;  // padding?
-    /* 0x0A */ s16 mFrameMax;
-    /* 0x0C */ u16 mAnmTableNum[2];
-    /* 0x10 */ u16 mIndexNum[2];
-    /* 0x14 */ u32 field_0x14;
-    /* 0x18 */ s32 mTableOffsets[2];
-    /* 0x20 */ s32 mVtxColorIndexDataOffsets[2];
-    /* 0x28 */ s32 mVtxColorIndexPointerOffsets[2];
-    /* 0x30 */ s32 mRValuesOffset;
-    /* 0x34 */ s32 mGValuesOffset;
-    /* 0x38 */ s32 mBValuesOffset;
-    /* 0x3C */ s32 mAValuesOffset;
+    /* 0x0A */ BE(s16) mFrameMax;
+    /* 0x0C */ BE(u16) mAnmTableNum[2];
+    /* 0x10 */ BE(u16) mIndexNum[2];
+    /* 0x14 */ BE(u32) field_0x14;
+    /* 0x18 */ J3D_ANM_OFFSET(s32) mTableOffsets[2];
+    /* 0x20 */ J3D_ANM_OFFSET(s32) mVtxColorIndexDataOffsets[2];
+    /* 0x28 */ J3D_ANM_OFFSET(s32) mVtxColorIndexPointerOffsets[2];
+    /* 0x30 */ J3D_ANM_OFFSET(s32) mRValuesOffset;
+    /* 0x34 */ J3D_ANM_OFFSET(s32) mGValuesOffset;
+    /* 0x38 */ J3D_ANM_OFFSET(s32) mBValuesOffset;
+    /* 0x3C */ J3D_ANM_OFFSET(s32) mAValuesOffset;
 };  // Size = 0x40
 
 STATIC_ASSERT(sizeof(J3DAnmVtxColorFullData) == 0x40);
@@ -109,11 +127,11 @@ struct J3DAnmVisibilityFullData {
     /* 0x00 */ JUTDataBlockHeader mHeader;
     /* 0x08 */ u8 field_0x8;
     /* 0x09 */ u8 field_0x9;  // padding?
-    /* 0x0A */ s16 mFrameMax;
-    /* 0x0C */ u16 field_0xc;
-    /* 0x0E */ u16 field_0xe;
-    /* 0x10 */ s32 mTableOffset;
-    /* 0x14 */ s32 mValuesOffset;
+    /* 0x0A */ BE(s16) mFrameMax;
+    /* 0x0C */ BE(u16) field_0xc;
+    /* 0x0E */ BE(u16) field_0xe;
+    /* 0x10 */ J3D_ANM_OFFSET(s32) mTableOffset;
+    /* 0x14 */ J3D_ANM_OFFSET(s32) mValuesOffset;
 };  // Size = 0x18
 
 STATIC_ASSERT(sizeof(J3DAnmVisibilityFullData) == 0x18);
@@ -122,13 +140,13 @@ struct J3DAnmTransformFullData {
     /* 0x00 */ JUTDataBlockHeader mHeader;
     /* 0x08 */ u8 field_0x8;
     /* 0x09 */ u8 field_0x9;
-    /* 0x0A */ s16 mFrameMax;
-    /* 0x0C */ u16 field_0xc;
+    /* 0x0A */ BE(s16) mFrameMax;
+    /* 0x0C */ BE(u16) field_0xc;
     /* 0x0E */ u8 field_0xe[0x14 - 0xe];
-    /* 0x14 */ s32 mTableOffset;
-    /* 0x18 */ s32 mScaleValOffset;
-    /* 0x1C */ s32 mRotValOffset;
-    /* 0x20 */ s32 mTransValOffset;
+    /* 0x14 */ J3D_ANM_OFFSET(s32) mTableOffset;
+    /* 0x18 */ J3D_ANM_OFFSET(s32) mScaleValOffset;
+    /* 0x1C */ J3D_ANM_OFFSET(s32) mRotValOffset;
+    /* 0x20 */ J3D_ANM_OFFSET(s32) mTransValOffset;
 };  // Size = 0x24
 
 STATIC_ASSERT(sizeof(J3DAnmTransformFullData) == 0x24);
@@ -137,19 +155,19 @@ struct J3DAnmColorKeyData {
     /* 0x00 */ JUTDataBlockHeader mHeader;
     /* 0x08 */ u8 field_0x8;
     /* 0x09 */ u8 field_0x9[3];
-    /* 0x0C */ s16 mFrameMax;
-    /* 0x0E */ u16 mUpdateMaterialNum;
-    /* 0x10 */ u16 field_0x10;
-    /* 0x12 */ u16 field_0x12;
-    /* 0x14 */ u16 field_0x14;
-    /* 0x16 */ u16 field_0x16;
-    /* 0x18 */ s32 mTableOffset;
-    /* 0x1C */ s32 mUpdateMaterialIDOffset;
-    /* 0x20 */ s32 mNameTabOffset;
-    /* 0x24 */ s32 mRValOffset;
-    /* 0x28 */ s32 mGValOffset;
-    /* 0x2C */ s32 mBValOffset;
-    /* 0x30 */ s32 mAValOffset;
+    /* 0x0C */ BE(s16) mFrameMax;
+    /* 0x0E */ BE(u16) mUpdateMaterialNum;
+    /* 0x10 */ BE(u16) field_0x10;
+    /* 0x12 */ BE(u16) field_0x12;
+    /* 0x14 */ BE(u16) field_0x14;
+    /* 0x16 */ BE(u16) field_0x16;
+    /* 0x18 */ J3D_ANM_OFFSET(s32) mTableOffset;
+    /* 0x1C */ J3D_ANM_OFFSET(s32) mUpdateMaterialIDOffset;
+    /* 0x20 */ J3D_ANM_OFFSET(s32) mNameTabOffset;
+    /* 0x24 */ J3D_ANM_OFFSET(s32) mRValOffset;
+    /* 0x28 */ J3D_ANM_OFFSET(s32) mGValOffset;
+    /* 0x2C */ J3D_ANM_OFFSET(s32) mBValOffset;
+    /* 0x30 */ J3D_ANM_OFFSET(s32) mAValOffset;
 };  // Size = 0x34
 
 STATIC_ASSERT(sizeof(J3DAnmColorKeyData) == 0x34);
@@ -158,32 +176,32 @@ struct J3DAnmTextureSRTKeyData {
     /* 0x00 */ JUTDataBlockHeader mHeader;
     /* 0x08 */ u8 field_0x8;
     /* 0x09 */ u8 field_0x9;
-    /* 0x0A */ s16 field_0xa;
-    /* 0x0C */ u16 field_0xc;
-    /* 0x0E */ u16 field_0xe;
-    /* 0x10 */ u16 field_0x10;
-    /* 0x12 */ u16 field_0x12;
-    /* 0x14 */ s32 mTableOffset;
-    /* 0x18 */ s32 mUpdateMatIDOffset;
-    /* 0x1C */ s32 mNameTab1Offset;
-    /* 0x20 */ s32 mUpdateTexMtxIDOffset;
-    /* 0x24 */ s32 unkOffset;
-    /* 0x28 */ s32 mScaleValOffset;
-    /* 0x2C */ s32 mRotValOffset;
-    /* 0x30 */ s32 mTransValOffset;
-    /* 0x34 */ u16 field_0x34;
-    /* 0x36 */ u16 field_0x36;
-    /* 0x38 */ u16 field_0x38;
-    /* 0x3A */ u16 field_0x3a;
-    /* 0x3C */ s32 mInfoTable2Offset;
-    /* 0x40 */ s32 field_0x40;
-    /* 0x44 */ u32 mNameTab2Offset;
-    /* 0x48 */ s32 field_0x48;
-    /* 0x4C */ s32 field_0x4c;
-    /* 0x50 */ s32 field_0x50;
-    /* 0x54 */ s32 field_0x54;
-    /* 0x58 */ s32 field_0x58;
-    /* 0x5C */ s32 field_0x5c;
+    /* 0x0A */ BE(s16) field_0xa;
+    /* 0x0C */ BE(u16) field_0xc;
+    /* 0x0E */ BE(u16) field_0xe;
+    /* 0x10 */ BE(u16) field_0x10;
+    /* 0x12 */ BE(u16) field_0x12;
+    /* 0x14 */ J3D_ANM_OFFSET(s32) mTableOffset;
+    /* 0x18 */ J3D_ANM_OFFSET(s32) mUpdateMatIDOffset;
+    /* 0x1C */ J3D_ANM_OFFSET(s32) mNameTab1Offset;
+    /* 0x20 */ J3D_ANM_OFFSET(s32) mUpdateTexMtxIDOffset;
+    /* 0x24 */ J3D_ANM_OFFSET(s32) unkOffset;
+    /* 0x28 */ J3D_ANM_OFFSET(s32) mScaleValOffset;
+    /* 0x2C */ J3D_ANM_OFFSET(s32) mRotValOffset;
+    /* 0x30 */ J3D_ANM_OFFSET(s32) mTransValOffset;
+    /* 0x34 */ BE(u16) field_0x34;
+    /* 0x36 */ BE(u16) field_0x36;
+    /* 0x38 */ BE(u16) field_0x38;
+    /* 0x3A */ BE(u16) field_0x3a;
+    /* 0x3C */ J3D_ANM_OFFSET(s32) mInfoTable2Offset;
+    /* 0x40 */ J3D_ANM_OFFSET(s32) field_0x40;
+    /* 0x44 */ J3D_ANM_OFFSET(u32) mNameTab2Offset;
+    /* 0x48 */ J3D_ANM_OFFSET(s32) field_0x48;
+    /* 0x4C */ J3D_ANM_OFFSET(s32) field_0x4c;
+    /* 0x50 */ J3D_ANM_OFFSET(s32) field_0x50;
+    /* 0x54 */ J3D_ANM_OFFSET(s32) field_0x54;
+    /* 0x58 */ J3D_ANM_OFFSET(s32) field_0x58;
+    /* 0x5C */ BE(s32) field_0x5c;
 };  // Size = 0x60
 
 STATIC_ASSERT(sizeof(J3DAnmTextureSRTKeyData) == 0x60);
@@ -192,16 +210,16 @@ struct J3DAnmVtxColorKeyData {
     /* 0x00 */ JUTDataBlockHeader mHeader;
     /* 0x08 */ u8 field_0x8;
     /* 0x09 */ u8 field_0x9;
-    /* 0x0A */ s16 mFrameMax;
-    /* 0x0C */ u16 mAnmTableNum[2];
-    /* 0x10 */ u32 mIndexNum[2];
-    /* 0x18 */ s32 mTableOffsets[2];
-    /* 0x20 */ s32 mVtxColorIndexDataOffsets[2];
-    /* 0x28 */ s32 mVtxColorIndexPointerOffsets[2];
-    /* 0x30 */ s32 mRValuesOffset;
-    /* 0x34 */ s32 mGValuesOffset;
-    /* 0x38 */ s32 mBValuesOffset;
-    /* 0x3C */ s32 mAValuesOffset;
+    /* 0x0A */ BE(s16) mFrameMax;
+    /* 0x0C */ BE(u16) mAnmTableNum[2];
+    /* 0x10 */ BE(u32) mIndexNum[2];
+    /* 0x18 */ J3D_ANM_OFFSET(s32) mTableOffsets[2];
+    /* 0x20 */ J3D_ANM_OFFSET(s32) mVtxColorIndexDataOffsets[2];
+    /* 0x28 */ J3D_ANM_OFFSET(s32) mVtxColorIndexPointerOffsets[2];
+    /* 0x30 */ J3D_ANM_OFFSET(s32) mRValuesOffset;
+    /* 0x34 */ J3D_ANM_OFFSET(s32) mGValuesOffset;
+    /* 0x38 */ J3D_ANM_OFFSET(s32) mBValuesOffset;
+    /* 0x3C */ J3D_ANM_OFFSET(s32) mAValuesOffset;
 };  // Size = 0x40
 
 STATIC_ASSERT(sizeof(J3DAnmVtxColorKeyData) == 0x40);
@@ -210,13 +228,13 @@ struct J3DAnmTexPatternFullData {
     /* 0x00 */ JUTDataBlockHeader mHeader;
     /* 0x08 */ u8 field_0x8;
     /* 0x09 */ u8 field_0x9;
-    /* 0x0A */ s16 mFrameMax;
-    /* 0x0C */ u16 field_0xc;
-    /* 0x0E */ u16 field_0xe;
-    /* 0x10 */ s32 mTableOffset;
-    /* 0x14 */ s32 mValuesOffset;
-    /* 0x18 */ s32 mUpdateMaterialIDOffset;
-    /* 0x1C */ s32 mNameTabOffset;
+    /* 0x0A */ BE(s16) mFrameMax;
+    /* 0x0C */ BE(u16) field_0xc;
+    /* 0x0E */ BE(u16) field_0xe;
+    /* 0x10 */ J3D_ANM_OFFSET(s32) mTableOffset;
+    /* 0x14 */ J3D_ANM_OFFSET(s32) mValuesOffset;
+    /* 0x18 */ J3D_ANM_OFFSET(s32) mUpdateMaterialIDOffset;
+    /* 0x1C */ J3D_ANM_OFFSET(s32) mNameTabOffset;
 };  // Size = 0x20
 
 STATIC_ASSERT(sizeof(J3DAnmTexPatternFullData) == 0x20);
@@ -225,31 +243,31 @@ struct J3DAnmTevRegKeyData {
     /* 0x00 */ JUTDataBlockHeader mHeader;
     /* 0x08 */ u8 field_0x8;
     /* 0x09 */ u8 field_0x9;  // maybe padding
-    /* 0x0A */ s16 mFrameMax;
-    /* 0x0C */ u16 mCRegUpdateMaterialNum;
-    /* 0x0E */ u16 mKRegUpdateMaterialNum;
-    /* 0x10 */ u16 field_0x10;
-    /* 0x12 */ u16 field_0x12;
-    /* 0x14 */ u16 field_0x14;
-    /* 0x16 */ u16 field_0x16;
-    /* 0x18 */ u16 field_0x18;
-    /* 0x1A */ u16 field_0x1a;
-    /* 0x1C */ u16 field_0x1c;
-    /* 0x1E */ u16 field_0x1e;
-    /* 0x20 */ s32 mCRegTableOffset;
-    /* 0x24 */ s32 mKRegTableOffset;
-    /* 0x28 */ s32 mCRegUpdateMaterialIDOffset;
-    /* 0x2C */ s32 mKRegUpdateMaterialIDOffset;
-    /* 0x30 */ s32 mCRegNameTabOffset;
-    /* 0x34 */ s32 mKRegNameTabOffset;
-    /* 0x38 */ s32 mCRValuesOffset;
-    /* 0x3C */ s32 mCGValuesOffset;
-    /* 0x40 */ s32 mCBValuesOffset;
-    /* 0x44 */ s32 mCAValuesOffset;
-    /* 0x48 */ s32 mKRValuesOffset;
-    /* 0x4C */ s32 mKGValuesOffset;
-    /* 0x50 */ s32 mKBValuesOffset;
-    /* 0x54 */ s32 mKAValuesOffset;
+    /* 0x0A */ BE(s16) mFrameMax;
+    /* 0x0C */ BE(u16) mCRegUpdateMaterialNum;
+    /* 0x0E */ BE(u16) mKRegUpdateMaterialNum;
+    /* 0x10 */ BE(u16) field_0x10;
+    /* 0x12 */ BE(u16) field_0x12;
+    /* 0x14 */ BE(u16) field_0x14;
+    /* 0x16 */ BE(u16) field_0x16;
+    /* 0x18 */ BE(u16) field_0x18;
+    /* 0x1A */ BE(u16) field_0x1a;
+    /* 0x1C */ BE(u16) field_0x1c;
+    /* 0x1E */ BE(u16) field_0x1e;
+    /* 0x20 */ J3D_ANM_OFFSET(s32) mCRegTableOffset;
+    /* 0x24 */ J3D_ANM_OFFSET(s32) mKRegTableOffset;
+    /* 0x28 */ J3D_ANM_OFFSET(s32) mCRegUpdateMaterialIDOffset;
+    /* 0x2C */ J3D_ANM_OFFSET(s32) mKRegUpdateMaterialIDOffset;
+    /* 0x30 */ J3D_ANM_OFFSET(s32) mCRegNameTabOffset;
+    /* 0x34 */ J3D_ANM_OFFSET(s32) mKRegNameTabOffset;
+    /* 0x38 */ J3D_ANM_OFFSET(s32) mCRValuesOffset;
+    /* 0x3C */ J3D_ANM_OFFSET(s32) mCGValuesOffset;
+    /* 0x40 */ J3D_ANM_OFFSET(s32) mCBValuesOffset;
+    /* 0x44 */ J3D_ANM_OFFSET(s32) mCAValuesOffset;
+    /* 0x48 */ J3D_ANM_OFFSET(s32) mKRValuesOffset;
+    /* 0x4C */ J3D_ANM_OFFSET(s32) mKGValuesOffset;
+    /* 0x50 */ J3D_ANM_OFFSET(s32) mKBValuesOffset;
+    /* 0x54 */ J3D_ANM_OFFSET(s32) mKAValuesOffset;
 };  // Size = 0x58
 
 STATIC_ASSERT(sizeof(J3DAnmTevRegKeyData) == 0x58);
@@ -258,16 +276,16 @@ struct J3DAnmColorFullData { /* PlaceHolder Structure */
     /* 0x00 */ JUTDataBlockHeader mHeader;
     /* 0x08 */ u8 field_0x8;
     /* 0x09 */ u8 field_0x9[3];
-    /* 0x0C */ s16 mFrameMax;
-    /* 0x0E */ u16 mUpdateMaterialNum;
+    /* 0x0C */ BE(s16) mFrameMax;
+    /* 0x0E */ BE(u16) mUpdateMaterialNum;
     /* 0x10 */ u8 field_0x10[0x18 - 0x10];
-    /* 0x18 */ s32 mTableOffset;
-    /* 0x1C */ s32 mUpdateMaterialIDOffset;
-    /* 0x20 */ s32 mNameTabOffset;
-    /* 0x24 */ s32 mRValuesOffset;
-    /* 0x28 */ s32 mGValuesOffset;
-    /* 0x2C */ s32 mBValuesOffset;
-    /* 0x30 */ s32 mAValuesOffset;
+    /* 0x18 */ J3D_ANM_OFFSET(s32) mTableOffset;
+    /* 0x1C */ J3D_ANM_OFFSET(s32) mUpdateMaterialIDOffset;
+    /* 0x20 */ J3D_ANM_OFFSET(s32) mNameTabOffset;
+    /* 0x24 */ J3D_ANM_OFFSET(s32) mRValuesOffset;
+    /* 0x28 */ J3D_ANM_OFFSET(s32) mGValuesOffset;
+    /* 0x2C */ J3D_ANM_OFFSET(s32) mBValuesOffset;
+    /* 0x30 */ J3D_ANM_OFFSET(s32) mAValuesOffset;
 };  // Size = 0x34
 
 STATIC_ASSERT(sizeof(J3DAnmColorFullData) == 0x34);
@@ -275,34 +293,34 @@ STATIC_ASSERT(sizeof(J3DAnmColorFullData) == 0x34);
 struct J3DAnmClusterFullData {
     /* 0x00 */ JUTDataBlockHeader mHeader;
     /* 0x08 */ u8 field_0x8;
-    /* 0x0A */ s16 mFrameMax;
-    /* 0x0C */ s32 field_0xc;
-    /* 0x10 */ s32 mTableOffset;
-    /* 0x14 */ s32 mWeightOffset;
+    /* 0x0A */ BE(s16) mFrameMax;
+    /* 0x0C */ BE(s32) field_0xc;
+    /* 0x10 */ J3D_ANM_OFFSET(s32) mTableOffset;
+    /* 0x14 */ J3D_ANM_OFFSET(s32) mWeightOffset;
 };
 
 struct J3DAnmTransformKeyData {
     /* 0x00 */ JUTDataBlockHeader mHeader;
     /* 0x08 */ u8 mAttribute;
     /* 0x09 */ u8 mDecShift;
-    /* 0x0A */ s16 mFrameMax;
-    /* 0x0C */ u16 mTableCount;
-    /* 0x0E */ u16 mScaleCount;
-    /* 0x10 */ u16 mRotCount;
-    /* 0x12 */ u16 mTransCount;
-    /* 0x14 */ s32 mTableOffset;
-    /* 0x18 */ s32 mScaleOffset;
-    /* 0x1c */ s32 mRotOffset;
-    /* 0x20 */ s32 mTransOffset;
+    /* 0x0A */ BE(s16) mFrameMax;
+    /* 0x0C */ BE(u16) mTableCount;
+    /* 0x0E */ BE(u16) mScaleCount;
+    /* 0x10 */ BE(u16) mRotCount;
+    /* 0x12 */ BE(u16) mTransCount;
+    /* 0x14 */ J3D_ANM_OFFSET(s32) mTableOffset;
+    /* 0x18 */ J3D_ANM_OFFSET(s32) mScaleOffset;
+    /* 0x1c */ J3D_ANM_OFFSET(s32) mRotOffset;
+    /* 0x20 */ J3D_ANM_OFFSET(s32) mTransOffset;
 };
 
 struct J3DAnmClusterKeyData {
     /* 0x00 */ JUTDataBlockHeader mHeader;
     /* 0x08 */ u8 field_0x8;
-    /* 0x0A */ s16 mFrameMax;
-    /* 0x0C */ s32 field_0xc;
-    /* 0x10 */ s32 mTableOffset;
-    /* 0x14 */ s32 mWeightOffset;
+    /* 0x0A */ BE(s16) mFrameMax;
+    /* 0x0C */ BE(s32) field_0xc;
+    /* 0x10 */ J3D_ANM_OFFSET(s32) mTableOffset;
+    /* 0x14 */ J3D_ANM_OFFSET(s32) mWeightOffset;
 };
 
 class J3DAnmBase {
