@@ -512,3 +512,18 @@ Each phase lands as its own commits; this file records decisions and measured re
   (1 step), 0 errors.
   Review: rerun independently (actors-1 rebuilt from clean in aurora mode, 74/74 units, 0 errors;
   smoke ok; `d_a_bgn` force-rebuilt in the default decomp configuration, 0 errors).
+- **2.7 actors-2:** compiles in aurora header mode (all 74 units, `d_a_floor` .. `d_a_npc_aj1`,
+  0 errors, rebuilt from clean) and still in decomp mode. First aurora build: 5 units failed on 20
+  errors, 3 causes (no unit near clang's 50-per-unit limit): the 3-argument `GXSetArray` (14 calls
+  in `d_a_goal_flag`, `d_a_grid`, `d_a_hookshot`, `d_a_majuu_flag`), `OSCreateThread`'s typed entry
+  point (5 calls in `d_a_movie_player`) and `DVDFileInfo::block` (Aurora: `cb`, in
+  `d_a_movie_player`'s `DVDCancel`). Fixes, all under `TARGET_PC && defined(COS_SDK_AURORA)` with
+  the original kept and a TODO(native phase 2.8): `GXSETARRAY` with each array's real byte size
+  (one set of the double-buffered member arrays, `sizeof(arr[0])`, or the whole static asset array;
+  host-endian), entry points cast to `void* (*)(void*)` as in m_Do, and `fileInfo.cb`. No forwarder
+  change, no `STATIC_ASSERT` fired. Aurora mode: SSystem, the four JSystem modules, framework, m_Do,
+  d-core, actors-1, actors-2, `cos_sdk`, smoke (ok), scaffold, header and shadow checks (82 names,
+  ok) build; default configuration: `cos_modules` and checks rebuilt (5 steps), 0 errors.
+  Review: rerun independently (actors-2 rebuilt from clean in aurora mode, 74/74 units, 0 errors;
+  all aurora-mode modules and checks build, smoke ok, shadow check ok; default decomp configuration
+  `cos_modules` and checks up to date with `d_a_hookshot` force-rebuilt, 0 errors).

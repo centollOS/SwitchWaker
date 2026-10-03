@@ -234,9 +234,18 @@ void daHo_packet_c::draw() {
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_NRM, GX_NRM_XYZ, GX_F32, 0);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0);
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora's GXSetArray also takes the array's byte size and byte order
+    // (one 85-entry cXyz set of the double-buffered arrays and the static asset array, host-endian).
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    GXSETARRAY(GX_VA_POS, mPos[field_0x18a2], sizeof(mPos[0]), sizeof(cXyz), true);
+    GXSETARRAY(GX_VA_NRM, mNrm[field_0x18a2], sizeof(mNrm[0]), sizeof(cXyz), true);
+    GXSETARRAY(GX_VA_TEX0, l_texCoord, sizeof(l_texCoord), sizeof(cXy), true);
+#else
     GXSetArray(GX_VA_POS, mPos[field_0x18a2], sizeof(cXyz));
     GXSetArray(GX_VA_NRM, mNrm[field_0x18a2], sizeof(cXyz));
     GXSetArray(GX_VA_TEX0, l_texCoord, sizeof(cXy));
+#endif
 
     GXTexObj texObj;
     GXTlutObj tlutObj;
@@ -341,7 +350,11 @@ void daHo_packet_c::draw() {
     GXCallDisplayList(l_DL, 0x220);
 
     GXSetCullMode(GX_CULL_FRONT);
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    GXSETARRAY(GX_VA_NRM, mBackNrm[field_0x18a2], sizeof(mBackNrm[0]), sizeof(cXyz), true);
+#else
     GXSetArray(GX_VA_NRM, mBackNrm[field_0x18a2], sizeof(cXyz));
+#endif
     GXCallDisplayList(l_DL, 0x220);
 
     #if VERSION >= VERSION_USA

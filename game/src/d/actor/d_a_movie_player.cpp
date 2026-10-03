@@ -2775,7 +2775,14 @@ static void daMP_Reader(void*) {
 
 /* 000034A0-00003550       .text daMP_CreateReadThread__Fl */
 static BOOL daMP_CreateReadThread(s32 param_0) {
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora declares the entry point with its real type, void* (*)(void*); the game passes a function
+    // of another signature, as it did through the decomp's void*.
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    if (!OSCreateThread(&daMP_ReadThread, (void* (*)(void*))daMP_Reader, 0, daMP_ReadThreadStack + sizeof(daMP_ReadThreadStack), sizeof(daMP_ReadThreadStack), param_0, 1)) {
+#else
     if (!OSCreateThread(&daMP_ReadThread, (void*)daMP_Reader, 0, daMP_ReadThreadStack + sizeof(daMP_ReadThreadStack), sizeof(daMP_ReadThreadStack), param_0, 1)) {
+#endif
 #if VERSION > VERSION_DEMO
         OSReport("Can't create read thread\n");
 #endif
@@ -2951,14 +2958,22 @@ static void daMP_VideoDecoderForOnMemory(void* param_0) {
 /* 0000395C-00003A74       .text daMP_CreateVideoDecodeThread__FlPUc */
 static BOOL daMP_CreateVideoDecodeThread(s32 prio, u8* param_1) {
     if (param_1 != NULL) {
+#if TARGET_PC && defined(COS_SDK_AURORA)
+        if (!OSCreateThread(&daMP_VideoDecodeThread, (void* (*)(void*))daMP_VideoDecoderForOnMemory, param_1, daMP_VideoDecodeThreadStack + sizeof(daMP_VideoDecodeThreadStack), sizeof(daMP_VideoDecodeThreadStack), prio, 1)) {
+#else
         if (!OSCreateThread(&daMP_VideoDecodeThread, (void*)daMP_VideoDecoderForOnMemory, param_1, daMP_VideoDecodeThreadStack + sizeof(daMP_VideoDecodeThreadStack), sizeof(daMP_VideoDecodeThreadStack), prio, 1)) {
+#endif
 #if VERSION > VERSION_DEMO
             OSReport("Can't create video decode thread\n");
 #endif
             return FALSE;
         }
     } else {
+#if TARGET_PC && defined(COS_SDK_AURORA)
+        if (!OSCreateThread(&daMP_VideoDecodeThread, (void* (*)(void*))daMP_VideoDecoder, NULL, daMP_VideoDecodeThreadStack + sizeof(daMP_VideoDecodeThreadStack), sizeof(daMP_VideoDecodeThreadStack), prio, 1)) {
+#else
         if (!OSCreateThread(&daMP_VideoDecodeThread, (void*)daMP_VideoDecoder, NULL, daMP_VideoDecodeThreadStack + sizeof(daMP_VideoDecodeThreadStack), sizeof(daMP_VideoDecodeThreadStack), prio, 1)) {
+#endif
 #if VERSION > VERSION_DEMO
             OSReport("Can't create video decode thread\n");
 #endif
@@ -3090,11 +3105,19 @@ static void daMP_AudioDecoderForOnMemory(void* param_0) {
 /* 00003D74-00003E70       .text daMP_CreateAudioDecodeThread__FlPUc */
 static BOOL daMP_CreateAudioDecodeThread(s32 prio, u8* param_1) {
     if (param_1 != NULL) {
+#if TARGET_PC && defined(COS_SDK_AURORA)
+        if (!OSCreateThread(&daMP_AudioDecodeThread, (void* (*)(void*))daMP_AudioDecoderForOnMemory, param_1, daMP_AudioDecodeThreadStack + sizeof(daMP_AudioDecodeThreadStack), sizeof(daMP_AudioDecodeThreadStack), prio, 1)) {
+#else
         if (!OSCreateThread(&daMP_AudioDecodeThread, (void*)daMP_AudioDecoderForOnMemory, param_1, daMP_AudioDecodeThreadStack + sizeof(daMP_AudioDecodeThreadStack), sizeof(daMP_AudioDecodeThreadStack), prio, 1)) {
+#endif
             return FALSE;
         }
     } else {
+#if TARGET_PC && defined(COS_SDK_AURORA)
+        if (!OSCreateThread(&daMP_AudioDecodeThread, (void* (*)(void*))daMP_AudioDecoder, NULL, daMP_AudioDecodeThreadStack + sizeof(daMP_AudioDecodeThreadStack), sizeof(daMP_AudioDecodeThreadStack), prio, 1)) {
+#else
         if (!OSCreateThread(&daMP_AudioDecodeThread, (void*)daMP_AudioDecoder, NULL, daMP_AudioDecodeThreadStack + sizeof(daMP_AudioDecodeThreadStack), sizeof(daMP_AudioDecodeThreadStack), prio, 1)) {
+#endif
 #if VERSION > VERSION_DEMO
             OSReport("Can't create audio decode thread\n");
 #endif
@@ -3970,7 +3993,13 @@ static void daMP_THPPlayerStop() {
         VISetPostRetraceCallback(daMP_OldVIPostCallback);
 
         if (daMP_ActivePlayer.onMemory == 0) {
+#if TARGET_PC && defined(COS_SDK_AURORA)
+            // Aurora's DVDFileInfo names its command block cb (the decomp: block).
+            // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+            DVDCancel(&daMP_ActivePlayer.fileInfo.cb);
+#else
             DVDCancel(&daMP_ActivePlayer.fileInfo.block);
+#endif
             daMP_ReadThreadCancel();
         }
 
