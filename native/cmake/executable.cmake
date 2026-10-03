@@ -36,6 +36,12 @@ if (DEFINED AURORA_SDL3_TARGET AND TARGET ${AURORA_SDL3_TARGET})
     target_include_directories(cos_pc PRIVATE
             $<TARGET_PROPERTY:${AURORA_SDL3_TARGET},INTERFACE_INCLUDE_DIRECTORIES>)
 endif ()
+# pc_shot.cpp (COS_SHOT) reads the presented frame back through Aurora's internal WebGPU state
+# (lib/webgpu/gpu.hpp, lib/gfx/render_worker.hpp) and Dawn's C++ headers. Headers only: the symbols
+# are in aurora_core and Dawn, which centollos and the link census bundle already link through cos_sdk.
+set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_shot.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
+        "${aurora_SOURCE_DIR}"
+        "$<TARGET_PROPERTY:dawn::webgpu_dawn,INTERFACE_INCLUDE_DIRECTORIES>")
 if (TARGET cos_link_census)
     target_link_libraries(cos_link_census PRIVATE cos_pc)
 endif ()

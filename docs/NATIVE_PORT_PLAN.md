@@ -2301,6 +2301,23 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   the request at frame 245 and "request honoured" at frame 282, then hit the same Aurora abort at
   frame 371 with the pipeline cache from earlier runs present (deleted afterwards).
 
+- **Screenshots: COS_SHOT** (2026-10-03, lane shot): `COS_SHOT=<frame>,...` and/or
+  `COS_SHOT_EVERY=<n>` (`run.sh --shot`) save the presented frame of those game frames
+  (pc_frame_count numbering) as `shot-<frame>.png` in `COS_SHOT_DIR`, else the run directory,
+  without macOS Screen Recording permission. The new `native/src/pc/pc_shot.cpp` (parsed at
+  start-up, a malformed list exits 2; inert without the variables) is called by `pc_frame_end`
+  right after `aurora_end_frame`: it queues a job on Aurora's render worker behind the frame
+  (FIFO, so the frame is submitted and the next not begun) that copies `present_source()` (the
+  EFB render texture, its resolved copy under MSAA; CopySrc) into a MapRead buffer (rows padded to
+  256 bytes), waits with `Instance::WaitAny`, converts BGRA8/RGBA8/RGB10A2 to RGB and writes an
+  uncompressed PNG (stored deflate blocks, no library); the game thread then waits for the worker,
+  so a shot right before an exit is on disk. Aurora internal headers (`lib/webgpu/gpu.hpp`,
+  `lib/gfx/render_worker.hpp`) and Dawn's include directory are added for that file only. The
+  image is the EFB at its own size (1920x1440 on a Retina 960x720 window, about 8 MB per PNG),
+  without letterboxing or the ImGui overlay. Verified: `logo-res --shot 30,200` (boot logo,
+  Dolby logo) and `run --frames 3000 --shot 300,1500,3000` (`opening` itself ends at frame 281):
+  frame 300 black (stage fade-in), 1500 and 3000 the title over sea room 44 with Link and the HUD.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,

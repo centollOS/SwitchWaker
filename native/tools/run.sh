@@ -23,6 +23,9 @@
 #                    native/check/input/pad-echo.txt
 #   --stage SPEC     COS_BOOT_STAGE, debug stage boot (step 6.4): <stage>:<room>[:<point>[:<layer>]],
 #                    e.g. sea:44:206 (Outset, where the new game starts)
+#   --shot LIST      COS_SHOT, game frames whose presented image is saved as shot-<frame>.png in
+#                    the run directory, e.g. 30,200 (COS_SHOT_EVERY=n in the environment: every
+#                    n-th frame; COS_SHOT_DIR: another directory)
 #   --build          run `ninja -C build/native-mac centollos` first
 #   --exe PATH       the executable (default build/native-mac/centollos)
 #   --quiet          do not print the tail of the log on failure
@@ -73,6 +76,7 @@ audio="${COS_AUDIO:-on}"
 disc="${COS_DISC:-/path/to/GZLE01.iso}"
 input="${COS_INPUT:-}"
 stage="${COS_BOOT_STAGE:-}"
+shot="${COS_SHOT:-}"
 do_build=0
 exe="$build/centollos"
 quiet=0
@@ -88,6 +92,7 @@ while [ $# -gt 0 ]; do
         --disc) disc="$2"; shift 2 ;;
         --input) input="$2"; shift 2 ;;
         --stage) stage="$2"; shift 2 ;;
+        --shot) shot="$2"; shift 2 ;;
         --build) do_build=1; shift ;;
         --exe) exe="$2"; shift 2 ;;
         --quiet) quiet=1; shift ;;
@@ -147,6 +152,7 @@ export COS_RUN_DIR="$run_dir"
 [ -n "$frames" ] && export COS_FRAMES="$frames"
 if [ -n "$stage" ]; then export COS_BOOT_STAGE="$stage"; else unset COS_BOOT_STAGE; fi
 [ -n "$trace" ] && export COS_TRACE="$trace"
+[ -n "$shot" ] && export COS_SHOT="$shot"
 [ -n "$uncapped" ] && export COS_UNCAPPED="$uncapped"
 
 printf '%q ' "$exe" "${extra[@]+"${extra[@]}"}" > "$run_dir/command.txt"

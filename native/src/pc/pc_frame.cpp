@@ -244,6 +244,8 @@ void pc_frame_begin(void) {
 void pc_frame_end(void) {
     const uint64_t endFrameStartNs = monotonicNs();
     aurora_end_frame();
+    // COS_SHOT: the frame is queued to Aurora's render worker; the readback goes in behind it.
+    shotFrameEnd(pc_frame_count() + 1);
     if (sTraceFrame) {
         const uint64_t now = monotonicNs();
         const uint64_t paceStart = sPaceStartNs != 0 ? sPaceStartNs : endFrameStartNs;

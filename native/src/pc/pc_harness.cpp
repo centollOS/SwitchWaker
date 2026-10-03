@@ -125,6 +125,7 @@ void pc_harness_init(int argc, char* argv[]) {
 
     loadInput();
     loadBootStage();
+    loadShots();
 
     installCrashHandler();
     startWatchdog();
