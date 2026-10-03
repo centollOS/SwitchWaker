@@ -12060,6 +12060,18 @@ BOOL daPy_lk_c::createHeap() {
     return TRUE;
 }
 
+#if TARGET_PC
+// The dummy allocations below exist only to size a solid heap before mDoExt_adjustSolidHeap trims
+// it. Their results are used only in JUT_ASSERT(p != NULL), which clang folds (a plain new-expression
+// is assumed non-null), and clang may then omit the whole allocation ([expr.new]p10: calls to the
+// replaceable global operator new from a new-expression are elidable). The heap was then trimmed to
+// zero bytes and the next load into it got NULL (SIGSEGV addr=0xc in J3DAnmBase::J3DAnmBase from
+// getAnimeResource). An empty asm that takes the pointer makes the allocation observable, as the
+// GameCube compiler always performed it.
+static inline void daPy_keepHeapSizingAlloc(void* p) {
+    __asm__ volatile("" : : "r"(p) : "memory");
+}
+#endif
 /* 8012469C-801249F8       .text createAnimeHeap__9daPy_lk_cFPP12JKRSolidHeapQ29daPy_lk_c14daPy_HEAP_TYPE */
 void daPy_lk_c::createAnimeHeap(JKRSolidHeap** pHeap, daPy_HEAP_TYPE heapType) {
     u32 heapSize;
@@ -12084,15 +12096,27 @@ void daPy_lk_c::createAnimeHeap(JKRSolidHeap** pHeap, daPy_HEAP_TYPE heapType) {
     if (heapType == HEAP_TYPE_ITEM_ANIME_e) {
         mDoExt_transAnmBas* tmp_trans_bas = new mDoExt_transAnmBas(NULL);
         JUT_ASSERT(VERSION_SELECT(21120, 21227, 21307, 21307), tmp_trans_bas != NULL);
+#if TARGET_PC
+        daPy_keepHeapSizingAlloc(tmp_trans_bas);
+#endif
     } else if (heapType == HEAP_TYPE_UNDER_UPPER_e) {
         J3DAnmTransformKey* tmp_trans = new J3DAnmTransformKey;
         JUT_ASSERT(VERSION_SELECT(21123, 21230, 21310, 21310), tmp_trans != NULL);
+#if TARGET_PC
+        daPy_keepHeapSizingAlloc(tmp_trans);
+#endif
     } else if (heapType == HEAP_TYPE_TEXTURE_ANIME_e) {
         J3DAnmTexPattern* tmp_tp = new J3DAnmTexPattern;
         JUT_ASSERT(VERSION_SELECT(21126, 21233, 21313, 21313), tmp_tp != NULL);
+#if TARGET_PC
+        daPy_keepHeapSizingAlloc(tmp_tp);
+#endif
     } else { // heapType == HEAP_TYPE_TEXTURE_SCROLL_e
         J3DAnmTextureSRTKey* tmp_tk = new J3DAnmTextureSRTKey;
         JUT_ASSERT(VERSION_SELECT(21129, 21236, 21316, 21316), tmp_tk != NULL);
+#if TARGET_PC
+        daPy_keepHeapSizingAlloc(tmp_tk);
+#endif
     }
     
     mDoExt_restoreCurrentHeap();
@@ -12313,12 +12337,18 @@ void daPy_lk_c::playerInit() {
     mpItemHeaps[0] = mDoExt_createSolidHeapFromGameToCurrent(0xE600, 0x20);
     u8* dummy_data = new u8[0xE600];
     JUT_ASSERT(VERSION_SELECT(21464, 21571, 21651, 21651), dummy_data != NULL);
+#if TARGET_PC
+    daPy_keepHeapSizingAlloc(dummy_data);
+#endif
     mDoExt_restoreCurrentHeap();
     mDoExt_adjustSolidHeap(mpItemHeaps[0]);
     
     mpItemHeaps[1] = mDoExt_createSolidHeapFromGameToCurrent(0xE600, 0x20);
     dummy_data = new u8[0xE600];
     JUT_ASSERT(VERSION_SELECT(21470, 21577, 21657, 21657), dummy_data != NULL);
+#if TARGET_PC
+    daPy_keepHeapSizingAlloc(dummy_data);
+#endif
     mDoExt_restoreCurrentHeap();
     mDoExt_adjustSolidHeap(mpItemHeaps[1]);
     

@@ -2225,6 +2225,18 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `daPy_lk_c::getUnderUpperAnime` <- `setMoveAnime` <- `procWait_init` <- `makeBgWait` (frame 285).
   Reviewer: regress all checks passed; `opening` confirmed past `daAgb_Create`, stops in
   `J3DAnmLoaderDataBase::load` <- `daPy_lk_c::getUnderUpperAnime`.
+- **M7 boot loop, iteration 7** (2026-10-03, host-semantics): SIGSEGV addr=0xc in
+  `J3DAnmBase::J3DAnmBase` <- `J3DAnmLoaderDataBase::load` <- `daPy_lk_c::getAnimeResource` <-
+  `procWait_init` <- `makeBgWait`. `createAnimeHeap` and `playerInit` size solid heaps with
+  throw-away `new` allocations whose only use is `JUT_ASSERT(p != NULL)`; clang folds that check
+  and elides the unused allocation ([expr.new]p10), so `mDoExt_adjustSolidHeap` trimmed the heaps
+  to 0 bytes and the first real anime load got NULL. Under `TARGET_PC` an empty `asm volatile`
+  takes each pointer (`daPy_keepHeapSizingAlloc`) so the allocation is kept, as on the GameCube.
+  Open note: clang also folds every `JUT_ASSERT(p != NULL)` after a plain `new`, so heap
+  exhaustion shows up as a NULL write instead of an assert. Fixer and reviewer:
+  `regress.sh -j 3` all checks passed; `opening` gets past `makeBgWait` to ROOM_SCENE frame 302
+  and stops on the next blocker, PANIC GFGeometry.cpp:263 (`GFSetArray(attr 9, stride 3)` needs
+  `GFSetArraySized`) in `dWood::Packet_c::draw` <- `J3DDrawBuffer::drawHead`.
 
 ### Phase 6 render issues
 
