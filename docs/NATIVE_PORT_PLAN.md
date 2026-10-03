@@ -402,3 +402,24 @@ Each phase lands as its own commits; this file records decisions and measured re
   `GXFIFO` writes belong to the J3D step. Reviewed in round 1: SSystem and JSystem-core rebuilt
   from clean in aurora mode (89 units, 0 errors) with the shadow, header and scaffold checks and smoke
   ok; JSystem-core rebuilt from clean in the default configuration and `cos_modules` and checks clean.
+- **2.7 JSystem-J3D:** compiles in aurora header mode (all 31 units, 0 errors) and still in decomp
+  mode. First aurora build: 26 of 31 units failed, 106 distinct errors (clang's 50-per-unit limit
+  hid none beyond them). Fixes in the forwarders: `dolphin/gx/GX.h` includes Aurora's
+  `<dolphin/gd/GDGeometry.h>` for the BP/CP/XF register numbers (`GX_BP_REG_SETMODE0_TEX*`,
+  `GX_BP_REG_TEVCOLORCOMBINER0`, ...), which the decomp's `GX.h` exports through its `GXEnum.h`
+  (all 318 shared names have the same values), and maps `GX_MAXCOORD`/`GX_TEXMAP_DISABLE` to Aurora's
+  `GX_MAX_TEXCOORD`/`GX_TEX_DISABLE`. Fixes in `game`, all under `TARGET_PC` with the original
+  kept: `J3DLoadCPCmd` (`J3DShape.cpp`) writes through `GXCmd1u8/u32`; `J3DVertex.h` and
+  `J3DModelData.h` include `GXStruct.h` instead of the `_GXColor` forward; and, under
+  `defined(COS_SDK_AURORA)` (TODO 2.8), `GXFogAdjTable::r` (the decomp's `fogVals`) in `J3DGD.cpp`,
+  `GDGetCurrPointer` as Aurora's `u8*` `GDGetCurrPointer2` in `J3DMatBlock.cpp`, and
+  `J3DSys::setModelDrawMtx`/`setModelNrmMtx` calling Aurora's 5-argument `GXSETARRAY` with host byte
+  order and the whole 16-bit index range as the size (GX has no bound; TODO phase 4: pass the
+  model's real matrix count so Aurora's indexed-load check bites). No `STATIC_ASSERT` fired.
+  Aurora mode: SSystem, JSystem-core, JSystem-J3D, `cos_sdk`, smoke, scaffold, header and shadow
+  checks (82 names, ok) build; default configuration: `cos_modules` and checks rebuilt (622 steps),
+  0 errors.
+  Reviewed in round 1: JSystem-J3D rebuilt from clean in aurora mode (31 units, 0 errors) with the
+  shadow, header and scaffold checks and smoke ok, and from clean in the default configuration with
+  `cos_modules` and checks clean; Aurora only pushes `size` bytes for vertex arrays, so the 16-bit
+  index range for the matrix arrays affects nothing but the indexed-load bounds check.

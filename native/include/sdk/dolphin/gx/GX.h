@@ -9,7 +9,12 @@
 // - GXColor3x8 and GXColor4x8, the decomp's names for Aurora's GXColor3u8 and GXColor4u8 (the same
 //   bytes, written through Aurora);
 // - the decomp's GXBlendFactor spellings (GX_BL_SRC_ALPHA, ...) as macros for Aurora's enumerators of
-//   the same value (GX_BL_SRCALPHA, ...), step 2.7.
+//   the same value (GX_BL_SRCALPHA, ...), step 2.7;
+// - the BP/CP/XF register numbers and field locators (GX_BP_REG_*, GX_XF_*, ...), which the decomp's
+//   GX.h exports through its GXEnum.h and Aurora keeps in <dolphin/gd/GDGeometry.h> (same values);
+//   J3DGD/J3DTevs use them, step 2.7 (J3D);
+// - GX_MAXCOORD and GX_TEXMAP_DISABLE, the decomp's names for Aurora's GX_MAX_TEXCOORD (8) and
+//   GX_TEX_DISABLE (0x100), step 2.7 (J3D).
 //
 // Left out on purpose:
 // - GXFIFO, the write-gather pipe the decomp defines in the header at 0xCC008000 (a definition in
@@ -23,6 +28,7 @@
 #define COS_SDK_DOLPHIN_GX_GX_H
 
 #include <dolphin/gx.h>
+#include <dolphin/gd/GDGeometry.h>
 #include <dolphin/gx/GXAttr.h>
 #include <dolphin/gx/GXDisplayList.h>
 #include <dolphin/gx/GXFrameBuf.h>
@@ -73,6 +79,10 @@ static inline void GXColor4x8(u8 r, u8 g, u8 b, u8 a) {
 #define GX_BL_INV_SRC_ALPHA GX_BL_INVSRCALPHA
 #define GX_BL_DST_ALPHA     GX_BL_DSTALPHA
 #define GX_BL_INV_DST_ALPHA GX_BL_INVDSTALPHA
+
+// The decomp's GXTexCoordID / GXTexMapID spellings; same values.
+#define GX_MAXCOORD       GX_MAX_TEXCOORD
+#define GX_TEXMAP_DISABLE GX_TEX_DISABLE
 
 #ifdef __cplusplus
 }

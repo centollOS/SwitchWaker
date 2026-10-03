@@ -5,7 +5,13 @@
 #include "dolphin/mtx/vec.h"
 #include "dolphin/types.h"
 
+#if TARGET_PC
+// Aurora defines GXColor as a typedef of an unnamed struct, so a forward declaration through the
+// tag _GXColor would declare a second, different type. Take the real one.
+#include "dolphin/gx/GXStruct.h"
+#else
 typedef struct _GXColor GXColor;
+#endif
 class J3DModel;
 class J3DAnmVtxColor;
 class J3DVertexBuffer;

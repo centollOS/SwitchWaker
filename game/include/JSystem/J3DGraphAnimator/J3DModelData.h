@@ -8,7 +8,13 @@
 #include "JSystem/J3DGraphBase/J3DVertex.h"
 #include "JSystem/J3DGraphBase/J3DMaterial.h"
 
+#if TARGET_PC
+// Aurora defines GXColor as a typedef of an unnamed struct, so a forward declaration through the
+// tag _GXColor would declare a second, different type. Take the real one.
+#include "dolphin/gx/GXStruct.h"
+#else
 typedef struct _GXColor GXColor;
+#endif
 class JUTNameTab;
 
 enum J3DMaterialCopyFlag {

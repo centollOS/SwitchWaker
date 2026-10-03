@@ -85,6 +85,23 @@ public:
     void offFlag(u32 flag) { mFlags &= ~flag; }
     bool checkFlag(u32 flag) { return (mFlags & flag) ? true : false; }
 
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora's GXSetArray also takes the array's byte size (bounds for indexed matrix loads) and its
+    // byte order. The matrices are computed on the host, so they are host-endian (le = true). The
+    // extent is not known here: GX indexes matrix arrays with a 16-bit index and no bound, so pass
+    // that whole range, as the hardware sees it.
+    // TODO(native phase 4): pass the model's real draw/normal matrix count to tighten Aurora's check.
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    void setModelDrawMtx(Mtx* pMtxArr) {
+        mModelDrawMtx = pMtxArr;
+        GXSETARRAY(GX_POS_MTX_ARRAY, mModelDrawMtx, 0x10000 * sizeof(*mModelDrawMtx), sizeof(*mModelDrawMtx), true);
+    }
+
+    void setModelNrmMtx(Mtx33* pMtxArr) {
+        mModelNrmMtx = pMtxArr;
+        GXSETARRAY(GX_NRM_MTX_ARRAY, mModelNrmMtx, 0x10000 * sizeof(*mModelNrmMtx), sizeof(*mModelNrmMtx), true);
+    }
+#else
     void setModelDrawMtx(Mtx* pMtxArr) {
         mModelDrawMtx = pMtxArr;
         GXSetArray(GX_POS_MTX_ARRAY, mModelDrawMtx, sizeof(*mModelDrawMtx));
@@ -94,6 +111,7 @@ public:
         mModelNrmMtx = pMtxArr;
         GXSetArray(GX_NRM_MTX_ARRAY, mModelNrmMtx, sizeof(*mModelNrmMtx));
     }
+#endif
 
     // Type 0: Opa Buffer
     // Type 1: Xlu Buffer

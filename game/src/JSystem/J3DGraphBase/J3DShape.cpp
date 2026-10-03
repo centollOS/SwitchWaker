@@ -56,9 +56,17 @@ u32 J3DShape::countBumpMtxNum() const {
 
 /* 802DD2F0-802DD308       .text J3DLoadCPCmd__FUcUl */
 void J3DLoadCPCmd(u8 cmd, u32 param) {
+#if TARGET_PC
+    // No write-gather pipe on the host: Aurora's GXCmd1u* feed its FIFO (in decomp-header mode they
+    // are the inline GXFIFO writes of dolphin/gx/GX.h). Same bytes, same order.
+    GXCmd1u8(GX_CMD_LOAD_CP_REG);
+    GXCmd1u8(cmd);
+    GXCmd1u32(param);
+#else
     GXFIFO.u8 = GX_CMD_LOAD_CP_REG;
     GXFIFO.u8 = cmd;
     GXFIFO.u32 = param;
+#endif
 }
 
 /* 802DD308-802DD344       .text J3DLoadArrayBasePtr__F7_GXAttrPv */

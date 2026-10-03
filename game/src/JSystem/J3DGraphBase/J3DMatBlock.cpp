@@ -16,6 +16,13 @@
 #include "dolphin/types.h"
 #include "string.h"
 
+#if TARGET_PC && defined(COS_SDK_AURORA)
+// Aurora's GDGetCurrPointer returns void*; its GDGetCurrPointer2 returns the same pointer as u8*,
+// which is the decomp's GDGetCurrPointer.
+// TODO(native phase 2.8): drop this when COS_SDK_HEADERS=decomp goes away (rename the calls then).
+#define GDGetCurrPointer GDGetCurrPointer2
+#endif
+
 int SizeOfLoadMatColors = 13;
 int SizeOfLoadAmbColors = 13;
 int SizeOfLoadColorChans = 21;
