@@ -21,6 +21,23 @@ class d2DBSplinePath;
 struct dStage_Event_dt_c;
 class fopAc_ac_c;
 
+#if TARGET_PC
+#include "helpers/endian.h"
+#include <string.h>
+
+// The event camera names an actor ("@PLAYER", "Link"), a camera style ("FN01") or a trim mode
+// ("STAN") with a string from the event data and compares its first four characters, read as
+// one word, with a multi-character constant ('@PLA', 'FN01', 'STAN'). The console reads that word
+// big-endian, so the constant matches; read host-order on a little-endian host it never does (a
+// relative event camera then takes its offsets as world positions). This reads the word as the
+// console does.
+inline u32 dCamera_strTag(const char* str) {
+    u32 word;
+    memcpy(&word, str, sizeof(word));
+    return be32(word);
+}
+
+#endif
 struct dCamera__EventParam {
     /* 0x00 */ char mName[16];
     /* 0x10 */ int mValue;

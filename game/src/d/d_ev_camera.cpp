@@ -575,7 +575,11 @@ fopAc_ac_c* dCamera_c::getEvActor(char* name) {
         return NULL;
     }
 
+#if TARGET_PC
+    u32 tag = dCamera_strTag(actorName);
+#else
     u32 tag = *(u32*)actorName;
+#endif
     if (tag == '@PLA') {
         return mpPlayerActor;
     } else if (tag == '@STA') {
@@ -600,7 +604,11 @@ fopAc_ac_c* dCamera_c::getEvActor(char* name, char* defaultName) {
     getEvStringData(actorName, name, defaultName);
 
     char* pName = actorName;
+#if TARGET_PC
+    u32 tag = dCamera_strTag(pName);
+#else
     u32 tag = *(u32*)pName;
+#endif
     if (tag == '@PLA') {
         return mpPlayerActor;
     } else if (tag == '@STA') {
@@ -2199,7 +2207,11 @@ bool dCamera_c::styleEvCamera() {
         m11C = 0;
     }
 
+#if TARGET_PC
+    s32 style = mCamParam.SearchStyle(dCamera_strTag(getEvStringPntData("Name", "FN01")));
+#else
     s32 style = mCamParam.SearchStyle(*(u32*)getEvStringPntData("Name", "FN01"));
+#endif
     (this->*engine_tbl[mCamParam.Algorythmn(style)])(style);
 
     bool ret = false;

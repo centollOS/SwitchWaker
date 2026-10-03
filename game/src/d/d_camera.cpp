@@ -7310,7 +7310,12 @@ bool dCamera_c::eventCamera(s32) {
 
         char evStringData[12];
         if (getEvStringData(evStringData, "Trim", "CINESCO")) {
+#if TARGET_PC
+            u32 evStringTag = dCamera_strTag(evStringData);
+            u32* evStringPtr = &evStringTag;
+#else
             u32* evStringPtr = (u32*)evStringData;
+#endif
             if (*evStringPtr == 'STAN') {
                 mEventData.field_0x1c = 0;
             }
