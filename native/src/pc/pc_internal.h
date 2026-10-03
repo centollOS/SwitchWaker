@@ -130,7 +130,8 @@ const char* stageRoomReady(int roomNo, int* created);
 // pc_outset.cpp: milestone M12 outset-debug. pc_stage_created arms it with the COS_BOOT_STAGE
 // stage's start room; outsetFrame (pc_frame_end, every game frame) waits until the PLAY scene
 // executes with that stage, the room is up and the player actor finished creating, then reports
-// outset-debug 300 frames later.
+// outset-debug 300 frames later. It then measures M13 outset-control: a 120-frame hold of pad 0's
+// main stick that moves Link more than 300 units, and 3,600 frames since he was in the room.
 void outsetArm(const char* stageName, int roomNo);
 void outsetFrame(unsigned int frames);
 

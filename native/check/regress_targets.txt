@@ -46,3 +46,6 @@ static-init 2 --stage sea
 
 # milestone M12 (boot loop, lane outset): debug stage boot puts Link in Outset
 outset-debug 0 --stage sea:44:206
+
+# milestone M13 (step 6.6, lane outset): Link is controllable in Outset after Aryll's lookout event
+outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.txt

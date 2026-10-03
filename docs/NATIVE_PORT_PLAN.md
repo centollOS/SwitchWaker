@@ -2533,6 +2533,20 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   uncapped 4,000-frame Outset run finished with no fault. Step stays open: M13 waits for the
   outset-control probe (6.6), the uncapped VI stall and the AGB map swap.
 
+- M13 boot loop (lane outset, iter 1, harness; step 6.6): `outset-control --stage sea:44:206`
+  had no probe and no input script. `native/src/pc/pc_outset.cpp` now also reports outset-control:
+  after Link is in the room it logs every change of `dComIfGp_event_runCheck`, measures each run of
+  frames in which `g_mDoCPd_cpadInfo[0].mMainStickValue` > 0.5 and, when one reaches 120 frames,
+  logs Link's horizontal displacement over it; one above 300 units makes Link controllable, and the
+  milestone is reported once he is and 3,600 frames passed since he was in the room (read-only).
+  New script `native/check/input/outset-control.txt`: B taps every 10 frames advance Aryll's
+  lookout event (over at frame 3269; A is not used because, once Link is free, A next to Aryll
+  starts a new talk), then six 140-frame stick holds; the lookout's railing blocks some directions
+  (293, 120, 200 units), the fourth moves Link 353 units. M13 at frame 4100, 3/3 capped runs in
+  132-133 s, identical positions. Adds the target to the regression list.
+  Reviewed: regression passes; 3/3 capped runs reach M13 at frame 4100 (132 s) with identical
+  probe lines. M13 reached.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
