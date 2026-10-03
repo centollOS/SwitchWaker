@@ -1531,6 +1531,57 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Review (round 1): accepted and rerun (msg-sweep 0 x3, manifest equal, 4341 messages through
   JMessage, 0 errors; M0-M5 0 x3, uncapped 0; sweeps 0; harness tests 13/12/10/11; census equal,
   dups 0, inventory ok, smoke and `cos_pc_tests` ok); committed as three commits plus this log.
+- **4.7 JParticle** (`COS_SMOKE=jpa-sweep`). One root cause, meant as one commit, then the sweep:
+  - **JPAC1-00 data read in host order.** `JPAResourceManager` got nothing on the host: the
+    archive header (`'JPAC'`/`'1-00'` compared as host u32s) was rejected, so no emitter or
+    texture resource was built. Every file-mapped struct now uses `BE(T)` (struct shim, as
+    Dusklight's JParticle headers for Dusklight's JPAC2-10, a different layout): the loader's archive,
+    `JEFFjpa1` emitter and block headers (`JPAEmitterLoader.cpp`); `JPADynamicsBlockData`,
+    `JPAFieldBlockData`, `JPABaseShapeData`, `JPAColorRegAnmKey` (the frame of a colour key),
+    `JPAExtraShapeData`, `JPASweepShapeData`, `JPAExTexShapeData` (the indirect matrix as
+    `BE(Mtx23)`), with `JGeometry::TVec3<BE(T)>` for the vectors. The KFA1 key data
+    (`JPAKeyBlock::getKeyDataPtr`, `JPAGetKeyFrameValue`) and the TDB1 texture indices
+    (`JPADataBlockLinkInfo::texDataBase`, `JPADrawContext::pTexIdx`) are `BE(f32)*`/`BE(u16)*`, read
+    in place. Under `TARGET_PC`: `JPAFieldBlockArc::getPos`/`getDir` convert member by member
+    (`TVec3<f32>::set`), and `JPADrawSetupTev::setupTev` converts the indirect matrix to host floats
+    before `GXSetIndTexMtx` (Aurora reads host floats). `unifdef -UTARGET_PC` of every changed game
+    file equals HEAD's once `BE(T)` is read as `T` and the `helpers/endian.h` includes dropped
+    (`JPAColorRegAnmKey` also gained its offset comments). The layout check adds
+    `JPAColorRegAnmKey` (134 structs, 1073 checks on the GameCube configuration).
+  - **`COS_SMOKE=jpa-sweep`** (new `native/src/pc/pc_jpa.cpp`, after M2): every JPC under
+    `/res/Particle` (DVDReadDir; common.jpc first) loaded as `mDoDvdThd_toMainRam_c` does, read
+    independently (plain big-endian loads) and through the game as `dPa_control_c` does:
+    `JPAResourceManager` (common.jpc in the sweep heap, each scene in a solid heap adjusted after
+    the load), a `JPAEmitterManager` with the game's pool sizes (3000/150/200) whose resource
+    manager 1 is the scene's. For every emitter resource: user index, key/field/texture counts,
+    block order; every getter of BEM1, FLD1, KFA1 (all key data), BSP1 (texture-animation indices,
+    both colour tables at each key frame), ESP1 (with the derived rates), SSP1, ETX1 and TDB1
+    against the independent reading, floats by their bits; every texture's name and `ResTIMG`
+    through `JPATexture`/`JUTTexture`. Then each emitter alone: `createSimpleEmitterID`, its data
+    flags and rate after `JPABaseEmitter::create`, 30 frames of `JPAEmitterManager::calc` with every
+    live particle and child finite (position, velocity, age, life), `forceDeleteAllEmitter` (pools
+    back to empty); a scene ends with `clearResourceManager(1)` as `removeRoomScene`. It writes
+    `jpa_sweep.txt` (JPC/EMTR/TEX lines); `run.sh` compares it with the manifest
+    (`disc_manifest.py --check-jpa`: every JPC, every emitter's `res_id`, block/key/field/texture
+    counts and tag order, every texture's name, format, size, mipmap count and image offset).
+  Verified: `run.sh jpa-sweep` 0 x6, manifest equal: 58 JPC (common.jpc 193 emitters and 96
+  textures, 57 scenes), 3370 emitter resources, 1874 textures, 12896 key values; 3370 emitters
+  calculated (3049 emit within 30 frames, 341 end early), 96958 emitter frames, up to 2000 live
+  particles, about 100 ms; no assertion or panic. Without the game changes: `JPAResourceManager`
+  builds nothing for any file (exit 1); with only the key and base-shape changes reverted: BSP1
+  getters differ (`getType` 0 for 2, `getBaseSizeX` 4.6e-41 for 1.0) and calc then panics.
+  Not exercised: drawing (`JPAEmitterManager::draw`, the indirect matrix's `GXSetIndTexMtx`); that
+  runs once the boot loop draws particles.
+  Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check
+  cos_link_census` 0 errors; smoke ok; `cos_pc_tests` ok; census equal to
+  `expected_unresolved_phase2.txt`; `--all --dups` 0; inventory `--check` ok (78 open); static-init,
+  aurora-up, heaps, gfx-create, frame-loop, logo-scene 0 x3, frame-loop and logo-scene
+  `--uncapped` 0; heap, disc-ls, font, arc-sweep, msg-sweep 0; crash/panic/timeout/stall-test
+  13/12/10/11; no disc 14.
+  Review (round 1): accepted and rerun (jpa-sweep 0 x3, manifest equal, 58 JPC, 3370 emitters,
+  1874 textures, 0 errors; M0-M5 0 x3, uncapped 0; sweeps 0; harness tests 13/12/10/11, no disc
+  14; census equal, dups 0, inventory ok (78 open), smoke and `cos_pc_tests` ok); committed as two
+  commits plus this log.
 
 ### Phase 6 render issues
 
