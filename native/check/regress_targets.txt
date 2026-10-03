@@ -37,6 +37,7 @@ j3d-sweep 0
 anm-sweep 0
 # F2-agb-map (lane outset): every AGB floor map (.amp) through mDoLib_cnvind16/32, GBA buffer order
 amp-sweep 0
+stb-sweep 0
 
 # input injection (step 6.3): the default script native/check/input/pad-echo.txt
 pad-echo 0

@@ -40,6 +40,8 @@
 // - amp-sweep (fix F2-agb-map, pc_amp.cpp): every AGB floor map (m<N>.amp) of the room archives
 //   read through dMap_2DAGBScrDsp_c and mDoLib_cnvind16/32 and compared with an independent
 //   little-endian reading, and the GBA buffer byte order.
+// - stb-sweep (step 4.17, pc_stb.cpp): every STB of the disc parsed by JStudio and played with null
+//   adaptors through all its frames, as dDemo_manager_c plays a demo.
 // In the booted game:
 // - pad-echo (step 6.3, pc_input.cpp): the COS_INPUT script read back from g_mDoCPd_cpadInfo after
 //   each mDoCPd_Read.
@@ -272,6 +274,9 @@ void requireWatchdog(const char* test, double seconds, const char* var) {
     if (strcmp(name, "amp-sweep") == 0) {
         smokeAmpSweep();
     }
+    if (strcmp(name, "stb-sweep") == 0) {
+        smokeStbSweep();
+    }
     writef(STDERR_FILENO, "[cos] smoke %s has no runner\n", name);
     pc_exit(PC_EXIT_USAGE);
 }
@@ -309,6 +314,7 @@ const Smoke kSmokes[] = {
     {"j3d-sweep", kAfterHeaps},
     {"anm-sweep", kAfterHeaps},
     {"amp-sweep", kAfterHeaps},
+    {"stb-sweep", kAfterHeaps},
     {"pad-echo", kInGame},
     {"title-audio", kInGame},
 };

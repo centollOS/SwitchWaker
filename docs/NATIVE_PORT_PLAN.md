@@ -2627,6 +2627,48 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: regression passes (with `amp-sweep`); `amp-sweep` fails with the old m_Do_lib.cpp
   (705 archives, 0 maps, 541 errors) and passes with the fix (180 maps, 497,289 tiles, 0 errors).
 
+- **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
+  the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
+  variable values checked, max |v| 500000). Builds on the boot loops' STB/FVB big-endian
+  commits (5395c07, 444a2fe, cfcd7bd, e0b30df, 8eb9db8), which already let every STB of the disc
+  parse and play; each item below is meant as its own commit:
+  - **Harness:** `pc_stb.cpp` mounts every archive under /res (Yaz0 entries expanded) and plays
+    every STB as `dDemo_manager_c` does (`JStudio::TControl` at 1/30 s per frame, `TParse::
+    parse_next` with flags 0, `forward(0)`, then `forward(1)` until it returns false) with a
+    `TCreateObject` that makes the JStudio object of each kind (JACT, JCMR, JABL, JLIT, JFOG,
+    JPTC, JSND, JMSG) over a null adaptor that only records its operations; a suspend of the
+    control object (the message window holding the demo) is released when seen, as d_mesg does.
+    Every frame every variable value must be finite and below 1e7, every object must end within
+    100000 frames, and the objects must give the sweep heap back all it lent. `stb_sweep.txt`
+    goes to `disc_manifest.py --check-stb` (manifest version 8), which walks each object's
+    sequence from the file bytes and compares per file the version, block, JFVB object and object
+    counts and the suspend total, and per object its type, ID, flag and its `do_paragraph`,
+    `do_data` and waited-frame counts (frames run must be at least the longest wait). No STB on
+    the disc has a flag or jump entry (the manifest rejects one). Negative checks: reading the
+    IMMEDIATE operand host-order gives 24983 errors (values of 2.7e+23); a report with one wait
+    and one paragraph count off gives 2 manifest DIFFs. `stb-sweep 0` joins the regression.
+  - **`TAdaptor_actor::TVVOutput_ANIMATION_FRAME_` read the play mode at a GameCube offset.**
+    `_08` (317, 321) is the GameCube offset plus 1 of `m13C`/`m140` (ANIMATION_MODE,
+    TEXTURE_ANIMATION_MODE); on the host it landed elsewhere in the adaptor: a temporary trace
+    in title-stage read 0x4943d20 instead of 0 for the texture-animation frame (outside-function
+    index 0x20, reverse flag 0x3d). On PC the field is named (Dusklight's object-actor.cpp).
+  - **Group G markers.** `TParse_TSequence`/`TParse_TParagraph::getData`, `getSequence_offset`
+    and `adaptor_setVariableValue_n` already add 32-bit sizes and offsets at host width: the TODOs
+    become plain comments. The 0x81 data paragraph's size and the B-spline list's key counts are
+    now pointer differences instead of differences of truncated addresses, and
+    `TFunctionValue_composite::TData(void*)` keeps the whole pointer in `rawData` (its low half
+    is `uintdata` on the host; only `initialize` passes one, NULL). Group G 9 -> 0 (baseline).
+  Step verification: stb-sweep 0 x3 equal to the manifest, title-stage 0, title 0, logo-res 0;
+  inventory `--check` ok; `unifdef -UTARGET_PC` of the changed game files equals HEAD.
+  Not done (outside the null-adaptor sweep, for M14): `JStudio_JAudio` (`object-sound.cpp`, the
+  SOUND id twice), `JStudio_JMessage` (`object-message.cpp`, the message code) and
+  `JStudio_JParticle` (`object-particle.cpp`, the PARENT_NODE id) still read their STB operands
+  host-order (the particle's PARENT_ENABLE word also comes from the host-order BOOL output); there is no `ctb` unit in the game decomp.
+  (The message code was fixed meanwhile on feature/switch-native by 0915023.)
+  Reviewed: regress passed (stb-sweep in it); stb-sweep 0 equal to the manifest; `unifdef
+  -UTARGET_PC` of every changed game file equals HEAD; committed as three commits (actor play
+  mode, group G markers, harness).
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,

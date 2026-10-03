@@ -85,6 +85,14 @@ Usage
                                                   its getters return at the first, middle and
                                                   last frame (count, sum, sum of |v|, max |v|;
                                                   exit 0 equal, 1 different)
+  disc_manifest.py --check-stb STB [--out FILE]  compare what JStudio read in COS_SMOKE=
+                                                  stb-sweep (<run dir>/stb_sweep.txt) with the
+                                                  manifest's STB files: every file, its version,
+                                                  block, function-value and object counts and the
+                                                  suspend total, every object's type, ID, flag,
+                                                  paragraph, data and wait counts, and frames run
+                                                  at least the longest wait (exit 0 equal, 1
+                                                  different)
   disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
 
 Manifest (JSON)
@@ -104,7 +112,8 @@ Manifest (JSON)
               of every entry's big-endian u32 offset and u16 number), BMC CLT1 entries and
               colors_fnv (FNV-1a 64 of the colour table)
               bti: the ResTIMG header;  jpc: emitters [{res_id, blocks, keys, fields, textures,
-              tags}], textures [names];  stb: version, blocks [{type, id}];  dzs/dzr: chunks
+              tags}], textures [names];  stb: version, blocks [{type, id}] (JFVB: fvb_objects;
+              objects: flag, paragraphs, data, wait, suspend, step 4.17);  dzs/dzr: chunks
               [{tag, num}], actors {tag: [{name, params, pos, angle, set_id}]} and records
               {chunk index: {tag, entries}} (RTBL and the STAGE_RECORDS tags);  dzb: counts
               and the vertex bounding box;  aaf: sections [{type, offset, size, count}] and
@@ -146,7 +155,9 @@ GC_MAGIC = b"\xC2\x33\x9F\x3D"
 # 6: JaiInit.aaf's audio records and the .afc headers (step 5.1).
 # 7: J3D animation blocks: track counts, update-material names and values evaluated at the first,
 #    middle and last frame (step 4.12).
-MANIFEST_VERSION = 7
+# 8: STB JFVB object counts and each object's flag, paragraph, data, wait and suspend counts
+#    (step 4.17).
+MANIFEST_VERSION = 8
 
 EXIT_OK = 0
 EXIT_DIFFERENT = 1
@@ -748,12 +759,72 @@ def parse_stb(b):
         btype = tag4(b, o + 4)
         need(size >= 8 and o + size <= len(b), "STB: block %r size 0x%x" % (btype, size))
         blk = {"type": btype, "size": size}
-        if btype != "JFVB" and size >= 0xC:  # TBlock_object; JFVB holds function values
+        if btype == "JFVB":
+            # An FVB file: its header's block count is the number of function-value objects.
+            need(size >= 0x18 and b[o + 8:o + 0xC] == b"FVB\0", "STB: JFVB without an FVB header")
+            blk["fvb_objects"] = u32(b, o + 8 + 0xC)
+        elif size >= 0xC:  # TBlock_object
             id_size = u16(b, o + 0xA)
             blk["id"] = cstr(b, o + 0xC, id_size) if id_size else ""
+            blk["flag"] = u16(b, o + 8)
+            blk.update(stb_sequence(b, o + 0xC + align4(id_size), o + size))
         rec["blocks"].append(blk)
         o += size
     return rec
+
+
+def align4(n):
+    return (n + 3) & ~3
+
+
+def stb_sequence(b, o, end):
+    """Step 4.17: walks an STB object's sequence (from o to its end marker, inside the block that
+    ends at end) as JStudio::stb::TObject::process_sequence_ reads it: per sequence entry the wait
+    is the last one set (a wait entry, or a wait paragraph of a paragraph entry), and suspend
+    entries add their signed 24-bit count. Counts the object paragraphs (type > 0xFF, what
+    do_paragraph gets) and the data paragraphs (0x80 and 0x81, what do_data gets). The disc has
+    no flag or jump entry; one would change the order the game runs the sequence in, so it is
+    rejected."""
+    rec = {"paragraphs": 0, "data": 0, "wait": 0, "suspend": 0}
+    while True:
+        need(o + 4 <= end, "STB: sequence past its block")
+        head = u32(b, o)
+        typ, param = head >> 24, head & 0xFFFFFF
+        if typ == 0:
+            return rec
+        wait = 0
+        if typ <= 0x7F:
+            need(typ in (2, 4), "STB: sequence entry type %d" % typ)
+            if typ == 2:
+                wait = param
+            else:
+                rec["suspend"] += param - 0x1000000 if param & 0x800000 else param
+            o += 4
+        else:
+            p, stop = o + 4, o + 4 + param
+            need(stop <= end, "STB: paragraphs past their block")
+            while p < stop:
+                size = u16(b, p)
+                if size & 0x8000:
+                    size = ((size & 0x7FFF) << 16) | u16(b, p + 2)
+                    ptype = u32(b, p + 4)
+                    p += 8
+                else:
+                    ptype = u16(b, p + 2)
+                    p += 4
+                if ptype > 0xFF:
+                    rec["paragraphs"] += 1
+                elif ptype in (0x80, 0x81):
+                    rec["data"] += 1
+                elif ptype == 2:
+                    need(size == 4, "STB: wait paragraph of %d bytes" % size)
+                    wait = u32(b, p)
+                else:
+                    need(ptype not in (1, 3), "STB: paragraph type %d" % ptype)
+                p += align4(size)
+            need(p == stop, "STB: paragraphs overrun their entry")
+            o = stop
+        rec["wait"] += wait
 
 
 ACTOR_TAGS_20 = {"ACTR", "TGOB", "TRES", "PLYR"} | {"ACT" + c for c in "0123456789ab"} | \
@@ -2285,6 +2356,89 @@ def check_anm(manifest, anm_path):
     return report_problems(problems, "anm_sweep.txt equals the manifest")
 
 
+def check_stb(manifest, stb_path):
+    """stb_sweep.txt (step 4.17): what JStudio's parser and objects did with every STB, fields
+    separated by single spaces: 'STB <path> version=N target_version=N blocks=N fvb=N objects=N
+    suspend=N frames=N' and per object block in file order (the control block and JFVB left out)
+    'OBJ <path> <index> type=<tag> id=<id> flag=N paragraphs=N data=N wait=N' (paths and IDs
+    percent-encoded: a space, '%' and bytes outside printable ASCII as %XX). Every field but frames
+    must equal the manifest's (fvb: the JFVB objects; suspend: the sum over the objects); frames,
+    the frames the control ran until every object ended, must be at least the longest wait. Every
+    STB file of the disc must be reported once."""
+    from urllib.parse import unquote_to_bytes
+
+    def dec(text):
+        raw = unquote_to_bytes(text)
+        try:
+            return raw.decode("shift_jis")
+        except UnicodeDecodeError:
+            return raw.decode("latin-1")
+
+    by_path = records_by_path(manifest)
+    stbs = {p: r for p, r in by_path.items() if r.get("format") == "stb"}
+    problems = []
+    got = {}
+    with open(stb_path, encoding="ascii", errors="replace") as f:
+        for ln, line in enumerate(f, 1):
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split(" ")
+            if parts[0] == "STB" and len(parts) >= 3:
+                path = dec(parts[1])
+                if path in got:
+                    problems.append("line %d: %s reported twice" % (ln, path))
+                got[path] = {"head": dict(p.partition("=")[::2] for p in parts[2:]), "obj": []}
+            elif parts[0] == "OBJ" and len(parts) >= 4:
+                path = dec(parts[1])
+                if path not in got or parts[2] != str(len(got[path]["obj"])):
+                    problems.append("line %d: %s object %s out of order" % (ln, path, parts[2]))
+                    continue
+                fields = dict(p.partition("=")[::2] for p in parts[3:])
+                if "id" in fields:
+                    fields["id"] = dec(fields["id"])
+                got[path]["obj"].append(fields)
+            else:
+                problems.append("line %d: malformed: %r" % (ln, line))
+
+    objects = 0
+    for path in sorted(set(stbs) - set(got)):
+        problems.append("%s: STB file of the manifest not reported" % path)
+    for path in sorted(set(got) - set(stbs)):
+        problems.append("%s: not an STB file of the manifest" % path)
+    for path in sorted(set(stbs) & set(got)):
+        rec, g = stbs[path], got[path]
+        blocks = rec.get("blocks", [])
+        objs = [b for b in blocks if b["type"] not in ("JFVB", "\xff\xff\xff\xff")]
+        want = {"version": str(rec["version"]), "target_version": str(rec["target_version"]),
+                "blocks": str(rec["block_count"]),
+                "fvb": str(sum(b.get("fvb_objects", 0) for b in blocks)),
+                "objects": str(len(objs)),
+                "suspend": str(sum(b.get("suspend", 0) for b in blocks))}
+        head = dict(g["head"])
+        frames = head.pop("frames", None)
+        if head != want:
+            problems.append("%s: %s, the manifest has %s" % (path, head, want))
+        longest = max([b.get("wait", 0) for b in blocks] or [0])
+        if frames is None or not frames.isdigit() or int(frames) < longest:
+            problems.append("%s: frames=%s, the longest wait is %d" % (path, frames, longest))
+        if len(g["obj"]) != len(objs):
+            problems.append("%s: %d object(s), the manifest has %d" % (path, len(g["obj"]),
+                                                                     len(objs)))
+        for i, (have, blk) in enumerate(zip(g["obj"], objs)):
+            objects += 1
+            exp = {"type": blk["type"], "id": blk.get("id", "")}
+            for key in ("flag", "paragraphs", "data", "wait"):
+                exp[key] = str(blk.get(key))
+            if have != exp:
+                problems.append("%s: object %d: %s, the manifest has %s" % (path, i, have, exp))
+    print("disc_manifest: stb_sweep.txt: %d STB file(s) (the manifest has %d), %d object(s) "
+          "compared" % (len(got), len(stbs), objects))
+    if not got:
+        problems.append("no STB line")
+    return report_problems(problems, "stb_sweep.txt equals the manifest")
+
+
 def load_manifest(path):
     try:
         with open(path, encoding="utf-8") as f:
@@ -2338,6 +2492,8 @@ def main():
                     help="compare a COS_SMOKE=j3d-sweep report with the manifest")
     ap.add_argument("--check-anm", metavar="ANM",
                     help="compare a COS_SMOKE=anm-sweep report with the manifest")
+    ap.add_argument("--check-stb", metavar="STB",
+                    help="compare a COS_SMOKE=stb-sweep report with the manifest")
     ap.add_argument("--summary", action="store_true", help="print an existing manifest's counts")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
@@ -2364,6 +2520,8 @@ def main():
         return check_j3d(load_manifest(args.out), args.check_j3d)
     if args.check_anm:
         return check_anm(load_manifest(args.out), args.check_anm)
+    if args.check_stb:
+        return check_stb(load_manifest(args.out), args.check_stb)
     if args.summary:
         print_summary(load_manifest(args.out))
         return EXIT_OK

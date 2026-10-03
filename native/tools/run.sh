@@ -49,8 +49,8 @@
 # which holds the expected hashes); the result is cached in build/native-mac/runs/disc_check.txt.
 # disc-ls (step 4.0d), font (step 4.3), arc-sweep (step 4.4), msg-sweep (step 4.6), jpa-sweep
 # (step 4.7), stage-sweep (step 4.9a), blo-sweep (step 4.13), dzb-sweep (step 4.10),
-# audio-parse (step 5.1), j3d-sweep (step 4.11) and anm-sweep (step 4.12) are then compared with
-# the disc manifest (build/native-mac/disc_manifest.json,
+# audio-parse (step 5.1), j3d-sweep (step 4.11), anm-sweep (step 4.12) and stb-sweep (step 4.17)
+# are then compared with the disc manifest (build/native-mac/disc_manifest.json,
 # written by disc_manifest.py if missing or of an older MANIFEST_VERSION): a difference turns exit 0 into 1.
 # Nothing the run writes is meant for git (build/ is ignored).
 set -u
@@ -220,8 +220,8 @@ elif [ "$rc" -gt 128 ]; then
 fi
 
 # --- disc-ls (4.0d), font (4.3), arc-sweep (4.4), msg-sweep (4.6), jpa-sweep (4.7), stage-sweep
-# (4.9a), blo-sweep (4.13), dzb-sweep (4.10), audio-parse (5.1), j3d-sweep (4.11), anm-sweep (4.12):
-# what the game read against the manifest
+# (4.9a), blo-sweep (4.13), dzb-sweep (4.10), audio-parse (5.1), j3d-sweep (4.11), anm-sweep (4.12),
+# stb-sweep (4.17): what the game read against the manifest
 check_arg=""
 case "$target" in
     disc-ls) check_arg="--check-ls"; check_file="disc_ls.txt" ;;
@@ -235,6 +235,7 @@ case "$target" in
     audio-parse) check_arg="--check-audio"; check_file="audio_parse.txt" ;;
     j3d-sweep) check_arg="--check-j3d"; check_file="j3d_sweep.txt" ;;
     anm-sweep) check_arg="--check-anm"; check_file="anm_sweep.txt" ;;
+    stb-sweep) check_arg="--check-stb"; check_file="stb_sweep.txt" ;;
 esac
 if [ -n "$check_arg" ] && [ "$rc" = 0 ]; then
     manifest="$build/disc_manifest.json"
@@ -248,7 +249,7 @@ if [ -n "$check_arg" ] && [ "$rc" = 0 ]; then
         python3 "$disc_manifest" --out "$manifest" "$check_arg" "$run_dir/$check_file" \
             >> "$run_dir/run.log" 2>&1 || rc=1
     fi
-    grep '^disc_manifest: \(FST\|disc-ls\|font.txt\|arc_sweep.txt\|msg_sweep.txt\|jpa_sweep.txt\|stage_sweep.txt\|blo_sweep.txt\|dzb_sweep.txt\|audio_parse.txt\|j3d_sweep.txt\|anm_sweep.txt\|DIFF\)' "$run_dir/run.log" | head -5
+    grep '^disc_manifest: \(FST\|disc-ls\|font.txt\|arc_sweep.txt\|msg_sweep.txt\|jpa_sweep.txt\|stage_sweep.txt\|blo_sweep.txt\|dzb_sweep.txt\|audio_parse.txt\|j3d_sweep.txt\|anm_sweep.txt\|stb_sweep.txt\|DIFF\)' "$run_dir/run.log" | head -5
 fi
 echo "$rc" > "$run_dir/exit_code.txt"
 

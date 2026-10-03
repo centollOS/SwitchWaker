@@ -65,7 +65,7 @@ void runDiscSmoke();
 void runAuroraSmoke();
 // pc_smoke.cpp: runs COS_SMOKE if it is a test that runs once mDoMch_Create made the heaps (font,
 // arc-sweep, msg-sweep, jpa-sweep, stage-sweep, blo-sweep, save, dzb-sweep, audio-parse,
-// j3d-sweep, anm-sweep, amp-sweep; from pc_heaps_created); it never returns then.
+// j3d-sweep, anm-sweep, amp-sweep, stb-sweep; from pc_heaps_created); it never returns then.
 void runHeapsSmoke();
 // pc_heap.cpp: COS_SMOKE=heap.
 [[noreturn]] void smokeHeap();
@@ -101,6 +101,8 @@ void prepareSaveSmoke();
 [[noreturn]] void smokeAnmSweep();
 // pc_amp.cpp: COS_SMOKE=amp-sweep.
 [[noreturn]] void smokeAmpSweep();
+// pc_stb.cpp: COS_SMOKE=stb-sweep.
+[[noreturn]] void smokeStbSweep();
 // pc_arc.cpp: COS_SMOKE=arc-sweep.
 [[noreturn]] void smokeArcSweep();
 bool isKnownSmoke(const char* name);
