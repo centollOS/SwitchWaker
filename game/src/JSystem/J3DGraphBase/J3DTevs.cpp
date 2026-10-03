@@ -140,13 +140,23 @@ void loadTexNo(u32 param_0, const u16& param_1) {
     J3DSys::sTexCoordScaleTable[param_0].field_0x00 = resTIMG->width;
     J3DSys::sTexCoordScaleTable[param_0].field_0x02 = resTIMG->height;
     GDOverflowCheck(0x14);
+#if TARGET_PC
+    // Sign-extended: J3DTexture::setResTIMG may store a negative distance (a 32-bit wrap on the
+    // GameCube). File offsets are below 2 GiB, so for them this is the same value.
+    J3DGDSetTexImgPtr(GXTexMapID(param_0), (u8*)resTIMG + (s32)(u32)resTIMG->imageOffset);
+#else
     J3DGDSetTexImgPtr(GXTexMapID(param_0), (u8*)resTIMG + resTIMG->imageOffset);
+#endif
     J3DGDSetTexImgAttr(GXTexMapID(param_0), resTIMG->width, resTIMG->height, GXTexFmt(resTIMG->format & 0x0f));
     J3DGDSetTexLookupMode(GXTexMapID(param_0), GXTexWrapMode(resTIMG->wrapS), GXTexWrapMode(resTIMG->wrapT), GXTexFilter(resTIMG->minFilter), GXTexFilter(resTIMG->magFilter), resTIMG->minLOD * 0.125f, resTIMG->maxLOD * 0.125f, resTIMG->LODBias * 0.01f, resTIMG->biasClamp, resTIMG->doEdgeLOD, GXAnisotropy(resTIMG->maxAnisotropy));
     if (resTIMG->indexTexture == true) {
         GXTlutSize tlutSize = resTIMG->numColors > 16 ? GX_TLUT_256 : GX_TLUT_16;
         GDOverflowCheck(0x14);
+#if TARGET_PC
+        J3DGDLoadTlut((u8*)resTIMG + (s32)(u32)resTIMG->paletteOffset, (param_0 << 13) + 0xf0000, tlutSize);
+#else
         J3DGDLoadTlut((u8*)resTIMG + resTIMG->paletteOffset, (param_0 << 13) + 0xf0000, tlutSize);
+#endif
         J3DGDSetTexTlut(GXTexMapID(param_0), (param_0 << 13) + 0xf0000, GXTlutFmt(resTIMG->colorFormat));
     }
 }

@@ -47,9 +47,17 @@ public:
         J3D_ASSERT(81, index < mNum, "Error : range over.");
         mpRes[index] = timg;
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        mpRes[index].imageOffset = ((mpRes[index].imageOffset + (u32)(uintptr_t)&timg - (u32)(uintptr_t)(mpRes + index)));
-        mpRes[index].paletteOffset = ((mpRes[index].paletteOffset + (u32)(uintptr_t)&timg - (u32)(uintptr_t)(mpRes + index)));
+        // The offsets become relative to this table entry. timg can lie below it, so the GameCube
+        // stores a negative distance as a 32-bit wrap; on the host the readers of a J3DTexture
+        // entry (loadTexNo) add the offset sign-extended. Every ResTIMG the game passes here
+        // (toon images, the frame-buffer copy, textures of other models) is in a JKR heap inside
+        // MEM1 (decision H5), so the distance fits in 32 bits; anything else would be a new case.
+        intptr_t delta = (intptr_t)&timg - (intptr_t)(mpRes + index);
+        if (delta != (s32)delta) {
+            OSPanic(__FILE__, __LINE__, "J3DTexture::setResTIMG: ResTIMG out of 32-bit reach");
+        }
+        mpRes[index].imageOffset = (u32)((s32)(u32)mpRes[index].imageOffset + (s32)delta);
+        mpRes[index].paletteOffset = (u32)((s32)(u32)mpRes[index].paletteOffset + (s32)delta);
 #else
         mpRes[index].imageOffset = ((mpRes[index].imageOffset + (u32)&timg - (u32)(mpRes + index)));
         mpRes[index].paletteOffset = ((mpRes[index].paletteOffset + (u32)&timg - (u32)(mpRes + index)));
