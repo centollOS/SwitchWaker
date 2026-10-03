@@ -12,9 +12,20 @@
 #include "d/d_event.h"
 
 // The name of this macro is official and comes from a TP debug assert: "fopAcM_ct No Call !!"
+#if TARGET_PC
+// MWCC treats the value-initialisation `new (ptr) ClassName()` as default-initialisation. Clang
+// zero-fills the whole object first when ClassName has no user-provided constructor (daShip_c,
+// for one), which wipes the base_process_class header fpcBs_Create already filled in (mpPcMtd,
+// mProcName, ...). Default-initialise explicitly. Adapted from Dusklight's fopAcM_ct_placement
+// (ref/dusklight/include/f_op/f_op_actor_mng.h, CC0).
+#define fopAcM_ct_placement(ptr, ClassName) new (ptr) ClassName
+#else
+#define fopAcM_ct_placement(ptr, ClassName) new (ptr) ClassName()
+#endif
+
 #define fopAcM_ct(ptr, ClassName)                                                                  \
     if (!fopAcM_CheckCondition(ptr, fopAcCnd_INIT_e)) {                                            \
-        new (ptr) ClassName();                                                                     \
+        fopAcM_ct_placement(ptr, ClassName);                                                       \
         fopAcM_OnCondition(ptr, fopAcCnd_INIT_e);                                                  \
     }
 

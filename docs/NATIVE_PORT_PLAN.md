@@ -2173,6 +2173,15 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   SIGSEGV addr=0x18 in `fpcMtd_IsDelete` <- `fpcCtRq_Cancel` (null method table on a cancelled
   create request). Note: after a rebase, build the `centollos` target explicitly (`ninja centollos`).
 
+- **M7 boot loop, iteration 2** (2026-10-03, host-semantics): the cancelled `daShip_c` create
+  (cPhs_ERROR_e, MET_KORL not set) crashed with SIGSEGV addr=0x18 in `fpcMtd_IsDelete` <-
+  `fpcCtRq_Cancel`: `fopAcM_ct`'s `new (ptr) ClassName()` value-initialises, and clang zero-fills
+  classes without a user-provided constructor, wiping the base_process_class header (`mpPcMtd`)
+  that `fpcBs_Create` had set; MWCC default-initialises. Under `TARGET_PC` `fopAcM_ct` uses
+  `fopAcM_ct_placement` (`new (ptr) ClassName`, after Dusklight). Review: `regress.sh -j 3` all
+  checks passed; `opening` reaches ROOM_SCENE at frame 284 and stops on the next blocker, SIGSEGV
+  addr=0xc in `fpcPi_Change` <- `fopAcM_setStageLayer` <- `phase_1(daPy_lk_c*)`.
+
 ### Phase 6 render issues
 
 None yet.
