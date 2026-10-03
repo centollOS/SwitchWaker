@@ -4,7 +4,7 @@
 The phase 4 format steps check what the native game reads against an independent reading of the
 same disc. This script is that reading, in pure Python (standard library only): the GameCube FST,
 Yaz0, RARC archives, and the header fields of BMD/BDL/BMT, the J3D animations (BCK/BCA/BTK/BTP/
-BRK/BPK/BVA/BLA/BLK), BTI, BFN, BMG, BLO, JPC, STB, dzs/dzr, dzb and AAF. It writes
+BRK/BPK/BVA/BLA/BLK), BTI, BFN, BMG, BMC, BLO, JPC, STB, dzs/dzr, dzb and AAF. It writes
 build/native-mac/disc_manifest.json, which is derived from the disc and is never committed; the
 manifest records counts, names, sizes and header fields, never file contents.
 
@@ -30,6 +30,12 @@ Usage
                                                   ones included), its counts, every node and every
                                                   file's path, ID, flags, size, offset and expanded
                                                   size (exit 0 equal, 1 different)
+  disc_manifest.py --check-msg MSG [--out FILE]  compare what the game's message code read in
+                                                  COS_SMOKE=msg-sweep (<run dir>/msg_sweep.txt)
+                                                  with the manifest: every BMG (block counts,
+                                                  INF1 counts and message-ID digest, DAT1 size),
+                                                  the BMC colour tables and the message fonts'
+                                                  BFN headers (exit 0 equal, 1 different)
   disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
 
 Manifest (JSON)
@@ -42,7 +48,10 @@ Manifest (JSON)
                     "." and ".." included), files [{path, id, flags, size, offset, format, ...}]
               size is always the stored size (FST or archive entry); a format's own size field
               is header_size
-              j3d / bmg / bfn / blo: magic, header_size, blocks [{tag, size, ...counts}]
+              j3d / bmg / bmc / bfn / blo: magic, header_size, blocks [{tag, size, ...counts}];
+              BMG INF1 adds messages (entries with text), distinct_ids and ids_fnv (FNV-1a 64
+              of every entry's big-endian u32 offset and u16 number), BMC CLT1 entries and
+              colors_fnv (FNV-1a 64 of the colour table)
               bti: the ResTIMG header;  jpc: emitters [{res_id, blocks, keys, fields, textures,
               tags}], textures [names];  stb: version, blocks [{type, id}];  dzs/dzr: chunks
               [{tag, num}] and actors {tag: [{name, params, pos, angle, set_id}]};  dzb: counts
@@ -75,7 +84,8 @@ EXPECTED_DOL_SHA1 = "8d28bab68bb5078c38e43f29206f0bd01f7e7a67"
 GC_MAGIC = b"\xC2\x33\x9F\x3D"
 
 # 2: "size" is always the stored size (a format's own size field moved to header_size).
-MANIFEST_VERSION = 2
+# 3: BMG INF1 message counts and ID digest, BMC colour tables (step 4.6).
+MANIFEST_VERSION = 3
 
 EXIT_OK = 0
 EXIT_DIFFERENT = 1
@@ -283,6 +293,30 @@ def jut_block_info(b, o, tag, size):
     return info
 
 
+def fnv1a64(data, h=0xCBF29CE484222325):
+    """FNV-1a, 64 bits: a digest of values the manifest compares without storing them."""
+    for byte in data:
+        h = ((h ^ byte) * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
+    return h
+
+
+def bmg_ids(b, o, entries, entry_size):
+    """INF1 message entries (the game: u32 text offset, u16 message number first): how many have text
+    (offset != 0), how many distinct numbers those have, and ids_fnv, the FNV-1a digest of
+    (offset as u32, number as u16), both big-endian, of every entry in order."""
+    need(entry_size >= 6 and o + 0x10 + entries * entry_size <= len(b), "BMG INF1 entries")
+    h = 0xCBF29CE484222325
+    ids = set()
+    messages = 0
+    for i in range(entries):
+        e = o + 0x10 + i * entry_size
+        h = fnv1a64(b[e:e + 6], h)
+        if u32(b, e) != 0:
+            messages += 1
+            ids.add(u16(b, e + 4))
+    return {"messages": messages, "distinct_ids": len(ids), "ids_fnv": "%016x" % h}
+
+
 def ntab(b, o):
     """ResNTAB: u16 count, pad, then {u16 key, u16 offset} entries; names relative to o."""
     need(o + 4 <= len(b), "ResNTAB outside the file")
@@ -299,8 +333,8 @@ def parse_jut_file(b, family):
     need(len(b) >= 0x20, "JUT file: short header")
     magic = b[0:8].decode("latin-1")
     size = u32(b, 8)
-    if family == "bmg":
-        size *= 0x20  # BMG counts its size in 32-byte units
+    if family in ("bmg", "bmc"):
+        size *= 0x20  # BMG and BMC count their size in 32-byte units
     nblocks = u32(b, 0xC)
     need(size <= len(b), "JUT file: size 0x%x larger than the data 0x%x" % (size, len(b)))
     rec = {"magic": magic, "size": size, "block_count": nblocks, "blocks": []}
@@ -331,10 +365,17 @@ def parse_jut_file(b, family):
                 info["entries"] = u16(b, o + 0x08)
                 info["entry_size"] = u16(b, o + 0x0A)
                 info["group"] = u16(b, o + 0x0C)
+                info.update(bmg_ids(b, o, info["entries"], info["entry_size"]))
             elif tag == "MID1":
                 info["entries"] = u16(b, o + 0x08)
                 info["format"] = u8(b, o + 0x0A)
                 info["info"] = u8(b, o + 0x0B)
+        elif family == "bmc":
+            info = {"tag": tag, "size": bsize}
+            if tag == "CLT1":
+                n = u16(b, o + 0x08)
+                info["entries"] = n
+                info["colors_fnv"] = "%016x" % fnv1a64(b[o + 0x0C:o + 0x0C + 4 * n])
         elif family == "bfn":
             info = {"tag": tag, "size": bsize}
             if tag == "INF1":
@@ -494,7 +535,7 @@ def parse_aaf(b):
 
 
 JUT_MAGICS = {b"J3D1": "j3d", b"J3D2": "j3d"}
-JUT_MAGICS8 = {b"MESGbmg1": "bmg", b"FONTbfn1": "bfn", b"SCRNblo1": "blo"}
+JUT_MAGICS8 = {b"MESGbmg1": "bmg", b"MGCLbmc1": "bmc", b"FONTbfn1": "bfn", b"SCRNblo1": "blo"}
 
 
 def classify(name, b):
@@ -531,7 +572,7 @@ def parse_content(name, b, rec, errors, where):
     try:
         if fmt == "rarc":
             fields = parse_rarc(b, errors, where)
-        elif fmt in ("j3d", "bmg", "bfn", "blo"):
+        elif fmt in ("j3d", "bmg", "bmc", "bfn", "blo"):
             fields = parse_jut_file(b, fmt)
         elif fmt == "jpc":
             fields = parse_jpc(b)
@@ -783,16 +824,31 @@ def check_ls(manifest, ls_path):
     return EXIT_OK
 
 
-# ---- font cross-check (step 4.3) ----------------------------------------------------------------
+# ---- font (step 4.3) and message (step 4.6) cross-checks ---------------------------------------
 
-def check_font(manifest, font_path):
-    """font.txt lines: 'FONT <path> block_count=N INF1=1 WID1=n MAP1=n GLY1=n' and
-    '<TAG> <path> <index among that tag> key=value ...', the keys being the manifest's."""
-    by_path = {r["path"]: r for r in manifest["files"]}
-    problems = []
-    fonts = 0
+def records_by_path(manifest):
+    """Every file record by path: disc files by their FST path, files inside archives as
+    '<archive path>:<path inside>' (nested archives repeat the ':')."""
+    out = {}
+
+    def add(name, rec):
+        out[name] = rec
+        for f in rec.get("files", []):
+            add(name + ":" + f["path"], f)
+
+    for r in manifest["files"]:
+        add(r["path"], r)
+    return out
+
+
+def check_jut_lines(manifest, report_path, file_kinds, problems):
+    """Lines '<KIND> <path> block_count=N <TAG>=count ...' (KIND a key of file_kinds, naming the
+    record's format) and '<TAG> <path> <index among that tag> key=value ...', the keys being the
+    manifest's. Returns ({KIND: files}, block headers compared); differences go to problems."""
+    by_path = records_by_path(manifest)
+    files = Counter()
     blocks_checked = 0
-    with open(font_path, encoding="utf-8", errors="replace") as f:
+    with open(report_path, encoding="utf-8", errors="replace") as f:
         for ln, line in enumerate(f, 1):
             line = line.rstrip("\n")
             if not line or line.startswith("#"):
@@ -803,15 +859,18 @@ def check_font(manifest, font_path):
                 continue
             kind, path = parts[0], parts[1]
             rec = by_path.get(path)
-            if rec is None or rec.get("format") != "bfn":
-                problems.append("line %d: %s is not a BFN file of the manifest" % (ln, path))
+            formats = set(file_kinds.values())
+            if rec is None or rec.get("format") not in formats or (
+                    kind in file_kinds and rec.get("format") != file_kinds[kind]):
+                problems.append("line %d: %s is not a %s file of the manifest"
+                                % (ln, path, "/".join(sorted(formats)).upper()))
                 continue
             blocks = rec.get("blocks", [])
-            if kind == "FONT":
-                fonts += 1
+            if kind in file_kinds:
+                files[kind] += 1
                 want = {"block_count": rec.get("block_count")}
-                for tag in ("INF1", "WID1", "MAP1", "GLY1"):
-                    want[tag] = sum(1 for b in blocks if b["tag"] == tag)
+                for b in blocks:
+                    want[b["tag"]] = want.get(b["tag"], 0) + 1
                 fields = parts[2:]
                 target = want
             else:
@@ -831,23 +890,59 @@ def check_font(manifest, font_path):
             for field in fields:
                 key, _, value = field.partition("=")
                 if key not in target:
+                    if kind in file_kinds and value == "0":
+                        continue  # a block kind the file does not have
                     problems.append("line %d: %s %s: no field %s in the manifest" % (ln, path, kind,
                                                                                     key))
                 elif str(target[key]) != value:
                     problems.append("line %d: %s %s %s=%s, the manifest has %s"
                                     % (ln, path, kind, key, value, target[key]))
-    print("disc_manifest: font.txt: %d font(s), %d block header(s) compared" % (fonts,
-                                                                                 blocks_checked))
-    if fonts == 0:
-        problems.append("no FONT line")
+    return files, blocks_checked
+
+
+def report_problems(problems, ok_text):
     for p in problems[:40]:
         print("disc_manifest: DIFF " + p)
     if len(problems) > 40:
         print("disc_manifest: ... %d differences in all" % len(problems))
     if problems:
         return EXIT_DIFFERENT
-    print("disc_manifest: font.txt equals the manifest")
+    print("disc_manifest: " + ok_text)
     return EXIT_OK
+
+
+def check_font(manifest, font_path):
+    """font.txt lines: 'FONT <path> block_count=N INF1=1 WID1=n MAP1=n GLY1=n' and
+    '<TAG> <path> <index among that tag> key=value ...', the keys being the manifest's."""
+    problems = []
+    files, blocks_checked = check_jut_lines(manifest, font_path, {"FONT": "bfn"}, problems)
+    print("disc_manifest: font.txt: %d font(s), %d block header(s) compared" % (files["FONT"],
+                                                                                 blocks_checked))
+    if files["FONT"] == 0:
+        problems.append("no FONT line")
+    return report_problems(problems, "font.txt equals the manifest")
+
+
+def check_msg(manifest, msg_path):
+    """msg_sweep.txt: what COS_SMOKE=msg-sweep read through the game's code, in the font.txt
+    syntax: 'BMG <path> block_count=N INF1=1 DAT1=1' with 'INF1 <path> 0 entries= entry_size=
+    group= messages= distinct_ids= ids_fnv=' and 'DAT1 <path> 0 size=', 'BMC <path> ...' with
+    'CLT1 <path> 0 entries= colors_fnv=', and 'FONT <path> ...' with its blocks for the message
+    fonts. Every BMG of the disc must be there."""
+    problems = []
+    files, blocks_checked = check_jut_lines(
+        manifest, msg_path, {"BMG": "bmg", "BMC": "bmc", "FONT": "bfn"}, problems)
+    all_bmg = [p for p, r in records_by_path(manifest).items() if r.get("format") == "bmg"]
+    messages = sum(b.get("messages", 0) for p in all_bmg
+                   for b in records_by_path(manifest)[p].get("blocks", []) if b["tag"] == "INF1")
+    print("disc_manifest: msg_sweep.txt: %d BMG (the disc has %d, %d messages), %d BMC, %d font(s), "
+          "%d block header(s) compared" % (files["BMG"], len(all_bmg), messages, files["BMC"],
+                                           files["FONT"], blocks_checked))
+    if files["BMG"] != len(all_bmg):
+        problems.append("%d BMG files reported, the disc has %d" % (files["BMG"], len(all_bmg)))
+    if files["FONT"] == 0:
+        problems.append("no FONT line")
+    return report_problems(problems, "msg_sweep.txt equals the manifest")
 
 
 # ---- archive cross-check (step 4.4) -------------------------------------------------------------
@@ -1006,6 +1101,8 @@ def main():
     ap.add_argument("--check-ls", metavar="LS", help="compare a disc-ls listing with the manifest")
     ap.add_argument("--check-font", metavar="FONT",
                     help="compare a COS_SMOKE=font report with the manifest")
+    ap.add_argument("--check-msg", metavar="MSG",
+                    help="compare a COS_SMOKE=msg-sweep report with the manifest")
     ap.add_argument("--check-arc", metavar="ARC",
                     help="compare a COS_SMOKE=arc-sweep report with the manifest")
     ap.add_argument("--summary", action="store_true", help="print an existing manifest's counts")
@@ -1018,6 +1115,8 @@ def main():
         return check_font(load_manifest(args.out), args.check_font)
     if args.check_arc:
         return check_arc(load_manifest(args.out), args.check_arc)
+    if args.check_msg:
+        return check_msg(load_manifest(args.out), args.check_msg)
     if args.summary:
         print_summary(load_manifest(args.out))
         return EXIT_OK

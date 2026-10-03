@@ -18,7 +18,9 @@
 // After mDoMch_Create (runHeapsSmoke, from pc_heaps_created, once milestone M2's checks held):
 // - font (step 4.3, pc_font.cpp): the system font, a disc font and a console line drawn;
 // - arc-sweep (step 4.4, pc_arc.cpp): every .arc of the disc mounted in the four JKRArchive modes
-//   and compared with an independent reading.
+//   and compared with an independent reading;
+// - msg-sweep (step 4.6, pc_msg.cpp): every message of every BMG decoded through the game's
+//   message code, the BMC colour table and the message fonts.
 // The format sweeps and the other smoke tests of phases 4-6 add their names to kSmokes; one that
 // runs after some of the boot is started by the boot code at that point, not by runEarlySmoke.
 #include "pc_internal.h"
@@ -218,6 +220,9 @@ void requireWatchdog(const char* test, double seconds, const char* var) {
     if (strcmp(name, "arc-sweep") == 0) {
         smokeArcSweep();
     }
+    if (strcmp(name, "msg-sweep") == 0) {
+        smokeMsgSweep();
+    }
     writef(STDERR_FILENO, "[cos] smoke %s has no runner\n", name);
     pc_exit(PC_EXIT_USAGE);
 }
@@ -244,6 +249,7 @@ const Smoke kSmokes[] = {
     {"heap", kAfterAurora},
     {"font", kAfterHeaps},
     {"arc-sweep", kAfterHeaps},
+    {"msg-sweep", kAfterHeaps},
 };
 
 const Smoke* findSmoke(const char* name) {

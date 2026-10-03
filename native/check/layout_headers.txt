@@ -43,6 +43,8 @@ JSystem/JKernel/JKRDvdRipper.h
 JSystem/JMessage/data.h
     JMessage::data::JUTMesgInfo
     JMessage::data::JUTMesgIDData
+f_op/f_op_msg_mng.h
+    JMSMesgEntry_c          size=0x18
 
 # 4.7: JParticle (JPAC1-00)
 JSystem/JParticle/JPABaseShape.h

@@ -6,6 +6,8 @@
 
 #include <cstdint>
 
+class JUTResFont;
+
 namespace pc {
 
 struct Config {
@@ -56,12 +58,22 @@ void runDiscSmoke();
 // it never returns then.
 void runAuroraSmoke();
 // pc_smoke.cpp: runs COS_SMOKE if it is a test that runs once mDoMch_Create made the heaps (font,
-// arc-sweep; from pc_heaps_created); it never returns then.
+// arc-sweep, msg-sweep; from pc_heaps_created); it never returns then.
 void runHeapsSmoke();
 // pc_heap.cpp: COS_SMOKE=heap.
 [[noreturn]] void smokeHeap();
 // pc_font.cpp: COS_SMOKE=font.
 [[noreturn]] void smokeFont();
+// pc_font.cpp: checks a JUTResFont made from the BFN bytes (length bytes at `bytes`, the font's
+// file `path` on the disc) against an independent reading of those bytes: block counts, INF1, and
+// getFontCode/getWidthEntry/loadImage of every code its MAP1 blocks cover (one past each end too).
+// With reportFd >= 0 it writes the font's FONT/INF1/WID1/MAP1/GLY1 lines under `path`
+// (disc_manifest.py --check-font/--check-msg syntax). Logs "[cos] <test>: ..."; returns the number
+// of errors found.
+int checkResFont(const char* test, const char* path, JUTResFont& font, const uint8_t* bytes,
+                 uint32_t length, int reportFd);
+// pc_msg.cpp: COS_SMOKE=msg-sweep.
+[[noreturn]] void smokeMsgSweep();
 // pc_arc.cpp: COS_SMOKE=arc-sweep.
 [[noreturn]] void smokeArcSweep();
 bool isKnownSmoke(const char* name);

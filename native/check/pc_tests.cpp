@@ -10,13 +10,18 @@
 //   - the compound assignments and post-increment/decrement on BE fields;
 //   - OffsetPtr::setBase: relocation, idempotence (a second call changes nothing), negative
 //     offsets, the extremes of the range, and the panics on a null or out-of-range offset;
-//   - JUtility::TColor's u32 form, 0xRRGGBBAA as GX and the disc have it (step 4.5).
+//   - JUtility::TColor's u32 form, 0xRRGGBBAA as GX and the disc have it (step 4.5);
+//   - BMG data read in place: JMessage's header, block and INF1 accessors, the JMSMesgEntry_c
+//     fields, and JGadget's TParseValue_endian_big_ for tag parameters (step 4.6).
 // Prints "ok" and exits 0 when every check passes; otherwise prints each failed check and exits 1.
 #include "helpers/endian.h"
 #include "helpers/endian_gx.hpp"
 #include "helpers/endian_ssystem.h"
 #include "helpers/offset_ptr.h"
+#include "JSystem/JGadget/binary.h"
+#include "JSystem/JMessage/data.h"
 #include "JSystem/JUtility/TColor.h"
+#include "f_op/f_op_msg_mng.h"
 
 #include <cmath>
 #include <cstdint>
@@ -394,6 +399,49 @@ void testTColor() {
     CHECK(bytesAre(c, {0x11, 0x22, 0x33, 0x44}));
 }
 
+// A BMG as the disc stores it, big-endian, read in place (step 4.6).
+void testBmg() {
+    alignas(4) static const u8 file[] = {
+        'M', 'E', 'S', 'G', 'b', 'm', 'g', '1', 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x02,
+        0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // INF1: size 0x28, 1 entry of 0x18 bytes, group 1
+        'I', 'N', 'F', '1', 0x00, 0x00, 0x00, 0x28, 0x00, 0x01, 0x00, 0x18, 0x00, 0x01, 0x00, 0x00,
+        // entry: offset 0x01020304, number 0x0D49, price -2, next 0x0102, 0x0304, bytes 1..12
+        0x01, 0x02, 0x03, 0x04, 0x0D, 0x49, 0xFF, 0xFE, 0x01, 0x02, 0x03, 0x04,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+        // DAT1: size 0x10
+        'D', 'A', 'T', '1', 0x00, 0x00, 0x00, 0x10, 0x1A, 0x06, 0xFF, 0x00, 0x05, 0x00, 0x00, 0x00,
+    };
+    JMessage::data::TParse_THeader header(file);
+    CHECK(header.get_type() == 'bmg1');
+    CHECK(header.get_blockNumber() == 2);
+    CHECK(header.get_encoding() == 1);
+    JMessage::data::TParse_TBlock_info info(header.getContent());
+    CHECK(info.get_type() == 'INF1');
+    CHECK(info.get_size() == 0x28);
+    CHECK(info.get_messageEntryNumber() == 1);
+    CHECK(info.get_messageEntrySize() == 0x18);
+    CHECK(info.get_groupID() == 1);
+    JMessage::data::TParse_TBlock dat(info.getNext());
+    CHECK(dat.get_type() == 'DAT1');
+    CHECK(dat.get_size() == 0x10);
+    const JMSMesgEntry_c* e = (const JMSMesgEntry_c*)info.getContent();
+    CHECK(sizeof(JMSMesgEntry_c) == 0x18);
+    CHECK(e->mDataOffs == 0x01020304u);
+    CHECK(e->mMsgNo == 0x0D49);
+    CHECK(e->mItemPrice == -2);
+    CHECK(e->mNextMsgNo == 0x0102 && e->field_0x0a == 0x0304);
+    CHECK(e->mTextboxType == 1 && e->field_0x17 == 12);
+    JMSMesgEntry_c copy = *e; // what getMesgEntry returns: still the file's bytes
+    CHECK(copy.mMsgNo == 0x0D49 && bytesAre(copy.mDataOffs, {0x01, 0x02, 0x03, 0x04}));
+    // Tag values are big-endian too: the code u16 after 0x1A, length, group (JMessage reads tag
+    // parameters, such as system tag 5's u32 message code, with TParseValue_endian_big_).
+    const u8* code = file + 0x20 + 0x28 + 8 + 3;
+    using namespace JGadget::binary;
+    CHECK(TParseValue<TParseValue_endian_big_<u16> >::parse(code) == 5);
+    CHECK(TParseValue<TParseValue_endian_big_<u32> >::parse(file + 8) == 3);
+}
+
 } // namespace
 
 int main() {
@@ -404,6 +452,7 @@ int main() {
     testOffsetPtr();
     testOffsetPtrPanics();
     testTColor();
+    testBmg();
     if (g_failures != 0) {
         std::printf("FAIL: %d checks\n", g_failures);
         return 1;

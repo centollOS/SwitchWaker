@@ -17,7 +17,8 @@
 // - <COS_RUN_DIR>/font.txt: what JUTResFont read from the disc font (block counts, INF1, every
 //   WID1/MAP1/GLY1 header), in the manifest's names; native/tools/run.sh compares it with
 //   build/native-mac/disc_manifest.json (disc_manifest.py --check-font).
-// Exit 0 when every check holds, 1 otherwise.
+// Exit 0 when every check holds, 1 otherwise. The disc-font check is checkResFont, which
+// COS_SMOKE=msg-sweep (pc_msg.cpp) also runs on the message fonts (step 4.6).
 #include "pc_internal.h"
 
 #include "JSystem/JFramework/JFWSystem.h"
@@ -302,26 +303,25 @@ bool checkChar(const char* name, JUTResFont& font, const RawFont& raw, int chr) 
 
 // ---- the disc font --------------------------------------------------------------------------
 
-void reportDiscFont(int fd, const JUTResFont& font) {
+void reportFont(int fd, const char* path, const JUTResFont& font) {
     if (fd < 0) {
         return;
     }
-    writef(fd, "# font (COS_SMOKE=font): what JUTResFont read, in disc_manifest.py's names\n");
-    writef(fd, "FONT %s block_count=%u INF1=1 WID1=%d MAP1=%d GLY1=%d\n", kDiscFont,
+    writef(fd, "FONT %s block_count=%u INF1=1 WID1=%d MAP1=%d GLY1=%d\n", path,
            (unsigned)font.mResFont->numBlocks, font.mWidthBlockNum, font.mMapBlockNum,
            font.mGlyphBlockNum);
     const ResFONT::INF1* inf = font.mInfoBlock;
     writef(fd, "INF1 %s 0 font_type=%d ascent=%d descent=%d width=%d leading=%d default_code=%d\n",
-           kDiscFont, font.getFontType(), font.getAscent(), font.getDescent(), font.getWidth(),
+           path, font.getFontType(), font.getAscent(), font.getDescent(), font.getWidth(),
            font.getLeading(), (int)inf->defaultCode);
     for (int i = 0; i < font.mWidthBlockNum; i++) {
         const ResFONT::WID1* b = font.mpWidthBlocks[i];
-        writef(fd, "WID1 %s %d size=%u start=%d end=%d\n", kDiscFont, i, (unsigned)b->mSize,
+        writef(fd, "WID1 %s %d size=%u start=%d end=%d\n", path, i, (unsigned)b->mSize,
                (int)b->startCode, (int)b->endCode);
     }
     for (int i = 0; i < font.mMapBlockNum; i++) {
         const ResFONT::MAP1* b = font.mpMapBlocks[i];
-        writef(fd, "MAP1 %s %d size=%u method=%d start=%d end=%d entries=%d\n", kDiscFont, i,
+        writef(fd, "MAP1 %s %d size=%u method=%d start=%d end=%d entries=%d\n", path, i,
                (unsigned)b->mSize, (int)b->mappingMethod, (int)b->startCode, (int)b->endCode,
                (int)b->numEntries);
     }
@@ -330,12 +330,46 @@ void reportDiscFont(int fd, const JUTResFont& font) {
         writef(fd,
                "GLY1 %s %d size=%u start=%d end=%d cell_width=%d cell_height=%d texture_size=%u "
                "texture_format=%d rows=%d columns=%d texture_width=%d texture_height=%d\n",
-               kDiscFont, i, (unsigned)b->mSize, (int)b->startCode, (int)b->endCode,
+               path, i, (unsigned)b->mSize, (int)b->startCode, (int)b->endCode,
                (int)b->cellWidth, (int)b->cellHeight, (unsigned)b->textureSize,
                (int)b->textureFormat, (int)b->numRows, (int)b->numColumns, (int)b->textureWidth,
                (int)b->textureHeight);
     }
 }
+
+} // namespace
+
+int checkResFont(const char* test, const char* path, JUTResFont& font, const uint8_t* bytes,
+                 uint32_t length, int reportFd) {
+    int before = sErrors;
+    RawFont raw;
+    if (!parseRaw(path, bytes, length, raw)) {
+        return sErrors - before;
+    }
+    checkHeader(path, font, raw);
+    int checked = 0, bad = 0;
+    for (int i = 0; i < raw.numMap && font.isValid(); i++) {
+        int start = rd16(raw.map[i] + 0x0A), end = rd16(raw.map[i] + 0x0C);
+        for (int chr = start - 1; chr <= end + 1; chr++) {
+            if (chr < 0 || chr > 0xFFFF || asciiRemapped(raw, chr)) {
+                continue;
+            }
+            checked++;
+            if (!checkChar(path, font, raw, chr)) {
+                bad++;
+            }
+        }
+    }
+    writef(STDERR_FILENO,
+           "[cos] %s: %s: %u blocks (WID1 %d, MAP1 %d, GLY1 %d), type %d, %dx%d; %d codes "
+           "checked, %d wrong\n",
+           test, path, raw.numBlocks, raw.numWid, raw.numMap, raw.numGly, raw.fontType(),
+           raw.width(), raw.ascent() + raw.descent(), checked, bad);
+    reportFont(reportFd, path, font);
+    return sErrors - before;
+}
+
+namespace {
 
 void checkDiscFont() {
     DVDFileInfo info;
@@ -359,35 +393,16 @@ void checkDiscFont() {
         return;
     }
 
-    RawFont raw;
-    if (parseRaw(kDiscFont, buf, length, raw)) {
-        JUTResFont* font = new JUTResFont((const ResFONT*)buf, nullptr);
-        checkHeader(kDiscFont, *font, raw);
-        int checked = 0, bad = 0;
-        for (int i = 0; i < raw.numMap && font->isValid(); i++) {
-            int start = rd16(raw.map[i] + 0x0A), end = rd16(raw.map[i] + 0x0C);
-            for (int chr = start - 1; chr <= end + 1; chr++) {
-                if (chr < 0 || chr > 0xFFFF || asciiRemapped(raw, chr)) {
-                    continue;
-                }
-                checked++;
-                if (!checkChar(kDiscFont, *font, raw, chr)) {
-                    bad++;
-                }
-            }
-        }
-        writef(STDERR_FILENO,
-               "[cos] font: %s: %u blocks (WID1 %d, MAP1 %d, GLY1 %d), type %d, %dx%d; %d codes "
-               "checked, %d wrong\n",
-               kDiscFont, raw.numBlocks, raw.numWid, raw.numMap, raw.numGly, raw.fontType(),
-               raw.width(), raw.ascent() + raw.descent(), checked, bad);
-        int fd = openRunFile("font.txt");
-        reportDiscFont(fd, *font);
-        if (fd >= 0) {
-            close(fd);
-        }
-        delete font;
+    JUTResFont* font = new JUTResFont((const ResFONT*)buf, nullptr);
+    int fd = openRunFile("font.txt");
+    if (fd >= 0) {
+        writef(fd, "# font (COS_SMOKE=font): what JUTResFont read, in disc_manifest.py's names\n");
     }
+    checkResFont("font", kDiscFont, *font, buf, length, fd);
+    if (fd >= 0) {
+        close(fd);
+    }
+    delete font;
     JKRHeap::free(buf, nullptr);
 }
 
