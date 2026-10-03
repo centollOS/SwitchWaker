@@ -443,17 +443,30 @@ void JAInter::StreamLib::allocBuffer(void* param_1, s32 param_2) {
         return;
     }
     streamHeap.init((u8*)param_1, param_2);
+#if TARGET_PC
+    // Pointer tables sized by the host pointer (getNeedBufferSize counts the same sizes).
+    loop_buffer = (s16***)streamHeap.alloc(2 * sizeof(s16**));
+#else
     loop_buffer = (s16***)streamHeap.alloc(8);
+#endif
     JUT_ASSERT_3(DEMO_SELECT(548, 555), loop_buffer);
     for (u32 i = 0; i < 2; i++) {
+#if TARGET_PC
+        loop_buffer[i] = (s16**)streamHeap.alloc(LOOP_BLOCKS * sizeof(s16*));
+#else
         loop_buffer[i] = (s16**)streamHeap.alloc(LOOP_BLOCKS << 2);
+#endif
         JUT_ASSERT_3(DEMO_SELECT(552, 559), loop_buffer[i]);
         for (int j = 0; j < LOOP_BLOCKS; j++) {
             loop_buffer[i][j] = (s16*)streamHeap.alloc(0x2800);
             JUT_ASSERT_3(DEMO_SELECT(556, 563), loop_buffer[i][j]);
         }
     };
+#if TARGET_PC
+    store_buffer = (void**)streamHeap.alloc(2 * sizeof(void*));
+#else
     store_buffer = (void**)streamHeap.alloc(8);
+#endif
     JUT_ASSERT_3(DEMO_SELECT(561, 568), store_buffer);
     for (u32 i = 0; i < 2; i++) {
         store_buffer[i] = streamHeap.alloc(0x5000);
@@ -478,6 +491,17 @@ bool JAInter::StreamLib::deallocBuffer() {
 /* 8029CC50-8029CCA4       .text getNeedBufferSize__Q27JAInter9StreamLibFv */
 u32 JAInter::StreamLib::getNeedBufferSize() {
     u32 size = 0;
+#if TARGET_PC
+    // The pointer tables of allocBuffer, sized by the host pointer.
+    size += ((2 * sizeof(s16**)) & ~0x1F) + 0x20;
+    for (u32 i = 0; i < 2; i++) {
+        size += ((LOOP_BLOCKS * sizeof(s16*)) & ~0x1F) + 0x20;
+        for (int j = 0; j < LOOP_BLOCKS; j++) {
+            size += (0x2800 & ~0x1F) + 0x20;
+        }
+    }
+    size += ((2 * sizeof(void*)) & ~0x1F) + 0x20;
+#else
     size += (8 & ~0x1F) + 0x20;
     for (u32 i = 0; i < 2; i++) {
         size += ((LOOP_BLOCKS << 2) & ~0x1F) + 0x20;
@@ -486,6 +510,7 @@ u32 JAInter::StreamLib::getNeedBufferSize() {
         }
     }
     size += (8 & ~0x1F) + 0x20;
+#endif
     for (u32 i = 0; i < 2; i++) {
         size += (0x5000 & ~0x1F) + 0x20;
     }
