@@ -1080,6 +1080,49 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Review (round 1): rebuilt and reran: aurora-up 0 x3, static-init 0 x2, disc-ls 0, no disc 14,
   crash/panic-test 13/12, smoke (incl. `thread_hooks`) and `cos_pc_tests` ok, census diff empty,
   0 duplicate strong; committed as three commits (cos_sdk hooks, per-thread heap, bring-up).
+- **4.1 Clean-up and pointers kept in u32 fields:** everything under `TARGET_PC`, GameCube code in
+  `#else` (`unifdef -UTARGET_PC` of every changed file equals HEAD).
+  - User areas that hold an actor pointer are `uintptr_t` on the host, as in Dusklight's
+    `J3DModel.h:106`: `J3DModel::mUserArea` and its accessors, `J3DPacket::setUserArea`/
+    `getUserArea` (the setter used to truncate before `(void*)area`, the getter on the way back),
+    `mDoExt_MtxCalcAnmBlendTblOld::mUserArea`/`setUserArea` and its `CalcCallback` first
+    parameter, with `daPy_jointBeforeCallback`/`daPy_jointAfterCallback` to match. The 173 call
+    sites already passed `uintptr_t` under `TARGET_PC`; only their markers go. The readers cast
+    the result to a pointer and need no change.
+  - `JGadget::TVector::size` divides by `sizeof(T)` (the `/ 4` was `sizeof(void*)` on the
+    GameCube).
+  - The 8 `-Wreturn-type` sites return explicitly. The GameCube code was read from the disc
+    (main.dol and the RELs) to choose each value: `daBigelf_c::demoProcCom` (FALSE) and
+    `demoProc` (`demoProcCom()`, which is what r3 held) are never read by a caller;
+    `dMenu_save_c::closeForGameover` with another `endStatus` left r3 = `this`, which
+    `closeNormal`'s `rt == TRUE` treats as not done, so FALSE; `daNpc_Ko1_c::btpNum_toResID`
+    (`btp`) and `dOperate_wind_c::dOw_angleRegular` (225) also left r3 = `this` on paths no
+    caller reaches (`mType` is 0 or 1 on a created actor; the only angle passed is in
+    [-270, 90)); the three `dummyfloat*` in `f_op_msg_mng.cpp` are never called (0).
+  - The two `-Wfortify-source` overflows in `f_op_msg_mng.cpp`: `tag_len_num_input`'s
+    `char buf[12]` takes "000 Rupee(s)" (13 bytes) and `tag_num_input`'s `char buf[8]` takes
+    " Rupee(s)" (10 bytes); the GameCube overran its stack frame, the host's fortified `strcpy`
+    would abort. Both buffers are 16 bytes on the host.
+  - The 4 `J2DPrint` markers become `NOTE(native phase 4, harmless)`: only the distance between
+    two pointers into one string is used, and its low 32 bits are the whole distance.
+  Inventory: group A 175 -> 0, H 4 -> 0 (4 justified), 263 -> 84 open; warnings (option on):
+  int-to-pointer-cast 214 -> 37, int-to-void-pointer-cast 102 -> 100, return-type 8 -> 0,
+  fortify-source 2 -> 0; `native/check/phase4_baseline.txt` regenerated. Not in this step (the
+  remaining int-to-pointer casts belong to other groups, except one): `kankyo_class::mParam`
+  (u32, from `fopKyM_create`'s `int` parameter) carries the ship's `this` to `dWindArrow_c::draw`,
+  which dereferences it; it truncates on the host and needs its own fix before sailing.
+  Verified: `ninja -k 0 centollos cos_sdk_smoke` with `COS_PHASE4_WARNINGS=ON` 0 errors and
+  `phase4_inventory.py --log --check` ok; then with the option off `ninja -k 0 all centollos
+  cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check cos_link_census` 0 errors.
+  Regression: smoke ok, `cos_pc_tests` ok, layout check ok, census equal to
+  `expected_unresolved_phase2.txt`, `--all --dups` 0, static-init 0 x3 (M0), aurora-up 0 x3
+  (M1), disc-ls 0, crash/panic-test 13/12, no disc 14.
+- **4.1 review (round 1):** approved; rerun independently: `unifdef -UTARGET_PC` of every changed
+  file equals HEAD's, actor diffs are marker removals only; warnings-on build 0 errors and
+  `--check` ok (A 0, H 0, 84 open); warnings-off build 0 errors, smoke and `cos_pc_tests` ok,
+  census diff empty, `--all --dups` 0; static-init 0 x3, aurora-up 0 x2, disc-ls 0, crash-test 13.
+  Committed as five commits (user areas, `TVector::size`, missing returns, `f_op_msg_mng`
+  buffers, `J2DPrint` notes) plus this log and the baseline.
 
 ### Phase 6 render issues
 

@@ -16,23 +16,23 @@
 #   L  other offsets and ResTIMG (step 4.4/4.5; finding 1: JSupport; plus the ResTIMG site in d_a_player_main)
 # Warning counts are distinct file:line:column sites in a full game build with
 # -DCOS_PHASE4_WARNINGS=ON.
-group A	175
+group A	0
 group B	2
 group C	5
 group D	7
 group E	1
 group F	30
 group G	9
-group H	4
+group H	0
 group I	8
 group J	7
 group K	13
 group L	2
 unclassified	0
-markers open	263
-markers justified	0
-warning -Wint-to-pointer-cast	214
+markers open	84
+markers justified	4
+warning -Wint-to-pointer-cast	37
 warning -Wpointer-to-int-cast	0
-warning -Wint-to-void-pointer-cast	102
-warning -Wreturn-type	8
-warning -Wfortify-source	2
+warning -Wint-to-void-pointer-cast	100
+warning -Wreturn-type	0
+warning -Wfortify-source	0
