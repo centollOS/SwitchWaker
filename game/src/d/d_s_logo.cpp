@@ -514,6 +514,16 @@ static void pcBootStage(dScnLogo_c* i_this) {
         dComIfGs_setRestartRoomParam(0);
         mDoAud_setSceneName(dComIfGp_getNextStageName(), dComIfGp_getNextStageRoomNo(),
                             dComIfGp_getNextStageLayer());
+        // The skipped opening is a PLAY scene (sea_T) whose camera registers the audio camera
+        // (d_camera.cpp init_phase1 and camera_draw: mDoAud_getCameraInfo); JAIZelBasic::initSe
+        // left it NULL, and the game never clears it again, so every stage of the real game
+        // starts with one already set. Without it, JAIZelBasic::zeldaGFrameWork (stage BGM
+        // 0x35, Hyrule) and JAInter::SeMgr::checkNextFrameSe (a positional SE before the new
+        // camera's first draw) read through NULL. Register it the way init_phase1 does: the
+        // "no camera yet" eye (1e7, 1e7, 1e7) and j3dSys's view matrix, for camera 0. The eye
+        // is static: init_phase1's is a stack local the game reads after it returned.
+        static Vec l_pcBootAudioCameraEye = {10000000.0f, 10000000.0f, 10000000.0f};
+        mDoAud_getCameraInfo(&l_pcBootAudioCameraEye, j3dSys.getViewMtx(), 0);
         pc_boot_stage_requested(dComIfGp_getNextStageName(), dComIfGp_getNextStageRoomNo(),
                                 dComIfGp_getNextStagePoint(), dComIfGp_getNextStageLayer());
     }

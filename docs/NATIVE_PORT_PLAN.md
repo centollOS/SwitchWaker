@@ -2877,6 +2877,19 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   (6 fail, 3 expected fails, 1 skipped). Regression passes. Review: regression passes; sea 1:0
   reaches frame 900 capped and uncapped; the reviewer's sweep gave 147 of 155 with I_SubAN passing
   (5 fail: E3ROOP, ENDumi, the castle stage, K_Testd, Msmoke), so I_SubAN's warp-out is timing-dependent.
+- **Boot-sweep fix 11: the debug stage boot registers the audio camera** (2026-10-03, lane
+  outset, harness). the castle stage: SIGSEGV addr=0x0 in `JAIZelBasic's per-frame BGM work` (JAIZelBasic.cpp:470,
+  stage BGM 0x35 reads `mAudioCamera->field_0x0->x`); E3ROOP: SIGSEGV addr=0x8 in `C_MTXMultVec` <-
+  `JAInter::SeMgr::checkNextFrameSe` (JAISeMgr.cpp:187, `mAudioCamera[0].field_0x8` NULL). Root
+  cause: `JAIZelBasic::initSe` (from `mDoAud_Create`) leaves the audio camera NULL and only a camera
+  actor sets it (d_camera.cpp `init_phase1`/`camera_draw` via `mDoAud_getCameraInfo`); the real
+  game always passes the sea_T PLAY scene (title) first, so a camera is registered before any stage,
+  but `COS_BOOT_STAGE` skips it. `pcBootStage` (d_s_logo.cpp, `TARGET_PC` harness) now registers it
+  as `init_phase1` does: eye (1e7, 1e7, 1e7) in a static (the game keeps the pointer), j3dSys's view
+  matrix, camera 0. E3ROOP passes; the castle stage reaches ROOM_SCENE and stops at the K_Testd signature
+  (`daWarphr_c::_draw`, d_a_warphr.cpp:428). Review: regression passes; the reviewer's sweep gave
+  147 of 155 (E3ROOP ok, the castle stage past the blocker; fail: ENDumi, the castle stage, I_SubAN, K_Testd, Msmoke),
+  I_SubAN being the timing-dependent warp-out of fix 10 (also seen before this change).
 
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
