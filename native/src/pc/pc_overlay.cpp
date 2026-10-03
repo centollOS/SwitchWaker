@@ -6,7 +6,8 @@
 // the Switch are also the presents: one each), the game thread's busy time per frame (the frame
 // minus the pace wait, without aurora_end_frame), and on the Switch the render worker's busy time
 // per presented frame and its Queue::Submit part (cos_switch_gfx_stats), and what Dawn's GL replay
-// issued per presented frame: draws and sampled-texture binds.
+// issued per presented frame: draws, pipeline changes and sampled-texture binds, and the time of the
+// glDraw* calls (where Mesa validates state) and of setting the state before them.
 #include "pc_internal.h"
 
 #include <imgui.h>
@@ -34,6 +35,9 @@ struct OverlayState {
     double submitMs = 0;
     double draws = 0;
     double texBinds = 0;
+    double pipelines = 0;
+    double drawCallMs = 0;
+    double stateMs = 0;
     bool workerValid = false;
 #endif
 } sOverlay;
@@ -53,6 +57,11 @@ void overlayUpdate(uint64_t now) {
         s.submitMs = (cur.workerSubmitNs - s.start.workerSubmitNs) / 1e6 / presents;
         s.draws = (double)(cur.glDraws - s.start.glDraws) / presents;
         s.texBinds = (double)(cur.glTexBinds - s.start.glTexBinds) / presents;
+        s.pipelines = (double)(cur.glPipelines - s.start.glPipelines) / presents;
+        s.drawCallMs = (cur.glDrawCallNs - s.start.glDrawCallNs) / 1e6 / presents;
+        s.stateMs = (cur.glPipelineNs - s.start.glPipelineNs + cur.glBindGroupNs - s.start.glBindGroupNs +
+                     cur.glImmediatesNs - s.start.glImmediatesNs + cur.glVertexStateNs - s.start.glVertexStateNs) /
+                    1e6 / presents;
     }
     s.start = cur;
 #endif
@@ -93,7 +102,8 @@ void overlayFrame(uint64_t busyNs) {
 #if defined(__SWITCH__)
         if (s.workerValid) {
             ImGui::Text("render %.1f ms (submit %.1f)", s.workerMs, s.submitMs);
-            ImGui::Text("draws %.0f, tex binds %.0f", s.draws, s.texBinds);
+            ImGui::Text("draws %.0f, pipelines %.0f, tex binds %.0f", s.draws, s.pipelines, s.texBinds);
+            ImGui::Text("gl draw calls %.1f ms, state %.1f ms", s.drawCallMs, s.stateMs);
         } else {
             ImGui::TextUnformatted("render -");
         }

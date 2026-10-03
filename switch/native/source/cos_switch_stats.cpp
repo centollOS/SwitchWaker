@@ -19,8 +19,8 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
     aurora_switch_get_stats(&a);
     uint64_t gl[6] = {};
     dawn_switch_gl_queue_stats(gl);
-    uint64_t cmd[15] = {};
-    dawn_switch_gl_cmd_stats(cmd, 15);
+    uint64_t cmd[27] = {};
+    dawn_switch_gl_cmd_stats(cmd, 27);
     uint64_t dvd[3] = {};
     cos_switch_nod_stats(dvd);
     *out = CosSwitchGfxStats{
@@ -63,5 +63,17 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
         .glFlushNs = cmd[12],
         .glFlushItems = cmd[13],
         .glReleaseNs = cmd[14],
+        .glPipelineNs = cmd[15],
+        .glBindGroupNs = cmd[16],
+        .glImmediatesNs = cmd[17],
+        .glVertexStateNs = cmd[18],
+        .glDrawCallNs = cmd[19],
+        .glDrawsAfterPipeline = cmd[20],
+        .glDrawAfterPipelineNs = cmd[21],
+        .glDrawsAfterTextures = cmd[22],
+        .glDrawAfterTexturesNs = cmd[23],
+        .glUniformBufferBinds = cmd[24],
+        .glVertexArrayBinds = cmd[25],
+        .glIndexBufferBinds = cmd[26],
     };
 }

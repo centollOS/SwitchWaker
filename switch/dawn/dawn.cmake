@@ -364,6 +364,29 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # On top of those: where a render pass's replay time goes (pipeline applies, bind groups,
+    # immediates, vertex/index state, the glDraw* calls, and the draws right after a pipeline
+    # change or a texture bind timed apart) and how many UBO ranges, VAOs and index buffers it
+    # binds, for the perf-switch lines.
+    set(DAWN_OPENGL_STATS_HEADER "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchStatsGL.h")
+    file(READ "${DAWN_OPENGL_STATS_HEADER}" DAWN_OPENGL_STATS_HEADER_TEXT)
+    if(NOT DAWN_OPENGL_STATS_HEADER_TEXT MATCHES "kDrawCallTicks")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-replay-timers.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_TIMERS_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_TIMERS_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_TIMERS_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_TIMERS_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL replay timers patch:\n"
+                "${DAWN_GL_TIMERS_PATCH_OUTPUT}${DAWN_GL_TIMERS_PATCH_ERROR}")
+        endif()
+    endif()
+    endif()
+
     set(DAWN_WGPU_HELPERS_SOURCE
         "${dawn_SOURCE_DIR}/src/dawn/native/utils/WGPUHelpers.cpp")
     file(READ "${DAWN_WGPU_HELPERS_SOURCE}" DAWN_WGPU_HELPERS_TEXT)

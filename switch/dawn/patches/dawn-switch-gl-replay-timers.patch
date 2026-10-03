@@ -1,0 +1,265 @@
+diff --git a/src/dawn/native/opengl/CommandBufferGL.cpp b/src/dawn/native/opengl/CommandBufferGL.cpp
+index 8d07afe..3ddcdb5 100644
+--- a/src/dawn/native/opengl/CommandBufferGL.cpp
++++ b/src/dawn/native/opengl/CommandBufferGL.cpp
+@@ -241,6 +241,7 @@ class VertexStateBufferBindingTracker {
+ 
+         if (mIndexBufferDirty && mIndexBuffer != nullptr) {
+             DAWN_GL_TRY(gl, BindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndexBuffer->GetHandle()));
++            DAWN_SWITCH_STAT(kIndexBufferBinds, 1);
+             mIndexBufferDirty = false;
+         }
+ 
+@@ -391,6 +392,9 @@ class BindGroupTracker : public BindGroupTrackerBase<false> {
+ 
+                     DAWN_GL_TRY(
+                         gl, BindBufferRange(target, GLuint(index), buffer, offset, binding.size));
++                    if (target == GL_UNIFORM_BUFFER) {
++                        DAWN_SWITCH_STAT(kUniformBufferBinds, 1);
++                    }
+                     return {};
+                 },
+                 [&](const StaticSamplerBindingInfo& layout) -> MaybeError {
+@@ -431,6 +435,7 @@ class BindGroupTracker : public BindGroupTrackerBase<false> {
+                         DAWN_GL_TRY(gl, ActiveTexture(GL_TEXTURE0 + GLuint(unit)));
+                         DAWN_GL_TRY(gl, BindTexture(target, handle));
+                         DAWN_SWITCH_STAT(kTextureBinds, 1);
++                        DAWN_SWITCH_FLAG(gPendingTextures);
+                         if (ToBackend(view->GetTexture())->GetGLFormat().format ==
+                             GL_DEPTH_STENCIL) {
+                             Aspect aspect = view->GetAspects();
+@@ -1479,40 +1484,59 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
+             case Command::Draw: {
+                 DrawCmd* draw = iter->NextCommand<DrawCmd>();
+                 DAWN_SWITCH_STAT(kDraws, 1);
+-                DAWN_TRY(vertexStateBufferBindingTracker.Apply(gl, 0, draw->firstInstance));
+-                DAWN_TRY(bindGroupTracker.Apply(gl));
++                {
++                    DAWN_SWITCH_TIME(kVertexStateTicks);
++                    DAWN_TRY(vertexStateBufferBindingTracker.Apply(gl, 0, draw->firstInstance));
++                }
++                {
++                    DAWN_SWITCH_TIME(kBindGroupTicks);
++                    DAWN_TRY(bindGroupTracker.Apply(gl));
++                }
+ 
+                 immediates.SetFirstVertex(0);
+                 immediates.SetFirstInstance(draw->firstInstance);
+-                DAWN_TRY(immediates.Apply(gl));
+-                DAWN_GL_TRY(gl, DrawArraysInstanced(lastPipeline->GetGLPrimitiveTopology(),
+-                                                    draw->firstVertex, draw->vertexCount,
+-                                                    draw->instanceCount));
++                {
++                    DAWN_SWITCH_TIME(kImmediatesTicks);
++                    DAWN_TRY(immediates.Apply(gl));
++                }
++                DAWN_SWITCH_DRAW(DAWN_GL_TRY(gl, DrawArraysInstanced(
++                                                     lastPipeline->GetGLPrimitiveTopology(),
++                                                     draw->firstVertex, draw->vertexCount,
++                                                     draw->instanceCount)));
+                 break;
+             }
+ 
+             case Command::DrawIndexed: {
+                 DrawIndexedCmd* draw = iter->NextCommand<DrawIndexedCmd>();
+                 DAWN_SWITCH_STAT(kDraws, 1);
+-                DAWN_TRY(vertexStateBufferBindingTracker.Apply(gl, draw->baseVertex,
+-                                                               draw->firstInstance));
+-                DAWN_TRY(bindGroupTracker.Apply(gl));
+-
+                 const auto topology = lastPipeline->GetGLPrimitiveTopology();
+-                if (topology == GL_LINE_STRIP || topology == GL_TRIANGLE_STRIP) {
+-                    DAWN_GL_TRY(gl, Enable(GL_PRIMITIVE_RESTART_FIXED_INDEX));
+-                } else {
+-                    DAWN_GL_TRY(gl, Disable(GL_PRIMITIVE_RESTART_FIXED_INDEX));
++                {
++                    DAWN_SWITCH_TIME(kVertexStateTicks);
++                    DAWN_TRY(vertexStateBufferBindingTracker.Apply(gl, draw->baseVertex,
++                                                                   draw->firstInstance));
++                    if (topology == GL_LINE_STRIP || topology == GL_TRIANGLE_STRIP) {
++                        DAWN_GL_TRY(gl, Enable(GL_PRIMITIVE_RESTART_FIXED_INDEX));
++                    } else {
++                        DAWN_GL_TRY(gl, Disable(GL_PRIMITIVE_RESTART_FIXED_INDEX));
++                    }
++                }
++                {
++                    DAWN_SWITCH_TIME(kBindGroupTicks);
++                    DAWN_TRY(bindGroupTracker.Apply(gl));
+                 }
+ 
+                 immediates.SetFirstVertex(draw->baseVertex);
+                 immediates.SetFirstInstance(draw->firstInstance);
+-                DAWN_TRY(immediates.Apply(gl));
+-                DAWN_GL_TRY(gl, DrawElementsInstanced(
+-                                    topology, draw->indexCount, indexBufferFormat,
+-                                    reinterpret_cast<void*>(draw->firstIndex * indexFormatSize +
+-                                                            indexBufferBaseOffset),
+-                                    draw->instanceCount));
++                {
++                    DAWN_SWITCH_TIME(kImmediatesTicks);
++                    DAWN_TRY(immediates.Apply(gl));
++                }
++                DAWN_SWITCH_DRAW(DAWN_GL_TRY(
++                    gl, DrawElementsInstanced(
++                            topology, draw->indexCount, indexBufferFormat,
++                            reinterpret_cast<void*>(draw->firstIndex * indexFormatSize +
++                                                    indexBufferBaseOffset),
++                            draw->instanceCount)));
+                 break;
+             }
+ 
+@@ -1581,9 +1605,11 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
+ 
+             case Command::SetRenderPipeline: {
+                 SetRenderPipelineCmd* cmd = iter->NextCommand<SetRenderPipelineCmd>();
++                DAWN_SWITCH_TIME(kPipelineTicks);
+                 lastPipeline = ToBackend(cmd->pipeline).Get();
+                 DAWN_TRY(lastPipeline->ApplyNow(gl, persistentPipelineState));
+                 DAWN_SWITCH_STAT(kPipelineApplies, 1);
++                DAWN_SWITCH_FLAG(gPendingPipeline);
+ 
+                 vertexStateBufferBindingTracker.OnSetPipeline(lastPipeline);
+                 bindGroupTracker.OnSetPipeline(lastPipeline);
+@@ -1997,7 +2023,9 @@ MaybeError DoTexSubImage(const OpenGLFunctions& gl,
+ extern "C" void dawn_switch_gl_cmd_stats(uint64_t* out, size_t count) {
+     namespace ss = dawn::native::opengl::switch_stats;
+     for (size_t i = 0; i < count; ++i) {
+-        out[i] = i < size_t(ss::kCount) ? ss::gTotals[i].load(std::memory_order_relaxed) : 0;
++        const uint64_t value =
++            i < size_t(ss::kCount) ? ss::gTotals[i].load(std::memory_order_relaxed) : 0;
++        out[i] = ss::IsTicks(int(i)) ? ss::TicksToNs(value) : value;
+     }
+ }
+ #endif
+diff --git a/src/dawn/native/opengl/RenderPipelineGL.cpp b/src/dawn/native/opengl/RenderPipelineGL.cpp
+index d166c56..738da6a 100644
+--- a/src/dawn/native/opengl/RenderPipelineGL.cpp
++++ b/src/dawn/native/opengl/RenderPipelineGL.cpp
+@@ -31,6 +31,7 @@
+ #include "src/dawn/native/opengl/Forward.h"
+ #include "src/dawn/native/opengl/ImmediatesLayoutGL.h"
+ #include "src/dawn/native/opengl/PersistentPipelineStateGL.h"
++#include "src/dawn/native/opengl/SwitchStatsGL.h"
+ #include "src/dawn/native/opengl/UtilsGL.h"
+ 
+ namespace dawn::native::opengl {
+@@ -330,6 +331,7 @@ MaybeError RenderPipeline::ApplyNow(const OpenGLFunctions& gl,
+ 
+     DAWN_ASSERT(mVertexArrayObject);
+     DAWN_GL_TRY(gl, BindVertexArray(mVertexArrayObject));
++    DAWN_SWITCH_STAT(kVertexArrayBinds, 1);
+ 
+     DAWN_TRY(ApplyFrontFaceAndCulling(gl, GetFrontFace(), GetCullMode()));
+ 
+diff --git a/src/dawn/native/opengl/SwitchStatsGL.h b/src/dawn/native/opengl/SwitchStatsGL.h
+index 0e16252..5a7e5ad 100644
+--- a/src/dawn/native/opengl/SwitchStatsGL.h
++++ b/src/dawn/native/opengl/SwitchStatsGL.h
+@@ -31,10 +31,36 @@ enum Counter : int {
+     kFlushNs,           // Device::FlushPendingGLCommands, Execute and context release included
+     kFlushItems,        // deferred GL work items run by it (one of them is the Execute)
+     kReleaseNs,         // the context release (eglMakeCurrent) at the end of a flush
++    // Where a render pass's replay time goes (ticks of the system counter while counting,
++    // reported in ns by dawn_switch_gl_cmd_stats). Mesa does most of its state validation
++    // inside the draw call, so kDrawCallTicks also carries the cost of the state set before it;
++    // the draws right after a pipeline change or a texture bind are timed apart to show that.
++    kPipelineTicks,          // SetRenderPipeline (glUseProgram, VAO, fixed-function state)
++    kBindGroupTicks,         // applying bind groups before a draw (UBO/SSBO ranges, textures)
++    kImmediatesTicks,        // glUniform of immediates before a draw
++    kVertexStateTicks,       // vertex/index buffer state and primitive restart before a draw
++    kDrawCallTicks,          // the glDraw* calls themselves
++    kDrawsAfterPipeline,     // draws that are the first after a pipeline change
++    kDrawAfterPipelineTicks, // ... and their glDraw* time
++    kDrawsAfterTextures,     // other draws right after a sampled-texture bind
++    kDrawAfterTexturesTicks, // ... and their glDraw* time
++    kUniformBufferBinds,     // glBindBufferRange(GL_UNIFORM_BUFFER) of bind groups
++    kVertexArrayBinds,       // glBindVertexArray when applying a pipeline
++    kIndexBufferBinds,       // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER) before a draw
+     kCount
+ };
+ 
++// Counters holding system counter ticks (19.2 MHz) rather than ns or counts.
++inline bool IsTicks(int counter) {
++    return counter == kPipelineTicks || counter == kBindGroupTicks || counter == kImmediatesTicks ||
++           counter == kVertexStateTicks || counter == kDrawCallTicks ||
++           counter == kDrawAfterPipelineTicks || counter == kDrawAfterTexturesTicks;
++}
++
+ inline uint64_t gLocal[kCount];
++// Set by a pipeline change / a sampled-texture bind, cleared by the next draw.
++inline bool gPendingPipeline = false;
++inline bool gPendingTextures = false;
+ inline std::atomic<uint64_t> gTotals[kCount];
+ 
+ inline void Add(Counter counter, uint64_t n = 1) {
+@@ -56,13 +82,70 @@ inline uint64_t NowNs() {
+                                      .count());
+ }
+ 
++// The system counter, as libnx's armGetSystemTick reads it: a few ns per read.
++inline uint64_t Ticks() {
++    uint64_t t;
++    asm volatile("mrs %0, cntpct_el0" : "=r"(t));
++    return t;
++}
++
++inline uint64_t TicksToNs(uint64_t ticks) {
++    return ticks * 625 / 12;  // 19.2 MHz
++}
++
++// Adds the ticks from construction to destruction to a counter.
++class TickScope {
++  public:
++    explicit TickScope(Counter counter) : mCounter(counter), mStart(Ticks()) {}
++    ~TickScope() { Add(mCounter, Ticks() - mStart); }
++    TickScope(const TickScope&) = delete;
++    TickScope& operator=(const TickScope&) = delete;
++
++  private:
++    Counter mCounter;
++    uint64_t mStart;
++};
++
++// Times one glDraw* call and files it under the draws after a pipeline change or a texture
++// bind when it is one.
++template <typename F>
++inline auto TimedDraw(F&& draw) {
++    const uint64_t start = Ticks();
++    auto result = draw();
++    const uint64_t ticks = Ticks() - start;
++    Add(kDrawCallTicks, ticks);
++    if (gPendingPipeline) {
++        Add(kDrawsAfterPipeline, 1);
++        Add(kDrawAfterPipelineTicks, ticks);
++    } else if (gPendingTextures) {
++        Add(kDrawsAfterTextures, 1);
++        Add(kDrawAfterTexturesTicks, ticks);
++    }
++    gPendingPipeline = false;
++    gPendingTextures = false;
++    return result;
++}
++
+ }  // namespace dawn::native::opengl::switch_stats
+ 
+ #define DAWN_SWITCH_STAT(counter, n) \
+     ::dawn::native::opengl::switch_stats::Add(::dawn::native::opengl::switch_stats::counter, (n))
++#define DAWN_SWITCH_TIME(counter) \
++    ::dawn::native::opengl::switch_stats::TickScope DAWN_SWITCH_TIME_SCOPE_##counter( \
++        ::dawn::native::opengl::switch_stats::counter)
++// `call` is a DAWN_GL_TRY statement; the enclosing function returns MaybeError.
++#define DAWN_SWITCH_DRAW(call)                                                            \
++    DAWN_TRY(::dawn::native::opengl::switch_stats::TimedDraw([&]() -> ::dawn::native::MaybeError { \
++        call;                                                                             \
++        return {};                                                                        \
++    }))
++#define DAWN_SWITCH_FLAG(flag) (::dawn::native::opengl::switch_stats::flag = true)
+ 
+ #else
+ #define DAWN_SWITCH_STAT(counter, n) ((void)0)
++#define DAWN_SWITCH_TIME(counter) ((void)0)
++#define DAWN_SWITCH_DRAW(call) call
++#define DAWN_SWITCH_FLAG(flag) ((void)0)
+ #endif
+ 
+ #endif  // SRC_DAWN_NATIVE_OPENGL_SWITCHSTATSGL_H_

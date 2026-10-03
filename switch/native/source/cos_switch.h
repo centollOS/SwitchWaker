@@ -67,6 +67,14 @@ typedef struct {
     uint64_t glPasses, glDraws, glPipelines, glBindGroups, glTexBinds, glTexParams, glTexParamsSkipped;
     uint64_t glUniforms, glBufCopies, glBufCopyBytes, glTexUploads;
     uint64_t glExecuteNs, glFlushNs, glFlushItems, glReleaseNs;
+    /* Where the render passes' replay time goes (switch/dawn/patches/dawn-switch-gl-replay-timers.patch):
+     * pipeline applies, bind group applies, immediates, vertex/index state, the glDraw* calls (Mesa
+     * validates the state set before a draw inside the call); the draws that are the first after a
+     * pipeline change and the other draws right after a texture bind, with their glDraw* time;
+     * glBindBufferRange of uniform buffers, glBindVertexArray and index buffer binds issued. */
+    uint64_t glPipelineNs, glBindGroupNs, glImmediatesNs, glVertexStateNs, glDrawCallNs;
+    uint64_t glDrawsAfterPipeline, glDrawAfterPipelineNs, glDrawsAfterTextures, glDrawAfterTexturesNs;
+    uint64_t glUniformBufferBinds, glVertexArrayBinds, glIndexBufferBinds;
 } CosSwitchGfxStats;
 
 void cos_switch_gfx_stats(CosSwitchGfxStats* out);

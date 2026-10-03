@@ -429,6 +429,31 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
            (cur.glTexUploads - w.glTexUploads) / wf, msOf(cur.glFlushNs - w.glFlushNs) / wf,
            (cur.glFlushItems - w.glFlushItems) / wf, msOf(cur.glExecuteNs - w.glExecuteNs) / wf,
            msOf(glOtherWorkNs(cur) - glOtherWorkNs(w)) / wf, msOf(cur.glReleaseNs - w.glReleaseNs) / wf);
+    {
+        // The render passes' replay split (dawn-switch-gl-replay-timers.patch): per frame, and the
+        // glDraw* time per draw for the draws after a pipeline change, after a texture bind, others.
+        const double draws = (cur.glDraws - w.glDraws) / wf;
+        const double afterPipe = (cur.glDrawsAfterPipeline - w.glDrawsAfterPipeline) / wf;
+        const double afterTex = (cur.glDrawsAfterTextures - w.glDrawsAfterTextures) / wf;
+        const double others = draws > afterPipe + afterTex ? draws - afterPipe - afterTex : 0;
+        const double drawMs = msOf(cur.glDrawCallNs - w.glDrawCallNs) / wf;
+        const double afterPipeMs = msOf(cur.glDrawAfterPipelineNs - w.glDrawAfterPipelineNs) / wf;
+        const double afterTexMs = msOf(cur.glDrawAfterTexturesNs - w.glDrawAfterTexturesNs) / wf;
+        const double othersMs = drawMs > afterPipeMs + afterTexMs ? drawMs - afterPipeMs - afterTexMs : 0;
+        const auto usEach = [](double ms, double count) { return count > 0 ? ms * 1000.0 / count : 0.0; };
+        writef(STDERR_FILENO,
+               "[cos] perf-switch dawn gl replay per frame: pipelines %.2f ms, bind groups %.2f, "
+               "immediates %.2f, vertex state %.2f, draw calls %.2f (%.1f after a pipeline change "
+               "%.2f ms = %.1f us each, %.1f after a texture bind %.2f ms = %.1f us each, %.1f "
+               "others %.2f ms = %.1f us each); %.1f UBO binds, %.1f VAO binds, %.1f index binds\n",
+               msOf(cur.glPipelineNs - w.glPipelineNs) / wf, msOf(cur.glBindGroupNs - w.glBindGroupNs) / wf,
+               msOf(cur.glImmediatesNs - w.glImmediatesNs) / wf,
+               msOf(cur.glVertexStateNs - w.glVertexStateNs) / wf, drawMs, afterPipe, afterPipeMs,
+               usEach(afterPipeMs, afterPipe), afterTex, afterTexMs, usEach(afterTexMs, afterTex), others,
+               othersMs, usEach(othersMs, others), (cur.glUniformBufferBinds - w.glUniformBufferBinds) / wf,
+               (cur.glVertexArrayBinds - w.glVertexArrayBinds) / wf,
+               (cur.glIndexBufferBinds - w.glIndexBufferBinds) / wf);
+    }
     sSwWindow = cur;
     sSwWindowEvents = ev;
     sSwWindowTexBytes = 0;

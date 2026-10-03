@@ -252,6 +252,7 @@ Switch patch 0005, the Dawn GL queue patch and the disc reader):
 ```
 [cos] perf-switch frames 61-120: begin: events E, slot wait S, staging wait T; queue-full wait Q; render worker B ms/frame busy (encode C, end_frame D: unmap U, acquire A, submit M, present P; events V), N presents/s; gl F fences (I in flight), W waits X ms, G glFinish H ms; pipelines K created, L compiled in Y ms (longest so far Z ms), J queued; tex upload KiB; dvd R reads KiB ms; res loads n; scene NAME
 [cos] perf-switch dawn gl per frame: P passes, D draws, L pipelines, B bind groups, T tex binds, X texparams (Y skipped), U uniform uploads, C buffer copies K KiB, V tex uploads; flush F ms (I items): execute E, other work O, release R
+[cos] perf-switch dawn gl replay per frame: pipelines P ms, bind groups B, immediates I, vertex state V, draw calls D (a after a pipeline change A ms = x us each, t after a texture bind T ms = y us each, o others O ms = z us each); u UBO binds, v VAO binds, i index binds
 ```
 
 The second line is Dawn's GL replay of the frame's submission
@@ -268,6 +269,17 @@ Dawn used to set a texture's base and max level and its four swizzles on every b
 handles each swizzle `glTexParameteri` as a change (a flush, and every sampler view of the texture
 dropped and rebuilt by the next draw), so `switch/dawn/patches/dawn-switch-gl-texture-params.patch`
 remembers what each GL texture object has and sets only what differs.
+
+The third line (`switch/dawn/patches/dawn-switch-gl-replay-timers.patch`, read with the CPU's
+system counter) splits the render passes' part of "execute": applying pipelines, applying bind
+groups (uniform/storage buffer ranges, texture and sampler binds), the `glUniform` of immediates,
+vertex/index buffer and primitive-restart state, and the `glDraw*` calls. Mesa defers most of its
+state validation to the draw call, so the cost of what was set before a draw shows up in the draw
+call; the draws that are the first after a pipeline change and the other draws right after a
+sampled-texture bind are therefore timed apart from the remaining ones, with the time per draw of
+each group. The counts are the `glBindBufferRange` of uniform buffers, `glBindVertexArray` and
+index buffer binds issued. The frame-rate panel (`COS_FPS_OVERLAY`) shows pipeline changes per
+frame and the time of the draw calls and of the state set before them.
 
 "begin" of the perf line is `events` (Aurora's event pump) plus `aurora_begin_frame`, which mostly
 waits for a free frame slot (the render worker still has two frames in flight: GPU-bound or
