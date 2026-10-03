@@ -2969,6 +2969,29 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: cos_sdk's OS lock is per-thread re-entrant (port funcs that add commands do not
   self-deadlock) and the audio thread already takes it in JASCallback; regression passes;
   reviewer sweep 150 of 155 (0 failed, Xboss1 and kazeMB ok).
+- **Boot-sweep fix 16: intermittent failures triaged** (2026-10-04, lane render-a7). Thirteen
+  sweeps (about 2000 stage runs, 4 at a time) gave two intermittent signatures, nothing else:
+  - **I_SubAN (9:0) `PANIC d_stage.cpp:1787`** (2 of 13 sweeps): disc data, as fix 15 said;
+    re-read from the disc: every I_SubAN room's SCLS 0 leads to `sea` start 1, room 9's to sea
+    room 47, and sea Room47's PLYR has points 0, 5 and 100-103 only. Reached only when an enemy
+    knocks the idle Link into room 9's warp within the run (timing of the loads and the enemy).
+    `boot_sweep.py` lists it as an expected fail marked `intermittent`: a pass is a pass
+    (no xpass), the listed panic an xfail, any other failure a failure.
+  - **`CRASH SIGSEGV addr=0x0` in `JASystem::Kernel::portCmdMain` (JASCmdStack.cpp:130)** on the
+    audio thread (GanonD:0:0, frame 313, 1 of 13 sweeps, about 1 in 2000 runs): fix 15's lock did
+    not remove it. From the registers (the arena's low address bits are the same in every run)
+    the command was `seqTrackInfo[2].systemTrackParameter[24].mCommand`, the sound-effect
+    sequence's track 24, with `mFunc` and `mArgs` both 0, although `outerInit` sets every SE
+    track's command (0-31 and the root 32) at boot frame ~3 (temporary probe) and nothing in
+    JAudio writes them back to 0. Not reproduced in 10 further sweeps with probes (an
+    `addPortCmd` of a command without a function, a null command in `portCmdProcOnce` dumping the
+    surrounding PlayerParameters) nor with the audio thread slowed by 20-50 ms per update.
+    **Open**: a run with such a probe (not committed) that hits it would show whether the
+    PlayerParameter was zeroed as a whole (a stray write or heap reuse) or only the command. Found on the way and
+    fixed (124a812): `setSeqPortargsF32/U32` wrote the port arguments at 8-byte strides on the
+    host, so run-time sequence and sound-effect volume, pan and fxmix changes never reached the
+    tracks (volume went to the pitch word, fxmix to the tempo word; the writes stay inside the
+    PlayerParameter, so not the cause of this crash).
 
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
