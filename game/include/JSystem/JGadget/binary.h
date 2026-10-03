@@ -179,7 +179,27 @@ struct TValueIterator_raw : public TValueIterator<TParseValue_raw<T>, sizeof(T)>
 template <typename T>
 struct TParseValue_misaligned_ : public TParseValue_raw_<T> {
     typedef T ParseType;
+#if TARGET_PC
+    // The misaligned values are STB demo-actor parameter data (dDemo_actor_c::JSGSetData, read by
+    // d_demo.cpp and the demo actors): big-endian disc data at any byte offset, which the
+    // GameCube reads raw. Assemble the value from its bytes, most significant first.
+    static T parse(const void* data) {
+        const u8* src = (const u8*)data;
+        u8 bytes[sizeof(T)];
+        for (u32 i = 0; i < sizeof(T); i++) {
+#if TARGET_LITTLE_ENDIAN
+            bytes[i] = src[sizeof(T) - 1 - i];
+#else
+            bytes[i] = src[i];
+#endif
+        }
+        T value;
+        __builtin_memcpy(&value, bytes, sizeof(T));
+        return value;
+    }
+#else
     static T parse(const void* data) { return TParseValue<TParseValue_raw_<T> >::parse(data); }
+#endif
 };
 
 template <typename T>

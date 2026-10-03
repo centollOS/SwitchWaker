@@ -2459,6 +2459,41 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   M12 at frame 589, 3/3 runs. Adds `outset-debug 0 --stage sea:44:206` to the regression targets.
   Reviewed: regress passed; 3/3 capped `outset-debug --stage sea:44:206` runs reached M12 in 15 s
   (Link in room 44 at frame 289); the probe only reads game state.
+- **Step 4.16: events, camera, paths, message flow and maps** (2026-10-03, lane outset). Event
+  list, stage camera/arrow records and paths were already big-endian (4.9a/c, M7 iter 6); the
+  debug boot into Outset (`sea:44:206`, Aryll's lookout event) then hit four root causes in turn,
+  each a separate change:
+  1. *Event substance data* (`d_event_manager.cpp`): the FData (f32) and IData (int) arrays of
+     event_list.dat, which actors read through `getMySubstanceP` as plain `f32*`/`Vec*`/`int*`,
+     were host-order garbage, so the lookout event never advanced (letterbox and a camera out at
+     sea in the M12 shots). `setData` swaps them in place once, as Dusklight's
+     `dEvDtBase_c::init`; header byte `unk[0]` (0 on the disc in both lists logged, title and
+     Outset) marks a swapped buffer.
+  2. *STB message code* (`object-message.cpp`, file of 4.17): `adaptor_do_MESSAGE` read the u32
+     message code host-order (0x00000357 became group 0x5703), `getMessageEntry` returned NULL
+     and `dMesg_waitProc` faulted (SIGSEGV addr=0x18, ROOM_SCENE frame 831). Read as `BE(u32)`.
+  3. *Message heaps* (`d_mesg.cpp`, H5): the 0xa32d ExpHeap `dMesg_waitProc` makes held 17 of
+     the 18 `dMesg_outFont_c` on the host (1,872 bytes each, logged); `new JUTTexture` returned
+     NULL (SIGSEGV addr=0x50 in `J2DPicture::insert`, frame 829). Under `TARGET_PC` it and its
+     parent `dMsg_Create` heap (0xb6b5) are doubled.
+  4. *Demo-actor parameters* (`d_demo.cpp`, `JGadget/binary.h`, files of 4.17): the block
+     `JSGSetData` stores is big-endian STB data at odd offsets, read raw by `getP_Btp/Brk/BtkData`
+     and through `TValueIterator_misaligned` by the demo actors; a byte-swapped BTP id faulted in
+     `J3DAnmTexPattern::searchUpdateMaterialID` <- `daNpc_Ls1_c::demo` (frame 2128).
+     `TParseValue_misaligned_` now assembles big-endian values on the host, and d_demo's ids go
+     through it (`DEMO_PRM`). The rest of the STB raw values stay with 4.17.
+  d_cam_param/d_cam_style/d_cam_type are compiled-in tables (no disc data); the game has no
+  d_msg_flow (its flow is in code and the STB message objects above). Not done: `mDoLib_cnvind16/32`
+  byte-swap the little-endian AGB `.amp` dungeon maps (`map_dt_c`) and GBA buffers, which on a
+  little-endian host is wrong; no run reaches a floor map yet.
+  Result: `outset-debug --stage sea:44:206` 3/3; an uncapped 4,000-frame run plays Aryll's
+  lookout event with its messages ("I knew you'd be here!") with no fault; a capped 6,400-frame
+  run tapping A through the event ends with Link free on the lookout, no fault. Uncapped, the
+  same input stalled at frame 5856 in `JFWDisplay::calcCombinationRatio` (not fixed here, see
+  render issues: likely `JUTVideo::sVideoInterval` 0 from back-to-back host retraces).
+  Reviewed (round 1): regress passed; `outset-debug --stage sea:44:206` 3/3 in 15-16 s; the
+  uncapped 4,000-frame Outset run finished with no fault. Step stays open: M13 waits for the
+  outset-control probe (6.6), the uncapped VI stall and the AGB map swap.
 
 ### Phase 6 render issues
 
@@ -2480,7 +2515,15 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   checkout is never modified. `outset-debug --stage sea:44:206` now runs ROOM_SCENE past frame 5500
   without a fault (timeout: nothing reports M12 yet). Still open, not fatal: about 470k
   `CP_REG_ARRAYBASE_ID is not supported` log lines per 180 s run in sea room 44.
-- **Outset (sea room 44) draws badly** (found by M12, `--shot`): at frame 400 the backdrop band
+- **Uncapped stall in `JFWDisplay::calcCombinationRatio`** (found by step 4.16, Outset with A
+  taps, uncapped only, frame 5856): the main thread spins at `JFWDisplay.cpp:320`. The loop
+  `for (i = vidInterval; i < field_0x34 * 2; i += vidInterval)` never ends when
+  `JUTVideo::sVideoInterval` (OSGetTick delta between two pre-retrace callbacks) is 0, which the
+  host VI (`VIRetrace.cpp`: every `VIWaitForRetrace` call is a retrace, a polling thread makes them
+  back to back) can produce. Not a render issue strictly, but host timing; blocks uncapped M13.
+- **Outset (sea room 44) draws badly** (found by M12, `--shot`; after step 4.16 the event camera
+  shows the lookout and island geometry, so the missing island was event/camera state; character
+  models (Link, Aryll) draw as black silhouettes with noisy faces): at frame 400 the backdrop band
   behind the clouds is a grid of garbage-coloured blocks (a texture decoded or sampled wrongly) and
   the island geometry is missing (only a distant grey silhouette and the sea); by frame 1450 the
   view shows only the sea under the letterbox. Not yet triaged (render vs. camera/event state); M12

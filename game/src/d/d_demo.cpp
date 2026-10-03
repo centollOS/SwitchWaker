@@ -9,6 +9,16 @@
 #include "d/d_com_inf_game.h"
 #include "d/d_mesg.h"
 #include "m_Do/m_Do_printf.h"
+#if TARGET_PC
+#include "JSystem/JGadget/binary.h"
+
+// The parameter block JSGSetData stores (mPrm.mData) is STB paragraph data: big-endian and at
+// odd byte offsets. The GameCube reads its ids raw; the host reads them through the same
+// misaligned big-endian parser as the demo actors' TValueIterator_misaligned.
+#define DEMO_PRM(T, p) (JGadget::binary::TParseValue_misaligned_<T>::parse(p))
+#else
+#define DEMO_PRM(T, p) (*(const T*)(p))
+#endif
 
 /* 800692C4-80069330       .text __ct__13dDemo_actor_cFv */
 dDemo_actor_c::dDemo_actor_c() {
@@ -65,11 +75,11 @@ J3DAnmTexPattern* dDemo_actor_c::getP_BtpData(const char* name) {
         const u8* prm = (const u8*)mPrm.mData;
         arcName = name;
         switch (mPrm.mId) {
-        case ID_UNK_1: id = *(const s16*)(prm + 1); break;
-        case ID_UNK_2: id = *(const s16*)(prm + 2); break;
-        case ID_UNK_4: id = *(const u32*)(prm + 1); break;
+        case ID_UNK_1: id = DEMO_PRM(s16, prm + 1); break;
+        case ID_UNK_2: id = DEMO_PRM(s16, prm + 2); break;
+        case ID_UNK_4: id = DEMO_PRM(u32, prm + 1); break;
         case ID_UNK_5:
-        case ID_UNK_6: id = *(const u32*)(prm + 2); break;
+        case ID_UNK_6: id = DEMO_PRM(u32, prm + 2); break;
         default: return NULL;
         }
     }
@@ -91,7 +101,7 @@ void* dDemo_actor_c::getP_BrkData(const char* name) {
     const u8* prm = (const u8*)mPrm.mData;
     u32 id;
     switch (mPrm.mId) {
-    case ID_UNK_6: id = *(const u32*)(prm + 10); break;
+    case ID_UNK_6: id = DEMO_PRM(u32, prm + 10); break;
     default: return NULL;
     }
     if (id == mBrkId)
@@ -109,9 +119,9 @@ J3DAnmTextureSRTKey* dDemo_actor_c::getP_BtkData(const char* name) {
     const u8* prm = (const u8*)mPrm.mData;
     u32 id;
     switch (mPrm.mId) {
-    case ID_UNK_2: id = *(const s16*)(prm + 4); break;
+    case ID_UNK_2: id = DEMO_PRM(s16, prm + 4); break;
     case ID_UNK_5:
-    case ID_UNK_6: id = *(const u32*)(prm + 6); break;
+    case ID_UNK_6: id = DEMO_PRM(u32, prm + 6); break;
     default: return NULL;
     }
     if (id == mBtkId)
