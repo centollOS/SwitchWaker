@@ -21,8 +21,15 @@
 // /res/Menu/Menu1.dat (the debug map select, step 4.9a's d_s_menu part) is loaded as d_s_menu's
 // phase_2 loads it, relocated through menu_of_scene_class::menu_inf/stage_inf as phase_2 does,
 // and every stage and room entry compared with the file's offsets.
-// <COS_RUN_DIR>/stage_sweep.txt gets what the game read (STG/CHUNK lines in disc_manifest.py's
-// names); native/tools/run.sh compares it with the manifest (disc_manifest.py --check-stage).
+// Step 4.9b: the actor records (ACTR/TGOB/PLYR/ACT0-b/TRE0-b through stage_actor_class, TRES
+// through stage_tresure_class, SCOB/TGSC/DOOR/TGDR/SCO0-b through stage_tgsc_class) of the first
+// chunk of each tag (the one dStage_dt_c_decode hands out) are read through the game's record
+// structs and copied into an fopAcM_prm_class as dStage_actorInit (field by field) and
+// dStage_tgscInfoInit (the whole base) copy them; both copies must equal the file's big-endian
+// fields bit for bit, and the host values go to an ACTOR line.
+// <COS_RUN_DIR>/stage_sweep.txt gets what the game read (STG/CHUNK/ACTOR lines in
+// disc_manifest.py's names); native/tools/run.sh compares it with the manifest
+// (disc_manifest.py --check-stage).
 // The test's own strings and vectors are in host memory (cos_sdk/host_alloc.h).
 // Exit 0 when every check holds, 1 otherwise.
 #include "pc_internal.h"
@@ -354,9 +361,158 @@ void checkRelocs(uint8_t* data, const RawFile& raw, const RawRelocs& r, bool isS
 }
 
 struct Totals {
-    uint32_t archives = 0, files = 0, chunks = 0, rtbl = 0, paths = 0;
+    uint32_t archives = 0, files = 0, chunks = 0, rtbl = 0, paths = 0, actors = 0;
 };
 Totals sTotals;
+
+// A name for stage_sweep.txt: a space, '%' and bytes outside printable ASCII as %XX
+// (disc_manifest.py --check-stage decodes them as cstr() does).
+String enc(const char* text, size_t limit) {
+    String out;
+    for (size_t i = 0; i < limit && text[i] != 0; i++) {
+        unsigned char c = (unsigned char)text[i];
+        if (c <= 0x20 || c >= 0x7F || c == '%') {
+            char hex[4];
+            snprintf(hex, sizeof(hex), "%%%02X", c);
+            out += hex;
+        } else {
+            out += (char)c;
+        }
+    }
+    return out;
+}
+
+uint16_t rd16(const uint8_t* p) {
+    return (uint16_t)((p[0] << 8) | p[1]);
+}
+
+uint32_t floatBits(f32 v) {
+    uint32_t u;
+    memcpy(&u, &v, 4);
+    return u;
+}
+
+// Which record struct the game's chunk loader reads a tag's entries through (d_stage.cpp's
+// FuncTables): 0 none, 1 stage_actor_class, 2 stage_tresure_class, 3 stage_tgsc_class.
+int actorKind(const char* tag) {
+    static const char* const kActor[] = {"ACTR", "TGOB", "PLYR"};
+    static const char* const kTgsc[] = {"SCOB", "TGSC", "DOOR", "TGDR"};
+    for (const char* t : kActor) {
+        if (memcmp(tag, t, 4) == 0) {
+            return 1;
+        }
+    }
+    if (memcmp(tag, "TRES", 4) == 0) {
+        return 2;
+    }
+    for (const char* t : kTgsc) {
+        if (memcmp(tag, t, 4) == 0) {
+            return 3;
+        }
+    }
+    // The layer variants: ACT0-b and TRE0-b (dStage_actorInit), SCO0-b (dStage_tgscInfoInit).
+    if (strchr("0123456789ab", tag[3]) != nullptr && tag[3] != 0) {
+        if (memcmp(tag, "ACT", 3) == 0 || memcmp(tag, "TRE", 3) == 0) {
+            return 1;
+        }
+        if (memcmp(tag, "SCO", 3) == 0) {
+            return 3;
+        }
+    }
+    return 0;
+}
+
+// One record: the game's struct against the file's bytes, then the two copies into
+// fopAcM_prm_class the chunk loaders make.
+template <class Data>
+void checkRecord(const Data* d, const uint8_t* rawEntry, const char* tag, int k,
+                 const String& name, int chunk, int fd) {
+    if ((const uint8_t*)d != rawEntry) {
+        fail("%s entry %d at %p, the file has it at %p", tag, k, (const void*)d,
+             (const void*)rawEntry);
+        return;
+    }
+    // The file's fields, read independently (big-endian at the format's offsets).
+    uint32_t wantParams = rd32(rawEntry + 0x08);
+    uint32_t wantPos[3] = {rd32(rawEntry + 0x0C), rd32(rawEntry + 0x10), rd32(rawEntry + 0x14)};
+    int16_t wantAngle[3] = {(int16_t)rd16(rawEntry + 0x18), (int16_t)rd16(rawEntry + 0x1A),
+                            (int16_t)rd16(rawEntry + 0x1C)};
+    uint16_t wantSetId = rd16(rawEntry + 0x1E);
+
+    // dStage_actorInit's copy (each field), and dStage_tgscInfoInit's (the whole base).
+    fopAcM_prm_class byField;
+    byField.base.parameters = d->base.parameters;
+    byField.base.position = d->base.position;
+    byField.base.angle = d->base.angle;
+    byField.base.setID = d->base.setID;
+    fopAcM_prm_class whole;
+    whole.base = d->base;
+    const fopAcM_prmBase_class* copies[2] = {&byField.base, &whole.base};
+    for (int c = 0; c < 2; c++) {
+        const fopAcM_prmBase_class& b = *copies[c];
+        if (b.parameters != wantParams || floatBits(b.position.x) != wantPos[0] ||
+            floatBits(b.position.y) != wantPos[1] || floatBits(b.position.z) != wantPos[2] ||
+            b.angle.x != wantAngle[0] || b.angle.y != wantAngle[1] ||
+            b.angle.z != wantAngle[2] || b.setID != wantSetId) {
+            fail("%s entry %d (%.8s), %s copy: params 0x%08x pos %08x %08x %08x angle %d %d %d "
+                 "set %u; the file has 0x%08x, %08x %08x %08x, %d %d %d, %u",
+                 tag, k, d->name, c == 0 ? "field" : "whole", b.parameters,
+                 floatBits(b.position.x), floatBits(b.position.y), floatBits(b.position.z),
+                 b.angle.x, b.angle.y, b.angle.z, b.setID, wantParams, wantPos[0], wantPos[1],
+                 wantPos[2], wantAngle[0], wantAngle[1], wantAngle[2], wantSetId);
+        }
+    }
+    if (fd >= 0) {
+        const fopAcM_prmBase_class& b = whole.base;
+        writef(fd, "ACTOR %s %d %d name=%s params=%u pos=%.17g,%.17g,%.17g angle=%d,%d,%d "
+                   "set_id=%u\n",
+               name.c_str(), chunk, k, enc(d->name, sizeof(d->name)).c_str(), b.parameters,
+               (double)b.position.x, (double)b.position.y, (double)b.position.z, b.angle.x,
+               b.angle.y, b.angle.z, b.setID);
+    }
+    sTotals.actors++;
+}
+
+// The actor records of the first chunk of each tag, through the struct its loader uses.
+void checkActors(const dStage_fileHeader* file, const RawFile& raw, const String& name, int fd) {
+    for (size_t i = 0; i < raw.chunks.size(); i++) {
+        const RawChunk& c = raw.chunks[i];
+        int kind = actorKind(c.tag);
+        if (kind == 0 || raw.find(String(tagText(c.tag)).c_str()) != (int)i) {
+            continue;
+        }
+        String tag = tagText(c.tag);
+        uint32_t esize = kind == 3 ? sizeof(stage_tgsc_data_class) : sizeof(stage_actor_data_class);
+        if (c.num > 0 && (c.offset == 0 || !inFile(raw, c.offset, (uint32_t)c.num * esize))) {
+            fail("%s: %d records of 0x%x bytes at 0x%x past the end", tag.c_str(), c.num, esize,
+                 c.offset);
+            continue;
+        }
+        const void* node = (const int*)&file->m_nodes[i] + 1;
+        for (int32_t k = 0; k < c.num; k++) {
+            const uint8_t* rawEntry = raw.base + c.offset + k * esize;
+            if (kind == 1) {
+                const stage_actor_class* a = (const stage_actor_class*)node;
+                checkRecord(&a->m_entries[k], rawEntry, tag.c_str(), k, name, (int)i, fd);
+            } else if (kind == 2) {
+                const stage_tresure_class* a = (const stage_tresure_class*)node;
+                checkRecord(&a->m_entries[k], rawEntry, tag.c_str(), k, name, (int)i, fd);
+            } else {
+                const stage_tgsc_class* a = (const stage_tgsc_class*)node;
+                const stage_tgsc_data_class* d = &a->m_entries[k];
+                checkRecord(d, rawEntry, tag.c_str(), k, name, (int)i, fd);
+                // dStage_tgscInfoInit's scale copy (u8 each).
+                fopAcM_prm_class prm;
+                prm.scale = d->scale;
+                if (prm.scale.x != rawEntry[0x20] || prm.scale.y != rawEntry[0x21] ||
+                    prm.scale.z != rawEntry[0x22]) {
+                    fail("%s entry %d: scale %u %u %u differs from the file", tag.c_str(), k,
+                         prm.scale.x, prm.scale.y, prm.scale.z);
+                }
+            }
+        }
+    }
+}
 
 void sweepData(const String& name, uint8_t* data, uint32_t size, bool isStage, int fd) {
     RawFile raw;
@@ -432,6 +588,7 @@ void sweepData(const String& name, uint8_t* data, uint32_t size, bool isStage, i
         }
     }
 
+    checkActors(file, raw, name, fd);
     checkRelocs(data, raw, relocs, isStage);
     sTotals.rtbl += relocs.rtblEntries.size();
     sTotals.paths += relocs.pathPoints.size() + relocs.rpatPoints.size();
@@ -587,7 +744,7 @@ void sweepMenu(JKRHeap* heap) {
     int fd = openRunFile("stage_sweep.txt");
     if (fd >= 0) {
         writef(fd, "# stage-sweep (COS_SMOKE=stage-sweep): the dzs/dzr chunk tables as the game "
-                   "read them, in disc_manifest.py's names\n");
+                   "read them (and the actor records), in disc_manifest.py's names\n");
     }
     for (const String& path : archives) {
         sweepArchive(path, heap, fd);
@@ -602,9 +759,10 @@ void sweepMenu(JKRHeap* heap) {
         fail("JKRExpHeap::check failed on the sweep heap");
     }
     writef(STDERR_FILENO,
-           "[cos] stage-sweep: %u archives, %u dzs/dzr files, %u chunks, %u RTBL entries, %u "
-           "paths relocated; %llu ms; %d error(s)%s\n",
-           sTotals.archives, sTotals.files, sTotals.chunks, sTotals.rtbl, sTotals.paths,
+           "[cos] stage-sweep: %u archives, %u dzs/dzr files, %u chunks, %u actor records, %u "
+           "RTBL entries, %u paths relocated; %llu ms; %d error(s)%s\n",
+           sTotals.archives, sTotals.files, sTotals.chunks, sTotals.actors, sTotals.rtbl,
+           sTotals.paths,
            (unsigned long long)(elapsedMs() - start), sErrors,
            gConfig.runDir != nullptr ? " (report in stage_sweep.txt)" : "");
     bool pass = sErrors == 0 && sTotals.archives == archives.size() && sTotals.files > 0;

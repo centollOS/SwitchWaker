@@ -46,8 +46,9 @@ Usage
                                                   COS_SMOKE=stage-sweep (<run dir>/
                                                   stage_sweep.txt) with the manifest's dzs/dzr
                                                   files: every file's chunk count, every chunk's
-                                                  tag, entry count and offset (exit 0 equal, 1
-                                                  different)
+                                                  tag, entry count and offset, every actor
+                                                  record's name, parameters, position, angle and
+                                                  set id (exit 0 equal, 1 different)
   disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
 
 Manifest (JSON)
@@ -1033,22 +1034,36 @@ def check_jpa(manifest, jpa_path):
 # ---- stage chunk tables (step 4.9a) -------------------------------------------------------------
 
 def check_stage(manifest, stage_path):
-    """stage_sweep.txt lines (fields separated by single spaces): 'STG <path> chunk_count=N' and
-    'CHUNK <path> <index> tag=XXXX num=N offset=N', <path> being the manifest's name of the file
-    ('<archive>:dzs/stage.dzs' or '<archive>:dzr/room.dzr'). Every dzs/dzr of the disc and every
-    one of its chunks must be there."""
+    """stage_sweep.txt lines (fields separated by single spaces): 'STG <path> chunk_count=N',
+    'CHUNK <path> <index> tag=XXXX num=N offset=N' and (step 4.9b) 'ACTOR <path> <chunk index>
+    <entry> name=<s> params=N pos=X,Y,Z angle=A,B,C set_id=N', <path> being the manifest's name of
+    the file ('<archive>:dzs/stage.dzs' or '<archive>:dzr/room.dzr'); the name is percent-encoded
+    (a space, '%' and bytes outside printable ASCII as %XX). Every dzs/dzr of the disc, every one
+    of its chunks and every actor record of the manifest must be there; positions are compared
+    as the manifest rounds them (3 decimals)."""
+    from urllib.parse import unquote_to_bytes
+
+    def dec(text):
+        raw = unquote_to_bytes(text)
+        try:
+            return raw.decode("shift_jis")
+        except UnicodeDecodeError:
+            return raw.decode("latin-1")
+
     by_path = records_by_path(manifest)
     all_stage = {p: r for p, r in by_path.items() if r.get("format") in ("dzs", "dzr")}
     problems = []
     seen = {}
     chunks = 0
+    actors = 0
+    actor_seen = {}  # (path, tag) -> set of entry indices
     with open(stage_path, encoding="utf-8", errors="replace") as f:
         for ln, line in enumerate(f, 1):
             line = line.rstrip("\n")
             if not line or line.startswith("#"):
                 continue
             parts = line.split(" ")
-            if len(parts) < 3 or parts[0] not in ("STG", "CHUNK"):
+            if len(parts) < 3 or parts[0] not in ("STG", "CHUNK", "ACTOR"):
                 problems.append("line %d: malformed: %r" % (ln, line))
                 continue
             kind, path = parts[0], parts[1]
@@ -1063,6 +1078,44 @@ def check_stage(manifest, stage_path):
                 if fields.get("chunk_count") != str(rec["chunk_count"]):
                     problems.append("line %d: %s chunk_count=%s, the manifest has %d"
                                     % (ln, path, fields.get("chunk_count"), rec["chunk_count"]))
+                continue
+            if kind == "ACTOR":
+                try:
+                    index, entry = int(parts[2]), int(parts[3])
+                    fields = dict(p.partition("=")[::2] for p in parts[4:])
+                    got_rec = {"name": dec(fields["name"]), "params": int(fields["params"]),
+                               "pos": [round(float(v), 3) for v in fields["pos"].split(",")],
+                               "angle": [int(v) for v in fields["angle"].split(",")],
+                               "set_id": int(fields["set_id"])}
+                except (ValueError, IndexError, KeyError):
+                    problems.append("line %d: malformed: %r" % (ln, line))
+                    continue
+                if not 0 <= index < len(rec["chunks"]):
+                    problems.append("line %d: %s chunk %d: the file has %d"
+                                    % (ln, path, index, len(rec["chunks"])))
+                    continue
+                tag = rec["chunks"][index]["tag"]
+                want_list = rec["actors"].get(tag)
+                if want_list is None or not 0 <= entry < len(want_list):
+                    problems.append("line %d: %s chunk %d (%s) entry %d: the manifest has %s"
+                                    % (ln, path, index, tag, entry,
+                                       "no records" if want_list is None else
+                                       "%d records" % len(want_list)))
+                    continue
+                got_set = actor_seen.setdefault((path, tag), set())
+                if entry in got_set:
+                    problems.append("line %d: %s %s entry %d reported twice"
+                                    % (ln, path, tag, entry))
+                got_set.add(entry)
+                actors += 1
+                want = want_list[entry]
+                for key in ("name", "params", "pos", "angle", "set_id"):
+                    if got_rec[key] != want[key]:
+                        problems.append("line %d: %s %s entry %d %s=%s, the manifest has %s"
+                                        % (ln, path, tag, entry, key, got_rec[key], want[key]))
+                if set(fields) - {"name", "params", "pos", "angle", "set_id"}:
+                    problems.append("line %d: unexpected fields %s" % (
+                        ln, sorted(set(fields) - {"name", "params", "pos", "angle", "set_id"})))
                 continue
             try:
                 index = int(parts[2])
@@ -1093,8 +1146,13 @@ def check_stage(manifest, stage_path):
         if len(got["CHUNK"]) != len(rec["chunks"]):
             problems.append("%s: %d of %d chunks reported" % (path, len(got["CHUNK"]),
                                                               len(rec["chunks"])))
-    print("disc_manifest: stage_sweep.txt: %d dzs/dzr files (the disc has %d), %d chunks compared"
-          % (len(seen), len(all_stage), chunks))
+        for tag, want_list in sorted(rec["actors"].items()):
+            n = len(actor_seen.get((path, tag), ()))
+            if n != len(want_list):
+                problems.append("%s: %d of %d %s records reported" % (path, n, len(want_list),
+                                                                        tag))
+    print("disc_manifest: stage_sweep.txt: %d dzs/dzr files (the disc has %d), %d chunks and "
+          "%d actor records compared" % (len(seen), len(all_stage), chunks, actors))
     return report_problems(problems, "stage_sweep.txt equals the manifest")
 
 
