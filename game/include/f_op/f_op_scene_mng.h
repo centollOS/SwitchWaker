@@ -9,8 +9,15 @@ typedef struct base_process_class base_process_class;
 scene_class* fopScnM_SearchByID(fpc_ProcID id);
 BOOL fopScnM_ChangeReq(scene_class*, s16, s16, u16);
 BOOL fopScnM_DeleteReq(scene_class*);
+#if TARGET_PC
+// The user argument is a pointer to the new scene's parameters (createRoomScene's room number); a
+// host pointer does not fit a u32.
+BOOL fopScnM_CreateReq(s16, s16, u16, uintptr_t);
+u32 fopScnM_ReRequest(s16, uintptr_t);
+#else
 BOOL fopScnM_CreateReq(s16, s16, u16, u32);
 u32 fopScnM_ReRequest(s16, u32);
+#endif
 void fopScnM_Management(void);
 void fopScnM_Init(void);
 

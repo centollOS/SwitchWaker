@@ -22,7 +22,11 @@ BOOL fopScnM_DeleteReq(scene_class* i_scene) {
     return fopScnRq_Request(1, i_scene, fpcNm_INVALID_e, 0, fpcNm_INVALID_e, 0);
 }
 
+#if TARGET_PC
+BOOL fopScnM_CreateReq(s16 procName, s16 fadeProcName, u16 fadePeekTime, uintptr_t user) {
+#else
 BOOL fopScnM_CreateReq(s16 procName, s16 fadeProcName, u16 fadePeekTime, u32 user) {
+#endif
     return fopScnRq_Request(0, 0, procName, (void*)user, fadeProcName, fadePeekTime);
 }
 #else
@@ -44,12 +48,20 @@ BOOL fopScnM_DeleteReq(scene_class* i_scene) {
     return sceneRequestID != -1;
 }
 
+#if TARGET_PC
+BOOL fopScnM_CreateReq(s16 procName, s16 fadeProcName, u16 fadePeekTime, uintptr_t user) {
+#else
 BOOL fopScnM_CreateReq(s16 procName, s16 fadeProcName, u16 fadePeekTime, u32 user) {
+#endif
     uint sceneRequestID = fopScnRq_Request(0, 0, procName, (void*)user, fadeProcName, fadePeekTime);
     return sceneRequestID != -1;
 }
 
+#if TARGET_PC
+u32 fopScnM_ReRequest(s16 procName, uintptr_t user) {
+#else
 u32 fopScnM_ReRequest(s16 procName, u32 user) {
+#endif
     if (l_scnRqID == -1) {
         return 0;
     }

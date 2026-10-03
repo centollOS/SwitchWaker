@@ -201,8 +201,8 @@ int createRoomScene(int param_0) {
 
     *ptr = param_0;
 #if TARGET_PC
-    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-    return fopScnM_CreateReq(fpcNm_ROOM_SCENE_e, fpcNm_INVALID_e, 0, (u32)(uintptr_t)ptr);
+    // fopScnM_CreateReq takes the pointer whole on PC (a host pointer does not fit a u32).
+    return fopScnM_CreateReq(fpcNm_ROOM_SCENE_e, fpcNm_INVALID_e, 0, (uintptr_t)ptr);
 #else
     return fopScnM_CreateReq(fpcNm_ROOM_SCENE_e, fpcNm_INVALID_e, 0, (u32)ptr);
 #endif
