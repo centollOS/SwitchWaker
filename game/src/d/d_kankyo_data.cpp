@@ -442,7 +442,14 @@ dKyd_Schedule* dKyd_schejule_menu_getp() {
 /* 80086F34-80086F74       .text dKyd_xfog_table_set__FUc */
 void dKyd_xfog_table_set(u8 i_idx) {
     for (int i = 0; i < 10; i++) {
+#if TARGET_PC && defined(COS_SDK_AURORA)
+        // Aurora's GXFogAdjTable names the u16[10] array r (the decomp's fogVals); same layout.
+        // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+        u16 fogAdjTableEntry = S_xfog_table_data[i_idx].r[i];
+        g_env_light.mFogAdjTable.r[i] = fogAdjTableEntry;
+#else
         u16 fogAdjTableEntry = S_xfog_table_data[i_idx].fogVals[i];
         g_env_light.mFogAdjTable.fogVals[i] = fogAdjTableEntry;
+#endif
     }
 }

@@ -477,3 +477,26 @@ Each phase lands as its own commits; this file records decisions and measured re
   JSystem modules, framework, m_Do, `cos_sdk`, smoke (20 more runs ok; TSan `threads alarms` 10
   runs, 0 reports), scaffold, header and shadow checks (82 names, ok) build; default
   configuration: `cos_modules` and checks build, 0 errors.
+- **2.7 d-core:** compiles in aurora header mode (all 136 units of `src/d`, 0 errors, rebuilt from
+  clean) and still in decomp mode. First aurora build: 11 units failed on 67 errors (none hit
+  clang's 50-per-unit limit), 5 distinct causes: the THP player types in `d_a_movie_player.h`
+  (included by `d_message_paper` and `d_s_title`), the 3-argument `GXSetArray` (29 calls in
+  `d_chain`, `d_cloth_packet`, `d_drawlist`, `d_flower`, `d_magma`, `d_menu_cloth`),
+  `OSCalendarTime` field names (`d_kyeff`, `d_file_select`) and `GXFogAdjTable::fogVals`
+  (`d_kankyo_data`). Central fix: new `native/include/sdk/cos_thp_extras.h` with the decomp's THP
+  types (a copy of the game's `dolphin/thp.h`; the name is both trees', and Aurora's declares only
+  `THPInit`/`THPVideoDecode` and an extern "C" `THPAudioDecode` that clashes with the game's
+  static one), which `d_a_movie_player.h` includes instead of `dolphin/thp.h`; this also clears
+  every THP-type error of the `d_a_movie_player` actor (its remaining `OSCreateThread`/
+  `DVDFileInfo` errors belong to the actor step). Fixes in `game/src/d`, all under
+  `TARGET_PC && defined(COS_SDK_AURORA)` with the original kept: `GXSETARRAY` with each array's
+  real byte size (`sizeof` of the static asset arrays, `mFlyGridSize * mHoistGridSize` cXyz for
+  `dCloth_packet_c`, `ARR_SIZE` cXyz for `dMenu_Cloth_c`, the `*2`/`*3` set `d_flower`'s
+  `field_0x4608..` points at) and host byte order (every array is host-built); Aurora's
+  `hour`/`mon`/`mday`/`min`/`sec` and `GXFogAdjTable::r`. No `STATIC_ASSERT` fired. TODO phase 4:
+  the THP header/info structs are read straight from big-endian `.thp` data.
+  Aurora mode: SSystem, the four JSystem modules, framework, m_Do, d-core, `cos_sdk`, smoke (ok),
+  scaffold, header and shadow checks (82 names, ok) build; default configuration: `cos_modules`
+  and checks rebuilt (13 steps), 0 errors.
+  Review: rerun independently (d-core rebuilt from clean in aurora mode, 136/136 units, 0 errors;
+  smoke ok; edited files force-rebuilt in the default decomp configuration, 0 errors).

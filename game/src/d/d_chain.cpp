@@ -40,8 +40,16 @@ void dChain_packet_c::draw() {
     GXSetVtxDesc(GX_VA_TEX0, GX_INDEX8);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0);
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora's GXSetArray also takes the array's byte size and byte order
+    // (the static asset arrays, host-endian).
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    GXSETARRAY(GX_VA_POS, l_pos, sizeof(l_pos), sizeof(*l_pos), true);
+    GXSETARRAY(GX_VA_TEX0, l_texCoord, sizeof(l_texCoord), sizeof(*l_texCoord), true);
+#else
     GXSetArray(GX_VA_POS, l_pos, sizeof(*l_pos));
     GXSetArray(GX_VA_TEX0, l_texCoord, sizeof(*l_texCoord));
+#endif
     dKy_GxFog_tevstr_set(mpTevStr);
     GXCallDisplayList(l_matDL, 0xa0);
     GXSetTevColorS10(GX_TEVREG0, mpTevStr->mColorC0);

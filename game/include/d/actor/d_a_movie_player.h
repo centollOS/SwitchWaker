@@ -1,7 +1,14 @@
 #ifndef D_A_MOVIE_PLAYER_H
 #define D_A_MOVIE_PLAYER_H
 
+#if TARGET_PC && defined(COS_SDK_AURORA)
+// Aurora's dolphin/thp.h has none of the player types and declares an extern "C" THPAudioDecode
+// that clashes with the static one below; take the decomp's types from cos_thp_extras.h instead.
+// TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+#include "cos_thp_extras.h"
+#else
 #include "dolphin/thp.h"
+#endif
 #include "f_op/f_op_actor.h"
 #include "d/d_drawlist.h"
 #include "dolphin/dvd/dvd.h"

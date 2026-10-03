@@ -144,7 +144,13 @@ static cPhs_State dKyeff_Create(kankyo_class* i_ky) {
         g_env_light.mWind.mWindVec.set(1.0f, 0.0f, 0.0f);
         g_env_light.mWind.mWindPower = 0.7f;
 
+#if TARGET_PC && defined(COS_SDK_AURORA)
+        // Aurora's OSCalendarTime names the field hour (same layout as the decomp's).
+        // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+        g_env_light.mCurTime = 15.0f * cal.hour;
+#else
         g_env_light.mCurTime = 15.0f * cal.hours;
+#endif
     } else if (dKy_checkEventNightStop()) {
         u32 stType = dStage_stagInfo_GetSTType(dComIfGp_getStage().getStagInfo());
         if (stType == dStageType_OUTDOORS_e || stType == dStageType_SEA_e) {
