@@ -127,7 +127,12 @@ void mDoDvdThd_param_c::mainLoop() {
         while (mDoDvdThd_command_c* cmd = this->getFirstCommand()) {
             cut(cmd);
             if (mDoDvdThd::SyncWidthSound) {
+#if TARGET_PC
+                // JAudio's DVD thread copies this many bytes of the argument: the whole pointer.
+                JASystem::Dvd::sendCmdMsg(cb, &cmd, sizeof(cmd));
+#else
                 JASystem::Dvd::sendCmdMsg(cb, &cmd, 0x04);
+#endif
             } else {
                 cb(&cmd);
             }
