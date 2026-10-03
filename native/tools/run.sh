@@ -43,6 +43,7 @@
 #                    n-th frame; COS_SHOT_DIR: another directory). A run with shots compiles each
 #                    pipeline before its first draw (COS_SYNC_PIPELINES, default on with shots), so
 #                    a shot never misses a draw whose pipeline was still compiling
+#   --aspect A       COS_ASPECT: 4:3, 16:9 or 16:10 (the widescreen option, docs/MODS.md)
 #   --build          run `ninja -C build/native-mac centollos` first
 #   --exe PATH       the executable (default build/native-mac/centollos)
 #   --run-dir DIR    put the run in DIR (created; must not exist yet) instead of
@@ -103,6 +104,7 @@ stage="${COS_BOOT_STAGE:-}"
 shot="${COS_SHOT:-}"
 audio_dump="${COS_AUDIO_DUMP:-}"
 perf="${COS_PERF:-}"
+aspect="${COS_ASPECT:-}"
 sound=0
 do_build=0
 exe="$build/centollos"
@@ -124,6 +126,7 @@ while [ $# -gt 0 ]; do
         --input) input="$2"; shift 2 ;;
         --stage) stage="$2"; shift 2 ;;
         --shot) shot="$2"; shift 2 ;;
+        --aspect) aspect="$2"; shift 2 ;;
         --build) do_build=1; shift ;;
         --exe) exe="$2"; shift 2 ;;
         --quiet) quiet=1; shift ;;
@@ -203,6 +206,7 @@ if [ -n "$stage" ]; then export COS_BOOT_STAGE="$stage"; else unset COS_BOOT_STA
 [ -n "$trace" ] && export COS_TRACE="$trace"
 [ -n "$shot" ] && export COS_SHOT="$shot"
 [ -n "$uncapped" ] && export COS_UNCAPPED="$uncapped"
+if [ -n "$aspect" ]; then export COS_ASPECT="$aspect"; else unset COS_ASPECT; fi
 if [ -n "$audio_dump" ]; then
     case "$audio_dump" in /*) ;; *) audio_dump="$run_dir/$audio_dump" ;; esac
     export COS_AUDIO_DUMP="$audio_dump"

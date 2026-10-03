@@ -60,6 +60,14 @@ outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.tx
 # interval must never be 0 (JFWDisplay::calcCombinationRatio loops by it)
 outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.txt --uncapped
 
+# widescreen option (lane wide, docs/MODS.md): M13 with the 16:9 code's changes (camera aspect,
+# 2D bounds, HUD and minimap moved) and the title to the name scene at 16:10 (the interpolated
+# values, the wipe and the full-screen masks)
+outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.txt --aspect 16:9
+file-select 0 --input native/check/input/file-select.txt --aspect 16:10
+# a malformed COS_ASPECT is a usage error
+static-init 2 --aspect 21:9
+
 # M11 new-game (lane audio): title -> name scene on a clean card -> save file made -> name entry
 # -> OPEN scene. Guards the memory card save race (fix NG-memcard-sync) and per-run card folders
 # (fix NG-run-dir)

@@ -3382,6 +3382,35 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   sea:44:206 --uncapped` exit 0 (19 ran, 2 refused, 1 deleted itself); a third full sweep gave 21
   faulting runs (the table minus KITA/KOKIIE and LEAF_LIFT, plus SHUTTER), so the del/? rows are flaky.
 
+- **Widescreen option `COS_ASPECT`** (2026-10-03, lane wide). The community 16:9 Gecko code that the
+  translated build applies (mods/widescreen/GZLE01.gecko) is done in C under `TARGET_PC`:
+  `COS_ASPECT=4:3|16:9|16:10` (`native/include/pc/pc_aspect.h`, `native/src/pc/pc_aspect.cpp`; 4:3 by
+  default on the Mac, 16:9 by default on the Switch through `cos_switch.cpp`'s defaults; a malformed
+  value exits 2). Every line of the code was decoded against the decompilation's symbols and
+  `main.dol` (table in [MODS.md](MODS.md), "Widescreen in the native port"): the camera aspect (which
+  also widens `mDoLib_clipper`'s culling frustum), the 2D screen -9..650 widened to -123..767, the
+  wipe and fade bounds, the HUD and minimap moved 114 toward the edges (constructor values of
+  `g_meterHIO`/`g_meter_mapHIO`, set in `dMeter_Create`, plus the redirected `fopMsgM_paneTrans`/
+  `setAlpha`/`setInitAlpha` calls of the meter), the menus' 640-wide mask panes left unfaded, full-
+  screen J2D screens drawn with their own 640x480 port, the Picto Box and telescope given black bars
+  and a 4:3 photo viewport, the boomerang sights mapped onto the wider 2D screen. 16:10 interpolates
+  each value as `scripts/mods/widescreen_aspect.py` does. Aurora patch 0006 (`AuroraSetFitAspect`)
+  makes `AURORA_VIEWPORT_FIT` keep the chosen aspect instead of the render mode's, so the 640x480
+  EFB is presented stretched to 16:9 (an anamorphic picture, as a widescreen TV shows the console's
+  output) and letterboxed in a window of another shape; the Mac window opens at 1280x720 (16:9) or
+  1152x720 (16:10). Checked with COS_SHOT (inspected, 4:3 and 16:9): title, name scene (dialog
+  centred, not stretched, the sky across the whole width), Outset after M13 (the view shows more on
+  both sides, hearts and magic at the left edge, buttons at the right, minimap and its buttons at
+  the bottom left with the map clipped to its frame, rupees at the bottom right, no horizontal
+  stretch: Link's height is the same share of the frame), the item menu (centred, the captured
+  background across the width), and 16:10 Outset. `regress.sh -j 3`: all checks passed, with three
+  new targets (`outset-control --aspect 16:9`, `file-select --aspect 16:10`, `static-init 2 --aspect
+  21:9`; `run.sh --aspect` sets `COS_ASPECT`). Not checked on screen: culling at the edges in
+  motion, the Picto Box, telescope, sea chart, game over and conducting screens, the place name.
+  Seen in 4:3 too, so not from this change: a dark translucent box over part of Outset in Aryll's
+  lookout event, a one-pixel blue line at the bottom of fully black frames, and a panic in
+  `dMenu_save_c::_create` (d_menu_save.cpp:184) when R opens the collection screen from the item menu.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
