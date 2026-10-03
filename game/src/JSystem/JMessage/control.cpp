@@ -43,7 +43,11 @@ const char* JMessage::TControl::getMessageData(u16 groupID, u16 messageIndex) co
     void* messageEntry = getMessageEntry(groupID, messageIndex);
     if (messageEntry == NULL)
         return NULL;
+#if TARGET_PC
+    u32 offs = *(BE(u32)*)messageEntry; // the entry's text offset is big-endian (step 4.6)
+#else
     u32 offs = *(u32*)messageEntry;
+#endif
     return mResource->mMessageData + offs;
 }
 
@@ -104,7 +108,11 @@ bool JMessage::TControl::setMessageCode_flush_() {
     if (mMessageEntry == NULL)
         return false;
 
+#if TARGET_PC
+    u32 offs = *(BE(u32)*)mMessageEntry; // the entry's text offset is big-endian (step 4.6)
+#else
     u32 offs = *(u32*)mMessageEntry;
+#endif
     mMessageDataStart = mResource->mMessageData + offs;
     mMessageDataCurrent = mMessageDataStart;
     return true;

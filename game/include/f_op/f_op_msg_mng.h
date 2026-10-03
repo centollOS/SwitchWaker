@@ -5,6 +5,7 @@
 #include "SSystem/SComponent/c_xyz.h"
 #include "f_pc/f_pc_leaf.h"
 #include "f_op/f_op_msg.h"
+#include "helpers/endian.h"
 
 class JKRExpHeap;
 class JKRHeap;
@@ -18,13 +19,14 @@ struct mesg_header;
 struct mesg_data;
 struct mesg_info;
 
-// BMG INF1 messageEntry
+// BMG INF1 messageEntry. Disc data, stored big-endian: BE(T) is T on the GameCube (phase 4,
+// step 4.6).
 struct JMSMesgEntry_c {
-    /* 0x00 */ u32 mDataOffs;
-    /* 0x04 */ u16 mMsgNo;
-    /* 0x06 */ s16 mItemPrice;
-    /* 0x08 */ u16 mNextMsgNo;
-    /* 0x0A */ u16 field_0x0a;
+    /* 0x00 */ BE(u32) mDataOffs;
+    /* 0x04 */ BE(u16) mMsgNo;
+    /* 0x06 */ BE(s16) mItemPrice;
+    /* 0x08 */ BE(u16) mNextMsgNo;
+    /* 0x0A */ BE(u16) field_0x0a;
     /* 0x0C */ u8 mTextboxType;
     /* 0x0D */ u8 mDrawType;
     /* 0x0E */ u8 mTextboxPosition;

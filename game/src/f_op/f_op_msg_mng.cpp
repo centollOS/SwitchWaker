@@ -29,10 +29,11 @@ struct mesg_header : JUTDataFileHeader {
     // first block is mesg_info
 };
 
+// BMG and BMC blocks: disc data, stored big-endian (BE(T) is T on the GameCube; phase 4, step 4.6).
 struct mesg_info : JUTDataBlockHeader {
-    /* 0x08 */ u16 mNumEntry;
-    /* 0x0A */ u16 mEntrySize;
-    /* 0x0C */ u16 mGroupID;
+    /* 0x08 */ BE(u16) mNumEntry;
+    /* 0x0A */ BE(u16) mEntrySize;
+    /* 0x0C */ BE(u16) mGroupID;
     /* 0x10 */ u8 mColor;
     /* 0x14 */ JMSMesgEntry_c mEntries[];
 };
@@ -43,9 +44,9 @@ struct mesg_data : JUTDataBlockHeader {
 
 // Fake struct name. CLT1 chunk in a .bmc file.
 struct clt1_header : public JUTDataBlockHeader {
-    /* 0x08 */ u16 mEntryNum;
+    /* 0x08 */ BE(u16) mEntryNum;
     /* 0x0A */ u16 pad;
-    /* 0x0C */ u32 mColors[];
+    /* 0x0C */ BE(u32) mColors[];
 };
 
 static bool pushButton;

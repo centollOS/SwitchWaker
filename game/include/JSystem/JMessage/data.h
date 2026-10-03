@@ -3,10 +3,16 @@
 
 #include "JSystem/JGadget/binary.h"
 #include "JSystem/JUtility/JUTDataHeader.h"
+#include "helpers/endian.h"
 
 namespace JMessage {
 namespace data {
+#if TARGET_PC
+// 'MESG' as the file stores it (big-endian), for parseHeader_next's memcmp (step 4.6).
+extern const BE(u32) ga4cSignature;
+#else
 extern const int ga4cSignature;
+#endif
 
 struct TParse_THeader : public JGadget::binary::TParseData_aligned<4> {
     TParse_THeader(const void* data) : TParseData_aligned(data) {}
@@ -16,8 +22,14 @@ struct TParse_THeader : public JGadget::binary::TParseData_aligned<4> {
     const void* getContent() const { return (char*)getRaw() + 0x20; }
 
     u32* get_signature() const { return (u32*)(get() + 0x0); }
+#if TARGET_PC
+    // The BMG header is big-endian (step 4.6; as in Dusklight's JMessage/data.h).
+    u32 get_type() const { return *(BE(u32)*)(get() + 0x4); }
+    u32 get_blockNumber() const { return *(BE(u32)*)(get() + 0xC); }
+#else
     u32 get_type() const { return *(u32*)(get() + 0x4); }
     u32 get_blockNumber() const { return *(u32*)(get() + 0xC); }
+#endif
     u8 get_encoding() const { return *(const u8*)((const char*)getRaw() + 0x10); }
 };
 
@@ -25,18 +37,25 @@ struct TParse_TBlock : public JGadget::binary::TParseData_aligned<4> {
     TParse_TBlock(const void* data) : TParseData_aligned(data) {}
 
     const char* get() const { return (char*)getRaw(); }
+#if TARGET_PC
+    // Block headers are big-endian (step 4.6; as in Dusklight's JMessage/data.h).
+    u32 get_size() const { return *(BE(u32)*)(get() + 0x4); }
+    const void* getNext() const { return (char*)getRaw() + get_size(); }
+    u32 get_type() const { return *(BE(u32)*)(get() + 0x0); }
+#else
     u32 get_size() const { return *(u32*)(get() + 0x4); }
     const void* getNext() const { return (char*)getRaw() + get_size(); }
     u32 get_type() const { return *(u32*)(get() + 0x0); }
+#endif
 };
 
-// INF1
+// INF1 and MID1 are disc data, stored big-endian: BE(T) is T on the GameCube (step 4.6).
 struct JUTMesgInfo {
 public:
     /* 0x00 */ JUTDataBlockHeader header;
-    /* 0x08 */ u16 messageEntryNumber;
-    /* 0x0A */ u16 messageEntrySize;
-    /* 0x0C */ u16 groupID;
+    /* 0x08 */ BE(u16) messageEntryNumber;
+    /* 0x0A */ BE(u16) messageEntrySize;
+    /* 0x0C */ BE(u16) groupID;
     /* 0x0E */ u8 defaultColor;
     /* 0x0F */ u8 reserved;
     /* 0x10 */ char messageEntryTable[];
@@ -57,11 +76,11 @@ struct TParse_TBlock_info : public TParse_TBlock {
 struct JUTMesgIDData {
 public:
     /* 0x00 */ JUTDataBlockHeader mHeader;
-    /* 0x08 */ u16 numEntries;
+    /* 0x08 */ BE(u16) numEntries;
     /* 0x0A */ u8 format;
     /* 0x0B */ u8 info;
     /* 0x0C */ u8 reserved[4];
-    /* 0x10 */ u32 messageIDTable[];
+    /* 0x10 */ BE(u32) messageIDTable[];
 };
 
 inline u16 getTagCode(u32 tag) { return tag & 0xFFFF; }

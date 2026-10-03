@@ -9,6 +9,10 @@
 
 namespace JMessage {
 namespace data {
+#if TARGET_PC
+const BE(u32) ga4cSignature   = 'MESG'; // stored big-endian, as in the file (step 4.6)
+#else
 const int ga4cSignature       = 'MESG';
+#endif
 } // namespace data
 } // namespace JMessage
