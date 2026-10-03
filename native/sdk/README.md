@@ -176,17 +176,27 @@ and CARD need nothing here: every DVD name the plan lists (`DVDLow*`, streaming,
   cos_sdk compiles against Aurora's headers only, so `GBA.cpp` (and the game-only SI, DB and
   amcstubs names) repeat their declarations; the tests call them through the forwarders.
 
-## Audio hardware, silent, and MSL extras (step 2.6f)
+## Audio hardware and MSL extras (step 2.6f, 5.A, 5.3)
 
-`src/audio/AIStubs.cpp`, `src/audio/DSP.cpp` (silent stubs until step 5.A), `src/audio/DTK.cpp`, `src/runtime/extras.c`;
-tests `audio` and `msl` (`tests/sdk_audio.cpp`). Real audio is phase 5. What game glue and the
-JAudio steps (3.7, phase 5) need to know:
+`src/audio/AI.cpp` (the silent `AIStubs.cpp` until step 5.3), `src/audio/DSP.cpp` (silent stubs
+until step 5.A), `src/audio/DTK.cpp`, `src/runtime/extras.c`; tests `audio` and `msl`
+(`tests/sdk_audio.cpp`) and `ai-tone` (`tests/sdk_ai_tone.cpp`). What game glue and the JAudio
+steps (3.7, phase 5) need to know:
 
-- AI: a register model that plays nothing. Every setting reads back (`AIGetDSPSampleRate` uses
-  the SDK's encoding, 0 = 32 kHz, 1 = 48 kHz; 1 before `AIInit`, 0 after it), but no interrupt is
-  ever raised: the DMA and stream callbacks are never called, so JAudio's audio thread waits for
-  a DMA tick that never comes (it blocks; it does not spin). `AIInitDMA` keeps the 64-bit
-  address; `AIGetDMAStartAddr` aborts if it does not fit the SDK's u32.
+- AI (step 5.3 of docs/NATIVE_PORT_PHASE4_6.md): the audio DMA plays over SDL3. From `AIInit` on a
+  host clock thread runs the console's DMA engine: `AIStartDMA` latches the block `AIInitDMA` set
+  (a MEM1 physical address and a length in 32-byte steps); the engine reads it at the DSP rate
+  (32 kHz after `AIInit`) as big-endian s16 stereo, right channel first, and at each block end
+  latches the registers again and calls the DMA callback with interrupts disabled (the OS lock),
+  so the callback sets the block after the one that just started. The frames go to an SDL3
+  audio stream (s16 stereo, SDL converts to the device) and, with `COS_AUDIO_DUMP=x.wav`, to a
+  WAV file (silence included; the header is kept valid while the process runs).
+  `SDL_AUDIO_DRIVER=dummy` for headless runs (`cos_sdk_smoke` and `run.sh` set it unless it
+  is set). `AIGetDMABytesLeft` reads the engine's count. Every other setting reads back
+  (`AIGetDSPSampleRate` uses the SDK's encoding, 0 = 32 kHz, 1 = 48 kHz; 1 before `AIInit`, 0 after
+  it); the stream callback is never called (disc streaming is step 5.6). `AIInitDMA` keeps the
+  64-bit address; `AIGetDMAStartAddr` aborts if it does not fit the SDK's u32. `ai-tone` plays a
+  sine through the DMA, block by block from the callback, and checks that the dump equals it.
 - DSP (step 5.A of docs/NATIVE_PORT_PHASE4_6.md, decision H6): an emulated DSP, Dolphin's
   DSPHLE (`native/dsp_hle`, built from `COS_RECOMPCORE_DIR`, by default `ref/recompcore`). Its boot
   ROM takes the SDK's task boot mails and runs Dolphin's version of the uploaded ucode (the game's is
@@ -197,7 +207,7 @@ JAudio steps (3.7, phase 5) need to know:
   (`cos_dsp_extras.h`) stand for `__DSPRegs[5]`. The task list (`__DSP_*_task`) and the boot and
   exec mail sequences are the SDK's; `DSPAddTask` is weak (JAudio's `osdsp.c` replaces it). The
   DSP reads MEM1 by physical address and Aurora's ARAM, so `DSPInit` needs `OSInit` and `ARInit`.
-- DTK: the SDK's state machine (from Dusklight's `libs/dolphin`) over the silent AI and Aurora's
+- DTK: the SDK's state machine (from Dusklight's `libs/dolphin`) over the AI (no stream interrupt) and Aurora's
   DVD stream commands, which complete at once: tracks queue and change state, nothing plays and
   no track ends. The game does not call DTK. `cos_sdk_smoke_tsan` leaves `DTK.cpp` out (it links no
   `aurora::dvd`) and skips the DTK checks.

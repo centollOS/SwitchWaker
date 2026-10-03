@@ -4,7 +4,7 @@
 // <dolphin/dtk.h> links.
 //
 // This is the SDK's own DTK state machine, unchanged, over two things that make it silent:
-// - the AI of AIStubs.cpp plays nothing and never raises the stream interrupt, so the stream
+// - the AI (AI.cpp) plays no disc stream and never raises the stream interrupt, so the stream
 //   callback __DTKCallbackForAIInterrupt is never called: the position stays 0, no track ever
 //   ends, and the playlist only moves through DTKNextTrack/DTKPrevTrack;
 // - Aurora's DVD stream commands (DVDPrepareStreamAsync, DVDCancelStreamAsync,

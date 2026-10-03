@@ -1,5 +1,5 @@
-// cos_sdk_smoke: the tests of step 2.6f, the silent audio hardware and the MSL extras:
-// "audio" (AI register model, DSP mailboxes and task list over the emulated DSP of step 5.A, DTK
+// cos_sdk_smoke: the tests of step 2.6f, the audio hardware and the MSL extras:
+// "audio" (AI registers (its DMA output is checked by "ai-tone", sdk_ai_tone.cpp), DSP mailboxes and task list over the emulated DSP of step 5.A, DTK
 // playlist over Aurora's DVD stream commands; nothing may block) and "msl" (stricmp, strnicmp).
 //
 // The AI names come through the dolphin/ai/ai.h forwarder, as the game sees them.
@@ -53,7 +53,8 @@ COS_SMOKE_TEST(audio) {
     COS_SMOKE_CHECK(AIGetDMAStartAddr() == 0x1000 && AIGetDMALength() == 0x280);
     COS_SMOKE_CHECK(!AIGetDMAEnableFlag());
     AIStartDMA();
-    COS_SMOKE_CHECK(AIGetDMAEnableFlag() && AIGetDMABytesLeft() == 0);
+    // The engine latched the 0x280-byte block; the bytes left exclude the step in transfer.
+    COS_SMOKE_CHECK(AIGetDMAEnableFlag() && AIGetDMABytesLeft() < 0x280);
     AIStopDMA();
     COS_SMOKE_CHECK(!AIGetDMAEnableFlag());
     AISetStreamVolLeft(0x12);

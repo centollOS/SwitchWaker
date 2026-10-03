@@ -17,6 +17,10 @@
 #   --trace LIST     trace channels (COS_TRACE), e.g. res,scene
 #   --uncapped       COS_UNCAPPED=1
 #   --audio on|off   COS_AUDIO (default: on since step 5.A, decision H10: JAudio and the DSP run)
+#   --audio-dump F   COS_AUDIO_DUMP (step 5.3): the AI's DMA output as a WAV file; a relative F
+#                    is put in the run directory, e.g. --audio-dump audio.wav
+#   --sound          play the audio on SDL's default device; without it SDL_AUDIO_DRIVER=dummy
+#                    (headless; an SDL_AUDIO_DRIVER already in the environment is kept)
 #   --disc PATH      COS_DISC, the GZLE01 revision 0 .iso: required (option or environment) for
 #                    every target that boots the game; without either, the maintainer's
 #                    /path/to/GZLE01.iso is used only if it exists
@@ -81,6 +85,8 @@ legacy_disc=/path/to/GZLE01.iso
 input="${COS_INPUT:-}"
 stage="${COS_BOOT_STAGE:-}"
 shot="${COS_SHOT:-}"
+audio_dump="${COS_AUDIO_DUMP:-}"
+sound=0
 do_build=0
 exe="$build/centollos"
 quiet=0
@@ -93,6 +99,8 @@ while [ $# -gt 0 ]; do
         --trace) trace="$2"; shift 2 ;;
         --uncapped) uncapped=1; shift ;;
         --audio) audio="$2"; shift 2 ;;
+        --audio-dump) audio_dump="$2"; shift 2 ;;
+        --sound) sound=1; shift ;;
         --disc) disc="$2"; shift 2 ;;
         --input) input="$2"; shift 2 ;;
         --stage) stage="$2"; shift 2 ;;
@@ -163,6 +171,14 @@ if [ -n "$stage" ]; then export COS_BOOT_STAGE="$stage"; else unset COS_BOOT_STA
 [ -n "$trace" ] && export COS_TRACE="$trace"
 [ -n "$shot" ] && export COS_SHOT="$shot"
 [ -n "$uncapped" ] && export COS_UNCAPPED="$uncapped"
+if [ -n "$audio_dump" ]; then
+    case "$audio_dump" in /*) ;; *) audio_dump="$run_dir/$audio_dump" ;; esac
+    export COS_AUDIO_DUMP="$audio_dump"
+else
+    unset COS_AUDIO_DUMP
+fi
+# Runs are headless (and several lanes run at once): SDL's dummy audio driver unless --sound.
+if [ "$sound" = 0 ]; then export SDL_AUDIO_DRIVER="${SDL_AUDIO_DRIVER:-dummy}"; fi
 
 printf '%q ' "$exe" "${extra[@]+"${extra[@]}"}" > "$run_dir/command.txt"
 echo >> "$run_dir/command.txt"

@@ -2108,6 +2108,44 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   - Review (round 2): accepted; `regress.sh -j 3` all checks passed 5x with `COS_AUDIO=on`
     the default, `unifdef -UTARGET_PC` of `JASAudioThread.cpp`/`osdsp_task.c` equals HEAD,
     `run.sh opening` logs the handshake done and panics only later in `dPa_modelControl_c`.
+- **5.3 Audio output over SDL3** (2026-10-03): `cos_sdk_smoke ai-tone` passes (3840 frames, 24
+  blocks of 0x280 bytes through the DMA in 0.12 s; the dump equals the input), 5 full
+  `cos_sdk_smoke` runs ok; negative check: without the big-endian swap `ai-tone` fails.
+  - **AI DMA over SDL3** (`native/sdk/src/audio/AI.cpp`, was `AIStubs.cpp`): a host clock thread
+    plays the console's DMA engine as Dolphin models it: `AIStartDMA` latches the registers
+    `AIInitDMA` set (MEM1 physical address, length); every millisecond the frames real time says
+    are due are read in 32-byte steps as big-endian s16 stereo, right channel first, and at each
+    block end the registers are latched again and the DMA callback is called with the OS lock
+    held (interrupt context), so JAudio's `syncAudio` posts its message and `updateDac` sets the
+    next block. The lock is released between steps. The frames go to an SDL3 stream (s16 stereo
+    at the DSP rate, `SDL_PutAudioStreamData`, capped at 200 ms queued) and to
+    `COS_AUDIO_DUMP=x.wav` (header rewritten after each write; reopened at each `AIInit`).
+    Deviation from the step text ("an SDL3 stream pulls each block"): a pull callback is asked
+    for several blocks at once and would raise several interrupts back to back before the audio
+    thread could set the next block (stale blocks replayed), so the engine is paced by the host
+    clock and SDL only plays what it is given. `AIGetDMABytesLeft` reads the engine's count
+    (Dolphin's register read); the `audio` test's check changes from `== 0` to `< 0x280`.
+  - **Harness:** `cos_sdk_smoke` sets `SDL_AUDIO_DRIVER=dummy` unless set; `run.sh` does the
+    same (headless runs, several lanes at once) unless `--sound`, and `--audio-dump F` sets
+    `COS_AUDIO_DUMP` (a relative F goes into the run directory).
+  - **`TTrack::writeRegParam` stored an indeterminate flag** (`JASTrack.cpp`, `TARGET_PC`; step
+    5.5's file, fixed here because the DMA ticks now run the sequencer and `outset-debug` (M12)
+    died with SIGTRAP in it): for register writes 0x20/0x21/0x2E/0x2F `reg_flags` is never set
+    (the decomp's "Bug" comment); clang compiles the store of the indeterminate value to a trap
+    right after `getProgramNumber`. On the console the value is the caller's r31, which
+    `TSeqParser::parseSeq` holds the track (`this`) in (main.dol 0x80280264, stored at
+    0x80283674), so the low half of `this` is stored.
+  Result: the audio thread now gets a DMA tick every 5 ms and requests DSP frames; logo-res,
+  title and outset-debug reach their milestones with `--audio-dump` and the dumps are silent
+  (0 non-zero samples): the JAudio ucode reads CH_BUF/FX_BUF host-order (5.4/5.5), which shows
+  as `DSP: main-memory range 0xc0063900+0xa0 is outside MEM1` and about 25000 `[dsp-alert]
+  ... unknown/unimplemented sample source: 0900` lines per outset-debug run (run.log 14 MB).
+  The SDL dummy driver plays a little slower than the clock (its `SDL_Delay` per buffer), so on
+  long runs the 200 ms cap drops frames (logged once); the dump is unaffected.
+  - Review (round 1): accepted; `cos_sdk_smoke ai-tone audio` ok 3x (0.122 s), full
+    `cos_sdk_smoke` ok, `regress.sh -j 3` all checks passed, `run.sh outset-debug --stage
+    sea:44:206 --audio-dump a.wav` reached with a 1.9 MB WAV (silent, as expected before 5.4/5.5).
+    Committed as two commits (the `writeRegParam` fix, then the AI DMA).
 
 - **4.12 J3D animation and runtime** (2026-10-03): `COS_SMOKE=anm-sweep` 0 x3; the report equals
   the manifest (1319 archives, 6227 J3D1 files: 3444 BCK, 1070 BTK, 444 BRK, 13 BPK, 1255 BTP,
