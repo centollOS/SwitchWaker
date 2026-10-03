@@ -76,6 +76,12 @@ set(COS_GAME_COMPILE_OPTIONS
         # non-noexcept operator new never returns NULL and stores through it unchecked (SIGSEGV
         # addr=0x0 in cBgW::SetTri's new[] on a full actor heap). -fcheck-new restores the check.
         $<$<COMPILE_LANGUAGE:CXX>:-fcheck-new>
+        # The decompiled code sometimes reads a local that only one branch wrote (MWCC left stack
+        # garbage there). Clang treats that read as undefined behaviour: an uninitialized value
+        # passed to a function argument (noundef) makes the path unreachable, so the branch's
+        # NULL check is deleted (daWarphr_c::_draw dereferenced a NULL demo camera). Give every
+        # automatic variable defined contents so the branches stay as written. GCC 12+ accepts it.
+        -ftrivial-auto-var-init=zero
         # Diagnostics only (no code change). Same set as Dusklight, plus the MWCC-isms clang
         # rejects by default but can accept with identical meaning.
         -Wno-multichar                       # 'ABCD' constants: identical big-endian encoding

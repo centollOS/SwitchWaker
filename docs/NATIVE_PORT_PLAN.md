@@ -2891,6 +2891,19 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   147 of 155 (E3ROOP ok, the castle stage past the blocker; fail: ENDumi, the castle stage, I_SubAN, K_Testd, Msmoke),
   I_SubAN being the timing-dependent warp-out of fix 10 (also seen before this change).
 
+- **Boot-sweep fix 12: automatic variables zero-initialized in game units
+  (`-ftrivial-auto-var-init=zero`)** (2026-10-03, lane outset, host-semantics). the castle stage and K_Testd:
+  SIGSEGV addr=0x0 in `daWarphr_c::_draw` (d_a_warphr.cpp:428) <- `daWarphr_Draw`. The source checks
+  `if (demoCamera != NULL)`, but the disassembly had no check: it called the camera's vtable
+  directly. Root cause: on the NULL path `sp1C`/`sp08` stay uninitialized and are then passed to
+  `transS`/`YrotM`. Clang marks arguments `noundef`, so passing an uninitialized value is
+  undefined behaviour, and it deleted the whole NULL path as unreachable. MWCC just used stack
+  garbage. `-ftrivial-auto-var-init=zero` (native/cmake/GameConfig.cmake, all game units; GCC 12+
+  accepts it) gives every local defined contents, so clang keeps branches like this one. No game
+  source changes. The `cbz x0` is back in `_draw`. Sweep: 148 -> 150 of 155 (fail: ENDumi,
+  Msmoke; 3 expected fails, 1 skipped). Regression passes.
+  Reviewed: regression passes; reviewer sweep 150 of 155 (the castle stage, K_Testd ok).
+
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
   variable values checked, max |v| 500000). Builds on the boot loops' STB/FVB big-endian
