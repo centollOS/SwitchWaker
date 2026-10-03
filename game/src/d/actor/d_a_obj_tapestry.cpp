@@ -1232,10 +1232,20 @@ void daObjTapestryPacket_c::setup_vtx(daObjTapestryDrawVtx_c* vtx) {
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_NRM, GX_NRM_XYZ, GX_F32, 0);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_CLR0, GX_CLR_RGBA, GX_RGBA8, 0);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0);
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora's GXSetArray also takes the array's byte size and byte order
+    // (the given DrawVtx_c buffer's arrays, the static color and texcoord table, host-endian).
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    GXSETARRAY(GX_VA_POS, vtx->pos, sizeof(vtx->pos), sizeof(cXyz), true);
+    GXSETARRAY(GX_VA_NRM, vtx->nrm, sizeof(vtx->nrm), sizeof(cXyz), true);
+    GXSETARRAY(GX_VA_CLR0, &l_color, sizeof(l_color), sizeof(GXColor), true);
+    GXSETARRAY(GX_VA_TEX0, m_draw_data.tex_coord(), sizeof(m_draw_data.mTex), 8, true);
+#else
     GXSetArray(GX_VA_POS, vtx->pos, sizeof(cXyz));
     GXSetArray(GX_VA_NRM, vtx->nrm, sizeof(cXyz));
     GXSetArray(GX_VA_CLR0, &l_color, sizeof(GXColor));
     GXSetArray(GX_VA_TEX0, m_draw_data.tex_coord(), 8);
+#endif
 }
 
 /* 00004090-0000410C       .text load_tex__21daObjTapestryPacket_cFv */
@@ -1324,7 +1334,12 @@ void daObjTapestryPacket_c::draw() {
     GXSetCullMode(GX_CULL_BACK);
     GXCallDisplayList(m_draw_data.dl(), 0x180);
     GXSetCullMode(GX_CULL_FRONT);
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    GXSETARRAY(GX_VA_NRM, vtx->backNrm, sizeof(vtx->backNrm), sizeof(cXyz), true);
+#else
     GXSetArray(GX_VA_NRM, vtx->backNrm, sizeof(cXyz));
+#endif
     GXCallDisplayList(m_draw_data.dl(), 0x180);
 #if VERSION > VERSION_JPN
     J3DShape::sOldVcdVatCmd = NULL;

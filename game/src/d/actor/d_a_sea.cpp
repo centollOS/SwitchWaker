@@ -857,7 +857,14 @@ void daSea_packet_c::draw() {
     GXSetVtxAttrFmt(GX_VTXFMT0,GX_VA_POS,GX_POS_XYZ,GX_F32,0);
     GXSetVtxAttrFmt(GX_VTXFMT0,GX_VA_TEX0,GX_TEX_ST,GX_F32,0);
 
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora's GXSetArray also takes the array's byte size and byte order
+    // (m_draw_vtx is the GRID_CELLS x GRID_CELLS buffer allocated above, host-endian).
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    GXSETARRAY(GX_VA_POS, this->m_draw_vtx, sizeof(cXyz) * GRID_CELLS * GRID_CELLS, sizeof(cXyz), true);
+#else
     GXSetArray(GX_VA_POS, this->m_draw_vtx, sizeof(cXyz));
+#endif
 
     // TODO: Remove magic numbers
 

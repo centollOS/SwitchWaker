@@ -551,3 +551,15 @@ Each phase lands as its own commits; this file records decisions and measured re
   framework, m_Do, d-core, actors-1 to actors-4, `cos_sdk`, smoke (ok), scaffold, header and
   shadow checks (82 names, ok) build; default configuration: `cos_modules` and checks rebuilt
   (2 units), 0 errors.
+- **2.7 actors-5:** compiles in aurora header mode (all 74 units, `d_a_obj_ohatch` .. `d_a_ship`,
+  0 errors) and still in decomp mode. The first aurora build failed 4 units with 14 errors (none
+  near clang's 50-per-unit limit, so nothing hidden), all the three-argument `GXSetArray`: now
+  `GXSETARRAY` with each array's real byte size and `le=true` under
+  `TARGET_PC && defined(COS_SDK_AURORA)` (original calls in `#else`, `TODO(native phase 2.8)`).
+  `d_a_obj_tapestry`: the given `DrawVtx_c` buffer's `pos`/`nrm`/`backNrm`, the static `l_color`
+  and `m_draw_data.mTex`; `d_a_pirate_flag` and `d_a_sail`: one set of the double-buffered
+  `mPos`/`mNrm`/`mBackNrm` and the static `l_texCoord` asset array; `d_a_sea`: the
+  `GRID_CELLS * GRID_CELLS` `m_draw_vtx` buffer allocated in `draw`. No forwarder change, no
+  `STATIC_ASSERT` fired. Aurora mode: SSystem, the four JSystem modules, framework, m_Do, d-core,
+  actors-1 to actors-5, `cos_sdk`, smoke (ok), scaffold, header and shadow checks (82 names, ok)
+  build; default configuration: `cos_modules` and checks rebuilt (4 units), 0 errors.
