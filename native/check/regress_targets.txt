@@ -72,3 +72,8 @@ static-init 2 --aspect 21:9
 # -> OPEN scene. Guards the memory card save race (fix NG-memcard-sync) and per-run card folders
 # (fix NG-run-dir)
 new-game 0 --input native/check/input/new-game.txt
+
+# bug B4 (lane b4-grandma): the grandmother's tunic talk and demo in Link's house (debug boot at
+# LinkRM point 0 starts it on a new file), every JKR heap checked every frame (and newlib's free
+# lists on the Switch); the run must end at --frames with no fault, panic or damaged heap
+run 0 --stage LinkRM:0:0 --frames 3000 --uncapped --heap-check 1 --input native/check/input/grandma-talk.txt

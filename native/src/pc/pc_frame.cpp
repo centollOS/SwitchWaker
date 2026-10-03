@@ -736,6 +736,9 @@ void pc_frame_end(void) {
         shotFrameEnd(pc_frame_count() + 1);
         stats = aurora_get_stats();
     }
+    if (gConfig.heapCheckEvery != 0 && (pc_frame_count() + 1) % gConfig.heapCheckEvery == 0) {
+        heapCheckFrame(pc_frame_count() + 1);
+    }
     if (sTraceFrame) {
         const uint64_t now = monotonicNs();
         const uint64_t paceStart = sPaceStartNs != 0 ? sPaceStartNs : endFrameStartNs;

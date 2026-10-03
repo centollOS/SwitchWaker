@@ -35,6 +35,10 @@ struct Config {
     // built, texture bytes uploaded, resources loaded, scene created). 0 = off (the default; the
     // Switch build sets 50).
     unsigned int hitchMs = 0;
+    // COS_HEAP_CHECK=<n> (bug B4): every n game frames, check() every JKR heap of the tree from the
+    // root (block signatures, list links, sizes); the first failure names the heap and ends the
+    // run as a check failure. 0 = off.
+    unsigned int heapCheckEvery = 0;
     // COS_FPS_OVERLAY: a frame-rate panel drawn with Aurora's ImGui (pc_overlay.cpp). Off by default;
     // the Switch build sets 1.
     bool fpsOverlay = false;
@@ -87,6 +91,8 @@ void runAuroraSmoke();
 // arc-sweep, msg-sweep, jpa-sweep, stage-sweep, blo-sweep, save, dzb-sweep, audio-parse,
 // j3d-sweep, anm-sweep, amp-sweep, stb-sweep; from pc_heaps_created); it never returns then.
 void runHeapsSmoke();
+// pc_heap.cpp: COS_HEAP_CHECK, from pc_frame_end.
+void heapCheckFrame(unsigned int frame);
 // pc_heap.cpp: COS_SMOKE=heap.
 [[noreturn]] void smokeHeap();
 // pc_font.cpp: COS_SMOKE=font.

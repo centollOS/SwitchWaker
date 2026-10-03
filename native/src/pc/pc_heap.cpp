@@ -32,6 +32,10 @@
 #include <new>
 #include <unistd.h>
 
+#if defined(__SWITCH__)
+#include <malloc.h>
+#endif
+
 namespace pc {
 
 namespace {
@@ -437,6 +441,58 @@ void checkOperatorNew(JKRExpHeap* heap) {
 
     writef(STDERR_FILENO, "[cos] heap: %d error(s)\n", sErrors);
     pc_exit(sErrors == 0 ? PC_EXIT_REACHED : PC_EXIT_CHECK_FAILED);
+}
+
+// COS_HEAP_CHECK (bug B4): check() on every heap of the tree below `heap`; the first heap that fails
+// is returned (nullptr: all hold).
+static JKRHeap* checkHeapTree(JKRHeap* heap, unsigned int* count) {
+    (*count)++;
+    if (!heap->check()) {
+        return heap;
+    }
+    JSUTree<JKRHeap>& tree = heap->getHeapTree();
+    for (JSUTreeIterator<JKRHeap> it(tree.getFirstChild()); it != tree.getEndChild(); ++it) {
+        if (JKRHeap* bad = checkHeapTree(it.getObject(), count)) {
+            return bad;
+        }
+    }
+    return nullptr;
+}
+
+void heapCheckFrame(unsigned int frame) {
+    JKRHeap* root = JKRHeap::getRootHeap();
+    if (root == nullptr) {
+        return;
+    }
+    static bool sAnnounced = false;
+    unsigned int count = 0;
+    JKRHeap* bad = checkHeapTree(root, &count);
+#if defined(__SWITCH__)
+    // newlib's malloc (the host heap on the Switch: Aurora, Dawn, Mesa, the C++ runtime): mallinfo
+    // walks every free list, so a free chunk whose links were overwritten faults here, on the game
+    // thread with "heapCheckFrame" in the backtrace, at the first check after the damage, instead
+    // of in some later malloc on any thread (bug B4).
+    const struct mallinfo info = mallinfo();
+#endif
+    if (!sAnnounced) {
+        sAnnounced = true;
+#if defined(__SWITCH__)
+        writef(STDERR_FILENO, "[cos] heap-check: COS_HEAP_CHECK=%u, first check at frame %u: %u JKR heaps, "
+                              "newlib arena %zu bytes (%zu in use, %zu free chunks)\n",
+               gConfig.heapCheckEvery, frame, count, (size_t)info.arena, (size_t)info.uordblks,
+               (size_t)info.ordblks);
+#else
+        writef(STDERR_FILENO, "[cos] heap-check: COS_HEAP_CHECK=%u, first check at frame %u: %u JKR heaps\n",
+               gConfig.heapCheckEvery, frame, count);
+#endif
+    }
+    if (bad != nullptr) {
+        writef(STDERR_FILENO, "[cos] heap-check: frame %u: heap %p (type 0x%08x, %p..%p) fails check() "
+                              "(the JUTWarning lines above say where)\n",
+               frame, (void*)bad, (unsigned)bad->getHeapType(), bad->getStartAddr(),
+               bad->getEndAddr());
+        pc_exit(PC_EXIT_CHECK_FAILED);
+    }
 }
 
 } // namespace pc
