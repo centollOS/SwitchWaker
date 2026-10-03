@@ -92,6 +92,8 @@ loop:
        cos_sdk_smoke; every earlier milestone; every passing sweep; census diff
 ```
 
+**Ownership in the boot loop:** a milestone loop may fix whatever root cause the boot hits, even in files a later format step owns; that later step then covers the rest of its format (sweep, layout xfail, remaining fields). "Files another active step owns" means a step running at the same time, not a later one.
+
 **Stop conditions, which escalate to the human:**
 - the same crash signature after 3 fix attempts;
 - a fix needs Aurora changed, GPL code, or a decision listed below;
@@ -134,7 +136,7 @@ loop:
 **6.2 Frame loop and pacing**
 - Files: `m_Do_main.cpp` (`aurora_update` / `aurora_begin_frame` / `aurora_end_frame` around each `main01` iteration), `JFramework/JFWDisplay.cpp` (`waitBlanking`/`waitForTick` replaced by a limiter, bypassed when `COS_UNCAPPED`), the game frame counter.
 - From Dusklight: `JFWDisplay.cpp:371-420` (`Limiter`, `FRAME_PERIOD` = 1001/30000).
-- Verify: M3 and M4 with no pending assertion or panic in the log; `COS_FRAMES=600 COS_UNCAPPED=1` exits 0; the capped 600-frame run exits 0 and its `[cos] pacing` ratio after frame 1 is within 5 percent of 1.0 (the game picks its own rate: the logo scene asks for 60 Hz). Runs after step 4.4, because the 600-frame run mounts `Logo.arc` (amended 2026-10-03).
+- Verify: M3 and M4 with no pending assertion or panic in the log; the capped run's `[cos] pacing` ratio after frame 1, over the first 120 frames, within 5 percent of 1.0 (the game picks its own rate: the logo scene asks for 60 Hz); `COS_UNCAPPED=1` reaches M4. Longer runs (600 frames capped and uncapped) belong to the boot milestones M5/M6, because they load logo-scene resources owned by later format steps (amended twice on 2026-10-03).
 - Risk: the game calls `VIWaitForRetrace` inside `fapGm_Execute`, so GX must stay inside begin/end frame.
 
 **6.3 Input injection**
