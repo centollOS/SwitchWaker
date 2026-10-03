@@ -564,9 +564,17 @@ int main(int argc, const char* argv[]) {
     if (mDoMain::developmentMode < 0) {
         DVDDiskID* disk_id = DVDGetCurrentDiskID();
 
+#if TARGET_PC && defined(COS_SDK_AURORA)
+        // Aurora's DVDDiskID spells the field gameVersion (same offset 0x07, same u8).
+        // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+        if (disk_id->gameVersion > 0x90) {
+            mDoMain::developmentMode = 1;
+        } else if (disk_id->gameVersion > 0x80) {
+#else
         if (disk_id->game_version > 0x90) {
             mDoMain::developmentMode = 1;
         } else if (disk_id->game_version > 0x80) {
+#endif
             u32 consoleType = OSGetConsoleType();
             mDoMain::developmentMode = (consoleType >> 0x1C) & 1;
         } else {
@@ -580,7 +588,14 @@ int main(int argc, const char* argv[]) {
 #endif
 
     OSPriority priority = OSGetThreadPriority(current_thread);
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora declares the entry point with its real type, void* (*)(void*); the game passes a function
+    // of another signature, as it did through the decomp's void*.
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    OSCreateThread(&mainThread, (void* (*)(void*))main01, 0, stack + sizeof(stack), sizeof(stack), priority, 0);
+#else
     OSCreateThread(&mainThread, (void*)main01, 0, stack + sizeof(stack), sizeof(stack), priority, 0);
+#endif
     OSResumeThread(&mainThread);
     OSSetThreadPriority(current_thread, 0x1F);
     return OSSuspendThread(current_thread);

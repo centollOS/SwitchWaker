@@ -455,3 +455,25 @@ Each phase lands as its own commits; this file records decisions and measured re
   No forwarder change, no `STATIC_ASSERT` fired. Aurora mode: SSystem, the four JSystem modules,
   framework (rebuilt from clean), `cos_sdk`, smoke, scaffold, header and shadow checks (82 names,
   ok) build; default configuration: `cos_modules` and checks rebuilt (617 steps), 0 errors.
+- **2.7 m_Do:** compiles in aurora header mode (all 17 units, 0 errors, rebuilt from clean) and
+  still in decomp mode. First aurora build: 9 units failed on 78 errors (none hit clang's
+  50-per-unit limit), 12 distinct causes: `OSCreateThread`'s typed entry point (5 units),
+  `CARD_ERROR_*` (Aurora spells them `CARD_RESULT_*`, same values) and the TARGET_PC
+  `CARDInit(game, maker)`, `OSCalendarTime` field names (`mday`, `mon`, `hour`... in Aurora),
+  `DVDDiskID::gameVersion`, the 5-argument `GXSETARRAY`, and `OS_THREAD_QUEUE`/
+  `active_threads_link` in `OSGetActiveThreadID`. Central fixes: new
+  `native/include/sdk/cos_card_extras.h` (the decomp's `CARD_ERROR_*` enum, valued from Aurora's
+  `CARD_RESULT_*`; `dolphin/card.h` is a name both have, so no forwarder can sit in front of it);
+  the `dolphin/os/OS.h` forwarder declares `__OSActiveThreadQueue`, which `cos_sdk`
+  (`os/OSThread.cpp`) now exports with C linkage instead of keeping a file-local list (same
+  object, still under the OS lock). Fixes in `game/src/m_Do`, all under
+  `TARGET_PC && defined(COS_SDK_AURORA)` with the original kept: `OSCreateThread` entry points cast
+  to `void* (*)(void*)` (as Dusklight; `m_Do_main`, `m_Do_MemCard`, `m_Do_dvd_thread`,
+  `m_Do_DVDError`, `m_Do_graphic`); `ThdInit` passes the disc header's game and maker codes to
+  Aurora's `CARDInit`, which is what the SDK's `CARDInit` reads; Aurora's field names in
+  `m_Do_main`, `m_Do_machine_exception` and `m_Do_MemCardRWmng`; `GXSETARRAY` in `m_Do_ext` with
+  the arrays' byte sizes (`mMaxSegments * 2` entries, host-endian) and the `__OSActiveThreadQueue`/
+  `linkActive` walk in `m_Do_printf`. No `STATIC_ASSERT` fired. Aurora mode: SSystem, the four
+  JSystem modules, framework, m_Do, `cos_sdk`, smoke (20 more runs ok; TSan `threads alarms` 10
+  runs, 0 reports), scaffold, header and shadow checks (82 names, ok) build; default
+  configuration: `cos_modules` and checks build, 0 errors.

@@ -33,6 +33,14 @@
 #include <thread>
 #include <unordered_map>
 
+// __OSActiveThreadQueue: the SDK's list of active threads (linked through OSThread::linkActive),
+// at 0x800000DC on the console. Exported with C linkage under its SDK name because game code walks
+// it (m_Do_printf.cpp's OSGetActiveThreadID), always with interrupts disabled, i.e. holding Lock().
+// Aurora declares it only for __MWERKS__; the OS.h forwarder declares it for the host.
+extern "C" {
+OSThreadQueue __OSActiveThreadQueue = {nullptr, nullptr};
+}
+
 namespace cos_sdk::os {
 
 // ---------------------------------------------------------------------------------------------
@@ -65,7 +73,7 @@ u8 sDefaultStack[64 * 1024];
 bool sDefaultClaimed = false;
 
 // __OSActiveThreadQueue (linked through OSThread::linkActive).
-OSThreadQueue sActiveQueue = {nullptr, nullptr};
+OSThreadQueue& sActiveQueue = __OSActiveThreadQueue;
 
 s32 sSchedulerSuspendCount = 0;
 OSSwitchThreadCallback sSwitchThreadCallback = nullptr;

@@ -105,6 +105,25 @@ void dispDateInfo() {
     print("COMPILE USER: FINAL\n");
     print_f("COPYDATE   : %17s\n", mDoMain::COPYDATE_STRING);
 
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora's OSCalendarTime has the SDK's own field names (sec, min, hour, mday, mon, yday,
+    // msec, usec); same layout as the decomp's.
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    OSCalendarTime time;
+    OSTicksToCalendarTime(mDoMain::sPowerOnTime, &time);
+    print_f("PowerOnTime: %04d/%2d/%2d %2d:%2d:%2d`%03d\"%03d\n", time.year, time.mon,
+            time.mday, time.hour, time.min, time.sec, time.msec,
+            time.usec);
+
+    OSTicksToCalendarTime(mDoMain::sHungUpTime, &time);
+    print_f("HungUpTime : %04d/%2d/%2d %2d:%2d:%2d`%03d\"%03d\n", time.year, time.mon,
+            time.mday, time.hour, time.min, time.sec, time.msec,
+            time.usec);
+
+    OSTicksToCalendarTime(mDoMain::sHungUpTime - mDoMain::sPowerOnTime, &time);
+    print_f("PlayTime   : %4d days, %2d:%2d:%2d`%03d\"%03d\n", time.yday, time.hour,
+            time.min, time.sec, time.msec, time.usec);
+#else
     OSCalendarTime time;
     OSTicksToCalendarTime(mDoMain::sPowerOnTime, &time);
     print_f("PowerOnTime: %04d/%2d/%2d %2d:%2d:%2d`%03d\"%03d\n", time.year, time.month,
@@ -119,6 +138,7 @@ void dispDateInfo() {
     OSTicksToCalendarTime(mDoMain::sHungUpTime - mDoMain::sPowerOnTime, &time);
     print_f("PlayTime   : %4d days, %2d:%2d:%2d`%03d\"%03d\n", time.year_day, time.hours,
             time.minutes, time.seconds, time.milliseconds, time.microseconds);
+#endif
     print("---------------------------------------\n");
 }
 

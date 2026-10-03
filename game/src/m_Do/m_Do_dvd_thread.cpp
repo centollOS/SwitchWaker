@@ -38,7 +38,14 @@ s32 mDoDvdThd::main(void* userData) {
 
 /* 80017F54-80017FB0       .text create__9mDoDvdThdFl */
 void mDoDvdThd::create(OSPriority priority) {
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora declares the entry point with its real type, void* (*)(void*); the game passes a function
+    // of another signature, as it did through the decomp's void*.
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    OSCreateThread(&l_thread, (void* (*)(void*))main, &l_param, l_threadStack.stack + sizeof(l_threadStack), sizeof(l_threadStack), priority, 1);
+#else
     OSCreateThread(&l_thread, (void*)main, &l_param, l_threadStack.stack + sizeof(l_threadStack), sizeof(l_threadStack), priority, 1);
+#endif
     OSResumeThread(&l_thread);
 }
 

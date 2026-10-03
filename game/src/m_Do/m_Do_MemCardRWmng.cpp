@@ -11,6 +11,9 @@
 #include "JSystem/JKernel/JKRAram.h"
 #include "JSystem/JUtility/JUTTexture.h"
 #include "dolphin/card.h"
+#if TARGET_PC && defined(COS_SDK_AURORA)
+#include "cos_card_extras.h" // CARD_ERROR_* (Aurora spells them CARD_RESULT_*)
+#endif
 #include "dolphin/os/OS.h"
 
 #include <string.h>
@@ -210,6 +213,31 @@ void mDoMemCdRWm_BuildHeader(mDoMemCdRWm_HeaderData* header) {
     OSTime time = OSGetTime();
     OSCalendarTime cal;
     OSTicksToCalendarTime(time, &cal);
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora's OSCalendarTime names the fields mday and mon (same layout as the decomp's).
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+#if VERSION == VERSION_PAL
+    switch (dComIfGs_getPalLanguage()) {
+    case 0:
+        snprintf(header->info, sizeof(header->info), "%d/%d Save Data", cal.mon + 1, cal.mday);
+        break;
+    case 1:
+        snprintf(header->info, sizeof(header->info), "%d/%d Spielstand", cal.mday, cal.mon + 1);
+        break;
+    case 2:
+        snprintf(header->info, sizeof(header->info), "Donn%ces de jeu %d/%d", 0xE9, cal.mday, cal.mon + 1);
+        break;
+    case 3:
+        snprintf(header->info, sizeof(header->info), "Datos guardados el %d/%d", cal.mday, cal.mon + 1);
+        break;
+    case 4:
+        snprintf(header->info, sizeof(header->info), "Dati salvati: %d/%d", cal.mday, cal.mon + 1);
+        break;
+    }
+#else
+    snprintf(header->info, sizeof(header->info), HEADER_COMMENT, cal.mon + 1, cal.mday);
+#endif
+#else
 #if VERSION == VERSION_PAL
     switch (dComIfGs_getPalLanguage()) {
     case 0:
@@ -230,6 +258,7 @@ void mDoMemCdRWm_BuildHeader(mDoMemCdRWm_HeaderData* header) {
     }
 #else
     snprintf(header->info, sizeof(header->info), HEADER_COMMENT, cal.month + 1, cal.day_of_month);
+#endif
 #endif
     mDoDvdThd_mountArchive_c* cmd = mDoDvdThd_mountArchive_c::create("/res/CardIcon/cardicon.arc", 0, NULL);
     while (!cmd->sync()) ;

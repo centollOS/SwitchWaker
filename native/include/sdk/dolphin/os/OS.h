@@ -17,6 +17,9 @@
 // Aurora spells differently or lacks (OS_ERROR_MEMORY_PROTECTION, OS_ERROR_FLOATING_POINT_EXCEPTION,
 // the OSException enum), and OSContextPPC, a view of the PowerPC register image for code that reads
 // OSContext fields: Aurora's TARGET_PC OSContext is opaque storage of the same size.
+//
+// Added in step 2.7 (m_Do): __OSActiveThreadQueue, the active-thread list the game's OSThread.h names
+// OS_THREAD_QUEUE; cos_sdk defines it.
 #ifndef COS_SDK_DOLPHIN_OS_OS_H
 #define COS_SDK_DOLPHIN_OS_OS_H
 
@@ -43,6 +46,11 @@ extern u8 __OSReport_Error_disable;
 extern u8 __OSReport_Warning_disable;
 extern u8 __OSReport_System_disable;
 extern u8 __OSReport_enable;
+
+// The SDK's active-thread list, which the game's dolphin/os/OSThread.h declares as OS_THREAD_QUEUE (at
+// 0x800000DC). Aurora declares it only for __MWERKS__; cos_sdk defines it (os/OSThread.cpp) and
+// keeps it under the OS lock, so walk it with interrupts disabled, as the SDK does.
+extern OSThreadQueue __OSActiveThreadQueue;
 
 // The decomp's name for Aurora's __OSExceptionHandler.
 typedef __OSExceptionHandler OSExceptionHandler;
