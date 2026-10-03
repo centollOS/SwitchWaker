@@ -83,7 +83,9 @@ if (FETCHCONTENT_SOURCE_DIR_AURORA AND GIT_FOUND AND EXISTS "${FETCHCONTENT_SOUR
     endif ()
 endif ()
 
-if (FETCHCONTENT_SOURCE_DIR_AURORA AND _cos_aurora_patches)
+# COS_AURORA_PREPATCHED: the parent project (switch/native) already applied the patch set to its own
+# copy of the checkout, so that copy is used as it is.
+if (FETCHCONTENT_SOURCE_DIR_AURORA AND _cos_aurora_patches AND NOT COS_AURORA_PREPATCHED)
     set(_cos_aurora_local "${FETCHCONTENT_SOURCE_DIR_AURORA}")
     set(_cos_aurora_copy "${CMAKE_BINARY_DIR}/_deps/aurora-patched-src")
     # The copy is redone when the checkout or the patch set changes (commit plus `git status` of

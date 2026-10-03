@@ -11,7 +11,7 @@
 #     (switch/source/common/usb_log.c), the NRO packaging and the SD card layout.
 # What differs from the translated port:
 #   - Aurora is native/'s pin (3227d76, COS_SWITCH_AURORA_SOURCE), copied into the build directory
-#     with aurora/patches/*.patch applied, the way switch/aurora/aurora.cmake patches GXRuntime;
+#     with native/patches/aurora/*.patch (decision H11) and then aurora/patches/*.patch applied;
 #   - nod (Rust, no libnx target) is replaced by nod/nod_gcn.cpp, a reader of plain GameCube
 #     disc images behind nod's C API, so Aurora's DVD library reads the .iso on the SD card;
 #   - the game units compile with clang 19 (clang-launcher.sh), as on the Mac; Aurora, Dawn, the
@@ -103,14 +103,22 @@ target_compile_definitions(imgui PRIVATE IMGUI_IMPL_WEBGPU_BACKEND_DAWN)
 target_compile_definitions(imgui PUBLIC IMGUI_DISABLE_DEFAULT_SHELL_FUNCTIONS)
 target_link_libraries(imgui PRIVATE dawn::webgpu_dawn)
 
-# ---- Aurora: native/'s pin with the Switch patches, in the build directory --------------------------
+# ---- Aurora: native/'s pin with the shared and the Switch patches, in the build directory -----------
+# The copy gets native/patches/aurora/*.patch first (decision H11, the patches every Mac build has),
+# then aurora/patches/*.patch, each set in name order, through native/cmake's
+# aurora_apply_patches.cmake. It is redone when the source path or either patch set changes.
 set(COS_SWITCH_AURORA_DIR "${CMAKE_BINARY_DIR}/aurora-switch")
-file(GLOB _aurora_patches CONFIGURE_DEPENDS "${COS_SWITCH_DIR}/aurora/patches/*.patch")
-list(SORT _aurora_patches)
+set(_aurora_patch_dirs "${COS_REPO_ROOT}/native/patches/aurora" "${COS_SWITCH_DIR}/aurora/patches")
 set(_aurora_stamp "${COS_SWITCH_AURORA_SOURCE}\n")
-foreach (_patch IN LISTS _aurora_patches)
-    file(SHA256 "${_patch}" _hash)
-    string(APPEND _aurora_stamp "${_hash}\n")
+set(_aurora_count 0)
+foreach (_dir IN LISTS _aurora_patch_dirs)
+    file(GLOB _patches CONFIGURE_DEPENDS "${_dir}/*.patch")
+    list(SORT _patches)
+    foreach (_patch IN LISTS _patches)
+        file(SHA256 "${_patch}" _hash)
+        string(APPEND _aurora_stamp "${_patch}=${_hash}\n")
+        math(EXPR _aurora_count "${_aurora_count} + 1")
+    endforeach ()
 endforeach ()
 set(_aurora_stamp_file "${COS_SWITCH_AURORA_DIR}.stamp")
 set(_aurora_previous "")
@@ -118,22 +126,22 @@ if (EXISTS "${_aurora_stamp_file}")
     file(READ "${_aurora_stamp_file}" _aurora_previous)
 endif ()
 if (NOT EXISTS "${COS_SWITCH_AURORA_DIR}" OR NOT _aurora_previous STREQUAL _aurora_stamp)
-    file(REMOVE_RECURSE "${COS_SWITCH_AURORA_DIR}")
+    file(REMOVE_RECURSE "${COS_SWITCH_AURORA_DIR}" "${_aurora_stamp_file}")
     file(COPY "${COS_SWITCH_AURORA_SOURCE}/" DESTINATION "${COS_SWITCH_AURORA_DIR}"
             PATTERN ".git" EXCLUDE)
-    find_program(PATCH_EXECUTABLE patch REQUIRED)
-    foreach (_patch IN LISTS _aurora_patches)
-        execute_process(COMMAND "${PATCH_EXECUTABLE}" -p1 -i "${_patch}"
-                WORKING_DIRECTORY "${COS_SWITCH_AURORA_DIR}"
-                RESULT_VARIABLE _result OUTPUT_VARIABLE _output ERROR_VARIABLE _output)
+    foreach (_dir IN LISTS _aurora_patch_dirs)
+        execute_process(COMMAND "${CMAKE_COMMAND}" -DCOS_AURORA_SRC=${COS_SWITCH_AURORA_DIR}
+                -DCOS_AURORA_PATCH_DIR=${_dir} -P "${COS_REPO_ROOT}/native/cmake/aurora_apply_patches.cmake"
+                RESULT_VARIABLE _result)
         if (NOT _result EQUAL 0)
-            message(FATAL_ERROR "Could not apply ${_patch}:\n${_output}")
+            message(FATAL_ERROR "cos_switch: patching Aurora with ${_dir} failed")
         endif ()
     endforeach ()
     file(WRITE "${_aurora_stamp_file}" "${_aurora_stamp}")
-    list(LENGTH _aurora_patches _n)
-    message(STATUS "cos_switch: Aurora copied with ${_n} Switch patches")
+    message(STATUS "cos_switch: Aurora copied with ${_aurora_count} patches (shared, then Switch)")
 endif ()
+# The copy already carries native/patches/aurora: native/cmake/Aurora.cmake builds it as it is.
+set(COS_AURORA_PREPATCHED ON)
 set(FETCHCONTENT_SOURCE_DIR_AURORA "${COS_SWITCH_AURORA_DIR}" CACHE PATH "" FORCE)
 
 # Aurora's providers find the targets above and use them as they are.
