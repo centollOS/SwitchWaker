@@ -3,6 +3,7 @@
 
 #include "JSystem/JGadget/binary.h"
 #include "JSystem/JStudio/JStudio/functionvalue.h"
+#include "helpers/endian.h"
 
 using namespace JGadget::binary;
 
@@ -32,18 +33,19 @@ struct CompositeOperation {
 };
 
 struct TBlock {
-    /* 0x0 */ u32 size;
-    /* 0x4 */ u16 type;
-    /* 0x6 */ u16 id_size;
+    // Fields are BE(T): FVB data is big-endian on disc (no-op on GameCube; after Dusklight, CC0).
+    /* 0x0 */ BE(u32) size;
+    /* 0x4 */ BE(u16) type;
+    /* 0x6 */ BE(u16) id_size;
     /* 0x8 */ u8 id[0];
 };
 
 struct THeader {
     /* 0x00 */ char signature[4];
-    /* 0x04 */ u16 byte_order;  // must be 0xFEFF
-    /* 0x06 */ u16 version;     // 0-1 = obselete, 2-7 = OK
-    /* 0x08 */ u32 _8;
-    /* 0x0C */ u32 block_number;
+    /* 0x04 */ BE(u16) byte_order;  // must be 0xFEFF
+    /* 0x06 */ BE(u16) version;     // 0-1 = obselete, 2-7 = OK
+    /* 0x08 */ BE(u32) _8;
+    /* 0x0C */ BE(u32) block_number;
     /* 0x10 */ u8 content[0];
 };
 // Parses a THeader

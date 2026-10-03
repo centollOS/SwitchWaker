@@ -4,6 +4,9 @@
 #include "JSystem/JGadget/linklist.h"
 #include "JSystem/JStudio/JStudio/fvb-data-parse.h"
 #include "JSystem/JStudio/JStudio/object-id.h"
+#if TARGET_PC
+#include <vector>
+#endif
 
 namespace JStudio {
 namespace fvb {
@@ -108,8 +111,8 @@ private:
 class TObject_list : public TObject {
 public:
     struct ListData {
-        /* 0x0 */ f32 _0;
-        /* 0x4 */ u32 _4;
+        /* 0x0 */ BE(f32) _0;
+        /* 0x4 */ BE(u32) _4;
         /* 0x8 */ f32 _8[0];
     };
     TObject_list(data::TParse_TBlock const&);
@@ -118,12 +121,16 @@ public:
 
 private:
     TFunctionValue_list fnValue;
+#if TARGET_PC
+    // Host-order copy of the big-endian f32 table the function value reads (after Dusklight, CC0).
+    std::vector<f32> mSwappedData;
+#endif
 };
 
 class TObject_list_parameter : public TObject {
 public:
     struct ListData {
-        u32 _0;
+        BE(u32) _0;
         f32 _4[0];
     };
     TObject_list_parameter(data::TParse_TBlock const&);
@@ -132,12 +139,16 @@ public:
 
 private:
     TFunctionValue_list_parameter fnValue;
+#if TARGET_PC
+    // Host-order copy of the big-endian f32 table the function value reads (after Dusklight, CC0).
+    std::vector<f32> mSwappedData;
+#endif
 };
 
 struct TObject_hermite : public TObject {
 public:
     struct ListData {
-        u32 _0;  // u : 28, uSize : 4
+        BE(u32) _0;  // u : 28, uSize : 4
         f32 _4[0];
     };
     TObject_hermite(data::TParse_TBlock const&);
@@ -146,6 +157,10 @@ public:
 
 private:
     TFunctionValue_hermite fnValue;
+#if TARGET_PC
+    // Host-order copy of the big-endian f32 table the function value reads (after Dusklight, CC0).
+    std::vector<f32> mSwappedData;
+#endif
 };
 
 }  // namespace fvb

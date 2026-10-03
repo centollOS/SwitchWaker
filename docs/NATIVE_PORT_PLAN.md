@@ -2333,6 +2333,20 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: regress passed; a temporary (removed) trace confirmed the STB header passes (5
   blocks) and the first block, `JFVB` (3928 bytes), is the one rejected now.
 
+- **M8 boot loop, iteration 2** (2026-10-03, endian): the STB's `JFVB` block was rejected because
+  `JStudio::fvb` read the FVB container and its paragraphs in host order. Under `TARGET_PC`
+  (Dusklight's fvb-data.h/fvb.cpp, CC0): `fvb-data.h` `THeader`/`TBlock` fields and the
+  `TObject_list*`/`TObject_hermite` count words are `BE(T)`; `TObject::prepare` reads the refer,
+  range, progress, adjust, outside and interpolate paragraphs as `BE(T)`; the composite operand is
+  two big-endian words (the GameCube struct's `const void*` member would sit at offset 8 on the
+  host); constant/transition values are `BE(f32)`; the list, list-parameter and hermite tables are
+  copied to a host-order `std::vector<f32>` (`mSwappedData`) that the function value reads. The
+  `JFVB` block now parses and the parse moves on to the first object block, which crashes
+  (SIGSEGV) in `JStudio::TFactory::create` walking `mList`, a `TLinkList<TCreateObject, -4>`:
+  the node offset assumes a 4-byte vtable pointer (8 on the host). That is the next root cause.
+  Reviewed: regress passed; title-stage no longer logs the demo-data error and now stops at frame
+  301 (exit 13) in `JStudio::TFactory::create`, after `opening` at frame 281.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
