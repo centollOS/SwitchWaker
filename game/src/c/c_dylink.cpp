@@ -25,7 +25,18 @@ bool DMC_initialized = false;
 volatile BOOL cDyl_Initialized = false;
 mDoDvdThd_callback_c * cDyl_DVD = NULL;
 
+#if TARGET_PC
+// Native PC port (phase 3, step 3.5), adapted from Dusklight (ref/dusklight/src/c/c_dylink.cpp,
+// CC0): every REL unit, f_pc_profile_lst included, is linked into the executable and
+// g_fpcPf_ProfileList_p points at the static list from the start (f_pc_profile.cpp). So the name
+// table is empty, cCc_Init creates no DynamicModuleControl, DMC stays all NULL, a link of any
+// profile completes at once, and cDyl_InitCallback neither reads /dvd/framework.str
+// (OSSetStringTable) nor links f_pc_profile_lst. cDyl_InitAsync still goes through the DVD
+// thread and cDyl_LinkASync still waits for cDyl_Initialized, so the boot keeps its order: the
+// logo scene's load waits for the callback, and d_s_logo waits for cDyl_InitAsyncIsDone.
+#endif
 const cDyl_DynamicName_t DynamicNameTable[] = {
+#if !TARGET_PC
     {fpcNm_ALLDIE_e,         "d_a_alldie"},
     {fpcNm_TAG_EVSW_e,       "d_a_tag_evsw"},
     {fpcNm_Obj_Swpush_e,     "d_a_obj_swpush"},
@@ -458,6 +469,7 @@ const cDyl_DynamicName_t DynamicNameTable[] = {
     {fpcNm_ARROW_ICEEFF_e,   "d_a_arrow_iceeff"},
     {fpcNm_ARROW_LIGHTEFF_e, "d_a_arrow_lighteff"},
     {fpcNm_Obj_Timer_e,      "d_a_obj_timer"},
+#endif
 
     {0xFFFF, NULL},
 };
@@ -468,6 +480,14 @@ BOOL cCc_Init() {
     JUT_ASSERT(0x2a, !DMC_initialized);
 #endif
 
+#if TARGET_PC
+    // No REL to load on PC (see DynamicNameTable): no DMC heap, no DynamicModuleControl.
+    memset(DMC, 0, sizeof(DMC));
+#if VERSION > VERSION_DEMO
+    DMC_initialized = TRUE;
+#endif
+    return TRUE;
+#else
 #if VERSION == VERSION_DEMO
     JKRExpHeap * pHeap = mDoExt_getArchiveHeap();
     cCc_solidHeap = mDoExt_createSolidHeapToCurrent(0, NULL, 0);
@@ -512,6 +532,7 @@ BOOL cCc_Init() {
 #endif
 
     return TRUE;
+#endif /* TARGET_PC */
 }
 
 /* 800229E0-80022A80       .text cDyl_IsLinked__Fs */
@@ -529,10 +550,15 @@ BOOL cDyl_Unlink(s16 i_ProfName) {
     JUT_ASSERT(DEMO_SELECT(154, 197), cDyl_Initialized);
     JUT_ASSERT(DEMO_SELECT(155, 198), i_ProfName < ARRAY_SIZE(DMC));
 
+#if TARGET_PC
+    // Nothing was linked on PC, so nothing is unlinked.
+    return FALSE;
+#else
     if (DMC[i_ProfName] != NULL)
         return DMC[i_ProfName]->unlink();
 
     return FALSE;
+#endif
 }
 
 cPhs_State cDyl_Link(s16 i_ProfName) {
@@ -542,6 +568,10 @@ cPhs_State cDyl_Link(s16 i_ProfName) {
         return cPhs_ERROR_e;
     }
     JUT_ASSERT(185, i_ProfName < ARRAY_SIZE(DMC));
+#if TARGET_PC
+    // Every profile is linked into the executable on PC.
+    return cPhs_COMPLEATE_e;
+#else
     if (DMC[i_ProfName]) {
         if (DMC[i_ProfName]->link()) {
             return cPhs_COMPLEATE_e;
@@ -551,6 +581,7 @@ cPhs_State cDyl_Link(s16 i_ProfName) {
     } else {
         return cPhs_COMPLEATE_e;
     }
+#endif
 }
 
 #if VERSION > VERSION_DEMO
@@ -579,6 +610,10 @@ cPhs_State cDyl_LinkASync(s16 i_ProfName) {
     }
 
     JUT_ASSERT(DEMO_SELECT(208, 273), i_ProfName < ARRAY_SIZE(DMC));
+#if TARGET_PC
+    // Every profile is linked into the executable on PC; the cDyl_Initialized wait above stays.
+    return cPhs_COMPLEATE_e;
+#else
     DynamicModuleControlBase * d = DMC[i_ProfName];
     if (d != NULL) {
 #if VERSION > VERSION_DEMO
@@ -599,11 +634,15 @@ cPhs_State cDyl_LinkASync(s16 i_ProfName) {
     }
 
     return cPhs_COMPLEATE_e;
+#endif
 }
 
 /* 80022CEC-80022DF8       .text cDyl_InitCallback__FPv */
 BOOL cDyl_InitCallback(void*) {
     JUT_ASSERT(DEMO_SELECT(230, 303), !cDyl_Initialized);
+    // On PC there is no string table to read and f_pc_profile_lst is linked in (see
+    // DynamicNameTable); the callback only marks the dynamic link as initialised.
+#if !TARGET_PC
     JKRFileCache* loader = JKRMountDvdDrive("/", mDoExt_getArchiveHeap(), NULL);
     DynamicModuleControl::initialize();
 
@@ -614,6 +653,7 @@ BOOL cDyl_InitCallback(void*) {
 
     DynamicModuleControl dmc("f_pc_profile_lst");
     dmc.link();
+#endif
 #if VERSION == VERSION_DEMO
     cCc_Init();
 #endif

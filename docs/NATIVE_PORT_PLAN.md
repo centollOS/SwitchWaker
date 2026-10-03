@@ -700,3 +700,23 @@ Each phase lands as its own commits; this file records decisions and measured re
   are unresolved nowhere over the 866 objects. The main.dol-only link census now also lists `REL
   g_fpcPfLst_ProfileList` (referenced by `f_pc_profile.cpp`, defined in the REL unit), added to
   `expected_unresolved_phase2.txt` (125 symbols).
+- **3.5 DynamicLink replaced:** under `TARGET_PC` (adapted from Dusklight's `c_dylink.cpp` and
+  `DynamicLink.cpp`, provenance comments in both), `c_dylink.cpp`'s `DynamicNameTable` holds only
+  the terminator, `cCc_Init` clears `DMC` and sets `DMC_initialized` without creating the DMC heap
+  or any `DynamicModuleControl`, `cDyl_Link`/`cDyl_LinkASync` return `cPhs_COMPLEATE_e` after their
+  range check, `cDyl_Unlink` returns FALSE, and `cDyl_InitCallback` neither mounts the DVD drive,
+  reads `/dvd/framework.str` (`OSSetStringTable`) nor links `f_pc_profile_lst`: it only sets
+  `cDyl_Initialized`. Unlike Dusklight, `cDyl_LinkASync` keeps its `cPhs_INIT_e` return while
+  `cDyl_Initialized` is false, and `cDyl_InitAsync` still runs the callback on the DVD thread, so
+  the logo scene that `fapGm_Create` requests still waits for it and `d_s_logo` still waits for
+  `cDyl_InitAsyncIsDone`. The game has no `cCc_Check` (Dusklight's 0x80000000 pointer test), so there is
+  nothing to change there. In `DynamicLink.cpp` the loading and linking (`calcSum2`, `do_load`,
+  `do_link`, `do_unlink`: checksum, `OSLink`/`OSLinkFixed`/`OSUnlink`, prolog/epilog) is under
+  `!TARGET_PC`; the class shell stays (base link counting, constructor, `do_load_async`,
+  `do_unload`, `dump2`, size/type queries, the RELS.arc mount, `Module*` helpers), and on PC
+  `do_load`/`do_link`/`do_unlink` report and fail, since the vtable is emitted in this unit and
+  nothing creates a DMC. The two dead `TARGET_PC` casts inside the original `do_link` are gone,
+  so `unifdef -UTARGET_PC` gives the HEAD code for both files (blank lines and one comment
+  aside). `nm -m` over the 866 objects finds no `OSLink`, `OSLinkFixed`, `OSUnlink` or
+  `OSSetStringTable`; the link census lists 121 symbols (REL 1, JAudio/JAZel 120), equal to
+  `expected_unresolved_phase2.txt` with the four removed; `symbol_census.py --all --dups` 0.

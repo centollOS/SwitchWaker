@@ -191,9 +191,9 @@ ninja -C build/native-mac cos_scaffold_check cos_sdk_header_check cos_sdk_shadow
   report counts them. (Phase 1's decomp SDK headers defined the hardware registers, `__VIRegs`,
   `OS_*`..., in every unit; Aurora's headers do not.)
 - Phase 2 exit (step 2.9): the list must equal `native/check/expected_unresolved_phase2.txt`, which
-  holds only the REL symbols (`OSLink`, `OSLinkFixed`, `OSUnlink`, `OSSetStringTable`; step 3.5,
-  and `g_fpcPfLst_ProfileList`, which `f_pc_profile.cpp` points at on PC since step 3.4)
-  and the JAudio/JAZel ones (step 3.7, phase 5):
+  holds only the REL symbol `g_fpcPfLst_ProfileList` (which `f_pc_profile.cpp` points at on PC
+  since step 3.4; the REL loader's `OSLink`, `OSLinkFixed`, `OSUnlink` and `OSSetStringTable` are
+  gone since step 3.5) and the JAudio/JAZel ones (step 3.7, phase 5):
 
   ```sh
   ninja -C build/native-mac cos_link_census

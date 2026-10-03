@@ -208,6 +208,20 @@ bool DynamicModuleControl::callback(void* moduleControlPtr) {
     return moduleControl->do_load();
 }
 
+#if TARGET_PC
+// On PC every REL unit is linked into the executable and c_dylink.cpp creates no
+// DynamicModuleControl (its DynamicNameTable is empty), so there is no REL image to load,
+// checksum, relocate (OSLink/OSLinkFixed/OSUnlink) or run the prolog/epilog of. The class shell
+// stays: DynamicModuleControlBase's link counting, the constructor, the async load, the
+// size/type/dump queries and the RELS.arc mount. Adapted from Dusklight
+// (ref/dusklight/src/DynamicLink.cpp, CC0), which leaves this loading and linking out under
+// TARGET_PC; here the virtuals keep a definition (the vtable is emitted in this unit) and fail
+// cleanly, since a module that is not built in cannot be loaded.
+bool DynamicModuleControl::do_load() {
+    OSReport_Error("DynamicModuleControl::do_load() no REL modules on PC [%s]\n", mName);
+    return false;
+}
+#else
 static u32 calcSum2(u16 const* data, u32 size) {
     u32 sum = 0;
     while (size > 0) {
@@ -354,6 +368,8 @@ bool DynamicModuleControl::do_load() {
 }
 #endif
 
+#endif /* TARGET_PC */
+
 BOOL DynamicModuleControl::do_load_async() {
     if (mAsyncLoadCallback == NULL) {
         if (mModule != NULL) {
@@ -399,6 +415,19 @@ void DynamicModuleControl::dump2() {
 }
 #endif
 
+#if TARGET_PC
+BOOL DynamicModuleControl::do_link() {
+    // No REL image to relocate on PC (see do_load above): report and fail like a failed load.
+    OSReport_Error("DynamicModuleControl::do_link() no REL modules on PC [%s]\n", mName);
+    return FALSE;
+}
+
+bool DynamicModuleControl::do_unlink() {
+    // do_link never succeeds on PC, so mLinkCount stays 0 and nothing reaches here.
+    OSReport_Error("DynamicModuleControl::do_unlink() no REL modules on PC [%s]\n", mName);
+    return false;
+}
+#else
 BOOL DynamicModuleControl::do_link() {
     OSGetTime();
     if (mModule == NULL) {
@@ -407,12 +436,7 @@ BOOL DynamicModuleControl::do_link() {
     if (mModule != NULL) {
         JUT_ASSERT(DEMO_SELECT(501, 613), mModule->info.sectionInfoOffset < 0x80000000);
 #if VERSION > VERSION_DEMO
-#if TARGET_PC
-        // TODO(native phase 3/4): REL modules are linked statically on the host; this checks a GameCube address range.
-        JUT_ASSERT(615, (u32)(uintptr_t)mModule + mModule->fixSize < 0x82000000);
-#else
         JUT_ASSERT(615, (u32)mModule + mModule->fixSize < 0x82000000);
-#endif
 #endif
         OSGetTime();
         OSGetTime();
@@ -420,12 +444,7 @@ BOOL DynamicModuleControl::do_link() {
             u32 fixSizePtr;
             u32 fixSize = mModule->fixSize;
             u32 fixSize2 = (fixSize + 0x1f) & ~0x1f;
-#if TARGET_PC
-            // TODO(native phase 3/4): a 32-bit address; REL loading is replaced by static modules on the host.
-            fixSizePtr = (u32)(uintptr_t)mModule + fixSize2;
-#else
             fixSizePtr = (u32)mModule + fixSize2;
-#endif
             s32 size = JKRGetMemBlockSize(NULL, mModule);
             if (size < 0) {
                 void* bss = JKRAlloc(mModule->bssSize, 0x20);
@@ -534,6 +553,8 @@ bool DynamicModuleControl::do_unlink() {
     do_unload();
     return true;
 }
+
+#endif /* TARGET_PC */
 
 int DynamicModuleControl::getModuleSize() const {
     if (mModule != NULL) {
