@@ -312,6 +312,12 @@ bool fopAcM_entrySolidHeap(fopAc_ac_c* i_this, heapCallbackFunc createHeapCB, u3
     const char * pProcNameString = fopAcM_getProcNameString(i_this);
     JKRSolidHeap * heap = NULL;
 
+#if TARGET_PC
+    // The estimates are GameCube sizes; objects with 8-byte pointers and 16-byte aligned
+    // operator new need more. Doubled as in Dusklight (ref/dusklight/src/f_op/f_op_actor_mng.cpp,
+    // fopAcM_entrySolidHeap, CC0). A heap with room to spare is shrunk by mDoExt_adjustSolidHeap.
+    estimatedHeapSize *= 2;
+#endif
     if (estimatedHeapSize != 0) {
         heap = mDoExt_createSolidHeapFromGameToCurrent(estimatedHeapSize, 0x20);
         if (heap != NULL) {

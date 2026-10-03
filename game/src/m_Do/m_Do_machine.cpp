@@ -513,9 +513,11 @@ bool mDoMch_Create() {
     JFWSystem::setMaxStdHeap(1);
 
 #if TARGET_PC
-    // TODO(native phase 4): pointers are 64-bit on the host; only the low 32 bits are used here.
-    u32 arenaHi = (u32)(uintptr_t)OSGetArenaHi();
-    u32 arenaLo = (u32)(uintptr_t)OSGetArenaLo();
+    // Whole host addresses, as in Dusklight (ref/dusklight/src/m_Do/m_Do_machine.cpp, CC0). Aurora's
+    // MEM1 lies above 4 GiB, so the test below always holds and the arena loses its top 24 MiB,
+    // as on a development console with more memory than a retail one; 232 of the 256 MiB remain.
+    uintptr_t arenaHi = (uintptr_t)OSGetArenaHi();
+    uintptr_t arenaLo = (uintptr_t)OSGetArenaLo();
 #else
     u32 arenaHi = (u32)OSGetArenaHi();
     u32 arenaLo = (u32)OSGetArenaLo();
@@ -525,8 +527,7 @@ bool mDoMch_Create() {
     }
 
 #if TARGET_PC
-    // TODO(native phase 4): pointers are 64-bit on the host; only the low 32 bits are used here.
-    u32 arenaSize = ((u32)(uintptr_t)OSGetArenaHi() - (u32)(uintptr_t)OSGetArenaLo()) - 0xF0;
+    u32 arenaSize = ((uintptr_t)OSGetArenaHi() - (uintptr_t)OSGetArenaLo()) - 0xF0;
 #else
     u32 arenaSize = ((u32)OSGetArenaHi() - (u32)OSGetArenaLo()) - 0xF0;
 #endif
@@ -559,6 +560,18 @@ bool mDoMch_Create() {
     commandHeapSize = 0x1000; // 4 KiB
     arenaSize -= archiveHeapSize + gameHeapSize + commandHeapSize;
 
+#if TARGET_PC
+    // Decision H5: Dusklight's sizes (ref/dusklight/src/m_Do/m_Do_machine.cpp, mDoMch_Create, CC0)
+    // for 8-byte pointers, 0x20-byte heap block headers and 16-byte aligned operator new. The
+    // system heap (and the zelda heap inside it) gets a fixed 32 MiB instead of what is left of
+    // the arena; the command and archive heaps are doubled; the game heap, which takes every
+    // actor's solid heap (doubled in fopAcM_entrySolidHeap), is 20 times larger, as in Dusklight.
+    // In all about 109 MiB of the 232 MiB arena; the rest stays free in the root heap.
+    arenaSize = 32 * 1024 * 1024;
+    commandHeapSize *= 2;
+    archiveHeapSize *= 2;
+    gameHeapSize *= 20;
+#endif
     JFWSystem::setSysHeapSize(arenaSize);
 #if VERSION <= VERSION_JPN
     JFWSystem::setFifoBufSize(0x80000); // 512 KiB
