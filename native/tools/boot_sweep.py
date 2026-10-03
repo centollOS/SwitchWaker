@@ -40,7 +40,9 @@ Report columns (tab-separated, one line per stage, after a header):
   backtrace past the harness, with file:line).
 Expected fails (EXPECTED_FAIL below): a stage the debug boot cannot enter the way the real game
 does (it needs a story event flag or a cutscene first) may be listed with the reason and the
-signature its debug boot stops at. Such a stage is reported "xfail" and does not fail the sweep
+signature its debug boot stops at; so may a stage whose disc data the original game cannot run
+either (a leftover test stage whose archive lacks a file its own actors ask for, checked against
+the disc). Such a stage is reported "xfail" and does not fail the sweep
 only while it fails with exactly that signature; any other failure fails the sweep as usual, and
 a pass is reported "xpass" (the entry should then be removed). The list is never for a crash in
 game code.
@@ -82,11 +84,17 @@ _ENDING = ("the ending stage: the game enters it only with layer 8, whose LBNK e
            "resolves to layer 0, which has no demo bank, so dEvDtStaff_c finds no ending.stb "
            "(d_event_data.cpp:1070). Booted with layer 8 (ENDumi:0:0:8) the ending plays and "
            "stops at the LkD01 signature above: it needs event flag 0x2D01 too")
+_MSMOKE = ("leftover test stage with incomplete disc data: its stage.dzs places a door10 (TGDR, "
+           "params 0x0FFFF0FF: type 0, arg1 0), whose CreateHeap asks the Stage archive for "
+           "door10.bdl by name; the disc's Msmoke/Stage.arc has no such file (only "
+           "bmdc/door10.bmd and a root file named \"bdl\"), so dRes_control_c::getRes returns "
+           "NULL and the original game stops at the same JUT_ASSERT (d_a_door10.cpp:356)")
 EXPECTED_FAIL = {
     "GTower": (_LKD01_SIG, _LKD01),
     "M2ganon": (_LKD01_SIG, _LKD01),
     "GanonK": (_LKD01_SIG, _LKD01),
     "ENDumi": (r"^PANIC d_event_data\.cpp:1070 .* in dEvDtStaff_c::specialProcPackage ", _ENDING),
+    "Msmoke": (r"^PANIC d_a_door10\.cpp:356 .* in daDoor10_c::CreateHeap ", _MSMOKE),
 }
 
 STAGE_ARC = re.compile(r"^/res/Stage/([^/]+)/Stage\.arc$")

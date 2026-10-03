@@ -2922,6 +2922,29 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: regression passes; `ENDumi:0:0:8` gets past `d_event_data.cpp:1070` and stops at the
   LkD01 `JUTNameTab::getIndex` signature; reviewer sweep 150 of 155 (1 failure Msmoke, 4 xfail).
 
+- **Boot-sweep fix 14: boot-sweep expected fail Msmoke (the disc's Stage archive lacks door10.bdl)**
+  (2026-10-03, lane outset, harness). Signature (the only failure in a 150/155 sweep):
+  `PANIC d_a_door10.cpp:356` in `daDoor10_c::CreateHeap` (d_a_door10.cpp:268, `JUT_ASSERT(modelData)`)
+  <- `fopAcM_entrySolidHeap` (Msmoke). Cause: the disc data, not the port. Msmoke's stage.dzs
+  places one `door10` (TGDR, params 0x0FFFF0FF: type 0, `home.angle.z` 63 so arg1 0 and m364 0),
+  so `CreateHeap` asks `dComIfG_getStageRes("Stage", "door10.bdl")`. Read straight from the
+  disc's RARC (disc_manifest.py helpers), Msmoke/Stage.arc has a root file named `bdl` (3072
+  bytes), `bmdc/door10.bmd`, `dzb/door10.dzb`, `dzb/door11.dzb`, but no `door10.bdl`;
+  `dRes_control_c::getRes` matches names with `strcmp`, exactly as the original, so the original
+  game gets NULL too and stops at the same assert (a retail build would dereference NULL in
+  `mDoExt_J3DModel__create`). No other stage with a bmd-only door10 places a door10 actor.
+  `boot_sweep.py` lists Msmoke in `EXPECTED_FAIL` with the `d_a_door10.cpp:356` signature and
+  this reason; the docstring now also admits a stage whose disc data the original cannot run.
+  No game code changes. Sweep: 150 of 155, 0 failed, 5 expected fails, 1 skipped (x2); a third
+  sweep had 2 intermittent failures, each its own signature, both new to this list:
+  Cave10 (1:0) `CRASH SIGSEGV addr=0x0` in `JASystem::Kernel::portCmdMain` (JASCmdStack.cpp:121)
+  <- `subframeCallback` on the audio thread, and I_SubAN (9:0) `PANIC d_stage.cpp:1787` in
+  `dStage_playerInit` after the warp-out to sea room 47 (frame 558; the timing-dependent one noted
+  in fix 11). **Boot-sweep expected fails:** GTower, M2ganon, GanonK (LkD01), ENDumi (layer 8,
+  then LkD01), Msmoke (disc data).
+  Reviewed: Msmoke/Stage.arc re-read from the disc (no `door10.bdl`), getRes `strcmp` confirmed;
+  regression passes; reviewer sweep 149 of 155 (Msmoke xfail, 1 failure I_SubAN `d_stage.cpp:1787`).
+
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
   variable values checked, max |v| 500000). Builds on the boot loops' STB/FVB big-endian
