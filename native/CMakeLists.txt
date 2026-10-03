@@ -55,6 +55,8 @@ include(cmake/modules.cmake)
 include(cmake/Aurora.cmake)
 # cos_sdk, the game-specific SDK over Aurora, and its headless test cos_sdk_smoke (with Aurora only).
 include(cmake/sdk.cmake)
+# Link census (phase 2): `ninja cos_link_census` lists what the non-REL units still need.
+include(cmake/census.cmake)
 
 # Scaffold check: proves the toolchain, the include paths and the PC config header work.
 add_library(cos_scaffold_check OBJECT

@@ -156,3 +156,35 @@ declarations (`GFLoadPosMtxImm`, `GFSetArray`, `GFBegin`...) live in
 cmake -S native -B build/native-mac -G Ninja -DCOS_WITH_AURORA=ON -DCOS_SDK_HEADERS=aurora
 ninja -C build/native-mac cos_scaffold_check cos_sdk_header_check cos_sdk_shadow_check
 ```
+
+### Link census (`cos_link_census`)
+
+`ninja -C build/native-mac cos_link_census` (macOS only, not part of `all`;
+`native/cmake/census.cmake`) shows what the non-REL game units still need from outside:
+
+- It links the objects of every enabled module into the bundle
+  `build/native-mac/link_census/libcos_link_census.bundle` with `-undefined dynamic_lookup`. The
+  REL units are left out: `native/cmake/rel_units.txt` lists the 416 units the decomp builds into
+  `.rel` files, by name only, taken from its `configure.py`. `cos_sdk` and Aurora are linked too
+  when `COS_WITH_AURORA=ON`. The module objects are reused, not recompiled.
+- `native/tools/link_census.py` sorts what the bundle still looks up (`nm -um`) into SDK (by
+  library: OS, GX, DVD...), REL (`OSLink*`, `OSSetStringTable`, `g_profile_*`, anything a REL
+  unit defines), JAudio/JAZel, MSL/runtime, deferred units and other. It writes the counts and the
+  lists, with the units that reference each symbol, to `build/native-mac/link_census.txt`, and the
+  sorted `category<TAB>symbol` list to `build/native-mac/link_census_unresolved.txt`.
+- Before the link, `native/tools/symbol_census.py` lists the duplicate strong definitions among
+  the inputs and the weak definitions whose sizes differ (possible ODR violations), in
+  `build/native-mac/link_census/symbol_census.txt`. With the decomp's SDK headers every unit
+  defines the hardware registers (`__VIRegs`, `OS_*`...), so by default the duplicates are made
+  local in copies of the objects (`ld -r`) and the census still links; the report counts them.
+  `-DCOS_LINK_CENSUS_STRICT=ON` lets them stop the link instead.
+
+`symbol_census.py` also works on its own, without linking, on object files, directories or
+`@list` files:
+
+```sh
+native/tools/symbol_census.py build/native-mac/CMakeFiles/SSystem.dir --root build/native-mac
+```
+
+The REL list is regenerated with
+`native/tools/link_census.py rel-units --configure <decomp>/configure.py --out native/cmake/rel_units.txt --game-src game/src`.

@@ -198,3 +198,29 @@ Each phase lands as its own commits; this file records decisions and measured re
   `ARamType` enums whose enumerators are Aurora macros (Aurora's `DVD_RESULT_CANCELED` is -6, the
   decomp's -3). `native/include/sdk/types.h` forwards the bare `<types.h>` Aurora's `gba.h` includes.
   `cos_sdk_shadow_check`: 82 names checked, 0 pending.
+- **2.5 Link census:** `native/cmake/census.cmake` builds the MODULE `cos_link_census` (bundle,
+  `-undefined dynamic_lookup`, C++ link, not in `all`) from every enabled module's objects minus
+  the REL units (nested `$<FILTER:$<TARGET_OBJECTS:m>,EXCLUDE,regex>` of 40 names each), plus
+  `cos_sdk` and Aurora when built; `native/tools/link_census.py` classifies `nm -um` into SDK (per
+  library), REL, JAudio/JAZel, MSL/runtime, deferred and other (`link_census.txt`,
+  `link_census_unresolved.txt`). `native/cmake/rel_units.txt` has **416** units, not 415: the
+  decomp's `configure.py` has 415 `ActorRel`s plus `Rel("f_pc_profile_lst")`; 424 non-REL + 416
+  REL = 840. `native/tools/symbol_census.py` reports duplicate strong definitions and weak
+  definitions with differing sizes (Mach-O has no symbol sizes: distance to the next symbol or
+  the section end). Deviation: in decomp header mode every unit defines the SDK hardware
+  registers, so a strict link fails in every module (SSystem alone: 19 duplicates; all non-REL
+  units: 30, including `JPACallBackBase*` methods and `hio_set`). By default the census therefore
+  makes duplicates local in `ld -r` copies and counts them in the report;
+  `COS_LINK_CENSUS_STRICT=ON` keeps the planned behaviour (listed first, then the link stops).
+  First result (decomp headers, no Aurora): 452 unresolved: SDK 316 (GX 125, OS 78, MTX 32,
+  CARD 16, DVD 15, GF 11, VI 10, GD 8, PAD 8, GBA 7, AR 5, SI 1), REL 4 (`OSLink`, `OSLinkFixed`,
+  `OSUnlink`, `OSSetStringTable`), JAudio/JAZel 120, other 12: `dCamera_c::eyePos` (defined
+  `inline` in `d_camera.cpp`, called from `d_ev_camera.cpp`) and 11 `mDoExt_*Packet`
+  constructors (defined under `#if DEBUG` in `m_Do_ext.cpp`, called from `d_debug_viewer.cpp`),
+  both for 2.9 to settle. With `COS_WITH_AURORA=ON` (still decomp headers, `cos_sdk` and Aurora
+  linked): 230, of which SDK 94 (OS 56, GX 13, GF 11, GBA 7, VI 7); MTX, CARD, DVD, PAD, SI, AR
+  and GD all resolve; JAudio/JAZel 120. The classifier harvests only single-line column-0
+  declarations and tests plain C names against the SDK before the JAudio/JAZel and deferred
+  buckets, so an SDK gap such as `OSLockMutex` called from audio code is never filed under
+  JAudio (where 2.9's expected list could hide it); the bundle relinks when the census scripts
+  change, so the POST_BUILD report always reflects the current classifier.
