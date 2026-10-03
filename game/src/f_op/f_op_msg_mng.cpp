@@ -6139,7 +6139,13 @@ void fopMsgM_msgDataProc_c::tag_len_rupee(int* param_1, f32* param_2, int* param
 /* 80035F68-80036068       .text tag_len_num_input__21fopMsgM_msgDataProc_cFPiPfPiPiPi */
 void fopMsgM_msgDataProc_c::tag_len_num_input(int* param_1, f32* param_2, int* param_3, int* param_4, int* param_5) {
     int i = 0;
+#if TARGET_PC
+    // "000 Rupee(s)" and its NUL take 13 bytes; the GameCube code overflows buf by one byte into
+    // its stack frame. On the host the fortified strcpy aborts, so make room for it.
+    char buf[16];
+#else
     char buf[12];
+#endif
 
     if (*param_5 != lineCount) {
         lineCount = *param_5;
@@ -7766,7 +7772,13 @@ void fopMsgM_msgDataProc_c::tag_rupee() {
 /* 80038330-80038538       .text tag_num_input__21fopMsgM_msgDataProc_cFv */
 void fopMsgM_msgDataProc_c::tag_num_input() {
     int i = 0;
+#if TARGET_PC
+    // " Rupee(s)" and its NUL take 10 bytes; the GameCube code overflows buf by two bytes into its
+    // stack frame. On the host the fortified strcpy aborts, so make room for it.
+    char buf[16];
+#else
     char buf[8];
+#endif
     char buf2[16];
 
     int temp = (field_0x148 + charSpace) * 3;
