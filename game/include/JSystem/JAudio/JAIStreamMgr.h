@@ -4,6 +4,7 @@
 #include "dolphin/dvd/dvd.h"
 #include "JSystem/JAudio/JAISoundParams.h"
 #include "JSystem/JAudio/JASHeapCtrl.h"
+#include "helpers/endian.h"
 
 class JAISound;
 
@@ -115,14 +116,14 @@ namespace JAInter {
         s32 callBack(void* param_1);
 
         struct StreamHeader {
-            int field_0x0;
-            int field_0x4;
-            u16 field_0x8;
-            u16 field_0xa;
-            u16 field_0xc;
-            u16 field_0xe;
-            u32 field_0x10;
-            u32 field_0x14;
+            BE(int) field_0x0;
+            BE(int) field_0x4;
+            BE(u16) field_0x8;
+            BE(u16) field_0xa;
+            BE(u16) field_0xc;
+            BE(u16) field_0xe;
+            BE(u32) field_0x10;
+            BE(u32) field_0x14;
             u8 field_0x18[8];
         };
 

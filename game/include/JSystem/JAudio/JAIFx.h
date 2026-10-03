@@ -2,6 +2,7 @@
 #define JAIFX_H
 
 #include "dolphin/types.h"
+#include "helpers/endian.h"
 
 namespace JASystem {
     namespace DSPInterface {
@@ -12,12 +13,12 @@ namespace JASystem {
 namespace JAInter {
     namespace Fx {
         struct initOnCodeFxScene_s {
-            u32 field_0x0;
-            u32 field_0x4;
-            u32 field_0x8;
-            u32 field_0xc;
-            u32 field_0x10;
-            u32 field_0x14[1];
+            BE(u32) field_0x0;
+            BE(u32) field_0x4;
+            BE(u32) field_0x8;
+            BE(u32) field_0xc;
+            BE(u32) field_0x10;
+            BE(u32) field_0x14[1];
         };
 
         void init();

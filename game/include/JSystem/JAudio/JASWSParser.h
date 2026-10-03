@@ -2,6 +2,7 @@
 #define JASWSPARSER_H
 
 #include "JSystem/JSupport/JSupport.h"
+#include "helpers/endian.h"
 
 namespace JASystem {
     class TBasicWaveBank;
@@ -14,57 +15,57 @@ namespace JASystem {
             T *ptr(const void *p) { return JSUConvertOffsetToPtr<T>(p, mOffset); }
             T *ptr(const void *p) const { return JSUConvertOffsetToPtr<T>(p, mOffset); }
         private:
-            u32 mOffset;
+            BE(u32) mOffset;
         };
 
         struct TWave {
             /* 0x00 */ u8 field_0x0;
             /* 0x01 */ u8 field_0x1;
             /* 0x02 */ u8 field_0x2;
-            /* 0x04 */ f32 field_0x4;
-            /* 0x08 */ u32 mOffset;
-            /* 0x0C */ u32 field_0xc;
-            /* 0x10 */ u32 field_0x10;
-            /* 0x14 */ u32 field_0x14;
-            /* 0x18 */ u32 field_0x18;
-            /* 0x1C */ u32 field_0x1c;
-            /* 0x20 */ s16 field_0x20;
-            /* 0x22 */ s16 field_0x22;
+            /* 0x04 */ BE(f32) field_0x4;
+            /* 0x08 */ BE(u32) mOffset;
+            /* 0x0C */ BE(u32) field_0xc;
+            /* 0x10 */ BE(u32) field_0x10;
+            /* 0x14 */ BE(u32) field_0x14;
+            /* 0x18 */ BE(u32) field_0x18;
+            /* 0x1C */ BE(u32) field_0x1c;
+            /* 0x20 */ BE(s16) field_0x20;
+            /* 0x22 */ BE(s16) field_0x22;
             /* 0x24 */ u8 field_0x24[0x28 - 0x24];
-            /* 0x28 */ int field_0x28;
+            /* 0x28 */ BE(int) field_0x28;
         };
         struct TWaveArchive {
             /* 0x00 */ char mFileName[0x74];
-            /* 0x74 */ u32 mWaveOffsets[1];
+            /* 0x74 */ BE(u32) mWaveOffsets[1];
         };
         struct TWaveArchiveBank {
-            /* 0x00 */ u32 mMagic;
+            /* 0x00 */ BE(u32) mMagic;
             /* 0x04 */ u8 field_0x4[0x08 - 0x04];
-            /* 0x08 */ u32 mArchiveOffsets[1];
+            /* 0x08 */ BE(u32) mArchiveOffsets[1];
         };
         struct TCtrlWave {
-            /* 0x00 */ u32 field_0x0;
+            /* 0x00 */ BE(u32) field_0x0;
         };
         struct TCtrl {
-            /* 0x00 */ u32 mMagic;
-            /* 0x04 */ u32 mWaveCount;
-            /* 0x08 */ u32 mCtrlWaveOffsets[1];
+            /* 0x00 */ BE(u32) mMagic;
+            /* 0x04 */ BE(u32) mWaveCount;
+            /* 0x08 */ BE(u32) mCtrlWaveOffsets[1];
         };
         struct TCtrlScene {
-            /* 0x00 */ u32 mMagic;
+            /* 0x00 */ BE(u32) mMagic;
             /* 0x04 */ u8 field_0x4[0x0C - 0x04];
-            /* 0x0C */ u32 mCtrlOffset;
+            /* 0x0C */ BE(u32) mCtrlOffset;
         };
         struct TCtrlGroup {
-            /* 0x00 */ u32 mMagic;
+            /* 0x00 */ BE(u32) mMagic;
             /* 0x04 */ u8 field_0x4[0x08 - 0x04];
-            /* 0x08 */ u32 mCtrlGroupCount;
-            /* 0x0C */ u32 mCtrlSceneOffsets[1];
+            /* 0x08 */ BE(u32) mCtrlGroupCount;
+            /* 0x0C */ BE(u32) mCtrlSceneOffsets[1];
         };
         struct THeader {
             /* 0x00 */ u8 field_0x0[0x10];
-            /* 0x10 */ u32 mArchiveBankOffset;
-            /* 0x14 */ u32 mCtrlGroupOffset;
+            /* 0x10 */ BE(u32) mArchiveBankOffset;
+            /* 0x14 */ BE(u32) mCtrlGroupOffset;
         };
 
         u32 getGroupCount(void*);

@@ -2,15 +2,16 @@
 #define JAISOUNDTABLE_H
 
 #include "dolphin/types.h"
+#include "helpers/endian.h"
 
 struct SoundInfo {
-    /* 0x00 */ u32 mFlag;
+    /* 0x00 */ BE(u32) mFlag;
     /* 0x04 */ u8 mPriority;
     /* 0x05 */ u8 _05;
-    /* 0x06 */ u16 mOffsetNo;
-    /* 0x08 */ f32 mPitch;
+    /* 0x06 */ BE(u16) mOffsetNo;
+    /* 0x08 */ BE(f32) mPitch;
     /* 0x0C */ union Volume {
-        u32 typeView;
+        BE(u32) typeView;
         u8 byteView[4];
     } mVolume;
 };

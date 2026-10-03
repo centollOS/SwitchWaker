@@ -31,6 +31,8 @@
 //   checked as big-endian GCI bytes, reloaded and compared.
 // - dzb-sweep (step 4.10, pc_dzb.cpp): every dzb converted by cBgS::ConvDzb and compared with an
 //   independent reading, set into a dBgW and probed with downward GroundCross rays.
+// - audio-parse (step 5.1, pc_audio.cpp): JaiInit.aaf, every bank, wave system, sequence and
+//   stream read through JAudio's init-data code and compared with an independent reading.
 // In the booted game:
 // - pad-echo (step 6.3, pc_input.cpp): the COS_INPUT script read back from g_mDoCPd_cpadInfo after
 //   each mDoCPd_Read.
@@ -251,6 +253,9 @@ void requireWatchdog(const char* test, double seconds, const char* var) {
     if (strcmp(name, "dzb-sweep") == 0) {
         smokeDzbSweep();
     }
+    if (strcmp(name, "audio-parse") == 0) {
+        smokeAudioParse();
+    }
     writef(STDERR_FILENO, "[cos] smoke %s has no runner\n", name);
     pc_exit(PC_EXIT_USAGE);
 }
@@ -284,6 +289,7 @@ const Smoke kSmokes[] = {
     {"blo-sweep", kAfterHeaps},
     {"save", kAfterHeaps},
     {"dzb-sweep", kAfterHeaps},
+    {"audio-parse", kAfterHeaps},
     {"pad-echo", kInGame},
 };
 

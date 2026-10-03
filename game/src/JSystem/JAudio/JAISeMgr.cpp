@@ -6,6 +6,9 @@
 #include "JSystem/JSystem.h" // IWYU pragma: keep
 
 #include "JSystem/JAudio/JAISeMgr.h"
+#if TARGET_PC
+#include "JSystem/JAudio/JAISoundTable.h"
+#endif
 #include "JSystem/JAudio/JAIBasic.h"
 #include "JSystem/JAudio/JAIConst.h"
 #include "JSystem/JAudio/JAIGlobalParameter.h"
@@ -644,7 +647,12 @@ void JAInter::SeMgr::storeSeBuffer(JAISound** handle, JAInter::Actor* actor, u32
     u8 max = categoryInfoTable[seScene][((id >> 12) & 0xFF) * 2 + 1];
     while (current != NULL) {
         if (current->field_0x24 == position) {
+#if TARGET_PC
+            // info is a sound table entry (SoundInfo): its flag word is big-endian.
+            if (id == current->mSoundID && !(((SoundInfo*)info)->mFlag & 0x80000)) {
+#else
             if (id == current->mSoundID && !(*(u32*)info & 0x80000)) {
+#endif
                 if (!(id & 0x800)) {
                     if (current->field_0x4 != 0xFF) {
                         current->mState = 4;

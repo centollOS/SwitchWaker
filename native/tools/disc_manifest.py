@@ -4,7 +4,7 @@
 The phase 4 format steps check what the native game reads against an independent reading of the
 same disc. This script is that reading, in pure Python (standard library only): the GameCube FST,
 Yaz0, RARC archives, and the header fields of BMD/BDL/BMT, the J3D animations (BCK/BCA/BTK/BTP/
-BRK/BPK/BVA/BLA/BLK), BTI, BFN, BMG, BMC, BLO, JPC, STB, dzs/dzr, dzb and AAF. It writes
+BRK/BPK/BVA/BLA/BLK), BTI, BFN, BMG, BMC, BLO, JPC, STB, dzs/dzr, dzb, AAF and AFC. It writes
 build/native-mac/disc_manifest.json, which is derived from the disc and is never committed; the
 manifest records counts, names, sizes and header fields, never file contents.
 
@@ -62,6 +62,14 @@ Usage
                                                   with the manifest's dzb files: every file's
                                                   table counts and offsets, flag and vertex
                                                   bounding box (exit 0 equal, 1 different)
+  disc_manifest.py --check-audio AUD [--out FILE] compare what JAudio read in COS_SMOKE=
+                                                  audio-parse (<run dir>/audio_parse.txt) with the
+                                                  manifest's JaiInit.aaf records: the sound table,
+                                                  every bank (instruments, oscillators, key and
+                                                  velocity regions, drum sets), wave system (groups,
+                                                  .aw files, waves), sequence (JaiSeqs.arc sizes),
+                                                  stream (table and .afc headers), scene and fx
+                                                  scene line (exit 0 equal, 1 different)
   disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
 
 Manifest (JSON)
@@ -82,7 +90,9 @@ Manifest (JSON)
               tags}], textures [names];  stb: version, blocks [{type, id}];  dzs/dzr: chunks
               [{tag, num}], actors {tag: [{name, params, pos, angle, set_id}]} and records
               {chunk index: {tag, entries}} (RTBL and the STAGE_RECORDS tags);  dzb: counts
-              and the vertex bounding box;  aaf: sections [{type, offset, size, count}]
+              and the vertex bounding box;  aaf: sections [{type, offset, size, count}] and
+              audio {sound_table, banks, wave_systems, streams, scenes, fx} (step 5.1);  afc:
+              the first 16 bytes of the stream header
   summary   per-format counts and the number of parse errors
 """
 
@@ -114,7 +124,8 @@ GC_MAGIC = b"\xC2\x33\x9F\x3D"
 # 3: BMG INF1 message counts and ID digest, BMC colour tables (step 4.6).
 # 4: dzs/dzr records of the room, file and path chunks (step 4.9c).
 # 5: dzs/dzr records of the environment chunks (step 4.9d).
-MANIFEST_VERSION = 5
+# 6: JaiInit.aaf's audio records and the .afc headers (step 5.1).
+MANIFEST_VERSION = 6
 
 EXIT_OK = 0
 EXIT_DIFFERENT = 1
@@ -643,7 +654,162 @@ def parse_aaf(b):
                 i += 1
             i += 1
             sections.append({"type": t, "words": i - start})
-    return {"sections": sections}
+    return {"sections": sections, "audio": parse_aaf_audio(b, sections)}
+
+
+def f32(b, o):
+    return struct.unpack_from(">f", b, o)[0]
+
+
+def to_f32(x):
+    """x rounded to the nearest f32 (an f32 product or quotient of f32 values, computed in double,
+    rounds to the f32 result)."""
+    return struct.unpack(">f", struct.pack(">f", x))[0]
+
+
+def parse_sound_table(b, o, size):
+    """Section 1 of JaiInit.aaf as JAInter::SoundTable::init reads it: the formats and version
+    bytes, per category (18) the sound count and first entry (u16 pairs from offset 6), and the
+    16-byte entries from offset 0x50 (flag, priority, byte 5, offset number, pitch, volume)."""
+    cats = []
+    for c in range(18):
+        count, first = u16(b, o + 6 + 4 * c), u16(b, o + 8 + 4 * c)
+        sounds = []
+        for i in range(count):
+            e = o + 0x50 + 16 * (first + i)
+            need(e + 16 <= o + size, "aaf: sound %d/%d past the table" % (c, i))
+            sounds.append([u32(b, e), u8(b, e + 4), u8(b, e + 5), u16(b, e + 6), f32(b, e + 8),
+                           u32(b, e + 12)])
+        cats.append({"first": first, "sounds": sounds})
+    return {"formats": [u8(b, o), u8(b, o + 1), u8(b, o + 2)], "version": u8(b, o + 3),
+            "categories": cats}
+
+
+def osc_table(b, o):
+    """An oscillator envelope: s16 triplets up to and including the first whose mode is > 0xa
+    (BNKParser::getOscTableEndPtr); returns [length in s16, FNV-1a 64 of its bytes]."""
+    n = 0
+    while True:
+        mode = s16(b, o + 2 * n)
+        n += 3
+        if mode > 0xA or n >= 3 * 4096:
+            break
+    return [n, fnv1a64(bytes(b[o:o + 2 * n]))]
+
+
+def parse_bnk(b, base):
+    """A bank (IBNK, section 2 of JaiInit.aaf) at base, at the offsets BNKParser's structs give:
+    the bank ID (word 2), the 0x80 instrument offsets at 0x24 and the 12 percussion offsets at
+    0x3B4, all relative to the bank."""
+    def at(off):
+        return base + off if off else None
+
+    insts = []
+    for slot in range(0x80):
+        io = at(u32(b, base + 0x24 + 4 * slot))
+        if io is None:
+            continue
+        oscs = []
+        for j in range(2):
+            oo = at(u32(b, io + 0x10 + 4 * j))
+            if oo is None:
+                continue
+            t, r = at(u32(b, oo + 8)), at(u32(b, oo + 0xC))
+            oscs.append([u8(b, oo), f32(b, oo + 4)] + (osc_table(b, t) if t else [0, 0]) +
+                        (osc_table(b, r) if r else [0, 0]) + [f32(b, oo + 0x10), f32(b, oo + 0x14)])
+        effects = sum(1 for j in range(4) if u32(b, io + 0x18 + 4 * j))
+        keys = []
+        for k in range(u32(b, io + 0x28)):
+            ko = base + u32(b, io + 0x2C + 4 * k)
+            velos = []
+            for v in range(u32(b, ko + 4)):
+                vo = base + u32(b, ko + 8 + 4 * v)
+                velos.append([u8(b, vo), u32(b, vo + 4) & 0xFFFF, f32(b, vo + 8), f32(b, vo + 0xC)])
+            keys.append([u8(b, ko), velos])
+        insts.append({"slot": slot, "volume": f32(b, io + 8), "pitch": f32(b, io + 0xC),
+                      "osc": oscs, "effects": effects, "keys": keys})
+    drums = []
+    for i in range(12):
+        po = at(u32(b, base + 0x3B4 + 4 * i))
+        if po is None:
+            continue
+        per2 = tag4(b, po) == "PER2"
+        percs = []
+        for key in range(0x80):
+            pm = at(u32(b, po + 0x88 + 4 * key))
+            if pm is None:
+                continue
+            velos = []
+            for v in range(u32(b, pm + 0x10)):
+                vo = base + u32(b, pm + 0x14 + 4 * v)
+                velos.append([u8(b, vo), u32(b, vo + 4) & 0xFFFF, f32(b, vo + 8), f32(b, vo + 0xC)])
+            pan = struct.unpack_from(">b", b, po + 0x288 + key)[0] if per2 else None
+            release = u16(b, po + 0x308 + 2 * key) if per2 else None
+            percs.append([key, f32(b, pm), f32(b, pm + 4), pan, release, velos])
+        drums.append({"slot": 0xE4 + i, "percs": percs})
+    return {"id": u32(b, base + 8), "insts": insts, "drums": drums}
+
+
+def parse_ws(b, base):
+    """A wave system (WSYS, section 3 of JaiInit.aaf) at base, at WSParser's offsets: the archive
+    bank (0x10) gives each group's .aw file name and waves, the control group (0x14) each group's
+    wave IDs."""
+    cg = base + u32(b, base + 0x14)
+    ab = base + u32(b, base + 0x10)
+    groups = []
+    for g in range(u32(b, cg + 8)):
+        scene = base + u32(b, cg + 0xC + 4 * g)
+        ctrl = base + u32(b, scene + 0xC)
+        arc = base + u32(b, ab + 8 + 4 * g)
+        waves = []
+        for w in range(u32(b, ctrl + 4)):
+            wid = u32(b, base + u32(b, ctrl + 8 + 4 * w)) & 0xFFFF
+            wo = base + u32(b, arc + 0x74 + 4 * w)
+            waves.append([wid, u8(b, wo), u8(b, wo + 1), u8(b, wo + 2), f32(b, wo + 4)] +
+                         [s32(b, wo + x) for x in (8, 0xC, 0x10, 0x14, 0x18, 0x1C)] +
+                         [s16(b, wo + 0x20), s16(b, wo + 0x22), s32(b, wo + 0x28)])
+        groups.append({"file": cstr(b, arc, 0x74), "waves": waves})
+    return {"groups": groups}
+
+
+def stream_header(b, o):
+    """The first 16 bytes of an AFC header (StreamLib::StreamHeader): sizes, rate and format."""
+    return [s32(b, o), s32(b, o + 4), u16(b, o + 8), u16(b, o + 10), u16(b, o + 12), u16(b, o + 14)]
+
+
+def parse_aaf_audio(b, sections):
+    """The records JAInter::InitData::checkInitDataOnMemory hands to JAudio, decoded from the
+    sections parse_aaf found: sound table (1), banks (2), wave systems (3), stream table (5),
+    scene table (6) and fx scene table (7)."""
+    audio = {}
+    for s in sections:
+        t = s["type"]
+        if t == 1:
+            audio["sound_table"] = parse_sound_table(b, s["offset"], s["size"])
+        elif t == 2:
+            audio["banks"] = [dict(parse_bnk(b, e["offset"]), size=e["size"], wavebank=e["flags"])
+                              for e in s["entries"]]
+        elif t == 3:
+            audio["wave_systems"] = [dict(parse_ws(b, e["offset"]), size=e["size"], mode=e["flags"])
+                                     for e in s["entries"]]
+        elif t == 5:
+            o, n = s["offset"], (s["size"] - 0x10) // 0x30
+            audio["streams"] = [[cstr(b, o + 0x30 * i + 0x10, 16)] + stream_header(b, o + 0x30 * i + 0x20)
+                                for i in range(n)]
+        elif t == 6:
+            o = s["offset"]
+            audio["scenes"] = [bytes(b[o + u32(b, o + 4 + 4 * i):o + u32(b, o + 4 + 4 * i) + 16]).hex()
+                               for i in range(u32(b, o))]
+        elif t == 7:
+            o = s["offset"]
+            scenes = []
+            for i in range(u32(b, o)):
+                c = o + u32(b, o + 0x14 + 4 * i)
+                scenes.append([[u8(b, c + 0x20 * l), u16(b, c + 0x20 * l + 2), s16(b, c + 0x20 * l + 4),
+                                u16(b, c + 0x20 * l + 6), s16(b, c + 0x20 * l + 8), s32(b, c + 0x20 * l + 0xC)] +
+                               [s16(b, c + 0x20 * l + 0x10 + 2 * t) for t in range(8)] for l in range(4)])
+            audio["fx"] = {"header": [u32(b, o + 4 * i) for i in range(5)], "scenes": scenes}
+    return audio
 
 
 JUT_MAGICS = {b"J3D1": "j3d", b"J3D2": "j3d"}
@@ -833,6 +999,9 @@ def build_manifest(disc, iso_sha, dsha, progress=True):
             # Bulk media and code: size only (the THP movies alone are 600 MiB).
             if lname.endswith((".thp", ".afc", ".aw", ".map", ".dds")):
                 rec["format"] = lname.rsplit(".", 1)[-1]
+                if rec["format"] == "afc" and e["size"] >= 0x20:
+                    f.seek(e["offset"])
+                    rec["afc"] = stream_header(f.read(0x20), 0)
                 files.append(rec)
                 continue
             f.seek(e["offset"])
@@ -1515,6 +1684,132 @@ def check_arc(manifest, arc_path):
     return EXIT_OK
 
 
+# ---- audio-parse cross-check (step 5.1) ---------------------------------------------------------
+def g9(x):
+    """An f32 as the harness prints it: %.9g of its double value."""
+    return "%.9g" % x
+
+
+def audio_lines(manifest):
+    """The lines COS_SMOKE=audio-parse writes (native/src/pc/pc_audio.cpp), built from the
+    manifest's independent reading of JaiInit.aaf, JaiSeqs.arc and the /Audiores files."""
+    by_path = {r["path"]: r for r in manifest["files"]}
+    aaf = by_path.get("/Audiores/JaiInit.aaf")
+    if aaf is None or "audio" not in aaf:
+        return None
+    a = aaf["audio"]
+    st, banks, wss = a["sound_table"], a["banks"], a["wave_systems"]
+    out = ["AAF banks %d wavesystems %d scenes %d" % (len(banks), len(wss), len(a["scenes"]))]
+    cats = st["categories"]
+    cat_max = max([c + 1 for c in range(16) if cats[c]["sounds"]] or [0])
+    out.append("STBL formats %d %d %d version %d categories %d" % tuple(st["formats"] + [st["version"], cat_max]))
+    for c, cat in enumerate(cats):
+        out.append("CAT %d %d %d" % (c, len(cat["sounds"]), cat["first"]))
+        for i, (flag, prio, b5, off, pitch, vol) in enumerate(cat["sounds"]):
+            out.append("SND %d %d %08x %d %d %d %s %08x" % (c, i, flag, prio, b5, off, g9(pitch), vol))
+    # BankMgr::registBankBNK maps each bank's ID to its index, the later bank winning.
+    vir = {}
+    for i, bank in enumerate(banks):
+        if bank["id"] != 0xFFFF:
+            vir[bank["id"]] = i
+    for v in sorted(vir):
+        if v < 0x100:
+            out.append("VIR %d %d" % (v, vir[v]))
+    for i, bank in enumerate(banks):
+        assigned = bank["wavebank"] if bank["wavebank"] < len(wss) else -1
+        out.append("BNK %d size %d wavebank %d assigned %d insts %d drumsets %d" % (
+            i, bank["size"], bank["wavebank"], assigned, len(bank["insts"]), len(bank["drums"])))
+        for inst in bank["insts"]:
+            sl = inst["slot"]
+            out.append("INST %d %d %s %s osc=%d effects=%d keys=%d" % (
+                i, sl, g9(inst["volume"]), g9(inst["pitch"]), len(inst["osc"]), inst["effects"],
+                len(inst["keys"])))
+            for j, (tgt, rate, tl, tf, rl, rf, f10, f14) in enumerate(inst["osc"]):
+                out.append("OSC %d %d %d %d %s %d %016x %d %016x %s %s" % (
+                    i, sl, j, tgt, g9(rate), tl, tf, rl, rf, g9(f10), g9(f14)))
+            for k, (high, velos) in enumerate(inst["keys"]):
+                out.append("KEY %d %d %d %d %d" % (i, sl, k, high, len(velos)))
+                for v, (base_vel, wave, vol, pitch) in enumerate(velos):
+                    out.append("VEL %d %d %d %d %d %d %s %s" % (i, sl, k, v, base_vel, wave, g9(vol),
+                                                             g9(pitch)))
+        for drums in bank["drums"]:
+            out.append("DRUMS %d %d" % (i, drums["slot"]))
+            for key, vol, pitch, pan, release, velos in drums["percs"]:
+                # TDrumSet::getParam(key, 127): the first velocity region reaching 127.
+                region = next((r for r in velos if r[0] >= 127), None)
+                if region is None:
+                    continue
+                pan_f = to_f32(pan / to_f32(127.0)) if pan is not None else 0.5
+                out.append("PERC %d %d %d %s %s %s %d %d" % (
+                    i, drums["slot"], key, g9(to_f32(to_f32(vol) * region[2])),
+                    g9(to_f32(to_f32(pitch) * region[3])), g9(pan_f),
+                    release if release is not None else 1000, region[1]))
+    for i, ws in enumerate(wss):
+        groups = ws["groups"]
+        table = max([w[0] for g in groups for w in g["waves"]] or [0]) + 1
+        kind = "simple" if len(groups) == 1 else "basic"
+        out.append("WS %d size %d mode %d %s groups %d table %d" % (i, ws["size"], ws["mode"], kind,
+                                                                   len(groups), table))
+        for g, group in enumerate(groups):
+            aw = by_path.get("/Audiores/Banks/" + group["file"])
+            out.append("WGRP %d %d %d %d" % (i, g, aw["entry"] if aw else -1, aw["size"] if aw else 0))
+            waves = list(enumerate(group["waves"]))
+            if kind == "simple":
+                by_id = {}
+                for _, w in waves:
+                    by_id[w[0]] = w
+                waves = [(wid, by_id[wid]) for wid in sorted(by_id)]
+            for idx, w in waves:
+                out.append("WAVE %d %d %d %d %d %d %d %s %s" % (
+                    i, g, idx, w[0], w[1], w[2], w[3], g9(w[4]), " ".join(str(x) for x in w[5:])))
+    seqs = by_path.get("/Audiores/Seqs/JaiSeqs.arc")
+    seq_files = {}
+    for f in (seqs or {}).get("files", []):
+        if f.get("flags", 0) & 1 and f["id"] not in seq_files:
+            seq_files[f["id"]] = f["size"]
+    for n, info in enumerate(cats[16]["sounds"]):
+        res = info[3] if st["formats"][1] & 1 else n
+        out.append("SEQ %d %d %d" % (n, res, seq_files.get(res, 0)))
+    for n, (name, *head) in enumerate(a["streams"][:len(cats[17]["sounds"])]):
+        afc = by_path.get("/Audiores/Stream/" + name)
+        out.append("STRM %d %s %d %d %s afc %s" % (
+            n, name, afc["entry"] if afc else -1, afc["size"] if afc else -1,
+            " ".join(str(x) for x in head),
+            " ".join(str(x) for x in afc["afc"]) if afc and "afc" in afc else "-"))
+    for i, scene in enumerate(a["scenes"]):
+        out.append("SCENE %d %s" % (i, scene))
+    fx = a["fx"]
+    out.append("FX %d %d %d %d %d" % tuple(fx["header"]))
+    for sidx, lines in enumerate(fx["scenes"]):
+        for l, c in enumerate(lines):
+            out.append("FXL %d %d %s" % (sidx, l, " ".join(str(x) for x in c)))
+    return out
+
+
+def check_audio(manifest, audio_path):
+    """audio_parse.txt: what COS_SMOKE=audio-parse read through JAudio's init-data code (sound
+    table, banks, wave systems, sequences, streams, scene and fx tables), line by line against
+    audio_lines; every line must be there, in order."""
+    problems = []
+    want = audio_lines(manifest)
+    if want is None:
+        problems.append("the manifest has no JaiInit.aaf audio records")
+        return report_problems(problems, "")
+    with open(audio_path, encoding="utf-8") as f:
+        got = [ln.rstrip("\n") for ln in f if ln.strip() and not ln.startswith("#")]
+    for n in range(max(len(want), len(got))):
+        w = want[n] if n < len(want) else "(none)"
+        g = got[n] if n < len(got) else "(none)"
+        if w != g:
+            problems.append("line %d: manifest '%s', game '%s'" % (n + 1, w, g))
+    kinds = Counter(ln.split(" ", 1)[0] for ln in want)
+    print("disc_manifest: audio_parse.txt: %d lines (%d sounds, %d banks, %d instruments, %d "
+          "drum sets, %d wave systems, %d wave groups, %d waves, %d sequences, %d streams) "
+          "compared" % (len(want), kinds["SND"], kinds["BNK"], kinds["INST"], kinds["DRUMS"],
+                        kinds["WS"], kinds["WGRP"], kinds["WAVE"], kinds["SEQ"], kinds["STRM"]))
+    return report_problems(problems, "audio_parse.txt equals the manifest")
+
+
 def load_manifest(path):
     try:
         with open(path, encoding="utf-8") as f:
@@ -1561,6 +1856,8 @@ def main():
                     help="compare a COS_SMOKE=blo-sweep report with the manifest")
     ap.add_argument("--check-dzb", metavar="DZB",
                     help="compare a COS_SMOKE=dzb-sweep report with the manifest")
+    ap.add_argument("--check-audio", metavar="AUD",
+                    help="compare a COS_SMOKE=audio-parse report with the manifest")
     ap.add_argument("--summary", action="store_true", help="print an existing manifest's counts")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
@@ -1581,6 +1878,8 @@ def main():
         return check_blo(load_manifest(args.out), args.check_blo)
     if args.check_dzb:
         return check_dzb(load_manifest(args.out), args.check_dzb)
+    if args.check_audio:
+        return check_audio(load_manifest(args.out), args.check_audio)
     if args.summary:
         print_summary(load_manifest(args.out))
         return EXIT_OK

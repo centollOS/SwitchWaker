@@ -1933,6 +1933,46 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   - Review (round 1): dzb-sweep 0 (865 files, report equals the manifest), `regress.sh -j 3`
     all checks passed; accepted with M8 deferred until M7 passes (as 4.9a-d with M7).
 
+- **5.1 Audio data formats** (2026-10-03, pulled ahead of M7 by H10): `COS_SMOKE=audio-parse` 0 x4
+  (3 uncapped, 1 capped); `audio_parse.txt` equals the manifest: 2374 sounds in 18 categories, 65
+  banks (778 instruments, 787 oscillators, 2463 velocity regions, 7 drum sets with 60 keys), 65
+  wave systems (65 groups, 2042 waves, each inside its .aw), 97 sequences (JaiSeqs.arc sizes), 75
+  streams (table header equal to the .afc header), 2 scenes, 2 fx scenes (8 lines). Added to
+  `regress_targets.txt`.
+  - **The audio data was read host-order.** `JASBNKParser.h` (`TOffset`, `TOsc`, `TRand`,
+    `TSense`, `TVmap`, `TKeymap`, `TInst`, `TPmap`, `TPerc`), `JASWSParser.h` (every struct and
+    `TOffset`), `SoundInfo` (`JAISoundTable.h`), `initOnCodeFxScene_s` (`JAIFx.h`),
+    `FxlineConfig_` (`JASDSPInterface.h`) and `StreamLib::StreamHeader` (`JAIStreamMgr.h`, the
+    stream table's and the .afc's header) are `BE(T)`. Under `TARGET_PC`: `aafPointer` is
+    `BE(u32)*`; the bank and wave-system lists (sections 2 and 3), which the GameCube relocates in
+    place into `initOnCode_s` pointers, are built as a host table with the same zero terminator;
+    the scene table's offsets (section 6) go to a pointer table of their own; `SoundTable::init`
+    reads its u16 header through `BE(u16)`; the BNK bank ID (`registBankBNK`) and envelope tables
+    are read big-endian and each oscillator's copied table is swapped to host order, which is how
+    TOscillator reads its compiled-in tables; `JAISequenceMgr`/`JAISeMgr` read the `SoundInfo`
+    flag through the struct instead of `*(u32*)`; `setFXLine` copies the filter taps to host
+    order. The removed `TODO(native phase 4)` markers in `JAIInitData.cpp` lower group K to 10.
+    The sequence data (BMS) is read byte by byte (`TSeqCtrl::get16/read24`) and needed nothing.
+  - **Pointer tables sized for 4-byte pointers** (step 5.2's, fixed here because the parse reads
+    them): `BankMgr::init`, `WaveBankMgr::init` allocate and `TBasicBank::setInstCount`,
+    `TBasicInst::setEffectCount/setOscCount`, `TDrumSet::TPerc::setEffectCount`,
+    `TBasicWaveBank::setWaveTableSize` clear `n * 4` bytes for `n` pointers; under `TARGET_PC`
+    they use `sizeof` the pointer, so unset oscillator and effect slots are null.
+  - **Harness:** `pc_audio.cpp` sets up what `mDoAud_Create`/`JAIZelBasic::init` do for the data
+    (an audio solid heap, `sysDramSetup`/`sysAramSetup(0xa00000)`, the path parameters,
+    JaiInit.aaf through `setParamInitDataPointer`), without the audio thread, DVD thread or DSP
+    (step 5.A), then runs `JAIBasic::initHeap/initResourcePath/initArchive/initReadFile`, and
+    writes every record back from the game's structures. `disc_manifest.py` (manifest version 6)
+    decodes JaiInit.aaf's sections, the banks and wave systems inside it and the .afc headers
+    independently; `--check-audio` builds the same lines and compares them in order. Negative
+    checks: with HEAD's JAudio the smoke faults (13); a changed field is reported as a DIFF.
+  - The new structs are in `layout_headers.txt` (22 structs, the GameCube check holds 1149).
+    `unifdef -UTARGET_PC` of every changed game file equals HEAD's but the `BE(T)` fields and the
+    `helpers/endian.h` includes. Audio heap used by the parse: 600160 bytes (the GameCube heap is
+    0x166800; its 64-bit scaling stays with 5.2).
+  - Review (round 1): accepted; `audio-parse` rerun equal to the manifest, `regress.sh -j 3`
+    all checks passed. Committed as two root causes (pointer-table sizes, then the formats).
+
 ### Phase 6 render issues
 
 None yet.

@@ -20,7 +20,35 @@
 #include "stdio.h"
 #include "string.h"
 
+#if TARGET_PC
+BE(u32)* JAInter::InitData::aafPointer;
+
+// Sections 2 (banks) and 3 (wave systems) of JaiInit.aaf list {offset, size, flags} as three
+// big-endian words per entry, ending with a 0 word. The GameCube copies the list and relocates each
+// offset in place into a pointer; initOnCode_s has a host pointer (8 bytes) and host-order fields,
+// so the host table is built from the words instead, with the same zero terminator. Returns the
+// table; *words is the number of list words before the terminator.
+static JAInter::BankWave::initOnCode_s* makeInitOnCodeTable(BE(u32)* list, int* words) {
+    int n;
+    for (n = 0; list[n * 3] != 0; n++) {}
+    *words = n * 3;
+    JAInter::BankWave::initOnCode_s* table = new (JAIBasic::getCurrentJAIHeap(), 0x20) JAInter::BankWave::initOnCode_s[n + 1];
+    if (table == NULL) {
+        return NULL;
+    }
+    for (int i = 0; i < n; i++) {
+        table[i].field_0x0 = (u8*)JAInter::InitData::aafPointer + list[i * 3];
+        table[i].field_0x4 = list[i * 3 + 1];
+        table[i].field_0x8 = list[i * 3 + 2];
+    }
+    table[n].field_0x0 = NULL;
+    table[n].field_0x4 = 0;
+    table[n].field_0x8 = 0;
+    return table;
+}
+#else
 u32* JAInter::InitData::aafPointer;
+#endif
 
 /* 80292460-80292548       .text checkInitDataFile__Q27JAInter8InitDataFv */
 BOOL JAInter::InitData::checkInitDataFile() {
@@ -59,6 +87,21 @@ void JAInter::InitData::checkInitDataOnMemory() {
             r30 += 2;
             break;
         }
+#if TARGET_PC
+        case 2: {
+            int words;
+            BankWave::initOnCodeBnk = makeInitOnCodeTable(aafPointer + r30, &words);
+            r30 += words + 1;
+            break;
+        }
+        case 3: {
+            int words;
+            BankWave::initOnCodeWs = makeInitOnCodeTable(aafPointer + r30, &words);
+            BankWave::wsMax += words / 3;
+            r30 += words + 1;
+            break;
+        }
+#else
         case 2:
             r31 = 0;
             temp = (u8*)(aafPointer + r30);
@@ -66,13 +109,7 @@ void JAInter::InitData::checkInitDataOnMemory() {
             for (var6 = 0; aafPointer[r30 + var6]; var6 += 3) {}
             BankWave::initOnCodeBnk = (BankWave::initOnCode_s*)transInitDataFile(temp, var6 / 3 * 12 + 4);
             for (; aafPointer[r30]; r31++, r30 += 3) {
-#if TARGET_PC
-                // TODO(native phase 4): the 'aaf' entry is a 32-bit file offset read through a pointer-sized
-                // field; uintptr_t only lets this compile, the 64-bit layout of the table is phase 4.
-                BankWave::initOnCodeBnk[r31].field_0x0 = (u8*)aafPointer + (uintptr_t)BankWave::initOnCodeBnk[r31].field_0x0;
-#else
                 BankWave::initOnCodeBnk[r31].field_0x0 = (u8*)aafPointer + (u32)BankWave::initOnCodeBnk[r31].field_0x0;
-#endif
             }
             r30++;
             break;
@@ -82,17 +119,12 @@ void JAInter::InitData::checkInitDataOnMemory() {
             for (var6 = 0; aafPointer[r30 + var6]; var6 += 3) {}
             BankWave::initOnCodeWs = (BankWave::initOnCode_s*)transInitDataFile(temp, var6 / 3 * 12 + 4);
             for (; aafPointer[r30]; r30 += 3, r31++) {
-#if TARGET_PC
-                // TODO(native phase 4): the 'aaf' entry is a 32-bit file offset read through a pointer-sized
-                // field; uintptr_t only lets this compile, the 64-bit layout of the table is phase 4.
-                BankWave::initOnCodeWs[r31].field_0x0 = (u8*)aafPointer + (uintptr_t)BankWave::initOnCodeWs[r31].field_0x0;
-#else
                 BankWave::initOnCodeWs[r31].field_0x0 = (u8*)aafPointer + (u32)BankWave::initOnCodeWs[r31].field_0x0;
-#endif
                 BankWave::wsMax++;
             }
             r30++;
             break;
+#endif
         case 4:
             JUT_WARN(120, "%s", "Hed file is not needed. Remove this file('aaf')\n");
             r30 += 3;
@@ -104,18 +136,25 @@ void JAInter::InitData::checkInitDataOnMemory() {
             r30 += 3;
             break;
         case 6: {
+#if TARGET_PC
+            // The scene table: a big-endian scene count, then one 32-bit offset (from the table)
+            // per scene that the GameCube relocates in place into a u8*. A host pointer does not
+            // fit in the word, so the pointers go to a table of their own on the same heap.
+            BE(u32)* r28 = (BE(u32)*)transInitDataFile((u8*)aafPointer + aafPointer[r30], aafPointer[r30 + 1]);
+            JAIGlobalParameter::setParamSoundSceneMax(*r28);
+            u8** scenes = new (JAIBasic::getCurrentJAIHeap(), 0x20) u8*[JAIGlobalParameter::getParamSoundSceneMax()];
+            JAIBasic::getInterface()->field_0x1c = scenes;
+            for (int i = 0; i < JAIGlobalParameter::getParamSoundSceneMax(); i++) {
+                scenes[i] = (u8*)r28 + r28[1 + i];
+            }
+#else
             u32* r28 = (u32*)transInitDataFile((u8*)aafPointer + aafPointer[r30], aafPointer[r30 + 1]);
             JAIGlobalParameter::setParamSoundSceneMax(*r28);
             JAIBasic::getInterface()->field_0x1c = (u8**)(r28 + 1);
             for (int i = 0; i < JAIGlobalParameter::getParamSoundSceneMax(); i++) {
-#if TARGET_PC
-                // TODO(native phase 4): the scene table holds 32-bit offsets that are relocated in place through
-                // u8* entries; uintptr_t only lets this compile, the 64-bit layout of the table is phase 4.
-                JAIBasic::getInterface()->field_0x1c[i] += uintptr_t(r28);
-#else
                 JAIBasic::getInterface()->field_0x1c[i] += u32(r28);
-#endif
             }
+#endif
             r30 += 3;
             break;
         }

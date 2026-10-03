@@ -25,8 +25,14 @@ void JAInter::SoundTable::init(u8* param_1, u32 param_2) {
     mSoundMax = new (JAIBasic::getCurrentJAIHeap(), 4) u16[18];
     mPointerCategory = new (JAIBasic::getCurrentJAIHeap(), 4) SoundInfo*[18];
     for (u8 i = 0; i < 18; i++) {
+#if TARGET_PC
+        // The table's header is big-endian: per category, the sound count and the first entry.
+        mSoundMax[i] = *(BE(u16)*)(&mAddress[6 + i*4]);
+        mPointerCategory[i] = &((SoundInfo*)&mAddress[0x50])[*(BE(u16)*)(&mAddress[8 + i*4])];
+#else
         mSoundMax[i] = *(u16*)(&mAddress[6 + i*4]);
         mPointerCategory[i] = &((SoundInfo*)&mAddress[0x50])[*(u16*)(&mAddress[8 + i*4])];
+#endif
         
         if (i < 16 && mSoundMax[i] != 0) {
             mCategotyMax = i + 1;

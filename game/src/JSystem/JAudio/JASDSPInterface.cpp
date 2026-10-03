@@ -106,8 +106,18 @@ bool JASystem::DSPInterface::FXBuffer::setFXLine(s16* buffer, JASystem::DSPInter
         field_0xe = config->field_0x8;
         field_0xc = SEND_TABLE[config->field_0x6];
         field_0x2 = config->field_0xc;
+#if TARGET_PC
+        // The config is a big-endian record of JaiInit.aaf's fx scene table: its fields are read
+        // through BE(T) (a value, not the BE<T> object, goes to the variadic report) and the
+        // filter taps are copied to host order.
+        OSReport("FX LINE Buffer %p/ SIZE %d\n", buffer, (int)config->field_0xc);
+        for (int i = 0; i < 8; i++) {
+            field_0x10[i] = config->field_0x10[i];
+        }
+#else
         OSReport("FX LINE Buffer %x/ SIZE %d\n", buffer, config->field_0xc);
         setFilterTable(field_0x10, config->field_0x10, 8);
+#endif
     }
     if (buffer && config) {
         u32 bufsize = config->field_0xc * 0xa0;

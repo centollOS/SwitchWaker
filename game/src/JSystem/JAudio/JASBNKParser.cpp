@@ -51,7 +51,16 @@ JASystem::TBasicBank* JASystem::BNKParser::createBasicBank(void* stream) {
                             s32 tableLength = getOscTableEndPtr(oscTable) - oscTable;
                             osc->table = new (heap, 0) s16[tableLength];
                             JUT_ASSERT(82, osc->table != NULL);
+#if TARGET_PC
+                            // The envelope is big-endian s16 triplets in the bank; TOscillator reads
+                            // Osc_ tables as host s16 (the compiled-in ones are host order), so the
+                            // copy, which only this oscillator owns, is swapped as it is made.
+                            for (s32 k = 0; k < tableLength; k++) {
+                                osc->table[k] = RES_S16(oscTable[k]);
+                            }
+#else
                             Calc::bcopy(oscTable, osc->table, tableLength * sizeof(s16));
+#endif
                         } else {
                             osc->table = NULL;
                         }
@@ -60,7 +69,16 @@ JASystem::TBasicBank* JASystem::BNKParser::createBasicBank(void* stream) {
                             s32 tableLength = getOscTableEndPtr(oscTable) - oscTable;
                             osc->rel_table = new (heap, 0) s16[tableLength];
                             JUT_ASSERT(94, osc->rel_table != NULL);
+#if TARGET_PC
+                            // The envelope is big-endian s16 triplets in the bank; TOscillator reads
+                            // Osc_ tables as host s16 (the compiled-in ones are host order), so the
+                            // copy, which only this oscillator owns, is swapped as it is made.
+                            for (s32 k = 0; k < tableLength; k++) {
+                                osc->rel_table[k] = RES_S16(oscTable[k]);
+                            }
+#else
                             Calc::bcopy(oscTable, osc->rel_table, tableLength * sizeof(s16));
+#endif
                         } else {
                             osc->rel_table = NULL;
                         }
@@ -188,7 +206,12 @@ JASystem::TOscillator::Osc_* JASystem::BNKParser::findOscPtr(JASystem::TBasicBan
 s16* JASystem::BNKParser::getOscTableEndPtr(s16* param_1) {
     s16 v1;
     do {
+#if TARGET_PC
+        // A bank's envelope table: big-endian s16 triplets.
+        v1 = RES_S16(*param_1);
+#else
         v1 = *param_1;
+#endif
         param_1 += 3;
     } while (v1 <= 0xa);
     return param_1;

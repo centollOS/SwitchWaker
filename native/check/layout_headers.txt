@@ -246,3 +246,33 @@ JSystem/JStudio/JStudio/stb-data.h
 JSystem/JStudio/JStudio/fvb-data.h
     JStudio::fvb::data::TBlock
     JStudio::fvb::data::THeader
+
+# 5.1: audio data (JaiInit.aaf's sound table, banks, wave systems, stream and fx scene tables)
+JSystem/JAudio/JAISoundTable.h
+    SoundInfo               size=0x10
+JSystem/JAudio/JASBNKParser.h
+    JASystem::BNKParser::TOsc       size=0x18
+    JASystem::BNKParser::TRand      size=0xC
+    JASystem::BNKParser::TSense     size=0xC
+    JASystem::BNKParser::TVmap      size=0x10
+    JASystem::BNKParser::TKeymap    size=0xC
+    JASystem::BNKParser::TInst      size=0x34
+    JASystem::BNKParser::TPmap      size=0x18
+    JASystem::BNKParser::TPerc      size=0x408
+    JASystem::BNKParser::THeader    size=0x3E4
+JSystem/JAudio/JASWSParser.h
+    JASystem::WSParser::TWave       size=0x2C
+    JASystem::WSParser::TWaveArchive size=0x78
+    JASystem::WSParser::TWaveArchiveBank size=0xC
+    JASystem::WSParser::TCtrlWave   size=0x4
+    JASystem::WSParser::TCtrl       size=0xC
+    JASystem::WSParser::TCtrlScene  size=0x10
+    JASystem::WSParser::TCtrlGroup  size=0x10
+    JASystem::WSParser::THeader     size=0x18
+JSystem/JAudio/JAIStreamMgr.h
+    JAInter::streamList_t   size=0x30
+    JAInter::StreamLib::StreamHeader size=0x20 field_0x0=0x0 field_0x4=0x4 field_0x8=0x8 field_0xa=0xA field_0xc=0xC field_0xe=0xE field_0x10=0x10 field_0x14=0x14 field_0x18=0x18
+JSystem/JAudio/JAIFx.h
+    JAInter::Fx::initOnCodeFxScene_s size=0x18 field_0x0=0x0 field_0x4=0x4 field_0x8=0x8 field_0xc=0xC field_0x10=0x10 field_0x14=0x14
+JSystem/JAudio/JASDSPInterface.h
+    JASystem::DSPInterface::FxlineConfig_ size=0x20

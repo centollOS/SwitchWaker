@@ -6,6 +6,9 @@
 #include "JSystem/JSystem.h" // IWYU pragma: keep
 
 #include "JSystem/JAudio/JAISequenceMgr.h"
+#if TARGET_PC
+#include "JSystem/JAudio/JAISoundTable.h"
+#endif
 #include "JSystem/JAudio/JAIBasic.h"
 #include "JSystem/JAudio/JAISystemInterface.h"
 #include "JSystem/JAudio/JAISequenceHeap.h"
@@ -623,7 +626,12 @@ void JAInter::SequenceMgr::storeSeqBuffer(JAISound** handle, Actor* actor, u32 s
         seqTrackInfo[track].mActiveTrackFlag = 1;
         seqTrackInfo[track].mPrepareFlag = 0;
         seqTrackInfo[track].field_0x4 = 0;
+#if TARGET_PC
+        // info is a sound table entry (SoundInfo): its flag word is big-endian.
+        if (((SoundInfo*)info)->mFlag & 1) {
+#else
         if (*(u32*)info & 1) {
+#endif
             for (u32 i = 0; i < JAIGlobalParameter::getParamSeqPlayTrackMax(); i++) {
                 JAISound* other = seqTrackInfo[i].mSequence;
                 if (i != track && other && !(other->getSwBit() & 2)) {

@@ -26,7 +26,7 @@ group G	9
 group H	0
 group I	6
 group J	7
-group K	13
+group K	10
 group L	1
 unclassified	0
 markers open	78

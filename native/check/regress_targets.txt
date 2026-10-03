@@ -28,6 +28,7 @@ stage-sweep 0
 blo-sweep 0
 save 0
 dzb-sweep 0
+audio-parse 0
 
 # input injection (step 6.3): the default script native/check/input/pad-echo.txt
 pad-echo 0

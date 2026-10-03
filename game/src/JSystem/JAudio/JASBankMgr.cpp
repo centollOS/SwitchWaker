@@ -57,7 +57,12 @@ bool JASystem::BankMgr::registBank(int banknum, TBank* bank) {
 
 /* 8028874C-802887AC       .text registBankBNK__Q28JASystem7BankMgrFiPv */
 bool JASystem::BankMgr::registBankBNK(int banknum, void* param_2) {
+#if TARGET_PC
+    // The bank's ID, word 2 of the big-endian BNK header.
+    setVir2PhyTable(RES_U32(*((u32*)(param_2) + 2)), banknum);
+#else
     setVir2PhyTable(*((u32*)(param_2) + 2), banknum);
+#endif
     TBasicBank* bank = BNKParser::createBasicBank(param_2);
     if (bank == NULL) {
         return false;

@@ -2,6 +2,7 @@
 #define JASDSPINTERFACE_H
 
 #include "dolphin/types.h"
+#include "helpers/endian.h"
 
 namespace JASystem {
     namespace Driver {
@@ -22,12 +23,12 @@ namespace JASystem {
     namespace DSPInterface {
         struct FxlineConfig_ {
             /* 0x00 */ u8 field_0x0;
-            /* 0x02 */ u16 field_0x2;
-            /* 0x04 */ s16 field_0x4;
-            /* 0x06 */ u16 field_0x6;
-            /* 0x08 */ s16 field_0x8;
-            /* 0x0C */ int field_0xc;
-            /* 0x10 */ s16 field_0x10[8];
+            /* 0x02 */ BE(u16) field_0x2;
+            /* 0x04 */ BE(s16) field_0x4;
+            /* 0x06 */ BE(u16) field_0x6;
+            /* 0x08 */ BE(s16) field_0x8;
+            /* 0x0C */ BE(int) field_0xc;
+            /* 0x10 */ BE(s16) field_0x10[8];
         };
 
         class FXBuffer {
