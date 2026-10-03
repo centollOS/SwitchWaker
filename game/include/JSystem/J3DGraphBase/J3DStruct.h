@@ -157,7 +157,13 @@ struct J3DIndTexOrderInfo {
 };
 
 struct J3DTevSwapModeInfo {
+#if TARGET_PC
+    // ALIGN_DECL is empty off Metrowerks (global.h); this info is also the 0x4-byte entry of a
+    // MAT3/MAT2 table, so TARGET_PC keeps the alignment (and size) Metrowerks gives it.
+    /* 0x0 */ u8 mRasSel __attribute__((aligned(4)));
+#else
     /* 0x0 */ u8 mRasSel ALIGN_DECL(4);
+#endif
     /* 0x1 */ u8 mTexSel;
 };
 
@@ -192,7 +198,13 @@ struct J3DTevStageInfo {
 };
 
 struct J3DIndTevStageInfo {
+#if TARGET_PC
+    // ALIGN_DECL is empty off Metrowerks (global.h); this info is also the 0xC-byte entry of a
+    // MAT3/MAT2 table, so TARGET_PC keeps the alignment (and size) Metrowerks gives it.
+    /* 0x0 */ u8 mIndStage __attribute__((aligned(4)));
+#else
     /* 0x0 */ u8 mIndStage ALIGN_DECL(4);
+#endif
     /* 0x1 */ u8 mIndFormat;
     /* 0x2 */ u8 mBiasSel;
     /* 0x3 */ u8 mMtxSel;
@@ -210,7 +222,13 @@ struct J3DTexCoordInfo {
         mTexGenMtx = other.mTexGenMtx;
     }
 
+#if TARGET_PC
+    // ALIGN_DECL is empty off Metrowerks (global.h); this info is also the 0x4-byte entry of a
+    // MAT3/MAT2 table, so TARGET_PC keeps the alignment (and size) Metrowerks gives it.
+    /* 0x0 */ u8 mTexGenType __attribute__((aligned(4)));
+#else
     /* 0x0 */ u8 mTexGenType ALIGN_DECL(4);
+#endif
     /* 0x1 */ u8 mTexGenSrc;
     /* 0x2 */ u8 mTexGenMtx;
 };
@@ -235,7 +253,13 @@ struct J3DBlendInfo {
 };
 
 struct J3DTevOrderInfo {
+#if TARGET_PC
+    // ALIGN_DECL is empty off Metrowerks (global.h); this info is also the 0x4-byte entry of a
+    // MAT3/MAT2 table, so TARGET_PC keeps the alignment (and size) Metrowerks gives it.
+    /* 0x0 */ u8 mTexCoord __attribute__((aligned(2)));
+#else
     /* 0x0 */ u8 mTexCoord ALIGN_DECL(2);
+#endif
     /* 0x1 */ u8 mTexMap;
     /* 0x2 */ u8 mColorChan;
 };

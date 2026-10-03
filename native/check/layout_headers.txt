@@ -134,7 +134,7 @@ SSystem/SComponent/c_bg_w.h
     cBgD_Tree_t
     cBgD_t                  size=0x34
 
-# 4.11: J3D model data (BMD/BDL)
+# 4.11: J3D model data (BMD/BDL/BMT; J3DStruct.h: the infos the MAT3/MAT2 tables hold)
 JSystem/J3DGraphLoader/J3DModelLoader.h
     J3DModelInfoBlock
     J3DVertexBlock
@@ -153,12 +153,31 @@ JSystem/J3DGraphLoader/J3DShapeFactory.h
     J3DShapeDrawInitData
     J3DShapeBlock
 JSystem/J3DGraphLoader/J3DMaterialFactory.h
-    J3DMaterialInitData
-    J3DIndInitData
+    J3DMaterialInitData     size=0x14C
+    J3DIndInitData          size=0x138
     J3DPatchingInfo
     J3DDisplayListInit
 JSystem/J3DGraphLoader/J3DMaterialFactory_v21.h
-    J3DMaterialInitData_v21
+    J3DMaterialInitData_v21 size=0x138
+JSystem/J3DGraphBase/J3DStruct.h
+    J3DLightInfo            size=0x34
+    J3DTextureSRTInfo       size=0x14
+    J3DTexMtxInfo           size=0x64
+    J3DIndTexMtxInfo        size=0x1C
+    J3DFogInfo              size=0x2C
+    J3DNBTScaleInfo         size=0x10
+    J3DIndTexOrderInfo      size=0x4
+    J3DTevSwapModeInfo      size=0x4
+    J3DTevSwapModeTableInfo size=0x4
+    J3DTevStageInfo         size=0x14
+    J3DIndTevStageInfo      size=0xC
+    J3DTexCoordInfo         size=0x4
+    J3DIndTexCoordScaleInfo size=0x4
+    J3DBlendInfo            size=0x4
+    J3DTevOrderInfo         size=0x4
+    J3DColorChanInfo        size=0x8
+    J3DZModeInfo            size=0x4
+    J3DAlphaCompInfo        size=0x8
 JSystem/J3DGraphLoader/J3DClusterLoader.h
     J3DClusterBlock
 JSystem/J3DGraphAnimator/J3DJointTree.h
