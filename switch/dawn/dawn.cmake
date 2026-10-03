@@ -304,6 +304,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # On top of the synchronous queue: GLES 3.0 sync objects instead of a glFinish per
+    # submission (COS_SWITCH_GL_FINISH=1 at run time brings the glFinish back).
+    file(READ "${DAWN_OPENGL_QUEUE_SOURCE}" DAWN_OPENGL_QUEUE_TEXT)
+    if(NOT DAWN_OPENGL_QUEUE_TEXT MATCHES "mGLFencesInFlight")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-fence-queue.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_FENCE_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_FENCE_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_FENCE_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_FENCE_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL fence queue patch:\n"
+                "${DAWN_GL_FENCE_PATCH_OUTPUT}${DAWN_GL_FENCE_PATCH_ERROR}")
+        endif()
+    endif()
+
     set(DAWN_WGPU_HELPERS_SOURCE
         "${dawn_SOURCE_DIR}/src/dawn/native/utils/WGPUHelpers.cpp")
     file(READ "${DAWN_WGPU_HELPERS_SOURCE}" DAWN_WGPU_HELPERS_TEXT)
