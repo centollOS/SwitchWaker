@@ -1469,6 +1469,12 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   were not broken the same way. `JSUInputStream::readU32` does not swap yet, so its host-order
   value was right for the old `set(u32)` and is now byte-reversed. That is latent (no BLO screen
   is parsed correctly before 4.13, `readS16` is unswapped too); 4.13 must make `readU32` big-endian.
+- M5 reached (boot loop, 2026-10-03, HEAD 3c9142d, no code change): `logo-scene` 0 x3 (Logo
+  archive 12 entries, the logo BTI 376x104 format 3, created at frame 2 or 3, 159744
+  texture bytes uploaded since, MILESTONE at frame 6-7), `--uncapped` 0; static-init/aurora-up/
+  heaps/gfx-create/frame-loop 0 x3, frame-loop uncapped 0; heap/disc-ls/font/arc-sweep 0;
+  crash/panic/timeout/stall 13/12/10/11, no disc 14; census diff empty, `--dups` 0, inventory ok
+  (78 open), smoke and `cos_pc_tests` ok.
 
 ### Phase 6 render issues
 
