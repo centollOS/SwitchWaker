@@ -4,7 +4,8 @@
 //   Aurora's event pump (aurora_update; a quit request ends the process), aurora_begin_frame
 //   before the game reads the pad, runs and draws (fapGm_Execute encodes GX and, inside
 //   JFWDisplay::beginRender, makes the VI retraces), aurora_end_frame after it. Then the frame
-//   counts (pc_frame_tick: stall watchdog, COS_FRAMES) and milestone M4 frame-loop is checked.
+//   counts (pc_frame_tick: stall watchdog, COS_FRAMES) and milestones M4 frame-loop and M5
+//   logo-scene are checked.
 // - pc_frame_pace is the wait of JFWDisplay's waitForTick (JFWDisplay.cpp, TARGET_PC): it sleeps
 //   until the period the game asked for has passed since the previous wait, with Dusklight's
 //   limiter (mach_wait_until for all but the last 2 ms, then a spin). COS_UNCAPPED skips it.
@@ -17,9 +18,12 @@
 // aurora_begin_frame waits and retries instead of skipping the game frame.
 #include "pc_internal.h"
 
+#include "JSystem/JUtility/JUTTexture.h"
+
 #include <aurora/aurora.h>
 #include <aurora/event.h>
 #include <aurora/gfx.h>
+#include <dolphin/gx/GXTexture.h>
 #include <dolphin/vi.h>
 
 #include <array>
@@ -130,6 +134,13 @@ uint64_t sPaceStartNs = 0;
 uint64_t sPaceEndNs = 0;
 bool sFrameLoopLogged = false;
 bool sFrameLoopWarned = false;
+// M5 (step 4.5): the LOGO scene was created (pc_logo_scene_created, game thread) and the texture
+// bytes Aurora reported uploaded before and after that.
+bool sLogoCreated = false;
+bool sLogoLogged = false;
+unsigned int sLogoFrame = 0;
+uint64_t sUploadBeforeLogo = 0;
+uint64_t sUploadSinceLogo = 0;
 
 // Drains Aurora's events. A quit request (window closed) ends the process: exit 0 for a plain
 // run, 1 when a milestone or COS_FRAMES was still expected.
@@ -230,6 +241,9 @@ void pc_frame_end(void) {
     if (stats != nullptr && stats->drawCallCount > sMaxDrawCalls) {
         sMaxDrawCalls = stats->drawCallCount;
     }
+    if (stats != nullptr) {
+        (sLogoCreated ? sUploadSinceLogo : sUploadBeforeLogo) += stats->lastTextureUploadSize;
+    }
 
     pc_frame_tick();
 
@@ -250,6 +264,42 @@ void pc_frame_end(void) {
                    frames, (unsigned int)retraces, (unsigned int)sMaxDrawCalls);
         }
     }
+
+    // M5 logo-scene: the scene exists and Aurora uploaded texture data after it was created (the
+    // logo scene draws the boot logo from its first frame, logoInDraw).
+    if (sLogoCreated && !sLogoLogged && sUploadSinceLogo > 0) {
+        sLogoLogged = true;
+        writef(STDERR_FILENO, "[cos] logo-scene: created at frame %u; %llu texture bytes uploaded "
+                              "since (%llu before), up to %u draw calls in a frame\n",
+               sLogoFrame, (unsigned long long)sUploadSinceLogo,
+               (unsigned long long)sUploadBeforeLogo, (unsigned int)sMaxDrawCalls);
+        pc_milestone("logo-scene");
+    }
+}
+
+void pc_logo_scene_created(int logoFiles, const ResTIMG* timg, unsigned int size) {
+    if (logoFiles <= 0 || timg == nullptr) {
+        writef(STDERR_FILENO, "[cos] logo-scene: Logo archive not mounted (%d entries, timg %p)\n",
+               logoFiles, (const void*)timg);
+        pc_exit(PC_EXIT_CHECK_FAILED);
+    }
+    const u32 width = timg->width;
+    const u32 height = timg->height;
+    const u32 imageOffset = timg->imageOffset != 0 ? (u32)timg->imageOffset : 0x20;
+    const u32 imageSize = GXGetTexBufferSize(width, height, timg->format, timg->mipmapEnabled != 0,
+                                             timg->mipmapCount);
+    writef(STDERR_FILENO, "[cos] logo-scene: Logo archive %d entries; the logo BTI %ux%u "
+                          "format %u, %u colours, image at 0x%x (%u bytes) in %u bytes\n",
+           logoFiles, (unsigned int)width, (unsigned int)height, (unsigned int)timg->format,
+           (unsigned int)(u16)timg->numColors, (unsigned int)imageOffset, (unsigned int)imageSize,
+           size);
+    if (width != 376 || height != 104 || imageOffset < sizeof(ResTIMG) ||
+        (uint64_t)imageOffset + imageSize > size) {
+        writef(STDERR_FILENO, "[cos] logo-scene: the boot logo's header is wrong\n");
+        pc_exit(PC_EXIT_CHECK_FAILED);
+    }
+    sLogoCreated = true;
+    sLogoFrame = pc_frame_count();
 }
 
 } // extern "C"

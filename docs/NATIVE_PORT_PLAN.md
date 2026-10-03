@@ -1433,6 +1433,42 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   static-init/aurora-up/heaps/gfx-create 0 x3; heap/disc-ls/font/arc-sweep 0;
   crash/panic/timeout/stall 13/12/10/11; census diff empty, `--dups` 0, inventory ok (78 open),
   smoke and `cos_pc_tests` ok.
+- **4.5 Logo 2D** (M5 logo-scene). The `ResTIMG` image and palette offsets were already read
+  big-endian since 4.3 (`imageOffset`/`paletteOffset` are `BE(u32)`; `JUTTexture::storeTIMG` and
+  `initTexObj` use them with `intptr_t`), so the logo textures reached Aurora unchanged. Two
+  changes, meant as two commits:
+  - **`JUtility::TColor`'s u32 form** (root cause, J2DPicture): `set(u32)`/`toUInt32` wrote and
+    read `r,g,b,a` as a host-order u32, so on the little-endian host `0xRRGGBBAA` landed as
+    `a,b,g,r`. `J2DPicture::draw`/`drawFullSet`/`drawTexCoord` pass the corner colours to
+    `GXColor1u32` through that u32 (alpha-faded pictures such as the logo scene's progressive
+    choice became opaque, wrongly coloured). Under `TARGET_PC` both go through `BE(u32)`, plus the `TColor(BE(u32))`
+    constructor, as in Dusklight 40457c6 (CC0, provenance in the header); `unifdef -UTARGET_PC`
+    of `TColor.h` equals HEAD's. `cos_pc_tests` gained `testTColor` (r is the high byte of the
+    u32 form, round trips, bytes in memory order).
+  - **Milestone M5 `logo-scene`:** `d_s_logo.cpp`'s `phase_2`, at its end under `TARGET_PC`,
+    calls the new `pc_logo_scene_created` (pc_harness.h, pc_frame.cpp) with the Logo archive's
+    entry count, the boot logo's `ResTIMG` and its resource size. It checks the archive is
+    mounted and the header (376x104, image offset at least 0x20, `GXGetTexBufferSize` inside the
+    resource), else exit 1; `pc_frame_end` then logs `logo-scene` after the first frame for which
+    Aurora reported texture bytes uploaded since the scene was created. `unifdef -UTARGET_PC` of
+    `d_s_logo.cpp` equals HEAD's.
+  Verified: `run.sh logo-scene` 0 x6 (and `--uncapped` 0): "Logo archive 12 entries;
+  the logo BTI 376x104 format 3, 0 colours, image at 0x20 (78208 bytes) in 78240 bytes"
+  (the manifest has the same: 12 entries, IA8 376x104, image offset 32, size 78240), created at
+  frame 2, 159744 texture bytes uploaded since (0 before), MILESTONE at frame 6; no assertion or
+  panic in the log.
+  Regression: `ninja all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check
+  cos_link_census` 0 errors; smoke ok; `cos_pc_tests` ok; census equal to
+  `expected_unresolved_phase2.txt`; `--all --dups` 0; inventory `--check` ok (78 open);
+  static-init, aurora-up, heaps, gfx-create, frame-loop 0 x3, frame-loop `--uncapped` 0;
+  heap, disc-ls, font, arc-sweep 0; crash/panic/timeout/stall-test 13/12/10/11; no disc 14.
+  Not changed: the frame-243 fault in `JUTNameTab::setResource` under `dvdWaitDraw` (J3D
+  animation, step 4.12) is on the way to M6, not M5.
+  Review (round 1): accepted, all of the above rerun (logo-scene 0 x3 and `--uncapped` 0, M0-M4
+  0 x3, sweeps 0, harness tests 13/12/10/11, no disc 14, inventory ok). Correction: BLO colours
+  were not broken the same way. `JSUInputStream::readU32` does not swap yet, so its host-order
+  value was right for the old `set(u32)` and is now byte-reversed. That is latent (no BLO screen
+  is parsed correctly before 4.13, `readS16` is unswapped too); 4.13 must make `readU32` big-endian.
 
 ### Phase 6 render issues
 

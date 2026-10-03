@@ -62,6 +62,16 @@ void pc_heaps_created(void);
    else exits 1. */
 void pc_copydate_loaded(int status, const char* copydate);
 
+/* Milestone M5 (step 4.5, pc_frame.cpp), called by d_s_logo.cpp's phase_2 when the LOGO scene is
+   created: logoFiles is the entry count (countFile) of the mounted Logo archive (0 when it is not
+   mounted), logoTimg the boot logo's BTI header and logoSize its size in the archive.
+   Checks the header (376x104, the image inside the resource), then pc_frame_end logs "logo-scene"
+   after the first frame in which Aurora uploaded texture data; exits 1 when the archive is not
+   mounted or the header is wrong. */
+struct ResTIMG;
+void pc_logo_scene_created(int logoFiles, const struct ResTIMG* logoTimg,
+                           unsigned int logoSize);
+
 /* Logs "[cos] MILESTONE <name> frame= retrace= ms=" and exits 0 if <name> is COS_MILESTONE. */
 void pc_milestone(const char* name);
 

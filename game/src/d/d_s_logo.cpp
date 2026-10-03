@@ -32,6 +32,9 @@
 #include "dolphin/os/OS.h"
 #include "string.h"
 #include "stdio.h"
+#if TARGET_PC
+#include "pc/pc_harness.h"
+#endif
 
 mDoDvdThd_mountXArchive_c * l_anmCommand;
 mDoDvdThd_mountXArchive_c * l_fmapCommand;
@@ -954,6 +957,18 @@ cPhs_State phase_2(dScnLogo_c* i_this) {
 #if VERSION > VERSION_DEMO
     JUTGamePad::clearResetOccurred();
     JUTGamePad::setResetCallback(mDoRst_resetCallBack, NULL);
+#endif
+#if TARGET_PC
+
+    // Run harness (step 4.5): milestone M5 logo-scene, the scene is created. It checks the Logo
+    // archive and the Nintendo logo's header, then waits for Aurora's first texture upload.
+    {
+        dRes_info_c* logoInfo = dComIfG_getObjectResInfo("Logo");
+        JKRArchive* logoArc = logoInfo != NULL ? logoInfo->getArchive() : NULL;
+        timg = (ResTIMG *)dComIfG_getObjectRes("Logo", dRes_INDEX_LOGO_BTI_NINTENDO_376X104_e);
+        pc_logo_scene_created(logoArc != NULL ? logoInfo->getResNum() : 0, timg,
+                              logoArc != NULL && timg != NULL ? logoArc->getResSize(timg) : 0);
+    }
 #endif
 
     return cPhs_COMPLEATE_e;
