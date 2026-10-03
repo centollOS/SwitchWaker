@@ -244,6 +244,34 @@ uint64_t glOtherWorkNs(const CosSwitchGfxStats& s) {
     const uint64_t known = s.glExecuteNs + s.glReleaseNs;
     return s.glFlushNs > known ? s.glFlushNs - known : 0;
 }
+
+uint64_t subOrZero(uint64_t a, uint64_t b) {
+    return a > b ? a - b : 0;
+}
+
+// The render passes' replay (dawn-switch-gl-replay-timers.patch), as a running total.
+uint64_t glReplayNs(const CosSwitchGfxStats& s) {
+    return s.glPipelineNs + s.glBindGroupNs + s.glImmediatesNs + s.glVertexStateNs + s.glDrawCallNs;
+}
+
+// What no timer of a whole render pass covers (dawn-switch-gl-pass-timers.patch): the command
+// loop's own work and anything Mesa did inside calls not timed apart.
+uint64_t glPassResidualNs(const CosSwitchGfxStats& s) {
+    return subOrZero(s.glPassTotalNs, s.glPassLazyClearNs + s.glPassFramebufferNs +
+                                          s.glPassDefaultStateNs + s.glPassClearNs + s.glPassEndNs +
+                                          s.glPassDynamicStateNs + glReplayNs(s));
+}
+
+uint64_t glFirstPassResidualNs(const CosSwitchGfxStats& s) {
+    return subOrZero(s.glFirstPassNs, s.glFirstPassLazyClearNs + s.glFirstPassFramebufferNs +
+                                          s.glFirstPassDefaultStateNs + s.glFirstPassClearNs +
+                                          s.glFirstPassEndNs + s.glFirstPassReplayNs);
+}
+
+// Execute minus its passes and copies: the other commands and the loop.
+uint64_t glExecuteResidualNs(const CosSwitchGfxStats& s) {
+    return subOrZero(s.glExecuteNs, s.glPassTotalNs + s.glBufCopyNs + s.glTexCopyNs);
+}
 #endif
 
 // COS_HITCH_MS: one line for a frame whose busy time is above the threshold. `ev`/`prev`: the
@@ -255,7 +283,7 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
     const unsigned int resLoads = ev.resources - prev.resources;
     const bool sceneChanged = ev.scene != prev.scene;
     const uint64_t beginFrameNs = f.beginNs > f.eventsNs ? f.beginNs - f.eventsNs : 0;
-    char platform[768] = "";
+    char platform[1536] = "";
 #if defined(__SWITCH__)
     CosSwitchGfxStats now{};
     cos_switch_gfx_stats(&now);
@@ -264,7 +292,9 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
              "; switch: slot wait %.1f, staging wait %.1f, queue-full wait %.1f, worker busy %.1f "
              "(encode %.1f, submit %.1f, present %.1f, events %.1f), gl fence wait %.1f, glFinish "
              "%.1f, pipeline compile %.1f ms (%llu), dvd %llu reads %.1f KiB %.1f ms; dawn gl: %llu "
-             "draws, %llu tex binds, %llu texparams, execute %.1f, other work %.1f, release %.1f ms",
+             "draws, %llu tex binds, %llu texparams, execute %.1f, other work %.1f, release %.1f ms "
+             "(first pass %.1f: fbo %.1f, clears %.1f, replay %.1f; other passes %.1f; buffer "
+             "copies %.1f, first %.1f; texture copies %.1f)",
              msOf(now.frameSlotWaitNs - p.frameSlotWaitNs), msOf(now.stagingWaitNs - p.stagingWaitNs),
              msOf(now.queueFullWaitNs - p.queueFullWaitNs), msOf(now.workerBusyNs - p.workerBusyNs),
              msOf(now.workerEncodeNs - p.workerEncodeNs), msOf(now.workerSubmitNs - p.workerSubmitNs),
@@ -276,7 +306,14 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
              msOf(now.dvdNs - p.dvdNs), (unsigned long long)(now.glDraws - p.glDraws),
              (unsigned long long)(now.glTexBinds - p.glTexBinds),
              (unsigned long long)(now.glTexParams - p.glTexParams), msOf(now.glExecuteNs - p.glExecuteNs),
-             msOf(glOtherWorkNs(now) - glOtherWorkNs(p)), msOf(now.glReleaseNs - p.glReleaseNs));
+             msOf(glOtherWorkNs(now) - glOtherWorkNs(p)), msOf(now.glReleaseNs - p.glReleaseNs),
+             msOf(now.glFirstPassNs - p.glFirstPassNs),
+             msOf(now.glFirstPassFramebufferNs - p.glFirstPassFramebufferNs),
+             msOf(now.glFirstPassClearNs - p.glFirstPassClearNs),
+             msOf(now.glFirstPassReplayNs - p.glFirstPassReplayNs),
+             msOf(subOrZero(now.glPassTotalNs - p.glPassTotalNs, now.glFirstPassNs - p.glFirstPassNs)),
+             msOf(now.glBufCopyNs - p.glBufCopyNs), msOf(now.glFirstBufCopyNs - p.glFirstBufCopyNs),
+             msOf(now.glTexCopyNs - p.glTexCopyNs));
 #endif
     writef(STDERR_FILENO,
            "[cos] hitch frame %u: busy %.1f ms (wall %.1f): events %.1f, begin_frame %.1f, cpd %.1f, "
@@ -453,6 +490,38 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
                othersMs, usEach(othersMs, others), (cur.glUniformBufferBinds - w.glUniformBufferBinds) / wf,
                (cur.glVertexArrayBinds - w.glVertexArrayBinds) / wf,
                (cur.glIndexBufferBinds - w.glIndexBufferBinds) / wf);
+    }
+    {
+        // The rest of Execute (dawn-switch-gl-pass-timers.patch): every pass, the first pass of
+        // each Execute alone, the copies, and what is left.
+        const auto per = [&](uint64_t c, uint64_t p) { return msOf(c - p) / wf; };
+        const double firstPasses = (cur.glFirstPasses - w.glFirstPasses) / wf;
+        writef(STDERR_FILENO,
+               "[cos] perf-switch dawn gl execute split per frame: passes %.2f ms (lazy clears %.2f, "
+               "fbo setup %.2f, default state %.2f, clears %.2f, pass end %.2f, viewport/scissor/"
+               "blend %.2f, replay %.2f, residual %.2f); first pass x%.2f %.2f ms (lazy clears %.2f, "
+               "fbo setup %.2f, default state %.2f, clears %.2f, pass end %.2f, replay %.2f, "
+               "residual %.2f); buffer copies %.2f ms (%.1f before the first pass %.2f ms, first "
+               "copy %.2f ms); %.1f texture copies %.2f ms; execute residual %.2f ms\n",
+               per(cur.glPassTotalNs, w.glPassTotalNs), per(cur.glPassLazyClearNs, w.glPassLazyClearNs),
+               per(cur.glPassFramebufferNs, w.glPassFramebufferNs),
+               per(cur.glPassDefaultStateNs, w.glPassDefaultStateNs),
+               per(cur.glPassClearNs, w.glPassClearNs), per(cur.glPassEndNs, w.glPassEndNs),
+               per(cur.glPassDynamicStateNs, w.glPassDynamicStateNs), per(glReplayNs(cur), glReplayNs(w)),
+               per(glPassResidualNs(cur), glPassResidualNs(w)), firstPasses,
+               per(cur.glFirstPassNs, w.glFirstPassNs),
+               per(cur.glFirstPassLazyClearNs, w.glFirstPassLazyClearNs),
+               per(cur.glFirstPassFramebufferNs, w.glFirstPassFramebufferNs),
+               per(cur.glFirstPassDefaultStateNs, w.glFirstPassDefaultStateNs),
+               per(cur.glFirstPassClearNs, w.glFirstPassClearNs),
+               per(cur.glFirstPassEndNs, w.glFirstPassEndNs),
+               per(cur.glFirstPassReplayNs, w.glFirstPassReplayNs),
+               per(glFirstPassResidualNs(cur), glFirstPassResidualNs(w)),
+               per(cur.glBufCopyNs, w.glBufCopyNs),
+               (cur.glBufCopiesBeforeFirstPass - w.glBufCopiesBeforeFirstPass) / wf,
+               per(cur.glBufCopyBeforeFirstPassNs, w.glBufCopyBeforeFirstPassNs),
+               per(cur.glFirstBufCopyNs, w.glFirstBufCopyNs), (cur.glTexCopies - w.glTexCopies) / wf,
+               per(cur.glTexCopyNs, w.glTexCopyNs), per(glExecuteResidualNs(cur), glExecuteResidualNs(w)));
     }
     sSwWindow = cur;
     sSwWindowEvents = ev;

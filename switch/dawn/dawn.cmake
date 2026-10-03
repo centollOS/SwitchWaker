@@ -471,6 +471,28 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # On top of the replay timers, shared-VAO and functions-by-reference patches: ticks for the
+    # parts of CommandBuffer::Execute the replay timers leave out (lazy clears, framebuffer set-up,
+    # default state, LoadOp clears, pass end, viewport/scissor/blend commands, buffer and texture
+    # copies), with the first render pass of each Execute reported apart (docs/SWITCH_PERF_STUDY.md,
+    # section 3.4, timer 2).
+    file(READ "${DAWN_OPENGL_STATS_HEADER}" DAWN_OPENGL_STATS_HEADER_TEXT)
+    if(NOT DAWN_OPENGL_STATS_HEADER_TEXT MATCHES "kPassFramebufferTicks")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-pass-timers.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_PASS_TIMERS_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_PASS_TIMERS_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_PASS_TIMERS_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_PASS_TIMERS_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL pass timers patch:\n"
+                "${DAWN_GL_PASS_TIMERS_PATCH_OUTPUT}${DAWN_GL_PASS_TIMERS_PATCH_ERROR}")
+        endif()
+    endif()
+
     set(DAWN_WGPU_HELPERS_SOURCE
         "${dawn_SOURCE_DIR}/src/dawn/native/utils/WGPUHelpers.cpp")
     file(READ "${DAWN_WGPU_HELPERS_SOURCE}" DAWN_WGPU_HELPERS_TEXT)

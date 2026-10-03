@@ -75,6 +75,22 @@ typedef struct {
     uint64_t glPipelineNs, glBindGroupNs, glImmediatesNs, glVertexStateNs, glDrawCallNs;
     uint64_t glDrawsAfterPipeline, glDrawAfterPipelineNs, glDrawsAfterTextures, glDrawAfterTexturesNs;
     uint64_t glUniformBufferBinds, glVertexArrayBinds, glIndexBufferBinds;
+    /* The parts of Execute the replay timers leave out (switch/dawn/patches/dawn-switch-gl-pass-timers.patch):
+     * before a render pass, texture synchronisation and lazy clears; the framebuffer set-up (Gen/
+     * Bind/attachments/DrawBuffers); the default dynamic state; the LoadOp::Clear clears; the pass
+     * end (resolve, DeleteFramebuffers); SetViewport/SetScissorRect/SetBlendConstant/
+     * SetStencilReference; whole passes (lazy clears included). Buffer-to-buffer copies: time, how
+     * many ran before the Execute's first render pass and their time, the first copy of each
+     * Execute; texture-to-texture copies and their time. */
+    uint64_t glPassLazyClearNs, glPassFramebufferNs, glPassDefaultStateNs, glPassClearNs, glPassEndNs;
+    uint64_t glPassDynamicStateNs, glPassTotalNs;
+    uint64_t glBufCopyNs, glBufCopiesBeforeFirstPass, glBufCopyBeforeFirstPassNs, glFirstBufCopyNs;
+    uint64_t glTexCopies, glTexCopyNs;
+    /* The same split for the first render pass of each Execute alone (one per frame): count, whole
+     * pass, lazy clears, framebuffer set-up, default state, clears, end, and its replay (pipelines,
+     * bind groups, immediates, vertex state, draws, viewport/scissor/blend). */
+    uint64_t glFirstPasses, glFirstPassNs, glFirstPassLazyClearNs, glFirstPassFramebufferNs;
+    uint64_t glFirstPassDefaultStateNs, glFirstPassClearNs, glFirstPassEndNs, glFirstPassReplayNs;
 } CosSwitchGfxStats;
 
 void cos_switch_gfx_stats(CosSwitchGfxStats* out);

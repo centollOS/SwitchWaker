@@ -1,0 +1,271 @@
+--- a/src/dawn/native/opengl/CommandBufferGL.cpp
++++ b/src/dawn/native/opengl/CommandBufferGL.cpp
+@@ -29,6 +29,7 @@
+ 
+ #include <algorithm>
+ #include <cstring>
++#include <optional>
+ #include <utility>
+ #include <vector>
+ 
+@@ -867,6 +868,9 @@
+ 
+     PassIndex nextComputePassNumber{0u};
+     PassIndex nextRenderPassNumber{0u};
++#if defined(__SWITCH__)
++    bool switchFirstBufferCopy = true;
++#endif
+ 
+     Command type;
+     while (mCommands.NextCommandId(&type)) {
+@@ -889,6 +893,13 @@
+ 
+             case Command::BeginRenderPass: {
+                 auto* cmd = mCommands.NextCommand<BeginRenderPassCmd>();
++#if defined(__SWITCH__)
++                std::optional<switch_stats::FirstPassSnapshot> switchFirstPass;
++                if (nextRenderPassNumber == PassIndex(0u)) {
++                    switchFirstPass.emplace();
++                }
++#endif
++                DAWN_SWITCH_TICKS_START(switchPassStart);
+                 for (TextureBase* texture :
+                      this->GetResourceUsages().renderPasses[nextRenderPassNumber].textures) {
+                     DAWN_TRY(ToBackend(texture)->SynchronizeTextureBeforeUse());
+@@ -899,7 +910,14 @@
+                     GetDevice(), cmd, [&](TextureBase* texture, const SubresourceRange& range) {
+                         return ToBackend(texture)->EnsureSubresourceContentInitialized(gl, range);
+                     }));
++                DAWN_SWITCH_TICKS_ADD(kPassLazyClearTicks, switchPassStart);
+                 DAWN_TRY(ExecuteRenderPass(cmd, gl, nextRenderPassNumber));
++                DAWN_SWITCH_TICKS_ADD(kPassTotalTicks, switchPassStart);
++#if defined(__SWITCH__)
++                if (switchFirstPass) {
++                    switchFirstPass->Done();
++                }
++#endif
+ 
+                 nextRenderPassNumber++;
+                 break;
+@@ -911,6 +929,26 @@
+                     // Skip no-op copies.
+                     break;
+                 }
++#if defined(__SWITCH__)
++                // The copy's ticks, filed when the case ends (break) or returns.
++                struct SwitchCopyTicks {
++                    bool first;
++                    bool beforeFirstPass;
++                    uint64_t start = switch_stats::Ticks();
++                    ~SwitchCopyTicks() {
++                        const uint64_t ticks = switch_stats::Ticks() - start;
++                        DAWN_SWITCH_STAT(kBufferCopyTicks, ticks);
++                        if (first) {
++                            DAWN_SWITCH_STAT(kFirstBufferCopyTicks, ticks);
++                        }
++                        if (beforeFirstPass) {
++                            DAWN_SWITCH_STAT(kBufferCopiesBeforeFirstPass, 1);
++                            DAWN_SWITCH_STAT(kBufferCopyBeforeFirstPassTicks, ticks);
++                        }
++                    }
++                } switchCopyTicks{switchFirstBufferCopy, nextRenderPassNumber == PassIndex(0u)};
++                switchFirstBufferCopy = false;
++#endif
+ 
+                 DAWN_TRY(ToBackend(copy->source)->EnsureDataInitialized());
+                 DAWN_TRY(
+@@ -1120,6 +1158,8 @@
+                     // Skip no-op copies.
+                     continue;
+                 }
++                DAWN_SWITCH_STAT(kTextureCopies, 1);
++                DAWN_SWITCH_TICKS_START(switchTextureCopyStart);
+                 auto& src = copy->source;
+                 auto& dst = copy->destination;
+ 
+@@ -1151,6 +1191,7 @@
+                                           src.origin.ToOrigin3D(), dstTexture->GetHandle(),
+                                           dstTexture->GetGLTarget(), dst.mipLevel,
+                                           dst.origin.ToOrigin3D(), copySize.ToExtent3D()));
++                DAWN_SWITCH_TICKS_ADD(kTextureCopyTicks, switchTextureCopyStart);
+                 break;
+             }
+ 
+@@ -1349,6 +1390,7 @@
+     IndirectDrawIndex indirectDrawIndex{0u};
+ 
+     // Create the framebuffer used for this render pass and calls the correct glDrawBuffers
++    DAWN_SWITCH_TICKS_START(switchFramebufferStart);
+     {
+         // TODO(kainino@chromium.org): This is added to possibly work around an issue seen on
+         // Windows/Intel. It should break any feedback loop before the clears, even if there
+@@ -1401,8 +1443,10 @@
+     }
+ 
+     DAWN_ASSERT(gl.CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
++    DAWN_SWITCH_TICKS_ADD(kPassFramebufferTicks, switchFramebufferStart);
+ 
+     // Set defaults for dynamic state before executing clears and commands.
++    DAWN_SWITCH_TICKS_START(switchDefaultStateStart);
+     PersistentPipelineState persistentPipelineState;
+     DAWN_TRY(persistentPipelineState.SetDefaultState(gl));
+     DAWN_GL_TRY(gl, BlendColor(0, 0, 0, 0));
+@@ -1412,8 +1456,10 @@
+     DAWN_GL_TRY(gl, DepthRangef(minDepth, maxDepth));
+ 
+     DAWN_GL_TRY(gl, Scissor(0, 0, renderPass->width, renderPass->height));
++    DAWN_SWITCH_TICKS_ADD(kPassDefaultStateTicks, switchDefaultStateStart);
+ 
+     // Clear framebuffer attachments as needed
++    DAWN_SWITCH_TICKS_START(switchClearStart);
+     {
+         for (auto index : renderPass->attachmentState->GetColorAttachmentsMask()) {
+             uint8_t i = static_cast<uint8_t>(index);
+@@ -1481,6 +1527,7 @@
+             }
+         }
+     }
++    DAWN_SWITCH_TICKS_ADD(kPassClearTicks, switchClearStart);
+ 
+     RenderPipeline* lastPipeline = nullptr;
+     uint64_t indexBufferBaseOffset = 0;
+@@ -1689,6 +1736,7 @@
+         switch (type) {
+             case Command::EndRenderPass: {
+                 mCommands.NextCommand<EndRenderPassCmd>();
++                DAWN_SWITCH_TIME(kPassEndTicks);
+ 
+                 if (renderPass->attachmentState->GetSampleCount() > 1) {
+                     DAWN_TRY(ResolveMultisampledRenderTargets(gl, renderPass));
+@@ -1699,12 +1747,14 @@
+ 
+             case Command::SetStencilReference: {
+                 SetStencilReferenceCmd* cmd = mCommands.NextCommand<SetStencilReferenceCmd>();
++                DAWN_SWITCH_TIME(kPassDynamicStateTicks);
+                 DAWN_TRY(persistentPipelineState.SetStencilReference(gl, cmd->reference));
+                 break;
+             }
+ 
+             case Command::SetViewport: {
+                 SetViewportCmd* cmd = mCommands.NextCommand<SetViewportCmd>();
++                DAWN_SWITCH_TIME(kPassDynamicStateTicks);
+                 if (gl.IsAtLeastGL(4, 1)) {
+                     DAWN_GL_TRY(gl, ViewportIndexedf(0, cmd->x, cmd->y, cmd->width, cmd->height));
+                 } else {
+@@ -1724,12 +1774,14 @@
+ 
+             case Command::SetScissorRect: {
+                 SetScissorRectCmd* cmd = mCommands.NextCommand<SetScissorRectCmd>();
++                DAWN_SWITCH_TIME(kPassDynamicStateTicks);
+                 DAWN_GL_TRY(gl, Scissor(cmd->x, cmd->y, cmd->width, cmd->height));
+                 break;
+             }
+ 
+             case Command::SetBlendConstant: {
+                 SetBlendConstantCmd* cmd = mCommands.NextCommand<SetBlendConstantCmd>();
++                DAWN_SWITCH_TIME(kPassDynamicStateTicks);
+                 const std::array<float, 4> blendColor = ConvertToFloatColor(cmd->color);
+                 DAWN_GL_TRY(gl,
+                             BlendColor(blendColor[0], blendColor[1], blendColor[2], blendColor[3]));
+--- a/src/dawn/native/opengl/SwitchStatsGL.h
++++ b/src/dawn/native/opengl/SwitchStatsGL.h
+@@ -47,6 +47,36 @@
+     kUniformBufferBinds,     // glBindBufferRange(GL_UNIFORM_BUFFER) of bind groups
+     kVertexArrayBinds,       // glBindVertexArray when applying a pipeline
+     kIndexBufferBinds,       // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER) before a draw
++    // The parts of Execute the replay timers above leave out (ticks): before a render pass,
++    // texture synchronisation and lazy clears (Execute); in ExecuteRenderPass, the framebuffer
++    // set-up (Gen/Bind/attachments/DrawBuffers), the default dynamic state (viewport, scissor,
++    // depth range, blend colour), the LoadOp::Clear clears, the end (resolve, DeleteFramebuffers)
++    // and the SetViewport/SetScissorRect/SetBlendConstant/SetStencilReference commands; a whole
++    // pass (lazy clears included); buffer-to-buffer and texture-to-texture copies.
++    kPassLazyClearTicks,
++    kPassFramebufferTicks,
++    kPassDefaultStateTicks,
++    kPassClearTicks,
++    kPassEndTicks,
++    kPassDynamicStateTicks,
++    kPassTotalTicks,
++    kBufferCopyTicks,
++    kBufferCopiesBeforeFirstPass,      // the buffer copies of an Execute before its first pass
++    kBufferCopyBeforeFirstPassTicks,
++    kFirstBufferCopyTicks,             // the first buffer copy of each Execute
++    kTextureCopies,                    // CopyTextureToTexture (glCopyImageSubData)
++    kTextureCopyTicks,
++    // The same split for the first render pass of each Execute alone (one Execute per frame):
++    // its replay is the pipeline, bind group, immediates, vertex state, draw and dynamic state
++    // ticks it added.
++    kFirstPasses,
++    kFirstPassTotalTicks,
++    kFirstPassLazyClearTicks,
++    kFirstPassFramebufferTicks,
++    kFirstPassDefaultStateTicks,
++    kFirstPassClearTicks,
++    kFirstPassEndTicks,
++    kFirstPassReplayTicks,
+     kCount
+ };
+ 
+@@ -54,7 +84,10 @@
+ inline bool IsTicks(int counter) {
+     return counter == kPipelineTicks || counter == kBindGroupTicks || counter == kImmediatesTicks ||
+            counter == kVertexStateTicks || counter == kDrawCallTicks ||
+-           counter == kDrawAfterPipelineTicks || counter == kDrawAfterTexturesTicks;
++           counter == kDrawAfterPipelineTicks || counter == kDrawAfterTexturesTicks ||
++           (counter >= kPassLazyClearTicks && counter <= kFirstPassReplayTicks &&
++            counter != kBufferCopiesBeforeFirstPass && counter != kTextureCopies &&
++            counter != kFirstPasses);
+ }
+ 
+ inline uint64_t gLocal[kCount];
+@@ -126,8 +159,41 @@
+     return result;
+ }
+ 
++// Files the ticks the first render pass of an Execute added to the pass split under the
++// kFirstPass* counters: construct before the pass (lazy clears included), call Done after it.
++class FirstPassSnapshot {
++  public:
++    FirstPassSnapshot() {
++        for (int i = 0; i < kCount; ++i) {
++            mStart[i] = gLocal[i];
++        }
++    }
++    void Done() {
++        const auto delta = [&](Counter c) { return gLocal[c] - mStart[c]; };
++        Add(kFirstPasses, 1);
++        Add(kFirstPassTotalTicks, delta(kPassTotalTicks));
++        Add(kFirstPassLazyClearTicks, delta(kPassLazyClearTicks));
++        Add(kFirstPassFramebufferTicks, delta(kPassFramebufferTicks));
++        Add(kFirstPassDefaultStateTicks, delta(kPassDefaultStateTicks));
++        Add(kFirstPassClearTicks, delta(kPassClearTicks));
++        Add(kFirstPassEndTicks, delta(kPassEndTicks));
++        Add(kFirstPassReplayTicks, delta(kPipelineTicks) + delta(kBindGroupTicks) +
++                                       delta(kImmediatesTicks) + delta(kVertexStateTicks) +
++                                       delta(kDrawCallTicks) + delta(kPassDynamicStateTicks));
++    }
++
++  private:
++    uint64_t mStart[kCount];
++};
++
+ }  // namespace dawn::native::opengl::switch_stats
+ 
++// A tick count from DAWN_SWITCH_TICKS_START to DAWN_SWITCH_TICKS_ADD, added to a counter.
++#define DAWN_SWITCH_TICKS_START(name) const uint64_t name = ::dawn::native::opengl::switch_stats::Ticks()
++#define DAWN_SWITCH_TICKS_ADD(counter, name)                                    \
++    ::dawn::native::opengl::switch_stats::Add(::dawn::native::opengl::switch_stats::counter, \
++                                              ::dawn::native::opengl::switch_stats::Ticks() - (name))
++
+ #define DAWN_SWITCH_STAT(counter, n) \
+     ::dawn::native::opengl::switch_stats::Add(::dawn::native::opengl::switch_stats::counter, (n))
+ #define DAWN_SWITCH_TIME(counter) \
+@@ -146,6 +212,8 @@
+ #define DAWN_SWITCH_TIME(counter) ((void)0)
+ #define DAWN_SWITCH_DRAW(call) call
+ #define DAWN_SWITCH_FLAG(flag) ((void)0)
++#define DAWN_SWITCH_TICKS_START(name) ((void)0)
++#define DAWN_SWITCH_TICKS_ADD(counter, name) ((void)0)
+ #endif
+ 
+ #endif  // SRC_DAWN_NATIVE_OPENGL_SWITCHSTATSGL_H_

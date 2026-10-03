@@ -255,6 +255,7 @@ Switch patch 0005, the Dawn GL queue patch and the disc reader):
 [cos] perf-switch frames 61-120: begin: events E, slot wait S, staging wait T; queue-full wait Q; render worker B ms/frame busy (encode C, end_frame D: unmap U, acquire A, submit M, present P; events V), N presents/s; gl F fences (I in flight), W waits X ms, G glFinish H ms; pipelines K created, L compiled in Y ms (longest so far Z ms), J queued; tex upload KiB; dvd R reads KiB ms; res loads n; scene NAME
 [cos] perf-switch dawn gl per frame: P passes, D draws, L pipelines, B bind groups, T tex binds, X texparams (Y skipped), U uniform uploads, C buffer copies K KiB, V tex uploads; flush F ms (I items): execute E, other work O, release R
 [cos] perf-switch dawn gl replay per frame: pipelines P ms, bind groups B, immediates I, vertex state V, draw calls D (a after a pipeline change A ms = x us each, t after a texture bind T ms = y us each, o others O ms = z us each); u UBO binds, v VAO binds, i index binds
+[cos] perf-switch dawn gl execute split per frame: passes P ms (lazy clears L, fbo setup F, default state S, clears C, pass end E, viewport/scissor/blend V, replay R, residual X); first pass xN T ms (lazy clears, fbo setup, default state, clears, pass end, replay, residual); buffer copies B ms (n before the first pass Bp ms, first copy B1 ms); m texture copies M ms; execute residual Y ms
 ```
 
 The second line is Dawn's GL replay of the frame's submission
@@ -289,6 +290,19 @@ With `switch/dawn/patches/dawn-switch-gl-shared-vao.patch` the pipelines without
 (all of Aurora's GX pipelines, which pull vertices from storage buffers) share one VAO, the index
 buffer is rebound only when it or the VAO changes, and primitive restart is set only when it
 changes ("VAO binds" and "index binds" in the third line).
+The fourth line (`switch/dawn/patches/dawn-switch-gl-pass-timers.patch`, same counter) times
+what the third leaves out of "execute" (docs/SWITCH_PERF_STUDY.md, section 3.4, timer 2): per
+render pass, the texture synchronisation and lazy clears before it, the framebuffer set-up
+(`glGenFramebuffers`, binds, attachments, `glDrawBuffers`), the default dynamic state (viewport,
+scissor, depth range, blend colour), the `LoadOp::Clear` clears (`glClearBuffer*`), the pass end
+(resolve, `glDeleteFramebuffers`) and the `SetViewport`/`SetScissorRect`/`SetBlendConstant`
+commands; "replay" is the third line's total and "residual" what no timer of the pass covers.
+"first pass" is the same split for the first render pass of each `Execute` alone (one per frame,
+"xN" says how many per frame): if the frame waits for the GPU inside Mesa (nouveau reusing a
+push-buffer chunk the GPU has not finished), the wait lands in the first GL calls that emit
+commands, i.e. in the first pass's set-up or clears or in the buffer copies before it ("before the
+first pass", "first copy"). "execute residual" is `Execute` minus its passes and copies.
+The hitch line carries the same split for the hitch frame.
 `COS_SWITCH_GL_NO_ERROR=1` in `env.txt` makes Dawn ask for a `KHR_no_error` GL context
 (`switch/dawn/patches/dawn-switch-gl-no-error-context.patch`), in which Mesa skips the error
 checks of every GL call, draw and uniform validation included; `[dawn] COS_SWITCH_GL_NO_ERROR:` in

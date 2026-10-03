@@ -19,8 +19,8 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
     aurora_switch_get_stats(&a);
     uint64_t gl[6] = {};
     dawn_switch_gl_queue_stats(gl);
-    uint64_t cmd[27] = {};
-    dawn_switch_gl_cmd_stats(cmd, 27);
+    uint64_t cmd[48] = {};
+    dawn_switch_gl_cmd_stats(cmd, 48);
     uint64_t dvd[3] = {};
     cos_switch_nod_stats(dvd);
     *out = CosSwitchGfxStats{
@@ -75,5 +75,26 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
         .glUniformBufferBinds = cmd[24],
         .glVertexArrayBinds = cmd[25],
         .glIndexBufferBinds = cmd[26],
+        .glPassLazyClearNs = cmd[27],
+        .glPassFramebufferNs = cmd[28],
+        .glPassDefaultStateNs = cmd[29],
+        .glPassClearNs = cmd[30],
+        .glPassEndNs = cmd[31],
+        .glPassDynamicStateNs = cmd[32],
+        .glPassTotalNs = cmd[33],
+        .glBufCopyNs = cmd[34],
+        .glBufCopiesBeforeFirstPass = cmd[35],
+        .glBufCopyBeforeFirstPassNs = cmd[36],
+        .glFirstBufCopyNs = cmd[37],
+        .glTexCopies = cmd[38],
+        .glTexCopyNs = cmd[39],
+        .glFirstPasses = cmd[40],
+        .glFirstPassNs = cmd[41],
+        .glFirstPassLazyClearNs = cmd[42],
+        .glFirstPassFramebufferNs = cmd[43],
+        .glFirstPassDefaultStateNs = cmd[44],
+        .glFirstPassClearNs = cmd[45],
+        .glFirstPassEndNs = cmd[46],
+        .glFirstPassReplayNs = cmd[47],
     };
 }
