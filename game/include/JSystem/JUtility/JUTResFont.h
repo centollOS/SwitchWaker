@@ -37,7 +37,7 @@ public:
     void countBlock();
     void loadFont(int, GXTexMapID, JUTFont::TWidth*);
     int getFontCode(int) const;
-    int convertSjis(int, u16*) const;
+    int convertSjis(int, BE(u16)*) const; // BE(u16) is u16 on the GameCube (step 4.3)
 
     inline void delete_and_initialize() {
         deleteMemBlocks_ResFont();
