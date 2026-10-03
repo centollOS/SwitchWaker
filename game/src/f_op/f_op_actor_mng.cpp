@@ -601,10 +601,18 @@ static void dummy() {
 /* 80025660-800259A8       .text fopAcM_cullingCheck__FP10fopAc_ac_c */
 BOOL fopAcM_cullingCheck(fopAc_ac_c* i_this) {
     MtxP pMtx;
+#if TARGET_PC
+    // pMtx is used below, after the else block: a matrix scoped to that block is out of scope
+    // there and clang may reuse its stack slot (ASan stack-use-after-scope in C_MTXMultVec from
+    // J3DUClipper::clip, step 6.9b). Function scope keeps it alive for every use.
+    Mtx mtx;
+#endif
     if (fopAcM_GetMtx(i_this) == NULL) {
         pMtx = j3dSys.getViewMtx();
     } else {
+#if !TARGET_PC
         Mtx mtx;
+#endif
         cMtx_concat(j3dSys.getViewMtx(), fopAcM_GetMtx(i_this), mtx);
         pMtx = mtx;
     }
