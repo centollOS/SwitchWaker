@@ -183,7 +183,8 @@ elif [ "$rc" -gt 128 ]; then
 fi
 
 # --- disc-ls (4.0d), font (4.3), arc-sweep (4.4), msg-sweep (4.6), jpa-sweep (4.7), stage-sweep
-# (4.9a), blo-sweep (4.13), dzb-sweep (4.10), audio-parse (5.1): what the game read against the manifest
+# (4.9a), blo-sweep (4.13), dzb-sweep (4.10), audio-parse (5.1), j3d-sweep (4.11): what the game read
+# against the manifest
 check_arg=""
 case "$target" in
     disc-ls) check_arg="--check-ls"; check_file="disc_ls.txt" ;;
@@ -195,6 +196,7 @@ case "$target" in
     blo-sweep) check_arg="--check-blo"; check_file="blo_sweep.txt" ;;
     dzb-sweep) check_arg="--check-dzb"; check_file="dzb_sweep.txt" ;;
     audio-parse) check_arg="--check-audio"; check_file="audio_parse.txt" ;;
+    j3d-sweep) check_arg="--check-j3d"; check_file="j3d_sweep.txt" ;;
 esac
 if [ -n "$check_arg" ] && [ "$rc" = 0 ]; then
     manifest="$build/disc_manifest.json"
@@ -208,7 +210,7 @@ if [ -n "$check_arg" ] && [ "$rc" = 0 ]; then
         python3 "$disc_manifest" --out "$manifest" "$check_arg" "$run_dir/$check_file" \
             >> "$run_dir/run.log" 2>&1 || rc=1
     fi
-    grep '^disc_manifest: \(FST\|disc-ls\|font.txt\|arc_sweep.txt\|msg_sweep.txt\|jpa_sweep.txt\|stage_sweep.txt\|blo_sweep.txt\|dzb_sweep.txt\|audio_parse.txt\|DIFF\)' "$run_dir/run.log" | head -5
+    grep '^disc_manifest: \(FST\|disc-ls\|font.txt\|arc_sweep.txt\|msg_sweep.txt\|jpa_sweep.txt\|stage_sweep.txt\|blo_sweep.txt\|dzb_sweep.txt\|audio_parse.txt\|j3d_sweep.txt\|DIFF\)' "$run_dir/run.log" | head -5
 fi
 echo "$rc" > "$run_dir/exit_code.txt"
 

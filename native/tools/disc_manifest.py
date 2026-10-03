@@ -70,6 +70,13 @@ Usage
                                                   .aw files, waves), sequence (JaiSeqs.arc sizes),
                                                   stream (table and .afc headers), scene and fx
                                                   scene line (exit 0 equal, 1 different)
+  disc_manifest.py --check-j3d J3D [--out FILE]  compare what the game's J3D loaders built in
+                                                  COS_SMOKE=j3d-sweep (<run dir>/j3d_sweep.txt)
+                                                  with the manifest's BMD/BDL/BMT files: every
+                                                  file, its INF1 flags and vertex count, its
+                                                  joint, material, shape, texture, draw and
+                                                  envelope counts and its joint, material and
+                                                  texture names (exit 0 equal, 1 different)
   disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
 
 Manifest (JSON)
@@ -1810,6 +1817,124 @@ def check_audio(manifest, audio_path):
     return report_problems(problems, "audio_parse.txt equals the manifest")
 
 
+def check_j3d(manifest, j3d_path):
+    """j3d_sweep.txt (step 4.11): what the game's J3D loaders built for every BMD/BDL/BMT, fields
+    separated by single spaces: 'J3D <path> magic=<s> loader=bmd|bdl|bmt source=<s> flags=0x<hex>'
+    followed by its 'INF1 <path> flags=N vertices=N' (the file's INF1 flags not in the loader's),
+    'EVP1 <path> count=N' and 'DRW1 <path> count=N' (when the file has the block), 'JNT1 <path>
+    count=N names=a,b,...', 'SHP1 <path> count=N' (models), 'MAT <path> count=N names=...' and
+    'TEX1 <path> count=N names=...' lines. Names are percent-encoded (',', '%', a space and bytes
+    outside printable ASCII as %XX). Every J3D2 file of the disc must be reported once."""
+    from urllib.parse import unquote_to_bytes
+
+    def dec(text):
+        raw = unquote_to_bytes(text)
+        try:
+            return raw.decode("shift_jis")
+        except UnicodeDecodeError:
+            return raw.decode("latin-1")
+
+    def names(value):
+        return [dec(n) for n in value.split(",")] if value else []
+
+    by_path = records_by_path(manifest)
+    models = {p: r for p, r in by_path.items()
+              if r.get("format") == "j3d" and r.get("magic", "")[:4] == "J3D2"}
+    problems = []
+    got = {}
+    with open(j3d_path, encoding="ascii", errors="replace") as f:
+        for ln, line in enumerate(f, 1):
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split(" ")
+            if len(parts) < 3:
+                problems.append("line %d: malformed: %r" % (ln, line))
+                continue
+            kind, path = parts[0], parts[1]
+            fields = dict(p.partition("=")[::2] for p in parts[2:])
+            if kind == "J3D":
+                if path in got:
+                    problems.append("line %d: %s reported twice" % (ln, path))
+                got[path] = {"J3D": fields}
+                continue
+            if path not in got:
+                problems.append("line %d: %s before its J3D line" % (ln, path))
+                continue
+            if kind in got[path]:
+                problems.append("line %d: %s %s twice" % (ln, path, kind))
+            got[path][kind] = fields
+
+    counts = Counter()
+    for path in sorted(set(models) - set(got)):
+        problems.append("%s: J3D2 file of the manifest not loaded" % path)
+    for path in sorted(set(got) - set(models)):
+        problems.append("%s: not a J3D2 file of the manifest" % path)
+    for path in sorted(set(models) & set(got)):
+        rec, g = models[path], got[path]
+        blocks = {}
+        for b in rec.get("blocks", []):
+            blocks.setdefault(b["tag"], b)
+        head = g["J3D"]
+        if head.get("magic") != rec["magic"]:
+            problems.append("%s: magic %s, the manifest has %s" % (path, head.get("magic"),
+                                                                 rec["magic"]))
+        loader = head.get("loader")
+        counts[loader] += 1
+        want = {}
+        if loader in ("bmd", "bdl"):
+            try:
+                plan_flags = int(head.get("flags", ""), 16)
+            except ValueError:
+                problems.append("%s: malformed loader flags %r" % (path, head.get("flags")))
+                plan_flags = 0
+            inf = blocks.get("INF1", {})
+            want["INF1"] = {"flags": str(inf.get("flags", 0) & ~plan_flags & 0xFFFFFFFF),
+                            "vertices": str(inf.get("vertices"))}
+            for tag in ("EVP1", "DRW1"):
+                if tag in blocks:
+                    want[tag] = {"count": str(blocks[tag]["count"])}
+            want["JNT1"] = {"count": str(blocks.get("JNT1", {}).get("count")),
+                            "names": blocks.get("JNT1", {}).get("names", [])}
+            want["SHP1"] = {"count": str(blocks.get("SHP1", {}).get("count"))}
+            counts["joints"] += blocks.get("JNT1", {}).get("count", 0)
+            counts["shapes"] += blocks.get("SHP1", {}).get("count", 0)
+        # The materials as the loader names them: MAT3/MAT2 (the MDL3 count when the BDL's
+        # material type reads MDL3 alone; the manifest's MDL3 names are those of MAT3).
+        mat = blocks.get("MAT3") or blocks.get("MAT2")
+        mdl = blocks.get("MDL3")
+        if mat is not None:
+            want["MAT"] = {"count": str(mat["count"]), "names": mat.get("names", [])}
+        elif mdl is not None:
+            want["MAT"] = {"count": str(mdl["count"])}
+        else:
+            want["MAT"] = {"count": "0", "names": []}
+        tex = blocks.get("TEX1")
+        want["TEX1"] = ({"count": str(tex["count"]), "names": tex.get("names", [])}
+                        if tex is not None else {"count": "0"})
+        counts["materials"] += int(want["MAT"]["count"])
+        counts["textures"] += int(want["TEX1"]["count"])
+        for kind, w in want.items():
+            line = g.get(kind)
+            if line is None:
+                problems.append("%s: no %s line" % (path, kind))
+                continue
+            for key, value in w.items():
+                have = names(line.get("names", "")) if key == "names" else line.get(key)
+                if have != value:
+                    problems.append("%s: %s %s=%s, the manifest has %s" % (path, kind, key, have,
+                                                                           value))
+        for kind in set(g) - set(want) - {"J3D"}:
+            problems.append("%s: unexpected %s line" % (path, kind))
+    print("disc_manifest: j3d_sweep.txt: %d model file(s) (%d BMD, %d BDL, %d BMT; the manifest "
+          "has %d): %d joints, %d materials, %d shapes, %d textures compared"
+          % (len(got), counts["bmd"], counts["bdl"], counts["bmt"], len(models), counts["joints"],
+             counts["materials"], counts["shapes"], counts["textures"]))
+    if not got:
+        problems.append("no J3D line")
+    return report_problems(problems, "j3d_sweep.txt equals the manifest")
+
+
 def load_manifest(path):
     try:
         with open(path, encoding="utf-8") as f:
@@ -1858,6 +1983,8 @@ def main():
                     help="compare a COS_SMOKE=dzb-sweep report with the manifest")
     ap.add_argument("--check-audio", metavar="AUD",
                     help="compare a COS_SMOKE=audio-parse report with the manifest")
+    ap.add_argument("--check-j3d", metavar="J3D",
+                    help="compare a COS_SMOKE=j3d-sweep report with the manifest")
     ap.add_argument("--summary", action="store_true", help="print an existing manifest's counts")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
@@ -1880,6 +2007,8 @@ def main():
         return check_dzb(load_manifest(args.out), args.check_dzb)
     if args.check_audio:
         return check_audio(load_manifest(args.out), args.check_audio)
+    if args.check_j3d:
+        return check_j3d(load_manifest(args.out), args.check_j3d)
     if args.summary:
         print_summary(load_manifest(args.out))
         return EXIT_OK
