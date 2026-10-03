@@ -75,10 +75,12 @@ MEANING = {0: "reached", 1: "check failed", 2: "usage error", 10: "timeout", 11:
 _LKD01 = ("needs event flag 0x2D01 (set by M2tower's rescue.stb before the game ever reaches the "
           "stage): d_s_play.cpp phase_0 mounts Link's demo animations LkD01.arc only with it, "
           "the debug boot's new file mounts LkD00.arc, and the stage's Link cutscene asks for "
-          "LkD01 file ids (id 355 is a .btk in LkD01, a .btp in LkD00)")
+          "LkD01 file ids (btp 368 and btk 355 name other file types in LkD00)")
+_LKD01_SIG = r"in (JUTNameTab::getIndex|J3DAnmTexPattern::searchUpdateMaterialID) "
 EXPECTED_FAIL = {
-    "GTower": (r"JUTNameTab::getIndex .*<- J3DAnmTextureSRTKey::searchUpdateMaterialID", _LKD01),
-    "M2ganon": (r"JUTNameTab::getIndex .*<- J3DAnmTextureSRTKey::searchUpdateMaterialID", _LKD01),
+    "GTower": (_LKD01_SIG, _LKD01),
+    "M2ganon": (_LKD01_SIG, _LKD01),
+    "GanonK": (_LKD01_SIG, _LKD01),
 }
 
 STAGE_ARC = re.compile(r"^/res/Stage/([^/]+)/Stage\.arc$")

@@ -238,7 +238,13 @@ BOOL daPy_lk_c::dProcTool() {
                 JStudio::stb::TParseData_fixed<50, TValueIterator_misaligned<u16> > sp9C(data);
                 r29 = sp9C.front();
                 // setDemoTextureAnime(*(sp9C.begin() + 1), sp9C.back(), 0, r28); // Seems more real, but doesn't match?
+#if TARGET_PC
+                // The btp id is big-endian STB parameter data; read it through the misaligned
+                // iterator (as front() and back() are) instead of a native u16 load.
+                setDemoTextureAnime(*(sp9C.begin() + 1), sp9C.back(), 0, r28);
+#else
                 setDemoTextureAnime(*(u16*)(sp9C.begin() + 1).get(), sp9C.back(), 0, r28); // Fakematch?
+#endif
                 JStudio::stb::TParseData_fixed<49, TValueIterator_raw<u8> > sp88(sp9C.getNext());
                 if (sp88.size() == 3) {
                     mLeftHandIdx = sp88.front();

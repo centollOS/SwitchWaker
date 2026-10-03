@@ -2788,7 +2788,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `EXPECTED_FAIL` (stage -> signature regex and reason): a listed stage that fails with exactly
   that signature is reported `xfail` with the reason and does not fail the sweep; any other
   failure still fails it, and a pass is reported `xpass` (remove the entry). **Boot-sweep
-  expected fails:** GTower and M2ganon, reason above. Found on the way, not fixed here (next
+  expected fails:** GTower and M2ganon (GanonK added by fix 8), reason above. Found on the way, not fixed here (next
   candidate, own commit): `dProcTool` reads the btp id with a native `*(u16*)` of the STB
   parameter data (`setDemoTextureAnime(*(u16*)(sp9C.begin() + 1).get(), ...)`,
   d_a_player_dproc.inc), so on the host it is byte-swapped (368 -> 28673) and
@@ -2823,6 +2823,25 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   143 -> 145 of 155; M2tower reaches frame 600; GanonK now stops at the LkD00/LkD01 demo-archive
   signature of fix 5 (`JUTNameTab::getIndex` <- `searchUpdateMaterialID`). Reviewed: GanonK and
   M2tower re-run (no JAISoundTable panic), regression passes.
+
+- **Boot-sweep fix 8: Link's demo texture-pattern id read big-endian** (2026-10-03, lane outset,
+  endian). Most common signature (3 of 12 in a 143/155 sweep, 2 of them the fix-5 expected
+  fails): SIGSEGV in `JUTNameTab::getIndex` <- `J3DAnmTextureSRTKey::searchUpdateMaterialID` <-
+  `daPy_lk_c::setDemoTextureAnime` <- `dProcTool` (GanonK, GTower, M2ganon). Root cause (noted in
+  fix 5): `dProcTool` read the btp file id of the STB parameter data with a native `*(u16*)`
+  (d_a_player_dproc.inc), so on the host 368 became 28673 and `findIdResource` indexed past the
+  archive's file table. Under `TARGET_PC` it now reads through the big-endian misaligned
+  iterator, as `front()`/`back()` already do (GameCube line kept in `#else`). With the right id
+  the three stages stop at the LkD00 btp/btk mismatch of fix 5 in
+  `J3DAnmTexPattern::searchUpdateMaterialID`; checked with LkD01 forced (temporary edit,
+  reverted): GTower and M2ganon reach frame 600, GanonK gets past Link's cutscene and stops at
+  the `fpcLyTg_ToQueue` signature also seen in Atorizk. GanonK (the final battle, after M2tower's
+  rescue) joins the expected fails for the same 0x2D01 reason; the expected-fail regex now
+  accepts both the btk and btp form of that crash. Sweep: 143 -> 145 of 155 (7 fail, 3 expected
+  fails, 1 skipped; Atorizk and I_SubAN passed this run, both intermittent).
+  Reviewed: regression passes; sweep 144/155 (8 fail incl. intermittent Atorizk, 3 xfail):
+  GanonK and M2ganon now stop in `J3DAnmTexPattern::searchUpdateMaterialID`, GTower in the btk
+  form (`JUTNameTab::getIndex` <- `J3DAnmTextureSRTKey`) of the same LkD00/LkD01 mismatch.
 
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
