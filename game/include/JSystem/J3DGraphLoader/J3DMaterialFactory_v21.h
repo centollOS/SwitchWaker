@@ -4,6 +4,10 @@
 #include "dolphin/gx/GXEnum.h"
 #include "dolphin/gx/GXStruct.h"
 #include "JSystem/J3DGraphBase/J3DMatBlock.h"
+#include "helpers/endian.h"
+#if TARGET_PC
+#include "helpers/endian_gx.hpp"
+#endif
 
 class J3DMaterial;
 struct J3DMaterialBlock_v21;
@@ -27,6 +31,9 @@ struct J3DDisplayListInit;
 struct J3DPatchingInfo;
 class J3DCurrentMtxInfo;
 
+// MAT2 disc data, stored big-endian (phase 4; Dusklight's J3DMaterialFactory_v21.h declares the
+// same, offsets from it). As in J3DMaterialFactory, the J3DStruct.h infos the tables hold are host
+// objects, so on TARGET_PC the factory converts the multi-byte ones (tex matrix, fog, NBT scale).
 struct J3DMaterialInitData_v21 {
     /* 0x000 */ u8 mMaterialMode;
     /* 0x001 */ u8 mCullModeIdx;
@@ -36,27 +43,27 @@ struct J3DMaterialInitData_v21 {
     /* 0x005 */ u8 mZCompLocIdx;
     /* 0x006 */ u8 mZModeIdx;
     /* 0x007 */ u8 mDitherIdx;
-    /* 0x008 */ u16 mMatColorIdx[2];
-    /* 0x00C */ u16 mColorChanIdx[4];
-    /* 0x014 */ u16 mTexCoordIdx[8];
+    /* 0x008 */ BE(u16) mMatColorIdx[2];
+    /* 0x00C */ BE(u16) mColorChanIdx[4];
+    /* 0x014 */ BE(u16) mTexCoordIdx[8];
     /* 0x024 */ u8 field_0x024[16];
-    /* 0x034 */ u16 mTexMtxIdx[8];
+    /* 0x034 */ BE(u16) mTexMtxIdx[8];
     /* 0x044 */ u8 field_0x044[44];
-    /* 0xXXX */ u16 mTexNoIdx[8];
-    /* 0xXXX */ u16 mTevKColorIdx[4];
-    /* 0xXXX */ u8 mTevKColorSel[16];
-    /* 0xXXX */ u8 mTevKAlphaSel[16];
-    /* 0xXXX */ u16 mTevOrderIdx[16];
-    /* 0xXXX */ u16 mTevColorIdx[4];
-    /* 0xXXX */ u16 mTevStageIdx[16];
-    /* 0xXXX */ u16 mTevSwapModeIdx[16];
-    /* 0xXXX */ u16 mTevSwapModeTableIdx[4];
-    /* 0xXXX */ u8 field_0x12c[24];
-    /* 0xXXX */ u16 mFogIdx;
-    /* 0xXXX */ u16 mAlphaCompIdx;
-    /* 0xXXX */ u16 mBlendIdx;
-    /* 0xXXX */ u16 mNBTScaleIdx;
-};
+    /* 0x070 */ BE(u16) mTexNoIdx[8];
+    /* 0x080 */ BE(u16) mTevKColorIdx[4];
+    /* 0x088 */ u8 mTevKColorSel[16];
+    /* 0x098 */ u8 mTevKAlphaSel[16];
+    /* 0x0A8 */ BE(u16) mTevOrderIdx[16];
+    /* 0x0C8 */ BE(u16) mTevColorIdx[4];
+    /* 0x0D0 */ BE(u16) mTevStageIdx[16];
+    /* 0x0F0 */ BE(u16) mTevSwapModeIdx[16];
+    /* 0x110 */ BE(u16) mTevSwapModeTableIdx[4];
+    /* 0x118 */ u8 field_0x12c[24];
+    /* 0x130 */ BE(u16) mFogIdx;
+    /* 0x132 */ BE(u16) mAlphaCompIdx;
+    /* 0x134 */ BE(u16) mBlendIdx;
+    /* 0x136 */ BE(u16) mNBTScaleIdx;
+};  // Size: 0x138
 
 class J3DMaterialFactory_v21 {
 public:
@@ -92,7 +99,7 @@ public:
 
     /* 0x00 */ u16 mMaterialNum;
     /* 0x04 */ J3DMaterialInitData_v21* mpMaterialInitData;
-    /* 0x08 */ u16* mpMaterialID;
+    /* 0x08 */ BE(u16)* mpMaterialID;
     /* 0x0C */ GXColor* mpMatColor;
     /* 0x10 */ u8* mpColorChanNum;
     /* 0x14 */ J3DColorChanInfo* mpColorChanInfo;
@@ -101,10 +108,10 @@ public:
     /* 0x20 */ J3DTexCoord2Info* mpTexCoord2Info;
     /* 0x24 */ J3DTexMtxInfo* mpTexMtxInfo;
     /* 0x28 */ J3DTexMtxInfo* field_0x28;
-    /* 0x2C */ u16* mpTexNo;
-    /* 0x30 */ GXCullMode* mpCullMode;
+    /* 0x2C */ BE(u16)* mpTexNo;
+    /* 0x30 */ BE(GXCullMode)* mpCullMode;
     /* 0x34 */ J3DTevOrderInfo* mpTevOrderInfo;
-    /* 0x38 */ GXColorS10* mpTevColor;
+    /* 0x38 */ BE(GXColorS10)* mpTevColor;
     /* 0x3C */ GXColor* mpTevKColor;
     /* 0x40 */ u8* mpTevStageNum;
     /* 0x44 */ J3DTevStageInfo* mpTevStageInfo;

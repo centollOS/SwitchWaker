@@ -6,6 +6,9 @@
 #include "JSystem/JSystem.h" // IWYU pragma: keep
 
 #include "JSystem/J3DGraphLoader/J3DMaterialFactory_v21.h"
+#if TARGET_PC
+#include "JSystem/J3DGraphLoader/J3DMaterialFactory.h" // J3DHostTexMtxInfo, J3DHostFogInfo, J3DHostNBTScaleInfo
+#endif
 #include "JSystem/J3DGraphLoader/J3DModelLoader.h"
 #include "JSystem/J3DGraphBase/J3DMatBlock.h"
 #include "JSystem/JSupport/JSupport.h"
@@ -14,9 +17,9 @@
 J3DMaterialFactory_v21::J3DMaterialFactory_v21(const J3DMaterialBlock_v21& block) {
     mMaterialNum = block.mMaterialNum;
     mpMaterialInitData = JSUConvertOffsetToPtr<J3DMaterialInitData_v21>(&block, block.mpMaterialInitData);
-    mpMaterialID = JSUConvertOffsetToPtr<u16>(&block, block.mpMaterialID);
+    mpMaterialID = JSUConvertOffsetToPtr<BE(u16)>(&block, block.mpMaterialID);
 
-    mpCullMode = JSUConvertOffsetToPtr<GXCullMode>(&block, block.mpCullMode);
+    mpCullMode = JSUConvertOffsetToPtr<BE(GXCullMode)>(&block, block.mpCullMode);
     mpMatColor = JSUConvertOffsetToPtr<GXColor>(&block, block.mpMatColor);
     mpColorChanNum = JSUConvertOffsetToPtr<u8>(&block, block.mpColorChanNum);
     mpColorChanInfo = JSUConvertOffsetToPtr<J3DColorChanInfo>(&block, block.mpColorChanInfo);
@@ -25,9 +28,9 @@ J3DMaterialFactory_v21::J3DMaterialFactory_v21(const J3DMaterialBlock_v21& block
     mpTexCoord2Info = JSUConvertOffsetToPtr<J3DTexCoord2Info>(&block, block.mpTexCoord2Info);
     mpTexMtxInfo = JSUConvertOffsetToPtr<J3DTexMtxInfo>(&block, block.mpTexMtxInfo);
     field_0x28 = JSUConvertOffsetToPtr<J3DTexMtxInfo>(&block, block.field_0x44);
-    mpTexNo = JSUConvertOffsetToPtr<u16>(&block, block.mpTexNo);
+    mpTexNo = JSUConvertOffsetToPtr<BE(u16)>(&block, block.mpTexNo);
     mpTevOrderInfo = JSUConvertOffsetToPtr<J3DTevOrderInfo>(&block, block.mpTevOrderInfo);
-    mpTevColor = JSUConvertOffsetToPtr<GXColorS10>(&block, block.mpTevColor);
+    mpTevColor = JSUConvertOffsetToPtr<BE(GXColorS10)>(&block, block.mpTevColor);
     mpTevKColor = JSUConvertOffsetToPtr<GXColor>(&block, block.mpTevKColor);
     mpTevStageNum = JSUConvertOffsetToPtr<u8>(&block, block.mpTevStageNum);
     mpTevStageInfo = JSUConvertOffsetToPtr<J3DTevStageInfo>(&block, block.mpTevStageInfo);
@@ -221,7 +224,11 @@ J3DTexMtx* J3DMaterialFactory_v21::newTexMtx(int idx, int stage) const {
     J3DTexMtx* ret = NULL;
     J3DMaterialInitData_v21* initData = &mpMaterialInitData[mpMaterialID[idx]];
     if (initData->mTexMtxIdx[stage] != 0xFFFF)
+#if TARGET_PC
+        ret = new J3DTexMtx(J3DHostTexMtxInfo(mpTexMtxInfo[initData->mTexMtxIdx[stage]]));
+#else
         ret = new J3DTexMtx(mpTexMtxInfo[initData->mTexMtxIdx[stage]]);
+#endif
     return ret;
 }
 
@@ -257,10 +264,18 @@ J3DGXColorS10 J3DMaterialFactory_v21::newTevColor(int idx, int stage) const {
     GXColorS10 _ret = { 0x00, 0x00, 0x00, 0x00 };
     J3DGXColorS10 ret(_ret);
     u16 no = mpMaterialInitData[mpMaterialID[idx]].mTevColorIdx[stage];
+#if TARGET_PC
+    if (no != 0xFFFF) {
+        GXColorS10 color = mpTevColor[no];
+        return J3DGXColorS10(color);
+    }
+    return ret;
+#else
     if (no != 0xFFFF)
         return mpTevColor[no];
     else
         return ret;
+#endif
 }
 
 /* 802FAA7C-802FAB0C       .text newTevKColor__22J3DMaterialFactory_v21CFii */
@@ -305,7 +320,11 @@ J3DTevSwapModeTable J3DMaterialFactory_v21::newTevSwapModeTable(int idx, int sta
 J3DFog* J3DMaterialFactory_v21::newFog(int idx) const {
     J3DMaterialInitData_v21* initData = &mpMaterialInitData[mpMaterialID[idx]];
     if (initData->mFogIdx != 0xFFFF)
+#if TARGET_PC
+        return new J3DFog(J3DHostFogInfo(mpFogInfo[initData->mFogIdx]));
+#else
         return new J3DFog(mpFogInfo[initData->mFogIdx]);
+#endif
     else
         return new J3DFog();
 }
@@ -360,7 +379,11 @@ J3DNBTScale J3DMaterialFactory_v21::newNBTScale(int idx) const {
     J3DNBTScale ret;
     u16 no = mpMaterialInitData[mpMaterialID[idx]].mNBTScaleIdx;
     if (no != 0xFFFF)
+#if TARGET_PC
+        return J3DNBTScale(J3DHostNBTScaleInfo(mpNBTScaleInfo[no]));
+#else
         return J3DNBTScale(mpNBTScaleInfo[no]);
+#endif
     else
         return ret;
 }

@@ -16,8 +16,9 @@
 #if TARGET_PC
 // The material tables hold J3DStruct.h infos, which are host objects as well (J3DTexMtx, J3DFog,
 // J3DNBTScale and J3DIndTexMtx keep and animate them). In the file their multi-byte members are
-// big-endian: these return a host-order copy, leaving the file data as it is.
-static J3DTexMtxInfo hostTexMtxInfo(const J3DTexMtxInfo& src) {
+// big-endian: these return a host-order copy, leaving the file data as it is. The first three are
+// shared with J3DMaterialFactory_v21 (declared in J3DMaterialFactory.h).
+J3DTexMtxInfo J3DHostTexMtxInfo(const J3DTexMtxInfo& src) {
     J3DTexMtxInfo info;
     memcpy(&info, &src, sizeof(info));
     be_swap(info.mCenter);
@@ -30,7 +31,7 @@ static J3DTexMtxInfo hostTexMtxInfo(const J3DTexMtxInfo& src) {
     return info;
 }
 
-static J3DFogInfo hostFogInfo(const J3DFogInfo& src) {
+J3DFogInfo J3DHostFogInfo(const J3DFogInfo& src) {
     J3DFogInfo info;
     memcpy(&info, &src, sizeof(info));
     be_swap(info.mCenter);
@@ -42,7 +43,7 @@ static J3DFogInfo hostFogInfo(const J3DFogInfo& src) {
     return info;
 }
 
-static J3DNBTScaleInfo hostNBTScaleInfo(const J3DNBTScaleInfo& src) {
+J3DNBTScaleInfo J3DHostNBTScaleInfo(const J3DNBTScaleInfo& src) {
     J3DNBTScaleInfo info;
     memcpy(&info, &src, sizeof(info));
     be_swap(info.mScale);
@@ -565,7 +566,7 @@ J3DTexMtx* J3DMaterialFactory::newTexMtx(int idx, int stage) const {
     J3DMaterialInitData* initData = &mpMaterialInitData[mpMaterialID[idx]];
     if (initData->mTexMtxIdx[stage] != 0xFFFF)
 #if TARGET_PC
-        ret = new J3DTexMtx(hostTexMtxInfo(mpTexMtxInfo[initData->mTexMtxIdx[stage]]));
+        ret = new J3DTexMtx(J3DHostTexMtxInfo(mpTexMtxInfo[initData->mTexMtxIdx[stage]]));
 #else
         ret = new J3DTexMtx(mpTexMtxInfo[initData->mTexMtxIdx[stage]]);
 #endif
@@ -709,7 +710,7 @@ J3DFog* J3DMaterialFactory::newFog(int idx) const {
     J3DMaterialInitData* initData = &mpMaterialInitData[mpMaterialID[idx]];
     if (initData->mFogIdx != 0xFFFF)
 #if TARGET_PC
-        return new J3DFog(hostFogInfo(mpFogInfo[initData->mFogIdx]));
+        return new J3DFog(J3DHostFogInfo(mpFogInfo[initData->mFogIdx]));
 #else
         return new J3DFog(mpFogInfo[initData->mFogIdx]);
 #endif
@@ -768,7 +769,7 @@ J3DNBTScale J3DMaterialFactory::newNBTScale(int idx) const {
     u16 no = mpMaterialInitData[mpMaterialID[idx]].mNBTScaleIdx;
     if (no != 0xFFFF)
 #if TARGET_PC
-        return J3DNBTScale(hostNBTScaleInfo(mpNBTScaleInfo[no]));
+        return J3DNBTScale(J3DHostNBTScaleInfo(mpNBTScaleInfo[no]));
 #else
         return J3DNBTScale(mpNBTScaleInfo[no]);
 #endif

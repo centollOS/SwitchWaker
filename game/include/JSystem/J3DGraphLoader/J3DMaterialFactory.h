@@ -112,6 +112,14 @@ struct J3DDisplayListInit {
     /* 0x4 */ BE(u32) mSize;
 };
 
+#if TARGET_PC
+// Host-order copies of the file's big-endian tex-matrix, fog and NBT-scale infos (defined in
+// J3DMaterialFactory.cpp; used by both material factories).
+J3DTexMtxInfo J3DHostTexMtxInfo(const J3DTexMtxInfo& src);
+J3DFogInfo J3DHostFogInfo(const J3DFogInfo& src);
+J3DNBTScaleInfo J3DHostNBTScaleInfo(const J3DNBTScaleInfo& src);
+#endif
+
 class J3DMaterialFactory {
 public:
     enum MaterialType {
