@@ -91,6 +91,10 @@ const char* unmet(const PcBootStage* boot) {
 
 } // namespace
 
+bool outsetLinkReady() {
+    return sReady;
+}
+
 void outsetArm(const char* stageName, int roomNo) {
     const PcBootStage* boot = pc_boot_stage();
     if (sArmed || boot == nullptr || stageName == nullptr || strcmp(stageName, boot->stage) != 0 ||

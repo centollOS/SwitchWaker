@@ -188,7 +188,7 @@ loop:
 - Gate: p95 of the game thread ≤ 25 ms on the pessimistic estimate, leaving margin under 33.3 ms. Audio and Aurora's GX are budgeted separately because they run on other cores.
 
 **6.9 Robustness**
-- `COS_SMOKE=actor-sweep`: spawn every profile next to Link in Outset, run 30 frames, delete. Pass means no fault; a refused creation is fine.
+- `COS_SMOKE=actor-sweep`: spawn every profile next to Link in Outset, run 30 frames, delete. Pass means no fault; a refused creation is fine. `native/tools/actor_sweep.py` goes on after each fault and lists profile -> signature (results: 6.9a in the plan log).
 - A 30-minute soak.
 - An ASan build in `build/native-mac-asan` through M0–M13. ASan does not see inside JKR heaps, but catches stack, global and malloc errors.
 

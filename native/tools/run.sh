@@ -11,6 +11,9 @@
 #   native/tools/run.sh run --frames 600 [--uncapped]      (prints the [cos] pacing line)
 # `boot-sweep` boots every stage of the disc in turn (step F4-boot-sweep): it hands its options to
 # native/tools/boot_sweep.py (see its --help), which runs this script once per stage.
+# `actor-sweep` (step 6.9, needs --stage, e.g. sea:44:206) spawns every actor profile next to Link,
+# runs it 30 frames and deletes it; COS_ACTOR_SWEEP=<first>[-<last>] limits it to those process
+# names. native/tools/actor_sweep.py runs it again after each fault and lists the faults.
 #
 # Options:
 #   --timeout S      in-process watchdog timeout (COS_TIMEOUT_S), default 180

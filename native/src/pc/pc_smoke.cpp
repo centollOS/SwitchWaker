@@ -47,6 +47,8 @@
 //   each mDoCPd_Read.
 // - title-audio (step 5.5, pc_title_audio.cpp): after milestone M9 title, the AI output level
 //   (above -40 dBFS RMS) and the sequence ticks (advancing) over 300 game frames.
+// - actor-sweep (step 6.9, pc_actor_sweep.cpp): with COS_BOOT_STAGE (Outset), every actor profile
+//   spawned next to Link, run 30 frames and deleted; pass = no fault.
 // The format sweeps and the other smoke tests of phases 4-6 add their names to kSmokes; one that
 // runs after some of the boot is started by the boot code at that point, not by runEarlySmoke.
 #include "pc_internal.h"
@@ -317,6 +319,7 @@ const Smoke kSmokes[] = {
     {"stb-sweep", kAfterHeaps},
     {"pad-echo", kInGame},
     {"title-audio", kInGame},
+    {"actor-sweep", kInGame},
 };
 
 const Smoke* findSmoke(const char* name) {

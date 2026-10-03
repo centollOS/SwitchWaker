@@ -145,6 +145,14 @@ const char* stageRoomReady(int roomNo, int* created);
 // main stick that moves Link more than 300 units, and 3,600 frames since he was in the room.
 void outsetArm(const char* stageName, int roomNo);
 void outsetFrame(unsigned int frames);
+// pc_outset.cpp: the M12 probe found Link in the COS_BOOT_STAGE start room (PLAY scene executing,
+// room up, player actor created).
+bool outsetLinkReady();
+
+// pc_actor_sweep.cpp (step 6.9): COS_SMOKE=actor-sweep; actorSweepFrame runs from pc_frame_end
+// every game frame and, once outsetLinkReady, spawns every actor profile next to Link in turn,
+// runs it 30 frames and deletes it, then exits 0.
+void actorSweepFrame(unsigned int frames);
 
 // pc_title.cpp: milestone M9 title (see pc_title_drawn); titleFrame runs from pc_frame_end every
 // game frame. titleReached: the milestone was logged.

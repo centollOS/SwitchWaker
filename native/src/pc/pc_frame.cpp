@@ -549,6 +549,7 @@ void pc_frame_end(void) {
     titleFrame(frames);
     titleAudioFrame(frames);
     outsetFrame(frames);
+    actorSweepFrame(frames);
     fileSelectFrame(frames);
     newGameFrame(frames);
     // Step 5.A (decision H10): with COS_AUDIO=on, mDoAud_Execute retries mDoAud_Create every frame

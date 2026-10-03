@@ -3162,6 +3162,76 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Review: `regress.sh -j 3` passed; `run --frames 900 --perf perf.csv` (COS_PERF_EVERY=120)
   exit 0, 901 CSV lines, wall = busy + wait and the split sums to busy in every row, cpu <= busy.
 
+- **Step 6.9a actor sweep** (2026-10-03, lane audio). `COS_SMOKE=actor-sweep`
+  (`native/src/pc/pc_actor_sweep.cpp`, `run.sh actor-sweep --stage sea:44:206`): once the M12
+  probe has Link in Outset's start room (plus 60 frames), every actor profile of
+  `g_fpcPfLst_ProfileList` (leaf sub-method `g_fopAc_Method`: 453 of the 502 names; scenes, overlaps,
+  kankyo, message and camera processes are skipped) is created in turn with
+  `fopAcM_create(name, parameter 0, 150 units in front of Link, Link's room)` from Link's layer,
+  run 30 game frames (found each frame among the creating and the executing processes) and deleted
+  with `fpcM_Delete` (a process still creating is aborted that way), then 3 frames pass before the
+  next one so a fault Aurora's worker reports a frame late stays attributed. After each profile the
+  PLAY scene, Link and the stage must still be there (else exit 1). `<run dir>/actor_sweep.txt` gets
+  a `begin` line before each creation (written straight to the file) and a result line after
+  (`ran`, `refused`, `deleted-itself`, `creating`, `not-deleted`). `COS_ACTOR_SWEEP=<first>[-<last>]`
+  limits the process names. `native/tools/actor_sweep.py` runs the smoke again after each fault
+  from the next profile and writes `<sweep dir>/actor_sweep.txt` (profile -> signature, with
+  `boot_sweep.py`'s signature format); a fault between two profiles is put on the last one
+  deleted, marked `(after-delete)`. A whole sweep takes ~3 min (23 runs, uncapped).
+  Result (two sweeps, same build, 453 profiles each): 368 ran 30 frames and were deleted, 61 were
+  refused, 2 deleted themselves, 2 were deleted while still creating, 20 faulted while in flight and
+  2 more faults came right after a deletion (22 faulting runs per sweep, table).
+  Classes: **ctx** = the actor needs a parent, the ship or other actors the sweep does not make (it
+  reads them through a NULL `fopAcM_SearchByID` or `l_p_ship`, or asserts on them): game behaviour
+  when spawned alone, not a port bug; **prm** = parameter 0 selects a type the game never places
+  (NULL resource name, assert on the parameters): game behaviour; **del** = a child actor or a
+  neighbour keeps a reference to the swept actor after its deletion (a child running without its
+  parent, a seagull's floor polygon on a deleted moving BG: `GetTriPla` returns NULL): game
+  behaviour under a deletion the game never makes; **dup** = a second instance of a singleton;
+  **?** = not understood yet. No signature is shared by many profiles through one port root cause,
+  so nothing is fixed in this step and `actor-sweep` is not in `regress_targets.txt` (it does not
+  pass). The largest group (ctx) is the sweep spawning child-only actors alone; changing it would
+  mean per-profile parameters or parents, i.e. a different test.
+
+  | profile (fpcNm) | dStage name | signature | class |
+  |---|---|---|---|
+  | SEA (40) | sea | STALL in `daSea_packet_c::draw` (d_a_sea.cpp:666/1212) <- `J3DDrawBuffer::drawHead` | dup? |
+  | Obj_Pirateship (59) | Pirates | (after-delete) SIGSEGV 0x15c `fopAc_IsActor` <- `daKnob00_c::draw` (its door knob child) | del |
+  | Obj_Tousekiki (60) | Touseki | SIGSEGV 0x3c0 `daObj_Tousekiki_c::_execute` (d_a_obj_tousekiki.cpp:113) | ctx |
+  | Kaji (62) | Kaji | SIGSEGV 0x3c0 `daKajiExecute` (d_a_kaji.cpp:114) | ctx |
+  | MFLFT (93) | Mflft | SIGSEGV 0x20 `cCcD_Stts::Init` <- `daMflft_Create` (d_a_mflft.cpp:641) | ? |
+  | KITA (99) / KOKIIE (100), one per sweep | Kita / Kokiie | SIGSEGV 0xc `dDlst_shadowSimple_c::set` <- `daKamome_Draw`: `dComIfGd_setSimpleShadow2` gets a NULL plane for a floor polygon of the deleted platform | del |
+  | SHUTTER (114), first sweep only | Htobi1 | SIGSEGV 0x20010 `cNdIt_Judge` <- `fopAcIt_Judge` <- `dEvt_control_c::moveApproval` | ? (flaky) |
+  | LEAF_LIFT (122), second sweep only | Olift | SIGSEGV 0x0 `cPhs_Handler` <- `daLlift_c::_create` (d_a_leaflift.cpp:162) | ? (flaky) |
+  | Obj_Vds (134) | Vds | SIGSEGV 0x14f4 `daObjVds::Act_c::process_off_main` (its Swlight actors) | ctx |
+  | PLAYER (169) | Link | SIGABRT in Aurora `gfx::push` <- `gx::fifo::draw_prim` (FIFO worker), second Link | dup / Aurora |
+  | GRID (172) | Grid | SIGSEGV 0x4b4 `ho_move` <- `daGrid_c::_create` (the ship) | ctx |
+  | SAIL (173) | Psail | SIGSEGV 0x3be `daSail_Create` (d_a_sail.cpp:650, parent ship) | ctx |
+  | PIRATE_FLAG (174) | - | SIGSEGV 0x3c0 `daPirate_Flag_Execute` (d_a_pirate_flag.cpp:470, `l_p_ship`) | ctx |
+  | WBIRD (197) | WBird | PANIC d_operate_wind.cpp:1001 in `dOperate_wind_c::_create` | ctx |
+  | BPW (212) | big_pow | (after-delete) SIGSEGV 0x4fe `action_big_demo` <- `daPW_Execute` (its PW children) | del |
+  | BST (242) | Bst | SIGSEGV 0x1728 `daBst_Execute` (d_a_bst.cpp:2644, boss parts) | ctx |
+  | SBOX (295) | tkrSlv | PANIC d_a_sbox.cpp:220 in `daSbox_c::shipMtx` | ctx |
+  | BOMB (296) | Bomb | PANIC d_a_bomb_static.cpp:206 in `daBomb_c::prm_get_state` | prm |
+  | DOOR10 (302) | door10 | PANIC d_a_door10.cpp:356 in `daDoor10_c::CreateHeap` | prm |
+  | KDDOOR (306) | doorKD | PANIC d_a_kddoor.cpp:868 in `daKddoor_c::CreateHeap` | prm |
+  | NPC_OS (316) | Os | PANIC d_a_player_npc.cpp:157 in `daPy_npc_c::setPointRestart` | ctx |
+  | LODBG (451) | LOD01 | PANIC d_a_lod_bg.cpp:436 in `daLodbg_c::createHeap` | prm |
+  | Stone2 (461) | Ebrock | SIGSEGV 0x0 `strcmp` in `dRes_control_c::setRes` <- `phase_1`: type 0's `resName` is NULL in `M_attr` | prm |
+
+  Follow-ups (not fixed here): (1) SHUTTER / LEAF_LIFT: faults that move between sweeps (a
+  corrupted actor list, a phase handler reached through 0) point at memory damaged by an earlier
+  profile of the same run; bisect with `COS_ACTOR_SWEEP=100-122` and run under the ASan build
+  (step 6.9 part 3). (2) PLAYER: Aurora aborts in `gfx::push` on a second Link's draw; check the
+  abort's size against Aurora's buffer limits (an Aurora robustness item even if two Links never
+  happen in the game). (3) SEA: a second sea stalls `daSea_packet_c::draw`; confirm it is the
+  singleton's static state. (4) MFLFT: `mStts` at 0x20 from create; read d_a_mflft.cpp's create
+  path with parameter 0. (5) A sweep variant that gives the ctx/prm profiles the parameters and
+  parents the stage data uses (from the disc's ACTR records) would cover them for real.
+  Review: `regress.sh -j 3` passed; `COS_ACTOR_SWEEP=175-196 run.sh actor-sweep --stage
+  sea:44:206 --uncapped` exit 0 (19 ran, 2 refused, 1 deleted itself); a third full sweep gave 21
+  faulting runs (the table minus KITA/KOKIIE and LEAF_LIFT, plus SHUTTER), so the del/? rows are flaky.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
