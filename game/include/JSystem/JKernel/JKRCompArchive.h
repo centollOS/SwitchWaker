@@ -24,7 +24,13 @@ public:
 private:
     /* 0x00 */  // vtable
     /* 0x04 */  // JKRArchive
+#if TARGET_PC
+    // The host address of the part of the archive loaded into main memory (as in Dusklight's
+    // JKRCompArchive.h, CC0, ref/dusklight at 40457c6): an int truncates it.
+    /* 0x64 */ intptr_t field_0x64;
+#else
     /* 0x64 */ int field_0x64;
+#endif
     /* 0x68 */ JKRAramBlock* mAramPart;
     /* 0x6C */ int field_0x6c;
     /* 0x70 */ JKRDvdFile* mDvdFile;
