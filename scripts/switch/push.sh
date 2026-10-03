@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Copy Switch probe NROs to the console over USB (MTP) and pull back their logs.
 #
-#   scripts/switch/push.sh [--build] [host|host-aurora|dawn|gles|boot|FILE.nro]...   (default: dawn)
+#   scripts/switch/push.sh [--build] [host|host-aurora|native|dawn|gles|boot|FILE.nro]...   (default: dawn)
 #   scripts/switch/push.sh --logs
 #   scripts/switch/push.sh --game DISC.iso
+#   scripts/switch/push.sh --disc DISC.iso
+#   scripts/switch/push.sh --native-env ENV.txt
 #
 # Enable USB file transfer on the console first (Horizon's own, haze or DBI).
 # Files go to sdmc:/switch/centollos/, are read back, and must match
@@ -12,7 +14,10 @@
 # headless host's inputs from the player's own disc: the disc image as
 # GZLE01.iso, the DSP ROMs, and main.dol and the 415 RELs extracted by
 # scripts/builder/build.sh --source-only (build/device/game); files already
-# on the console with the same size are skipped. Needs libmtp
+# on the console with the same size are skipped. --disc copies only the disc
+# image (all the native port reads; same name and place as --game's). `native`
+# is the native port's NRO (scripts/switch/build_native.sh), centollos.nro;
+# --native-env copies a run options file as its native/env.txt. Needs libmtp
 # (macOS: brew install libmtp); runs on the host, not in a container.
 set -euo pipefail
 
@@ -50,12 +55,38 @@ if [[ ${1:-} == --game ]]; then
     exit 0
 fi
 
+if [[ ${1:-} == --disc ]]; then
+    disc=${2:?usage: push.sh --disc DISC.iso}
+    staging=$(mktemp -d)
+    trap 'rm -rf "$staging"' EXIT
+    ln -s "$(cd "$(dirname "$disc")" && pwd)/$(basename "$disc")" "$staging/GZLE01.iso"
+    "$tool" push-many "$remote_dir" "$staging/GZLE01.iso"
+    exit 0
+fi
+
+if [[ ${1:-} == --native-env ]]; then
+    env_file=${2:?usage: push.sh --native-env ENV.txt}
+    staging=$(mktemp -d)
+    trap 'rm -rf "$staging"' EXIT
+    cp "$env_file" "$staging/env.txt"
+    "$tool" push "$staging/env.txt" "$remote_dir/native"
+    echo "pushed $env_file as $remote_dir/native/env.txt"
+    exit 0
+fi
+
 if [[ ${1:-} == --logs ]]; then
     mkdir -p "$root/build/switch-logs"
     for log in boot-probe.log gles-probe.log dawn-probe.log host.log; do
         status=0
         "$tool" pull "$remote_dir" "$log" "$root/build/switch-logs/$log" || status=$?
         # 3: that probe has not written a log yet.
+        [[ $status -eq 0 || $status -eq 3 ]] || exit "$status"
+    done
+    # The native port's logs (switch/native/source/cos_switch.cpp).
+    mkdir -p "$root/build/switch-logs/native"
+    for log in centollos.log centollos.prev.log; do
+        status=0
+        "$tool" pull "$remote_dir/native" "$log" "$root/build/switch-logs/native/$log" || status=$?
         [[ $status -eq 0 || $status -eq 3 ]] || exit "$status"
     done
     exit 0
@@ -72,6 +103,7 @@ for target in "$@"; do
     case $target in
         host) script=build_host.sh nro=build/switch-host/BlueWakeSwitch.nro ;;
         host-aurora) script='' nro=${SWITCH_HOST_BUILD_DIR:-build/switch-host-aurora}/BlueWakeSwitchAurora.nro ;;
+        native) script=build_native.sh nro=build/switch-native/centollos.nro ;;
         dawn) script=build_dawn_probe.sh nro=build/switch-dawn-probe/BlueWakeDawnOffscreenProbe.nro ;;
         gles) script=build_gles_probe.sh nro=build/switch-gles-probe/BlueWakeGlesProbe.nro ;;
         boot) script=build_probe.sh nro=build/switch-probe/BlueWakeSwitchProbe.nro ;;
