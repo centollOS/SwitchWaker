@@ -141,6 +141,10 @@ bool sLogoLogged = false;
 unsigned int sLogoFrame = 0;
 uint64_t sUploadBeforeLogo = 0;
 uint64_t sUploadSinceLogo = 0;
+// M6 (step 4.8): object archives with entries left unconverted, and the synced report.
+int sLogoResGaps = 0;
+bool sLogoResSynced = false;
+bool sLogoResLogged = false;
 
 // Drains Aurora's events. A quit request (window closed) ends the process: exit 0 for a plain
 // run, 1 when a milestone or COS_FRAMES was still expected.
@@ -274,6 +278,33 @@ void pc_frame_end(void) {
                sLogoFrame, (unsigned long long)sUploadSinceLogo,
                (unsigned long long)sUploadBeforeLogo, (unsigned int)sMaxDrawCalls);
         pc_milestone("logo-scene");
+    }
+}
+
+void pc_logo_res_object(const char* name, int files, int loaded) {
+    writef(STDERR_FILENO, "[cos] logo-res: %s.arc %d files, %d converted\n", name, files, loaded);
+    if (files <= 0 || loaded != files) {
+        sLogoResGaps++;
+    }
+}
+
+void pc_logo_res_synced(int archives, int files, int missing) {
+    writef(STDERR_FILENO, "[cos] logo-res: all commands synced at frame %u: %d archives mounted, "
+                          "%d files in main RAM, %d empty\n",
+           pc_frame_count(), archives, files, missing);
+    if (missing != 0 || sLogoResGaps != 0) {
+        writef(STDERR_FILENO, "[cos] logo-res: %d object archive(s) incomplete, %d command(s) "
+                              "left nothing\n", sLogoResGaps, missing);
+        pc_exit(PC_EXIT_CHECK_FAILED);
+    }
+    sLogoResSynced = true;
+}
+
+void pc_opening_scene_called(void) {
+    if (sLogoResSynced && !sLogoResLogged) {
+        sLogoResLogged = true;
+        writef(STDERR_FILENO, "[cos] logo-res: dComIfG_changeOpeningScene called\n");
+        pc_milestone("logo-res");
     }
 }
 

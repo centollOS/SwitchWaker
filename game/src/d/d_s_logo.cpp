@@ -417,6 +417,76 @@ BOOL dolbyOutDraw(dScnLogo_c* i_this) {
     return TRUE;
 }
 
+#if TARGET_PC
+// M6 logo-res (step 4.8): reports the object archives the logo scene keeps resident (every file
+// of System, Logo, Always, Link and Agb must have been converted by dRes_info_c::loadResource)
+// and the archives and files the l_*Commands read. pc_logo_res_synced exits 1 on a gap.
+static void pcLogoResSynced() {
+    // dvdWaitDraw keeps running until the scene change happens: report the first time only.
+    static bool reported = false;
+    if (reported) {
+        return;
+    }
+    reported = true;
+    static const char* const objectArcs[] = {"System", "Logo", "Always", "Link", "Agb"};
+    int missing = 0;
+    for (int i = 0; i < ARRAY_SIZE(objectArcs); i++) {
+        dRes_info_c* info = dComIfG_getObjectResInfo(objectArcs[i]);
+        JKRArchive* arc = info != NULL ? info->getArchive() : NULL;
+        int entries = arc != NULL ? info->getResNum() : 0;
+        int files = 0;
+        int loaded = 0;
+        for (int j = 0; j < entries; j++) {
+            // The entries include the directories' "." and ".." links; only files are resources.
+            if (arc->isFileEntry(j)) {
+                files++;
+                if (info->getRes(j) != NULL) {
+                    loaded++;
+                }
+            }
+        }
+        pc_logo_res_object(objectArcs[i], files, loaded);
+    }
+    const mDoDvdThd_mountXArchive_c* const arcCommands[] = {
+        l_anmCommand, l_fmapCommand, l_itemResCommand, l_fmapResCommand, l_dmapResCommand,
+        l_clctResCommand, l_optResCommand, l_saveResCommand, l_clothResCommand, l_itemiconCommand,
+        l_actioniconCommand, l_scopeResCommand, l_camResCommand, l_swimResCommand,
+        l_windResCommand, l_nameResCommand, l_tmsgCommand,
+#if VERSION > VERSION_DEMO
+        l_dmsgCommand,
+#endif
+        l_errorResCommand, l_msgDtCommand,
+#if VERSION > VERSION_JPN
+        l_msgDtCommand2,
+#endif
+        l_msgCommand, l_menuCommand, l_fontCommand, l_rubyCommand,
+#if VERSION != VERSION_DEMO
+        l_lodCommand,
+#endif
+    };
+    int arcs = 0;
+    for (int i = 0; i < ARRAY_SIZE(arcCommands); i++) {
+        if (arcCommands[i]->getArchive() != NULL) {
+            arcs++;
+        } else {
+            missing++;
+        }
+    }
+    const mDoDvdThd_toMainRam_c* const fileCommands[] = {
+        l_particleCommand, l_itemTableCommand, l_ActorDataCommand, l_FmapDataCommand,
+    };
+    int files = 0;
+    for (int i = 0; i < ARRAY_SIZE(fileCommands); i++) {
+        if (fileCommands[i]->getMemAddress() != NULL) {
+            files++;
+        } else {
+            missing++;
+        }
+    }
+    pc_logo_res_synced(arcs, files, missing);
+}
+#endif
+
 /* 8022CF44-8022D18C       .text dvdWaitDraw__FP10dScnLogo_c */
 BOOL dvdWaitDraw(dScnLogo_c* i_this) {
     if (!dComIfG_syncAllObjectRes()
@@ -460,6 +530,12 @@ BOOL dvdWaitDraw(dScnLogo_c* i_this) {
 #endif
     ) {
 
+#if TARGET_PC
+        // Run harness (step 4.8): milestone M6 logo-res. Every l_*Command has synced; this checks
+        // what they and the object archives left, then dComIfG_changeOpeningScene logs the
+        // milestone when it is called.
+        pcLogoResSynced();
+#endif
         dComIfG_changeOpeningScene(i_this, fpcNm_OPENING_SCENE_e);
     }
     return TRUE;

@@ -23,6 +23,9 @@
 #include "m_Do/m_Do_audio.h"
 #include "d/actor/d_a_arrow.h"
 #include "d/actor/d_a_ship.h"
+#if TARGET_PC
+#include "pc/pc_harness.h"
+#endif
 
 dComIfG_inf_c g_dComIfG_gameInfo;
 
@@ -483,6 +486,10 @@ void dComIfG_inf_c::ct() {
 
 /* 800531A8-8005326C       .text dComIfG_changeOpeningScene__FP11scene_classs */
 int dComIfG_changeOpeningScene(scene_class* i_scene, s16 i_procName) {
+#if TARGET_PC
+    // Run harness (step 4.8): milestone M6 logo-res, once the logo scene's resources synced.
+    pc_opening_scene_called();
+#endif
 #if VERSION == VERSION_DEMO
     if (!fopScnM_ChangeReq(i_scene, i_procName, fpcNm_OVERLAP0_e, 30)) {
         return FALSE;

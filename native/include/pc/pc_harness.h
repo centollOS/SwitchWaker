@@ -72,6 +72,16 @@ struct ResTIMG;
 void pc_logo_scene_created(int logoFiles, const struct ResTIMG* logoTimg,
                            unsigned int logoSize);
 
+/* Milestone M6 (step 4.8, pc_frame.cpp). d_s_logo.cpp's dvdWaitDraw, once every l_*Command has
+   synced, reports each object archive the logo scene keeps resident (pc_logo_res_object: its
+   file count and how many files dRes_info_c::loadResource converted, which must be all) and
+   then the count of mounted archives, of files read to main RAM and of commands that left
+   nothing (pc_logo_res_synced; exits 1 on any gap). dComIfG_changeOpeningScene calls
+   pc_opening_scene_called on entry, which logs "logo-res" after a complete report. */
+void pc_logo_res_object(const char* name, int files, int loaded);
+void pc_logo_res_synced(int archives, int files, int missing);
+void pc_opening_scene_called(void);
+
 /* Logs "[cos] MILESTONE <name> frame= retrace= ms=" and exits 0 if <name> is COS_MILESTONE. */
 void pc_milestone(const char* name);
 
