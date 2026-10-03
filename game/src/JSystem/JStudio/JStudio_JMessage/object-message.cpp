@@ -7,6 +7,7 @@
 
 #include "JSystem/JStudio/JStudio_JMessage/object-message.h"
 #include "dolphin/types.h"
+#include "helpers/endian.h"
 
 /* 8027A614-8027A64C       .text __ct__Q216JStudio_JMessage16TAdaptor_messageFPQ28JMessage8TControl */
 JStudio_JMessage::TAdaptor_message::TAdaptor_message(JMessage::TControl* control)
@@ -22,7 +23,10 @@ JStudio_JMessage::TAdaptor_message::~TAdaptor_message() {}
 void JStudio_JMessage::TAdaptor_message::adaptor_do_MESSAGE(JStudio::data::TEOperationData operation, const void* param_2, u32 param_3) {
     switch (operation) {
     case JStudio::data::TEOD_Unknown_19:
-        mControl->setMessageCode(*(u32*)param_2);
+        // The message code is a big-endian u32 in the STB paragraph (BE(u32) is u32 on the
+        // GameCube), as in Dusklight's jstudio_tAdaptor_message::adaptor_do_MESSAGE
+        // (src/d/d_demo.cpp, CC0, ref/dusklight at 40457c6).
+        mControl->setMessageCode(*(const BE(u32)*)param_2);
         break;
     default:
         break;
