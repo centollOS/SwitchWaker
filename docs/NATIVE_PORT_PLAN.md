@@ -2346,6 +2346,15 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   the node offset assumes a 4-byte vtable pointer (8 on the host). That is the next root cause.
   Reviewed: regress passed; title-stage no longer logs the demo-data error and now stops at frame
   301 (exit 13) in `JStudio::TFactory::create`, after `opening` at frame 281.
+- M7 boot loop (lane boot, M8 iter 3): JStudio's intrusive lists hard-coded the GameCube node
+  offsets (`TLinkList<TCreateObject, -4>`, `TLinkList<stb::TObject, -12>`,
+  `TLinkList<fvb::TObject, -12>`); with an 8-byte vptr and host pointers the node moves, so
+  iterating `TFactory::mList` turned nodes into garbage object pointers. Each class now has a
+  `NodeOffset` (TARGET_PC: `-(int)offsetof(...)`, Dusklight pattern, CC0; #else the original
+  literal) used by every list typedef/iterator. The STB parse now completes and every object is
+  created; title-stage stops at frame 301 in `TVariableValue::update_functionValue_` (null, via
+  `TObject::do_wait` during `stb::TControl::forward`), the next root cause.
+  Reviewed: regress passed; title-stage gets past `JStudio::TFactory::create`.
 
 ### Phase 6 render issues
 

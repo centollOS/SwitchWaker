@@ -390,9 +390,9 @@ void TControl::destroyObject_all() {
 
 /* 80274218-802742B8       .text getObject__Q37JStudio3fvb8TControlFPCvUl */
 TObject* TControl::getObject(const void* param_0, u32 param_1) {
-    JGadget::TLinkList<TObject, -12>::iterator begin = ocObject_.begin();
-    JGadget::TLinkList<TObject, -12>::iterator end = ocObject_.end();
-    JGadget::TLinkList<TObject, -12>::iterator local_50 = std::find_if(begin, end, object::TPRObject_ID_equal(param_0, param_1));
+    JGadget::TLinkList<TObject, TObject::NodeOffset>::iterator begin = ocObject_.begin();
+    JGadget::TLinkList<TObject, TObject::NodeOffset>::iterator end = ocObject_.end();
+    JGadget::TLinkList<TObject, TObject::NodeOffset>::iterator local_50 = std::find_if(begin, end, object::TPRObject_ID_equal(param_0, param_1));
     if ((local_50 != end) != false) {
         return &*local_50;
     }
@@ -405,7 +405,7 @@ TObject* TControl::getObject_index(u32 idx) {
         return NULL;
     }
 
-    JGadget::TLinkList<TObject, -12>::iterator it(ocObject_.begin());
+    JGadget::TLinkList<TObject, TObject::NodeOffset>::iterator it(ocObject_.begin());
     std::advance(it, idx);
     return &*it;
 }

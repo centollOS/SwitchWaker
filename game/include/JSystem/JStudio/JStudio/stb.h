@@ -111,7 +111,19 @@ private:
     /* 0x28 */ const void* pSequence_next;
     /* 0x2C */ u32 u32Wait_;
     /* 0x30 */ TEStatus mStatus;
+
+public:
+#if TARGET_PC
+    static const int NodeOffset;
+#else
+    static const int NodeOffset = -12;
+#endif
 };
+
+#if TARGET_PC
+// TARGET_PC: list node offsets come from offsetof (64-bit vptr/pointers move the node); pattern from Dusklight (CC0).
+inline const int TObject::NodeOffset = -(int)offsetof(TObject, ocObject_);
+#endif
 
 class TFactory {
 public:
@@ -157,7 +169,7 @@ private:
     /* 0x04 */ u32 _4;
     /* 0x08 */ u32 _8;
     /* 0x0C */ TFactory* pFactory;
-    /* 0x10 */ JGadget::TLinkList<TObject, -12> mObjectContainer;
+    /* 0x10 */ JGadget::TLinkList<TObject, TObject::NodeOffset> mObjectContainer;
     /* 0x1C */ u32 mStatus;
     /* 0x20 */ TObject_control mObject_control;
     /* 0x54 */ s32 _54;

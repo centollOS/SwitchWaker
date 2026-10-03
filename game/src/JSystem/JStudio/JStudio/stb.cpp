@@ -301,9 +301,9 @@ void TControl::destroyObject_all() {
 
 /* 802754C0-80275560       .text getObject__Q37JStudio3stb8TControlFPCvUl */
 TObject* TControl::getObject(const void* param_0, u32 param_1) {
-    JGadget::TLinkList<TObject, -12>::iterator begin = mObjectContainer.begin();
-    JGadget::TLinkList<TObject, -12>::iterator end = mObjectContainer.end();
-    JGadget::TLinkList<TObject, -12>::iterator local_50 = std::find_if(begin, end, object::TPRObject_ID_equal(param_0, param_1));
+    JGadget::TLinkList<TObject, TObject::NodeOffset>::iterator begin = mObjectContainer.begin();
+    JGadget::TLinkList<TObject, TObject::NodeOffset>::iterator end = mObjectContainer.end();
+    JGadget::TLinkList<TObject, TObject::NodeOffset>::iterator local_50 = std::find_if(begin, end, object::TPRObject_ID_equal(param_0, param_1));
     if ((local_50 != end) != false) {
         return &*local_50;
     }
@@ -316,7 +316,7 @@ bool TControl::forward(u32 param_0) {
     bool rv = mObject_control.forward(param_0);
     int uVar7 = 0xf;
     int uVar6 = 0;
-    JGadget::TContainerEnumerator<JGadget::TLinkList<JStudio::stb::TObject, -12> > enumerator(mObjectContainer);
+    JGadget::TContainerEnumerator<JGadget::TLinkList<JStudio::stb::TObject, TObject::NodeOffset> > enumerator(mObjectContainer);
     while (enumerator) {
         JStudio::stb::TObject& object = *enumerator;
         rv = object.forward(param_0) || rv;

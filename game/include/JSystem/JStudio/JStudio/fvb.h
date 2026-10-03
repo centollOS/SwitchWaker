@@ -47,7 +47,19 @@ public:
 private:
     /* 0x0C */ JGadget::TLinkListNode mNode;
     /* 0x14 */ TFunctionValue* pfv_;
+
+public:
+#if TARGET_PC
+    static const int NodeOffset;
+#else
+    static const int NodeOffset = -12;
+#endif
 };
+
+#if TARGET_PC
+// TARGET_PC: list node offsets come from offsetof (64-bit vptr/pointers move the node); pattern from Dusklight (CC0).
+inline const int TObject::NodeOffset = -(int)offsetof(TObject, mNode);
+#endif
 
 class TFactory {
 public:
@@ -75,7 +87,7 @@ public:
 
 private:
     /* 0x4 */ TFactory* pFactory;
-    /* 0x8 */ JGadget::TLinkList<TObject, -12> ocObject_;
+    /* 0x8 */ JGadget::TLinkList<TObject, TObject::NodeOffset> ocObject_;
 };  // Size: 0x14
 
 class TObject_composite : public TObject {

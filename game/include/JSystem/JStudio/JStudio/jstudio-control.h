@@ -15,7 +15,18 @@ struct TCreateObject {
     virtual bool create(TObject**, stb::data::TParse_TBlock_object const&) = 0;
 
     /* 0x4 */ JGadget::TLinkListNode mNode;
+
+#if TARGET_PC
+    static const int NodeOffset;
+#else
+    static const int NodeOffset = -4;
+#endif
 };  // Size: 0xC
+
+#if TARGET_PC
+// TARGET_PC: list node offsets come from offsetof (64-bit vptr/pointers move the node); pattern from Dusklight (CC0).
+inline const int TCreateObject::NodeOffset = -(int)offsetof(TCreateObject, mNode);
+#endif
 
 struct TFactory : public stb::TFactory {
     TFactory() {}
@@ -25,7 +36,7 @@ struct TFactory : public stb::TFactory {
 
     void appendCreateObject(TCreateObject*);
 
-    /* 0x04 */ JGadget::TLinkList<TCreateObject, -4> mList;
+    /* 0x04 */ JGadget::TLinkList<TCreateObject, TCreateObject::NodeOffset> mList;
     /* 0x10 */ fvb::TFactory fvb_Factory;
 };
 
