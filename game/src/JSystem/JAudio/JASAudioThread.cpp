@@ -32,6 +32,17 @@ OSPriority JASystem::TAudioThread::sDSPPrio;
 OSPriority JASystem::TAudioThread::sDVDPrio;
 vs32 JASystem::TAudioThread::snIntCount;
 int JASystem::TAudioThread::sbIsDSPBoot;
+#if TARGET_PC
+
+// The console gives the audio thread a higher priority than the thread that calls start() (main
+// - 3), so OSResumeThread in start() preempts the caller and audioproc's start-up (Kernel::init,
+// TDSP_DACBuffer::init, DspBoot, Driver::init, the AI set-up) runs to its first block in
+// OSReceiveMessage before start() returns. The game relies on that: right after start(),
+// JAIBasic::initInterfaceMain uses FX_BUF/CH_BUF, which Driver::init allocates. Host threads run
+// at the same time, so start() waits for audioproc to reach its loop.
+static OSMessageQueue sAudioStartedMQ;
+static OSMessage sAudioStartedMsg;
+#endif
 
 /* 80288F08-80288F88       .text syncAudio__Q28JASystem12TAudioThreadFv */
 void JASystem::TAudioThread::syncAudio() {
@@ -62,6 +73,9 @@ void* JASystem::TAudioThread::audioproc(void*) {
     AISetDSPSampleRate(Kernel::getAiSetting());
     AIRegisterDMACallback(syncAudio);
     AIStartDMA();
+#if TARGET_PC
+    OSSendMessage(&sAudioStartedMQ, NULL, OS_MESSAGE_BLOCK);
+#endif
     while (true) {
         OSMessage message;
         OSReceiveMessage(&sAudioprocMQ, &message, 1);
@@ -144,9 +158,14 @@ void JASystem::TAudioThread::start(JKRSolidHeap* heap, u32 aramSize, u32 flag) {
 #if TARGET_PC
         // Aurora declares the entry point with its real type, void* (*)(void*), which audioproc already has.
         OSCreateThread(&sAudioThread, audioproc, NULL, &saAudioStack[sizeof(saAudioStack)], sizeof(saAudioStack), sDSPPrio, 1);
+        OSInitMessageQueue(&sAudioStartedMQ, &sAudioStartedMsg, 1);
+        OSResumeThread(&sAudioThread);
+        // What preemption does on the console: audioproc's start-up ends before start() goes on.
+        OSMessage started;
+        OSReceiveMessage(&sAudioStartedMQ, &started, OS_MESSAGE_BLOCK);
 #else
         OSCreateThread(&sAudioThread, (void*)audioproc, NULL, &saAudioStack[sizeof(saAudioStack)], sizeof(saAudioStack), sDSPPrio, 1);
-#endif
         OSResumeThread(&sAudioThread);
+#endif
     }
 }
