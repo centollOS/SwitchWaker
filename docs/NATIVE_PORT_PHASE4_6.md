@@ -44,7 +44,7 @@ There are two tracks plus an audio side-track:
 - **Track S (sweeps):** each disc format is checked by a headless `COS_SMOKE=<fmt>-sweep` mode, independent of how far boot has got. These steps touch separate files, so they can run in parallel with the boot loop.
 - **Audio:** stays off (`COS_AUDIO=off`, like Dusklight's `DUSK_AUDIO_DISABLED` calling `onInitFlag`) until phase 5 lands.
 
-**Order:** 6.0 → 4.0a–d (in parallel) → 6.1 → 4.1 → 4.2 → 4.3 → 6.2 → 4.4 → 4.5–4.8 → 4.9a–d / 4.10 / 4.11 / 4.12 / 4.13 (sweeps in parallel; the boot loop drives M7–M9) → 6.3 → 4.15 → 6.4 → 4.16 → 6.5 → 6.6 → 4.17 → 6.7–6.9. Phase 5 runs alongside from M6 on.
+**Order:** 6.0 → 4.0a–d (in parallel) → 6.1 → 4.1 → 4.2 → 4.3 → 4.4 → 6.2 → 4.5–4.8 → 4.9a–d / 4.10 / 4.11 / 4.12 / 4.13 (sweeps in parallel; the boot loop drives M7–M9) → 6.3 → 4.15 → 6.4 → 4.16 → 6.5 → 6.6 → 4.17 → 6.7–6.9. Phase 5 runs alongside from M6 on.
 
 ### Milestones (logged as `[cos] MILESTONE <name> frame= retrace= ms=`)
 
@@ -134,7 +134,7 @@ loop:
 **6.2 Frame loop and pacing**
 - Files: `m_Do_main.cpp` (`aurora_update` / `aurora_begin_frame` / `aurora_end_frame` around each `main01` iteration), `JFramework/JFWDisplay.cpp` (`waitBlanking`/`waitForTick` replaced by a limiter, bypassed when `COS_UNCAPPED`), the game frame counter.
 - From Dusklight: `JFWDisplay.cpp:371-420` (`Limiter`, `FRAME_PERIOD` = 1001/30000).
-- Verify: M3 and M4; `COS_FRAMES=600 COS_UNCAPPED=1` exits 0; the capped run's wall time is within 5 percent of 600/30 s.
+- Verify: M3 and M4 with no pending assertion or panic in the log; `COS_FRAMES=600 COS_UNCAPPED=1` exits 0; the capped 600-frame run exits 0 and its `[cos] pacing` ratio after frame 1 is within 5 percent of 1.0 (the game picks its own rate: the logo scene asks for 60 Hz). Runs after step 4.4, because the 600-frame run mounts `Logo.arc` (amended 2026-10-03).
 - Risk: the game calls `VIWaitForRetrace` inside `fapGm_Execute`, so GX must stay inside begin/end frame.
 
 **6.3 Input injection**
