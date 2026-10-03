@@ -2798,6 +2798,20 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   155 pass, 12 fail, 2 expected fails; Xboss0's d_particle.cpp:50 crash is intermittent and
   unrelated); regression passes.
 
+- **Boot-sweep fix 6: the height-field grid index table read big-endian** (2026-10-03, lane
+  outset, endian). Most common signature left (2 of 11 in a 142/155 sweep, tied with
+  `JAISoundTable.cpp`): `PANIC d_bg_w_hf.cpp:365` (`CHECK_MINMAX_2`) in
+  `dBgWHf::MakeNodeTreeRpHf` <- `daBwdg_Execute` (Xboss3, kazeB: the sand of the Molgera fight),
+  about 150 frames into the stage. A temporary trace showed leaf node 63 with min.z 0 and max.z
+  -897.6, values no grid vertex has. Root cause: `dBgWHf::CalcPlane` reads the grid's triangle
+  indices from `mC8`, the `u16` table of Bwdg's GridIdx.dat read in place, through a native
+  `u16` read. On the host each index came out byte-swapped, e.g. 1 became 256 and some went up
+  to 0xFF1F against 8192 triangles, so `pm_tri[triIdx].m_plane.SetupNP0` wrote planes outside the
+  table and corrupted the actor's solid heap, here the collision node tree. `mC8` and the `Set`
+  parameter are now `BE(u16)*`, which is plain `u16*` on GameCube. Sweep: 142 -> 144 of 155 (9
+  fail, 2 expected fails, 1 skipped); Xboss3 and kazeB reach frame 600. Regression passes. Reviewed:
+  Xboss3 and kazeB re-run to frame 600, regression re-run passes.
+
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
   variable values checked, max |v| 500000). Builds on the boot loops' STB/FVB big-endian

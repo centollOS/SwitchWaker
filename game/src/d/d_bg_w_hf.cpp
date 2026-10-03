@@ -21,7 +21,7 @@
     );
 
 /* 800A9A48-800A9AE0       .text Set__6dBgWHfFP6cBgD_tPUsfiiUl */
-bool dBgWHf::Set(cBgD_t* bgd, u16* r5, f32 f1, int r6, int r7, u32 flag) {
+bool dBgWHf::Set(cBgD_t* bgd, BE(u16)* r5, f32 f1, int r6, int r7, u32 flag) {
     m_gridx = r6;
     m_gridz = r7;
     mC8 = r5;

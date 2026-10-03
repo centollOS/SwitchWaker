@@ -301,7 +301,7 @@ static BOOL useHeapInit(fopAc_ac_c* i_actor) {
     
     if (!i_this->mpBgW->Set(
         (cBgD_t*)dComIfG_getObjectRes("Bwdg", dRes_INDEX_BWDG_DZB_HSAND1_e),
-        (u16*)dComIfG_getObjectRes("Bwdg", dRes_INDEX_BWDG_DAT_GRIDIDX_e),
+        (BE(u16)*)dComIfG_getObjectRes("Bwdg", dRes_INDEX_BWDG_DAT_GRIDIDX_e),
         130.0f, 0x40, 0x40, 0
     )) {
         return TRUE;
