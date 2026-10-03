@@ -157,8 +157,14 @@ else
     ts="$(date +%Y%m%d-%H%M%S)"
     run_dir="$runs/$target-$ts"
     n=1
-    while [ -e "$run_dir" ]; do run_dir="$runs/$target-$ts-$n"; n=$((n + 1)); done
-    mkdir -p "$run_dir"
+    # mkdir without -p claims the name atomically: runs started in the same second (regress.sh
+    # -j, several runs of one target in parallel) each get their own directory, and so their own
+    # memory card folder (<run dir>/card/), instead of sharing one found free by a separate test.
+    until mkdir "$run_dir" 2> /dev/null; do
+        [ "$n" -le 1000 ] || { echo "run: cannot create a run directory in $runs" >&2; exit 2; }
+        run_dir="$runs/$target-$ts-$n"
+        n=$((n + 1))
+    done
 fi
 
 unset COS_SMOKE COS_MILESTONE
