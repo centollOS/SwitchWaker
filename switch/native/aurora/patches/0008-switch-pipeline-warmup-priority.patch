@@ -1,0 +1,179 @@
+Switch: warm up the bundled cache's priority pipelines first and report them
+
+The boot warm-up (patch 0007) queues every known pipeline in order of first use. The player's own
+pipeline_cache.db records the frame of each run's first use, so after a few sessions pipelines
+seen anywhere in the game sort before the bundled cache's boot path (whose rows carry their
+recording tier in units of 10,000,000 frames). The harness blocks a loading screen on the boot
+path's pipelines, so it needs them identified and built first.
+
+native/tools/gen_pipeline_cache.sh writes a pipeline_priority table (type, hash, priority) into
+initial_pipeline_cache.db: priority 0 for the pipelines recorded on the boot path (logos, title,
+file select, new game, prologue, Outset), 1 for the rest. When seeding, this patch reads the cache
+keys with priority 0; rebuild_pipeline_cache queues those first (each in order of first use), then
+the others, and aurora_switch_get_precompile reports how many runtime pipelines the priority set
+queued (priorityTotal) and how many of them are built (priorityDone). Unpatched Aurora ignores the
+extra table. Without it nothing changes but the 0/0 report.
+
+Switch only (switch/native/aurora/patches); not for upstream.
+
+diff --git a/include/aurora/switch_precompile.h b/include/aurora/switch_precompile.h
+index d4b0eae..cb8e7bc 100644
+--- a/include/aurora/switch_precompile.h
++++ b/include/aurora/switch_precompile.h
+@@ -20,6 +20,11 @@ typedef struct {
+   uint32_t dropped;   /* taken off the queue by aurora_switch_stop_precompile */
+   uint64_t compileNs; /* compile thread time spent on the built ones */
+   bool stopped;       /* aurora_switch_stop_precompile was called */
++  /* The priority set: the pipelines the bundled initial_pipeline_cache.db lists in its
++   * pipeline_priority table with priority 0 (native/tools/gen_pipeline_cache.sh: those recorded on
++   * the boot path, logos to Outset). The warm-up queues them first. 0/0 without that table. */
++  uint32_t priorityTotal; /* of the warm-up's pipelines (total), those in the priority set */
++  uint32_t priorityDone;  /* of those, built */
+ } AuroraSwitchPrecompile;
+ 
+ void aurora_switch_get_precompile(AuroraSwitchPrecompile* out);
+diff --git a/lib/gfx/pipeline_cache.cpp b/lib/gfx/pipeline_cache.cpp
+index 6562519..b018da9 100644
+--- a/lib/gfx/pipeline_cache.cpp
++++ b/lib/gfx/pipeline_cache.cpp
+@@ -104,11 +104,35 @@ static uint32_t g_warmupDropped = 0;
+ static uint64_t g_warmupNs = 0;
+ static bool g_warmupStopped = false;
+ 
++// The priority set (AuroraSwitchPrecompile::priorityTotal): the cache keys the bundled cache's
++// pipeline_priority table lists with priority 0, read by seed_pipeline_cache; the runtime pipelines
++// the warm-up queued for them, and of those the ones still to build.
++static absl::flat_hash_set<HashType> g_priorityKeys;
++static absl::flat_hash_set<PipelineRef> g_priorityQueued;
++static absl::flat_hash_set<PipelineRef> g_priorityPending;
++static uint32_t g_priorityDone = 0;
++
+ static void warmup_built(PipelineRef hash, uint64_t ns) {
+   if (g_warmupPending.erase(hash) != 0) {
+     ++g_warmupDone;
+     g_warmupNs += ns;
+   }
++  if (g_priorityPending.erase(hash) != 0) {
++    ++g_priorityDone;
++  }
++}
++
++// rebuild_pipeline_cache queued (or found built) runtime pipeline ref for a priority cache key.
++static void warmup_priority_queued(PipelineRef ref) {
++  std::lock_guard lock{g_pipelineMutex};
++  if (!g_priorityQueued.insert(ref).second) {
++    return;
++  }
++  if (g_pendingPipelines.contains(ref)) {
++    g_priorityPending.insert(ref);
++  } else {
++    ++g_priorityDone; // built already
++  }
+ }
+ 
+ static sqlite3* g_pipelineCacheDb = nullptr;
+@@ -726,6 +750,25 @@ static void seed_pipeline_cache() {
+     }
+   }
+ 
++  if (seedStmt != nullptr) {
++    sqlite3_finalize(seedStmt);
++    seedStmt = nullptr;
++  }
++  // Switch: the priority set (switch/native/aurora/patches, aurora_switch_get_precompile). A seed
++  // without the table (an older gen_pipeline_cache.sh) has none.
++  if (!writeFailed && !readFailed) {
++    std::lock_guard lock{g_pipelineMutex};
++    g_priorityKeys.clear();
++    if (sqlite3_prepare_v3(seedDb, "SELECT hash FROM pipeline_priority WHERE priority = 0", -1, 0, &seedStmt,
++                           nullptr) == SQLITE_OK) {
++      while (sqlite3_step(seedStmt) == SQLITE_ROW) {
++        g_priorityKeys.insert(static_cast<HashType>(sqlite3_column_int64(seedStmt, 0)));
++      }
++      Log.info("Bundled pipeline cache marks {} pipelines as priority 0", g_priorityKeys.size());
++    } else {
++      Log.info("Bundled pipeline cache '{}' has no pipeline_priority table", seedPath);
++    }
++  }
+   closeSeed();
+ 
+   if (writeFailed) {
+@@ -1183,7 +1226,13 @@ void rebuild_pipeline_cache() {
+   detail::finalize_render_target_layout(offscreen);
+   g_pipelineLayoutKey = scene.key;
+ 
+-  std::vector<KnownPipeline> known;
++  // Switch: the bundled cache's priority set first (g_priorityKeys), then the rest, each in order of
++  // first use.
++  struct WarmupPipeline {
++    bool priority;
++    KnownPipeline pipeline;
++  };
++  std::vector<WarmupPipeline> known;
+   {
+     std::lock_guard lock{g_pipelineMutex};
+     if (g_warmupStopped) {
+@@ -1192,17 +1241,29 @@ void rebuild_pipeline_cache() {
+       return;
+     }
+     known.reserve(g_knownPipelines.size());
+-    for (const auto& pipeline : g_knownPipelines | std::views::values) {
+-      known.push_back(pipeline);
++    for (const auto& [key, pipeline] : g_knownPipelines) {
++      known.push_back({g_priorityKeys.contains(key), pipeline});
+     }
+   }
+-  std::ranges::sort(known, {}, &KnownPipeline::firstFrameUsed);
+-  for (const auto& pipeline : known) {
++  std::ranges::sort(known, [](const WarmupPipeline& a, const WarmupPipeline& b) {
++    if (a.priority != b.priority) {
++      return a.priority;
++    }
++    return a.pipeline.firstFrameUsed < b.pipeline.firstFrameUsed;
++  });
++  for (const auto& [priority, pipeline] : known) {
+     std::visit(
+         [&](const auto& config) {
+-          resolve_pipeline(pipeline.type, config, scene, PipelinePriority::Background);
++          const PipelineRef ref = resolve_pipeline(pipeline.type, config, scene, PipelinePriority::Background);
++          if (priority) {
++            warmup_priority_queued(ref);
++          }
+           if (offscreen.key != scene.key) {
+-            resolve_pipeline(pipeline.type, config, offscreen, PipelinePriority::Background);
++            const PipelineRef offscreenRef =
++                resolve_pipeline(pipeline.type, config, offscreen, PipelinePriority::Background);
++            if (priority) {
++              warmup_priority_queued(offscreenRef);
++            }
+           }
+         },
+         pipeline.config);
+@@ -1257,6 +1318,10 @@ void shutdown_pipeline_cache() {
+   g_warmupTotal = g_warmupDone = g_warmupDropped = 0;
+   g_warmupNs = 0;
+   g_warmupStopped = false;
++  g_priorityKeys.clear();
++  g_priorityQueued.clear();
++  g_priorityPending.clear();
++  g_priorityDone = 0;
+ 
+   queuedPipelines = 0;
+   createdPipelines = 0;
+@@ -1302,6 +1367,8 @@ void aurora_switch_get_precompile(AuroraSwitchPrecompile* out) {
+   out->dropped = g_warmupDropped;
+   out->compileNs = g_warmupNs;
+   out->stopped = g_warmupStopped;
++  out->priorityTotal = static_cast<uint32_t>(g_priorityQueued.size());
++  out->priorityDone = g_priorityDone;
+ }
+ 
+ uint32_t aurora_switch_stop_precompile(void) {
+@@ -1315,6 +1382,7 @@ uint32_t aurora_switch_stop_precompile(void) {
+     for (const auto& pending : g_backgroundPipelineQueue) {
+       g_pendingPipelines.erase(pending.hash);
+       g_warmupPending.erase(pending.hash);
++      g_priorityPending.erase(pending.hash);
+       ++dropped;
+     }
+     g_backgroundPipelineQueue.clear();
