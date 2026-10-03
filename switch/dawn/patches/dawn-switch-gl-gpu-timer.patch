@@ -1,0 +1,311 @@
+--- a/src/dawn/native/opengl/CommandBufferGL.cpp
++++ b/src/dawn/native/opengl/CommandBufferGL.cpp
+@@ -54,6 +54,7 @@
+ #include "src/dawn/native/opengl/QuerySetGL.h"
+ #include "src/dawn/native/opengl/RenderPipelineGL.h"
+ #include "src/dawn/native/opengl/SamplerGL.h"
++#include "src/dawn/native/opengl/SwitchGpuTimerGL.h"
+ #include "src/dawn/native/opengl/SwitchStatsGL.h"
+ #include "src/dawn/native/opengl/TextureGL.h"
+ #include "src/dawn/native/opengl/UtilsGL.h"
+@@ -871,6 +872,7 @@
+ #if defined(__SWITCH__)
+     bool switchFirstBufferCopy = true;
+ #endif
++    DAWN_SWITCH_GPU(BeginExecute(gl));
+ 
+     Command type;
+     while (mCommands.NextCommandId(&type)) {
+@@ -898,6 +900,9 @@
+                 if (nextRenderPassNumber == PassIndex(0u)) {
+                     switchFirstPass.emplace();
+                 }
++                switch_stats::gGpuTimer.BeginSegment(
++                    gl, switch_stats::ClassifyGpuPass(cmd->label) |
++                            (switchFirstPass ? switch_stats::kGpuSegFirstPass : 0));
+ #endif
+                 DAWN_SWITCH_TICKS_START(switchPassStart);
+                 for (TextureBase* texture :
+@@ -913,6 +918,7 @@
+                 DAWN_SWITCH_TICKS_ADD(kPassLazyClearTicks, switchPassStart);
+                 DAWN_TRY(ExecuteRenderPass(cmd, gl, nextRenderPassNumber));
+                 DAWN_SWITCH_TICKS_ADD(kPassTotalTicks, switchPassStart);
++                DAWN_SWITCH_GPU(EndSegment(gl));
+ #if defined(__SWITCH__)
+                 if (switchFirstPass) {
+                     switchFirstPass->Done();
+@@ -949,6 +955,7 @@
+                 } switchCopyTicks{switchFirstBufferCopy, nextRenderPassNumber == PassIndex(0u)};
+                 switchFirstBufferCopy = false;
+ #endif
++                DAWN_SWITCH_GPU(BeginSegment(gl, switch_stats::kGpuSegCopy));
+ 
+                 DAWN_TRY(ToBackend(copy->source)->EnsureDataInitialized());
+                 DAWN_TRY(
+@@ -976,6 +983,7 @@
+             case Command::CopyBufferToTexture: {
+                 CopyBufferToTextureCmd* copy = mCommands.NextCommand<CopyBufferToTextureCmd>();
+                 DAWN_SWITCH_STAT(kTextureUploads, 1);
++                DAWN_SWITCH_GPU(BeginSegment(gl, switch_stats::kGpuSegCopy));
+                 if (copy->copySize.IsEmpty()) {
+                     // Skip no-op copies.
+                     continue;
+@@ -1159,6 +1167,7 @@
+                     continue;
+                 }
+                 DAWN_SWITCH_STAT(kTextureCopies, 1);
++                DAWN_SWITCH_GPU(BeginSegment(gl, switch_stats::kGpuSegCopy));
+                 DAWN_SWITCH_TICKS_START(switchTextureCopyStart);
+                 auto& src = copy->source;
+                 auto& dst = copy->destination;
+@@ -1286,6 +1295,7 @@
+         }
+     }
+ 
++    DAWN_SWITCH_GPU(EndExecute(gl));
+     return {};
+ }
+ 
+--- a/src/dawn/native/opengl/SwitchStatsGL.h
++++ b/src/dawn/native/opengl/SwitchStatsGL.h
+@@ -77,6 +77,23 @@
+     kFirstPassClearTicks,
+     kFirstPassEndTicks,
+     kFirstPassReplayTicks,
++    // GPU time (ns, GL_TIME_ELAPSED_EXT; SwitchGpuTimerGL.h) of the frames read back so far: per
++    // segment kind and in all, and of the first render pass of each frame; frames read back,
++    // frames thrown away because the GPU reported a disjoint event, frames not timed because
++    // results were not coming back. kGpuTimerState is a level: 1 on, 2 no EXT_disjoint_timer_query,
++    // 3 off (COS_SWITCH_GPU_TIMER=0), 0 no Execute yet.
++    kGpuFrames,
++    kGpuTotalNs,
++    kGpuEfbNs,
++    kGpuTexConvNs,
++    kGpuPresentNs,
++    kGpuImguiNs,
++    kGpuCopyNs,
++    kGpuOtherNs,
++    kGpuFirstPassNs,
++    kGpuDisjoint,
++    kGpuDropped,
++    kGpuTimerState,
+     kCount
+ };
+ 
+--- /dev/null
++++ b/src/dawn/native/opengl/SwitchGpuTimerGL.h
+@@ -0,0 +1,214 @@
++// Switch only (switch/dawn/patches/dawn-switch-gl-gpu-timer.patch): GPU time per render pass and
++// per run of copies, with GL_TIME_ELAPSED_EXT queries (EXT_disjoint_timer_query), for the native
++// port's "[cos] perf-switch" lines. One query per segment (TIME_ELAPSED queries cannot nest); a
++// frame's queries are read a few Executes later and only once the last one is available, so the
++// CPU never waits for the GPU here. COS_SWITCH_GPU_TIMER=0 turns it off. Everything runs on the
++// GL thread (Queue::Submit under the device lock); the results go to switch_stats' running totals.
++
++#ifndef SRC_DAWN_NATIVE_OPENGL_SWITCHGPUTIMERGL_H_
++#define SRC_DAWN_NATIVE_OPENGL_SWITCHGPUTIMERGL_H_
++
++#if defined(__SWITCH__)
++
++#include <cstdint>
++#include <cstdlib>
++#include <cstring>
++#include <deque>
++#include <string>
++#include <utility>
++#include <vector>
++
++#include "src/dawn/native/opengl/OpenGLFunctions.h"
++#include "src/dawn/native/opengl/SwitchStatsGL.h"
++
++#ifndef GL_TIME_ELAPSED_EXT
++#define GL_TIME_ELAPSED_EXT 0x88BF
++#endif
++#ifndef GL_GPU_DISJOINT_EXT
++#define GL_GPU_DISJOINT_EXT 0x8FBB
++#endif
++
++namespace dawn::native::opengl::switch_stats {
++
++// What a segment of GPU work is, from Aurora's pass labels (lib/gfx/encoding.cpp "Render pass N",
++// tex_copy_conv.cpp "TexCopyConv Pass", aurora.cpp "EFB copy render pass" / "ImGui render pass").
++enum GpuSegment : uint8_t {
++    kGpuSegEfb,      // the EFB passes (the game's draws)
++    kGpuSegTexConv,  // EFB copy format conversions and scaled blits
++    kGpuSegPresent,  // the EFB-to-swapchain present pass
++    kGpuSegImgui,    // the ImGui (overlay) pass
++    kGpuSegCopy,     // buffer and texture copies between passes
++    kGpuSegOther,    // any other pass
++    kGpuSegFirstPass = 0x80,  // flag: the first render pass of its Execute
++};
++
++inline uint8_t ClassifyGpuPass(const std::string& label) {
++    const auto startsWith = [&](const char* prefix) {
++        return label.compare(0, std::strlen(prefix), prefix) == 0;
++    };
++    if (startsWith("EFB copy render pass")) {
++        return kGpuSegPresent;
++    }
++    if (startsWith("ImGui")) {
++        return kGpuSegImgui;
++    }
++    if (startsWith("TexCopyConv")) {
++        return kGpuSegTexConv;
++    }
++    if (startsWith("Render pass") || label.empty()) {
++        return kGpuSegEfb;
++    }
++    return kGpuSegOther;
++}
++
++class GpuTimer {
++  public:
++    // Start of an Execute: reads the frames whose queries finished.
++    void BeginExecute(const OpenGLFunctions& gl) {
++        if (mState == 0) {
++            const char* env = std::getenv("COS_SWITCH_GPU_TIMER");
++            if (env != nullptr && std::strcmp(env, "0") == 0) {
++                mState = 3;
++            } else {
++                mState = gl.IsGLExtensionSupported("GL_EXT_disjoint_timer_query") ? 1 : 2;
++            }
++            gTotals[kGpuTimerState].store(mState, std::memory_order_relaxed);
++        }
++        if (mState != 1) {
++            return;
++        }
++        EndSegment(gl);  // left open by an Execute that returned early
++        Poll(gl);
++    }
++
++    // Ends the open segment and starts one of this kind (nothing if a copy run is open and this
++    // is another copy).
++    void BeginSegment(const OpenGLFunctions& gl, uint8_t segment) {
++        if (mState != 1) {
++            return;
++        }
++        if (mOpen && segment == kGpuSegCopy && mOpenSegment == kGpuSegCopy) {
++            return;
++        }
++        EndSegment(gl);
++        if ((segment & ~kGpuSegFirstPass) != kGpuSegCopy) {
++            mCurrentHasPass = true;
++        }
++        if (mCurrent.empty() && mPending.size() >= kMaxPendingFrames) {
++            mSkipFrame = true;  // results not coming back: do not pile up queries
++        }
++        if (mSkipFrame) {
++            return;
++        }
++        GLuint query = 0;
++        if (!mFree.empty()) {
++            query = mFree.back();
++            mFree.pop_back();
++        } else {
++            gl.GenQueries(1, &query);
++        }
++        gl.BeginQuery(GL_TIME_ELAPSED_EXT, query);
++        mCurrent.emplace_back(query, segment);
++        mOpen = true;
++        mOpenSegment = segment;
++    }
++
++    void EndSegment(const OpenGLFunctions& gl) {
++        if (!mOpen) {
++            return;
++        }
++        gl.EndQuery(GL_TIME_ELAPSED_EXT);
++        mOpen = false;
++    }
++
++    // End of an Execute: a frame is complete once an Execute with a render pass ends; the copies
++    // of Executes without one are counted with the next frame.
++    void EndExecute(const OpenGLFunctions& gl) {
++        if (mState != 1) {
++            return;
++        }
++        EndSegment(gl);
++        if (!mCurrentHasPass) {
++            return;
++        }
++        if (mSkipFrame) {
++            Add(kGpuDropped, 1);
++        }
++        mSkipFrame = false;
++        if (!mCurrent.empty()) {
++            mPending.push_back(std::move(mCurrent));
++        }
++        mCurrent.clear();
++        mCurrentHasPass = false;
++    }
++
++  private:
++    static constexpr size_t kMaxPendingFrames = 8;
++
++    void Poll(const OpenGLFunctions& gl) {
++        while (!mPending.empty()) {
++            auto& frame = mPending.front();
++            // The last query of a frame finishes last; check it first, then the others.
++            for (auto it = frame.rbegin(); it != frame.rend(); ++it) {
++                GLuint available = 0;
++                gl.GetQueryObjectuiv(it->first, GL_QUERY_RESULT_AVAILABLE, &available);
++                if (!available) {
++                    return;
++                }
++            }
++            GLint disjoint = 0;
++            gl.GetIntegerv(GL_GPU_DISJOINT_EXT, &disjoint);
++            uint64_t sums[kGpuSegOther + 1] = {};
++            uint64_t firstPass = 0;
++            for (const auto& [query, segment] : frame) {
++                GLuint ns = 0;  // 32 bits: up to 4.29 s per segment
++                gl.GetQueryObjectuiv(query, GL_QUERY_RESULT, &ns);
++                sums[segment & ~kGpuSegFirstPass] += ns;
++                if (segment & kGpuSegFirstPass) {
++                    firstPass += ns;
++                }
++                mFree.push_back(query);
++            }
++            mPending.pop_front();
++            if (disjoint) {
++                Add(kGpuDisjoint, 1);
++                continue;
++            }
++            uint64_t total = 0;
++            for (uint64_t s : sums) {
++                total += s;
++            }
++            Add(kGpuFrames, 1);
++            Add(kGpuTotalNs, total);
++            Add(kGpuEfbNs, sums[kGpuSegEfb]);
++            Add(kGpuTexConvNs, sums[kGpuSegTexConv]);
++            Add(kGpuPresentNs, sums[kGpuSegPresent]);
++            Add(kGpuImguiNs, sums[kGpuSegImgui]);
++            Add(kGpuCopyNs, sums[kGpuSegCopy]);
++            Add(kGpuOtherNs, sums[kGpuSegOther]);
++            Add(kGpuFirstPassNs, firstPass);
++        }
++    }
++
++    int mState = 0;  // 0 not checked yet, 1 on, 2 no EXT_disjoint_timer_query, 3 off by env
++    bool mOpen = false;
++    uint8_t mOpenSegment = 0;
++    bool mCurrentHasPass = false;
++    bool mSkipFrame = false;
++    std::vector<std::pair<GLuint, uint8_t>> mCurrent;
++    std::deque<std::vector<std::pair<GLuint, uint8_t>>> mPending;
++    std::vector<GLuint> mFree;
++};
++
++// Only the GL thread uses it.
++inline GpuTimer gGpuTimer;
++
++}  // namespace dawn::native::opengl::switch_stats
++
++#define DAWN_SWITCH_GPU(call) ::dawn::native::opengl::switch_stats::gGpuTimer.call
++
++#else
++#define DAWN_SWITCH_GPU(call) ((void)0)
++#endif
++
++#endif  // SRC_DAWN_NATIVE_OPENGL_SWITCHGPUTIMERGL_H_

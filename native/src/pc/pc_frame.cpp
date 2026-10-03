@@ -43,6 +43,7 @@
 #include <dolphin/gx/GXTexture.h>
 #include <dolphin/vi.h>
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cerrno>
@@ -51,6 +52,7 @@
 #include <fcntl.h>
 #include <numeric>
 #include <unistd.h>
+#include <vector>
 
 #if defined(__APPLE__)
 #include <mach/mach_time.h>
@@ -228,6 +230,9 @@ uint64_t sSwWindowEventsNs = 0;
 uint64_t sSwWindowStartNs = 0;
 unsigned int sSwFrames = 0;
 bool sSwStarted = false;
+// GPU time of each frame read back in the window (ns; dawn-switch-gl-gpu-timer.patch), for the
+// window's max and p95.
+std::vector<uint64_t> sSwGpuFrameNs;
 #endif
 // The last frame perfFrameEnd measured, for perfPlatformFrame (called after the perf line).
 PerfFrame sLastPerfFrame{};
@@ -294,7 +299,7 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
              "%.1f, pipeline compile %.1f ms (%llu), dvd %llu reads %.1f KiB %.1f ms; dawn gl: %llu "
              "draws, %llu tex binds, %llu texparams, execute %.1f, other work %.1f, release %.1f ms "
              "(first pass %.1f: fbo %.1f, clears %.1f, replay %.1f; other passes %.1f; buffer "
-             "copies %.1f, first %.1f; texture copies %.1f)",
+             "copies %.1f, first %.1f; texture copies %.1f); gpu %.1f ms over %llu frames read back",
              msOf(now.frameSlotWaitNs - p.frameSlotWaitNs), msOf(now.stagingWaitNs - p.stagingWaitNs),
              msOf(now.queueFullWaitNs - p.queueFullWaitNs), msOf(now.workerBusyNs - p.workerBusyNs),
              msOf(now.workerEncodeNs - p.workerEncodeNs), msOf(now.workerSubmitNs - p.workerSubmitNs),
@@ -313,7 +318,8 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
              msOf(now.glFirstPassReplayNs - p.glFirstPassReplayNs),
              msOf(subOrZero(now.glPassTotalNs - p.glPassTotalNs, now.glFirstPassNs - p.glFirstPassNs)),
              msOf(now.glBufCopyNs - p.glBufCopyNs), msOf(now.glFirstBufCopyNs - p.glFirstBufCopyNs),
-             msOf(now.glTexCopyNs - p.glTexCopyNs));
+             msOf(now.glTexCopyNs - p.glTexCopyNs), msOf(now.gpuTotalNs - p.gpuTotalNs),
+             (unsigned long long)(now.gpuFrames - p.gpuFrames));
 #endif
     writef(STDERR_FILENO,
            "[cos] hitch frame %u: busy %.1f ms (wall %.1f): events %.1f, begin_frame %.1f, cpd %.1f, "
@@ -415,6 +421,14 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
         sSwWindow = CosSwitchGfxStats{};
         sSwWindowEvents = FrameEvents{};
         sSwWindowStartNs = sLoopStartNs;
+    }
+    if (cur.gpuFrames > sSwPrev.gpuFrames && sSwPrev.workerFrames != 0) {
+        // Frames read back since the last game frame (usually one): each gets their average.
+        const uint64_t frames = cur.gpuFrames - sSwPrev.gpuFrames;
+        const uint64_t each = (cur.gpuTotalNs - sSwPrev.gpuTotalNs) / frames;
+        for (uint64_t i = 0; i < frames && sSwGpuFrameNs.size() < 4096; ++i) {
+            sSwGpuFrameNs.push_back(each);
+        }
     }
     sSwPrev = cur;
     sSwWindowTexBytes += stats != nullptr ? stats->lastTextureUploadSize : 0;
@@ -522,6 +536,42 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
                per(cur.glBufCopyBeforeFirstPassNs, w.glBufCopyBeforeFirstPassNs),
                per(cur.glFirstBufCopyNs, w.glFirstBufCopyNs), (cur.glTexCopies - w.glTexCopies) / wf,
                per(cur.glTexCopyNs, w.glTexCopyNs), per(glExecuteResidualNs(cur), glExecuteResidualNs(w)));
+    }
+    {
+        // GPU time per frame (dawn-switch-gl-gpu-timer.patch), over the frames read back in the
+        // window (a few frames behind the CPU).
+        const uint64_t gpuFrames = cur.gpuFrames - w.gpuFrames;
+        if (cur.gpuTimerState != 1) {
+            writef(STDERR_FILENO, "[cos] perf-switch gpu: %s\n",
+                   cur.gpuTimerState == 2   ? "no timer (the driver has no GL_EXT_disjoint_timer_query)"
+                   : cur.gpuTimerState == 3 ? "timer off (COS_SWITCH_GPU_TIMER=0)"
+                                            : "timer not started");
+        } else if (gpuFrames == 0) {
+            writef(STDERR_FILENO, "[cos] perf-switch gpu: no frame read back (%llu dropped, %llu disjoint)\n",
+                   (unsigned long long)(cur.gpuDropped - w.gpuDropped),
+                   (unsigned long long)(cur.gpuDisjoint - w.gpuDisjoint));
+        } else {
+            const double g = (double)gpuFrames;
+            const auto gms = [&](uint64_t c, uint64_t p) { return msOf(c - p) / g; };
+            uint64_t maxNs = 0, p95Ns = 0;
+            if (!sSwGpuFrameNs.empty()) {
+                std::sort(sSwGpuFrameNs.begin(), sSwGpuFrameNs.end());
+                maxNs = sSwGpuFrameNs.back();
+                p95Ns = sSwGpuFrameNs[(sSwGpuFrameNs.size() - 1) * 95 / 100];
+            }
+            writef(STDERR_FILENO,
+                   "[cos] perf-switch gpu per frame (%llu read back): %.2f ms (p95 %.2f, max %.2f): "
+                   "efb passes %.2f, tex copy conv %.2f, present %.2f, imgui %.2f, copies %.2f, other "
+                   "%.2f; first pass %.2f; %llu dropped, %llu disjoint\n",
+                   (unsigned long long)gpuFrames, gms(cur.gpuTotalNs, w.gpuTotalNs), msOf(p95Ns),
+                   msOf(maxNs), gms(cur.gpuEfbNs, w.gpuEfbNs), gms(cur.gpuTexConvNs, w.gpuTexConvNs),
+                   gms(cur.gpuPresentNs, w.gpuPresentNs), gms(cur.gpuImguiNs, w.gpuImguiNs),
+                   gms(cur.gpuCopyNs, w.gpuCopyNs), gms(cur.gpuOtherNs, w.gpuOtherNs),
+                   gms(cur.gpuFirstPassNs, w.gpuFirstPassNs),
+                   (unsigned long long)(cur.gpuDropped - w.gpuDropped),
+                   (unsigned long long)(cur.gpuDisjoint - w.gpuDisjoint));
+        }
+        sSwGpuFrameNs.clear();
     }
     sSwWindow = cur;
     sSwWindowEvents = ev;

@@ -7,7 +7,8 @@
 // minus the pace wait, without aurora_end_frame), and on the Switch the render worker's busy time
 // per presented frame and its Queue::Submit part (cos_switch_gfx_stats), and what Dawn's GL replay
 // issued per presented frame: draws, pipeline changes and sampled-texture binds, and the time of the
-// glDraw* calls (where Mesa validates state) and of setting the state before them.
+// glDraw* calls (where Mesa validates state) and of setting the state before them; and the GPU time
+// per frame of the frames read back in the half second (GL_TIME_ELAPSED_EXT, a few frames late).
 #include "pc_internal.h"
 
 #include <imgui.h>
@@ -39,6 +40,9 @@ struct OverlayState {
     double drawCallMs = 0;
     double stateMs = 0;
     bool workerValid = false;
+    double gpuMs = 0;
+    int gpuState = 0; // CosSwitchGfxStats::gpuTimerState; 1 with frames read back: gpuMs is valid
+    bool gpuValid = false;
 #endif
 } sOverlay;
 
@@ -62,6 +66,12 @@ void overlayUpdate(uint64_t now) {
         s.stateMs = (cur.glPipelineNs - s.start.glPipelineNs + cur.glBindGroupNs - s.start.glBindGroupNs +
                      cur.glImmediatesNs - s.start.glImmediatesNs + cur.glVertexStateNs - s.start.glVertexStateNs) /
                     1e6 / presents;
+    }
+    const uint64_t gpuFrames = cur.gpuFrames - s.start.gpuFrames;
+    s.gpuState = (int)cur.gpuTimerState;
+    s.gpuValid = gpuFrames != 0;
+    if (s.gpuValid) {
+        s.gpuMs = (cur.gpuTotalNs - s.start.gpuTotalNs) / 1e6 / gpuFrames;
     }
     s.start = cur;
 #endif
@@ -106,6 +116,11 @@ void overlayFrame(uint64_t busyNs) {
             ImGui::Text("gl draw calls %.1f ms, state %.1f ms", s.drawCallMs, s.stateMs);
         } else {
             ImGui::TextUnformatted("render -");
+        }
+        if (s.gpuValid) {
+            ImGui::Text("gpu %.1f ms", s.gpuMs);
+        } else {
+            ImGui::Text("gpu %s", s.gpuState == 2 ? "no timer" : s.gpuState == 3 ? "off" : "-");
         }
 #endif
     }

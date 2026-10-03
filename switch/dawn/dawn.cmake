@@ -493,6 +493,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # On top of the pass timers: GPU time per render pass and per run of copies with
+    # GL_TIME_ELAPSED_EXT queries, read back without waiting a few frames later
+    # (SwitchGpuTimerGL.h; docs/SWITCH_PERF_STUDY.md, section 3.4, timer 3).
+    if(NOT EXISTS "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchGpuTimerGL.h")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-gpu-timer.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_GPU_TIMER_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_GPU_TIMER_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_GPU_TIMER_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_GPU_TIMER_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL GPU timer patch:\n"
+                "${DAWN_GL_GPU_TIMER_PATCH_OUTPUT}${DAWN_GL_GPU_TIMER_PATCH_ERROR}")
+        endif()
+    endif()
+
     set(DAWN_WGPU_HELPERS_SOURCE
         "${dawn_SOURCE_DIR}/src/dawn/native/utils/WGPUHelpers.cpp")
     file(READ "${DAWN_WGPU_HELPERS_SOURCE}" DAWN_WGPU_HELPERS_TEXT)

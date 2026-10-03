@@ -256,6 +256,7 @@ Switch patch 0005, the Dawn GL queue patch and the disc reader):
 [cos] perf-switch dawn gl per frame: P passes, D draws, L pipelines, B bind groups, T tex binds, X texparams (Y skipped), U uniform uploads, C buffer copies K KiB, V tex uploads; flush F ms (I items): execute E, other work O, release R
 [cos] perf-switch dawn gl replay per frame: pipelines P ms, bind groups B, immediates I, vertex state V, draw calls D (a after a pipeline change A ms = x us each, t after a texture bind T ms = y us each, o others O ms = z us each); u UBO binds, v VAO binds, i index binds
 [cos] perf-switch dawn gl execute split per frame: passes P ms (lazy clears L, fbo setup F, default state S, clears C, pass end E, viewport/scissor/blend V, replay R, residual X); first pass xN T ms (lazy clears, fbo setup, default state, clears, pass end, replay, residual); buffer copies B ms (n before the first pass Bp ms, first copy B1 ms); m texture copies M ms; execute residual Y ms
+[cos] perf-switch gpu per frame (n read back): G ms (p95 P, max M): efb passes E, tex copy conv C, present R, imgui I, copies K, other O; first pass F; d dropped, j disjoint
 ```
 
 The second line is Dawn's GL replay of the frame's submission
@@ -303,6 +304,18 @@ push-buffer chunk the GPU has not finished), the wait lands in the first GL call
 commands, i.e. in the first pass's set-up or clears or in the buffer copies before it ("before the
 first pass", "first copy"). "execute residual" is `Execute` minus its passes and copies.
 The hitch line carries the same split for the hitch frame.
+The fifth line (`switch/dawn/patches/dawn-switch-gl-gpu-timer.patch`, timer 3 of the study) is the
+GPU's own time: a `GL_TIME_ELAPSED_EXT` query (`EXT_disjoint_timer_query`) around every render pass
+and every run of copies between passes, read back a few frames later only once the results are
+available (the CPU never waits for them), summed per frame and per kind of segment from Aurora's
+pass labels: the EFB passes (the game's draws, the shadow segments and the DOF continuation), the
+EFB copy conversions and scaled blits ("TexCopyConv"), the present pass, the ImGui pass and the
+copies; "first pass" is the first render pass of each frame alone. p95 and max are over the frames
+read back in the window. The present blit to the window surface (`eglSwapBuffers` side) is not
+included. If Mesa does not expose the extension the line says so (and the overlay shows "gpu no
+timer"); `COS_SWITCH_GPU_TIMER=0` in `env.txt` turns the queries off for an A/B run. The frame-rate
+panel shows the same GPU ms per frame. If GPU ms per frame is about the frame time, the frame is
+GPU-bound and the internal resolution (`COS_FB_SCALE`) is the lever.
 `COS_SWITCH_GL_NO_ERROR=1` in `env.txt` makes Dawn ask for a `KHR_no_error` GL context
 (`switch/dawn/patches/dawn-switch-gl-no-error-context.patch`), in which Mesa skips the error
 checks of every GL call, draw and uniform validation included; `[dawn] COS_SWITCH_GL_NO_ERROR:` in

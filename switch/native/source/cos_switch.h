@@ -91,6 +91,14 @@ typedef struct {
      * bind groups, immediates, vertex state, draws, viewport/scissor/blend). */
     uint64_t glFirstPasses, glFirstPassNs, glFirstPassLazyClearNs, glFirstPassFramebufferNs;
     uint64_t glFirstPassDefaultStateNs, glFirstPassClearNs, glFirstPassEndNs, glFirstPassReplayNs;
+    /* GPU time from GL_TIME_ELAPSED_EXT queries (switch/dawn/patches/dawn-switch-gl-gpu-timer.patch),
+     * read back a few frames late: frames read, their GPU time in all and per kind of segment (the
+     * EFB passes, the EFB copy conversions/blits, the present pass, the ImGui pass, copies between
+     * passes, other passes) and of each frame's first render pass; frames dropped for a disjoint
+     * event or not timed because results were not coming back. gpuTimerState is a level: 0 no
+     * Execute yet, 1 on, 2 the driver has no GL_EXT_disjoint_timer_query, 3 COS_SWITCH_GPU_TIMER=0. */
+    uint64_t gpuFrames, gpuTotalNs, gpuEfbNs, gpuTexConvNs, gpuPresentNs, gpuImguiNs, gpuCopyNs;
+    uint64_t gpuOtherNs, gpuFirstPassNs, gpuDisjoint, gpuDropped, gpuTimerState;
 } CosSwitchGfxStats;
 
 void cos_switch_gfx_stats(CosSwitchGfxStats* out);
