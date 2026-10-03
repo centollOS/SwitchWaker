@@ -2983,6 +2983,12 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   function, likely the game thread's port command list racing the audio thread.
   Review: 3 `regress.sh -j 3` runs passed (new-game in the list); `new-game` reached 2 times
   uncapped (7 s), once capped (47 s) and 4 of 4 in parallel uncapped, each run in its own run dir.
+- **M11 new-game reached** (2026-10-03, lane audio, boot loop iteration 3, no code change): with
+  fixes NG-run-dir (22badc6) and NG-memcard-sync (e6514c7) integrated, `new-game` with
+  `--input native/check/input/new-game.txt` passes 3/3 (fixer, capped, ~46 s each). Without
+  `--input` no START reaches the title, the game stays in OPEN2_SCENE and times out: a run-command
+  mistake, not a game bug (the regress line has `--input`).
+  Review: `regress.sh -j 3` passed; `new-game` reached 3/3 (2 uncapped, 11-12 s; 1 capped, 47 s).
 
 ### Phase 6 render issues
 
