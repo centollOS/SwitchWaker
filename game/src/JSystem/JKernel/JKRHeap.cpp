@@ -89,7 +89,13 @@ bool JKRHeap::initArena(char** memory, u32* size, int maxHeaps) {
 
     mUserRamStart = ram_start;
     mUserRamEnd = ram_end;
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora's OSBootInfo names the field memorySize (same u32 at 0x28).
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    mMemorySize = codeStart->memorySize;
+#else
     mMemorySize = codeStart->memory_size;
+#endif
 
     OSSetArenaLo(ram_end);
     OSSetArenaHi(ram_end);

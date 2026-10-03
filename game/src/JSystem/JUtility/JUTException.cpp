@@ -18,6 +18,15 @@
 #include "dolphin/os/OS.h"
 #include "dolphin/vi/vi.h"
 
+#if TARGET_PC && defined(COS_SDK_AURORA)
+// Aurora's TARGET_PC OSContext is opaque storage of the same size as the PowerPC register image;
+// the register fields are read and written through the forwarder's OSContextPPC view.
+// TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+#define JUT_CONTEXT(ctx) OSContextPPCOf(ctx)
+#else
+#define JUT_CONTEXT(ctx) (ctx)
+#endif
+
 struct CallbackObject {
     /* 0x00 */ JUTExceptionUserCallback callback;
     /* 0x04 */ u16 error;
@@ -128,24 +137,24 @@ void JUTException::errorHandler(OSError error, OSContext* context, u32 param_3, 
     if (error == 0x10) {
         OSReport("\x1b[41;37m");
 #if VERSION == VERSION_DEMO
-        OSReport(" FPE: 浮動小数点例外が発生しました。アドレスは %08x\n", context->srr0);
+        OSReport(" FPE: 浮動小数点例外が発生しました。アドレスは %08x\n", JUT_CONTEXT(context)->srr0);
 #else
-        OSReport(" FPE: 浮動小数点例外が発生しました。アドレスは %08x fpscr=%08x\n", context->srr0, context->fpscr);
+        OSReport(" FPE: 浮動小数点例外が発生しました。アドレスは %08x fpscr=%08x\n", JUT_CONTEXT(context)->srr0, JUT_CONTEXT(context)->fpscr);
 #endif
         u8 stack_38[0x20];
         u32 stack_3c;
         u32 stack_40;
         u32 stack_44;
         u32 stack_48;
-        if (searchPartialModule(context->srr0, &stack_40, &stack_44, &stack_48, &stack_3c) == 1) {
+        if (searchPartialModule(JUT_CONTEXT(context)->srr0, &stack_40, &stack_44, &stack_48, &stack_3c) == 1) {
             search_name_part((u8*)stack_3c, stack_38, 0x20);
             OSReport("%s:%x section:%d\n", stack_38, stack_48, stack_44);
         }
-        u32 ctx_fpcsr = context->fpscr;
+        u32 ctx_fpcsr = JUT_CONTEXT(context)->fpscr;
         ctx_fpcsr &= ((ctx_fpcsr & 0xf8) << 22) | 0x01f80700;
 
         if (ctx_fpcsr & 0x20000000) {
-            context->fpscr &= ~0x80;
+            JUT_CONTEXT(context)->fpscr &= ~0x80;
             OSReport(" FPE: Invalid operation(無効な演算)\n");
             if (fpscr & 0x01000000) {
                 OSReport(" SNaN\n");
@@ -176,19 +185,19 @@ void JUTException::errorHandler(OSError error, OSContext* context, u32 param_3, 
             }
         }
         if (ctx_fpcsr & 0x10000000) {
-            context->fpscr &= ~0x40;
+            JUT_CONTEXT(context)->fpscr &= ~0x40;
             OSReport(" FPE: Overflow(オーバーフロー)\n");
         }
         if (ctx_fpcsr & 0x08000000) {
-            context->fpscr &= ~0x20;
+            JUT_CONTEXT(context)->fpscr &= ~0x20;
             OSReport(" FPE: Underflow(アンダーフロー)\n");
         }
         if (ctx_fpcsr & 0x04000000) {
-            context->fpscr &= ~0x10;
+            JUT_CONTEXT(context)->fpscr &= ~0x10;
             OSReport(" FPE: Zero division(０による割り算)\n");
         }
         if (ctx_fpcsr & 0x02000000) {
-            context->fpscr &= ~0x08;
+            JUT_CONTEXT(context)->fpscr &= ~0x08;
             OSReport(" FPE: Inexact result(不正確な結果)\n");
         }
         OSReport("\x1b[m");
@@ -196,7 +205,7 @@ void JUTException::errorHandler(OSError error, OSContext* context, u32 param_3, 
     }
 
     msr = PPCMfmsr();
-    fpscr = context->fpscr;
+    fpscr = JUT_CONTEXT(context)->fpscr;
     OSFillFPUContext(context);
     OSSetErrorHandler(error, NULL);
     if (error == OS_ERROR_MEMORY_PROTECTION) {
@@ -252,16 +261,16 @@ void JUTException::showFloat(OSContext* context) {
 
     sConsole->print("-------------------------------- FPR\n");
     for (int i = 0; i < 10; i++) {
-        showFloatSub(i, context->fpr[i]);
+        showFloatSub(i, JUT_CONTEXT(context)->fpr[i]);
         sConsole->print(" ");
-        showFloatSub(i + 11, context->fpr[i + 11]);
+        showFloatSub(i + 11, JUT_CONTEXT(context)->fpr[i + 11]);
         sConsole->print(" ");
-        showFloatSub(i + 22, context->fpr[i + 22]);
+        showFloatSub(i + 22, JUT_CONTEXT(context)->fpr[i + 22]);
         sConsole->print("\n");
     }
-    showFloatSub(10, context->fpr[10]);
+    showFloatSub(10, JUT_CONTEXT(context)->fpr[10]);
     sConsole->print(" ");
-    showFloatSub(21, context->fpr[21]);
+    showFloatSub(21, JUT_CONTEXT(context)->fpr[21]);
     sConsole->print("\n");
 }
 
@@ -328,7 +337,7 @@ void JUTException::showStack(OSContext* context) {
     sConsole->print("-------------------------------- TRACE\n");
     sConsole->print_f("Address:   BackChain   LR save\n");
 
-    for (i = 0, stackPointer = (u32*)context->gpr[1]; (stackPointer != NULL) && (stackPointer != (u32*)0xFFFFFFFF) && (i++ < 0x10);) {
+    for (i = 0, stackPointer = (u32*)JUT_CONTEXT(context)->gpr[1]; (stackPointer != NULL) && (stackPointer != (u32*)0xFFFFFFFF) && (i++ < 0x10);) {
         if (i > mTraceSuppress) {
             sConsole->print("Suppress trace.\n");
             return;
@@ -396,7 +405,7 @@ void JUTException::showMainInfo(u16 error, OSContext* context, u32 dsisr, u32 da
             sConsole->print_f(" FPE: Inexact result\n");
         }
     }
-    sConsole->print_f("SRR0:   %08XH   SRR1:%08XH\n", context->srr0, context->srr1);
+    sConsole->print_f("SRR0:   %08XH   SRR1:%08XH\n", JUT_CONTEXT(context)->srr0, JUT_CONTEXT(context)->srr1);
     sConsole->print_f("DSISR:  %08XH   DAR: %08XH\n", dsisr, dar);
 }
 
@@ -408,10 +417,10 @@ void JUTException::showGPR(OSContext* context) {
 
     sConsole->print("-------------------------------- GPR\n");
     for (int i = 0; i < 10; i++) {
-        sConsole->print_f("R%02d:%08XH  R%02d:%08XH  R%02d:%08XH\n", i, context->gpr[i], i + 11,
-                          context->gpr[i + 11], i + 22, context->gpr[i + 22]);
+        sConsole->print_f("R%02d:%08XH  R%02d:%08XH  R%02d:%08XH\n", i, JUT_CONTEXT(context)->gpr[i], i + 11,
+                          JUT_CONTEXT(context)->gpr[i + 11], i + 22, JUT_CONTEXT(context)->gpr[i + 22]);
     }
-    sConsole->print_f("R%02d:%08XH  R%02d:%08XH\n", 10, context->gpr[10], 21, context->gpr[21]);
+    sConsole->print_f("R%02d:%08XH  R%02d:%08XH\n", 10, JUT_CONTEXT(context)->gpr[10], 21, JUT_CONTEXT(context)->gpr[21]);
 }
 
 JSUList<JUTException::JUTExMapFile> JUTException::sMapFileList(false);
@@ -475,7 +484,7 @@ void JUTException::showGPRMap(OSContext* context) {
     sConsole->print("-------------------------------- GPRMAP\n");
 
     for (int i = 0; i < 31; i++) {
-        u32 address = context->gpr[i];
+        u32 address = JUT_CONTEXT(context)->gpr[i];
 
         if (address >= 0x80000000 && 0x83000000 - 1 >= address) {
             found_address_register = true;
@@ -501,7 +510,7 @@ void JUTException::showSRR0Map(OSContext* context) {
     }
 
     sConsole->print("-------------------------------- SRR0MAP\n");
-    u32 address = context->srr0;
+    u32 address = JUT_CONTEXT(context)->srr0;
     if (address >= 0x80000000 && 0x83000000 - 1 >= address) {
         sConsole->print_f("SRR0: %08XH", address);
         if (showMapInfo_subroutine(address, true) == false) {

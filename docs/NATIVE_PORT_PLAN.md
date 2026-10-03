@@ -381,3 +381,24 @@ Each phase lands as its own commits; this file records decisions and measured re
   `build/native-mac/_deps` and `build/aurora-3227d76`). Reviewed in round 1: SSystem rebuilt
   from clean in aurora mode with the shadow, header and scaffold checks and smoke ok; default
   configuration (`cos_modules` and checks) rebuilt, 0 errors.
+- **2.7 JSystem-core:** compiles in aurora header mode (all units of the module, 0 errors) and still
+  in decomp mode. First aurora build: 552 errors in 17 files, 463 of them `GXFIFO` from the
+  `JSystem.pch` headers (`J3DShape.h`, `J3DGD.h`). Fixes in the forwarders: `dolphin/os/OS.h` gets
+  the decomp's `OSRoundUp`/`OSRoundDown` (+`Ptr`, through `uintptr_t`), `OS_ERROR_MEMORY_PROTECTION`
+  (Aurora's `OS_ERROR_PROTECTION`), `OS_ERROR_FLOATING_POINT_EXCEPTION`, the `OSException` enum and
+  `OSContextPPC`/`OSContextPPCOf`, a view of the PowerPC register image over Aurora's opaque
+  `OSContext` storage (same 0x2C8 size, `static_assert`ed); `dolphin/gx/GX.h` gets the decomp's
+  `GX_BL_*` blend-factor spellings. Fixes in `game`, all under `TARGET_PC` with the original
+  kept: `JRNLoadCPCmd`/`JRNLoadXFCmdHdr`/`J3DCurrentMtx::load`/`J3DGXCmd1f32ptr`/`J3DFifo*` write
+  through `GXCmd1u8/u16/u32` (the decomp's inline `GXFIFO` writes in decomp mode); `JSystem.pch`
+  includes `global.h`, which the decomp reached through its GX headers; `JFWSystem.h` and
+  `JUTException.h` include `GXStruct.h` instead of the `_GXRenderModeObj` forward; and, under
+  `defined(COS_SDK_AURORA)` (TODO 2.8), Aurora's field names (`aa`, `DVDFileInfo::cb/startAddr`,
+  `DVDDirEntry::isDir/entryNum`, `OSBootInfo::memorySize`, `OSThread::stackBase/stackEnd`), the
+  typed `OSCreateThread` entry point (`JKRThread`, `JUTGba`), `JKRAramPiece::doneDMA(uintptr_t)`
+  for Aurora's `ARQCallback` (TODO phase 4: `JKRAMCommand::AsyncCallback` still takes `u32`), and
+  `JUTException.cpp` reading register fields through `JUT_CONTEXT(context)` (identity outside
+  aurora mode). No `STATIC_ASSERT` fired (they are empty outside Metrowerks). `J3DShape.cpp`'s own
+  `GXFIFO` writes belong to the J3D step. Reviewed in round 1: SSystem and JSystem-core rebuilt
+  from clean in aurora mode (89 units, 0 errors) with the shadow, header and scaffold checks and smoke
+  ok; JSystem-core rebuilt from clean in the default configuration and `cos_modules` and checks clean.

@@ -8,7 +8,13 @@
 #include "dolphin/os/OSError.h"
 #include "global.h"
 
+#if TARGET_PC
+// Aurora defines GXRenderModeObj as a typedef of an unnamed struct, so a forward declaration
+// through the tag _GXRenderModeObj would declare a second, different type. Take the real one.
+#include "dolphin/gx/GXStruct.h"
+#else
 typedef struct _GXRenderModeObj GXRenderModeObj;
+#endif
 typedef struct OSContext OSContext;
 class JUTDirectPrint;
 

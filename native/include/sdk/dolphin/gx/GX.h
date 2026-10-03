@@ -7,7 +7,9 @@
 // - the register bit-field macros (GX_BITFIELD_SET, GX_BITGET, GX_GET_REG, GX_SET_REG,
 //   GXCOLOR_AS_U32, INSERT_FIELD, GET_REG_FIELD, SET_REG_FIELD), same text as the decomp;
 // - GXColor3x8 and GXColor4x8, the decomp's names for Aurora's GXColor3u8 and GXColor4u8 (the same
-//   bytes, written through Aurora).
+//   bytes, written through Aurora);
+// - the decomp's GXBlendFactor spellings (GX_BL_SRC_ALPHA, ...) as macros for Aurora's enumerators of
+//   the same value (GX_BL_SRCALPHA, ...), step 2.7.
 //
 // Left out on purpose:
 // - GXFIFO, the write-gather pipe the decomp defines in the header at 0xCC008000 (a definition in
@@ -61,6 +63,16 @@ static inline void GXColor3x8(u8 r, u8 g, u8 b) {
 static inline void GXColor4x8(u8 r, u8 g, u8 b, u8 a) {
     GXColor4u8(r, g, b, a);
 }
+
+// The decomp's GXBlendFactor names; the values are the same (0x2..0x7).
+#define GX_BL_SRC_COLOR     GX_BL_SRCCLR
+#define GX_BL_DST_COLOR     GX_BL_DSTCLR
+#define GX_BL_INV_SRC_COLOR GX_BL_INVSRCCLR
+#define GX_BL_INV_DST_COLOR GX_BL_INVDSTCLR
+#define GX_BL_SRC_ALPHA     GX_BL_SRCALPHA
+#define GX_BL_INV_SRC_ALPHA GX_BL_INVSRCALPHA
+#define GX_BL_DST_ALPHA     GX_BL_DSTALPHA
+#define GX_BL_INV_DST_ALPHA GX_BL_INVDSTALPHA
 
 #ifdef __cplusplus
 }

@@ -21,9 +21,17 @@ public:
     void initiate(void);
     s32 sync(void);
 
+#if TARGET_PC && defined(COS_SDK_AURORA)
+    // Aurora's DVDFileInfo names the fields cb/startAddr (same layout as the decomp's block/start_address).
+    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
+    u32 getFileID() const { return mFileInfo.startAddr; }
+    DVDFileInfo* getFileInfo() { return &mFileInfo; }
+    int getStatus() { return DVDGetCommandBlockStatus(&mFileInfo.cb); }
+#else
     u32 getFileID() const { return mFileInfo.start_address; }
     DVDFileInfo* getFileInfo() { return &mFileInfo; }
     int getStatus() { return DVDGetCommandBlockStatus(&mFileInfo.block); }
+#endif
 
 public:
     /* vt[03] */ virtual bool open(const char*);               /* override */

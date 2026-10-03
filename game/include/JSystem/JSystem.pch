@@ -3,5 +3,10 @@
 
 #include "JSystem/JSupport/JSUList.h" // IWYU pragma: export
 #include "JSystem/J3DGraphBase/J3DShape.h" // IWYU pragma: export
+#if TARGET_PC
+// The decomp's GX headers bring in global.h (ARRAY_SIZE, DEMO_SELECT, DEAD_STRING, ...) through
+// dolphin/gx/GXStruct.h; Aurora's do not (COS_SDK_HEADERS=aurora), so include it here.
+#include "global.h" // IWYU pragma: export
+#endif
 
 #endif /* JSYSTEM_PCH */

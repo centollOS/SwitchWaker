@@ -14,6 +14,21 @@ public:
     /* 0x04 */ u32 mMtxIdxRegB;
 };
 
+#if TARGET_PC
+// The write-gather pipe at 0xCC008000 does not exist on the host: Aurora's GXCmd1u* feed its FIFO
+// (in decomp-header mode they are the inline GXFIFO writes of dolphin/gx/GX.h). Same bytes, same order.
+static inline void JRNLoadCPCmd(u8 cmd, u32 param) {
+    GXCmd1u8(GX_CMD_LOAD_CP_REG);
+    GXCmd1u8(cmd);
+    GXCmd1u32(param);
+}
+
+inline void JRNLoadXFCmdHdr(u16 cmd, u8 len) {
+    GXCmd1u8(GX_CMD_LOAD_XF_REG);
+    GXCmd1u16(len - 1);
+    GXCmd1u16(cmd);
+}
+#else
 static inline void JRNLoadCPCmd(u8 cmd, u32 param) {
     GXFIFO.u8 = GX_CMD_LOAD_CP_REG;
     GXFIFO.u8 = cmd;
@@ -25,6 +40,7 @@ inline void JRNLoadXFCmdHdr(u16 cmd, u8 len) {
     GXFIFO.u16 = len - 1;
     GXFIFO.u16 = cmd;
 }
+#endif
 
 class J3DCurrentMtx : public J3DCurrentMtxInfo {
 public:
@@ -45,8 +61,13 @@ public:
         JRNLoadCPCmd(0x30, getMtxIdxRegA());  // CP_MATINDEX_A
         JRNLoadCPCmd(0x40, getMtxIdxRegB());  // CP_MATINDEX_B
         JRNLoadXFCmdHdr(0x1018, 2);
+#if TARGET_PC
+        GXCmd1u32(getMtxIdxRegA());
+        GXCmd1u32(getMtxIdxRegB());
+#else
         GXFIFO.u32 = getMtxIdxRegA();
         GXFIFO.u32 = getMtxIdxRegB();
+#endif
     }
 
     void setCurrentTexMtx(u8 t0, u8 t1, u8 t2, u8 t3, u8 t4, u8 t5, u8 t6, u8 t7) {
