@@ -287,6 +287,11 @@ With `switch/dawn/patches/dawn-switch-gl-shared-vao.patch` the pipelines without
 (all of Aurora's GX pipelines, which pull vertices from storage buffers) share one VAO, the index
 buffer is rebound only when it or the VAO changes, and primitive restart is set only when it
 changes ("VAO binds" and "index binds" in the third line).
+`COS_SWITCH_GL_NO_ERROR=1` in `env.txt` makes Dawn ask for a `KHR_no_error` GL context
+(`switch/dawn/patches/dawn-switch-gl-no-error-context.patch`), in which Mesa skips the error
+checks of every GL call, draw and uniform validation included; `[dawn] COS_SWITCH_GL_NO_ERROR:` in
+the log says whether Mesa accepted it. It is an A/B option for the replay times: in such a context
+a GL error has undefined results.
 
 "begin" of the perf line is `events` (Aurora's event pump) plus `aurora_begin_frame`, which mostly
 waits for a free frame slot (the render worker still has two frames in flight: GPU-bound or

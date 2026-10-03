@@ -407,6 +407,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
                 "${DAWN_GL_SHARED_VAO_PATCH_OUTPUT}${DAWN_GL_SHARED_VAO_PATCH_ERROR}")
         endif()
     endif()
+
+    # COS_SWITCH_GL_NO_ERROR=1 at run time: a KHR_no_error GL context (Mesa skips the error
+    # checks of every GL call), an opt-in A/B option; the ordinary context if Mesa refuses it.
+    set(DAWN_OPENGL_CONTEXT_EGL_SOURCE "${dawn_SOURCE_DIR}/src/dawn/native/opengl/ContextEGL.cpp")
+    file(READ "${DAWN_OPENGL_CONTEXT_EGL_SOURCE}" DAWN_OPENGL_CONTEXT_EGL_TEXT)
+    if(NOT DAWN_OPENGL_CONTEXT_EGL_TEXT MATCHES "COS_SWITCH_GL_NO_ERROR")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-no-error-context.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_NO_ERROR_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_NO_ERROR_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_NO_ERROR_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_NO_ERROR_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL no-error context patch:\n"
+                "${DAWN_GL_NO_ERROR_PATCH_OUTPUT}${DAWN_GL_NO_ERROR_PATCH_ERROR}")
+        endif()
     endif()
 
     set(DAWN_WGPU_HELPERS_SOURCE
