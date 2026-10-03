@@ -444,15 +444,25 @@ void checkGci(u32 saveCount) {
 
 } // namespace
 
-void prepareSaveSmoke() {
+void prepareRunCard(const char* who) {
     if (gConfig.runDir == nullptr) {
-        writef(STDERR_FILENO, "[cos] save: needs COS_RUN_DIR (run it through native/tools/run.sh)\n");
+        writef(STDERR_FILENO, "[cos] %s: needs COS_RUN_DIR (run it through native/tools/run.sh)\n",
+               who);
         pc_exit(PC_EXIT_USAGE);
     }
     // A trailing slash: CARDSetBasePath keeps a path with no file name as the base directory.
     snprintf(sCardBase, sizeof(sCardBase), "%s/card/", gConfig.runDir);
     snprintf(sGciPath, sizeof(sGciPath), "%sUSA/Card A/01-GZLE-gczelda.gci", sCardBase);
     CARDSetBasePath(sCardBase, 0);
+    writef(STDERR_FILENO, "[cos] %s: memory card A is the empty folder %s\n", who, sCardBase);
+}
+
+const char* runCardGciPath() {
+    return sGciPath[0] != '\0' ? sGciPath : nullptr;
+}
+
+void prepareSaveSmoke() {
+    prepareRunCard("save");
 }
 
 [[noreturn]] void smokeSave() {

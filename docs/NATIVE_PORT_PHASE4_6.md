@@ -63,7 +63,8 @@ There are two tracks plus an audio side-track:
 | M10 | file-select | scripted START reaches the name / file-select scene |
 | M12 | outset-debug | `COS_BOOT_STAGE` puts Link in Outset; PLAY scene; player actor exists |
 | M13 | outset-control | holding the stick for 120 frames moves Link more than 300 units; 3,600 frames without a fault |
-| M11 / M14 | new-game / outset-real | the real new-game flow, through the intro cutscene (STB) |
+| M11 | new-game | from a clean memory card, `native/check/input/new-game.txt` goes title -> START -> create the save file (Yes) -> file select -> new file -> name entry (a name, END); the name scene went through each step, the save file is on the card, the player name is set, and the prologue (OPEN scene) has executed 60 frames |
+| M14 | outset-real | the same run continues through the prologue and the intro event(s)/STB demo(s): PLAY scene in the save's return place (Outset, sea room 44), start room up, player actor exists; an event ran and no event or demo is running (Link free); a 120-frame stick hold moves Link more than 300 units; 300 frames since he was first free |
 
 ### The crash-to-fix loop (phases 4 and 6 together)
 
@@ -153,6 +154,20 @@ loop:
 - The criterion is "PNG is not uniform" (pixel variance above a threshold), plus the `aurora_get_stats` counters.
 
 **6.6 M13 controllable Outset** with the input script; recorded in the plan.
+
+**NG-probe: probes for the real new-game flow (M11, M14)** (decision H4: after M12/M13)
+- Files: `native/src/pc/pc_new_game.cpp` (fed by `pc_name_scene_drawn` and `pc_frame_end`),
+  `prepareRunCard` in `pc_save.cpp` (a clean card in `<run dir>/card/` for both milestones),
+  `native/check/input/new-game.txt`; the `run.sh` targets `new-game` and `outset-real`.
+- The probe only reads game state: it logs each change of the name scene's main / memory card /
+  draw procedures, the prologue's state, the PLAY scene's arrival, event and STB demo changes, and
+  until each milestone the first unmet condition (every 600 frames), which records where a run
+  stops. Harness only: the crashes and waits it finds belong to the M11/M14 boot loops.
+- Verify: `run.sh new-game --input native/check/input/new-game.txt` exits 0 three times
+  (uncapped) and once capped; `outset-real` with the same script runs and its log says where it
+  stops. `new-game` joins the regression list only once it passes under parallel load (4 runs at
+  once); until then the M11 boot loop owns the memory card save race it hits (see the NG-probe
+  log).
 
 **6.7 Performance instrumentation**
 - Per game frame:

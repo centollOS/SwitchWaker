@@ -194,6 +194,11 @@ void pc_aurora_init(int argc, char* argv[]) {
     if (gConfig.smoke != nullptr && strcmp(gConfig.smoke, "save") == 0) {
         prepareSaveSmoke();
     }
+    // M11 new-game and M14 outset-real start from a clean memory card (pc_new_game.cpp): the
+    // name scene finds no save file and offers to create one.
+    if (newGameNeedsCleanCard()) {
+        prepareRunCard(gConfig.milestone);
+    }
 
     // Smoke tests that need Aurora and OSInit but none of the game's main code (heap) end here.
     runAuroraSmoke();

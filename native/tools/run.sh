@@ -28,7 +28,9 @@
 #                    /path/to/GZLE01.iso is used only if it exists
 #   --input PATH     COS_INPUT, the controller script (step 6.3; a relative path is taken from the
 #                    current directory, else from the repository); pad-echo defaults to
-#                    native/check/input/pad-echo.txt
+#                    native/check/input/pad-echo.txt. The real new-game flow (new-game M11,
+#                    outset-real M14) runs with native/check/input/new-game.txt; those two
+#                    milestones start from a clean memory card in <run dir>/card/
 #   --stage SPEC     COS_BOOT_STAGE, debug stage boot (step 6.4): <stage>:<room>[:<point>[:<layer>]],
 #                    e.g. sea:44:206 (Outset, where the new game starts)
 #   --shot LIST      COS_SHOT, game frames whose presented image is saved as shot-<frame>.png in

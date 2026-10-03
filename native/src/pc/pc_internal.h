@@ -91,6 +91,12 @@ int checkResFont(const char* test, const char* path, JUTResFont& font, const uin
 // the card of slot A into <COS_RUN_DIR>/card; smokeSave runs from pc_heaps_created.
 void prepareSaveSmoke();
 [[noreturn]] void smokeSave();
+// pc_save.cpp: points the card of slot A at the empty folder <COS_RUN_DIR>/card/ (before
+// CARDInit), so a run starts from a clean card and never touches the user's (`who` names the
+// caller in the log; exit PC_EXIT_USAGE without COS_RUN_DIR). runCardGciPath: the game's save file
+// in that folder, nullptr when prepareRunCard was not called.
+void prepareRunCard(const char* who);
+const char* runCardGciPath();
 // pc_dzb.cpp: COS_SMOKE=dzb-sweep.
 [[noreturn]] void smokeDzbSweep();
 // pc_audio.cpp: COS_SMOKE=audio-parse.
@@ -152,6 +158,14 @@ void titleAudioFrame(unsigned int frames);
 // pc_file_select.cpp: milestone M10 file-select (see pc_name_scene_drawn); fileSelectFrame runs
 // from pc_frame_end every game frame.
 void fileSelectFrame(unsigned int frames);
+
+// pc_new_game.cpp: milestones M11 new-game and M14 outset-real, the real new-game flow from a
+// clean card. newGameNameScene gets the name scene's procedures (from pc_name_scene_drawn);
+// newGameFrame runs from pc_frame_end every game frame. newGameNeedsCleanCard: COS_MILESTONE is
+// one of the two (pc_aurora_init then calls prepareRunCard).
+void newGameNameScene(int mainProc, int memCardCheckProc, int drawProc);
+void newGameFrame(unsigned int frames);
+bool newGameNeedsCleanCard();
 
 // pc_boot.cpp (step 6.4): parses COS_BOOT_STAGE into gBootStage (exit PC_EXIT_USAGE if it is
 // malformed).

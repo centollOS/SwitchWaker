@@ -2826,6 +2826,51 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `GX_AURORA_LOAD_ARRAYBASE` with pointer, size and byte order. Reviewed: rerun logs 0 lines, shots
   match the ones before, GameCube path unchanged (unifdef), regress passes. See render issues.
 
+- **Step NG-probe: probes for the real new-game flow; M11 new-game reached intermittently, M14
+  outset-real defined** (2026-10-03, lane audio, harness only). Milestone table rows M11 and M14
+  now have their own criteria (docs/NATIVE_PORT_PHASE4_6.md). `pc_new_game.cpp` reads game state only:
+  every change of the name scene's main / memory card / draw procedures (`[cos] name-scene:`), the
+  prologue's `dScnOpen_proc_c::mState`, the PLAY scene's arrival, event and STB demo changes, and
+  until each milestone the first unmet condition. Both milestones start from a clean card:
+  `prepareRunCard` (pc_save.cpp, shared with `COS_SMOKE=save`) points slot A at
+  `<run dir>/card/` before CARDInit. Script `native/check/input/new-game.txt`.
+  - **M11 new-game reached, but only intermittently:** title START x2 -> name scene at frame ~758 ->
+    `MemCardMakeGameFileSel` (No preselected; stick left, A) -> `MemCardMakeGameFile` ->
+    `MemCardMakeGameFileCheck` (the GCI file is on the card) -> A -> `FileSelectMain` (~1050) ->
+    A, A -> `NameInMain` (~1228) -> A x3, START, A -> `changeGameScene` -> OPEN scene executing
+    at ~1460 with player name "AAA"; MILESTONE new-game at ~1522. On an idle machine 3/3
+    uncapped (7-12 s) and 1/1 capped (46 s); under load (4 runs in parallel, or inside
+    `regress.sh -j 3`) about half the runs fail: `MemCardMakeGameFile` lasts 1 frame (912 ->
+    913) instead of about 12, `mDoMemCd_SaveSync()` returns 2, the scene goes
+    `MemCardMakeGameFileCheck` -> `MemCardErrMsgWaitKey` (message 0x18) -> `MemCardStatCheck` and
+    stays there until the timeout (exit 10). Suspected cause, a host thread race in
+    `m_Do_MemCard.cpp`: `save()` sets `mCommand = CARD_STORE` and signals `mCond`, but the next
+    frame's `SaveSync()` wins `OSTryLockMutex` before the memory card thread has taken the command,
+    sees a state other than 4 (done) or 1 (idle) and returns 2. On the GameCube the card thread
+    runs while the game thread waits for the retrace; on the host, under load, it may not run in
+    time. So `new-game` is NOT in the regression list yet: the M11 boot loop fixes the root cause
+    (host OS-thread wake / priority semantics, so that a signalled card thread takes its command
+    before the game thread's next frame) in its own commit, then adds
+    `new-game 0 --input native/check/input/new-game.txt` to `regress_targets.txt` once 4 parallel
+    runs pass repeatedly. `save` and `file-select` still pass.
+  - **M14 outset-real: where the run stops.** The prologue plays all its states (0 -> 44, frame
+    ~1460 -> ~8000, no input) and the OPEN scene requests the PLAY scene for the save's return
+    place (sea room 44 point 206). The PLAY scene is then never created: no resource is requested
+    after it (`--trace res,scene`: last `/res/Object/Opening.arc`), and a temporary trace in
+    `dScnPly_Create` (not committed) showed the phase handler stuck in `phase_00` for 20,000+
+    frames, which returns `cPhs_INIT_e` while `mDoAud_isUsedHeapForStreamBuffer()` is true: the
+    prologue's streamed BGM still holds the audio heap's stream buffer after the OPEN scene is
+    deleted (the stream is never released on the host; audio streams, step 5.6 area). The probe
+    logs `outset-real: frame N: waiting: PLAY scene not executing` every 600 frames (exit 10 at
+    the timeout). The script's lines after frame 8200 (B taps through the intro event, then six
+    stick holds) follow outset-control.txt's timing and are provisional until the PLAY scene runs;
+    the M14 boot loop retimes them.
+  Render: the prologue draws correctly (shot 2000: the tapestry with its text). Not blocking: the
+  memory card dialog shows its frame without message text (shot 900), and the name scene logs
+  `CP_REG_ARRAYBASE_ID is not supported` on every frame (already listed below).
+  Review: `new-game` reached at frame 1522 (uncapped, 11 s); `outset-real` still waits for the
+  PLAY scene at frame 27,822 (timeout); `regress.sh -j 3` all checks passed.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
