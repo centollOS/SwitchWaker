@@ -2745,6 +2745,19 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: a second sweep gives 135 of 155 with no `cBgW::Set` crash from `daBg_c::createHeap`
   left (only ADMumi's actor heap); regression passes.
 
+- **Boot-sweep fix 3: TEV stage BP commands read big-endian** (2026-10-03, lane outset, endian).
+  Signature (4 of 20): `CRASH SIGABRT` `[fatal] invalid wrap mode 3` in
+  `aurora::gfx::TextureBind::get_descriptor` (VrTest, Xboss0, M_DragB, MiniHyo). Root cause:
+  `J3DTevStage::load` sends {reg, op, AB, CD} as one BP command word through a native `u32` read;
+  on the host the register byte landed in the low bits, so every TEV stage wrote its combiner
+  bytes to other BP registers (alpha stage 1, reg 0xC3, hit texture mode 0 of map 0 with wrap 3)
+  and every BMD material's TEV setup was wrong. Under `#if TARGET_PC` both words are read as
+  `BE(u32)`, as Dusklight does (CC0). Sweep: 135 -> 138 of 155 (17 fail, 1 skipped); VrTest,
+  M_DragB, MiniHyo pass, Xboss0 now fails later in `dPa_J3DmodelEmitter_c` (d_particle.cpp:50)
+  <- `hahen_set`. Same bug left in `getTexNoReg` (J3DTevs.cpp:134), next candidate.
+  Reviewed: VrTest/M_DragB/MiniHyo reach their frames; a second sweep gives 139 of 155 (16 fail)
+  with no wrap-mode abort; regression passes.
+
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
   variable values checked, max |v| 500000). Builds on the boot loops' STB/FVB big-endian

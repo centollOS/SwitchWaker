@@ -3,6 +3,9 @@
 
 #include "JSystem/J3DGraphBase/J3DGD.h"
 #include "JSystem/J3DGraphBase/J3DStruct.h"
+#if TARGET_PC
+#include "helpers/endian.h"
+#endif
 
 extern u8 j3dTevSwapTableTable[1024];
 
@@ -110,8 +113,18 @@ struct J3DTevStage {
     }
 
     void load(u32) const {
+#if TARGET_PC
+        // Each register byte and its three value bytes form one big-endian BP command word: a
+        // native u32 read put the register byte in the value's low bits on the host, so every
+        // TEV stage wrote its combiner bytes to other BP registers (the texture modes among
+        // them). As Dusklight (CC0, ref/dusklight/libs/JSystem/include/JSystem/J3DGraphBase/
+        // J3DTevs.h, J3DTevStage::load).
+        J3DGDWriteBPCmd(*(BE(u32)*)&mTevColorReg);
+        J3DGDWriteBPCmd(*(BE(u32)*)&mTevAlphaReg);
+#else
         J3DGDWriteBPCmd(*(u32*)&mTevColorReg);
         J3DGDWriteBPCmd(*(u32*)&mTevAlphaReg);
+#endif
     }
 
     void getABias() const {}
