@@ -1254,7 +1254,16 @@ void JASystem::TTrack::writeRegParam(u8 param) {
     }
 
     // Bug: reg_flags is uninitialized in several of these cases.
+#if TARGET_PC
+    // In the cases that leave it unset (0x20, 0x21, 0x2E, 0x2F) the console stores what its
+    // register (r31, callee-saved) holds from the caller: TSeqParser::parseSeq keeps the track,
+    // `this`, there (main.dol 0x80280264/0x80283674). Storing an indeterminate value is undefined
+    // behaviour that clang compiles to a trap (SIGTRAP after getProgramNumber at the first
+    // sequence tick), so the low half of `this` is stored, as the console does.
+    u16 reg_flags = u16(reinterpret_cast<uintptr_t>(this));
+#else
     u16 reg_flags;
+#endif
     switch (bVar0) {
         case 0:
         case 1:
