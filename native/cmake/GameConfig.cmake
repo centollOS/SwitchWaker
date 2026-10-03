@@ -63,6 +63,10 @@ set(COS_GAME_COMPILE_OPTIONS
         "SHELL:-include ${COS_NATIVE_ROOT}/include/sdk/cos_sdk_extras.h"
         # Match the GameCube (and x86): plain char is signed. Same as Dusklight on ARM.
         -fsigned-char
+        # Decision H8 (docs/NATIVE_PORT_PHASE4_6.md): the decompiled code type-puns through pointer
+        # casts everywhere (MWCC never applied type-based alias analysis to it), so clang must not
+        # either. Costs a little optimisation; Dusklight does not use the flag.
+        -fno-strict-aliasing
         # MWCC was invoked with -Cpp_exceptions off and -RTTI off.
         $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>
         $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>
@@ -93,6 +97,21 @@ set(COS_GAME_COMPILE_OPTIONS
         -Wno-writable-strings
         # 64-bit diagnostics (int-to-pointer-cast, ...) stay visible on purpose: phase 4 input.
         -ferror-limit=50)
+
+# Phase 4 inventory (docs/NATIVE_PORT_PHASE4_6.md, step 4.0a): the 64-bit and missing-return
+# diagnostics, appended after the shared flags so no -Wno-... above can hide them. Turning the
+# option on or off changes every game unit's flags, so the next build recompiles all of them and
+# its log is a complete warning census: native/tools/phase4_inventory.py --log <build log>.
+option(COS_PHASE4_WARNINGS "Add the phase 4 64-bit and return-type warnings to every game unit" OFF)
+if (COS_PHASE4_WARNINGS)
+    list(APPEND COS_GAME_COMPILE_OPTIONS
+            -Wint-to-pointer-cast
+            -Wpointer-to-int-cast
+            -Wint-to-void-pointer-cast
+            -Wreturn-type
+            -Wfortify-source)
+    message(STATUS "cos_native: phase 4 warnings on (COS_PHASE4_WARNINGS)")
+endif ()
 
 add_library(cos_game_headers INTERFACE)
 target_compile_definitions(cos_game_headers INTERFACE ${COS_GAME_COMPILE_DEFS})

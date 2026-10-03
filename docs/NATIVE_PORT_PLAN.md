@@ -904,6 +904,35 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
 - **6.0 review (round 1):** approved; verification and regression rerun independently (static-init
   0 x3, no disc 14, crash-test 13, panic-test 12, timeout-test 10, stall-test 11, lldb_crash.sh 3
   with developer mode off, census diff empty, `unifdef -UTARGET_PC` of the game files equals HEAD).
+- **4.0a Phase 4 inventory:** `native/tools/phase4_inventory.py` scans `{game/include,game/src,
+  include,src,sdk}` for `TODO(native phase 4):` markers (a mention without the colon, as in
+  `OSContext.cpp`, is not one; `NOTE(native phase 4, harmless):` counts as justified) and sorts
+  them into groups tied to the step that clears each: A pointer kept in a u32 field (4.1) 175,
+  B heap headers and ARAM callback (4.2) 2, C logo-scene resources (4.8) 5, D stage chunk table
+  (4.9a) 7, E dzb (4.10) 1, F J3D (4.11/4.12) 30, G JStudio (4.17) 9, H J2DPrint harmless (4.1)
+  4, I debug/JOR/stack walks (4.19) 8, J THP (4.18) 7, K audio and `OSCachedToPhysical` (5.1/5.2)
+  13, L JSupport and a ResTIMG site (4.4/4.5) 2; 263 open, 0 unclassified. Finding 1's 255 is
+  now 263: JAudio (3.7) brought 12 markers, `d_a_movie_player` has 6 asm-only sites and
+  `d_a_player_main` one ResTIMG site the finding did not count, and 6.0 removed one stack walk.
+  CMake option `COS_PHASE4_WARNINGS` (default OFF) adds `-Wint-to-pointer-cast
+  -Wpointer-to-int-cast -Wint-to-void-pointer-cast -Wreturn-type -Wfortify-source` to every game
+  unit; toggling it recompiles them all, and `--log` counts each warning once per
+  file:line:column. Baseline `native/check/phase4_baseline.txt` (full `ninja -k 0 centollos` with the
+  option on, 0 errors): int-to-pointer-cast 214, pointer-to-int-cast 0 (an error in C++, so none
+  survive), int-to-void-pointer-cast 102, return-type 8 (`d_a_bigelf` 2, `d_a_npc_ko1`,
+  `d_menu_save`, `d_operate_wind`, `f_op_msg_mng` 3), fortify-source 2 (the `f_op_msg_mng`
+  strcpy overflows); the plan's 14 and 6 came from older logs. `--check <baseline>` exits 1 on an
+  unclassified marker or any count above the baseline. Decision H8: `-fno-strict-aliasing` is
+  in `COS_GAME_COMPILE_OPTIONS` (every game unit and `cos_pc`; not cos_sdk or Aurora).
+  Verified: `ninja -k 0 centollos cos_sdk_smoke` with the option on, then `ninja -k 0 all centollos
+  cos_sdk_smoke` with it off, 0 errors both times;
+  `run.sh static-init` exit 0 (3 runs). Regression: smoke ok, shadow check ok, link census
+  equal to `expected_unresolved_phase2.txt`, `symbol_census.py --all --dups` 0.
+- **4.0a review (round 1):** approved; rerun independently: warnings-on build 0 errors and
+  `--log --check` equal to the baseline (214/0/102/8/2, 263 markers, 0 unclassified); off build
+  0 errors, `-fno-strict-aliasing` in all 1170 game compile commands and none of cos_sdk/Aurora;
+  smoke ok, shadow check ok, census diff empty, 0 duplicate strong, static-init 0 x3 (502/502).
+  Grouping J/K/L beyond finding 1's 255 accepted.
 
 ### Phase 6 render issues
 
