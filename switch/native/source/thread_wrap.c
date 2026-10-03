@@ -9,11 +9,16 @@
 //   game thread waits. Here each new thread prefers core 1 or 2 in turn (the game thread core 0,
 //   see cos_switch_main.cpp), may run on any core the process has among 0-2, and gets 0x2C;
 // - a registry of the threads' kernel handles, for their CPU time (svcGetInfo ThreadTickCount)
-//   per role in the perf-switch and hitch lines (cos_switch_thread_role, cos_switch_thread_cpu_ns).
+//   per role in the perf-switch and hitch lines (cos_switch_thread_role, cos_switch_thread_cpu_ns);
+// - COS_SWITCH_CORES=pinned (env.txt; off by default): when the render worker, JAudio's audio
+//   thread and the game's DVD thread name their role, the render worker is pinned to core 2 alone
+//   and the audio and DVD threads to core 1, so the worker never waits behind them (Horizon does not
+//   time-slice threads of equal priority). The other threads keep the default above.
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <switch.h>
 
 #include "cos_switch_internal.h"
@@ -26,6 +31,8 @@ int __real_pthread_create(pthread_t* thread, const pthread_attr_t* attr, void* (
 static atomic_int g_next_core = 1;
 static atomic_int g_forced_core = -1; // cos_switch_next_thread_core: the next thread only
 static atomic_uint g_created;
+
+static u32 application_core_mask(void);
 
 // ---- thread registry ------------------------------------------------------------------------------
 #define MAX_THREADS 96
@@ -61,10 +68,36 @@ static struct ThreadEntry* find_or_add_current(void) {
     return entry;
 }
 
+// COS_SWITCH_CORES=pinned: the core of a thread of this role, or -1 to leave it as it is.
+static int pinned_core(int role) {
+    static int pinned = -1;
+    if (pinned < 0) {
+        const char* v = getenv("COS_SWITCH_CORES");
+        pinned = v != NULL && strcmp(v, "pinned") == 0;
+    }
+    if (!pinned)
+        return -1;
+    switch (role) {
+    case COS_SWITCH_THREAD_RENDER: return 2;
+    case COS_SWITCH_THREAD_AUDIO:
+    case COS_SWITCH_THREAD_DVD: return 1;
+    default: return -1;
+    }
+}
+
 void cos_switch_thread_role(int role) {
     struct ThreadEntry* entry = find_or_add_current();
     if (entry != NULL)
         atomic_store(&entry->role, role);
+    const int core = pinned_core(role);
+    if (core >= 0 && (application_core_mask() & (1u << core)) != 0) {
+        const Result rc = svcSetThreadCoreMask(CUR_THREAD_HANDLE, core, 1u << core);
+        fprintf(stderr, "[switch] COS_SWITCH_CORES=pinned: %s thread on core %d only%s\n",
+                role == COS_SWITCH_THREAD_RENDER  ? "render worker"
+                : role == COS_SWITCH_THREAD_AUDIO ? "audio"
+                                                  : "dvd",
+                core, R_SUCCEEDED(rc) ? "" : " (refused)");
+    }
 }
 
 void cos_switch_thread_cpu_ns(uint64_t out[COS_SWITCH_THREAD_ROLES]) {

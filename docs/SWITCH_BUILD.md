@@ -355,7 +355,12 @@ GL queue has no EGL sync extension on the console's Mesa: it used to call `glFin
 submission (the CPU waited for the GPU each frame); it now puts a GLES sync object in
 (`switch/dawn/patches/dawn-switch-gl-fence-queue.patch`, the "gl ... fences" count) and polls it.
 `COS_SWITCH_GL_FINISH=1` in `env.txt` brings the `glFinish` back for comparison ("glFinish" count
-and time). Every game frame whose busy time is over `COS_HITCH_MS` (50 ms by default; 0 turns it
+and time). `COS_SWITCH_CORES=pinned` in `env.txt` (off by default) pins Aurora's render worker to
+core 2 alone and JAudio's audio thread and the game's DVD thread to core 1 when they start
+(`switch/native/source/thread_wrap.c`; `[switch] COS_SWITCH_CORES=pinned:` lines in the log): by
+default every helper thread prefers core 1 or 2 in turn and Horizon does not time-slice threads of
+equal priority, so the worker can wait behind the audio mixer (compare the worker's CPU time in
+the `perf-switch cpu` line with and without it). Every game frame whose busy time is over `COS_HITCH_MS` (50 ms by default; 0 turns it
 off) gets one `[cos] hitch frame N: busy ... ms (wall ...): events, begin_frame, cpd, aud, logic,
 painter, end_frame, other; pipelines +n (q queued), tex upload KiB, res loads +n last <path>,
 scene NAME (new); switch: slot wait, staging wait, queue-full wait, worker busy (encode, submit,
