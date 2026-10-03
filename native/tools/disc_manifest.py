@@ -24,6 +24,12 @@ Usage
                                                   (<run dir>/font.txt) with the manifest's BFN
                                                   headers: block counts, INF1 and every WID1/MAP1/
                                                   GLY1 field (exit 0 equal, 1 different)
+  disc_manifest.py --check-arc ARC [--out FILE]  compare what JKRArchive read in COS_SMOKE=
+                                                  arc-sweep (<run dir>/arc_sweep.txt) with the
+                                                  manifest's RARC archives: every archive (nested
+                                                  ones included), its counts, every node and every
+                                                  file's path, ID, flags, size, offset and expanded
+                                                  size (exit 0 equal, 1 different)
   disc_manifest.py --summary [--out FILE]         print the counts of an existing manifest
 
 Manifest (JSON)
@@ -844,6 +850,128 @@ def check_font(manifest, font_path):
     return EXIT_OK
 
 
+# ---- archive cross-check (step 4.4) -------------------------------------------------------------
+
+def check_arc(manifest, arc_path):
+    """arc_sweep.txt lines (fields separated by single spaces; names have none):
+    'ARC <name> nodes=N entries=N files=N dirs=N', 'NODE <name> <index> type=<hex> name=<s>
+    entries=N first=N' and 'FILE <name> <path> id=N flags=N size=N offset=N [expanded=N]', where
+    <name> is the disc path of the archive, or '<disc path>:<path inside>' for a nested one. Names
+    and paths are percent-encoded (a space, '%' and bytes outside printable ASCII as %XX) and
+    decoded as cstr() decodes the archive's strings."""
+    from urllib.parse import unquote_to_bytes
+
+    def dec(text):
+        raw = unquote_to_bytes(text)
+        try:
+            return raw.decode("shift_jis")
+        except UnicodeDecodeError:
+            return raw.decode("latin-1")
+
+    want = {}
+
+    def add(name, rec):
+        want[name] = rec
+        for f in rec.get("files", []):
+            if f.get("format") == "rarc":
+                add(name + ":" + f["path"], f)
+
+    for r in manifest["files"]:
+        if r.get("format") == "rarc":
+            add(r["path"], r)
+    got = {}
+    problems = []
+    with open(arc_path, encoding="ascii", errors="replace") as f:
+        for ln, line in enumerate(f, 1):
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split(" ")
+            kind = parts[0]
+            if kind not in ("ARC", "NODE", "FILE") or len(parts) < 3:
+                problems.append("line %d: malformed: %r" % (ln, line))
+                continue
+            name = dec(parts[1])
+            if kind == "ARC":
+                if name in got:
+                    problems.append("line %d: %s reported twice" % (ln, name))
+                got[name] = {"fields": dict(p.partition("=")[::2] for p in parts[2:]),
+                             "nodes": {}, "files": {}}
+                continue
+            arc = got.get(name)
+            if arc is None:
+                problems.append("line %d: %s before its ARC line" % (ln, name))
+                continue
+            key = dec(parts[2])
+            fields = dict(p.partition("=")[::2] for p in parts[3:])
+            if "name" in fields:
+                fields["name"] = dec(fields["name"])
+            if kind == "NODE":
+                arc["nodes"][int(key)] = fields
+            else:
+                if key in arc["files"]:
+                    problems.append("line %d: %s %s reported twice" % (ln, name, key))
+                arc["files"][key] = fields
+
+    files_checked = 0
+    for name in sorted(set(want) - set(got)):
+        problems.append("%s: archive of the manifest not swept" % name)
+    for name in sorted(set(got) - set(want)):
+        problems.append("%s: not a RARC archive of the manifest" % name)
+    for name in sorted(set(want) & set(got)):
+        rec, arc = want[name], got[name]
+        expect = {"nodes": rec["node_count"], "entries": rec["entries"],
+                  "files": rec["file_count"], "dirs": rec["dir_count"]}
+        for k, v in expect.items():
+            if arc["fields"].get(k) != str(v):
+                problems.append("%s: %s=%s, the manifest has %s" % (name, k, arc["fields"].get(k),
+                                                                    v))
+        for i, node in enumerate(rec["nodes"]):
+            g = arc["nodes"].get(i)
+            if g is None:
+                problems.append("%s: node %d not reported" % (name, i))
+                continue
+            w = {"type": node["type"].encode("latin-1").hex(), "name": node["name"],
+                 "entries": str(node["entries"]), "first": str(node["first"])}
+            for k, v in w.items():
+                if g.get(k) != v:
+                    problems.append("%s: node %d %s=%s, the manifest has %s" % (name, i, k,
+                                                                              g.get(k), v))
+        if len(arc["nodes"]) != len(rec["nodes"]):
+            problems.append("%s: %d nodes reported, the manifest has %d"
+                            % (name, len(arc["nodes"]), len(rec["nodes"])))
+        for fr in rec["files"]:
+            g = arc["files"].get(fr["path"])
+            if g is None:
+                problems.append("%s: %s not reported" % (name, fr["path"]))
+                continue
+            files_checked += 1
+            w = {"id": fr["id"], "flags": fr["flags"], "size": fr["size"], "offset": fr["offset"]}
+            if fr["flags"] & 0x04:
+                w["expanded"] = fr.get("yaz0", {}).get("size")
+            for k, v in w.items():
+                if g.get(k) != str(v):
+                    problems.append("%s: %s %s=%s, the manifest has %s" % (name, fr["path"], k,
+                                                                           g.get(k), v))
+            for k in set(g) - set(w):
+                problems.append("%s: %s has an unexpected field %s" % (name, fr["path"], k))
+        if len(arc["files"]) != len(rec["files"]):
+            problems.append("%s: %d files reported, the manifest has %d"
+                            % (name, len(arc["files"]), len(rec["files"])))
+    print("disc_manifest: arc_sweep.txt: %d archive(s), %d file(s) compared (the manifest has %d "
+          "archives)" % (len(got), files_checked, len(want)))
+    if not got:
+        problems.append("no ARC line")
+    for p in problems[:40]:
+        print("disc_manifest: DIFF " + p)
+    if len(problems) > 40:
+        print("disc_manifest: ... %d differences in all" % len(problems))
+    if problems:
+        return EXIT_DIFFERENT
+    print("disc_manifest: arc_sweep.txt equals the manifest")
+    return EXIT_OK
+
+
 def load_manifest(path):
     try:
         with open(path, encoding="utf-8") as f:
@@ -878,6 +1006,8 @@ def main():
     ap.add_argument("--check-ls", metavar="LS", help="compare a disc-ls listing with the manifest")
     ap.add_argument("--check-font", metavar="FONT",
                     help="compare a COS_SMOKE=font report with the manifest")
+    ap.add_argument("--check-arc", metavar="ARC",
+                    help="compare a COS_SMOKE=arc-sweep report with the manifest")
     ap.add_argument("--summary", action="store_true", help="print an existing manifest's counts")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
@@ -886,6 +1016,8 @@ def main():
         return check_ls(load_manifest(args.out), args.check_ls)
     if args.check_font:
         return check_font(load_manifest(args.out), args.check_font)
+    if args.check_arc:
+        return check_arc(load_manifest(args.out), args.check_arc)
     if args.summary:
         print_summary(load_manifest(args.out))
         return EXIT_OK

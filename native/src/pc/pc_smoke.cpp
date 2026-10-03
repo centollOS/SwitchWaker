@@ -16,7 +16,9 @@
 // After the Aurora bring-up (runAuroraSmoke, from pc_aurora_init), before the game's main code:
 // - heap (step 4.2, pc_heap.cpp): the JKR heaps on the host.
 // After mDoMch_Create (runHeapsSmoke, from pc_heaps_created, once milestone M2's checks held):
-// - font (step 4.3, pc_font.cpp): the system font, a disc font and a console line drawn.
+// - font (step 4.3, pc_font.cpp): the system font, a disc font and a console line drawn;
+// - arc-sweep (step 4.4, pc_arc.cpp): every .arc of the disc mounted in the four JKRArchive modes
+//   and compared with an independent reading.
 // The format sweeps and the other smoke tests of phases 4-6 add their names to kSmokes; one that
 // runs after some of the boot is started by the boot code at that point, not by runEarlySmoke.
 #include "pc_internal.h"
@@ -213,6 +215,9 @@ void requireWatchdog(const char* test, double seconds, const char* var) {
     if (strcmp(name, "font") == 0) {
         smokeFont();
     }
+    if (strcmp(name, "arc-sweep") == 0) {
+        smokeArcSweep();
+    }
     writef(STDERR_FILENO, "[cos] smoke %s has no runner\n", name);
     pc_exit(PC_EXIT_USAGE);
 }
@@ -238,6 +243,7 @@ const Smoke kSmokes[] = {
     {"disc-ls", kAfterDisc},
     {"heap", kAfterAurora},
     {"font", kAfterHeaps},
+    {"arc-sweep", kAfterHeaps},
 };
 
 const Smoke* findSmoke(const char* name) {

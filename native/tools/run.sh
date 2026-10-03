@@ -31,9 +31,9 @@
 # and stall.txt (every thread's backtrace). On first use the SHA-1 of the disc image and of its
 # main.dol are checked against the supported revision (native/tools/disc_manifest.py --verify,
 # which holds the expected hashes); the result is cached in build/native-mac/runs/disc_check.txt.
-# disc-ls (step 4.0d) and font (step 4.3) are then compared with the disc manifest
-# (build/native-mac/disc_manifest.json, written by disc_manifest.py if missing or of an older
-# MANIFEST_VERSION): a difference turns exit 0 into 1.
+# disc-ls (step 4.0d), font (step 4.3) and arc-sweep (step 4.4) are then compared with the disc
+# manifest (build/native-mac/disc_manifest.json, written by disc_manifest.py if missing or of an
+# older MANIFEST_VERSION): a difference turns exit 0 into 1.
 # Nothing the run writes is meant for git (build/ is ignored).
 set -u
 
@@ -164,11 +164,12 @@ elif [ "$rc" -gt 128 ]; then
     rc=13
 fi
 
-# --- disc-ls (step 4.0d) and font (step 4.3): what the game read against the manifest ----------
+# --- disc-ls (4.0d), font (4.3), arc-sweep (4.4): what the game read against the manifest -------
 check_arg=""
 case "$target" in
     disc-ls) check_arg="--check-ls"; check_file="disc_ls.txt" ;;
     font) check_arg="--check-font"; check_file="font.txt" ;;
+    arc-sweep) check_arg="--check-arc"; check_file="arc_sweep.txt" ;;
 esac
 if [ -n "$check_arg" ] && [ "$rc" = 0 ]; then
     manifest="$build/disc_manifest.json"
@@ -182,7 +183,7 @@ if [ -n "$check_arg" ] && [ "$rc" = 0 ]; then
         python3 "$disc_manifest" --out "$manifest" "$check_arg" "$run_dir/$check_file" \
             >> "$run_dir/run.log" 2>&1 || rc=1
     fi
-    grep '^disc_manifest: \(FST\|disc-ls\|font.txt\|DIFF\)' "$run_dir/run.log" | head -5
+    grep '^disc_manifest: \(FST\|disc-ls\|font.txt\|arc_sweep.txt\|DIFF\)' "$run_dir/run.log" | head -5
 fi
 echo "$rc" > "$run_dir/exit_code.txt"
 
