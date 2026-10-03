@@ -52,14 +52,37 @@ JASystem::TTrack* JAInter::SystemInterface::trackToSeqp(JAISound* seq, u8 trackN
     return result;
 }
 
+#if TARGET_PC
+// The port argument index is the 32-bit word of TPortArgs on the GameCube (1 mFlags, 2 volume,
+// 3 pitch, 4 pan, 5 fxmix, 6 dolby, 8 _20, 9 tempo: setPortParameter reads word port - 2 after
+// mTrackVolume). PlayerParameter's asArray has 8-byte elements on the host (its PortArg union
+// holds a pointer) and TPortArgs starts with an 8-byte mTrack, so asArray[i] missed the field:
+// volume landed in pitch, pan in _1C, fxmix in tempo, and the reader kept the values outerInit
+// set. Index the words from mFlags instead, as the GameCube layout does.
+static_assert(offsetof(JASystem::Kernel::TPortArgs, mTrackTempo) - offsetof(JASystem::Kernel::TPortArgs, mFlags) == 8 * 4,
+              "TPortArgs words after mTrack must be contiguous");
+static u32* portArgWord(JAInter::SeqUpdateData* updateData, u32 playerParameterIndex, u8 portArgIndex) {
+    JUT_ASSERT(__LINE__, portArgIndex >= 1 && portArgIndex <= 9);
+    return &updateData->systemTrackParameter[playerParameterIndex].mPortArgs.asStruct.mFlags + (portArgIndex - 1);
+}
+#endif
+
 /* 8029E478-8029E494       .text setSeqPortargsF32__Q27JAInter15SystemInterfaceFPQ27JAInter13SeqUpdateDataUlUcf */
 void JAInter::SystemInterface::setSeqPortargsF32(JAInter::SeqUpdateData* updateData, u32 playerParameterIndex, u8 portArgIndex, f32 value) {
+#if TARGET_PC
+    *(f32*)portArgWord(updateData, playerParameterIndex, portArgIndex) = value;
+#else
     updateData->systemTrackParameter[playerParameterIndex].mPortArgs.asArray[portArgIndex].f32 = value;
+#endif
 }
 
 /* 8029E494-8029E4B0       .text setSeqPortargsU32__Q27JAInter15SystemInterfaceFPQ27JAInter13SeqUpdateDataUlUcUl */
 void JAInter::SystemInterface::setSeqPortargsU32(JAInter::SeqUpdateData* updateData, u32 playerParameterIndex, u8 portArgIndex, u32 value) {
+#if TARGET_PC
+    *portArgWord(updateData, playerParameterIndex, portArgIndex) = value;
+#else
     updateData->systemTrackParameter[playerParameterIndex].mPortArgs.asArray[portArgIndex].u32 = value;
+#endif
 }
 
 /* 8029E4B0-8029E518       .text rootInit__Q27JAInter15SystemInterfaceFPQ27JAInter13SeqUpdateData */
