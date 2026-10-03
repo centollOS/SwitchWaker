@@ -1807,6 +1807,33 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `cos_pc_tests` ok, `--gc-verify` 1021, census equal, `--dups` 0, inventory ok (60 open), static-init..logo-res and
   sweeps 0, `--uncapped` 0; `opening` 13 in `JAIZelBasic::talkOut` as before.
 
+- **6.3 Input injection** (2026-10-03): `COS_SMOKE=pad-echo` 0 x5 (4 capped, 1 `--uncapped`);
+  M10 `file-select` not reachable yet: the boot still stops at M7 (`file-select` 13 in
+  `JAIZelBasic::talkOut` from `dComIfG_changeOpeningScene`, the audio-off fault of 4.8), so no
+  code logs M10 yet; the step that gets past M7-M9 adds that hook and runs M10 with a START script.
+  - **Script:** `COS_INPUT=<file>`, one line per change of state `<frame> <buttons> <stickX>
+    <stickY>` (frame = `pc_frame_count()` at `mDoCPd_Read`, strictly increasing, each line holds
+    until the next; buttons `-`, a number or `A+B+...` names; raw stick -128..127). A malformed
+    script exits 2 with file:line. `run.sh --input PATH`; pad-echo defaults to
+    `native/check/input/pad-echo.txt`.
+  - **Injection:** `mDoCPd_Read` (`TARGET_PC`) calls `pc_pad_feed` before `JUTGamePad::read`; it
+    hands the frame's state to Aurora's virtual pad (`PADSetVirtualStatus(0, ...)`, port 0 from
+    frame 0 on, neutral before the first line), so the game reads it through `PADRead`, `PADClamp`,
+    `JUTGamePad` and `mDoCPd_Convert` like a controller. L/R also set the analog trigger to 180, as
+    Aurora does for a digital trigger. Without `COS_INPUT` nothing changes.
+  - **pad-echo** (`pc_input.cpp`, after each `mDoCPd_Read`): checks `g_mDoCPd_cpadInfo[0]` every
+    frame against the script (12 mapped buttons held exactly, triggered only on the press frame;
+    main stick 0 in the dead zone, sign per axis, value 1 past the clamp; C stick at rest; analog
+    L/R 1 with L/R; no pad error), logs each change as `[cos] pad-echo: frame= line= script=
+    clamped= hold= trig= stick= value= angle= L= R=` and exits 8 frames after the last line (frame
+    80, before the logo scene's hand-over at 243). The default script covers single, combined and
+    numeric buttons, a held button, the four full directions, a diagonal, the dead zone, partial
+    deflection and button plus stick. Negative checks: without `PADSetVirtualStatus` the test
+    reports 172 errors and exits 1; frames out of order or an unknown button name exit 2;
+    pad-echo without `COS_INPUT` exits 2.
+  - Review (round 1): pad-echo 0 capped and `--uncapped`, `regress.sh -j 3` all passed,
+    `unifdef -UTARGET_PC m_Do_controller_pad.cpp` equals HEAD. Step 6.3 stays open for M10.
+
 ### Phase 6 render issues
 
 None yet.

@@ -25,3 +25,6 @@ arc-sweep 0
 msg-sweep 0
 jpa-sweep 0
 stage-sweep 0
+
+# input injection (step 6.3): the default script native/check/input/pad-echo.txt
+pad-echo 0

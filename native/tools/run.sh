@@ -18,6 +18,9 @@
 #   --uncapped       COS_UNCAPPED=1
 #   --audio on|off   COS_AUDIO (default: off, until phase 5)
 #   --disc PATH      COS_DISC, default /path/to/GZLE01.iso
+#   --input PATH     COS_INPUT, the controller script (step 6.3; a relative path is taken from the
+#                    current directory, else from the repository); pad-echo defaults to
+#                    native/check/input/pad-echo.txt
 #   --build          run `ninja -C build/native-mac centollos` first
 #   --exe PATH       the executable (default build/native-mac/centollos)
 #   --quiet          do not print the tail of the log on failure
@@ -64,6 +67,7 @@ trace="${COS_TRACE:-}"
 uncapped="${COS_UNCAPPED:-}"
 audio="${COS_AUDIO:-off}"
 disc="${COS_DISC:-/path/to/GZLE01.iso}"
+input="${COS_INPUT:-}"
 do_build=0
 exe="$build/centollos"
 quiet=0
@@ -77,6 +81,7 @@ while [ $# -gt 0 ]; do
         --uncapped) uncapped=1; shift ;;
         --audio) audio="$2"; shift 2 ;;
         --disc) disc="$2"; shift 2 ;;
+        --input) input="$2"; shift 2 ;;
         --build) do_build=1; shift ;;
         --exe) exe="$2"; shift 2 ;;
         --quiet) quiet=1; shift ;;
@@ -121,6 +126,14 @@ else
     export COS_SMOKE="$target"
 fi
 export COS_DISC="$disc"
+[ -z "$input" ] && [ "$target" = pad-echo ] && input="$repo/native/check/input/pad-echo.txt"
+if [ -n "$input" ]; then
+    case "$input" in
+        /*) ;;
+        *) if [ -f "$input" ]; then input="$(pwd)/$input"; else input="$repo/$input"; fi ;;
+    esac
+    export COS_INPUT="$input"
+fi
 export COS_TIMEOUT_S="$timeout_s"
 export COS_STALL_S="$stall_s"
 export COS_AUDIO="$audio"

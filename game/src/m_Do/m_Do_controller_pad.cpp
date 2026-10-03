@@ -12,6 +12,9 @@
 #include "m_Do/m_Do_Reset.h"
 #include "m_Do/m_Do_gba_com.h"
 #include "m_Do/m_Do_main.h"
+#if TARGET_PC
+#include "pc/pc_harness.h"
+#endif
 
 JUTGamePad* g_mDoCPd_gamePad[4];
 interface_of_controller_pad g_mDoCPd_cpadInfo[4];
@@ -64,6 +67,10 @@ static s32 mDoCPd_Convert(interface_of_controller_pad* pInterface, JUTGamePad* p
 
 /* 800078C0-80007A70       .text mDoCPd_Read__Fv */
 int mDoCPd_Read() {
+#if TARGET_PC
+    // Step 6.3: the COS_INPUT script's state for this frame, as Aurora's virtual pad on port 0.
+    pc_pad_feed();
+#endif
     JUTGamePad::read();
 
 #if VERSION == VERSION_DEMO
@@ -131,6 +138,10 @@ int mDoCPd_Read() {
         }
     }
 
+#if TARGET_PC
+    // Step 6.3: COS_SMOKE=pad-echo checks what the game converted against the script.
+    pc_pad_read_done();
+#endif
     mDoGaC_Connect();
     return 1;
 }

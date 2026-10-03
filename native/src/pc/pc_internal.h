@@ -16,6 +16,7 @@ struct Config {
     const char* milestone = nullptr; // COS_MILESTONE
     const char* trace = nullptr;     // COS_TRACE
     const char* runDir = nullptr;    // COS_RUN_DIR
+    const char* input = nullptr;     // COS_INPUT
     double timeoutS = 0;             // COS_TIMEOUT_S, 0 = off
     double stallS = 0;               // COS_STALL_S, 0 = off
     unsigned int frames = 0;         // COS_FRAMES, 0 = off
@@ -82,6 +83,10 @@ int checkResFont(const char* test, const char* path, JUTResFont& font, const uin
 [[noreturn]] void smokeArcSweep();
 bool isKnownSmoke(const char* name);
 void printSmokes(int fd);
+
+// pc_input.cpp (step 6.3): reads the COS_INPUT script (exit PC_EXIT_USAGE if it is malformed, or
+// if COS_SMOKE=pad-echo has none).
+void loadInput();
 
 // pc_watchdog.cpp
 void startWatchdog();

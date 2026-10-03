@@ -25,6 +25,9 @@
 //   JParticle and compared with an independent reading, every emitter calculated for 30 frames.
 // - stage-sweep (step 4.9a, pc_stage.cpp): every dzs/dzr chunk table relocated and decoded through
 //   d_stage.cpp, its RTBL and paths relocated by the game's loaders, and /res/Menu/Menu1.dat.
+// In the booted game:
+// - pad-echo (step 6.3, pc_input.cpp): the COS_INPUT script read back from g_mDoCPd_cpadInfo after
+//   each mDoCPd_Read.
 // The format sweeps and the other smoke tests of phases 4-6 add their names to kSmokes; one that
 // runs after some of the boot is started by the boot code at that point, not by runEarlySmoke.
 #include "pc_internal.h"
@@ -242,6 +245,7 @@ enum SmokeStage {
     kAfterDisc, // runs from pc_harness_init once the disc check passed
     kAfterAurora, // runs from pc_aurora_init once Aurora, the disc and OSInit are up
     kAfterHeaps,  // runs from pc_heaps_created once mDoMch_Create made every heap
+    kInGame,      // runs inside the booted game; the code it checks ends the process
 };
 
 struct Smoke {
@@ -262,6 +266,7 @@ const Smoke kSmokes[] = {
     {"msg-sweep", kAfterHeaps},
     {"jpa-sweep", kAfterHeaps},
     {"stage-sweep", kAfterHeaps},
+    {"pad-echo", kInGame},
 };
 
 const Smoke* findSmoke(const char* name) {

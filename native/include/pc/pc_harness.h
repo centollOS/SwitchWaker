@@ -14,6 +14,7 @@
  *   COS_AUDIO      off: audio stays silent (used from step 6.1)
  *   COS_FRAMES     exit 0 after this many game frames
  *   COS_RUN_DIR    directory for backtrace.txt / stall.txt (set by native/tools/run.sh)
+ *   COS_INPUT      input script for controller port 0 (step 6.3, pc_input.cpp)
  *
  * Exit codes: see PC_EXIT_* below.
  */
@@ -88,6 +89,13 @@ void pc_milestone(const char* name);
 /* One game frame done (called by pc_frame_end). Feeds the stall watchdog and COS_FRAMES. */
 void pc_frame_tick(void);
 unsigned int pc_frame_count(void);
+
+/* Input injection (step 6.3, pc_input.cpp). mDoCPd_Read calls pc_pad_feed before
+   JUTGamePad::read: with COS_INPUT, port 0 gets the script's state for this game frame through
+   Aurora's virtual pad (PADSetVirtualStatus). pc_pad_read_done, once g_mDoCPd_cpadInfo is
+   converted, runs the check of COS_SMOKE=pad-echo (which ends the process after the script). */
+void pc_pad_feed(void);
+void pc_pad_read_done(void);
 
 /* The frame loop (step 6.2, pc_frame.cpp). main01 calls pc_frame_begin at the top of each
    iteration (Aurora's event pump, then aurora_begin_frame, retried while the window cannot
