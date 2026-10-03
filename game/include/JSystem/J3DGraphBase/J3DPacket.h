@@ -214,7 +214,12 @@ public:
     }
     void setTexture(J3DTexture* pTexture) { mpTexture = pTexture; }
     void setInitShapePacket(J3DShapePacket* packet) { mpInitShapePacket = packet; }
+#if TARGET_PC
+    // The draw buffer sorts and merges packets by this pointer: keep all of it on the host.
+    void setMaterialAnmID(uintptr_t materialAnm) { mpMaterialAnm = (J3DMaterialAnm*)materialAnm; }
+#else
     void setMaterialAnmID(u32 materialAnm) { mpMaterialAnm = (J3DMaterialAnm*)materialAnm; }
+#endif
     void setMaterialID(u32 id) { mDiffFlag = id; }
     bool isChanged() { return mDiffFlag & 0x80000000; }
     bool isEnabled_Diff() { return mpInitShapePacket->getDisplayListObj() != NULL; }

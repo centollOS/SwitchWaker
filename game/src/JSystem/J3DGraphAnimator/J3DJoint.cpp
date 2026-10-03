@@ -248,8 +248,7 @@ void J3DJoint::entryIn() {
             }
             mesh->setCurrentMtx();
 #if TARGET_PC
-            // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-            matPacket->setMaterialAnmID((u32)(uintptr_t)mesh->getMaterialAnm());
+            matPacket->setMaterialAnmID((uintptr_t)mesh->getMaterialAnm());
 #else
             matPacket->setMaterialAnmID((u32)mesh->getMaterialAnm());
 #endif

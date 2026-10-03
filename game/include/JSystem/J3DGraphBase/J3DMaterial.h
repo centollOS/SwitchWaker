@@ -57,15 +57,18 @@ public:
     J3DIndBlock* getIndBlock() { return mIndBlock; }
     J3DMaterialAnm* getMaterialAnm() {
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
-        if ((u32)(uintptr_t)mMaterialAnm < 0xC0000000) {
+        // The GameCube test rejects addresses at or above 0xC0000000, outside its RAM. A host
+        // pointer has no such range (truncated to 32 bits, a valid J3DMaterialAnm could land
+        // there and its animation be dropped), and nothing stores such a value: mMaterialAnm is
+        // NULL or set by setMaterialAnm. As Dusklight's J3DMaterial.h, return it.
+        return mMaterialAnm;
 #else
         if ((u32)mMaterialAnm < 0xC0000000) {
-#endif
             return mMaterialAnm;
         } else {
             return NULL;
         }
+#endif
     }
     J3DNBTScale* getNBTScale() { return mTexGenBlock->getNBTScale(); }
     u16 getTexNo(u32 idx) { return mTevBlock->getTexNo(idx); }

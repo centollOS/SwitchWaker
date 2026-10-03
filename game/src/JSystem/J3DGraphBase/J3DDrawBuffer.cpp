@@ -72,7 +72,7 @@ int J3DDrawBuffer::entryMatSort(J3DMatPacket* pMatPacket) {
         hash = 0;
     } else {
 #if TARGET_PC
-        // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+        // Harmless truncation: only a hash of the image address, to pick a slot.
         hash = ((u32)(uintptr_t)texture->getResTIMG(texNo) + texture->getResTIMG(texNo)->imageOffset) >> 5;
 #else
         hash = ((u32)texture->getResTIMG(texNo) + texture->getResTIMG(texNo)->imageOffset) >> 5;
@@ -101,7 +101,7 @@ int J3DDrawBuffer::entryMatSort(J3DMatPacket* pMatPacket) {
 int J3DDrawBuffer::entryMatAnmSort(J3DMatPacket* pMatPacket) {
     J3DMaterialAnm* pMaterialAnm = pMatPacket->mpMaterialAnm;
 #if TARGET_PC
-    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
+    // Harmless truncation: only the slot, from the low bits; packets are matched by the pointer.
     u32 slot = (u32)(uintptr_t)pMaterialAnm & (mEntryTableSize - 1);
 #else
     u32 slot = (u32)pMaterialAnm & (mEntryTableSize - 1);
