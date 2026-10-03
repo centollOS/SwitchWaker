@@ -1791,10 +1791,9 @@ bool mDoGph_Painter() {
                     mCaptureStep = 5;
                 } else {
                     u8* captureThreadStackBase = mCaptureThreadStackHead + mCaptureThreadStackSize;
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
                     // Aurora declares the entry point with its real type, void* (*)(void*); the game passes a function
                     // of another signature, as it did through the decomp's void*.
-                    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
                     OSCreateThread(&mCaptureThread, (void* (*)(void*))mCaptureProc, NULL, captureThreadStackBase, mCaptureThreadStackSize, mCaptureThreadPriority, 0);
 #else
                     OSCreateThread(&mCaptureThread, (void*)mCaptureProc, NULL, captureThreadStackBase, mCaptureThreadStackSize, mCaptureThreadPriority, 0);

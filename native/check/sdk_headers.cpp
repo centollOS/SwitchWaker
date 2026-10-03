@@ -2,16 +2,15 @@
 //
 // One unit that includes every SDK header name the decomp has under game/include/dolphin,
 // spelled as the game spells them, plus the top-level game headers that include SDK headers.
-// It builds in both header modes (target cos_sdk_header_check):
-// - COS_SDK_HEADERS=decomp: the names resolve to the decomp's own headers;
-// - COS_SDK_HEADERS=aurora: each name resolves to Aurora (names both have) or to a forwarder in
-//   native/include/sdk (game-only names), and check/check_sdk_shadow.sh fails if any dependency of
-//   this unit resolves under game/include/dolphin. That script also checks that every name
-//   under game/include/dolphin is listed here.
+// Target cos_sdk_header_check. Each name resolves to Aurora (names both have) or to a forwarder in
+// native/include/sdk (game-only names), and check/check_sdk_shadow.sh fails if any dependency of
+// this unit resolves under game/include/dolphin. That script also checks that every name
+// under game/include/dolphin is listed here.
 //
-// Steps 2.3 and 2.4 added the forwarders for all of them, so every name is checked in both modes.
-// A name added later without a forwarder can sit between COS_SDK_PENDING_BEGIN/END (decomp mode
-// only); the shadow script reports such names as pending.
+// Steps 2.3 and 2.4 added the forwarders for all of them, so every name is checked. Since step 2.8
+// Aurora's headers are the only SDK headers (the decomp header mode is gone). A name added later
+// without a forwarder can sit, not compiled, between COS_SDK_PENDING_BEGIN/END; the shadow script
+// reports such names as pending.
 
 // What every game unit starts with, and the top-level headers that include SDK headers (a quoted
 // include there is looked up next to the header first, i.e. in game/include/dolphin).
@@ -101,19 +100,15 @@
 #include <dolphin/types.h>
 #include <dolphin/vi/vi.h>
 
-// Names the decomp's own headers cannot compile here, so checked in aurora mode only:
-// __start.h uses Metrowerks' __declspec(weak), and Padclamp.h defines PADClampRegion again after
-// Pad.h (no game unit includes either; the forwarders compile in both orders).
-#if defined(COS_SDK_HEADERS_AURORA)
+// Names the decomp's own headers could not compile here (__start.h uses Metrowerks'
+// __declspec(weak), and Padclamp.h defines PADClampRegion again after Pad.h); no game unit includes
+// either, and the forwarders compile in both orders.
 #include <dolphin/os/__start.h>
 #include <dolphin/pad/Padclamp.h>
-#endif
 
-#if defined(COS_SDK_HEADERS_AURORA)
 // The game-only names the force-included cos_sdk_extras.h restores.
 static_assert(sizeof(uint) == 4, "uint");
 static_assert(FLOAT_MAX > 3.4e38f && FLOAT_MIN < 1.2e-38f, "FLOAT_MIN/FLOAT_MAX");
-#endif
 
 int cos_sdk_header_check(const u8* p) {
     u32 v = READU32_BE(p, 0)
@@ -123,8 +118,8 @@ int cos_sdk_header_check(const u8* p) {
     return (int)(v + (u32)mp[0][0]) + (OSGetConsoleType() != 0);
 }
 
-// game-only names the forwarders of step 2.4 restore in aurora mode (the decomp's headers declare
-// them too, so this compiles in both modes). The unit is an object library and is never linked.
+// game-only names the forwarders of step 2.4 restore (the decomp's headers declared them too).
+// The unit is an object library and is never linked.
 int cos_sdk_header_check_cos_names(DVDFileInfo* fi, Mtx m) {
     DVDDirectory dir;
     DVDDirectoryEntry entry;

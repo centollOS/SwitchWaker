@@ -1025,31 +1025,30 @@ void dDlst_alphaModelPacket::draw() {
     GXSetCurrentMtx(GX_PNMTX0);
 
     if (mType == 0) {
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
         // Aurora's GXSetArray also takes the array's byte size and byte order
         // (the static asset arrays, host-endian).
-        // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
         GXSETARRAY(GX_VA_POS, l_bonboriPos, sizeof(l_bonboriPos), sizeof(*l_bonboriPos), true);
 #else
         GXSetArray(GX_VA_POS, l_bonboriPos, sizeof(*l_bonboriPos));
 #endif
         GXCallDisplayList(l_bonboriDL, 0xa0);
     } else if (mType == 1) {
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
         GXSETARRAY(GX_VA_POS, l_bonboriPos, sizeof(l_bonboriPos), sizeof(*l_bonboriPos), true);
 #else
         GXSetArray(GX_VA_POS, l_bonboriPos, sizeof(*l_bonboriPos));
 #endif
         GXCallDisplayList(l_bonboriDL, 0xa0);
     } else if (mType == 2) {
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
         GXSETARRAY(GX_VA_POS, l_s_beam_checkPos, sizeof(l_s_beam_checkPos), sizeof(*l_s_beam_checkPos), true);
 #else
         GXSetArray(GX_VA_POS, l_s_beam_checkPos, sizeof(*l_s_beam_checkPos));
 #endif
         GXCallDisplayList(l_s_beam_checkDL, 0xe0);
     } else if (mType == 3) {
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
         GXSETARRAY(GX_VA_POS, l_cubePos, sizeof(l_cubePos), sizeof(*l_cubePos), true);
 #else
         GXSetArray(GX_VA_POS, l_cubePos, sizeof(*l_cubePos));
@@ -1581,7 +1580,7 @@ void dDlst_shadowControl_c::draw(Mtx drawMtx) {
     dKy_GxFog_set();
     GXSetChanCtrl(GX_ALPHA0, GX_FALSE, GX_SRC_REG, GX_SRC_REG, 0, GX_DF_NONE, GX_AF_NONE);
     GXSetChanMatColor(GX_ALPHA0, (GXColor){ 0x00, 0x00, 0x00, 0x20 });
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     GXSETARRAY(GX_VA_POS, l_shadowVolPos, sizeof(l_shadowVolPos), sizeof(*l_shadowVolPos), true);
 #else
     GXSetArray(GX_VA_POS, l_shadowVolPos, sizeof(*l_shadowVolPos));
@@ -1600,7 +1599,7 @@ void dDlst_shadowControl_c::draw(Mtx drawMtx) {
         real->draw();
 
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_S8, 0);
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     GXSETARRAY(GX_VA_POS, l_simpleShadowPos, sizeof(l_simpleShadowPos), sizeof(*l_simpleShadowPos), true);
 #else
     GXSetArray(GX_VA_POS, l_simpleShadowPos, sizeof(*l_simpleShadowPos));
@@ -1719,7 +1718,7 @@ void dDlst_mirrorPacket::draw() {
     GXSetVtxDesc(GX_VA_POS, GX_INDEX8);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
     GXLoadPosMtxImm(j3dSys.getViewMtx(), GX_PNMTX0);
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     GXSETARRAY(GX_VA_POS, l_shadowVolPos, sizeof(l_shadowVolPos), sizeof(cXyz), true);
 #else
     GXSetArray(GX_VA_POS, l_shadowVolPos, sizeof(cXyz));
@@ -1850,7 +1849,7 @@ void dDlst_alphaVolPacket::draw() {
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
     GXClearVtxDesc();
     GXSetVtxDesc(GX_VA_POS, GX_INDEX8);
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     GXSETARRAY(GX_VA_POS, l_simpleShadowPos, sizeof(l_simpleShadowPos), sizeof(*l_simpleShadowPos), true);
 #else
     GXSetArray(GX_VA_POS, l_simpleShadowPos, sizeof(*l_simpleShadowPos));
@@ -1875,7 +1874,7 @@ void dDlst_alphaInvVolPacket::draw() {
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
     GXClearVtxDesc();
     GXSetVtxDesc(GX_VA_POS, GX_INDEX8);
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     GXSETARRAY(GX_VA_POS, l_simpleShadowPos, sizeof(l_simpleShadowPos), sizeof(*l_simpleShadowPos), true);
 #else
     GXSetArray(GX_VA_POS, l_simpleShadowPos, sizeof(*l_simpleShadowPos));

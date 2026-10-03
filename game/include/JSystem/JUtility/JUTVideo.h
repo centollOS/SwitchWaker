@@ -34,9 +34,8 @@ public:
         height = (u16)getEfbHeight();
     }
     u32 getXfbHeight() const { return mRenderObj->xfbHeight & 0xFFFF; }
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // Aurora's GXRenderModeObj names the anti-aliasing flag `aa` (same u8 at 0x19).
-    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
     u32 isAntiAliasing() const { return mRenderObj->aa; }
 #else
     u32 isAntiAliasing() const { return mRenderObj->antialiasing; }

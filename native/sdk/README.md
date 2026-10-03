@@ -5,7 +5,8 @@ SDK libraries (`aurora::core gx gd si vi pad mtx os dvd thp card`, listed in `CO
 plus a layer of glue for what Aurora does not provide (threads, messages, alarms, VI retrace, GF,
 AI/DSP, EXI, GBA, DVD extras, ...). That glue lives here.
 
-Built only with `-DCOS_WITH_AURORA=ON` (see `native/README.md`, "Aurora (phase 2)").
+Built with Aurora, which every configure brings in since step 2.8 (see `native/README.md`,
+"Aurora (phase 2)").
 
 ## Layout
 
@@ -33,7 +34,7 @@ Built only with `-DCOS_WITH_AURORA=ON` (see `native/README.md`, "Aurora (phase 2
 ## Building and running the test
 
 ```sh
-cmake -S native -B build/native-mac -G Ninja -DCOS_WITH_AURORA=ON
+cmake -S native -B build/native-mac -G Ninja
 ninja -C build/native-mac cos_sdk cos_sdk_smoke
 build/native-mac/cos_sdk_smoke            # every test; prints "ok"
 build/native-mac/cos_sdk_smoke basic      # only the named tests
@@ -63,7 +64,6 @@ Command Line Tools clang (21), reusing the fetched sources of the main build dir
 ```sh
 D=$PWD/build/native-mac/_deps
 cmake -S native -B build/native-mac-tsan -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-  -DCOS_WITH_AURORA=ON \
   -DCMAKE_C_COMPILER=/Library/Developer/CommandLineTools/usr/bin/clang \
   -DCMAKE_CXX_COMPILER=/Library/Developer/CommandLineTools/usr/bin/clang++ \
   -DFETCHCONTENT_SOURCE_DIR_AURORA=$PWD/build/aurora-3227d76 \

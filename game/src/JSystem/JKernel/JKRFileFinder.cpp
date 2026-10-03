@@ -59,9 +59,8 @@ bool JKRDvdFinder::findNextFile() {
         mIsAvailable = DVDReadDir(&mDvdDirectory, &directoryEntry);
 
         if (mIsAvailable) {
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
             // Aurora's DVDDirEntry names the fields entryNum/isDir (same layout as the decomp's).
-            // TODO(native phase 2.8): drop the decomp-header branch with COS_SDK_HEADERS=decomp.
             mIsFileOrDirectory = directoryEntry.isDir != 0;
             mEntryName = directoryEntry.name;
             mEntryFileIndex = directoryEntry.entryNum;

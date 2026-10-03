@@ -787,10 +787,9 @@ void dMCloth_c::draw(float, GXColor clothColor, GXColor shadowColor, unsigned ch
         GXLoadNrmMtxImm(mDoMtx_stack_c::get(), GX_PNMTX0);
         GXSetCullMode(GX_CULL_FRONT);
         GXSetCurrentMtx(GX_PNMTX0);
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
         // Aurora's GXSetArray also takes the array's byte size and byte order
         // (each array holds ARR_SIZE cXyz, host-endian).
-        // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
         GXSETARRAY(GX_VA_POS, getPos(), ARR_SIZE * sizeof(cXyz), sizeof(cXyz), true);
         GXSETARRAY(GX_VA_NRM, getNrm(), ARR_SIZE * sizeof(cXyz), sizeof(cXyz), true);
 #else
@@ -812,7 +811,7 @@ void dMCloth_c::draw(float, GXColor clothColor, GXColor shadowColor, unsigned ch
     GXLoadNrmMtxImm(mDoMtx_stack_c::get(), GX_PNMTX0);
     GXSetCullMode(GX_CULL_FRONT);
     GXSetCurrentMtx(GX_PNMTX0);
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     GXSETARRAY(GX_VA_POS, getPos(), ARR_SIZE * sizeof(cXyz), sizeof(cXyz), true);
     GXSETARRAY(GX_VA_NRM, getNrm(), ARR_SIZE * sizeof(cXyz), sizeof(cXyz), true);
 #else
@@ -824,7 +823,7 @@ void dMCloth_c::draw(float, GXColor clothColor, GXColor shadowColor, unsigned ch
 
     GXSetCullMode(GX_CULL_BACK);
     ShadowTevSetting();
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     GXSETARRAY(GX_VA_POS, getShadowPos(), ARR_SIZE * sizeof(cXyz), sizeof(cXyz), true);
 #else
     GXSetArray(GX_VA_POS, getShadowPos(), sizeof(cXyz));
@@ -832,7 +831,7 @@ void dMCloth_c::draw(float, GXColor clothColor, GXColor shadowColor, unsigned ch
     plot_shadow(0.0f, 0.0f, 1.0f, 1.0f);
 
     TevSetting();
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     GXSETARRAY(GX_VA_POS, getPos(), ARR_SIZE * sizeof(cXyz), sizeof(cXyz), true);
     GXSETARRAY(GX_VA_NRM, getBackNrm(), ARR_SIZE * sizeof(cXyz), sizeof(cXyz), true);
 #else

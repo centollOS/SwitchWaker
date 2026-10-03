@@ -11,7 +11,7 @@
 #include "JSystem/JKernel/JKRAram.h"
 #include "JSystem/JUtility/JUTTexture.h"
 #include "dolphin/card.h"
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
 #include "cos_card_extras.h" // CARD_ERROR_* (Aurora spells them CARD_RESULT_*)
 #endif
 #include "dolphin/os/OS.h"
@@ -213,9 +213,8 @@ void mDoMemCdRWm_BuildHeader(mDoMemCdRWm_HeaderData* header) {
     OSTime time = OSGetTime();
     OSCalendarTime cal;
     OSTicksToCalendarTime(time, &cal);
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // Aurora's OSCalendarTime names the fields mday and mon (same layout as the decomp's).
-    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
 #if VERSION == VERSION_PAL
     switch (dComIfGs_getPalLanguage()) {
     case 0:

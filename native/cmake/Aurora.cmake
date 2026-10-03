@@ -1,21 +1,21 @@
 # Aurora (encounter/aurora, MIT): the GameCube SDK over WebGPU that phase 2 builds on
 # (docs/NATIVE_PORT_PHASE2_3.md, step 2.1, decision D1).
 #
-# Pulled in with FetchContent at Dusklight's pin, behind COS_WITH_AURORA (off by default until
-# step 2.8). The settings follow Dusklight's CMakeLists.txt (AURORA_ENABLE_*, MTX_USE_PS), except
+# Pulled in with FetchContent at Dusklight's pin. COS_WITH_AURORA is ON by default since step 2.8,
+# and required: the game compiles against Aurora's SDK headers (GameConfig.cmake). The settings follow Dusklight's CMakeLists.txt (AURORA_ENABLE_*, MTX_USE_PS), except
 # RmlUi, which this port does not use.
 #
 # Offline or local builds point CMake's own override at a checkout of the pinned commit:
 #   git -C ref/aurora worktree add --detach build/aurora-3227d76 3227d76
-#   cmake ... -DCOS_WITH_AURORA=ON -DFETCHCONTENT_SOURCE_DIR_AURORA=$PWD/build/aurora-3227d76
+#   cmake ... -DFETCHCONTENT_SOURCE_DIR_AURORA=$PWD/build/aurora-3227d76
 # Aurora's own dependencies (Dawn, nod, SDL3, abseil, fmt, ...) are still fetched once into the
 # build directory; Dawn and nod come as prebuilt packages where Aurora publishes them.
 #
-# Included from GameConfig.cmake first when COS_SDK_HEADERS=aurora (it needs Aurora's include
-# directory), then again from CMakeLists.txt: the guard makes the second include a no-op.
+# Included from GameConfig.cmake first (it needs Aurora's include directory), then again from
+# CMakeLists.txt: the guard makes the second include a no-op.
 include_guard(GLOBAL)
 
-option(COS_WITH_AURORA "Fetch and build Aurora (the GameCube SDK over WebGPU)" OFF)
+option(COS_WITH_AURORA "Fetch and build Aurora (the GameCube SDK over WebGPU); required" ON)
 
 if (NOT COS_WITH_AURORA)
     return()

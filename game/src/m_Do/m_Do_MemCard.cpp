@@ -9,7 +9,7 @@
 #include "m_Do/m_Do_Reset.h"
 #include "JSystem/JKernel/JKRThread.h"
 #include "dolphin/card.h"
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
 #include "cos_card_extras.h" // CARD_ERROR_* (Aurora spells them CARD_RESULT_*)
 #include "dolphin/dvd/dvd.h" // DVDGetCurrentDiskID, for CARDInit below
 #endif
@@ -28,10 +28,9 @@ mDoMemCd_Ctrl_c::mDoMemCd_Ctrl_c() {
 
 /* 80018D70-80018E18       .text ThdInit__15mDoMemCd_Ctrl_cFv */
 void mDoMemCd_Ctrl_c::ThdInit() {
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // The SDK's CARDInit takes the game and maker codes from the disc header (DVDGetCurrentDiskID);
     // Aurora's takes them as strings. Pass the same disc header fields, as Dusklight does.
-    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
     {
         const DVDDiskID* diskID = DVDGetCurrentDiskID();
         char game[5] = {};
@@ -53,10 +52,9 @@ void mDoMemCd_Ctrl_c::ThdInit() {
     OSInitMutex(&mMutex);
     OSInitCond(&mCond);
     OSPriority priority = OSGetThreadPriority(OSGetCurrentThread());
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // Aurora declares the entry point with its real type, void* (*)(void*); the game passes a function
     // of another signature, as it did through the decomp's void*.
-    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
     OSCreateThread(&MemCardThread, (void* (*)(void*))mDoMemCd_main, NULL, &MemCardStack[ARRAY_SIZE(MemCardStack)], ARRAY_SIZE(MemCardStack), priority + 1, 1);
 #else
     OSCreateThread(&MemCardThread, (void*)mDoMemCd_main, NULL, &MemCardStack[ARRAY_SIZE(MemCardStack)], ARRAY_SIZE(MemCardStack), priority + 1, 1);

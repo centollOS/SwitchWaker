@@ -105,10 +105,9 @@ void dispDateInfo() {
     print("COMPILE USER: FINAL\n");
     print_f("COPYDATE   : %17s\n", mDoMain::COPYDATE_STRING);
 
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // Aurora's OSCalendarTime has the SDK's own field names (sec, min, hour, mday, mon, yday,
     // msec, usec); same layout as the decomp's.
-    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
     OSCalendarTime time;
     OSTicksToCalendarTime(mDoMain::sPowerOnTime, &time);
     print_f("PowerOnTime: %04d/%2d/%2d %2d:%2d:%2d`%03d\"%03d\n", time.year, time.mon,

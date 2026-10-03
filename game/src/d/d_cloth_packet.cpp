@@ -181,10 +181,9 @@ void dCloth_packet_c::draw() {
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_NRM, GX_NRM_XYZ, GX_F32, 0);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0);
 
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // Aurora's GXSetArray also takes the array's byte size and byte order
     // (setParam allocates mFlyGridSize * mHoistGridSize cXyz per array, host-endian).
-    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
     GXSETARRAY(GX_VA_POS, getPosP(), mFlyGridSize * mHoistGridSize * sizeof(cXyz), sizeof(cXyz), true);
     GXSETARRAY(GX_VA_NRM, getNrmP(), mFlyGridSize * mHoistGridSize * sizeof(cXyz), sizeof(cXyz), true);
 #else
@@ -209,7 +208,7 @@ void dCloth_packet_c::draw() {
 
     // Draw back
     GXSetCullMode(GX_CULL_FRONT);
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     GXSETARRAY(GX_VA_NRM, getBackNrmP(), mFlyGridSize * mHoistGridSize * sizeof(cXyz), sizeof(cXyz), true);
 #else
     GXSetArray(GX_VA_NRM, getBackNrmP(), sizeof(cXyz));

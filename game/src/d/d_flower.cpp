@@ -328,10 +328,9 @@ void dFlower_packet_c::draw() {
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_CLR0, GX_CLR_RGBA, GX_RGBA8, 0);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0);
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // Aurora's GXSetArray also takes the array's byte size and byte order
     // (the static asset arrays, host-endian; field_0x4608.. point at the *2 or *3 set).
-    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
     GXSETARRAY(GX_VA_POS, l_pos, sizeof(l_pos), 0xC, true);
     GXSETARRAY(GX_VA_CLR0, l_color, sizeof(l_color), 0x4, true);
     GXSETARRAY(GX_VA_TEX0, l_texCoord, sizeof(l_texCoord), 0x8, true);
@@ -367,7 +366,7 @@ void dFlower_packet_c::draw() {
         }
     }
 
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     GXSETARRAY(GX_VA_POS, field_0x4608,
                field_0x4608 == l_pos3 ? sizeof(l_pos3) : field_0x4608 == l_pos2 ? sizeof(l_pos2) : 0, 0xC, true);
     GXSETARRAY(GX_VA_CLR0, field_0x460c,

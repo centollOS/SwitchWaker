@@ -115,9 +115,8 @@ void JFWDisplay::prepareCopyDisp() {
     GXSetDispCopyYScale(y_scaleF);
 #endif
     VIFlush();
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // Aurora's GXRenderModeObj names the anti-aliasing flag `aa` (same u8 at 0x19).
-    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
     GXSetCopyFilter((GXBool)renderObj->aa, renderObj->sample_pattern, GX_ENABLE, renderObj->vfilter);
 #else
     GXSetCopyFilter((GXBool)renderObj->antialiasing, renderObj->sample_pattern, GX_ENABLE, renderObj->vfilter);
@@ -208,7 +207,7 @@ void JFWDisplay::preGX() {
     GXInvalidateTexAll();
     GXInvalidateVtxCache();
 
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // Aurora's name for the anti-aliasing flag (see draw_setup).
     if (mpRenderMode->aa) {
 #else

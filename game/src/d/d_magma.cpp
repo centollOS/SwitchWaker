@@ -100,10 +100,9 @@ void dMagma_ballPath_c::setup(f32 offsY, u8 pathNo, int roomNo) {
 
 /* 80075A6C-80075CB8       .text draw__14dMagma_floor_cFv */
 void dMagma_floor_c::draw() {
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // Aurora's GXSetArray also takes the array's byte size and byte order
     // (the static asset arrays, host-endian).
-    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
     GXSETARRAY(GX_VA_POS, l_YfloorPos, sizeof(l_YfloorPos), sizeof(*l_YfloorPos), true);
 #else
     GXSetArray(GX_VA_POS, l_YfloorPos, sizeof(*l_YfloorPos));
@@ -124,7 +123,7 @@ void dMagma_floor_c::draw() {
     GXSetTevOrder(GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR_NULL);
     GXLoadPosMtxImm(mPosMtx, GX_PNMTX0);
     GXCallDisplayList(&l_YfloorDL, 0x20);
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     GXSETARRAY(GX_VA_POS, l_YballPos, sizeof(l_YballPos), sizeof(*l_YballPos), true);
 #else
     GXSetArray(GX_VA_POS, l_YballPos, sizeof(*l_YballPos));

@@ -39,9 +39,9 @@ int OSGetActiveThreadID(OSThread* thread) {
     OSThread* r31;
     int id = -1;
     BOOL enable = OSDisableInterrupts();
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // Aurora's SDK names: the list is __OSActiveThreadQueue (cos_sdk keeps it) and the link is
-    // linkActive. TODO(native phase 2.8): drop the decomp-header branch with decomp mode.
+    // linkActive.
     for (r31 = __OSActiveThreadQueue.head; r31; r31 = r31->linkActive.next, id++) {
 #else
     for (r31 = OS_THREAD_QUEUE.head; r31; r31 = r31->active_threads_link.next, id++) {

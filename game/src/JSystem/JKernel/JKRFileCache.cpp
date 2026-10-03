@@ -339,7 +339,7 @@ bool JKRFileCache::findFile(char* path, const char* fileName) const {
     u32 pathLength = strlen(path);
     if (DVDOpenDir(path, &dir)) {
         while (DVDReadDir(&dir, &dirEntry)) {
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
             // Aurora's DVDDirEntry names the flag isDir (see JKRFileFinder.cpp).
             if (dirEntry.isDir) {
 #else

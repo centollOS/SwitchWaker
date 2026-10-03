@@ -6,9 +6,8 @@
 // d_a_movie_player.cpp); Aurora's declares only THPInit, THPVideoDecode and an extern "C"
 // THPAudioDecode(s16*, const u8*, s32), which would clash with the game's static THPAudioDecode.
 // So d_a_movie_player.h includes this header *instead of* dolphin/thp.h under
-// `TARGET_PC && defined(COS_SDK_AURORA)`. Every type below is a copy of the game's
-// include/dolphin/thp.h; none of these names is declared by Aurora.
-// TODO(native phase 2.8): include it unconditionally once COS_SDK_HEADERS=decomp is gone.
+// `TARGET_PC`. Every type below is a copy of the game's include/dolphin/thp.h; none of these names is
+// declared by Aurora.
 // TODO(native phase 4): THPHeader/THPVideoInfo/THPAudioInfo/THPFrameCompInfo are read straight
 // from big-endian .thp data, and THPFileInfo/THPAudioDecodeInfo hold pointers (Dusklight's
 // d_a_movie_player.h uses BE(u32) fields for the former).

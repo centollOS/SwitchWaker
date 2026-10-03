@@ -106,7 +106,7 @@ void JKRAramPiece::startDMA(JKRAMCommand* command) {
 }
 
 /* 802B5FE0-802B6088       .text doneDMA__12JKRAramPieceFUl */
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
 // Aurora's ARQCallback type (see JKRAramPiece.h).
 // TODO(native phase 4): mCallback (JKRAMCommand::AsyncCallback) still takes a u32 request address.
 void JKRAramPiece::doneDMA(uintptr_t requestAddress) {

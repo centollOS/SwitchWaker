@@ -24,14 +24,23 @@ costs about 0.9 host instructions per guest instruction against 27 for the trans
 
 Phase 1 of `docs/NATIVE_PORT_PLAN.md`: every game unit compiles to an object with Apple clang
 (arm64, C++20 / C11) under `TARGET_PC`, against the host C and C++ libraries instead of
-Metrowerks' MSL. Nothing is linked yet.
+Metrowerks' MSL. Nothing is linked yet. Since step 2.8 of `docs/NATIVE_PORT_PHASE2_3.md` the game
+compiles against Aurora's SDK headers (see "Aurora (phase 2)" below), so every configure brings in
+Aurora.
 
-Requirements: Xcode command line tools (Apple clang), CMake 3.25 or newer, Ninja.
+Requirements: Xcode command line tools (Apple clang), CMake 3.28 or newer (Aurora's FetchContent
+needs it), Ninja, and the network on the first configure unless a local Aurora checkout is given.
 
 ```sh
 cmake -S native -B build/native-mac -G Ninja
+#   or, offline, with a local checkout of Aurora at the pin (see "Aurora (phase 2)"):
+#   cmake -S native -B build/native-mac -G Ninja -DFETCHCONTENT_SOURCE_DIR_AURORA="$PWD/build/aurora-3227d76"
 ninja -C build/native-mac cos_scaffold_check       # toolchain + base headers sanity check
+ninja -C build/native-mac -k 0 cos_modules         # every enabled module
 ```
+
+A build directory configured before step 2.8 (`COS_SDK_HEADERS=decomp`, `COS_WITH_AURORA=OFF` in
+its cache) stops the configure with an error; reconfigure it with `cmake --fresh`.
 
 Each module is an `OBJECT` library behind an option, off until it compiles; the modules listed
 in `COS_MODULES_READY` (`cmake/modules.cmake`) compile and default to on (currently `SSystem`, `JSystem-core`, `JSystem-J3D`, `JSystem-2D-particle`, `JSystem-studio`, `framework`, `m_Do`, `d-core`, `actors-1`, `actors-2`, `actors-3`, `actors-4`, `actors-5`, `actors-6`):
@@ -94,8 +103,9 @@ cp -R <decomp>/build/GZLE01/include/assets build/native-mac/assets/GZLE01/includ
 
 Phase 2 builds the GameCube SDK over [Aurora](https://github.com/encounter/aurora) (MIT), the
 library Dusklight uses: `native/cmake/Aurora.cmake` pulls it in with FetchContent at Dusklight's
-pin, `3227d76`, behind `COS_WITH_AURORA` (off by default until step 2.8 of
-`docs/NATIVE_PORT_PHASE2_3.md`). As in Dusklight, GX, DVD, CARD and THP are on and `aurora_mtx` is
+pin, `3227d76`. `COS_WITH_AURORA` is on by default since step 2.8 of
+`docs/NATIVE_PORT_PHASE2_3.md` and required: the game compiles against Aurora's headers, so
+turning it off stops the configure. As in Dusklight, GX, DVD, CARD and THP are on and `aurora_mtx` is
 built with `MTX_USE_PS=1`; RmlUi, Aurora's examples and its tests are off. On darwin-arm64 Dawn and
 nod come from Aurora's prebuilt packages (`AURORA_DAWN_PROVIDER` / `AURORA_NOD_PROVIDER` =
 `package`), so neither a Dawn source build nor Rust is needed.
@@ -105,7 +115,7 @@ packages, SDL3, abseil, fmt, xxhash, imgui and Tracy are fetched into the build 
 takes libpng, Freetype, zlib, SQLite and zstd from the system (Homebrew) when found.
 
 ```sh
-cmake -S native -B build/native-mac -G Ninja -DCOS_WITH_AURORA=ON
+cmake -S native -B build/native-mac -G Ninja
 ninja -C build/native-mac aurora_core aurora_gx aurora_gd aurora_os aurora_vi aurora_pad \
     aurora_si aurora_mtx aurora_dvd aurora_card aurora_thp aurora_main
 ```
@@ -115,7 +125,7 @@ override instead of cloning; the configure warns if that checkout is not at the 
 
 ```sh
 git -C ref/aurora worktree add --detach "$PWD/build/aurora-3227d76" 3227d76
-cmake -S native -B build/native-mac -G Ninja -DCOS_WITH_AURORA=ON \
+cmake -S native -B build/native-mac -G Ninja \
     -DFETCHCONTENT_SOURCE_DIR_AURORA="$PWD/build/aurora-3227d76"
 ```
 
@@ -124,36 +134,38 @@ The SDK libraries the game will link are listed in `COS_AURORA_LIBS`. The game f
 `cos_game_headers` and never reach Aurora.
 
 `native/sdk` holds the game-specific SDK over Aurora: the static library `cos_sdk` and its headless
-test `cos_sdk_smoke` (`native/cmake/sdk.cmake`, built only with `COS_WITH_AURORA=ON`); see
+test `cos_sdk_smoke` (`native/cmake/sdk.cmake`); see
 `native/sdk/README.md`.
 
-### SDK headers (`COS_SDK_HEADERS`)
+### SDK headers
 
-Which SDK headers the game compiles against is the cache variable `COS_SDK_HEADERS`
-(`cmake/GameConfig.cmake`, decision D2 of `docs/NATIVE_PORT_PHASE2_3.md`):
+Aurora's headers are the only SDK headers the game compiles against (`cmake/GameConfig.cmake`,
+decision D2 of `docs/NATIVE_PORT_PHASE2_3.md`). Phase 1 compiled against the decomp's own
+`game/include/dolphin` (the former `COS_SDK_HEADERS=decomp` mode); step 2.7 migrated every
+module and step 2.8 removed that mode for `TARGET_PC` (the original GameCube build still uses the
+decomp's headers, which stay in the tree).
 
-- `decomp` (the default until step 2.8): the decomp's own `game/include/dolphin`, as in
-  phase 1.
-- `aurora` (needs `COS_WITH_AURORA=ON`): Aurora's headers are the only SDK headers. The include
-  order is `native/include` → `native/include/sdk` → Aurora's `include` → `game/include`.
-  Aurora wins every header name both have (39 of the decomp's 82), so Aurora's own includes stay
-  consistent. `native/include/sdk/dolphin/**` holds forwarders for the names only the game has
-  (`dolphin/os/OS.h` → `<dolphin/os.h>` plus the game-only declarations Aurora lacks), and
-  `native/include/sdk/cos_sdk_extras.h`, force-included in every game unit, restores what the
+- The include order is `native/include` → `native/include/sdk` → Aurora's `include` →
+  `game/include`. Aurora wins every header name both have (39 of the decomp's 82), so
+  Aurora's own includes stay consistent.
+- `native/include/sdk/dolphin/**` holds forwarders for the names only the game has (`dolphin/os/OS.h` →
+  `<dolphin/os.h>` plus the game-only declarations Aurora lacks).
+- `native/include/sdk/cos_sdk_extras.h`, force-included in every game unit, restores what the
   decomp's `dolphin/types.h` had beyond Aurora's (`uint`, `READU32_BE`, `FLOAT_MIN`/`FLOAT_MAX`).
-  Hardware registers the decomp defines in its headers (`__VIRegs`, `OS_PI_INTR_*`...) are left
-  out on purpose. Until step 2.7 has migrated a module, it does not compile in this mode.
+- Two names both trees have but whose game-only content Aurora lacks come from headers a unit
+  includes under `#if TARGET_PC`: `cos_card_extras.h` (`CARD_ERROR_*`) and `cos_thp_extras.h`
+  (the THP player types, instead of `dolphin/thp.h`).
+- Hardware registers the decomp defines in its headers (`__VIRegs`, `OS_PI_INTR_*`...) are left
+  out on purpose.
 
 `cos_sdk_header_check` compiles `check/sdk_headers.cpp`, which includes every SDK header name the
-decomp has, in either mode. In aurora mode, `cos_sdk_shadow_check` runs
-`check/check_sdk_shadow.sh`: it fails if any dependency of that unit resolves under
-`game/include/dolphin`, or if a name there is missing from the unit. Since step 2.4 every
-one of the 82 names has a forwarder or an Aurora header, and none is pending. game-only GF
-declarations (`GFLoadPosMtxImm`, `GFSetArray`, `GFBegin`...) live in
+decomp has. `cos_sdk_shadow_check` runs `check/check_sdk_shadow.sh`: it fails if any dependency
+of that unit resolves under `game/include/dolphin`, or if a name there is missing from the
+unit. Since step 2.4 every one of the 82 names has a forwarder or an Aurora header, and none is
+pending. game-only GF declarations (`GFLoadPosMtxImm`, `GFSetArray`, `GFBegin`...) live in
 `native/include/sdk/cos_gf_extras.h`, which the `GF.h` and `GFTransform.h` forwarders include.
 
 ```sh
-cmake -S native -B build/native-mac -G Ninja -DCOS_WITH_AURORA=ON -DCOS_SDK_HEADERS=aurora
 ninja -C build/native-mac cos_scaffold_check cos_sdk_header_check cos_sdk_shadow_check
 ```
 
@@ -165,8 +177,7 @@ ninja -C build/native-mac cos_scaffold_check cos_sdk_header_check cos_sdk_shadow
 - It links the objects of every enabled module into the bundle
   `build/native-mac/link_census/libcos_link_census.bundle` with `-undefined dynamic_lookup`. The
   REL units are left out: `native/cmake/rel_units.txt` lists the 416 units the decomp builds into
-  `.rel` files, by name only, taken from its `configure.py`. `cos_sdk` and Aurora are linked too
-  when `COS_WITH_AURORA=ON`. The module objects are reused, not recompiled.
+  `.rel` files, by name only, taken from its `configure.py`. `cos_sdk` and Aurora are linked too. The module objects are reused, not recompiled.
 - `native/tools/link_census.py` sorts what the bundle still looks up (`nm -um`) into SDK (by
   library: OS, GX, DVD...), REL (`OSLink*`, `OSSetStringTable`, `g_profile_*`, anything a REL
   unit defines), JAudio/JAZel, MSL/runtime, deferred units and other. It writes the counts and the
@@ -174,10 +185,11 @@ ninja -C build/native-mac cos_scaffold_check cos_sdk_header_check cos_sdk_shadow
   sorted `category<TAB>symbol` list to `build/native-mac/link_census_unresolved.txt`.
 - Before the link, `native/tools/symbol_census.py` lists the duplicate strong definitions among
   the inputs and the weak definitions whose sizes differ (possible ODR violations), in
-  `build/native-mac/link_census/symbol_census.txt`. With the decomp's SDK headers every unit
-  defines the hardware registers (`__VIRegs`, `OS_*`...), so by default the duplicates are made
-  local in copies of the objects (`ld -r`) and the census still links; the report counts them.
-  `-DCOS_LINK_CENSUS_STRICT=ON` lets them stop the link instead.
+  `build/native-mac/link_census/symbol_census.txt`. By default (until step 2.9 settles them) the
+  duplicates are made local in copies of the objects (`ld -r`) and the census still links; the
+  report counts them. `-DCOS_LINK_CENSUS_STRICT=ON` lets them stop the link instead. (Phase 1's
+  decomp SDK headers defined the hardware registers, `__VIRegs`, `OS_*`..., in every unit; Aurora's
+  headers do not.)
 
 `symbol_census.py` also works on its own, without linking, on object files, directories or
 `@list` files:

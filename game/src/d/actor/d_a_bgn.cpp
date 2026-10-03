@@ -17,9 +17,9 @@
 #include "d/d_s_play.h"
 #include "d/d_snap.h"
 #include "res/Object/Bgn.h"
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
 // Aurora's dolphin/gf/GFGeometry.h lacks the TWW-only GFSetCullMode; the GF.h forwarder adds it
-// (cos_gf_extras.h). TODO(native phase 2.8): drop the decomp-header branch.
+// (cos_gf_extras.h).
 #include "dolphin/gf/GF.h"
 #else
 #include "dolphin/gf/GFGeometry.h"

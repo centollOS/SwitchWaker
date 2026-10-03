@@ -3458,22 +3458,21 @@ void dFile_select_c::setSaveData() {
                     field_0x3900[i],
 #if VERSION <= VERSION_JPN
                     "%d.%02d.%02d %02d:%02d:%02d",
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
                     // Aurora's OSCalendarTime names the fields mon, mday, hour, min and sec (same layout).
-                    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
                     time.year, time.mon + 1, time.mday,
 #else
                     time.year, time.month + 1, time.day_of_month,
 #endif
 #else
                     "%02d/%02d/%d %02d:%02d:%02d",
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
                     time.mon + 1, time.mday, time.year,
 #else
                     time.month + 1, time.day_of_month, time.year,
 #endif
 #endif
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
                     time.hour, time.min, time.sec
 #else
                     time.hours, time.minutes, time.seconds
@@ -3609,7 +3608,7 @@ void dFile_select_c::setSaveData() {
                     sprintf(
                         field_0x3900[i],
                         "%02d/%02d/%d %02d:%02d:%02d",
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
                         time.mon + 1, time.mday, time.year,
                         time.hour, time.min, time.sec
 #else
@@ -3621,7 +3620,7 @@ void dFile_select_c::setSaveData() {
                     sprintf(
                         field_0x3900[i],
                         "%02d/%02d/%d %02d:%02d:%02d",
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
                         time.mday, time.mon + 1, time.year,
                         time.hour, time.min, time.sec
 #else
@@ -3635,20 +3634,20 @@ void dFile_select_c::setSaveData() {
                     field_0x3900[i],
 #if VERSION <= VERSION_JPN
                     "%d.%02d.%02d %02d:%02d:%02d",
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
                     time.year, time.mon + 1, time.mday,
 #else
                     time.year, time.month + 1, time.day_of_month,
 #endif
 #else
                     "%02d/%02d/%d %02d:%02d:%02d",
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
                     time.mon + 1, time.mday, time.year,
 #else
                     time.month + 1, time.day_of_month, time.year,
 #endif
 #endif
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
                     time.hour, time.min, time.sec
 #else
                     time.hours, time.minutes, time.seconds

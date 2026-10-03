@@ -18,10 +18,9 @@
 #include "dolphin/os/OS.h"
 #include "dolphin/vi/vi.h"
 
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
 // Aurora's TARGET_PC OSContext is opaque storage of the same size as the PowerPC register image;
 // the register fields are read and written through the forwarder's OSContextPPC view.
-// TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
 #define JUT_CONTEXT(ctx) OSContextPPCOf(ctx)
 #else
 #define JUT_CONTEXT(ctx) (ctx)

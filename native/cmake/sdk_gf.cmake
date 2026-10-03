@@ -9,9 +9,9 @@
 #
 # - Compiled against Aurora's SDK headers plus the forwarders in native/include/sdk (the game-only
 #   names dolphin/gf/GF.h, dolphin/gf/GFTransform.h, dolphin/os/OS.h), with the game-only GF
-#   declarations from native/include/sdk/cos_gf_extras.h. The same include order as the game in
-#   COS_SDK_HEADERS=aurora mode, whatever COS_SDK_HEADERS is: game/include is never on the
-#   path, and neither are the game's flags (cos_game_headers).
+#   declarations from native/include/sdk/cos_gf_extras.h. The same include order as the game's
+#   (GameConfig.cmake), except that game/include is never on the path, and neither are the
+#   game's flags (cos_game_headers).
 # - An OBJECT library of its own (this file, not sdk.cmake, so 2.6d does not touch the glob), whose
 #   objects go into cos_sdk.
 # - One TARGET_PC edit (GFGeometry.cpp): Aurora ignores CP_REG_ARRAYBASE, so GFSetArraySized writes
@@ -32,8 +32,7 @@ set(COS_SDK_GF_SOURCES
         "${COS_ROOT}/src/dolphin/gf/GFTransform.cpp")
 
 add_library(cos_sdk_gf OBJECT ${COS_SDK_GF_SOURCES})
-# Forwarders first, then Aurora's include (from the aurora::* targets below), as in GameConfig's
-# aurora mode. Only GF, GD, GX, MTX and OS are needed; the full list keeps the defines identical
+# Forwarders first, then Aurora's include (from the aurora::* targets below), as in GameConfig. Only GF, GD, GX, MTX and OS are needed; the full list keeps the defines identical
 # to cos_sdk's.
 target_include_directories(cos_sdk_gf PRIVATE "${COS_NATIVE_ROOT}/include/sdk")
 target_compile_definitions(cos_sdk_gf PRIVATE MTX_USE_PS=1)

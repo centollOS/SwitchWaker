@@ -4,14 +4,13 @@
 #                               build/native-mac/link_census_unresolved.txt (category<TAB>symbol)
 #
 # - Inputs: the objects of every enabled module, minus the REL units of rel_units.txt (filtered
-#   out of $<TARGET_OBJECTS:m> with $<FILTER:...,EXCLUDE,regex>), plus cos_sdk and Aurora when
-#   COS_WITH_AURORA is on. Nothing is recompiled: the module objects are reused.
+#   out of $<TARGET_OBJECTS:m> with $<FILTER:...,EXCLUDE,regex>), plus cos_sdk and Aurora. Nothing is recompiled: the module objects are reused.
 # - cos_link_census is a MODULE (a Mach-O bundle) linked with -undefined dynamic_lookup, so it
 #   links whatever is still missing; tools/link_census.py then sorts the symbols the bundle looks
 #   up dynamically (`nm -um`) into SDK, REL, JAudio/JAZel, MSL/runtime, deferred units and other.
 # - Before the link, tools/symbol_census.py lists duplicate strong definitions among the inputs
 #   (link_census/symbol_census.txt). With COS_LINK_CENSUS_STRICT they stop the link. Without it
-#   (the default while the decomp's SDK headers define hardware registers in every unit) they are
+#   (the default until step 2.9 settles the duplicates) they are
 #   made local in copies of the objects, so the census still sees the rest; the report counts them.
 #
 # macOS only: it relies on ld64 bundles and the Xcode nm/otool. Not part of `all`.
@@ -154,7 +153,7 @@ add_custom_command(TARGET cos_link_census POST_BUILD
                 --duplicates "${_census_dir}/duplicates.txt"
                 --deferred "${CMAKE_BINARY_DIR}/cos_deferred.txt"
                 --game-root "${COS_ROOT}"
-                --sdk-headers "${COS_SDK_HEADERS}"
+                --sdk-headers aurora
                 --with-aurora "${_census_aurora}"
                 ${_census_strict_arg}
                 --out "${CMAKE_BINARY_DIR}/link_census.txt"

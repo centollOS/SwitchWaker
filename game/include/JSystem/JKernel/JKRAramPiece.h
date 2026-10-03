@@ -58,9 +58,8 @@ public:
     static BOOL sync(JKRAMCommand*, int);
     static BOOL orderSync(int, u32, u32, u32, JKRAramBlock*);
     static void startDMA(JKRAMCommand*);
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // Aurora's ARQCallback takes the request address as uintptr_t (a host pointer).
-    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
     static void doneDMA(uintptr_t);
 #else
     static void doneDMA(u32);

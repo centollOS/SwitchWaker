@@ -25,9 +25,9 @@
 using namespace cos_sdk::os;
 
 // Aurora's <dolphin/os.h> turns __OSBusClock into a read of low memory (MEM1 + 0xF8). The decomp's
-// headers (the default COS_SDK_HEADERS=decomp) declare it as `extern u32 __OSBusClock` and derive
-// OS_BUS_CLOCK and OS_TIMER_CLOCK from it, so the game needs a real variable with the console's
-// value. Aurora's own OS_BUS_CLOCK has the same value.
+// headers (phase 1's COS_SDK_HEADERS=decomp, removed in step 2.8) declared it as
+// `extern u32 __OSBusClock` and derived OS_BUS_CLOCK and OS_TIMER_CLOCK from it; the variable keeps
+// the console's value for any unit that still names it. Aurora's own OS_BUS_CLOCK has the same value.
 #undef __OSBusClock
 
 namespace {

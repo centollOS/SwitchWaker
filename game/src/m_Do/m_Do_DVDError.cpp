@@ -28,10 +28,9 @@ void mDoDvdErr_ThdInit() {
         OSThread* curThread = OSGetCurrentThread();
         OSPriority priority = OSGetThreadPriority(curThread);
 
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
         // Aurora declares the entry point with its real type, void* (*)(void*); the game passes a function
         // of another signature, as it did through the decomp's void*.
-        // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
         OSCreateThread(&DvdErr_thread, (void* (*)(void*))mDoDvdErr_Watch, NULL, DvdErr_stack + sizeof(DvdErr_stack),
                        sizeof(DvdErr_stack), priority - 3, 1);
 #else

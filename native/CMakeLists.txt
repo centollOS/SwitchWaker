@@ -2,7 +2,8 @@
 #
 # Phase 1 (docs/NATIVE_PORT_PLAN.md): every translation unit of the game compiles to an object
 # with clang under TARGET_PC, against the host C/C++ library instead of Metrowerks' MSL.
-# Nothing is linked yet: the GameCube SDK over Aurora is phase 2, the RELs linked statically
+# Nothing is linked yet: the GameCube SDK over Aurora is phase 2 (the game compiles against
+# Aurora's SDK headers since step 2.8), the RELs linked statically
 # phase 3, 64-bit and endianness semantics phase 4, JAudio phase 5.
 #
 # Configure:  cmake -S native -B build/native-mac -G Ninja
@@ -51,11 +52,11 @@ include(cmake/GameConfig.cmake)
 include(cmake/deferred.cmake)
 # One OBJECT library per module, each behind a COS_MODULE_<name> option.
 include(cmake/modules.cmake)
-# Aurora, the GameCube SDK over WebGPU (phase 2), behind COS_WITH_AURORA.
+# Aurora, the GameCube SDK over WebGPU (phase 2); already included by GameConfig.cmake.
 include(cmake/Aurora.cmake)
-# cos_sdk, the game-specific SDK over Aurora, and its headless test cos_sdk_smoke (with Aurora only).
+# cos_sdk, the game-specific SDK over Aurora, and its headless test cos_sdk_smoke.
 include(cmake/sdk.cmake)
-# The game's GF sources (game/src/dolphin/gf) compiled into cos_sdk (with Aurora only).
+# The game's GF sources (game/src/dolphin/gf) compiled into cos_sdk.
 include(cmake/sdk_gf.cmake)
 # Link census (phase 2): `ninja cos_link_census` lists what the non-REL units still need.
 include(cmake/census.cmake)
@@ -67,15 +68,12 @@ add_library(cos_scaffold_check OBJECT
 target_link_libraries(cos_scaffold_check PRIVATE cos_game_headers)
 
 # SDK header check (phase 2, step 2.3): every SDK header name the decomp has, in one unit, against
-# the configured SDK headers (COS_SDK_HEADERS). In aurora mode, cos_sdk_shadow_check also proves
-# that none of them resolves under game/include/dolphin.
+# the game's SDK headers (Aurora's plus the native/include/sdk forwarders). cos_sdk_shadow_check
+# also proves that none of them resolves under game/include/dolphin.
 add_library(cos_sdk_header_check OBJECT check/sdk_headers.cpp)
 target_link_libraries(cos_sdk_header_check PRIVATE cos_game_headers)
-if (COS_SDK_HEADERS STREQUAL "aurora")
-    target_compile_definitions(cos_sdk_header_check PRIVATE COS_SDK_HEADERS_AURORA=1)
-    add_custom_target(cos_sdk_shadow_check
-            COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/check/check_sdk_shadow.sh" "${CMAKE_BINARY_DIR}"
-            DEPENDS cos_sdk_header_check
-            USES_TERMINAL
-            COMMENT "Checking that no SDK header resolves under game/include/dolphin")
-endif ()
+add_custom_target(cos_sdk_shadow_check
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/check/check_sdk_shadow.sh" "${CMAKE_BINARY_DIR}"
+        DEPENDS cos_sdk_header_check
+        USES_TERMINAL
+        COMMENT "Checking that no SDK header resolves under game/include/dolphin")

@@ -32,9 +32,8 @@ JKRThread::JKRThread(u32 stack_size, int message_count, int param_3) : mThreadLi
 #else
     void* stackBase = (void*)((int)mStackMemory + mStackSize);
 #endif
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // Aurora declares the entry point with its real type, void* (*)(void*), which start already has.
-    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
     OSCreateThread(mThreadRecord, start, this, stackBase, mStackSize, param_3, 1);
 #else
     OSCreateThread(mThreadRecord, (void*)start, this, stackBase, mStackSize, param_3, 1);
@@ -54,14 +53,10 @@ JKRThread::JKRThread(u32 stack_size, int message_count, int param_3) : mThreadLi
 JKRThread::JKRThread(OSThread* thread, int message_count) : mThreadListLink(this) {
     mHeap = NULL;
     mThreadRecord = thread;
-#if TARGET_PC && defined(COS_SDK_AURORA)
+#if TARGET_PC
     // Aurora's OSThread names the stack bounds stackBase/stackEnd (same offsets 0x304/0x308).
-    // TODO(native phase 2.8): drop the decomp-header branch when COS_SDK_HEADERS=decomp goes away.
     mStackSize = (uintptr_t)thread->stackEnd - (uintptr_t)thread->stackBase;
     mStackMemory = thread->stackBase;
-#elif TARGET_PC
-    mStackSize = (uintptr_t)thread->stack_end - (uintptr_t)thread->stack_base;
-    mStackMemory = thread->stack_base;
 #else
     mStackSize = (u32)thread->stack_end - (u32)thread->stack_base;
     mStackMemory = thread->stack_base;

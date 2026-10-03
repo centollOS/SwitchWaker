@@ -1,7 +1,7 @@
 #!/bin/sh
 # SDK shadow check (phase 2, step 2.3; docs/NATIVE_PORT_PHASE2_3.md, decision D2).
 #
-# With COS_SDK_HEADERS=aurora, Aurora's headers are the only SDK headers: the decomp's own
+# Aurora's headers are the only SDK headers (the default and only mode since step 2.8): the decomp's own
 # game/include/dolphin must never be reached. This script
 #   1. reruns the compile of check/sdk_headers.cpp from compile_commands.json with -M (the -MD
 #      dependency list, written to <build>/sdk_headers.deps),
@@ -10,7 +10,6 @@
 #   4. lists the names still pending (between COS_SDK_PENDING_BEGIN/END; none since step 2.4).
 #
 # Usage: native/check/check_sdk_shadow.sh [build-dir]     (default: build/native-mac)
-# The build directory must be configured with -DCOS_WITH_AURORA=ON -DCOS_SDK_HEADERS=aurora.
 # Target: ninja -C <build-dir> cos_sdk_shadow_check
 set -eu
 
@@ -41,8 +40,9 @@ entry = next((e for e in db if os.path.realpath(e["file"]) == os.path.realpath(u
 if entry is None:
     fail("check/sdk_headers.cpp is not in %s/compile_commands.json" % build)
 args = entry["arguments"] if "arguments" in entry else shlex.split(entry["command"])
-if not any(a == "-DCOS_SDK_HEADERS_AURORA=1" for a in args):
-    fail("%s is not configured with COS_SDK_HEADERS=aurora" % build)
+sdk_dir = os.path.realpath(os.path.join(native, "include", "sdk"))
+if not any(a.startswith("-I") and os.path.realpath(a[2:]) == sdk_dir for a in args):
+    fail("%s does not compile against the SDK forwarders (native/include/sdk)" % build)
 cmd = []
 skip = False
 for a in args:
@@ -83,7 +83,7 @@ missing = [n for n in names if n not in listed]
 if missing:
     fail("not listed in check/sdk_headers.cpp: " + " ".join(missing))
 
-# 4. Pending names (compiled in decomp mode only until their forwarders exist).
+# 4. Pending names (not compiled until their forwarders exist).
 m = re.search(r"COS_SDK_PENDING_BEGIN(.*?)COS_SDK_PENDING_END", src, re.S)
 pending = sorted(set(re.findall(r"#\s*include\s*[<\"](dolphin/[^>\"]+)[>\"]", m.group(1)))) if m else []
 
