@@ -83,6 +83,12 @@ void pc_logo_res_object(const char* name, int files, int loaded);
 void pc_logo_res_synced(int archives, int files, int missing);
 void pc_opening_scene_called(void);
 
+/* Milestone M7 (boot loop, pc_frame.cpp), called at the end of every dStage_Create: the start
+   stage's name and room, the file count of the mounted "Stage" archive (0 when it is not mounted)
+   and whether stage.dzs was found. Logs the stage; logs "opening" for the title opening's sea_T
+   once the archive is mounted and stage.dzs read, else exits 1 for sea_T. */
+void pc_stage_created(const char* stageName, int roomNo, int stageFiles, int hasDzs);
+
 /* Logs "[cos] MILESTONE <name> frame= retrace= ms=" and exits 0 if <name> is COS_MILESTONE. */
 void pc_milestone(const char* name);
 

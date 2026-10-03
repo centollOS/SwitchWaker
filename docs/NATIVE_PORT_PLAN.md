@@ -2268,6 +2268,18 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: regress passed again; an independent `opening --timeout 180` run reached exit 10 at
   ROOM_SCENE frame 5534 with no PANIC.
 
+- **M7 boot loop, iteration 10 / M7 reached** (2026-10-03, harness): the M7 probe was not wired.
+  `dStage_Create` now ends (under `TARGET_PC`) with `pc_stage_created` (pc_frame.cpp), which logs
+  `[cos] stage: <name> room <n> created at frame <f>; Stage archive <files> files, stage.dzs
+  found|missing` for every stage and, for `sea_T`, logs milestone `opening` once the "Stage"
+  archive is mounted and stage.dzs was read (exit 1 otherwise). `opening --timeout 180` exit 0 x3
+  (sea_T room 44 at frame 281, 23 files in the Stage archive); `opening 0` added to
+  regress_targets.txt. Open for M8: the game still prints "デモデータ読み込みエラー！！" (demo
+  data load error) from `dDemo_manager_c::create` (JStudio `TParse::parse_next` rejects the STB),
+  after the milestone frame.
+  Reviewed: regress passed; three independent capped `opening --timeout 180` runs exit 0 (sea_T
+  room 44, frame 281, ~5 s each).
+
 ### Phase 6 render issues
 
 None yet.

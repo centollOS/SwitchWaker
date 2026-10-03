@@ -16,6 +16,7 @@ gfx-create 0
 frame-loop 0
 logo-scene 0
 logo-res 0
+opening 0
 
 # smoke tests and format sweeps
 disc-ls 0

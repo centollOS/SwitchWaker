@@ -325,6 +325,20 @@ void pc_opening_scene_called(void) {
     }
 }
 
+void pc_stage_created(const char* stageName, int roomNo, int stageFiles, int hasDzs) {
+    const char* name = stageName != nullptr ? stageName : "(null)";
+    writef(STDERR_FILENO, "[cos] stage: %s room %d created at frame %u; Stage archive %d files, "
+                          "stage.dzs %s\n",
+           name, roomNo, pc_frame_count(), stageFiles, hasDzs ? "found" : "missing");
+    if (strcmp(name, "sea_T") == 0) {
+        if (stageFiles <= 0 || !hasDzs) {
+            writef(STDERR_FILENO, "[cos] opening: sea_T stage archive not mounted\n");
+            pc_exit(PC_EXIT_CHECK_FAILED);
+        }
+        pc_milestone("opening");
+    }
+}
+
 void pc_logo_scene_created(int logoFiles, const ResTIMG* timg, unsigned int size) {
     if (logoFiles <= 0 || timg == nullptr) {
         writef(STDERR_FILENO, "[cos] logo-scene: Logo archive not mounted (%d entries, timg %p)\n",

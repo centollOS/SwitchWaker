@@ -21,6 +21,9 @@
 #include "f_op/f_op_scene_mng.h"
 #include "m_Do/m_Do_mtx.h"
 #include "d/actor/d_a_sea.h"
+#if TARGET_PC
+#include "pc/pc_harness.h"
+#endif
 
 #if VERSION > VERSION_DEMO
 /* 80040900-80040938       .text set__18dStage_nextStage_cFPCcScsScSc */
@@ -2279,6 +2282,13 @@ void dStage_Create() {
     }
 
     dComIfGp_evmng_create();
+#if TARGET_PC
+    // Run harness (milestone M7 opening): the stage archive is mounted and dStage_Create is done.
+    dRes_info_c* stageInfo = g_dComIfG_gameInfo.mResControl.getStageResInfo("Stage");
+    pc_stage_created(dComIfGp_getStartStageName(), dComIfGp_getStartStageRoomNo(),
+                     stageInfo != NULL && stageInfo->getArchive() != NULL ? stageInfo->getResNum() : 0,
+                     stageRsrc != NULL);
+#endif
 }
 
 /* 80043464-80043514       .text dStage_Delete__Fv */
