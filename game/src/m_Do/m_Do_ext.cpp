@@ -2563,7 +2563,9 @@ void mDoExt_3DlineMatSortPacket::draw() {
 #endif
 }
 
-#if DEBUG
+// The debug-draw packets are DEBUG-only in the decomp, but d_debug_viewer.cpp (compiled for
+// TARGET_PC) constructs them, so the PC build has them too (as Dusklight does).
+#if DEBUG || TARGET_PC
 mDoExt_cube8pPacket::mDoExt_cube8pPacket(cXyz* i_points, const GXColor& i_color) {
     cXyz* pnt_array = mPoints;
 
@@ -2576,7 +2578,12 @@ mDoExt_cube8pPacket::mDoExt_cube8pPacket(cXyz* i_points, const GXColor& i_color)
 }
 
 void drawCube(MtxP mtx, cXyz* pos, const GXColor& color) {
+#if TARGET_PC
+    // Aurora's GXSetArray also takes the array's byte size and byte order: the 8 cube corners.
+    GXSETARRAY(GX_VA_POS, pos, sizeof(cXyz) * 8, sizeof(cXyz), true);
+#else
     GXSetArray(GX_VA_POS, pos, sizeof(cXyz));
+#endif
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
     GXClearVtxDesc();
     GXSetVtxDesc(GX_VA_POS, GX_INDEX8);
@@ -2655,7 +2662,12 @@ mDoExt_quadPacket::mDoExt_quadPacket(cXyz* i_points, const GXColor& i_color, u8 
 }
 
 void mDoExt_quadPacket::draw() {
+#if TARGET_PC
+    // Aurora's GXSetArray also takes the array's byte size and byte order.
+    GXSETARRAY(GX_VA_POS, mPoints, sizeof(mPoints), sizeof(cXyz), true);
+#else
     GXSetArray(GX_VA_POS, mPoints, sizeof(cXyz));
+#endif
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
     GXClearVtxDesc();
     GXSetVtxDesc(GX_VA_POS, GX_INDEX8);
@@ -2707,7 +2719,12 @@ mDoExt_trianglePacket::mDoExt_trianglePacket(cXyz* i_points, const GXColor& i_co
 void mDoExt_trianglePacket::draw() {
     j3dSys.reinitGX();
 
+#if TARGET_PC
+    // Aurora's GXSetArray also takes the array's byte size and byte order.
+    GXSETARRAY(GX_VA_POS, mPoints, sizeof(mPoints), sizeof(cXyz), true);
+#else
     GXSetArray(GX_VA_POS, mPoints, sizeof(cXyz));
+#endif
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
     GXClearVtxDesc();
     GXSetVtxDesc(GX_VA_POS, GX_INDEX8);

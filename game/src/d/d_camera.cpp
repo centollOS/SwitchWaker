@@ -1844,7 +1844,14 @@ cXyz dCamera_c::relationalPos(fopAc_ac_c* i_actor1, fopAc_ac_c* i_actor2, cXyz* 
 }
 
 /* 8016C55C-8016C578       .text eyePos__9dCamera_cFP10fopAc_ac_c */
+#if TARGET_PC
+// d_ev_camera.cpp calls it too. MWCC emits an out-of-line copy of an inline member function that
+// is not inlined everywhere; clang emits none for another unit, so on PC it is an ordinary
+// definition.
+cXyz dCamera_c::eyePos(fopAc_ac_c* i_actor) {
+#else
 inline cXyz dCamera_c::eyePos(fopAc_ac_c* i_actor) {
+#endif
     return i_actor->eyePos;
 }
 

@@ -185,11 +185,20 @@ ninja -C build/native-mac cos_scaffold_check cos_sdk_header_check cos_sdk_shadow
   sorted `category<TAB>symbol` list to `build/native-mac/link_census_unresolved.txt`.
 - Before the link, `native/tools/symbol_census.py` lists the duplicate strong definitions among
   the inputs and the weak definitions whose sizes differ (possible ODR violations), in
-  `build/native-mac/link_census/symbol_census.txt`. By default (until step 2.9 settles them) the
+  `build/native-mac/link_census/symbol_census.txt`. By default (`COS_LINK_CENSUS_STRICT=ON`, since
+  step 2.9 left none) a duplicate stops the link. With `-DCOS_LINK_CENSUS_STRICT=OFF` the
   duplicates are made local in copies of the objects (`ld -r`) and the census still links; the
-  report counts them. `-DCOS_LINK_CENSUS_STRICT=ON` lets them stop the link instead. (Phase 1's
-  decomp SDK headers defined the hardware registers, `__VIRegs`, `OS_*`..., in every unit; Aurora's
-  headers do not.)
+  report counts them. (Phase 1's decomp SDK headers defined the hardware registers, `__VIRegs`,
+  `OS_*`..., in every unit; Aurora's headers do not.)
+- Phase 2 exit (step 2.9): the list must equal `native/check/expected_unresolved_phase2.txt`, which
+  holds only the REL symbols (`OSLink`, `OSLinkFixed`, `OSUnlink`, `OSSetStringTable`; step 3.5)
+  and the JAudio/JAZel ones (step 3.7, phase 5):
+
+  ```sh
+  ninja -C build/native-mac cos_link_census
+  diff -u native/check/expected_unresolved_phase2.txt build/native-mac/link_census_unresolved.txt
+  native/tools/symbol_census.py --dol   # 0 duplicate strong definitions among the main.dol units
+  ```
 
 `symbol_census.py` also works on its own, without linking, on object files, directories or
 `@list` files:

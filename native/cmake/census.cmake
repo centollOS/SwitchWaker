@@ -9,9 +9,11 @@
 #   links whatever is still missing; tools/link_census.py then sorts the symbols the bundle looks
 #   up dynamically (`nm -um`) into SDK, REL, JAudio/JAZel, MSL/runtime, deferred units and other.
 # - Before the link, tools/symbol_census.py lists duplicate strong definitions among the inputs
-#   (link_census/symbol_census.txt). With COS_LINK_CENSUS_STRICT they stop the link. Without it
-#   (the default until step 2.9 settles the duplicates) they are
-#   made local in copies of the objects, so the census still sees the rest; the report counts them.
+#   (link_census/symbol_census.txt). With COS_LINK_CENSUS_STRICT (the default since step 2.9,
+#   which left none among the main.dol units) they stop the link. Without it they are made local
+#   in copies of the objects, so the census still sees the rest; the report counts them.
+# - Phase 2 exit (step 2.9): link_census_unresolved.txt must equal
+#   native/check/expected_unresolved_phase2.txt (REL and JAudio/JAZel symbols only).
 #
 # macOS only: it relies on ld64 bundles and the Xcode nm/otool. Not part of `all`.
 include_guard(GLOBAL)
@@ -28,7 +30,7 @@ if (NOT Python3_Interpreter_FOUND)
 endif ()
 
 option(COS_LINK_CENSUS_STRICT
-        "Link census: let duplicate strong symbols stop the link instead of making them local" OFF)
+        "Link census: let duplicate strong symbols stop the link instead of making them local" ON)
 
 set(_census_dir "${CMAKE_BINARY_DIR}/link_census")
 set(_census_tools "${COS_NATIVE_ROOT}/tools")

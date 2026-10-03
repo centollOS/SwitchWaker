@@ -152,7 +152,11 @@ def cmd_prepare(args) -> int:
     elif dups:
         print("link_census: strict mode, the link will stop on them")
 
-    write_if_changed(args.rsp, "".join(f'"{p}"\n' for p in inputs))
+    # Always rewritten: the bundle reads the objects through this file, so it is the bundle's only
+    # dependency on them. prepare runs only when an object changed, and an unchanged response
+    # file (CMake custom commands restat their outputs) would leave a stale bundle and report.
+    with open(args.rsp, "w", encoding="utf-8") as f:
+        f.write("".join(f'"{p}"\n' for p in inputs))
     return 0
 
 

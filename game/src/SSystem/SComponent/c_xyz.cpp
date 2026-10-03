@@ -5,6 +5,9 @@
 
 #include "SSystem/SComponent/c_xyz.h"
 #include "JSystem/JUtility/JUTAssert.h"
+#if TARGET_PC
+#include "SSystem/SComponent/c_math.h"
+#endif
 
 const cXyz cXyz::Zero(0, 0, 0);
 const cXyz cXyz::BaseX(1, 0, 0);
@@ -143,6 +146,15 @@ bool cXyz::isZero(void) const {
            std::fabsf(this->y) < 3.8146972e-06f &&
            std::fabsf(this->z) < 3.8146972e-06f;
 }
+
+#if TARGET_PC
+// Declared in c_xyz.h but not defined in the retail game; the debug arrow packet of m_Do_ext.cpp
+// (DEBUG-only in the decomp, compiled on PC for d_debug_viewer.cpp) calls it. Definition taken
+// from Dusklight's src/SSystem/SComponent/c_xyz.cpp (CC0, ref/dusklight), as TP's debug build has it.
+s16 cXyz::atan2sX_Z() const {
+    return cM_atan2s(this->x, this->z);
+}
+#endif
 
 // Unused, but must be in .rodata to match
 static const char * fmt0 = "[%f %f %f]\n";

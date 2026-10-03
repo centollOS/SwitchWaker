@@ -18,6 +18,12 @@ written by native/cmake/census.cmake). Uses the Xcode tools nm and otool.
 
     native/tools/symbol_census.py build/native-mac/CMakeFiles/SSystem.dir
     native/tools/symbol_census.py @build/native-mac/link_census/objects.txt --out report.txt
+    native/tools/symbol_census.py --dol            # main.dol units of build/native-mac
+
+--dol [BUILD_DIR] takes the main.dol units, i.e. the non-REL objects the link census lists in
+BUILD_DIR/link_census/objects.txt (written at configure time by native/cmake/census.cmake;
+BUILD_DIR defaults to build/native-mac), and exits 1 on any duplicate strong definition (the
+phase 2 exit check, step 2.9).
 """
 
 from __future__ import annotations
@@ -32,6 +38,9 @@ import sys
 from dataclasses import dataclass, field
 
 BATCH = 64  # object files per nm/otool call
+# build/native-mac of this repository (native/tools/ -> ../../build/native-mac).
+_DEFAULT_BUILD = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                               "..", "..", "build", "native-mac"))
 
 # nm -m: "<value> (<segment>,<section>) <attributes> <name>"; undefined has no value.
 _NM_LINE = re.compile(r"^(?P<value>[0-9a-fA-F]+)?\s*\((?P<sect>[^)]*)\)\s+(?P<rest>.*)$")
@@ -269,7 +278,10 @@ def format_report(objects: list[ObjectSymbols], dups: dict[str, list[str]],
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("inputs", nargs="+", help="object files, directories, or @list files")
+    ap.add_argument("inputs", nargs="*", help="object files, directories, or @list files")
+    ap.add_argument("--dol", nargs="?", metavar="BUILD_DIR", const=_DEFAULT_BUILD,
+                    help="add the main.dol units of the link census in BUILD_DIR (default "
+                         "build/native-mac) and fail on duplicate strong definitions")
     ap.add_argument("--out", help="write the report here instead of stdout")
     ap.add_argument("--root", help="print object paths relative to this directory")
     ap.add_argument("--limit", type=int, default=0, help="at most this many symbols per section")
@@ -277,7 +289,19 @@ def main(argv: list[str] | None = None) -> int:
                     help="exit 1 if there is any duplicate strong definition")
     args = ap.parse_args(argv)
 
-    paths = read_inputs(args.inputs)
+    inputs = list(args.inputs)
+    if args.dol:
+        dol_list = os.path.join(args.dol, "link_census", "objects.txt")
+        if not os.path.isfile(dol_list):
+            print(f"symbol_census: {dol_list} missing (configure {args.dol} first)", file=sys.stderr)
+            return 2
+        inputs.append("@" + dol_list)
+        args.fail_on_dups = True
+        if args.root is None:
+            args.root = args.dol
+    if not inputs:
+        ap.error("no inputs (give object files, directories, @list files or --dol)")
+    paths = read_inputs(inputs)
     if not paths:
         print("symbol_census: no object files", file=sys.stderr)
         return 2

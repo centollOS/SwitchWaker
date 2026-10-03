@@ -593,3 +593,55 @@ Each phase lands as its own commits; this file records decisions and measured re
   `FETCHCONTENT_SOURCE_DIR_AURORA`; `ninja -k 0 cos_modules cos_sdk cos_sdk_gf cos_sdk_smoke
   cos_scaffold_check cos_sdk_header_check` rc=0, 0 errors, 840/840 module objects; shadow check ok;
   smoke ok; a stale `-DCOS_SDK_HEADERS=decomp` stops the configure as intended).
+- **2.9 phase 2 exit:** the census over every non-REL unit (all 424; phase 1 deferred nothing, so
+  `cos_deferred.txt` is empty and the list has no deferred entries) now leaves only REL and
+  JAudio/JAZel symbols, and the main.dol units have no duplicate strong definition. Before this
+  step the census (2.8 defaults) found 137 unresolved (SDK/OS 1, REL 4, JAudio/JAZel 120, other
+  12) and 7 duplicate strong symbols. Fixes, each under `#if TARGET_PC` with the GameCube code in
+  `#else` where `game` is touched:
+  - Duplicates: the explicit specializations of `JPACallBackBase<JPABaseEmitter*>::init/execute/
+    executeAfter/draw` and `JPACallBackBase2<JPABaseEmitter*, JPABaseParticle*>::init/execute/draw`
+    in `JPAEmitter.h` (defined in each of 181 units). An explicit specialization is inline only if
+    it says so itself; MWCC emitted them weak, clang strong. They are declared `inline` on PC.
+  - `__OSModuleList` (JUTException, m_Do_printf): new `native/sdk/src/os/OSModule.cpp` defines it
+    and `__OSStringTable` once, as the `OSLink.h` forwarder asked; the list stays empty.
+  - `dCamera_c::eyePos`, defined `inline` in `d_camera.cpp` and called from `d_ev_camera.cpp`:
+    an ordinary definition on PC (MWCC emits an out-of-line copy, clang none for another unit).
+  - The 11 `mDoExt_*Packet` constructors `d_debug_viewer.cpp` calls: the decomp builds them only
+    `#if DEBUG` (the viewer is `DEBUG_ONLY` in `configure.py`), so `m_Do_ext.cpp` now builds that
+    block under `DEBUG || TARGET_PC`, as Dusklight does (`DEBUG || !__MWERKS__`). Its 3 calls to
+    the 3-argument `GXSetArray` became `GXSETARRAY` with the real byte size (the 8 cube corners,
+    `sizeof(mPoints)` of the quad and triangle packets) and `true`; `GXDrawCylinder`/`GXDrawSphere`
+    come from Aurora. The arrow packet then needs `cXyz::atan2sX_Z`, declared in `c_xyz.h` but not
+    defined in the retail game: `c_xyz.cpp` defines it on PC (Dusklight's definition, provenance
+    in the file).
+  - Tooling: `link_census.py prepare` always rewrites `link.rsp` (an unchanged response file left
+    the bundle and the report stale after an object changed, since CMake restats custom-command
+    outputs); `symbol_census.py --dol [BUILD_DIR]` checks the main.dol units of the census
+    (`link_census/objects.txt`, default `build/native-mac`) and exits 1 on a duplicate;
+    `COS_LINK_CENSUS_STRICT` now defaults to ON (a duplicate stops the census link), as 2.5 planned.
+  Result: `native/check/expected_unresolved_phase2.txt`, 124 symbols, identical to
+  `link_census_unresolved.txt`:
+  - REL (4, step 3.5): `OSLink`, `OSLinkFixed`, `OSUnlink` (DynamicLink.cpp), `OSSetStringTable`
+    (c_dylink.cpp). No `g_profile_*` is referenced by main.dol code.
+  - JAudio/JAZel (120, step 3.7 and phase 5): `JAIZelBasic` 72, `JAIZelInst` 15, `JAISound` 8,
+    `JAInter` 7 (`BankWave::checkAllWaveLoadStatus`, `SequenceMgr::getArchiveName`/
+    `setArchivePointer`, `StreamLib::getNeedBufferSize`/`setAllocBufferCallback`/
+    `setDeallocBufferCallback`/`stop`), `JAIBasic` 6, `JAIZelAnime` 4 plus its vtable,
+    `JAIAnimeSound` 3, `JAIGlobalParameter` 3, `JASystem::Dvd::sendCmdMsg` 1.
+  - SDK, MSL/runtime, deferred and other: 0.
+  `symbol_census.py --dol`: 424 objects, 0 duplicate strong definitions, 0 weak data definitions
+  with differing sizes, 8 weak code ones (`J2DPicture::setBlendRatio`, `J3DMtxCalcAnm::~J3DMtxCalcAnm`,
+  `dBgS_ObjAcch`'s destructors and thunks: per-unit inlining, not layouts). Verification
+  (`build/native-mac`, default configuration plus `COS_LINK_CENSUS_STRICT=ON`): `ninja -k 0
+  cos_modules cos_sdk cos_sdk_gf cos_sdk_smoke cos_scaffold_check cos_sdk_header_check
+  cos_sdk_shadow_check` rc=0, 0 errors, 840 module objects; shadow check ok (82 names); smoke ok;
+  `ninja cos_link_census` then `diff -u native/check/expected_unresolved_phase2.txt
+  build/native-mac/link_census_unresolved.txt` empty.
+  Reviewed in round 1: the module and check targets are up to date with rc=0, smoke ok, the census
+  bundle relinked from scratch in strict mode (124 = REL 4 + JAudio/JAZel 120) with an empty diff,
+  and `symbol_census.py --dol` reports 424 objects and 0 duplicates (rc=0).
+- **Phase 2 done:** the 840 units compile against Aurora's headers only, `cos_sdk` (Dusklight's OS
+  glue adapted, alarms on a host timer thread, VI retrace, GX gaps, GF, devices, silent audio
+  hardware) plus Aurora resolve every SDK name the main.dol units use, and what is left for the
+  link is the REL loader (phase 3, step 3.5) and JAudio/JAZel (step 3.7, phase 5).

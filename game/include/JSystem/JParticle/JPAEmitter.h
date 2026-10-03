@@ -86,6 +86,19 @@ public:
     inline virtual void draw(T);
 };  // Size: 0x04
 
+#if TARGET_PC
+// An explicit specialization is inline only if it says so itself (the `inline` of the class
+// template's declaration does not carry over). MWCC emits these weak anyway; clang emits a strong
+// definition in every unit that includes this header, so on PC they are declared inline.
+template<>
+inline void JPACallBackBase<JPABaseEmitter*>::init(JPABaseEmitter*) {}
+template<>
+inline void JPACallBackBase<JPABaseEmitter*>::execute(JPABaseEmitter*) {}
+template<>
+inline void JPACallBackBase<JPABaseEmitter*>::executeAfter(JPABaseEmitter*) {}
+template<>
+inline void JPACallBackBase<JPABaseEmitter*>::draw(JPABaseEmitter*) {}
+#else
 template<>
 void JPACallBackBase<JPABaseEmitter*>::init(JPABaseEmitter*) {}
 template<>
@@ -94,6 +107,7 @@ template<>
 void JPACallBackBase<JPABaseEmitter*>::executeAfter(JPABaseEmitter*) {}
 template<>
 void JPACallBackBase<JPABaseEmitter*>::draw(JPABaseEmitter*) {}
+#endif
 
 template<typename T, typename U>
 class JPACallBackBase2 {
@@ -106,12 +120,21 @@ public:
     inline virtual void draw(T, U);
 };
 
+#if TARGET_PC
+template<>
+inline void JPACallBackBase2<JPABaseEmitter*, JPABaseParticle*>::init(JPABaseEmitter*, JPABaseParticle*) {}
+template<>
+inline void JPACallBackBase2<JPABaseEmitter*, JPABaseParticle*>::execute(JPABaseEmitter*, JPABaseParticle*) {}
+template<>
+inline void JPACallBackBase2<JPABaseEmitter*, JPABaseParticle*>::draw(JPABaseEmitter*, JPABaseParticle*) {}
+#else
 template<>
 void JPACallBackBase2<JPABaseEmitter*, JPABaseParticle*>::init(JPABaseEmitter*, JPABaseParticle*) {}
 template<>
 void JPACallBackBase2<JPABaseEmitter*, JPABaseParticle*>::execute(JPABaseEmitter*, JPABaseParticle*) {}
 template<>
 void JPACallBackBase2<JPABaseEmitter*, JPABaseParticle*>::draw(JPABaseEmitter*, JPABaseParticle*) {}
+#endif
 
 struct JPAEmitterInfo {
 public:
