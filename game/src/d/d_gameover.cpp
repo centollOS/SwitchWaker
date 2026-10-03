@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_gameover.h"
 #include "d/d_meter.h"
 #include "m_Do/m_Do_graphic.h"
@@ -419,7 +422,13 @@ void dDlst_GameOverScrnDraw_c::draw() {
 
     J2DOrthoGraph* port = dComIfGp_getCurrentGrafPort();
     port->setPort();
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): drawn with J2DScreen's own 640x480 port (a NULL context), which
+    // fills the whole wider screen, instead of the 2D screen's (16:9 code at 0x8018F5CC).
+    scrn->draw(0.0f, 0.0f, pc_aspect_wide() ? NULL : port);
+#else
     scrn->draw(0.0f, 0.0f, port);
+#endif
 }
 
 /* 8018F5EC-8018F60C       .text dGameover_Draw__FP11dGameover_c */

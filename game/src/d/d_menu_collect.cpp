@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_menu_collect.h"
 #include "dolphin/types.h"
 #include "stdio.h"
@@ -1282,6 +1285,11 @@ void dMenu_Collect_c::noteAppear() {
         } else if (m7B0.mUserArea > threshold + 1) {
             noteClose();
         } else {
+#if TARGET_PC
+            // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+            // (nop at 0x8019E66C): it would not cover the wider screen.
+            if (!pc_aspect_wide())
+#endif
             m970.mNowAlpha = 0x82;
             m970.mInitAlpha = 0x82;
 
@@ -1337,11 +1345,21 @@ void dMenu_Collect_c::noteOpen() {
     f32 t = 1.0f - fopMsgM_valueIncrease(threshold, threshold - m7B0.mUserArea, 0);
 
     if (m7B0.mUserArea >= threshold) {
+#if TARGET_PC
+        // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+        // (nop at 0x8019E908): it would not cover the wider screen.
+        if (!pc_aspect_wide())
+#endif
         fopMsgM_setInitAlpha(&m970);
         fopMsgM_setInitAlpha(&m740);
         fopMsgM_setInitAlpha(&m778);
         mDoAud_seStart(JA_SE_ITM_MENU_EXP_IN);
     } else {
+#if TARGET_PC
+        // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+        // (nops at 0x8019E954, 0x8019EC70): it would not cover the wider screen.
+        if (!pc_aspect_wide())
+#endif
         fopMsgM_setNowAlpha(&m970, t);
         fopMsgM_setNowAlpha(&m740, t);
         fopMsgM_setNowAlpha(&m778, t);
@@ -1400,6 +1418,11 @@ void dMenu_Collect_c::noteClose() {
         fopMsgM_setNowAlpha(&m7B0, 1.0f - fVar1);
         fopMsgM_setNowAlpha(&m7E8, 1.0f - fVar1);
         fopMsgM_setNowAlpha(&m820, 1.0f - fVar1);
+#if TARGET_PC
+        // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+        // (nops at 0x8019E954, 0x8019EC70): it would not cover the wider screen.
+        if (!pc_aspect_wide())
+#endif
         fopMsgM_setNowAlpha(&m970, 1.0f - fVar1);
         fopMsgM_setNowAlpha(&m740, 1.0f - fVar1);
         fopMsgM_setNowAlpha(&m778, 1.0f - fVar1);

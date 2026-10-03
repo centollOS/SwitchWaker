@@ -1,4 +1,7 @@
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "JSystem/J2DGraph/J2DPane.h"
 #include "d/d_s_open.h"
 #include "d/d_com_inf_game.h"
@@ -559,7 +562,13 @@ void dScnOpen_proc_c::proc_draw() {
     JKRHeap* old_heap = mDoExt_setCurrentHeap(exp_heap);
     J2DOrthoGraph* graf = dComIfGp_getCurrentGrafPort();
     graf->setPort();
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): drawn with J2DScreen's own 640x480 port (a NULL context), which
+    // fills the whole wider screen, instead of the 2D screen's (16:9 code at 0x80234528).
+    m_Screen->draw(0.0f, 0.0f, pc_aspect_wide() ? NULL : graf);
+#else
     m_Screen->draw(0.0f, 0.0f, graf);
+#endif
     mDoExt_setCurrentHeap(old_heap);
 }
 

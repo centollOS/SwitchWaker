@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/actor/d_a_ghostship.h"
 #include "d/d_menu_fmap.h"
 #include "d/d_kankyo_wether.h"
@@ -2269,6 +2272,14 @@ BOOL dMenu_Fmap_c::paneTransBase(s16 i_frame, u8 i_max, f32 i_x, f32 i_y, u8 i_m
 
     f32 alpha = fopMsgM_valueIncrease(i_max, i_frame, i_mode);
     f32 transY = alpha * (i_y - i_x);
+#if TARGET_PC
+    if (pc_aspect_wide()) {
+        // Widescreen (pc_aspect.h): the 'cl' mask spans the wider 2D screen (16:9 code at
+        // 0x801B6968/78 and its added code at 0x80004038: x -123, right edge 767).
+        fopMsgM_paneTrans(&mClPane, pc_aspect_2d_left(), i_x + transY);
+        mClPane.pane->pcSetBoundsRight(pc_aspect_2d_right());
+    } else
+#endif
     fopMsgM_paneTrans(&mClPane, 0.0f, i_x + transY);
     fopMsgM_paneTrans(&mFddmPane, 0.0f, i_x + transY);
 
@@ -2949,6 +2960,11 @@ BOOL dMenu_Fmap_c::paneAlphaWarpMsgBack(s16 i_frame, u8 i_max, u8 i_mode, int i_
         if (i_flag == 1) {
             alpha = 1.0f - alpha;
         }
+#if TARGET_PC
+        // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+        // (nop at 0x801B955C): it would not cover the wider screen.
+        if (!pc_aspect_wide())
+#endif
         fopMsgM_setNowAlpha(&mWts1Pane, alpha);
         fopMsgM_setAlpha(&mWts1Pane);
     }

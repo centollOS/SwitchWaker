@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "stdio.h"
 #include "d/d_item_data.h"
 #include "d/d_lib.h"
@@ -825,6 +828,11 @@ void dMenu_Dmap_c::paneAlpha(f32 i_alpha) {
     fopMsgM_setNowAlpha(&mCc10Pane, i_alpha);
     fopMsgM_setNowAlpha(&mCc05Pane, i_alpha);
     fopMsgM_setNowAlpha(&mCc00Pane, i_alpha);
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+    // (nop at 0x801AB610): it would not cover the wider screen.
+    if (!pc_aspect_wide())
+#endif
     fopMsgM_setNowAlpha(&mMskPane, i_alpha);
 }
 
@@ -1038,11 +1046,21 @@ void dMenu_Dmap_c::noteOpen() {
 
     s16 r0 = 17;
     if (mNt00Pane.mUserArea >= r0) {
+#if TARGET_PC
+        // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+        // (nop at 0x801AC400): it would not cover the wider screen.
+        if (!pc_aspect_wide())
+#endif
         fopMsgM_setInitAlpha(&mMsk0Pane);
         fopMsgM_setInitAlpha(&mStr0Pane);
         fopMsgM_setInitAlpha(&mSt00Pane);
         mDoAud_seStart(JA_SE_ITM_MENU_EXP_IN);
     } else {
+#if TARGET_PC
+        // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+        // (nops at 0x801AC44C, 0x801AC770): it would not cover the wider screen.
+        if (!pc_aspect_wide())
+#endif
         fopMsgM_setNowAlpha(&mMsk0Pane, alpha);
         fopMsgM_setNowAlpha(&mStr0Pane, alpha);
         fopMsgM_setNowAlpha(&mSt00Pane, alpha);
@@ -1115,6 +1133,11 @@ void dMenu_Dmap_c::noteClose() {
         fopMsgM_setNowAlpha(&mNt00Pane, 1.0f - alpha);
         fopMsgM_setNowAlpha(&mNk00Pane, 1.0f - alpha);
         fopMsgM_setNowAlpha(&mNo11Pane, 1.0f - alpha);
+#if TARGET_PC
+        // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+        // (nops at 0x801AC44C, 0x801AC770): it would not cover the wider screen.
+        if (!pc_aspect_wide())
+#endif
         fopMsgM_setNowAlpha(&mMsk0Pane, 1.0f - alpha);
         fopMsgM_setNowAlpha(&mStr0Pane, 1.0f - alpha);
         fopMsgM_setNowAlpha(&mSt00Pane, 1.0f - alpha);

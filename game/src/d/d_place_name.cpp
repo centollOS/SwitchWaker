@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_place_name.h"
 #include "f_op/f_op_msg.h"
 #include "f_op/f_op_msg_mng.h"
@@ -73,6 +76,14 @@ void dPlace_name_c::setScreen(const char* name, JKRArchive* arc) {
     JUT_ASSERT(VERSION_SELECT(69, 69, 91, 91), scrn != NULL);
 
     scrn->set(name, arc);
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): the screen's left edge, 0 as J2DScreen::set reads it, moves left
+    // (16:9 code at 0x8016103C and its added code at 0x800037E0: bounds left = -123), and the
+    // place name with it, toward the left edge of the wider screen.
+    if (pc_aspect_wide()) {
+        scrn->pcSetBoundsLeft(pc_aspect_lerp(0.0f, -123.0f));
+    }
+#endif
     fopMsgM_setPaneData(&pane, scrn, 0x706e);
 
     scrn->search('blc1')->hide();

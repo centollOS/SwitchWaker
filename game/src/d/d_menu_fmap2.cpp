@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "JSystem/J2DGraph/J2DOrthoGraph.h"
 #include "JSystem/J2DGraph/J2DPicture.h"
 #include "JSystem/J2DGraph/J2DTextBox.h"
@@ -2393,6 +2396,14 @@ BOOL dMenu_Fmap2_c::paneTransBase(s16 param_1, u8 param_2, f32 param_3, f32 para
     }
     f32 f31 = fopMsgM_valueIncrease(param_2, param_1, param_5);
     f32 d = f31 * (param_4 - param_3);
+#if TARGET_PC
+    if (pc_aspect_wide()) {
+        // Widescreen (pc_aspect.h): the 'cl' mask spans the wider 2D screen (16:9 code at
+        // 0x801C5174/88 and its added code at 0x80004048: x -123, right edge 767).
+        fopMsgM_paneTrans(&mClPane, pc_aspect_2d_left(), param_3 + d);
+        mClPane.pane->pcSetBoundsRight(pc_aspect_2d_right());
+    } else
+#endif
     fopMsgM_paneTrans(&mClPane, 0.0f, param_3 + d);
     if (param_7 != 2) {
         if (param_7 == 1) {

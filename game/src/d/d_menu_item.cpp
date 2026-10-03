@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_menu_item.h"
 #include "d/d_com_inf_game.h"
 #include "d/d_item_data.h"
@@ -946,6 +949,11 @@ void dMenu_Item_c::subWindowInit() {
         fopMsgM_setInitAlpha(&m1268[i]);
     }
 
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+    // (nop at 0x801CA9A8): it would not cover the wider screen.
+    if (!pc_aspect_wide())
+#endif
     fopMsgM_setInitAlpha(&m1460);
 
     m231C->insertChild(mCB8[7].pane, mA18[3].pane);
@@ -1391,6 +1399,11 @@ void dMenu_Item_c::noteAppear() {
             noteClose();
         } else {
             u8 alpha = g_miHIO.field_0x5C;
+#if TARGET_PC
+            // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+            // (nop at 0x801CC208): it would not cover the wider screen.
+            if (!pc_aspect_wide())
+#endif
             m970.mNowAlpha = alpha;
             m970.mInitAlpha = alpha;
 
@@ -1413,11 +1426,21 @@ void dMenu_Item_c::noteOpen() {
     f32 t = 1.0f - fopMsgM_valueIncrease(threshold, threshold - m7B0.mUserArea, 0);
 
     if (m7B0.mUserArea >= threshold) {
+#if TARGET_PC
+        // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+        // (nop at 0x801CC338): it would not cover the wider screen.
+        if (!pc_aspect_wide())
+#endif
         fopMsgM_setInitAlpha(&m970);
         fopMsgM_setInitAlpha(&m740);
         fopMsgM_setInitAlpha(&m778);
         mDoAud_seStart(JA_SE_ITM_MENU_EXP_IN);
     } else {
+#if TARGET_PC
+        // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+        // (nops at 0x801CC384, 0x801CC778): it would not cover the wider screen.
+        if (!pc_aspect_wide())
+#endif
         fopMsgM_setNowAlpha(&m970, t);
         fopMsgM_setNowAlpha(&m740, t);
         fopMsgM_setNowAlpha(&m778, t);
@@ -1476,6 +1499,11 @@ void dMenu_Item_c::noteClose() {
         fopMsgM_setNowAlpha(&m7B0, 1.0f - t);
         fopMsgM_setNowAlpha(&m7E8, 1.0f - t);
         fopMsgM_setNowAlpha(&m820, 1.0f - t);
+#if TARGET_PC
+        // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+        // (nops at 0x801CC384, 0x801CC778): it would not cover the wider screen.
+        if (!pc_aspect_wide())
+#endif
         fopMsgM_setNowAlpha(&m970, 1.0f - t);
         fopMsgM_setNowAlpha(&m740, 1.0f - t);
         fopMsgM_setNowAlpha(&m778, 1.0f - t);

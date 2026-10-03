@@ -1,4 +1,7 @@
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_operate_wind.h"
 #include "d/d_com_inf_game.h"
 #include "d/d_lib.h"
@@ -44,7 +47,13 @@ void dDlst_Ow_main_c::draw() {
 void dDlst_Ow_mask_c::draw() {
     J2DOrthoGraph* graf = dComIfGp_getCurrentGrafPort();
     graf->setPort();
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): drawn with J2DScreen's own 640x480 port (a NULL context), which
+    // fills the whole wider screen, instead of the 2D screen's (16:9 code at 0x8021E6E8).
+    scrn->draw(0.0f, 0.0f, pc_aspect_wide() ? NULL : graf);
+#else
     scrn->draw(0.0f, 0.0f, graf);
+#endif
 }
 
 /* 8021E708-8021E7E4       .text dOw_angleRegular__15dOperate_wind_cFf */

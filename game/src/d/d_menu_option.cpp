@@ -4,6 +4,9 @@
 //
 
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_menu_option.h"
 #include "JSystem/J2DGraph/J2DTextBox.h"
 #include "JSystem/JUtility/JUTAssert.h"
@@ -235,6 +238,11 @@ void dMenu_Option_c::titleInit() {
 void dMenu_Option_c::mainMove() {
     float alpha = fopMsgM_valueIncrease(7, mC80[0].mUserArea, 0);
     
+#if TARGET_PC
+    // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+    // (nop at 0x801D37FC): it would not cover the wider screen.
+    if (!pc_aspect_wide())
+#endif
     fopMsgM_setNowAlpha(&mCF0, alpha);
 
     fopMsgM_setNowAlpha(&m9A8[mE3C], alpha);

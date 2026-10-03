@@ -1,4 +1,7 @@
 #include "d/dolzel.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/pc_aspect.h"
+#endif
 #include "d/d_menu_save.h"
 #include "d/d_file_error.h"
 #include "d/d_meter.h"
@@ -1794,6 +1797,11 @@ BOOL dMenu_save_c::PaneScaleAlphaWipe(s16 param_0, u8 param_1, f32 param_2, u8 p
         }
 
         for (i = 0; i < 8; i++) {
+#if TARGET_PC
+            // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+            // (nop at 0x801DAA38): it would not cover the wider screen.
+            if (!pc_aspect_wide())
+#endif
             fopMsgM_setNowAlpha(&field_0x14[i], var_f31);
             fopMsgM_setAlpha(&field_0x14[i]);
         }
@@ -1816,6 +1824,11 @@ BOOL dMenu_save_c::PaneAlphaMask(s16 param_0, u8 param_1, u8 param_2, int param_
             var_f31 = 1.0f - var_f31;
         }
 
+#if TARGET_PC
+        // Widescreen (pc_aspect.h): the 16:9 code leaves this full-screen mask pane alone
+        // (nop at 0x801DAAE8): it would not cover the wider screen.
+        if (!pc_aspect_wide())
+#endif
         fopMsgM_setNowAlpha(&field_0x1d4, var_f31);
         fopMsgM_setAlpha(&field_0x1d4);
     }
