@@ -77,10 +77,16 @@ _LKD01 = ("needs event flag 0x2D01 (set by M2tower's rescue.stb before the game 
           "the debug boot's new file mounts LkD00.arc, and the stage's Link cutscene asks for "
           "LkD01 file ids (btp 368 and btk 355 name other file types in LkD00)")
 _LKD01_SIG = r"in (JUTNameTab::getIndex|J3DAnmTexPattern::searchUpdateMaterialID) "
+_ENDING = ("the ending stage: the game enters it only with layer 8, whose LBNK entry (0x25) makes "
+           "d_s_room.cpp mount Demo37.arc with the event's ending.stb; the debug boot's layer -1 "
+           "resolves to layer 0, which has no demo bank, so dEvDtStaff_c finds no ending.stb "
+           "(d_event_data.cpp:1070). Booted with layer 8 (ENDumi:0:0:8) the ending plays and "
+           "stops at the LkD01 signature above: it needs event flag 0x2D01 too")
 EXPECTED_FAIL = {
     "GTower": (_LKD01_SIG, _LKD01),
     "M2ganon": (_LKD01_SIG, _LKD01),
     "GanonK": (_LKD01_SIG, _LKD01),
+    "ENDumi": (r"^PANIC d_event_data\.cpp:1070 .* in dEvDtStaff_c::specialProcPackage ", _ENDING),
 }
 
 STAGE_ARC = re.compile(r"^/res/Stage/([^/]+)/Stage\.arc$")

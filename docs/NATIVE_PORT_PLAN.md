@@ -2904,6 +2904,24 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Msmoke; 3 expected fails, 1 skipped). Regression passes.
   Reviewed: regression passes; reviewer sweep 150 of 155 (the castle stage, K_Testd ok).
 
+- **Boot-sweep fix 13: boot-sweep expected fail ENDumi (the ending needs layer 8)** (2026-10-03,
+  lane outset, harness). Signature (1 of 2 failures in a 150/155 sweep, tied with Msmoke's
+  `d_a_door10.cpp:356`): `PANIC d_event_data.cpp:1070` in `dEvDtStaff_c::specialProcPackage` <-
+  `dEvDtEvent_c::specialStaffProc` (ENDumi). The `JUT_ASSERT(demo_data)` of the PLAY action:
+  the stage event asks for `ending.stb`, which is in neither the Stage archive nor a demo archive.
+  Cause: the debug boot, not game code. Room 0's LBNK is `ff x8, 25, ff x3`: only layer 8 has a
+  demo bank (0x25), so `d_s_room.cpp` mounts `Demo37.arc` (with `ending.stb`) only on layer 8. The
+  debug boot's layer -1 resolves to layer 0 (no bank, no demo archive). The disc's debug stage
+  list also enters ENDumi with layer 8. Checked (temporary logging, reverted): booted as
+  `ENDumi:0:0:8`, Demo37 is mounted, `ending.stb` is found and the ending starts; it then stops at
+  the LkD01 signature of fix 5 (`JUTNameTab::getIndex` <- `setDemoTextureAnime`), since the ending
+  also needs event flag 0x2D01. `boot_sweep.py` lists ENDumi in `EXPECTED_FAIL` with the
+  `d_event_data.cpp:1070` signature and this reason. **Boot-sweep expected fails:** GTower,
+  M2ganon, GanonK (LkD01), ENDumi (layer 8, then LkD01). Left: Msmoke (`door10.bdl` asked by
+  `daDoor10_c::CreateHeap`, while its Stage archive only has `bmdc/door10.bmd`; to be checked).
+  Reviewed: regression passes; `ENDumi:0:0:8` gets past `d_event_data.cpp:1070` and stops at the
+  LkD01 `JUTNameTab::getIndex` signature; reviewer sweep 150 of 155 (1 failure Msmoke, 4 xfail).
+
 - **4.17 JStudio and demos** (2026-10-03, lane j3d): `COS_SMOKE=stb-sweep` 0 x3; the report equals
   the manifest (1319 archives, 54 STB files, 1025 objects; 118406 frames played, 41.5 million
   variable values checked, max |v| 500000). Builds on the boot loops' STB/FVB big-endian
