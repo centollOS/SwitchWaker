@@ -645,3 +645,17 @@ Each phase lands as its own commits; this file records decisions and measured re
   glue adapted, alarms on a host timer thread, VI retrace, GX gaps, GF, devices, silent audio
   hardware) plus Aurora resolve every SDK name the main.dol units use, and what is left for the
   link is the REL loader (phase 3, step 3.5) and JAudio/JAZel (step 3.7, phase 5).
+
+## Phase 3 log
+
+- **3.1 Full symbol census:** `symbol_census.py --all` (and `ninja cos_symbol_census`, not in
+  `all`) scans 866 objects (424 main.dol, 416 REL = `f_pc_profile_lst` + 415 actors, 26 cos_sdk)
+  into `build/native-mac/symbol_census.txt`, REL objects marked `(REL)`, plus a source-level scan of
+  types defined at namespace scope in more than one source file; `--dups` exits 1 on duplicates.
+  Result: 3 duplicate strong definitions (`ModuleProlog`/`ModuleEpilog` in `DynamicLink.cpp` vs
+  `f_pc_profile_lst.cpp`, `hio_set` in `d_a_fganon.cpp` vs `d_a_shand.cpp`) for step 3.2; 8 types
+  for step 3.3 (`Attr_c`, `MyScreen`, `NpcDatStruct` x6, `PsoData`, `SafetyCallback`,
+  `SaveDatStruct`, `attack_info_s`, `fopMsg_prm_MGameTerm`; `daNpc_Gp1_HIO_c` is only `#if`
+  alternatives in one file); weak size mismatches 0 data / 10 code; `d_mesg.cpp` braces do not
+  balance for the scan and is listed. Reviewed in round 1: census rc=0, `--dups` rc=1 (3), all
+  default targets rc=0, smoke ok, phase 2 unresolved diff empty, `--dol` 0 duplicates.

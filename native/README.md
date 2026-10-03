@@ -207,5 +207,17 @@ ninja -C build/native-mac cos_scaffold_check cos_sdk_header_check cos_sdk_shadow
 native/tools/symbol_census.py build/native-mac/CMakeFiles/SSystem.dir --root build/native-mac
 ```
 
+Full symbol census (step 3.1): `--all` takes every object the phase 3 executable links (main.dol
+units, the REL units, marked `(REL)`, and `cos_sdk`) and adds a source-level section: types
+(class/struct/union) defined at namespace scope, outside unnamed namespaces, in more than one
+source file, since a plain struct leaves no symbol for `nm` to compare. It only reports; `--dups`
+prints only the duplicate strong definitions and exits 1 if there is any.
+
+```sh
+ninja -C build/native-mac cos_symbol_census     # writes build/native-mac/symbol_census.txt
+native/tools/symbol_census.py --all             # the same, by hand
+native/tools/symbol_census.py --all --dups      # the step 3.2 check
+```
+
 The REL list is regenerated with
 `native/tools/link_census.py rel-units --configure <decomp>/configure.py --out native/cmake/rel_units.txt --game-src game/src`.
