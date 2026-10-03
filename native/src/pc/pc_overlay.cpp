@@ -5,7 +5,8 @@
 // Every half second it shows the frames per second over that half second (game frames, which on
 // the Switch are also the presents: one each), the game thread's busy time per frame (the frame
 // minus the pace wait, without aurora_end_frame), and on the Switch the render worker's busy time
-// per presented frame and its Queue::Submit part (cos_switch_gfx_stats).
+// per presented frame and its Queue::Submit part (cos_switch_gfx_stats), and what Dawn's GL replay
+// issued per presented frame: draws and sampled-texture binds.
 #include "pc_internal.h"
 
 #include <imgui.h>
@@ -31,6 +32,8 @@ struct OverlayState {
     CosSwitchGfxStats start{};
     double workerMs = 0;
     double submitMs = 0;
+    double draws = 0;
+    double texBinds = 0;
     bool workerValid = false;
 #endif
 } sOverlay;
@@ -48,6 +51,8 @@ void overlayUpdate(uint64_t now) {
     if (s.workerValid) {
         s.workerMs = (cur.workerBusyNs - s.start.workerBusyNs) / 1e6 / presents;
         s.submitMs = (cur.workerSubmitNs - s.start.workerSubmitNs) / 1e6 / presents;
+        s.draws = (double)(cur.glDraws - s.start.glDraws) / presents;
+        s.texBinds = (double)(cur.glTexBinds - s.start.glTexBinds) / presents;
     }
     s.start = cur;
 #endif
@@ -88,6 +93,7 @@ void overlayFrame(uint64_t busyNs) {
 #if defined(__SWITCH__)
         if (s.workerValid) {
             ImGui::Text("render %.1f ms (submit %.1f)", s.workerMs, s.submitMs);
+            ImGui::Text("draws %.0f, tex binds %.0f", s.draws, s.texBinds);
         } else {
             ImGui::TextUnformatted("render -");
         }
