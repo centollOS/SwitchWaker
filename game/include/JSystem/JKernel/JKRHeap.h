@@ -163,7 +163,18 @@ public:
     static JKRHeap* sRootHeap;
 
     static JKRHeap* sSystemHeap;
+#if TARGET_PC
+    // One current heap per host thread, as in Dusklight (ref/dusklight/libs/JSystem/src/JKernel/
+    // JKRHeap.cpp, CC0). On the GameCube one thread runs at a time and JKRThreadSwitch's switch-
+    // thread callback swaps the single current heap; host threads run in parallel and cos_sdk never
+    // calls that callback. A thread made by OSCreateThread starts with the current heap of the thread
+    // whose OSResumeThread started it, as on the GameCube (the game glue's cos_sdk thread hooks,
+    // native/src/pc/pc_main.cpp); other host threads (Aurora, SDL, Dawn) start with none, so the
+    // global operator new gives them host memory.
+    static thread_local JKRHeap* sCurrentHeap;
+#else
     static JKRHeap* sCurrentHeap;
+#endif
     static bool sDefaultFillFlag;
 
     static JKRErrorHandler mErrorHandler;

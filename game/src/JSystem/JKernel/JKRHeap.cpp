@@ -17,7 +17,11 @@
 
 bool JKRHeap::sDefaultFillFlag = true;
 JKRHeap* JKRHeap::sSystemHeap;
+#if TARGET_PC
+thread_local JKRHeap* JKRHeap::sCurrentHeap; // per host thread, see JKRHeap.h
+#else
 JKRHeap* JKRHeap::sCurrentHeap;
+#endif
 JKRHeap* JKRHeap::sRootHeap;
 JKRErrorHandler JKRHeap::mErrorHandler;
 
