@@ -2769,6 +2769,21 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: patch matches Dolphin `IndexGenerator::AddQuads`, applies to clean 3227d76;
   file-select shots 900/1200 show stars without lines, title shot 600 intact; regress passes.
 
+- R3-title-hud (lane boot, render triage, no code change): the title showed the gameplay HUD
+  (hearts, rupees, A/B/X/Y/Z, "Crouch", camera arrows), Link in gameplay, a black jagged King of
+  Red Lions left of the logo and a green striped pole. Already fixed by integrated work: the run
+  that showed it (lane shot, `run --frames 3000 --shot 300,1500,3000`, shot 1500) logs
+  "デモデータ読み込みエラー！！", i.e. it predates the M8 boot loop's STB fixes (iterations 1-5,
+  8eb9db8 and the JStudio commits). With no title demo, no event ran, so `dMeter_statusCheck`
+  never saw `dComIfGp_event_runCheck()` and the meter drew as in play; with the demo running the
+  meter is hidden as on the GameCube. The black boat and the striped pole were J3D materials
+  sampling stale textures, fixed by R1-lighting (3c3f2ae). See render issues.
+  Checked with COS_SHOT on the current tree: `run --frames 1310 --shot 600,900,1300` and
+  `run --frames 3010 --uncapped --shot 1500,2000,2500,3000` show no HUD in any frame (title over
+  Outset, Link on the cliff, open sea, then the prologue scroll and text).
+  Reviewed: the before-run (lane shot, 14:47) predates the STB commits 5395c07..8eb9db8
+  (14:56-15:21); reran both runs on 28c72a8, no HUD and no demo-data error; regress passes.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
@@ -2855,6 +2870,19 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   900,1200` shows the starry night sky with clouds behind the memory-card prompt, as on the
   GameCube; before, the same frames had the white lines. `run --frames 610 --shot 600` (title,
   logo with subtitle) unchanged.
+- **Gameplay HUD drawn on the title, black jagged geometry left of the logo, green striped pole**
+  (step R3-title-hud, lane boot; title `run --frames 3000 --shot 1500` of a build that logged
+  "デモデータ読み込みエラー！！"): not a render bug. Two causes, both **fixed** by earlier work:
+  1. (main) The title demo's STB did not parse (big-endian STB/FVB containers, JStudio list node
+     offsets, adaptor operands), so the title stage ran without its demo event: Link stood in
+     play and `dMeter_statusCheck` (d_meter.cpp) set none of the event flags that hide the meter
+     (`dComIfGp_event_runCheck()` false). Fixed by the M8 boot loop iterations 1-5 (STB parse
+     through 8eb9db8); the demo now plays and the HUD is hidden, as on the GameCube.
+  2. The black jagged shape (the King of Red Lions' head) and the green striped pole were J3D
+     materials sampling stale textures; fixed by R1-lighting's J3D texture binding (3c3f2ae).
+  Checked with COS_SHOT: `run --frames 1310 --shot 600,900,1300` and `run --frames 3010
+  --uncapped --shot 1500,2000,2500,3000` show the title without HUD, the boat textured (its dark
+  colour is the open entry below) and no striped pole.
 - **King of Red Lions dark on the title** (found while reviewing R1-lighting, title frames
   900/1300): after the J3D texture fix the boat's head and hull draw dark olive/brown with little
   of the red of the GameCube title. Not triaged (lighting/colour registers of its materials vs.
