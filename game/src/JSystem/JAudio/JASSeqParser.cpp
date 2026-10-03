@@ -690,8 +690,8 @@ int JASystem::TSeqParser::cmdPrintf(TTrack* track, u32* args) {
         registers[i] = track->getSeq()->readByte();
         if (byteArray[i] == 2) {
 #if TARGET_PC
-            // TODO(native phase 4): the debug print shows the address as an int (%x); a 64-bit
-            // address loses its upper half here. Only the printed value is affected.
+            // NOTE(native phase 4, harmless): only the debug print's value (%x) loses the upper
+            // half of a 64-bit address; nothing reads it back as an address (step 5.2).
             registers[i] = (int)(intptr_t)track->getSeq()->getAddr(registers[i]);
 #else
             registers[i] = (int)track->getSeq()->getAddr(registers[i]);

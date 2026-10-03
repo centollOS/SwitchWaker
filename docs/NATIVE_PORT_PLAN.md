@@ -2019,6 +2019,44 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   but for `BE(T)` shims.
   Review (2026-10-03): approved; j3d-sweep 0 equal to the manifest, `regress.sh -j 3` all checks
   passed; committed as seven commits, one root cause each, plus this log.
+- **5.2 JAudio and 64-bit** (2026-10-03, pulled ahead of M7 by H10): build clean (`ninja` on every
+  default target), `COS_SMOKE=audio-parse` 0 x3 (one uncapped) and equal to the manifest, logo-res
+  0. Each change is under `TARGET_PC` with the GameCube code in `#else`; `unifdef -UTARGET_PC` of
+  every changed game file equals HEAD's but one removed marker comment.
+  - **Owner tags (callback IDs).** `TDSPChannel`'s owner tag (`field_0x8`, `allocate`, `alloc`,
+    `free`, `checkSign`) is `TDSPChannelSign`, a `uintptr_t`: `getLogicalChannel` turns it back
+    into the owning `TChannel*`, which the u32 truncated. Callers (`JASChAllocQueue`,
+    `TChannel`, `StreamLib`'s `&assign_ch[i]`) pass the whole address. 7 markers of group K go.
+  - **DSP and AI addresses** are MEM1 physical addresses through the new
+    `JASystem::Kernel::toPhysical` (`JASSystemHeap`), which panics outside MEM1 (Aurora's
+    `OSCachedToPhysical` only asserts, and not in RelWithDebInfo): `DsetupTable` (CH_BUF, FX_BUF,
+    both filter tables), `DsetDolbyDelay`, `DsyncFrame2` (`dsp_buf`), `Play_DirectPCM`'s PCM
+    address, `AIInitDMA` (the DAC buffers; the cos_sdk AI stub comment says so) and
+    `FXBuffer::field_0x4`, which is a u32 physical address so `FXBuffer` keeps the 0x20 bytes the
+    DSP reads (`static_assert` on `FXBuffer` 0x20 and `DSPBuffer` 0x180).
+  - **MEM1 placement.** CH_BUF, FX_BUF, `dsp_buf` and the DAC buffers already come from JASDram (the
+    audio heap, inside MEM1). The static `DSPRES_FILTER`, `DSPADPCM_FILTER` (now sized in
+    `JASDriverTables.h`) and `DOLBY2_DELAY_BUF` are outside MEM1, so `setupBuffer` hands the DSP
+    JASDram copies. `DspBoot` copies the `jdsp` ucode to JASDram and allocates the 8 KiB yield
+    buffer there, and the task gets their physical addresses instead of `jdsp + 0x80000000`.
+  - **Audio heap** 0x166800 x2 (H5, Dusklight's `audioHeapSize` x2) in `m_Do_main.cpp`.
+  - **Pointer tables:** `StreamLib::allocBuffer`'s `loop_buffer`/`store_buffer` tables and
+    `getNeedBufferSize` use `sizeof` the pointer instead of 8 and `LOOP_BLOCKS << 2`.
+  - **DVD command pointer:** `mDoDvdThd_param_c::mainLoop` hands `JASystem::Dvd::sendCmdMsg` the
+    command pointer with a size of 4, so the JAudio DVD thread called `cb` with half a pointer
+    (SIGSEGV in `cb` at logo-res with `COS_AUDIO=on`); it passes `sizeof(cmd)`. Outside JAudio
+    (`m_Do_dvd_thread.cpp`), fixed here because it is the 64-bit argument of a JAudio callback.
+  - Markers: group K 10 -> 1. `JASSeqParser`'s debug-print one and the never-compiled decomp
+    `OS.h` one are `NOTE(native phase 4, harmless)`; open is `cmdJmp` through the address
+    registers 0x28..0x2b (32-bit values read from the sequence).
+  - Left for 5.A/5.4: with `COS_AUDIO=on` logo-res now gets to `TGlobalChannel::alloc` on a null
+    `sChannelMgr` (`mDoAud_Execute` -> `checkReadSeq`): the audio thread waits in `DspBoot`'s task
+    for a DSP (cos_sdk has none), so `Driver::init` never runs. Everything the DSP reads
+    (CH_BUF, FX_BUF, the filter tables) is written in host byte order; a big-endian DSP backend
+    (5.4 option B) needs it swapped.
+  - Review (round 1): accepted; `audio-parse` equal to the manifest, inventory check ok,
+    `regress.sh -j 3` all checks passed. Committed as one root cause per commit (owner tags,
+    stream pointer tables, DVD command pointer, audio heap, physical addresses, markers and log).
 
 ### Phase 6 render issues
 

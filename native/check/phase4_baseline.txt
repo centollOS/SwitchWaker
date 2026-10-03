@@ -26,11 +26,11 @@ group G	9
 group H	0
 group I	6
 group J	7
-group K	10
+group K	1
 group L	1
 unclassified	0
-markers open	78
-markers justified	4
+markers open	69
+markers justified	6
 warning -Wint-to-pointer-cast	34
 warning -Wpointer-to-int-cast	0
 warning -Wint-to-void-pointer-cast	90
