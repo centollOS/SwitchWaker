@@ -178,7 +178,7 @@ and CARD need nothing here: every DVD name the plan lists (`DVDLow*`, streaming,
 
 ## Audio hardware, silent, and MSL extras (step 2.6f)
 
-`src/audio/AIStubs.cpp`, `src/audio/DSPStubs.cpp`, `src/audio/DTK.cpp`, `src/runtime/extras.c`;
+`src/audio/AIStubs.cpp`, `src/audio/DSP.cpp` (silent stubs until step 5.A), `src/audio/DTK.cpp`, `src/runtime/extras.c`;
 tests `audio` and `msl` (`tests/sdk_audio.cpp`). Real audio is phase 5. What game glue and the
 JAudio steps (3.7, phase 5) need to know:
 
@@ -187,12 +187,16 @@ JAudio steps (3.7, phase 5) need to know:
   ever raised: the DMA and stream callbacks are never called, so JAudio's audio thread waits for
   a DMA tick that never comes (it blocks; it does not spin). `AIInitDMA` keeps the 64-bit
   address; `AIGetDMAStartAddr` aborts if it does not fit the SDK's u32.
-- DSP: no DSP runs. Mail to the DSP is taken at once (`DSPCheckMailToDSP` is 0), no mail ever
-  comes back, `__DSP_boot_task`/`__DSP_exec_task` log once and return without waiting. The task
-  list (`__DSP_*_task`) is the SDK's. `DSPAddTask` is weak: JAudio's `osdsp.c` replaces it, and
-  JAudio's own `__DSPHandler` is never called. JAudio's DSP handshakes (`DspHandShake`,
-  `DSPSendCommands2`, `DsetupTable`, `DsetDolbyDelay`) busy-wait for DSP replies in JAudio code;
-  phase 5 replaces them.
+- DSP (step 5.A of docs/NATIVE_PORT_PHASE4_6.md, decision H6): an emulated DSP, Dolphin's
+  DSPHLE (`native/dsp_hle`, built from `COS_RECOMPCORE_DIR`, by default `ref/recompcore`). Its boot
+  ROM takes the SDK's task boot mails and runs Dolphin's version of the uploaded ucode (the game's is
+  the JAudio ucode). Mail is handled when it is written, so `DSPCheckMailToDSP` is 0 at once; the
+  DSP's replies queue for `DSPCheckMailFromDSP`/`DSPReadMailFromDSP`. A host thread calls the
+  handler `DSPInit` installs (JAudio's `__DSPHandler`) with interrupts disabled while DSPCR's
+  interrupt bit is set; `COSDSPReadControlRegister`/`COSDSPWriteControlRegister`
+  (`cos_dsp_extras.h`) stand for `__DSPRegs[5]`. The task list (`__DSP_*_task`) and the boot and
+  exec mail sequences are the SDK's; `DSPAddTask` is weak (JAudio's `osdsp.c` replaces it). The
+  DSP reads MEM1 by physical address and Aurora's ARAM, so `DSPInit` needs `OSInit` and `ARInit`.
 - DTK: the SDK's state machine (from Dusklight's `libs/dolphin`) over the silent AI and Aurora's
   DVD stream commands, which complete at once: tracks queue and change state, nothing plays and
   no track ends. The game does not call DTK. `cos_sdk_smoke_tsan` leaves `DTK.cpp` out (it links no

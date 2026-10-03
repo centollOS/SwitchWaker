@@ -27,6 +27,8 @@ target_include_directories(cos_sdk PUBLIC "${COS_SDK_ROOT}/include")
 target_compile_definitions(cos_sdk PUBLIC MTX_USE_PS=1)
 target_compile_definitions(cos_sdk PRIVATE "COS_AURORA_COMMIT_STR=\"${COS_AURORA_COMMIT}\"")
 target_link_libraries(cos_sdk PUBLIC ${COS_AURORA_LIBS})
+# The DSP behind src/audio/DSP.cpp: Dolphin's DSPHLE (cmake/dsp_hle.cmake).
+target_link_libraries(cos_sdk PRIVATE cos_dsp_hle)
 
 file(GLOB COS_SDK_SMOKE_SOURCES CONFIGURE_DEPENDS
         "${COS_SDK_ROOT}/tests/*.cpp")
@@ -56,6 +58,6 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU" AND NOT CMAKE_CROSSCOMPILING)
     target_link_options(cos_sdk_smoke_tsan PRIVATE -fsanitize=thread)
     set(COS_SDK_TSAN_LIBS ${COS_AURORA_LIBS})
     list(REMOVE_ITEM COS_SDK_TSAN_LIBS aurora::dvd)
-    target_link_libraries(cos_sdk_smoke_tsan PRIVATE ${COS_SDK_TSAN_LIBS})
+    target_link_libraries(cos_sdk_smoke_tsan PRIVATE ${COS_SDK_TSAN_LIBS} cos_dsp_hle)
     set_target_properties(cos_sdk_smoke_tsan PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endif ()

@@ -1,11 +1,12 @@
 // cos_sdk_smoke: the tests of step 2.6f, the silent audio hardware and the MSL extras:
-// "audio" (AI register model, DSP mailbox and task list, DTK playlist over Aurora's DVD stream
-// commands; nothing may block) and "msl" (stricmp, strnicmp).
+// "audio" (AI register model, DSP mailboxes and task list over the emulated DSP of step 5.A, DTK
+// playlist over Aurora's DVD stream commands; nothing may block) and "msl" (stricmp, strnicmp).
 //
 // The AI names come through the dolphin/ai/ai.h forwarder, as the game sees them.
 #include "smoke.h"
 
 #include <dolphin/ai/ai.h>
+#include <dolphin/ar.h>
 #include <dolphin/dsp.h>
 #ifndef COS_SDK_SMOKE_NO_DVD
 #include <dolphin/dtk.h>
@@ -63,15 +64,33 @@ COS_SMOKE_TEST(audio) {
     AISetStreamPlayState(AI_STREAM_STOP);
     COS_SMOKE_CHECK(AIGetStreamSampleCount() == 0);
 
-    // DSP: the mailbox to the DSP is always free, nothing comes back.
+    // DSP (step 5.A): Dolphin's DSPHLE, which reads MEM1 (OSInit) and ARAM (ARInit). After
+    // DSPInit its boot ROM has sent 0x8071FEED; it answers a mail that is not a boot command
+    // with 0xFEEE plus the mail's low half. The DSP takes every mail at once.
+    if (!ARCheckInit()) {
+        static u32 sAramStack[16];
+        ARInit(sAramStack, 16);
+    }
     DSPInit();
     COS_SMOKE_CHECK(DSPCheckInit());
-    DSPSendMailToDSP(0xCDD10001);
-    COS_SMOKE_CHECK(DSPCheckMailToDSP() == 0);
-    COS_SMOKE_CHECK(DSPReadCPUToDSPMbox() == 0xCDD10001);
+    COS_SMOKE_CHECK(DSPCheckMailFromDSP() == 1);
+    COS_SMOKE_CHECK(DSPReadMailFromDSP() == 0x8071FEED);
     COS_SMOKE_CHECK(DSPCheckMailFromDSP() == 0);
+    DSPSendMailToDSP(0x00001234);
+    COS_SMOKE_CHECK(DSPCheckMailToDSP() == 0);
+    COS_SMOKE_CHECK(DSPReadCPUToDSPMbox() == 0x00001234);
+    COS_SMOKE_CHECK(DSPCheckMailFromDSP() == 1);
+    COS_SMOKE_CHECK(DSPReadMailFromDSP() == 0xFEEE1234);
+    COS_SMOKE_CHECK(DSPCheckMailFromDSP() == 0);
+    // DSPReset restarts the boot ROM (a new 0x8071FEED); DSPInit after it lets it be read.
+    DSPReset();
+    COS_SMOKE_CHECK(!DSPCheckInit());
+    DSPInit();
+    COS_SMOKE_CHECK(DSPCheckMailFromDSP() == 1);
 
-    // Task list in priority order; booting the first task returns without waiting for the DSP.
+    // Task list in priority order. Booting a task (the first one) reads the boot ROM's
+    // 0x8071FEED and sends the boot mails; these tasks upload nothing, so the ROM restarts and
+    // sends 0x8071FEED again for the next boot.
     static DSPTaskInfo a, b, c;
     a.priority = 10;
     b.priority = 5;
@@ -83,6 +102,7 @@ COS_SMOKE_TEST(audio) {
     COS_SMOKE_CHECK(__DSP_first_task == &b && b.next == &a && a.next == &c);
     COS_SMOKE_CHECK(__DSP_last_task == &c && c.prev == &a && a.prev == &b);
     COS_SMOKE_CHECK(a.state == 0 && a.flags == 1);
+    COS_SMOKE_CHECK(DSPCheckMailFromDSP() == 1 && DSPReadMailFromDSP() == 0x8071FEED);
     __DSP_remove_task(&a);
     COS_SMOKE_CHECK(b.next == &c && c.prev == &b && a.state == 3);
     __DSP_remove_task(&b);
