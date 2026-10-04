@@ -11,7 +11,8 @@
 // controller (D-pad or stick: row and value; A: change / confirm; B: back / close; L/R: tab), the
 // keyboard (arrows, Enter, Esc, Q/E) or the mouse (click a tab, a row, a value). The menu reads the
 // controllers itself (SDL gamepads, labels of the face buttons respected, so A is A on a the console maker
-// layout too), plus the COS_INPUT script for the smoke test.
+// layout too), plus the COS_INPUT script in COS_SMOKE=options-menu (only there: other scripts press
+// L+R+Z for the game).
 //
 // Every row is a setting of pc_settings.h (the environment variable it already had) or an action
 // (warp, screenshot, reload). Settings with PC_SETTING_RESTART apply at the next start; the others
@@ -1144,7 +1145,9 @@ void menuFrame() {
         return;
     }
     pc_settings_poll_mode();
-    handleInput(readScript() | readGamepads() | readKeyboard());
+    // The COS_INPUT script drives the menu only in its own smoke test: other scripts press L+R+Z
+    // for the game (pad-echo).
+    handleInput((sSmoke.on ? readScript() : 0) | readGamepads() | readKeyboard());
     if (!m.open) {
         return;
     }
