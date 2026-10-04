@@ -696,6 +696,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # COS_SWITCH_GL_FLUSH_PASSES=1: a glFlush after every render pass (an A/B of CPU/GPU overlap
+    # within a frame; docs/SWITCH_PERF_STUDY.md, section 8).
+    file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/CommandBufferGL.cpp" DAWN_OPENGL_COMMAND_BUFFER_TEXT)
+    if(NOT DAWN_OPENGL_COMMAND_BUFFER_TEXT MATCHES "COS_SWITCH_GL_FLUSH_PASSES")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-flush-passes.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_FLUSH_PASSES_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_FLUSH_PASSES_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_FLUSH_PASSES_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_FLUSH_PASSES_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL flush-passes patch:\n"
+                "${DAWN_GL_FLUSH_PASSES_PATCH_OUTPUT}${DAWN_GL_FLUSH_PASSES_PATCH_ERROR}")
+        endif()
+    endif()
+
     set(DAWN_WGPU_HELPERS_SOURCE
         "${dawn_SOURCE_DIR}/src/dawn/native/utils/WGPUHelpers.cpp")
     file(READ "${DAWN_WGPU_HELPERS_SOURCE}" DAWN_WGPU_HELPERS_TEXT)

@@ -1,0 +1,21 @@
+--- a/src/dawn/native/opengl/CommandBufferGL.cpp
++++ b/src/dawn/native/opengl/CommandBufferGL.cpp
+@@ -1004,6 +1004,18 @@
+ #if defined(__SWITCH__)
+                 if (switchFirstPass) {
+                     switchFirstPass->Done();
++                }
++                // COS_SWITCH_GL_FLUSH_PASSES=1 (dawn-switch-gl-flush-passes.patch): hand each render
++                // pass to the GPU as soon as it is recorded (glFlush kicks Mesa's push buffer),
++                // so the GPU starts on a frame's first passes while the rest is still replayed.
++                {
++                    static const bool flushPasses = [] {
++                        const char* env = std::getenv("COS_SWITCH_GL_FLUSH_PASSES");
++                        return env != nullptr && env[0] == '1';
++                    }();
++                    if (flushPasses) {
++                        DAWN_GL_TRY(gl, Flush());
++                    }
+                 }
+ #endif
+ 
