@@ -2,12 +2,15 @@
 # Generate the asset headers the game units include ("assets/...", "res/Object/...") from the
 # player's disc, the way the decompilation's own build does (native/README.md, "Asset headers").
 #
-#   native/tools/gen_assets.sh [--disc PATH] [--decomp DIR] [--out DIR]
+#   native/tools/gen_assets.sh [--disc PATH] [--decomp DIR] [--out DIR] [--res-only]
 #
 #   --disc PATH    the GZLE01 revision 0 disc image (default: $COS_DISC)
 #   --decomp DIR   where the decompilation is checked out and run (default: build/decomp)
 #   --out DIR      where the headers go (default: build/native-mac/assets/GZLE01, the default
 #                  COS_ASSETS_DIR of native/cmake/GameConfig.cmake)
+#   --res-only     no disc: only the decomp's resource index enums (res/), which hold no game data.
+#                  Enough for the units that do not include assets/ headers (cos_sdk, the run
+#                  harness, cos_pc_tests): what CI builds without a disc (.github/workflows/ci.yml)
 #
 # Steps: a shallow checkout of the decompilation game/ was imported from, at the commit it was
 # imported from (both read from game/UPSTREAM), the disc linked into its orig/GZLE01/, `python configure.py`, then only the
@@ -29,6 +32,7 @@ decomp_url="$(sed -n 's/^url=//p' "$repo/game/UPSTREAM")"
 decomp_pin="$(sed -n 's/^commit=//p' "$repo/game/UPSTREAM")"
 [ -n "$decomp_url" ] && [ -n "$decomp_pin" ] || { echo "gen_assets: game/UPSTREAM lacks url= or commit=" >&2; exit 2; }
 disc="${COS_DISC:-}"
+res_only=0
 decomp="$repo/build/decomp"
 out="$repo/build/native-mac/assets/$version"
 
@@ -41,17 +45,22 @@ while [ $# -gt 0 ]; do
         --disc) disc="$2"; shift 2 ;;
         --decomp) decomp="$2"; shift 2 ;;
         --out) out="$2"; shift 2 ;;
+        --res-only) res_only=1; shift ;;
         -h|--help) usage ;;
         *) echo "gen_assets: unknown option $1" >&2; usage ;;
     esac
 done
 
-if [ -z "$disc" ]; then
+if [ "$res_only" = 1 ]; then
+    : # no disc needed
+elif [ -z "$disc" ]; then
     echo "gen_assets: no disc image: pass --disc PATH or set COS_DISC (the GZLE01 revision 0 .iso)" >&2
     exit 14
 fi
-[ -f "$disc" ] || { echo "gen_assets: $disc: no such file" >&2; exit 14; }
-case "$disc" in /*) ;; *) disc="$(pwd)/$disc" ;; esac
+if [ "$res_only" = 0 ]; then
+    [ -f "$disc" ] || { echo "gen_assets: $disc: no such file" >&2; exit 14; }
+    case "$disc" in /*) ;; *) disc="$(pwd)/$disc" ;; esac
+fi
 
 python=""
 for p in python3 python3.13 python3.12 python3.11 python3.10; do
@@ -80,6 +89,14 @@ head="$(git -C "$decomp" rev-parse HEAD)"
 if [ "$head" != "$decomp_pin" ]; then
     echo "gen_assets: $decomp is at ${head:0:7}, not ${decomp_pin:0:7}; left unchanged" >&2
     exit 1
+fi
+
+if [ "$res_only" = 1 ]; then
+    rm -rf "$out"
+    mkdir -p "$out"
+    cp -R "$decomp/assets/$version/res" "$out/"
+    echo "gen_assets: $(find "$out" -type f | wc -l | tr -d ' ') resource index headers in $out (--res-only, no disc)"
+    exit 0
 fi
 
 # --- the disc, split, headers -------------------------------------------------------------------

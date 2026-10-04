@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Container helpers shared by the Switch build scripts. Source this file; it
 # selects Podman (rootless, as before) or Docker. Set SWITCH_CONTAINER_ENGINE
 # to podman or docker to force one.

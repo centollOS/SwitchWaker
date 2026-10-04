@@ -1,0 +1,110 @@
+# Continuous integration WITHOUT the game disc.
+#
+# The full game (centollos, centollos.nro) cannot be built here: the build compiles headers that
+# native/tools/gen_assets.sh generates from the player's own disc, and no disc (or anything
+# derived from one) may ever be put into CI. docs/RUNTIME_ASSETS.md describes what it would take
+# to lift that. What this workflow does instead:
+#   lint          shell scripts (shellcheck, errors only), Python tools (byte-compile)
+#   linux         the Linux build image (scripts/docker/Containerfile.linux), then Aurora, cos_sdk,
+#                 the run harness and the header checks built with clang on x86_64 and aarch64
+#                 (with the decomp's resource index enums only: gen_assets.sh --res-only), and
+#                 the unit tests cos_sdk_smoke and cos_pc_tests run
+#   switch-image  the Switch build images (scripts/switch/Containerfile.native and .mesa), built
+#                 and kept in the GitHub Actions cache, so a later job (or a fork) starts warm
+# Downloads (Aurora, Dawn and nod packages, SDL 3 ...) are cached across runs with actions/cache;
+# images with the buildx GitHub Actions cache.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck (errors)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          git ls-files '*.sh' | xargs shellcheck -S error
+      - name: Python tools byte-compile
+        run: git ls-files '*.py' | xargs python3 -m py_compile
+      - name: no disc-derived files tracked
+        run: |
+          if git ls-files | grep -Ei '\.(iso|gcm|rvz|dol|rel|gci|nro|nsp|elf)$'; then
+            echo "files above must never be committed (CONTRIBUTING.md, 'No game data')"; exit 1
+          fi
+
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: scripts/docker
+          file: scripts/docker/Containerfile.linux
+          tags: centollos-linux-build:ci
+          load: true
+          cache-from: type=gha,scope=linux-${{ matrix.runner }}
+          cache-to: type=gha,mode=max,scope=linux-${{ matrix.runner }}
+      - name: Cache downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/ci-linux/_deps/*-src
+            build/ci-linux/_deps/*-subbuild
+            ref/recompcore
+            build/decomp-ci
+          key: deps-${{ matrix.runner }}-${{ hashFiles('native/cmake/Aurora.cmake', 'native/patches/aurora/*.patch', 'native/tools/fetch_recompcore.sh', 'game/UPSTREAM') }}
+          restore-keys: deps-${{ matrix.runner }}-
+      - name: Build Aurora, cos_sdk and the harness (no disc, no game executable)
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/work" -w /work \
+              centollos-linux-build:ci bash -c '
+            set -e
+            native/tools/fetch_recompcore.sh /work/ref/recompcore
+            # Only the decomp resource index enums (res/): no disc, no game data.
+            native/tools/gen_assets.sh --res-only --decomp /work/build/decomp-ci --out /work/build/ci-res/GZLE01
+            cmake -S native -B build/ci-linux -G Ninja -DCOS_ASSETS_DIR=/work/build/ci-res/GZLE01
+            ninja -C build/ci-linux cos_sdk_smoke cos_pc_tests cos_scaffold_check cos_sdk_header_check \
+                cos_sdk_shadow_check
+            build/ci-linux/cos_sdk_smoke
+            build/ci-linux/cos_pc_tests'
+
+  switch-image:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Switch native build image
+        uses: docker/build-push-action@v6
+        with:
+          context: scripts/switch
+          file: scripts/switch/Containerfile.native
+          tags: centollos-switch-native-build:ci
+          cache-from: type=gha,scope=switch-native
+          cache-to: type=gha,mode=max,scope=switch-native
+      - name: Switch Mesa build image
+        uses: docker/build-push-action@v6
+        with:
+          context: scripts/switch
+          file: scripts/switch/Containerfile.mesa
+          tags: centollos-switch-mesa-build:ci
+          cache-from: type=gha,scope=switch-mesa
+          cache-to: type=gha,mode=max,scope=switch-mesa
