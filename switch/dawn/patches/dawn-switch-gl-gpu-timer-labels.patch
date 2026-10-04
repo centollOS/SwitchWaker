@@ -1,0 +1,34 @@
+--- a/src/dawn/native/opengl/SwitchGpuTimerGL.h
++++ b/src/dawn/native/opengl/SwitchGpuTimerGL.h
+@@ -30,10 +30,11 @@
+ 
+ namespace dawn::native::opengl::switch_stats {
+ 
+-// What a segment of GPU work is, from Aurora's pass labels (lib/gfx/encoding.cpp "Render pass N",
+-// tex_copy_conv.cpp "TexCopyConv Pass", aurora.cpp "EFB copy render pass" / "ImGui render pass").
++// What a segment of GPU work is, from Aurora's pass labels (lib/gfx/encoding.cpp "EFB N",
++// "Offscreen N" or "Render pass N", tex_copy_conv.cpp "TexCopyConv Pass" / "Depth Snapshot Pass",
++// aurora.cpp "EFB copy render pass" / "ImGui render pass").
+ enum GpuSegment : uint8_t {
+-    kGpuSegEfb,      // the EFB passes (the game's draws)
++    kGpuSegEfb,      // the GX passes (the game's draws: EFB and offscreen targets)
+     kGpuSegTexConv,  // EFB copy format conversions and scaled blits
+     kGpuSegPresent,  // the EFB-to-swapchain present pass
+     kGpuSegImgui,    // the ImGui (overlay) pass
+@@ -52,10 +53,14 @@ inline uint8_t ClassifyGpuPass(const std::string& label) {
+     if (startsWith("ImGui")) {
+         return kGpuSegImgui;
+     }
+-    if (startsWith("TexCopyConv")) {
++    if (startsWith("TexCopyConv") || startsWith("Depth Snapshot")) {
+         return kGpuSegTexConv;
+     }
+-    if (startsWith("Render pass") || label.empty()) {
++    // Aurora's GX passes: "EFB <n>" / "Offscreen <n>" (recording.cpp pass_label, encoding.cpp
++    // appends the pass index; "EFB (<debug group>) <n>" with AURORA_GFX_DEBUG_GROUPS), and
++    // "Render pass <n>" for an unlabelled one.
++    if (startsWith("EFB ") || startsWith("Offscreen") || startsWith("Render pass") ||
++        label.empty()) {
+         return kGpuSegEfb;
+     }
+     return kGpuSegOther;

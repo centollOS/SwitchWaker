@@ -512,6 +512,27 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # The GPU timer's pass classes from Aurora's real pass labels ("EFB N", "Offscreen N",
+    # "Depth Snapshot Pass"): before this the GX passes were all filed under "other". A separate
+    # patch so that Dawn trees patched with the first GPU timer get it too.
+    file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchGpuTimerGL.h"
+         DAWN_OPENGL_GPU_TIMER_HEADER_TEXT)
+    if(NOT DAWN_OPENGL_GPU_TIMER_HEADER_TEXT MATCHES "Depth Snapshot")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-gpu-timer-labels.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_GPU_TIMER_LABELS_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_GPU_TIMER_LABELS_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_GPU_TIMER_LABELS_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_GPU_TIMER_LABELS_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL GPU timer labels patch:\n"
+                "${DAWN_GL_GPU_TIMER_LABELS_PATCH_OUTPUT}${DAWN_GL_GPU_TIMER_LABELS_PATCH_ERROR}")
+        endif()
+    endif()
+
     # On top of the pass and GPU timers: COS_SWITCH_GL_FBO_CACHE=1 keeps render pass framebuffers
     # keyed by their attachments instead of creating and deleting one per pass, and drops repeated
     # viewport/scissor/depth-range calls in a pass (SwitchFboCacheGL.h; docs/SWITCH_PERF_STUDY.md,
