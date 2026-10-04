@@ -54,7 +54,16 @@ cPhs_State dMinigame_Terminater_c::_create() {
         dRes_info_c* resInfo = dComIfG_getObjectResInfo("Mgtem");
         JUT_ASSERT(VERSION_SELECT(59, 59, 102, 102), resInfo != NULL);
 
+#if TARGET_PC
+        // Bug B12 (decision H5, as bug B8): the minigame terminater's (the result screen) J2D
+        // screen (its panes, pictures and textures hold 64-bit pointers on the host) needs 0x103C0
+        // bytes on the host, more than the GameCube's 0xC0A0: a pane allocation failed and the
+        // screen faulted on its NULL pane. Three times the size, from the game heap;
+        // mDoExt_adjustSolidHeap gives back what the screen did not use.
+        mHeap = mDoExt_createSolidHeapFromGameToCurrent(VERSION_SELECT(0xBE20, 0xBCA0, 0xC0A0, 0xE230) * 3, 0x20);
+#else
         mHeap = mDoExt_createSolidHeapFromGameToCurrent(VERSION_SELECT(0xBE20, 0xBCA0, 0xC0A0, 0xE230), 0x20);
+#endif
         if (mHeap != NULL) {
             mScrn = new dDlst_TerminaterScrnDraw_c();
 #if VERSION == VERSION_PAL

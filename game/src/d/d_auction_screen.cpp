@@ -479,7 +479,16 @@ cPhs_State dAs_c::_create() {
         dRes_info_c* resInfo = dComIfG_getObjectResInfo("Auction");
         JUT_ASSERT(VERSION_SELECT(710, 710, 710, 710), resInfo != NULL);
 
+#if TARGET_PC
+        // Bug B12 (decision H5, as bug B8): the auction's J2D screen (its panes, pictures and
+        // textures hold 64-bit pointers on the host) needs 0x38C0 bytes on the host, more than the
+        // GameCube's 0x2960: a pane allocation failed and the screen faulted on its NULL pane.
+        // Three times the size, from the game heap; mDoExt_adjustSolidHeap gives back what the
+        // screen did not use.
+        heap = mDoExt_createSolidHeapFromGameToCurrent(0x2960 * 3, 0x20);
+#else
         heap = mDoExt_createSolidHeapFromGameToCurrent(0x2960, 0x20);
+#endif
         if (heap == NULL) {
             return cPhs_ERROR_e;
         }

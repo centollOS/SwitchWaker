@@ -62,11 +62,24 @@ cPhs_State dTimer_c::_create() {
         dRes_info_c* resInfo = dComIfG_getObjectResInfo("Timer");
         JUT_ASSERT(0x44, resInfo != NULL);
 
+#if TARGET_PC
+        // Bug B12 (decision H5, as bug B8): the timer's (ship_race0.blo) J2D screen (its panes,
+        // pictures and textures hold 64-bit pointers on the host) needs 0x46E0 (plus 0xC00 for the
+        // icon) bytes on the host, more than the GameCube's 0x34C0 (0x4260 with the icon): a pane
+        // allocation failed and the screen faulted on its NULL pane. Three times the size, from the
+        // game heap; mDoExt_adjustSolidHeap gives back what the screen did not use.
+        if (prm->mIconType == 0) {
+            mpSolidHeap = mDoExt_createSolidHeapFromGameToCurrent(0x34C0 * 3, 0x20);
+        } else {
+            mpSolidHeap = mDoExt_createSolidHeapFromGameToCurrent(0x4260 * 3, 0x20);
+        }
+#else
         if (prm->mIconType == 0) {
             mpSolidHeap = mDoExt_createSolidHeapFromGameToCurrent(0x34C0, 0x20);
         } else {
             mpSolidHeap = mDoExt_createSolidHeapFromGameToCurrent(0x4260, 0x20);
         }
+#endif
 
         if (mpSolidHeap != NULL) {
             mpScrnDraw = new dDlst_TimerScrnDraw_c();
