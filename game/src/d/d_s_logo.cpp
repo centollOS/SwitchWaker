@@ -12,6 +12,9 @@
 #include "c/c_dylink.h"
 #include "d/d_com_inf_game.h"
 #include "d/d_com_lib_game.h"
+#if TARGET_PC
+#include "d/d_item.h"
+#endif
 #include "d/d_s_play.h"
 #include "m_Do/m_Do_MemCardRWmng.h"
 #include "m_Do/m_Do_audio.h"
@@ -505,6 +508,28 @@ static void pcBootStage(dScnLogo_c* i_this) {
     }
     dComIfGs_init();
     dComIfGp_itemDataInit();
+    // COS_BOOT_EVENTS: story event bits for a boot later in the story (bug B6: 2A80 makes Aryll
+    // give the telescope on the lookout, which leads to the zelda_fly event).
+    unsigned short bits[16];
+    int nbits = pc_boot_event_bits(bits, 16);
+    for (int i = 0; i < nbits; i++) {
+        dComIfGs_onEventBit(bits[i]);
+    }
+    // COS_BOOT_ITEMS: items given as a chest or an NPC gives them (execItemGet), the first on X
+    // (bug B6: 20, the telescope, which Link then raises with X).
+    unsigned short items[16];
+    int nitems = pc_boot_items(items, 16);
+    for (int i = 0; i < nitems; i++) {
+        execItemGet((u8)items[i]);
+        if (i == 0) {
+            for (int slot = 0; slot < dInvSlot_ItemLast_e; slot++) {
+                if (dComIfGs_getItem(slot) == items[0]) {
+                    dComIfGs_setSelectItem(dItemBtn_X_e, (u8)slot);
+                    break;
+                }
+            }
+        }
+    }
     const PcBootStage* boot = pc_boot_stage();
     dComIfGp_offEnableNextStage();
     dComIfGp_setNextStage(boot->stage, boot->point, boot->room, boot->layer);

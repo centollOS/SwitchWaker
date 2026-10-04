@@ -1,7 +1,7 @@
 // Input injection (docs/NATIVE_PORT_PHASE4_6.md, step 6.3).
 //
 // COS_INPUT names a script that drives controller port 0. One line per change of state:
-//     <frame> <buttons> <stickX> <stickY>
+//     <frame> <buttons> <stickX> <stickY> [<substickX> <substickY>]
 // - frame: the game frame (pc_frame_count() when mDoCPd_Read runs; the first frame is 0) from
 //   which the line applies; it holds until the next line, and the last line holds to the end.
 //   Frames are strictly increasing.
@@ -9,6 +9,8 @@
 //   UP DOWN LEFT RIGHT (PAD_BUTTON_* / PAD_TRIGGER_*). L and R also set the analog trigger to its
 //   full value (180), as Aurora does for a digital trigger.
 // - stickX, stickY: the raw main stick, -128..127 (positive is right / up), before PADClamp.
+// - substickX, substickY (optional, 0 when left out): the C stick, the same way (bug B6: the
+//   telescope zooms with the C stick).
 // '#' starts a comment; blank lines are ignored. Before the first line the pad is neutral.
 //
 // With a script, port 0 is Aurora's virtual pad from the first frame on: mDoCPd_Read (TARGET_PC)
@@ -46,6 +48,8 @@ struct InputLine {
     uint16_t buttons;
     int8_t stickX;
     int8_t stickY;
+    int8_t substickX;
+    int8_t substickY;
 };
 
 std::vector<InputLine> sScript;
@@ -163,10 +167,10 @@ void loadScript(const char* path) {
         if (hash != nullptr) {
             *hash = '\0';
         }
-        char* fields[5];
+        char* fields[7];
         int n = 0;
         for (char* tok = strtok(buf, " \t\r\n"); tok != nullptr; tok = strtok(nullptr, " \t\r\n")) {
-            if (n == 5) {
+            if (n == 7) {
                 break;
             }
             fields[n++] = tok;
@@ -174,8 +178,8 @@ void loadScript(const char* path) {
         if (n == 0) {
             continue;
         }
-        if (n != 4) {
-            scriptError(path, lineNo, "needs <frame> <buttons> <stickX> <stickY>", fields[0]);
+        if (n != 4 && n != 6) {
+            scriptError(path, lineNo, "needs <frame> <buttons> <stickX> <stickY> [<substickX> <substickY>]", fields[0]);
         }
         InputLine line = {};
         line.line = lineNo;
@@ -197,6 +201,12 @@ void loadScript(const char* path) {
         }
         if (!parseStick(fields[3], line.stickY)) {
             scriptError(path, lineNo, "bad stickY", fields[3]);
+        }
+        if (n == 6 && !parseStick(fields[4], line.substickX)) {
+            scriptError(path, lineNo, "bad substickX", fields[4]);
+        }
+        if (n == 6 && !parseStick(fields[5], line.substickY)) {
+            scriptError(path, lineNo, "bad substickY", fields[5]);
         }
         sScript.push_back(line);
     }
@@ -374,6 +384,8 @@ void pc_pad_feed(void) {
         status.button = sCurrent->buttons;
         status.stickX = sCurrent->stickX;
         status.stickY = sCurrent->stickY;
+        status.substickX = sCurrent->substickX;
+        status.substickY = sCurrent->substickY;
         status.triggerLeft = (sCurrent->buttons & PAD_TRIGGER_L) ? kTriggerFull : 0;
         status.triggerRight = (sCurrent->buttons & PAD_TRIGGER_R) ? kTriggerFull : 0;
     }

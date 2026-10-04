@@ -55,6 +55,35 @@ bool same(const char* stage, int room, int point, int layer) {
            point == sBootStage.point && layer == sBootStage.layer;
 }
 
+// COS_BOOT_EVENTS / COS_BOOT_ITEMS: a comma list of hex numbers up to maxValue, at most max of
+// them; exits 2 (PC_EXIT_USAGE) if malformed. Logs each value.
+int parseHexList(const char* var, const char* what, unsigned long maxValue, const char* example,
+                 unsigned short* out, int max) {
+    const char* list = getenv(var);
+    if (list == nullptr || list[0] == '\0') {
+        return 0;
+    }
+    int n = 0;
+    const char* p = list;
+    for (;;) {
+        char* e = nullptr;
+        errno = 0;
+        unsigned long v = strtoul(p, &e, 16);
+        if (e == p || errno != 0 || v > maxValue || (*e != ',' && *e != '\0') || n >= max) {
+            writef(STDERR_FILENO, "[cos] %s=\"%s\" is not a list of at most %d hex %s numbers "
+                                  "(e.g. %s)\n", var, list, max, what, example);
+            pc_exit(PC_EXIT_USAGE);
+        }
+        out[n++] = (unsigned short)v;
+        writef(STDERR_FILENO, "[cos] boot-stage: %s 0x%04lX given to the new file (%s)\n", what, v,
+               var);
+        if (*e == '\0') {
+            return n;
+        }
+        p = e + 1;
+    }
+}
+
 } // namespace
 
 void loadBootStage() {
@@ -123,6 +152,14 @@ void pc_boot_stage_requested(const char* stage, int room, int point, int layer) 
         pc_exit(PC_EXIT_CHECK_FAILED);
     }
     logoResDone("COS_BOOT_STAGE request made instead of dComIfG_changeOpeningScene");
+}
+
+int pc_boot_event_bits(unsigned short* out, int max) {
+    return parseHexList("COS_BOOT_EVENTS", "event bit", 0xFFFF, "2A80,0310", out, max);
+}
+
+int pc_boot_items(unsigned short* out, int max) {
+    return parseHexList("COS_BOOT_ITEMS", "item", 0xFF, "20", out, max);
 }
 
 void pc_play_stage_started(const char* stage, int room, int point, int layer) {

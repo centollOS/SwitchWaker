@@ -16,6 +16,8 @@
  *   COS_RUN_DIR    directory for backtrace.txt / stall.txt (set by native/tools/run.sh)
  *   COS_INPUT      input script for controller port 0 (step 6.3, pc_input.cpp)
  *   COS_BOOT_STAGE <stage>:<room>[:<point>[:<layer>]]: debug stage boot (step 6.4, pc_boot.cpp)
+ *   COS_BOOT_EVENTS hex event bits the debug boot sets on its new file, e.g. 2A80 (pc_boot.cpp)
+ *   COS_BOOT_ITEMS hex item numbers the debug boot gives its new file, the first on X, e.g. 20
  *   COS_PERF_EVERY every this many frames, one line of game-thread frame times (pc_frame.cpp)
  *   COS_PERF       file that gets one CSV row of game-thread times per game frame (step 6.7)
  *   COS_ASPECT     4:3 (default), 16:9 or 16:10: the widescreen option (pc_aspect.h)
@@ -126,6 +128,14 @@ void pc_boot_stage_requested(const char* stage, int room, int point, int layer);
 /* d_s_play.cpp phase_1, when a PLAY scene takes the next stage as its start stage: with
    COS_BOOT_STAGE, the first one must be the requested stage (logged; exit 1 on a difference). */
 void pc_play_stage_started(const char* stage, int room, int point, int layer);
+/* COS_BOOT_EVENTS=<hex>[,<hex>...] (with COS_BOOT_STAGE; bug B6): story event bits (dSv_event_flag_c
+   values, e.g. 2A80) the debug boot sets on its new file, so a stage boot can start later in the
+   story. Returns how many of them were stored in out (at most max); exits 2 if malformed. */
+int pc_boot_event_bits(unsigned short* out, int max);
+/* COS_BOOT_ITEMS=<hex>[,<hex>...] (with COS_BOOT_STAGE; bug B6): items (dItemNo_*, e.g. 20 for the
+   telescope) the debug boot gives its new file with execItemGet; the first one is put on X.
+   Returns how many were stored in out (at most max); exits 2 if malformed. */
+int pc_boot_items(unsigned short* out, int max);
 
 /* Logs "[cos] MILESTONE <name> frame= retrace= ms=" and exits 0 if <name> is COS_MILESTONE. */
 void pc_milestone(const char* name);

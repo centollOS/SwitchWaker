@@ -37,7 +37,9 @@
 #                    outset-real M14) runs with native/check/input/new-game.txt; those two
 #                    milestones start from a clean memory card in <run dir>/card/
 #   --stage SPEC     COS_BOOT_STAGE, debug stage boot (step 6.4): <stage>:<room>[:<point>[:<layer>]],
-#                    e.g. sea:44:206 (Outset, where the new game starts)
+#                    e.g. sea:44:206 (Outset, where the new game starts); COS_BOOT_EVENTS=2A80[,...]
+#                    in the environment sets those story event bits on the new file and
+#                    COS_BOOT_ITEMS=20[,...] gives it those items, the first on X (bug B6)
 #   --shot LIST      COS_SHOT, game frames whose presented image is saved as shot-<frame>.png in
 #                    the run directory, e.g. 30,200 (COS_SHOT_EVERY=n in the environment: every
 #                    n-th frame; COS_SHOT_DIR: another directory). A run with shots compiles each
