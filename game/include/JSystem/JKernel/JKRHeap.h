@@ -264,6 +264,15 @@ inline bool JKRSetErrorFlag(JKRHeap* heap, bool flag) {
 void JKRPcBeginHostAlloc();
 void JKRPcEndHostAlloc();
 
+// Allocation failure report (bug B8): JKRExpHeap::do_alloc and JKRSolidHeap::do_alloc call
+// JKRPcReportAllocFailure when a block cannot be had, after the heap is unlocked; the PC layer
+// installs the reporter (native/src/pc/pc_heap.cpp: one log line with the heap's name, the size
+// asked, its free total and largest free block). Many callers handle NULL themselves, so the report
+// never stops the game.
+typedef void (*JKRPcAllocFailureFn)(JKRHeap* heap, u32 size, int alignment);
+void JKRPcSetAllocFailureReporter(JKRPcAllocFailureFn fn);
+void JKRPcReportAllocFailure(JKRHeap* heap, u32 size, int alignment);
+
 struct JKRPcHostAllocScope {
     JKRPcHostAllocScope() { JKRPcBeginHostAlloc(); }
     ~JKRPcHostAllocScope() { JKRPcEndHostAlloc(); }

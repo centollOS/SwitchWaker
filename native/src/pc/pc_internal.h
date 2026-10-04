@@ -41,6 +41,7 @@ struct Config {
     // root (block signatures, list links, sizes); the first failure names the heap and ends the
     // run as a check failure. 0 = off.
     unsigned int heapCheckEvery = 0;
+    unsigned int heapReportEvery = 0; // COS_HEAP_REPORT (bug B8)
     // COS_FPS_OVERLAY: a frame-rate panel drawn with Aurora's ImGui (pc_overlay.cpp). Off by default;
     // the Switch build sets 1.
     bool fpsOverlay = false;
@@ -101,6 +102,12 @@ void runAuroraSmoke();
 void runHeapsSmoke();
 // pc_heap.cpp: COS_HEAP_CHECK, from pc_frame_end.
 void heapCheckFrame(unsigned int frame);
+// pc_heap.cpp: one line with the free total and the largest free block of the game's heaps (root,
+// system, main, game, archive, command, the PLAY scene's 2D heap); COS_HEAP_REPORT=N logs it
+// every N frames, the options menu when it opens. `why` names the caller.
+void heapReport(const char* why);
+// pc_heap.cpp: JKR allocations that failed since the start (each one is logged, bug B8).
+unsigned int heapAllocFailures();
 // pc_heap.cpp: COS_SMOKE=heap.
 [[noreturn]] void smokeHeap();
 // pc_font.cpp: COS_SMOKE=font.

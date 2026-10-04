@@ -107,6 +107,11 @@ void* JKRSolidHeap::do_alloc(u32 size, int alignment) {
     }
 
     unlock();
+#if TARGET_PC
+    if (ptr == NULL) {
+        JKRPcReportAllocFailure(this, size, alignment);
+    }
+#endif
     return ptr;
 }
 

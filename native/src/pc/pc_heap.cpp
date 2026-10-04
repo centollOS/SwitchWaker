@@ -22,6 +22,7 @@
 #include "JSystem/JKernel/JKRHeap.h"
 #include "JSystem/JKernel/JKRSolidHeap.h"
 #include "m_Do/m_Do_ext.h"
+#include "d/d_com_inf_game.h"
 
 #include <aurora/aurora.h>
 #include <dolphin/os.h>
@@ -495,11 +496,133 @@ void heapCheckFrame(unsigned int frame) {
     }
 }
 
+// Bug B8: one line per failed JKR allocation (the first 64, then every 256th), so a later assert
+// or a NULL dereference can be tied to the heap that ran out. The game's heaps by name; any other
+// heap by its type and the nearest named ancestor.
+static const char* heapName(JKRHeap* heap) {
+    if (heap == nullptr) {
+        return "none";
+    }
+    if (heap == JKRHeap::getRootHeap()) {
+        return "root";
+    }
+    if (heap == JKRHeap::getSystemHeap()) {
+        return "system";
+    }
+    if (heap == mDoExt_getZeldaHeap()) {
+        return "main";
+    }
+    if (heap == mDoExt_getGameHeap()) {
+        return "game";
+    }
+    if (heap == mDoExt_getArchiveHeap()) {
+        return "archive";
+    }
+    if (heap == mDoExt_getCommandHeap()) {
+        return "command";
+    }
+    if (heap == (JKRHeap*)dComIfGp_getExpHeap2D()) {
+        return "2D (dComIfGp_getExpHeap2D)";
+    }
+    return nullptr;
+}
+
+static void describeHeap(JKRHeap* heap, char* out, size_t outSize) {
+    if (const char* name = heapName(heap)) {
+        snprintf(out, outSize, "%s heap %p", name, (void*)heap);
+        return;
+    }
+    const u32 type = heap->getHeapType();
+    const char t[5] = {(char)(type >> 24), (char)(type >> 16), (char)(type >> 8), (char)type, 0};
+    const char* ancestor = "none";
+    int depth = 0;
+    for (JKRHeap* p = heap->getParent(); p != nullptr; p = p->getParent()) {
+        depth++;
+        if (const char* name = heapName(p)) {
+            ancestor = name;
+            break;
+        }
+    }
+    snprintf(out, outSize, "%s heap %p (%d level(s) below %s)", t, (void*)heap, depth, ancestor);
+}
+
+static unsigned int sAllocFailures = 0;
+
+static void reportAllocFailure(JKRHeap* heap, u32 size, int alignment) {
+    const unsigned int sCount = ++sAllocFailures;
+    if (sCount > 64 && sCount % 256 != 0) {
+        return;
+    }
+    char name[96];
+    describeHeap(heap, name, sizeof(name));
+    char current[96];
+    describeHeap(JKRHeap::getCurrentHeap(), current, sizeof(current));
+    writef(STDERR_FILENO,
+           "[cos] heap: cannot alloc 0x%x bytes (align %d) in the %s: size 0x%x, free 0x%x, largest "
+           "free block 0x%x; current %s; frame %u, failure #%u\n",
+           (unsigned)size, alignment, name, (unsigned)heap->getHeapSize(),
+           (unsigned)heap->getTotalFreeSize(), (unsigned)heap->getFreeSize(), current,
+           pc_frame_count(), sCount);
+}
+
+unsigned int heapAllocFailures() {
+    return sAllocFailures;
+}
+
+void heapReport(const char* why) {
+    if (JKRHeap::getRootHeap() == nullptr) {
+        return;
+    }
+    struct {
+        const char* name;
+        JKRHeap* heap;
+    } heaps[] = {{"root", JKRHeap::getRootHeap()},       {"system", JKRHeap::getSystemHeap()},
+                 {"main", mDoExt_getZeldaHeap()},        {"game", mDoExt_getGameHeap()},
+                 {"archive", mDoExt_getArchiveHeap()},    {"command", mDoExt_getCommandHeap()}};
+    char line[1024];
+    int n = snprintf(line, sizeof(line), "[cos] heaps: frame %u (%s), free/largest KiB:", pc_frame_count(), why);
+    for (auto& h : heaps) {
+        if (h.heap == nullptr || n >= (int)sizeof(line)) {
+            continue;
+        }
+        n += snprintf(line + n, sizeof(line) - n, " %s %u/%u", h.name, (unsigned)h.heap->getTotalFreeSize() / 1024,
+                      (unsigned)h.heap->getFreeSize() / 1024);
+    }
+    // The exp heaps made inside the game heap (fopMsgM_createExpHeap: the 2D heap, the meter's,
+    // the message window's...) and their exp children (the menu window's child heap): the actors'
+    // solid heaps are left out.
+    auto expChildren = [&](JKRHeap* parent, const char* label) {
+        JSUTree<JKRHeap>& tree = parent->getHeapTree();
+        for (JSUTreeIterator<JKRHeap> it(tree.getFirstChild()); it != tree.getEndChild() && n < (int)sizeof(line); ++it) {
+            JKRHeap* child = it.getObject();
+            if (child->getHeapType() != 'EXPH') {
+                continue;
+            }
+            n += snprintf(line + n, sizeof(line) - n, " %s(%uK) %u/%u", child == (JKRHeap*)dComIfGp_getExpHeap2D() ? "2D" : label,
+                          (unsigned)child->getHeapSize() / 1024, (unsigned)child->getTotalFreeSize() / 1024,
+                          (unsigned)child->getFreeSize() / 1024);
+        }
+    };
+    if (JKRHeap* game = mDoExt_getGameHeap()) {
+        expChildren(game, "game-exp");
+    }
+    if (JKRHeap* heap2D = (JKRHeap*)dComIfGp_getExpHeap2D()) {
+        expChildren(heap2D, "2D-child");
+    }
+    if (n < (int)sizeof(line)) {
+        char current[96];
+        describeHeap(JKRHeap::getCurrentHeap(), current, sizeof(current));
+        snprintf(line + n, sizeof(line) - n, "; current %s\n", current);
+    }
+    writef(STDERR_FILENO, "%s", line);
+}
+
 } // namespace pc
 
 using namespace pc;
 
 extern "C" void pc_heaps_created(void) {
+    JKRPcSetAllocFailureReporter(reportAllocFailure);
     struct {
         const char* name;
         JKRHeap* heap;

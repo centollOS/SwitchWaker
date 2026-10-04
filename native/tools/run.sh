@@ -48,6 +48,9 @@
 #   --aspect A       COS_ASPECT: 4:3, 16:9 or 16:10 (the widescreen option, docs/MODS.md)
 #   --heap-check N   COS_HEAP_CHECK: every N game frames check() every JKR heap (and, on the
 #                    Switch, walk newlib's free lists); a damaged heap ends the run as exit 1
+#                    (COS_HEAP_REPORT=N in the environment: every N frames one line with each game
+#                    heap's free total and largest free block, the exp heaps inside the game heap
+#                    and the 2D heap's children; a failed JKR allocation is always logged, bug B8)
 #   --build          run `ninja -C build/native-mac centollos` first
 #   --exe PATH       the executable (default build/native-mac/centollos)
 #   --run-dir DIR    put the run in DIR (created; must not exist yet) instead of

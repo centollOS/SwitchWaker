@@ -1009,6 +1009,9 @@ void pc_frame_end(void) {
     if (gConfig.heapCheckEvery != 0 && (pc_frame_count() + 1) % gConfig.heapCheckEvery == 0) {
         heapCheckFrame(pc_frame_count() + 1);
     }
+    if (gConfig.heapReportEvery != 0 && (pc_frame_count() + 1) % gConfig.heapReportEvery == 0) {
+        heapReport("every COS_HEAP_REPORT frames");
+    }
     if (sTraceFrame) {
         const uint64_t now = monotonicNs();
         const uint64_t paceStart = sPaceStartNs != 0 ? sPaceStartNs : endFrameStartNs;

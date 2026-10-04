@@ -460,6 +460,18 @@ void JKRPcEndHostAlloc() {
     sPcHostAllocDepth--;
 }
 
+static JKRPcAllocFailureFn sPcAllocFailureReporter = NULL;
+
+void JKRPcSetAllocFailureReporter(JKRPcAllocFailureFn fn) {
+    sPcAllocFailureReporter = fn;
+}
+
+void JKRPcReportAllocFailure(JKRHeap* heap, u32 size, int alignment) {
+    if (sPcAllocFailureReporter != NULL) {
+        sPcAllocFailureReporter(heap, size, alignment);
+    }
+}
+
 static void* pc_heapless_alloc(size_t size, int alignment) {
     size_t align = alignment < 0 ? (size_t)-alignment : (size_t)alignment;
     if (align < alignof(max_align_t)) {

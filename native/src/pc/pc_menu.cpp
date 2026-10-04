@@ -607,6 +607,7 @@ void setOpen(bool open) {
         m.scrollToRow = true;
         writef(STDERR_FILENO, "[cos] menu: open at frame %u (%s)\n", pc_frame_count(),
                inPlay() ? "game paused" : "not in the PLAY scene: the game runs on without input");
+        heapReport("options menu opened");
     } else {
         writef(STDERR_FILENO, "[cos] menu: closed at frame %u\n", pc_frame_count());
     }
