@@ -22,9 +22,16 @@ int fchown(int fd, uid_t owner, gid_t group) {
 // keeps: a failing statement then says which check failed ("database
 // corruption at line N") and which system call returned which errno
 // ("os_unix.c:N: (errno) open(path)"), where the API only returns a code.
+// The first 64 messages, then every 1000th with the count: a cache that kept
+// failing once wrote ~40 000 of these lines in one run.
 static void log_to_stderr(void* unused, int code, const char* message) {
+    static unsigned long count; // two threads may race here; a miscount is harmless
     (void)unused;
-    fprintf(stderr, "[sqlite] (%d) %s\n", code, message);
+    ++count;
+    if (count <= 64)
+        fprintf(stderr, "[sqlite] (%d) %s\n", code, message);
+    else if (count % 1000 == 0)
+        fprintf(stderr, "[sqlite] (%d) %s (%lu sqlite messages so far, most not shown)\n", code, message, count);
 }
 
 // Runs before main; this object is always linked, since sqlite3.o needs the
