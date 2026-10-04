@@ -1,7 +1,8 @@
 /*
  * pc_gpu_opts.h - opt-in GPU-side reductions of the native port, for A/B runs on the Switch
  * (docs/SWITCH_PERF_STUDY.md; native/src/pc/pc_gpu_opts.cpp).
- * All default off: with none set the game renders exactly as before.
+ * All default off except COS_MIST_LOWRES (near-identical output, see below): with none set the
+ * game renders as before.
  *
  * COS_SHADOW_OFFSCREEN=1  the real-time shadow casters (dDlst_shadowControl_c::imageDraw) are drawn
  *                         into an offscreen target of the EFB region's pixel size (GXCreateFrameBuffer)
@@ -19,6 +20,12 @@
  *                         is no longer softened. Gone with it: the Z16 copy of the depth buffer and
  *                         the half-size colour copy (two EFB pass breaks and their conversion
  *                         passes) and the full-screen composite. For measurement.
+ *
+ * COS_MIST_LOWRES=<n>    (default 4; 0 = off) the forest mist (drawCloudShadow, d_kankyo_rain.cpp: up to 100 blended
+ *                         sprites with no depth test, 10-12 screens of fragments in A_mori) is drawn
+ *                         into an offscreen target 1/n of the EFB in each direction and composited
+ *                         with the same blend equation (n = 2, 3 or 4; 0 or 1 = off). Skipped while
+ *                         spot lights or motion blur read the EFB alpha the mist used to write.
  *
  * Diagnostics (docs/SWITCH_PERF_STUDY.md, section 8):
  * COS_GPU_GROUPS=1        the painter inserts a GX debug marker before each draw-list bucket and
@@ -61,6 +68,22 @@ void pc_shadow_offscreen_opened(unsigned int w, unsigned int h, unsigned int cop
 
 /* Zero when COS_DOF=0 (the depth-of-field composite is skipped where that is safe). */
 int pc_dof_enabled(void);
+
+/* COS_MIST_LOWRES: the divisor (0 = off). */
+int pc_mist_lowres(void);
+/* The low-resolution mist target's size for the current EFB and a host buffer to name its copy
+   texture (GXCopyTex destination), or NULL when the target would be under 16x16. */
+void* pc_mist_lowres_target(unsigned int* w, unsigned int* h);
+
+/* COS_MIST_AB=<frame> (Mac checks; runs are not frame-reproducible): in that frame the mist is
+   drawn both ways from the same scene, the low-resolution result copied to buffer 2 and the
+   original to buffer 1; frames +1 and +2 show buffer 1 and 2 over everything (shoot them with
+   COS_SHOT). pc_mist_ab_frame: this game frame is the A/B frame. pc_mist_ab_buffer(i): the copy
+   texture names (0 = the scene before the mist). pc_mist_ab_show: the buffer to show this frame,
+   or NULL. */
+int pc_mist_ab_frame(void);
+void* pc_mist_ab_buffer(int index);
+void* pc_mist_ab_show(void);
 
 /* The current GPU group level: 0 off, 1 buckets, 2 buckets and packets (COS_GPU_GROUPS, or 2 in a
    COS_DRAW_CENSUS frame). Cheap: a load. */

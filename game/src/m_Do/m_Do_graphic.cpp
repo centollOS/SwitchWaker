@@ -9,6 +9,7 @@
 #include "pc/pc_gpu_opts.h"
 // COS_GPU_GROUPS (pc_gpu_opts.h): a GX debug marker before each bucket the GPU timer groups by.
 #define PC_GPU_GROUP(name) pc_gpu_group(name)
+void pcMistDrawFullscreen(void* buf, GXBool blend, u32 w, u32 h); // d_kankyo_rain.cpp
 #else
 #define PC_GPU_GROUP(name) ((void)0)
 #endif
@@ -1987,6 +1988,14 @@ bool mDoGph_Painter() {
     if (!dMenu_flag())
         dComIfGp_particle_draw2Dfore(&jpaDrawInfo2D);
     dComIfGp_particle_draw2DmenuFore(&jpaDrawInfo2D);
+#if TARGET_PC
+    // COS_MIST_AB (pc_gpu_opts.h): show the A/B frame's copies over everything.
+    if (void* abBuf = pc_mist_ab_show()) {
+        GXSetViewport(0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 1.0f);
+        GXSetScissor(0, 0, 640, 480);
+        pcMistDrawFullscreen(abBuf, GX_FALSE, 640, 480);
+    }
+#endif
 
     mDoGph_gInf_c::endRender();
 
