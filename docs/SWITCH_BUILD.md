@@ -256,7 +256,7 @@ refuses the app); the `[switch] centollOS:` start-up line has the same. At stock
 307.2 or 384 MHz handheld and 768 MHz docked, so the same frame can be GPU-bound in one mode and
 not in the other: always note the mode next to a measurement.
 Handheld GPU profile: at start the app asks apm (`apmSetPerformanceConfiguration`, handheld =
-`ApmPerformanceMode_Normal`) for one of the console maker's official configurations, CPU always at the stock
+`ApmPerformanceMode_Normal`) for one of the console's official performance configurations, CPU always at the stock
 1020 MHz (switchbrew, PTM services, PerformanceConfiguration): `COS_SWITCH_GPU_PROFILE=460` (the
 default; `0x92220008`, GPU 460.8 MHz, EMC 1331.2), `384` (`0x00020004`, GPU 384, EMC 1331.2),
 `default` (the system's, `0x00020003`, GPU 307.2) or a raw `0x...` id. 460 falls back to 384, then
