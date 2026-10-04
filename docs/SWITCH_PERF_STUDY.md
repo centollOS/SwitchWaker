@@ -441,3 +441,115 @@ when present) finishes inside `glLinkProgram`; a shared context on another threa
   of every frame blocked; the warm-up takes about twice as long, and what the first PLAY scene
   leaves is built when first drawn as before. Lower d for smoother menus, 1 for the old behaviour.
 
+
+## 7. Per-draw cost at 1400-1550 draws (720p handheld, GPU 460.8 MHz; lane/draw-cost)
+
+Log: `build/lanes/render-stall/build/switch-logs/stall-720-460-handheld.log` (the render-stall
+fixes in, clears 0.05 ms; Outset from "sea room 44 created at frame 7101"). Outset holds 30 fps up
+to ~950 draws and drops to 20-23 fps in the 1300-1550-draw windows.
+
+### 7.1 Where the worker's wall time goes when it is the bottleneck
+
+All 60-frame windows of the Outset part, condensed (`dc` = the `glDraw*` bucket of the replay
+timers, `others` = its per-draw cost for draws that follow neither a pipeline change nor a texture
+bind; gap = worker busy wall minus worker CPU; o+a = CPU of the other threads and the audio thread):
+
+| windows | fps | draws | dc ms | others us | GPU ms | worker CPU | worker wall | gap | o+a |
+|---|---|---|---|---|---|---|---|---|---|
+| 12301-15541 (typical) | 30.0 | 460-570 | 3.6-4.3 | 3.6-3.7 | 11-13 | 13.6-15.3 | 16.5-17.9 | 2.6-2.9 | 11-12.5 |
+| 8401-8881, 9241-9421 | 30.0 | 700-950 | 5.0-6.7 | 3.7-3.8 | 16-20 | 17.4-21.4 | 20.2-24.1 | 2.7-3.3 | 13.6-16 |
+| 7441-7921 | 27.5-29.8 | 860-995 | 6.1-7.0 | 3.8-3.9 | 20-22 | 20.5-22.5 | 30.8-36.3 | 10-15 | 15.4-16.7 |
+| 10321-12061 (steady dip) | 23.0-23.3 | 1316-1373 | 19.4-21.4 | 10.3-13.1 | 26.0-26.5 | 24.6-25.7 | 42.6-43.6 | 17.7-18.6 | 18.1-18.6 |
+| 10141-10200 (worst) | 20.4 | 1553 | 27.2 | 15.3 | 30.1 | 27.6 | 49.1 | 21.4 | 19.4 |
+
+1. **The worker's CPU cost is linear in draws and not the problem by itself**: 13 us of CPU per
+   draw for the whole worker (Aurora encode + Dawn replay + Mesa), 24.7-27.6 ms at 1300-1550 draws,
+   under the 33 ms of a 30 fps frame.
+2. **The extra wall time appears only when the worker runs back to back** (the game thread waits
+   for its slot, fps < 30), and it is spent **inside the `glDraw*` calls**: the same kind of draw
+   costs 3.7 us at 30 fps and 10-15 us in the dip, while the CPU per draw does not change. The gap
+   is ~2.7 ms in every paced window whatever the draw count, 10-15 ms at 28-29 fps and 18-21 ms in
+   the dip. It is not CPU work (thread ticks), so the worker is either **blocked** or **runnable but
+   not running**.
+3. Inside a `glDraw*`, Mesa 20.1 can only block in one place: `PUSH_SPACE` ->
+   `nouveau_pushbuf_space`, when the 512 KiB push-buffer chunk is full. libdrm_nouveau
+   (devkitPro's port, `pushbuf.c`) then kicks the chunk (`nvGpuChannelKickoff`, an ioctl = an IPC
+   round trip to nvservices) and maps the next chunk of its 4-chunk ring, and `nouveau_bo_map(WR)`
+   -> `nouveau_bo_wait` -> `nvFenceWait(fence, -1)` blocks until the GPU retired that chunk's last
+   submission (Mesa's own `nouveau_fence_wait` spins, which would count as CPU). Constant data
+   (`glUniform`) is pushed inline (`nvc0_cb_bo_push`), vertex/index/uniform buffers are never mapped
+   in the draw path, so no other wait exists there.
+4. Two mechanisms fit the numbers, and the log cannot tell them apart:
+   - **(a) push-buffer back-pressure**: the ring (2 MiB) holds ~2-3 frames of commands at
+     1500 draws (~0.4 KiB per draw: inline constants for two stages, UBO rebind, draw; ~1.5 KiB per
+     program switch: nvc0 re-emits the shader buffer table of all 5 stages); when the GPU is ~30 ms
+     per frame the worker catches up with it and waits at chunk switches.
+   - **(b) core sharing**: every helper thread runs at priority 0x2C with the render worker on
+     cores 1-2 (`thread_wrap.c`), and Horizon does not time-slice equal priorities. Each time the
+     worker blocks (a kick's IPC, a fence wait), another ready thread on its core runs until *it*
+     blocks. In the dip windows the gap (17.7-21.4 ms) equals the CPU of the other threads plus the
+     audio thread (18.1-19.4 ms) window after window; in paced windows they run in the worker's idle
+     time instead (gap 2.7 ms against 11-16 ms of their CPU). The GPU being busy only 30 of 49 ms
+     also argues against (a) alone: pure back-pressure would keep it saturated.
+5. Therefore the next run carries the counters that separate them (commit 3bb7fb9, no behaviour
+   change), and the toggle that removes (b):
+   - `[cos] perf-switch nv per frame`: for the render worker and for the other threads,
+     `nouveau_pushbuf_space` calls and time (chunk switches, waits included), blocking
+     `nvFenceWait` calls and time, polls, kicks and their IPC time, KiB pushed per frame (from
+     `nvGpuChannelAppendEntry`); the NRO links `--wrap` for the four functions (`nv_wrap.c`).
+     Reading: worker fence-wait time ~ gap -> (a); fence waits ~0 and gap ~ others' CPU -> (b).
+   - `[cos] perf-switch threads`: every thread over 0.3 ms of CPU per frame with role, preferred
+     core, affinity mask, CPU per frame and entry point (offset for addr2line with `centollos.elf`).
+   - `COS_SWITCH_CORES=isolate`: the render worker alone on core 2, every other thread (existing
+     and later, the game's included) on cores 0-1. If (b), the dip's wall time should fall to
+     about worker CPU (~27 ms at 1550 draws, i.e. 30 fps) with the GPU at 30 ms.
+   - If (a): a larger ring (`nouveau_pushbuf_new(..., 4, 512 * 1024, ...)` in Mesa's
+     `nouveau_screen.c`, lane mesa-cache's tree) and fewer bytes per draw (below).
+
+### 7.2 What each draw makes Mesa do, and what changed
+
+Per GX draw Dawn GL issued, and Mesa 20.1 (st/mesa + nvc0) did at the next draw:
+
+| Dawn GL call | Mesa state dirtied | nvc0 work at draw | per frame (dip) | now |
+|---|---|---|---|---|
+| `glUniform1uiv` (64 B of immediates) | VS and FS constants | `nvc0_cb_bo_push`: CB_SIZE + inline data per stage | 1737 | same (now also carries the window position) |
+| `glBindBufferRange(UBO)` (dynamic offset) | VS and FS UBOs | rebind all UBOs of both stages (CB_SIZE/CB_BIND) and `cb_dirty` -> `MEM_BARRIER 0x1011` (instruction, data and constant cache invalidation on the GPU) | 1549 | ~1 per 20-30 draws (`COS_SWITCH_GL_UBO_WINDOW`) |
+| texture/sampler binds (changed group 2) | sampler views/samplers | TIC/TSC validate | 294 | same |
+| `SetPipeline` -> `glUseProgram` + ~25 state calls | program + every program-dependent atom (constants, UBOs, SSBOs, samplers, views) | shader switch, all stages' constbufs and textures rebound, `nvc0_validate_buffers` (~1.3 KiB) | 194 | redundant state calls and same-program `glUseProgram` skipped (`COS_SWITCH_GL_STATE_CACHE`); program switches themselves remain |
+
+Changes (each default on, each with an env switch for the A/B, each checked on Mesa llvmpipe with
+`switch/dawn/gltest`, see its README: the Mac's Dawn is Metal and cannot run these paths):
+
+- **Uniform window** (`dawn-switch-gl-ubo-window.patch`, db6a0c5): the uniform buffer is bound for
+  a 64 KiB window and Tint reads it as `array<vec4u, 4096>` plus the record's position in the
+  window, an internal immediate that rides in the `glUniform1uiv` each draw makes anyway. Removes
+  ~1500 `glBindBufferRange` per frame (bind groups 3.3 ms in the dip), Mesa's per-draw UBO
+  re-validation (part of the `glDraw*` time) and ~1500 GPU cache invalidations. Costs: uniform
+  loads become indexed loads (`LDC`) in the shaders (a few instructions per fragment), and every
+  GL program is recompiled once (new GLSL; Mesa's shader cache refills). Read the "UBO binds" of
+  the replay line (1549 -> ~60), the replay buckets and the GPU time.
+- **Pipeline state cache** (`dawn-switch-gl-state-cache.patch`, 4a70a7d): per render pass, only the
+  state calls whose value changed. "pipelines" of the replay line (1.28 ms in the dip).
+- Not done: folding `vtxStart` into a base vertex. The immediates still change every draw (the
+  window position, `currentPnMtx`, array starts), so one `glUniform1uiv` per draw remains either way.
+  Reordering draws to cut the 194 program switches is not possible without breaking GX ordering
+  (blending, alpha prepass/main pairs).
+
+### 7.3 Loading screen and warm-up
+
+- The loading screen presents at most `COS_PRECOMPILE_SCREEN_FPS` frames a second (default 10;
+  d5dbdbc): at 60 it presented 1458 frames while its 176 pipelines took 37.1 s.
+- Aurora's compile thread names itself (Switch patch 0010) and never shares the render worker's
+  core (`COS_SWITCH_COMPILE_CORE=auto`, default; `off` for the old placement).
+- With Mesa's shader cache (a84c009: 11-13 ms per cached pipeline) the warm-up throttle holds the
+  next build back only after a build slower than `COS_PRECOMPILE_SLOW_MS` (default 25; Switch patch
+  0011, 3e79acb), so a warm cache warms up back to back (~6 s for ~1100) and cache misses keep the
+  duty cycle.
+
+### 7.4 A/B for the next hardware run
+
+`env.txt` variants in `build/lanes/draw-cost/build/switch-envs/` (all at 720p, GPU profile 460):
+`1-default` (everything on), `2-legacy` (window and state cache off: the old replay),
+`3-nowindow`, `4-nostatecache`, `5-isolate` (`COS_SWITCH_CORES=isolate`), `6-oldwarmup` (60 fps
+loading screen, every warm-up build throttled, compile thread placed as before). The first run of
+`1-default` recompiles every GL program once (new GLSL): compare the second run.
