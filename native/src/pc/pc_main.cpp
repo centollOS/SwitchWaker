@@ -21,6 +21,7 @@
 // audio is disabled). Changed: no settings, ImGui, mods or prelaunch UI; paths and options come
 // from the harness environment; failures exit through the harness codes.
 #include "pc_internal.h"
+#include "pc/pc_hd_textures.h"
 #include "pc/pc_aspect.h"
 
 #include "JSystem/JKernel/JKRHeap.h"
@@ -246,6 +247,8 @@ void pc_aurora_init(int argc, char* argv[]) {
     precompileInit(sCachePath);
     // COS_PRECOMPILE=boot/full: the loading screen, before the game (and its boot logo) starts.
     precompileLoadingScreen();
+    // COS_HD_TEXTURES (pc_hd_textures.h): the optional HD texture pack, off by default.
+    pc_hd_textures_init(sUserPath);
 
     // Before DVDInit (Aurora's rule); pc_harness_init already checked COS_DISC is set and readable.
     if (!aurora_dvd_open(gConfig.disc)) {

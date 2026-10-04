@@ -1,0 +1,435 @@
+diff --git a/include/aurora/texture.hpp b/include/aurora/texture.hpp
+index 6c68778..a2c706f 100644
+--- a/include/aurora/texture.hpp
++++ b/include/aurora/texture.hpp
+@@ -97,6 +97,53 @@ void reload_replacement_directory(const std::filesystem::path& root, Replacement
+ 
+ bool has_replacement(const GXTexObj* obj, const GXTlutObj* tlut = nullptr);
+ 
++/// Runtime tuning of the replacement streamer (cos_native patch 0010). Call before registering
++/// replacements; the worker count only applies before the first load starts the worker pool.
++struct ReplacementRuntimeConfig {
++  /// GPU bytes the replacement cache may hold. Entries bound within the last `keepRecentFrames`
++  /// frames are not evicted; a load that cannot fit is dropped (the original texture stays) and
++  /// retried after `retryFrames` frames.
++  uint64_t cacheBudgetBytes = 4294967296ull;
++  /// Upload bytes published per frame (at least one texture is always published).
++  uint64_t publishBudgetBytesPerFrame = 12ull * 1024ull * 1024ull;
++  /// Queue a low-priority mip-tail ("thumbnail") read of every DDS entry at registration. Off: the
++  /// original texture is shown until the full replacement has loaded.
++  bool eagerThumbnails = true;
++  /// Loader threads; 0 = half the hardware threads, 1..4.
++  uint32_t workerCount = 0;
++  uint32_t keepRecentFrames = 60;
++  uint32_t retryFrames = 300;
++};
++void set_runtime_config(const ReplacementRuntimeConfig& config) noexcept;
++ReplacementRuntimeConfig runtime_config() noexcept;
++
++/// Cumulative counters since start (or the last reset_stats), plus current cache state.
++struct ReplacementStats {
++  uint64_t lookupHits = 0;      ///< texture resolves whose source key has a replacement
++  uint64_t lookupMisses = 0;    ///< texture resolves whose source key has none
++  uint64_t loadsCompleted = 0;  ///< full loads decoded by the workers
++  uint64_t loadsFailed = 0;
++  uint64_t loadedBytes = 0;     ///< decoded texture bytes (all mips) of the completed loads
++  uint64_t loadNsTotal = 0;     ///< worker time spent in the completed and failed loads
++  uint64_t loadNsMax = 0;
++  uint64_t publishes = 0;       ///< GPU textures created from completed loads
++  uint64_t publishedBytes = 0;
++  uint64_t evictions = 0;
++  uint64_t budgetRejects = 0;   ///< completed loads dropped because the cache budget was full
++  uint64_t cacheBytes = 0;      ///< current
++  uint64_t cacheEntries = 0;    ///< current
++  uint64_t pendingLoads = 0;    ///< current
++  uint64_t registered = 0;      ///< current source-key registrations
++};
++ReplacementStats stats() noexcept;
++void reset_stats() noexcept;
++
++/// Called with every source key the runtime computes for a static texture (a texture-object cache
++/// miss), before the replacement lookup; for census tools. Setting an observer makes the runtime
++/// compute source keys even with no replacement registered. Called on the GX thread.
++using SourceKeyObserver = void (*)(const TextureSourceKey& key, void* userData);
++void set_source_key_observer(SourceKeyObserver observer, void* userData) noexcept;
++
+ } // namespace aurora::texture
+ 
+ #endif
+diff --git a/lib/gfx/texture_replacement.cpp b/lib/gfx/texture_replacement.cpp
+index 03dda46..f1d1cd9 100644
+--- a/lib/gfx/texture_replacement.cpp
++++ b/lib/gfx/texture_replacement.cpp
+@@ -20,6 +20,7 @@
+ 
+ #include <algorithm>
+ #include <array>
++#include <atomic>
+ #include <charconv>
+ #include <chrono>
+ #include <condition_variable>
+@@ -42,7 +43,26 @@ namespace aurora::texture {
+ namespace {
+ constexpr Module Log{"aurora::texture"};
+ 
+-constexpr uint64_t kReplacementCacheBudgetBytes = 4294967296; // 4GB
++// Runtime tuning (cos_native patch 0010, ReplacementRuntimeConfig in aurora/texture.hpp).
++ReplacementRuntimeConfig s_runtimeConfig;
++
++struct AtomicStats {
++  std::atomic<uint64_t> lookupHits{0};
++  std::atomic<uint64_t> lookupMisses{0};
++  std::atomic<uint64_t> loadsCompleted{0};
++  std::atomic<uint64_t> loadsFailed{0};
++  std::atomic<uint64_t> loadedBytes{0};
++  std::atomic<uint64_t> loadNsTotal{0};
++  std::atomic<uint64_t> loadNsMax{0};
++  std::atomic<uint64_t> publishes{0};
++  std::atomic<uint64_t> publishedBytes{0};
++  std::atomic<uint64_t> evictions{0};
++  std::atomic<uint64_t> budgetRejects{0};
++};
++AtomicStats s_atomicStats;
++
++std::atomic<SourceKeyObserver> s_sourceKeyObserver{nullptr};
++std::atomic<void*> s_sourceKeyObserverData{nullptr};
+ constexpr uint64_t kReplacementWildcardTextureHash = kWildcardTextureHash;
+ constexpr uint64_t kReplacementWildcardTlutHash = kWildcardTlutHash;
+ 
+@@ -135,6 +155,8 @@ std::mutex s_registryMutex;
+ absl::flat_hash_map<ReplacementKey, std::vector<ReplacementEntry>, ReplacementKeyHash> s_entriesByKey;
+ absl::flat_hash_map<ReplacementKey, SelectedCache, ReplacementKeyHash> s_cacheByKey;
+ absl::flat_hash_set<uint64_t> s_failedIds;
++// Entry id -> frame until which a load that did not fit the cache budget is not retried.
++absl::flat_hash_map<uint64_t, uint64_t> s_budgetRejectedUntil;
+ absl::flat_hash_set<TextureSourceKey, SourceKeyHash> s_reportedMisses;
+ std::list<ReplacementKey> s_replacementLru;
+ uint64_t s_replacementCacheBytes = 0;
+@@ -797,10 +819,26 @@ void worker_main(std::stop_token token) {
+         texture = std::move(thumbnail->texture);
+         thumbnailIncludesBase = thumbnail->includesBase;
+       }
+-    } else if (job.entry.kind == EntryKind::File) {
+-      texture = load_file_replacement(job.entry);
+-    } else if (job.entry.kind == EntryKind::Virtual) {
+-      texture = load_virtual_replacement(job.entry);
++    } else {
++      const auto loadStart = std::chrono::steady_clock::now();
++      if (job.entry.kind == EntryKind::File) {
++        texture = load_file_replacement(job.entry);
++      } else if (job.entry.kind == EntryKind::Virtual) {
++        texture = load_virtual_replacement(job.entry);
++      }
++      const auto loadNs = static_cast<uint64_t>(
++          std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - loadStart).count());
++      s_atomicStats.loadNsTotal.fetch_add(loadNs, std::memory_order_relaxed);
++      uint64_t prevMax = s_atomicStats.loadNsMax.load(std::memory_order_relaxed);
++      while (loadNs > prevMax &&
++             !s_atomicStats.loadNsMax.compare_exchange_weak(prevMax, loadNs, std::memory_order_relaxed)) {
++      }
++      if (texture.has_value()) {
++        s_atomicStats.loadsCompleted.fetch_add(1, std::memory_order_relaxed);
++        s_atomicStats.loadedBytes.fetch_add(texture->data.size(), std::memory_order_relaxed);
++      } else {
++        s_atomicStats.loadsFailed.fetch_add(1, std::memory_order_relaxed);
++      }
+     }
+ 
+     if (job.tier == Tier::Thumbnail && texture.has_value() && !is_unsupported_texture_format(texture->format) &&
+@@ -841,7 +879,9 @@ void start_worker_pool() {
+   }
+   const uint32_t hardwareThreads = std::max(std::thread::hardware_concurrency(), 1u);
+   const uint32_t workerCount =
+-      s_workerCountOverride != 0 ? s_workerCountOverride : std::clamp(hardwareThreads / 2, 1u, 4u);
++      s_workerCountOverride != 0       ? s_workerCountOverride
++      : s_runtimeConfig.workerCount != 0 ? std::clamp(s_runtimeConfig.workerCount, 1u, 4u)
++                                         : std::clamp(hardwareThreads / 2, 1u, 4u);
+   for (uint32_t i = 0; i < workerCount; ++i) {
+     s_workers.emplace_back(
+         thread::Options{
+@@ -902,7 +942,7 @@ void queue_thumbnail_load(const EntryLoadSnapshot& entry) {
+   if constexpr (!gx::texture::AsyncTextureReplacements || gx::texture::ReplacementThumbnailDim == 0) {
+     return;
+   }
+-  if (!is_dds_entry(entry)) {
++  if (!is_dds_entry(entry) || !s_runtimeConfig.eagerThumbnails) {
+     return;
+   }
+   start_worker_pool();
+@@ -950,8 +990,8 @@ bool publish_fits_budget(uint64_t publishedCount, uint64_t publishedBytes, uint6
+   if (publishedCount == 0) {
+     return true;
+   }
+-  return nextBytes <= gx::texture::ReplacementPublishBudgetBytes &&
+-         publishedBytes <= gx::texture::ReplacementPublishBudgetBytes - nextBytes;
++  const uint64_t budget = s_runtimeConfig.publishBudgetBytesPerFrame;
++  return nextBytes <= budget && publishedBytes <= budget - nextBytes;
+ }
+ 
+ std::string entry_path_for_log(const ReplacementEntry& entry) {
+@@ -987,6 +1027,15 @@ gfx::TextureHandle create_converted_texture_handle(const EntryLoadSnapshot& entr
+   auto handle = std::make_shared<gfx::TextureRef>(std::move(texture), std::move(textureView), wgpu::TextureView{}, size,
+                                                   replacement.format, replacement.mips, gfx::InvalidTextureFormat);
+   handle->isReplacement = true;
++  // Dolphin's "_arb" suffix: the replacement's mips are arbitrary (authored effects, e.g. water),
++  // so the sampler selects them as the original texture's mips would be (shader_info.cpp).
++  if (replacement.mips > 1) {
++    std::string name = entry.kind == EntryKind::Virtual ? entry.virtualPath : io::fs_path_to_string(entry.path);
++    if (const size_t dot = name.rfind('.'); dot != std::string::npos) {
++      name.resize(dot);
++    }
++    handle->hasArbitraryMips = name.size() >= 4 && name.compare(name.size() - 4, 4, "_arb") == 0;
++  }
+   aurora::gfx::write_texture(*handle, replacement.data);
+   return handle;
+ }
+@@ -1033,17 +1082,61 @@ void touch_cached_replacement(decltype(s_cacheByKey)::iterator it) noexcept {
+   }
+ }
+ 
+-void evict_replacement_cache_if_needed() noexcept {
+-  while (s_replacementCacheBytes > kReplacementCacheBudgetBytes && !s_replacementLru.empty()) {
+-    const auto key = s_replacementLru.back();
++bool replacement_used_recently(uint64_t id) noexcept {
++  const uint64_t keep = s_runtimeConfig.keepRecentFrames;
++  if (keep == 0) {
++    return false;
++  }
++  const uint64_t now = gx::texture::frame_count();
++  const uint64_t last = gx::texture::replacement_last_used_frame(id);
++  return last != 0 && (last >= now || now - last < keep);
++}
++
++// Evicts least recently looked-up entries that were not bound recently until `incomingBytes` more
++// fit the budget. Returns whether they fit.
++bool evict_for_locked(uint64_t incomingBytes) noexcept {
++  const uint64_t budget = s_runtimeConfig.cacheBudgetBytes;
++  if (s_replacementCacheBytes + incomingBytes <= budget) {
++    return true;
++  }
++  std::vector<ReplacementKey> victims;
++  uint64_t freed = 0;
++  for (auto it = s_replacementLru.rbegin(); it != s_replacementLru.rend(); ++it) {
++    if (s_replacementCacheBytes - freed + incomingBytes <= budget) {
++      break;
++    }
++    const auto cache = s_cacheByKey.find(*it);
++    if (cache == s_cacheByKey.end() || replacement_used_recently(cache->second.id)) {
++      continue;
++    }
++    victims.push_back(*it);
++    freed += cache->second.bytes;
++  }
++  for (const auto& key : victims) {
+     const auto cache = s_cacheByKey.find(key);
+     const uint64_t id = cache == s_cacheByKey.end() ? 0 : cache->second.id;
+     erase_cache_locked(key);
++    s_atomicStats.evictions.fetch_add(1, std::memory_order_relaxed);
+     if (id != 0) {
+       gx::texture::invalidate_replacement(id);
+       gx::texture::invalidate_bindings();
+     }
+   }
++  return s_replacementCacheBytes + incomingBytes <= budget;
++}
++
++void evict_replacement_cache_if_needed() noexcept { evict_for_locked(0); }
++
++bool budget_rejected_locked(uint64_t id) noexcept {
++  const auto it = s_budgetRejectedUntil.find(id);
++  if (it == s_budgetRejectedUntil.end()) {
++    return false;
++  }
++  if (gx::texture::frame_count() < it->second) {
++    return true;
++  }
++  s_budgetRejectedUntil.erase(it);
++  return false;
+ }
+ 
+ void cache_replacement_locked(const ReplacementKey& key, uint64_t id, gfx::TextureHandle handle, Tier tier) noexcept {
+@@ -1153,7 +1246,8 @@ find_replacement_for_key_locked(const ReplacementKey& key) noexcept {
+ 
+   if (const auto cache = s_cacheByKey.find(key); cache != s_cacheByKey.end() && cache->second.id == entry->id) {
+     touch_cached_replacement(cache);
+-    if (cache->second.tier == Tier::Thumbnail && !s_failedIds.contains(entry->id)) {
++    if (cache->second.tier == Tier::Thumbnail && !s_failedIds.contains(entry->id) &&
++        !budget_rejected_locked(entry->id)) {
+       queue_full_load(snapshot_entry(key, *entry));
+     }
+     return gfx::texture_replacement::ReplacementResult{.handle = cache->second.handle, .id = entry->id};
+@@ -1173,7 +1267,7 @@ find_replacement_for_key_locked(const ReplacementKey& key) noexcept {
+         tier = entry->thumbnailIncludesBase ? Tier::Full : Tier::Thumbnail;
+         cache_replacement_locked(key, entry->id, thumbnailHandle, tier);
+       }
+-      if (tier != Tier::Full && !s_failedIds.contains(entry->id)) {
++      if (tier != Tier::Full && !s_failedIds.contains(entry->id) && !budget_rejected_locked(entry->id)) {
+         queue_full_load(snapshot_entry(key, *entry));
+       }
+       return gfx::texture_replacement::ReplacementResult{.handle = std::move(thumbnailHandle), .id = entry->id};
+@@ -1342,6 +1436,7 @@ void clear_replacement_runtime_state_locked(std::vector<std::shared_ptr<VirtualR
+   s_entriesByKey.clear();
+   s_cacheByKey.clear();
+   s_failedIds.clear();
++  s_budgetRejectedUntil.clear();
+   s_reportedMisses.clear();
+   s_replacementLru.clear();
+   s_replacementCacheBytes = 0;
+@@ -1688,6 +1783,57 @@ void reload_replacement_directory(const std::filesystem::path& root, Replacement
+   group = load_replacement_directory(root, options);
+ }
+ 
++void set_runtime_config(const ReplacementRuntimeConfig& config) noexcept {
++  std::lock_guard lk(s_registryMutex);
++  s_runtimeConfig = config;
++  if (s_runtimeConfig.cacheBudgetBytes == 0) {
++    s_runtimeConfig.cacheBudgetBytes = 1;
++  }
++}
++
++ReplacementRuntimeConfig runtime_config() noexcept {
++  std::lock_guard lk(s_registryMutex);
++  return s_runtimeConfig;
++}
++
++ReplacementStats stats() noexcept {
++  ReplacementStats out{
++      .lookupHits = s_atomicStats.lookupHits.load(std::memory_order_relaxed),
++      .lookupMisses = s_atomicStats.lookupMisses.load(std::memory_order_relaxed),
++      .loadsCompleted = s_atomicStats.loadsCompleted.load(std::memory_order_relaxed),
++      .loadsFailed = s_atomicStats.loadsFailed.load(std::memory_order_relaxed),
++      .loadedBytes = s_atomicStats.loadedBytes.load(std::memory_order_relaxed),
++      .loadNsTotal = s_atomicStats.loadNsTotal.load(std::memory_order_relaxed),
++      .loadNsMax = s_atomicStats.loadNsMax.load(std::memory_order_relaxed),
++      .publishes = s_atomicStats.publishes.load(std::memory_order_relaxed),
++      .publishedBytes = s_atomicStats.publishedBytes.load(std::memory_order_relaxed),
++      .evictions = s_atomicStats.evictions.load(std::memory_order_relaxed),
++      .budgetRejects = s_atomicStats.budgetRejects.load(std::memory_order_relaxed),
++  };
++  {
++    std::lock_guard lk(s_registryMutex);
++    out.cacheBytes = s_replacementCacheBytes;
++    out.cacheEntries = s_cacheByKey.size();
++    out.registered = s_sourceEntryCount;
++  }
++  out.pendingLoads = pending_full_load_count();
++  return out;
++}
++
++void reset_stats() noexcept {
++  for (auto* counter : {&s_atomicStats.lookupHits, &s_atomicStats.lookupMisses, &s_atomicStats.loadsCompleted,
++                        &s_atomicStats.loadsFailed, &s_atomicStats.loadedBytes, &s_atomicStats.loadNsTotal,
++                        &s_atomicStats.loadNsMax, &s_atomicStats.publishes, &s_atomicStats.publishedBytes,
++                        &s_atomicStats.evictions, &s_atomicStats.budgetRejects}) {
++    counter->store(0, std::memory_order_relaxed);
++  }
++}
++
++void set_source_key_observer(SourceKeyObserver observer, void* userData) noexcept {
++  s_sourceKeyObserverData.store(userData, std::memory_order_release);
++  s_sourceKeyObserver.store(observer, std::memory_order_release);
++}
++
+ bool has_replacement(const GXTexObj* obj, const GXTlutObj* tlut) {
+   const auto* obj_ = reinterpret_cast<const GXTexObj_*>(obj);
+   if (tlut != nullptr) {
+@@ -1781,6 +1927,19 @@ StreamingStats process_streaming() noexcept {
+       continue;
+     }
+ 
++    {
++      // Make room first; a load that cannot fit (everything else bound recently) is dropped and
++      // retried later, the original texture staying in place.
++      std::lock_guard lock{s_registryMutex};
++      const uint64_t gpuBytes = gfx::calc_texture_size(completion.texture->format, completion.texture->width,
++                                                       completion.texture->height, completion.texture->mips);
++      if (!evict_for_locked(gpuBytes)) {
++        s_budgetRejectedUntil[completion.entry.id] = gx::texture::frame_count() + s_runtimeConfig.retryFrames;
++        s_atomicStats.budgetRejects.fetch_add(1, std::memory_order_relaxed);
++        finish_full_load(completion.entry.id);
++        continue;
++      }
++    }
+     auto handle = create_converted_texture_handle(completion.entry, *completion.texture);
+     bool published = false;
+     {
+@@ -1801,6 +1960,8 @@ StreamingStats process_streaming() noexcept {
+     gx::texture::invalidate_bindings();
+     ++stats.publishes;
+     stats.publishBytes += bytes;
++    s_atomicStats.publishes.fetch_add(1, std::memory_order_relaxed);
++    s_atomicStats.publishedBytes.fetch_add(bytes, std::memory_order_relaxed);
+   }
+   s_readyPublishes = std::move(deferred);
+   stats.pendingLoads = pending_full_load_count();
+@@ -1810,6 +1971,8 @@ StreamingStats process_streaming() noexcept {
+ std::optional<ReplacementResult> find_source_replacement_locked(const GXTexObj_& obj,
+                                                                 const TextureSourceKey& sourceKey) noexcept {
+   const auto replacementKey = find_source_replacement_key_locked(sourceKey);
++  (replacementKey.has_value() ? s_atomicStats.lookupHits : s_atomicStats.lookupMisses)
++      .fetch_add(1, std::memory_order_relaxed);
+   if (!replacementKey.has_value()) {
+     const bool alwaysReportMissingKey = false; // Enable for debugging
+     if (g_config.allowTextureDumps || alwaysReportMissingKey) {
+@@ -1838,6 +2001,9 @@ std::optional<ReplacementResult> find_pointer_replacement(const GXTexObj_& obj)
+ std::optional<ReplacementResult> find_source_replacement(const GXTexObj_& obj,
+                                                          const TextureSourceKey& sourceKey) noexcept {
+   ZoneScoped;
++  if (const auto observer = s_sourceKeyObserver.load(std::memory_order_acquire); observer != nullptr) {
++    observer(sourceKey, s_sourceKeyObserverData.load(std::memory_order_acquire));
++  }
+   std::lock_guard lk(s_registryMutex);
+   if (s_sourceEntryCount == 0 && !g_config.allowTextureDumps) {
+     return std::nullopt;
+@@ -1846,6 +2012,9 @@ std::optional<ReplacementResult> find_source_replacement(const GXTexObj_& obj,
+ }
+ 
+ bool should_build_source_key() noexcept {
++  if (s_sourceKeyObserver.load(std::memory_order_acquire) != nullptr) {
++    return true;
++  }
+   std::lock_guard lk(s_registryMutex);
+   return s_sourceEntryCount != 0 || g_config.allowTextureDumps;
+ }
+diff --git a/lib/gx/texture.cpp b/lib/gx/texture.cpp
+index a56709a..9ba144a 100644
+--- a/lib/gx/texture.cpp
++++ b/lib/gx/texture.cpp
+@@ -592,6 +592,22 @@ void invalidate_replacement(uint64_t replacementId) noexcept {
+   }
+ }
+ 
++uint64_t frame_count() noexcept { return s_frameCount; }
++
++uint64_t replacement_last_used_frame(uint64_t replacementId) noexcept {
++  const auto users = s_replacementUsers.find(replacementId);
++  if (users == s_replacementUsers.end()) {
++    return 0;
++  }
++  uint64_t last = 0;
++  for (const u32 texObjId : users->second) {
++    if (const auto it = s_textureObjectCaches.find(texObjId); it != s_textureObjectCaches.end()) {
++      last = std::max(last, it->second.lastUsedFrame);
++    }
++  }
++  return last;
++}
++
+ gfx::TextureHandle resolve_static_texture(const GXTexObj_& obj) {
+   ZoneScoped;
+ 
+diff --git a/lib/gx/texture.hpp b/lib/gx/texture.hpp
+index 29c9a48..369a7fd 100644
+--- a/lib/gx/texture.hpp
++++ b/lib/gx/texture.hpp
+@@ -37,6 +37,10 @@ void invalidate_bindings() noexcept;
+ uint64_t current_bind_generation() noexcept;
+ void invalidate_replacement(uint64_t replacementId) noexcept;
+ void end_frame() noexcept;
++// Frame counter of end_frame, and the last frame a texture object using that replacement was bound
++// (0: none cached); for the replacement cache's eviction (cos_native patch 0010).
++uint64_t frame_count() noexcept;
++uint64_t replacement_last_used_frame(uint64_t replacementId) noexcept;
+ void shutdown() noexcept;
+ void set_content_cache_budget_for_testing(uint64_t bytes) noexcept;
+ 
