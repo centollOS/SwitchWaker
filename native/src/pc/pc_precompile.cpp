@@ -374,8 +374,25 @@ void precompileLoadingScreen() {
 }
 
 namespace {
-// Frames keep being presented (about one per pipeline built on the Switch, where a build holds the
-// GL context) and events pumped.
+// COS_PRECOMPILE_SCREEN_FPS (default 10, 1-60): the loading screen's frame rate cap. At 60 the
+// screen took 1458 presents in 37 s on the Switch while 176 pipelines built (17.4 s and 147
+// presents in the run before): every present runs the render worker and takes the GL context.
+uint64_t loadingScreenPeriodNs() {
+    double fps = 10.0;
+    const char* env = getenv("COS_PRECOMPILE_SCREEN_FPS");
+    if (env != nullptr && env[0] != '\0') {
+        fps = strtod(env, nullptr);
+    }
+    if (!(fps >= 1.0)) {
+        fps = 1.0;
+    }
+    if (fps > 60.0) {
+        fps = 60.0;
+    }
+    return (uint64_t)(1e9 / fps);
+}
+
+// Frames keep being presented (at most COS_PRECOMPILE_SCREEN_FPS a second) and events pumped.
 void loadingScreen() {
     if (!sActive || !sUi || (sPolicy != Policy::Boot && sPolicy != Policy::Full)) {
         return;
@@ -395,9 +412,11 @@ void loadingScreen() {
     const uint64_t startNs = monotonicNs();
     uint64_t nextLogNs = startNs + 1000000000ull;
     unsigned int presented = 0;
+    const uint64_t periodNs = loadingScreenPeriodNs();
     if (sLog) {
-        writef(STDERR_FILENO, "[cos] precompile loading screen: waiting for %u %s pipelines\n", t.total,
-               sPolicy == Policy::Full ? "queued" : "priority");
+        writef(STDERR_FILENO, "[cos] precompile loading screen: waiting for %u %s pipelines, %.0f frames/s "
+                              "at most (COS_PRECOMPILE_SCREEN_FPS)\n",
+               t.total, sPolicy == Policy::Full ? "queued" : "priority", 1e9 / (double)periodNs);
     }
     for (;;) {
         const uint64_t frameStartNs = monotonicNs();
@@ -419,10 +438,11 @@ void loadingScreen() {
             writef(STDERR_FILENO, "[cos] precompile loading screen %u/%u, %.1f s, %u frames presented\n",
                    t.done, t.total, (now - startNs) / 1e9, presented);
         }
-        // About 60 frames a second at most (on the Switch the render worker paces it lower).
+        // At most COS_PRECOMPILE_SCREEN_FPS frames a second (default 10): each present needs the
+        // render worker and, on the Switch, the one GL context the compile thread builds with.
         const uint64_t frameNs = monotonicNs() - frameStartNs;
-        if (frameNs < 16000000ull) {
-            usleep((useconds_t)((16000000ull - frameNs) / 1000));
+        if (frameNs < periodNs) {
+            usleep((useconds_t)((periodNs - frameNs) / 1000));
         }
     }
     const uint64_t endNs = monotonicNs();
