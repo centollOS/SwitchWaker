@@ -353,6 +353,11 @@ Every edit goes under `#if TARGET_PC`. Dusklight's macros make `BE(T)` plain `T`
 **5.8 Fidelity and cost**
 - Compare dump envelopes with the translated build's LLE DSP on the same scene (r ≥ 0.95).
 - Audio-thread CPU per second; a TSan run.
+- **Closed 2026-10-04 by the user's ear on hardware.** The by-ear references were the prologue
+  stream (5.6, 57ae451) and the title ambience/SFX (5.5, fd9ffa5), both confirmed on 2026-10-03;
+  after 124a812 (JAI port arguments: volume, pan and fades reach the tracks) the user played Outset,
+  its houses (BGM back after leaving them, bug B1) and the forest on the Switch and judged the
+  audio fully faithful. The envelope comparison against the LLE DSP and the TSan run are dropped.
 
 ---
 
