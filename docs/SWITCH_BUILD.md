@@ -408,12 +408,46 @@ scene NAME (new); switch: slot wait, staging wait, queue-full wait, worker busy 
 present, events), gl fence wait, glFinish, pipeline compile ms (count), dvd reads; dawn gl: draws,
 tex binds, texparams, execute, other work, release ms` line.
 
-Aurora's caches (`user/cache/dawn_cache.db`, `pipeline_cache.db`) failed their first transaction
-on the console with "database disk image is malformed", so shaders and pipelines were compiled
-again every run. On the Switch they now keep no journal file (`journal_mode=MEMORY`, Aurora patch
-0006, with exclusive locking and in-memory temp files in the sqlite build); a cache that still
-fails is deleted and created once more (`Removed ... and retrying` in the log), and sqlite's own
-error log is in the run log as `[sqlite] (code) message` lines, which name the failing check.
+Aurora's caches (`user/cache/dawn_cache.db`, `pipeline_cache.db`) are sqlite databases. History:
+they first failed their first transaction on the console with "database disk image is malformed"
+on every run (cause never pinned down); `journal_mode=MEMORY` (no journal file), exclusive locking
+and in-memory temp files cured that, but then a run closed with HOME (the process is killed, no
+clean exit) in the middle of a commit, or of the VACUUM after the Dawn cache prune, left the file
+damaged: the next run failed every lookup and insert (2026-10-04, ~40 000 `[sqlite]` lines, every
+pipeline missed the cache). Now:
+
+- **Journal** (Aurora Switch patch 0006): `journal_mode=PERSIST`, `journal_size_limit` 4 MiB,
+  `synchronous=OFF`. The `-journal` file next to each cache is created once and kept open (the
+  sqlite build's exclusive locking), its header zeroed at each commit; a commit cut short by a kill
+  is rolled back from it at the next open. A kill is not a power loss: what `write()` handed the
+  file system reaches the card, so no syncs are needed. Each cache logs
+  `<path>: journal_mode=PERSIST, synchronous=OFF` when it opens. `COS_SWITCH_SQLITE_JOURNAL` in
+  `env.txt` picks `persist` (default), `truncate`, `delete` or `memory` (the old setting) without a
+  rebuild; a journal file that cannot be created falls back to `memory` with one line.
+  `switch/aurora/sqlite_kill_test.c` measures it on the Mac with the Switch's sqlite build options
+  (a writer doing what the Dawn cache does, killed with SIGKILL at random): `memory` left a damaged
+  file after 113 of 150 kills, `persist`, `truncate` and `delete` after none.
+- **No VACUUM** after the Dawn cache prune on the Switch: it rewrote the whole file for seconds with
+  the cache's lock held (render-worker lookups waited); freed pages are reused instead, so the file
+  keeps its largest size.
+- **A damaged file is replaced** (shared Aurora patch `native/patches/aurora/0007`, Mac too): a
+  statement that finds the file damaged (`SQLITE_CORRUPT`, `SQLITE_NOTADB`) closes the cache, deletes
+  the file and its `-journal`, starts an empty cache and goes on, with one line:
+  `GPU cache .../dawn_cache.db is damaged (...); deleted it (N bytes) and started an empty one`
+  (or `Pipeline cache ... is damaged`); a cache that cannot be opened is deleted and created once
+  more (`... could not be opened (...); deleted it (N bytes) and started an empty one`; on the
+  Switch for any failure, elsewhere for a damaged file). At open, `SELECT count(*)` walks the Dawn
+  cache's key index (a few pages); damage elsewhere is caught by the first lookup that meets it.
+  After two resets in one run the Dawn cache is off for the rest of it. Statements are reset after
+  every error (the old code left them busy: thousands of `bind on a busy prepared statement`), and
+  other errors are logged rate-limited (the first three, then every 1000th).
+- sqlite's own error log is in the run log as `[sqlite] (code) message` lines, which name the
+  failing check (`database corruption at line N`) or system call; the first 64 are shown, then
+  every 1000th with the count (`switch/aurora/sqlite_horizon.c`).
+
+Mesa's `mesa_shader_cache.bin` ("Shader cache" below) survives a HOME kill by design: append-only,
+one `write()` per record, a CRC per entry checked on every read (a damaged entry is a miss, counted
+as "damaged"), and a torn last record cut at the next open ("cut N bytes of a damaged tail").
 
 ### Pipeline precompile
 
@@ -648,6 +682,11 @@ and in a crash report, `[switch] memory: used N MiB of M MiB` shows the process'
 - Every run aborts at the same point right after start-up, after one that aborted in a shader:
   Aurora recompiles its cached pipelines at start-up (as on the Mac, phase 6 render issues); delete
   `switch/centollos/native/user/cache/`.
+- `GPU cache ... is damaged` or `... could not be opened ...; deleted it`: once, after a run that was
+  killed while an older build (journal in memory) was writing, is expected; the cache starts empty
+  and fills again. If it comes back after runs closed with HOME on this build, note the
+  `journal_mode=` line and the `[sqlite]` lines before it, and try `COS_SWITCH_SQLITE_JOURNAL=truncate`
+  (or `memory`) in `env.txt`.
 - Docker Desktop on macOS needs access to the folder the repository is in: if `build_native.sh` hangs
   with its container in the "Created" state, allow Docker in System Settings › Privacy & Security ›
   Files and Folders (Documents), or restart Docker Desktop.
