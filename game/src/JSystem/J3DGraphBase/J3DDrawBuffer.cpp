@@ -13,6 +13,9 @@
 #include "JSystem/J3DGraphBase/J3DTransform.h"
 #include "JSystem/JKernel/JKRHeap.h"
 #include "dolphin/types.h"
+#if TARGET_PC
+#include "pc/pc_gpu_opts.h"
+#endif
 
 /* 802EC74C-802EC7B4       .text initialize__13J3DDrawBufferFv */
 void J3DDrawBuffer::initialize() {
@@ -234,6 +237,11 @@ void J3DDrawBuffer::drawHead() const {
 
     for (u32 i = 0; i < size; i++) {
         for (J3DPacket* packet = buf[i]; packet != NULL; packet = packet->getNextPacket()) {
+#if TARGET_PC
+            if (pc_gpu_groups_level >= 2) {
+                pc_gpu_group_packet(packet); // COS_GPU_GROUPS=2 / COS_DRAW_CENSUS
+            }
+#endif
             packet->draw();
         }
     }
@@ -245,6 +253,11 @@ void J3DDrawBuffer::drawTail() const {
 
     for (int i = num; i >= 0; i--) {
         for (J3DPacket* packet = mpBuffer[i]; packet != NULL; packet = packet->getNextPacket()) {
+#if TARGET_PC
+            if (pc_gpu_groups_level >= 2) {
+                pc_gpu_group_packet(packet); // COS_GPU_GROUPS=2 / COS_DRAW_CENSUS
+            }
+#endif
             packet->draw();
         }
     }

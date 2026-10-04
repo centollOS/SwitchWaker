@@ -3,10 +3,28 @@
 
 #include "pc_internal.h"
 
+#include <algorithm>
+#include <cerrno>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
+#include <vector>
+#if defined(__APPLE__) || defined(__linux__)
+#include <dlfcn.h>
+#endif
+
+#include <dolphin/gx/GXAurora.h>
+
+#include "JSystem/J3DGraphAnimator/J3DModel.h"
+#include "JSystem/J3DGraphAnimator/J3DModelData.h"
+#include "JSystem/J3DGraphBase/J3DMaterial.h"
+#include "JSystem/J3DGraphBase/J3DPacket.h"
+#include "JSystem/JUtility/JUTNameTab.h"
+
+// native/patches/aurora/0008 (lib/gfx/census.hpp).
+extern "C" void aurora_draw_census_request(const char* pathPrefix);
 
 #include <lib/dolphin/vi/vi_internal.hpp>
 #include <lib/window.hpp>
@@ -22,9 +40,121 @@ bool envIs(const char* name, const char* value) {
     return v != nullptr && strcmp(v, value) == 0;
 }
 
+// COS_GPU_GROUPS / COS_DRAW_CENSUS.
+int sGroupsEnv = -1;                       // the COS_GPU_GROUPS level, -1 before the first frame
+std::vector<unsigned int> sCensusFrames;   // sorted
+const char* sBucket = "";                  // the last bucket marker
+char sLastLabel[128];                      // the last packet marker
+
+void groupsInit() {
+    const char* v = getenv("COS_GPU_GROUPS");
+    sGroupsEnv = v == nullptr ? 0 : atoi(v);
+    sGroupsEnv = sGroupsEnv < 0 ? 0 : sGroupsEnv > 2 ? 2 : sGroupsEnv;
+    const char* list = getenv("COS_DRAW_CENSUS");
+    if (list != nullptr && list[0] != '\0') {
+        const char* p = list;
+        while (*p != '\0') {
+            char* end = nullptr;
+            errno = 0;
+            unsigned long n = strtoul(p, &end, 10);
+            if (errno != 0 || end == p || n == 0 || (*end != ',' && *end != '\0')) {
+                pc::writef(STDERR_FILENO, "[cos] COS_DRAW_CENSUS=\"%s\" is not a list of frames\n", list);
+                break;
+            }
+            sCensusFrames.push_back((unsigned int)n);
+            p = *end == ',' ? end + 1 : end;
+        }
+        std::sort(sCensusFrames.begin(), sCensusFrames.end());
+    }
+    if (sGroupsEnv != 0 || !sCensusFrames.empty()) {
+        pc::writef(STDERR_FILENO,
+                   "[cos] gpu groups: COS_GPU_GROUPS=%d, %zu draw census frame(s); vtable labels are "
+                   "offsets from pc_gpu_group=%p\n",
+                   sGroupsEnv, sCensusFrames.size(), (const void*)&pc_gpu_group);
+    }
+}
+
+// What a J3D packet is: "<material name>" for a model material packet, its class otherwise.
+void packetLabel(const void* packet, char* out, size_t size) {
+    static J3DMatPacket sMatProbe;
+    const void* vtable = *static_cast<void* const*>(packet);
+    if (vtable == *reinterpret_cast<void* const*>(&sMatProbe)) {
+        J3DMatPacket* mat = const_cast<J3DMatPacket*>(static_cast<const J3DMatPacket*>(packet));
+        J3DMaterial* material = mat->getMaterial();
+        J3DShapePacket* shape = mat->getShapePacket();
+        J3DModel* model = shape != nullptr ? shape->getModel() : nullptr;
+        J3DModelData* data = model != nullptr ? model->getModelData() : nullptr;
+        JUTNameTab* names = data != nullptr ? data->getMaterialName() : nullptr;
+        const char* name = material != nullptr && names != nullptr ? names->getName(material->getIndex()) : nullptr;
+        if (name != nullptr) {
+            snprintf(out, size, "%s|mat:%s", sBucket, name);
+            return;
+        }
+        snprintf(out, size, "%s|mat:?", sBucket);
+        return;
+    }
+#if defined(__APPLE__) || defined(__linux__)
+    Dl_info info{};
+    if (dladdr(vtable, &info) != 0 && info.dli_sname != nullptr) {
+        const char* name = info.dli_sname;
+        if (strncmp(name, "_ZTV", 4) == 0) {
+            name += 4;
+            while (*name >= '0' && *name <= '9') {
+                name++;
+            }
+        }
+        snprintf(out, size, "%s|%s", sBucket, name);
+        return;
+    }
+#endif
+    snprintf(out, size, "%s|vt%+ld", sBucket,
+             (long)((const char*)vtable - (const char*)(const void*)&pc_gpu_group));
+}
+
 } // namespace
 
 extern "C" {
+
+int pc_gpu_groups_level = 0;
+
+void pc_gpu_groups_frame_begin(unsigned int frame) {
+    if (sGroupsEnv < 0) {
+        groupsInit();
+    }
+    pc_gpu_groups_level = sGroupsEnv;
+    sBucket = "";
+    sLastLabel[0] = '\0';
+    if (!sCensusFrames.empty() && std::binary_search(sCensusFrames.begin(), sCensusFrames.end(), frame)) {
+        char path[1024];
+        const char* dir = pc::gConfig.runDir != nullptr ? pc::gConfig.runDir : ".";
+        snprintf(path, sizeof(path), "%s/census-%06u", dir, frame);
+        aurora_draw_census_request(path);
+        pc_gpu_groups_level = 2;
+        pc::writef(STDERR_FILENO, "[cos] draw census: frame %u -> %s-*.csv\n", frame, path);
+    }
+}
+
+void pc_gpu_group(const char* name) {
+    if (pc_gpu_groups_level < 1) {
+        return;
+    }
+    sBucket = name;
+    sLastLabel[0] = '\0';
+    GXInsertDebugMarker(name);
+}
+
+void pc_gpu_group_packet(const void* packet) {
+    if (pc_gpu_groups_level < 2 || packet == nullptr) {
+        return;
+    }
+    char label[sizeof(sLastLabel)];
+    packetLabel(packet, label, sizeof(label));
+    if (strcmp(label, sLastLabel) == 0) {
+        return;
+    }
+    memcpy(sLastLabel, label, sizeof(label));
+    GXInsertDebugMarker(label);
+}
 
 int pc_shadow_offscreen(void) {
     if (sShadowOffscreen < 0) {

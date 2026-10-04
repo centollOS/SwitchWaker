@@ -20,6 +20,20 @@
  *                         the half-size colour copy (two EFB pass breaks and their conversion
  *                         passes) and the full-screen composite. For measurement.
  *
+ * Diagnostics (docs/SWITCH_PERF_STUDY.md, section 8):
+ * COS_GPU_GROUPS=1        the painter inserts a GX debug marker before each draw-list bucket and
+ *                         effect (sky, BG, opaque, translucent, particles, DOF, 2D, ...); the
+ *                         Switch's GPU timer (dawn-switch-gl-gpu-groups.patch) times the draws
+ *                         between markers and the perf-switch "gpu groups" line lists them.
+ * COS_GPU_GROUPS=2        as 1, plus a marker before each J3D packet whose label differs from the
+ *                         previous one ("<bucket>/<material name>" for model materials, the
+ *                         packet's class otherwise): finer, costs a GPU timer query per group.
+ * COS_DRAW_CENSUS=<frame>[,<frame>...]  for each listed game frame, Aurora's draw census
+ *                         (native/patches/aurora/0008) writes census-<frame>-draws.csv (every GX
+ *                         draw: bucket/material marker, samples written, shader and texture summary)
+ *                         and census-<frame>-passes.csv (render passes, EFB copies) into
+ *                         COS_RUN_DIR (or "."); those frames get COS_GPU_GROUPS=2 markers.
+ *
  * The first call of each reads its variable; game code calls them on the game thread only.
  */
 #ifndef PC_GPU_OPTS_H
@@ -47,6 +61,16 @@ void pc_shadow_offscreen_opened(unsigned int w, unsigned int h, unsigned int cop
 
 /* Zero when COS_DOF=0 (the depth-of-field composite is skipped where that is safe). */
 int pc_dof_enabled(void);
+
+/* The current GPU group level: 0 off, 1 buckets, 2 buckets and packets (COS_GPU_GROUPS, or 2 in a
+   COS_DRAW_CENSUS frame). Cheap: a load. */
+extern int pc_gpu_groups_level;
+/* Level >= 1: a GX debug marker named `name` (a static string) starts a new GPU group. */
+void pc_gpu_group(const char* name);
+/* Level >= 2: a marker for the J3D packet about to draw, unless its label equals the last one. */
+void pc_gpu_group_packet(const void* packet);
+/* Called by the frame loop before each game frame's aurora_begin_frame (frame = pc_frame_count()+1). */
+void pc_gpu_groups_frame_begin(unsigned int frame);
 
 #ifdef __cplusplus
 }

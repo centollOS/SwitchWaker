@@ -128,6 +128,11 @@ void pc_harness_init(int argc, char* argv[]) {
     gConfig.runDir = envString("COS_RUN_DIR");
     gConfig.input = envString("COS_INPUT");
     gConfig.bootStage = envString("COS_BOOT_STAGE");
+    // COS_DRAW_CENSUS (pc_gpu_opts.h): Aurora's census counts fragments in the GX shaders, which it
+    // must know before it builds its bind group layouts (native/patches/aurora/0008).
+    if (envString("COS_DRAW_CENSUS") != nullptr && getenv("AURORA_DRAW_CENSUS") == nullptr) {
+        setenv("AURORA_DRAW_CENSUS", "1", 1);
+    }
     gConfig.timeoutS = envSeconds("COS_TIMEOUT_S");
     gConfig.stallS = envSeconds("COS_STALL_S");
     gConfig.frames = envCount("COS_FRAMES");

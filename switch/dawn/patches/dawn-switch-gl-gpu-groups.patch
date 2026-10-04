@@ -1,0 +1,287 @@
+--- a/src/dawn/native/opengl/CommandBufferGL.cpp
++++ b/src/dawn/native/opengl/CommandBufferGL.cpp
+@@ -977,9 +977,14 @@
+                 if (nextRenderPassNumber == PassIndex(0u)) {
+                     switchFirstPass.emplace();
+                 }
+-                switch_stats::gGpuTimer.BeginSegment(
+-                    gl, switch_stats::ClassifyGpuPass(cmd->label) |
+-                            (switchFirstPass ? switch_stats::kGpuSegFirstPass : 0));
++                {
++                    const uint8_t switchSegment =
++                        switch_stats::ClassifyGpuPass(cmd->label) |
++                        (switchFirstPass ? switch_stats::kGpuSegFirstPass : 0);
++                    switch_stats::gGpuTimer.BeginSegment(
++                        gl, switchSegment,
++                        switch_stats::gGpuTimer.PassGroup(cmd->label, switchSegment));
++                }
+ #endif
+                 DAWN_SWITCH_TICKS_START(switchPassStart);
+                 for (TextureBase* texture :
+@@ -1811,7 +1816,17 @@
+                 break;
+             }
+ 
+-            case Command::InsertDebugMarker:
++            case Command::InsertDebugMarker: {
++#if defined(__SWITCH__)
++                // The native port's GPU groups (SwitchGpuTimerGL.h): a GX debug marker starts one.
++                InsertDebugMarkerCmd* cmd = iter->NextCommand<InsertDebugMarkerCmd>();
++                const char* label = iter->NextData<char>(cmd->length + 1);
++                switch_stats::gGpuTimer.Marker(gl, std::string_view(label, cmd->length));
++#else
++                SkipCommand(iter, type);
++#endif
++                break;
++            }
+             case Command::PopDebugGroup:
+             case Command::PushDebugGroup: {
+                 // Due to lack of linux driver support for GL_EXT_debug_marker
+@@ -2277,6 +2292,26 @@
+ 
+ #if defined(__SWITCH__)
+ // The running totals of SwitchStatsGL.h, in its Counter order, for the native port's perf lines.
++// The GPU time groups of SwitchGpuTimerGL.h (running totals; the caller diffs two reads).
++struct DawnSwitchGpuGroup {
++    char name[64];
++    uint64_t ns;
++    uint64_t segments;
++    uint64_t draws;
++};
++extern "C" size_t dawn_switch_gl_gpu_groups(DawnSwitchGpuGroup* out, size_t max) {
++    namespace ss = dawn::native::opengl::switch_stats;
++    std::lock_guard lock{ss::gGpuGroupMutex};
++    const size_t n = std::min(max, ss::gGpuGroups.size());
++    for (size_t i = 0; i < n; ++i) {
++        std::memcpy(out[i].name, ss::gGpuGroups[i].name, sizeof(out[i].name));
++        out[i].ns = ss::gGpuGroups[i].ns;
++        out[i].segments = ss::gGpuGroups[i].segments;
++        out[i].draws = ss::gGpuGroups[i].draws;
++    }
++    return n;
++}
++
+ extern "C" void dawn_switch_gl_cmd_stats(uint64_t* out, size_t count) {
+     namespace ss = dawn::native::opengl::switch_stats;
+     for (size_t i = 0; i < count; ++i) {
+--- a/src/dawn/native/opengl/SwitchGpuTimerGL.h
++++ b/src/dawn/native/opengl/SwitchGpuTimerGL.h
+@@ -10,11 +10,15 @@
+ 
+ #if defined(__SWITCH__)
+ 
++#include <algorithm>
+ #include <cstdint>
+ #include <cstdlib>
+ #include <cstring>
+ #include <deque>
++#include <mutex>
+ #include <string>
++#include <string_view>
++#include <unordered_map>
+ #include <utility>
+ #include <vector>
+ 
+@@ -66,6 +70,21 @@
+     return kGpuSegOther;
+ }
+ 
++// GPU time per group (dawn-switch-gl-gpu-groups.patch): a group is the last GX debug marker of
++// the frame (Aurora encodes GXInsertDebugMarker as InsertDebugMarker; the native port inserts one
++// per draw-list bucket with COS_GPU_GROUPS=1, per J3D material with =2), or, before the frame's
++// first marker, the render pass's label ("EFB 3", "Offscreen 1", "TexCopyConv Pass", ...); copies
++// are "copies". Running totals by group id, read by dawn_switch_gl_gpu_groups (CommandBufferGL.cpp).
++struct GpuGroupTotal {
++    char name[64];
++    uint64_t ns;
++    uint64_t segments;
++    uint64_t draws;
++};
++inline constexpr size_t kMaxGpuGroups = 512;
++inline std::mutex gGpuGroupMutex;
++inline std::vector<GpuGroupTotal> gGpuGroups;  // guarded by gGpuGroupMutex
++
+ class GpuTimer {
+   public:
+     // Start of an Execute: reads the frames whose queries finished.
+@@ -86,15 +105,50 @@
+         Poll(gl);
+     }
+ 
++    // The group of a render pass with this label and kind: the frame's last marker for a GX pass
++    // once the frame had one, else the label (without the trailing pass index unless it is a GX
++    // pass, whose index tells the EFB segments apart).
++    uint16_t PassGroup(const std::string& label, uint8_t segment) {
++        if (mState != 1) {
++            return 0;
++        }
++        const uint8_t kind = segment & ~kGpuSegFirstPass;
++        if (kind == kGpuSegEfb && mFrameMarker != 0) {
++            return mFrameMarker;
++        }
++        std::string_view name = label;
++        if (kind != kGpuSegEfb) {
++            while (!name.empty() && (name.back() == ' ' || (name.back() >= '0' && name.back() <= '9'))) {
++                name.remove_suffix(1);
++            }
++        }
++        return Intern(name.empty() ? std::string_view("(unlabelled)") : name);
++    }
++
++    // A GX debug marker inside a render pass: the draws after it form a new group.
++    void Marker(const OpenGLFunctions& gl, std::string_view label) {
++        if (mState != 1) {
++            return;
++        }
++        const uint16_t group = Intern(label);
++        mFrameMarker = group;
++        if (mOpen && (mOpenSegment & ~kGpuSegFirstPass) == kGpuSegEfb && group != mOpenGroup) {
++            BeginSegment(gl, mOpenSegment, group);
++        }
++    }
++
+     // Ends the open segment and starts one of this kind (nothing if a copy run is open and this
+     // is another copy).
+-    void BeginSegment(const OpenGLFunctions& gl, uint8_t segment) {
++    void BeginSegment(const OpenGLFunctions& gl, uint8_t segment, uint16_t group = 0) {
+         if (mState != 1) {
+             return;
+         }
+         if (mOpen && segment == kGpuSegCopy && mOpenSegment == kGpuSegCopy) {
+             return;
+         }
++        if ((segment & ~kGpuSegFirstPass) == kGpuSegCopy) {
++            group = Intern("copies");
++        }
+         EndSegment(gl);
+         if ((segment & ~kGpuSegFirstPass) != kGpuSegCopy) {
+             mCurrentHasPass = true;
+@@ -113,9 +167,11 @@
+             gl.GenQueries(1, &query);
+         }
+         gl.BeginQuery(GL_TIME_ELAPSED_EXT, query);
+-        mCurrent.emplace_back(query, segment);
++        mCurrent.push_back(Segment{query, segment, group, 0});
+         mOpen = true;
+         mOpenSegment = segment;
++        mOpenGroup = group;
++        mOpenDrawsStart = DrawsSoFar();
+     }
+ 
+     void EndSegment(const OpenGLFunctions& gl) {
+@@ -124,6 +180,9 @@
+         }
+         gl.EndQuery(GL_TIME_ELAPSED_EXT);
+         mOpen = false;
++        if (!mCurrent.empty()) {
++            mCurrent.back().draws = static_cast<uint32_t>(DrawsSoFar() - mOpenDrawsStart);
++        }
+     }
+ 
+     // End of an Execute: a frame is complete once an Execute with a render pass ends; the copies
+@@ -145,18 +204,53 @@
+         }
+         mCurrent.clear();
+         mCurrentHasPass = false;
++        mFrameMarker = 0;
+     }
+ 
+   private:
+     static constexpr size_t kMaxPendingFrames = 8;
++
++    struct Segment {
++        GLuint query;
++        uint8_t segment;
++        uint16_t group;
++        uint32_t draws;
++    };
+ 
++    // Draws replayed so far (published totals plus this thread's unpublished ones).
++    static uint64_t DrawsSoFar() {
++        return gTotals[kDraws].load(std::memory_order_relaxed) + gLocal[kDraws];
++    }
++
++    uint16_t Intern(std::string_view name) {
++        auto it = mGroupIds.find(std::string(name));
++        if (it != mGroupIds.end()) {
++            return it->second;
++        }
++        std::lock_guard lock{gGpuGroupMutex};
++        if (gGpuGroups.empty()) {
++            gGpuGroups.push_back(GpuGroupTotal{"(none)", 0, 0, 0});  // id 0
++        }
++        if (gGpuGroups.size() >= kMaxGpuGroups) {
++            return 0;
++        }
++        GpuGroupTotal total{};
++        const size_t n = std::min(name.size(), sizeof(total.name) - 1);
++        std::memcpy(total.name, name.data(), n);
++        total.name[n] = '\0';
++        const auto id = static_cast<uint16_t>(gGpuGroups.size());
++        gGpuGroups.push_back(total);
++        mGroupIds.emplace(std::string(name), id);
++        return id;
++    }
++
+     void Poll(const OpenGLFunctions& gl) {
+         while (!mPending.empty()) {
+             auto& frame = mPending.front();
+             // The last query of a frame finishes last; check it first, then the others.
+             for (auto it = frame.rbegin(); it != frame.rend(); ++it) {
+                 GLuint available = 0;
+-                gl.GetQueryObjectuiv(it->first, GL_QUERY_RESULT_AVAILABLE, &available);
++                gl.GetQueryObjectuiv(it->query, GL_QUERY_RESULT_AVAILABLE, &available);
+                 if (!available) {
+                     return;
+                 }
+@@ -165,15 +259,28 @@
+             gl.GetIntegerv(GL_GPU_DISJOINT_EXT, &disjoint);
+             uint64_t sums[kGpuSegOther + 1] = {};
+             uint64_t firstPass = 0;
+-            for (const auto& [query, segment] : frame) {
++            mFrameNs.clear();
++            for (const Segment& seg : frame) {
+                 GLuint ns = 0;  // 32 bits: up to 4.29 s per segment
+-                gl.GetQueryObjectuiv(query, GL_QUERY_RESULT, &ns);
+-                sums[segment & ~kGpuSegFirstPass] += ns;
+-                if (segment & kGpuSegFirstPass) {
++                gl.GetQueryObjectuiv(seg.query, GL_QUERY_RESULT, &ns);
++                sums[seg.segment & ~kGpuSegFirstPass] += ns;
++                if (seg.segment & kGpuSegFirstPass) {
+                     firstPass += ns;
+                 }
+-                mFree.push_back(query);
++                mFrameNs.push_back(ns);
++                mFree.push_back(seg.query);
+             }
++            if (!disjoint) {
++                std::lock_guard lock{gGpuGroupMutex};
++                for (size_t i = 0; i < frame.size(); ++i) {
++                    if (frame[i].group < gGpuGroups.size()) {
++                        auto& total = gGpuGroups[frame[i].group];
++                        total.ns += mFrameNs[i];
++                        total.segments += 1;
++                        total.draws += frame[i].draws;
++                    }
++                }
++            }
+             mPending.pop_front();
+             if (disjoint) {
+                 Add(kGpuDisjoint, 1);
+@@ -200,9 +307,14 @@
+     uint8_t mOpenSegment = 0;
+     bool mCurrentHasPass = false;
+     bool mSkipFrame = false;
+-    std::vector<std::pair<GLuint, uint8_t>> mCurrent;
+-    std::deque<std::vector<std::pair<GLuint, uint8_t>>> mPending;
++    uint16_t mOpenGroup = 0;
++    uint64_t mOpenDrawsStart = 0;
++    uint16_t mFrameMarker = 0;  // the group of the frame's last marker, 0 before one
++    std::vector<Segment> mCurrent;
++    std::deque<std::vector<Segment>> mPending;
+     std::vector<GLuint> mFree;
++    std::vector<uint64_t> mFrameNs;
++    std::unordered_map<std::string, uint16_t> mGroupIds;
+ };
+ 
+ // Only the GL thread uses it.

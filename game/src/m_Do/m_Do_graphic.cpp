@@ -7,6 +7,10 @@
 #if TARGET_PC
 #include "pc/pc_aspect.h"
 #include "pc/pc_gpu_opts.h"
+// COS_GPU_GROUPS (pc_gpu_opts.h): a GX debug marker before each bucket the GPU timer groups by.
+#define PC_GPU_GROUP(name) pc_gpu_group(name)
+#else
+#define PC_GPU_GROUP(name) ((void)0)
 #endif
 #include "m_Do/m_Do_graphic.h"
 #include "SSystem/SComponent/c_lib.h"
@@ -1612,6 +1616,7 @@ bool mDoGph_Painter() {
         camera_process_class* camera = (camera_process_class*)dComIfGp_getCamera(cameraID);
 
         if (camera != NULL) {
+            PC_GPU_GROUP("shadow_image");
             dComIfGd_imageDrawShadow(camera->view.mViewMtx);
 
             view_port_class viewport_crop;
@@ -1646,6 +1651,7 @@ bool mDoGph_Painter() {
             PPCSync();
             j3dSys.setViewMtx(camera->view.mViewMtx);
             dKy_setLight();
+            PC_GPU_GROUP("sky");
             dComIfGd_drawOpaListSky();
             dComIfGd_drawXluListSky();
 
@@ -1653,11 +1659,14 @@ bool mDoGph_Painter() {
                 dComIfGp_particle_drawShipTail(&jpaDrawInfo);
 
             GXSetClipMode(GX_CLIP_ENABLE);
+            PC_GPU_GROUP("opa_bg");
             dComIfGd_drawOpaListBG();
 #if VERSION == VERSION_JPN
             j3dSys.reinitGX();
 #endif
+            PC_GPU_GROUP("shadow");
             dComIfGd_drawShadow(camera->view.mViewMtx);
+            PC_GPU_GROUP("alpha_model");
             dComIfGd_drawAlphaModel(camera->view.mViewMtx);
             drawAlphaBuffer(&camera->view, dComIfGd_getAlphaModelColor());
             if (dComIfGd_getLightModelNum() != 0) {
@@ -1666,16 +1675,20 @@ bool mDoGph_Painter() {
 #else
                 clearAlphaBuffer(&camera->view, 0);
 #endif
+                PC_GPU_GROUP("light_model");
                 dComIfGd_drawLightModel(camera->view.mViewMtx);
                 drawAlphaBuffer(&camera->view, dComIfGd_getLightModelColor());
             }
 
+            PC_GPU_GROUP("opa_p");
             if (!mDoGph_gInf_c::isMonotone()) {
                 dComIfGd_drawOpaListP0();
                 dComIfGd_drawOpaListP1();
             }
 
+            PC_GPU_GROUP("opa");
             dComIfGd_drawOpaList();
+            PC_GPU_GROUP("xlu_bg");
             dComIfGd_drawXluListBG();
 
             if (dComIfGd_getSpotModelNum() != 0)
@@ -1688,12 +1701,15 @@ bool mDoGph_Painter() {
             if (!dMenu_flag() && !dPa_control_c::isStatus(0x01))
                 dComIfGp_particle_drawShipTail(&jpaDrawInfo);
 
+            PC_GPU_GROUP("xlu_p1");
             if (!mDoGph_gInf_c::isMonotone())
                 dComIfGd_drawXluListP1();
 
+            PC_GPU_GROUP("xlu");
             dComIfGd_drawXluList();
 
             if (!dMenu_flag()) {
+                PC_GPU_GROUP("particle");
                 dComIfGp_particle_draw(&jpaDrawInfo);
 
                 if (!mDoGph_gInf_c::isMonotone())
@@ -1702,8 +1718,10 @@ bool mDoGph_Painter() {
                 JPADrawInfo windDrawInfo(dPa_control_c::getWindViewMatrix(), 45.0f, 1.218f);
                 windDrawInfo.setFovy(camera->view.mFovy);
                 windDrawInfo.setAspect(camera->view.mAspect);
+                PC_GPU_GROUP("particle_wind");
                 dComIfGp_particle_drawWind(&windDrawInfo);
 
+                PC_GPU_GROUP("particle_toon");
                 dComIfGp_particle_drawToon(&jpaDrawInfo);
 
                 if (!mDoGph_gInf_c::isMonotone())
@@ -1712,6 +1730,7 @@ bool mDoGph_Painter() {
                 GXSetClipMode(GX_CLIP_ENABLE);
             }
 
+            PC_GPU_GROUP("filter");
             dComIfGd_drawOpaListFilter();
 
 #if VERSION == VERSION_JPN
@@ -1721,6 +1740,7 @@ bool mDoGph_Painter() {
             GXSetNumIndStages(0);
 #endif
 
+            PC_GPU_GROUP("spot");
             if (dComIfGd_getSpotModelNum() != 0) {
                 dComIfGd_drawAlphaModel(camera->view.mViewMtx);
                 dComIfGd_drawSpotModel(camera->view.mViewMtx);
@@ -1732,18 +1752,23 @@ bool mDoGph_Painter() {
 #endif
 
             GXSetClipMode(GX_CLIP_ENABLE);
+            PC_GPU_GROUP("maskoff");
             dComIfGd_drawOpaListMaskOff();
             dComIfGd_drawXluListMaskOff();
 
             if (!dMenu_flag()) {
+                PC_GPU_GROUP("motion_blur");
                 motionBlure(&camera->view);
+                PC_GPU_GROUP("dof");
                 drawDepth(&camera->view, viewport_p, dComIfGp_getCameraZoomForcus(cameraID));
 #if VERSION == VERSION_PAL
                 GXInvalidateTexAll();
 #endif
+                PC_GPU_GROUP("particle_proj");
                 dComIfGp_particle_drawProjection(&jpaDrawInfo);
 
                 GXSetClipMode(GX_CLIP_ENABLE);
+                PC_GPU_GROUP("invisible");
                 dComIfGd_drawOpaListInvisible();
                 dComIfGd_drawXluListInvisible();
 
@@ -1935,6 +1960,7 @@ bool mDoGph_Painter() {
     JPADrawInfo jpaDrawInfo2D(viewMtx, 45.0f, 1.218f);
     jpaDrawInfo2D.setFovy(0.0f);
     jpaDrawInfo2D.setAspect(4.0f/3.0f);
+    PC_GPU_GROUP("2d");
     if (!dMenu_flag())
         dComIfGp_particle_draw2Dback(&jpaDrawInfo2D);
     dComIfGp_particle_draw2DmenuBack(&jpaDrawInfo2D);

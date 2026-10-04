@@ -1,0 +1,750 @@
+diff --git a/cmake/aurora_gx.cmake b/cmake/aurora_gx.cmake
+index 02a96af..574fcdc 100644
+--- a/cmake/aurora_gx.cmake
++++ b/cmake/aurora_gx.cmake
+@@ -1,4 +1,5 @@
+ add_library(aurora_gx STATIC
++        lib/gfx/census.cpp
+         lib/gfx/clear.cpp
+         lib/gfx/depth_peek.cpp
+         lib/gfx/encoding.cpp
+diff --git a/lib/gfx/census.cpp b/lib/gfx/census.cpp
+new file mode 100644
+index 0000000..fd5fdbd
+--- /dev/null
++++ b/lib/gfx/census.cpp
+@@ -0,0 +1,207 @@
++#include "census.hpp"
++
++#include "../logging.hpp"
++#include "../webgpu/gpu.hpp"
++
++#include <algorithm>
++
++#include <atomic>
++#include <cstdlib>
++#include <cstdio>
++#include <mutex>
++
++namespace aurora::gfx::census {
++using webgpu::g_device;
++
++namespace {
++constexpr Module Log{"aurora::census"};
++constexpr uint32_t kCapacity = 16384;
++
++std::mutex g_mutex;
++std::string g_requestPath; // guarded by g_mutex
++std::atomic_int g_pending{0};
++std::shared_ptr<Capture> g_current; // recording thread
++
++void write_csv(const Capture& c, const uint64_t* samples, uint32_t count, const uint32_t* counters) {
++  const std::string drawsPath = c.path + "-draws.csv";
++  if (FILE* f = std::fopen(drawsPath.c_str(), "w")) {
++    std::fprintf(f, "draw,pass,marker,prim,vtx,merges,samples,frags,frags_kept,vp_w,vp_h,pipeline,tev,ind,alpha_test,ac0,ar0,aop,"
++                    "ac1,ar1,blend,bsrc,bdst,zcmp,zfunc,zupd,cupd,aupd,cull,fog,dst_alpha,chans,ntex,textures\n");
++    for (uint32_t i = 0; i < c.draws.size(); ++i) {
++      const auto& d = c.draws[i];
++      const uint64_t s = i < count ? samples[i] : 0;
++      std::string tex;
++      for (uint32_t t = 0; t < d.texCount && t < 8; ++t) {
++        char buf[64];
++        std::snprintf(buf, sizeof(buf), "%s%ux%u/m%u/f%u/min%u%s", t ? " " : "", d.tex[t].width, d.tex[t].height,
++                      d.tex[t].mips, d.tex[t].gxFormat, d.tex[t].minFilter, d.tex[t].isCopy ? "/copy" : "");
++        tex += buf;
++      }
++      const char* marker = d.marker >= 0 && size_t(d.marker) < c.markers.size() ? c.markers[d.marker].c_str() : "";
++      const uint32_t frags = counters != nullptr && i < count ? counters[(i + 1) * 2] : 0;
++      const uint32_t kept = counters != nullptr && i < count ? counters[(i + 1) * 2 + 1] : 0;
++      std::fprintf(f, "%u,%u,%s,%u,%u,%u,%llu,%u,%u,%.0f,%.0f,%016llx,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%s\n",
++                   i, d.pass, marker, d.prim, d.vtxCount, d.merges, (unsigned long long)s, frags, kept, d.vpWidth, d.vpHeight,
++                   (unsigned long long)d.pipelineHash, d.tevStages, d.indStages, d.alphaTest, d.alphaComp0,
++                   d.alphaRef0, d.alphaOp, d.alphaComp1, d.alphaRef1, d.blendMode, d.blendSrc, d.blendDst,
++                   d.depthCompare, d.depthFunc, d.depthUpdate, d.colorUpdate, d.alphaUpdate, d.cull, d.fog,
++                   d.dstAlpha, d.numChans, d.texCount, tex.c_str());
++    }
++    std::fclose(f);
++  } else {
++    Log.warn("census: cannot write {}", drawsPath);
++  }
++  const std::string passesPath = c.path + "-passes.csv";
++  if (FILE* f = std::fopen(passesPath.c_str(), "w")) {
++    std::fprintf(f, "op,kind,label,width,height,attachments,load,draws,resolve,detail\n");
++    for (const auto& row : c.passes) {
++      std::fprintf(f, "%s\n", row.c_str());
++    }
++    std::fclose(f);
++  }
++  Log.info("census: frame {} written to {}-*.csv ({} draws, {} passes/copies)", c.frame, c.path, c.draws.size(),
++           c.passes.size());
++}
++} // namespace
++
++bool counters_enabled() noexcept {
++  static const bool enabled = [] {
++    const char* v = std::getenv("AURORA_DRAW_CENSUS");
++    return v != nullptr && v[0] == '1';
++  }();
++  return enabled;
++}
++
++wgpu::Buffer counter_buffer() {
++  static wgpu::Buffer buffer;
++  if (!buffer && counters_enabled()) {
++    const wgpu::BufferDescriptor desc{
++        .label = "Draw census counters",
++        .usage = wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopySrc | wgpu::BufferUsage::CopyDst,
++        .size = uint64_t(kCounterSlots) * 2 * sizeof(uint32_t),
++    };
++    buffer = g_device.CreateBuffer(&desc);
++  }
++  return buffer;
++}
++
++Capture* recording() noexcept { return g_current.get(); }
++
++std::shared_ptr<Capture> begin_frame(uint32_t frameIndex) {
++  g_current.reset();
++  std::string path;
++  {
++    std::lock_guard lock{g_mutex};
++    if (g_requestPath.empty()) {
++      return nullptr;
++    }
++    path = std::move(g_requestPath);
++    g_requestPath.clear();
++  }
++  auto capture = std::make_shared<Capture>();
++  capture->path = std::move(path);
++  capture->frame = frameIndex;
++  capture->capacity = kCapacity;
++  const wgpu::QuerySetDescriptor qsDesc{
++      .label = "Draw census",
++      .type = wgpu::QueryType::Occlusion,
++      .count = kCapacity,
++  };
++  capture->querySet = g_device.CreateQuerySet(&qsDesc);
++  capture->draws.reserve(4096);
++  g_current = capture;
++  return capture;
++}
++
++void end_frame() noexcept { g_current.reset(); }
++
++void encode_resolve(const wgpu::CommandEncoder& cmd, const std::shared_ptr<Capture>& capture) {
++  const uint32_t count = std::min<uint32_t>(static_cast<uint32_t>(capture->draws.size()), capture->capacity);
++  capture->resolved = count;
++  if (count == 0) {
++    return;
++  }
++  const uint64_t size = uint64_t(count) * sizeof(uint64_t);
++  const wgpu::BufferDescriptor resolveDesc{
++      .label = "Draw census resolve",
++      .usage = wgpu::BufferUsage::QueryResolve | wgpu::BufferUsage::CopySrc,
++      .size = size,
++  };
++  capture->resolveBuffer = g_device.CreateBuffer(&resolveDesc);
++  const wgpu::BufferDescriptor readDesc{
++      .label = "Draw census readback",
++      .usage = wgpu::BufferUsage::MapRead | wgpu::BufferUsage::CopyDst,
++      .size = size,
++  };
++  capture->readbackBuffer = g_device.CreateBuffer(&readDesc);
++  cmd.ResolveQuerySet(capture->querySet, 0, count, capture->resolveBuffer, 0);
++  cmd.CopyBufferToBuffer(capture->resolveBuffer, 0, capture->readbackBuffer, 0, size);
++  if (counters_enabled()) {
++    const uint64_t counterSize = uint64_t(count + 1) * 2 * sizeof(uint32_t);
++    const wgpu::BufferDescriptor counterDesc{
++        .label = "Draw census counter readback",
++        .usage = wgpu::BufferUsage::MapRead | wgpu::BufferUsage::CopyDst,
++        .size = counterSize,
++    };
++    capture->counterReadback = g_device.CreateBuffer(&counterDesc);
++    cmd.CopyBufferToBuffer(counter_buffer(), 0, capture->counterReadback, 0, counterSize);
++    cmd.ClearBuffer(counter_buffer(), 0, counterSize);
++  }
++}
++
++void after_submit(const std::shared_ptr<Capture>& capture) {
++  if (capture->resolved == 0) {
++    write_csv(*capture, nullptr, 0, nullptr);
++    g_pending.fetch_sub(1);
++    return;
++  }
++  const uint64_t size = uint64_t(capture->resolved) * sizeof(uint64_t);
++  capture->readbackBuffer.MapAsync(
++      wgpu::MapMode::Read, 0, size, wgpu::CallbackMode::AllowSpontaneous,
++      [capture, size](wgpu::MapAsyncStatus status, wgpu::StringView message) {
++        if (status != wgpu::MapAsyncStatus::Success) {
++          Log.warn("census: readback failed: {}", std::string_view{message});
++          g_pending.fetch_sub(1);
++          return;
++        }
++        if (!capture->counterReadback) {
++          const auto* samples = static_cast<const uint64_t*>(capture->readbackBuffer.GetConstMappedRange(0, size));
++          write_csv(*capture, samples, capture->resolved, nullptr);
++          capture->readbackBuffer.Unmap();
++          g_pending.fetch_sub(1);
++          return;
++        }
++        const uint64_t counterSize = uint64_t(capture->resolved + 1) * 2 * sizeof(uint32_t);
++        capture->counterReadback.MapAsync(
++            wgpu::MapMode::Read, 0, counterSize, wgpu::CallbackMode::AllowSpontaneous,
++            [capture, size, counterSize](wgpu::MapAsyncStatus status2, wgpu::StringView) {
++              const auto* samples =
++                  static_cast<const uint64_t*>(capture->readbackBuffer.GetConstMappedRange(0, size));
++              const auto* counters = status2 == wgpu::MapAsyncStatus::Success
++                                         ? static_cast<const uint32_t*>(
++                                               capture->counterReadback.GetConstMappedRange(0, counterSize))
++                                         : nullptr;
++              write_csv(*capture, samples, capture->resolved, counters);
++              capture->readbackBuffer.Unmap();
++              if (counters != nullptr) {
++                capture->counterReadback.Unmap();
++              }
++              g_pending.fetch_sub(1);
++            });
++      });
++}
++
++} // namespace aurora::gfx::census
++
++void aurora_draw_census_request(const char* pathPrefix) {
++  if (pathPrefix == nullptr || *pathPrefix == '\0') {
++    return;
++  }
++  std::lock_guard lock{aurora::gfx::census::g_mutex};
++  if (aurora::gfx::census::g_requestPath.empty()) {
++    aurora::gfx::census::g_pending.fetch_add(1);
++  }
++  aurora::gfx::census::g_requestPath = pathPrefix;
++}
++
++int aurora_draw_census_pending(void) { return aurora::gfx::census::g_pending.load() > 0 ? 1 : 0; }
+diff --git a/lib/gfx/census.hpp b/lib/gfx/census.hpp
+new file mode 100644
+index 0000000..5fda1b5
+--- /dev/null
++++ b/lib/gfx/census.hpp
+@@ -0,0 +1,92 @@
++#pragma once
++
++// Draw census (native port, native/patches/aurora/0008): for one requested frame, every GX draw
++// with its render pass, the debug marker it follows, a summary of its pipeline and textures, and
++// the samples it wrote (an occlusion query per draw: fragments that passed the depth test and the
++// alpha compare), plus every render pass and copy of the frame. Written as CSV files after the
++// frame's GPU work completed. Off unless aurora_draw_census_request() was called; then it costs
++// one occlusion query per draw for that frame only. A diagnostic for GPU cost per pixel: which
++// draws cover how much of the screen, with what shader.
++
++#include <webgpu/webgpu_cpp.h>
++
++#include <cstdint>
++#include <memory>
++#include <string>
++#include <vector>
++
++namespace aurora::gfx::census {
++
++struct TexInfo {
++  uint16_t width = 0;
++  uint16_t height = 0;
++  uint8_t mips = 0;
++  uint8_t gxFormat = 0;
++  uint8_t minFilter = 0;
++  uint8_t isCopy = 0;
++};
++
++struct DrawInfo {
++  uint32_t pass = 0;        // index of the render pass when recorded
++  int32_t marker = -1;      // index into Capture::markers of the last marker before the draw
++  uint32_t prim = 0;
++  uint32_t vtxCount = 0;
++  uint32_t merges = 0;
++  uint64_t pipelineHash = 0;
++  uint8_t tevStages = 0;
++  uint8_t indStages = 0;
++  uint8_t alphaTest = 0;    // the alpha compare can discard
++  uint8_t alphaComp0 = 0, alphaRef0 = 0, alphaOp = 0, alphaComp1 = 0, alphaRef1 = 0;
++  uint8_t blendMode = 0, blendSrc = 0, blendDst = 0;
++  uint8_t depthCompare = 0, depthFunc = 0, depthUpdate = 0;
++  uint8_t colorUpdate = 0, alphaUpdate = 0;
++  uint8_t cull = 0;
++  uint8_t fog = 0;
++  uint8_t dstAlpha = 0;     // the draw sets destination alpha (may need an alpha prepass)
++  uint8_t numChans = 0;
++  uint8_t texCount = 0;
++  float vpWidth = 0.f, vpHeight = 0.f;
++  TexInfo tex[8]{};
++};
++
++struct Capture {
++  std::string path;          // CSV path prefix: <path>-draws.csv, <path>-passes.csv
++  uint32_t frame = 0;
++  uint32_t capacity = 0;
++  wgpu::QuerySet querySet;
++  std::vector<DrawInfo> draws;           // recording thread
++  std::vector<std::string> markers;      // recording thread
++  int32_t currentMarker = -1;            // recording thread
++  std::vector<std::string> passes;       // render worker: one CSV row per pass or copy
++  wgpu::Buffer resolveBuffer;
++  wgpu::Buffer readbackBuffer;
++  uint32_t resolved = 0;
++  wgpu::Buffer counterReadback;
++};
++
++// Fragment counters (AURORA_DRAW_CENSUS=1 in the environment at start-up, Metal's occlusion
++// queries being boolean): every GX fragment shader counts its invocations and the fragments that
++// survive its alpha compare into a storage buffer (group 0 binding 2), slot = the draw immediate's
++// census field (0 outside census frames). Shaders, layouts and pipelines change, so only for
++// diagnostic runs; off, nothing changes.
++bool counters_enabled() noexcept;
++constexpr uint32_t kCounterSlots = 16385; // slot 0 is the sink for draws outside a census frame
++wgpu::Buffer counter_buffer();
++
++// The capture of the frame being recorded, or nullptr.
++Capture* recording() noexcept;
++// Called by the recorder at the start and end of each frame.
++std::shared_ptr<Capture> begin_frame(uint32_t frameIndex);
++void end_frame() noexcept;
++// Render worker: after the frame's last pass, resolve the queries and read them back after submit.
++void encode_resolve(const wgpu::CommandEncoder& cmd, const std::shared_ptr<Capture>& capture);
++void after_submit(const std::shared_ptr<Capture>& capture);
++
++} // namespace aurora::gfx::census
++
++extern "C" {
++// Capture the next frame recorded; `pathPrefix` gets "-draws.csv" and "-passes.csv" appended.
++void aurora_draw_census_request(const char* pathPrefix);
++// 1 while a requested capture has not been written yet.
++int aurora_draw_census_pending(void);
++}
+diff --git a/lib/gfx/encoding.cpp b/lib/gfx/encoding.cpp
+index 2337784..62884db 100644
+--- a/lib/gfx/encoding.cpp
++++ b/lib/gfx/encoding.cpp
+@@ -155,7 +155,12 @@ void render_pass(const wgpu::RenderPassEncoder& pass, FramePacket& frame, Render
+     case CommandType::Draw: {
+       auto& draw = cmd.data.draw;
+       if (draw.encoder != nullptr) {
++        const bool counted = frame.census && cmd.censusIndex < frame.census->capacity;
++        if (counted)
++          UNLIKELY { pass.BeginOcclusionQuery(cmd.censusIndex); }
+         draw.encoder(draw.payload.data(), pass, passInfo);
++        if (counted)
++          UNLIKELY { pass.EndOcclusionQuery(); }
+       }
+     } break;
+     case CommandType::CustomDraw: {
+@@ -171,9 +176,8 @@ void render_pass(const wgpu::RenderPassEncoder& pass, FramePacket& frame, Render
+       }
+     } break;
+     case CommandType::DebugMarker: {
+-#if defined(AURORA_GFX_DEBUG_GROUPS)
++      // Always encoded (native/patches/aurora/0008): the Switch's Dawn GL times draw groups by them.
+       pass.InsertDebugMarker(wgpu::StringView(frame.debugMarkers[cmd.data.debugMarkerIndex]));
+-#endif
+     } break;
+     }
+   }
+@@ -185,6 +189,33 @@ void render_pass(const wgpu::RenderPassEncoder& pass, FramePacket& frame, Render
+ #endif
+ }
+ 
++// Draw census (census.hpp): one CSV row per pass with its targets, load ops, draws and EFB copy.
++void census_pass_row(FramePacket& frame, const RenderPass& passInfo, const std::string& label) {
++  const auto& color = passInfo.colorAttachments[SceneColorAttachmentIndex];
++  uint32_t draws = 0;
++  for (const auto& c : passInfo.commands) {
++    draws += c.type == CommandType::Draw || c.type == CommandType::CustomDraw ? 1 : 0;
++  }
++  const wgpu::LoadOp colorLoad =
++      color.loadOp != wgpu::LoadOp::Undefined ? color.loadOp : (color.clear ? wgpu::LoadOp::Clear : wgpu::LoadOp::Load);
++  std::string resolve = "none";
++  std::string detail;
++  if (passInfo.resolveTarget) {
++    const auto& dst = passInfo.resolveTarget->size;
++    resolve = fmt::format("{}x{}", dst.width, dst.height);
++    detail = fmt::format("fmt {} src {}x{}+{}+{}{}", static_cast<int>(passInfo.resolveFormat),
++                         passInfo.resolveRect.width, passInfo.resolveRect.height, passInfo.resolveRect.x,
++                         passInfo.resolveRect.y, gx::is_depth_format(passInfo.resolveFormat) ? " depth" : "");
++  }
++  if (passInfo.snapshotColorDst || passInfo.snapshotDepthDst || passInfo.snapshotNormalDst) {
++    detail += " snapshot";
++  }
++  frame.census->passes.push_back(fmt::format("{},pass,{},{},{},{},{},{},{},{}", frame.census->passes.size(), label,
++                                             color.size.width, color.size.height, passInfo.colorAttachmentCount,
++                                             colorLoad == wgpu::LoadOp::Clear ? "clear" : "load", draws, resolve,
++                                             detail));
++}
++
+ void render(wgpu::CommandEncoder& cmd, FramePacket& frame, RenderPass& passInfo, uint32_t passIndex) {
+   ZoneScoped;
+   if (!passInfo.sealed) {
+@@ -242,8 +273,11 @@ void render(wgpu::CommandEncoder& cmd, FramePacket& frame, RenderPass& passInfo,
+       .colorAttachmentCount = passInfo.colorAttachmentCount,
+       .colorAttachments = attachments.data(),
+       .depthStencilAttachment = depthStencilAttachmentPtr,
++      .occlusionQuerySet = frame.census ? frame.census->querySet : nullptr,
+       .timestampWrites = webgpu::gpu_prof::pass_writes(label),
+   };
++  if (frame.census)
++    UNLIKELY { census_pass_row(frame, passInfo, label); }
+ 
+   auto pass = cmd.BeginRenderPass(&renderPassDescriptor);
+   render_pass(pass, frame, passInfo);
+@@ -412,6 +446,11 @@ void encode_op(wgpu::CommandEncoder& cmd, FramePacket& frame, const FrameOp& op)
+     break;
+   case FrameOpType::TextureCopy:
+     if (op.textureCopy != nullptr) {
++      if (frame.census)
++        UNLIKELY {
++          frame.census->passes.push_back(fmt::format("{},copy,texture copy,{},{},0,,0,,", frame.census->passes.size(),
++                                                     op.textureCopy->size.width, op.textureCopy->size.height));
++        }
+       const webgpu::gpu_prof::Zone zone{cmd, "Texture copy"};
+       cmd.CopyTextureToTexture(&op.textureCopy->src, &op.textureCopy->dst, &op.textureCopy->size);
+     }
+diff --git a/lib/gfx/frame.cpp b/lib/gfx/frame.cpp
+index e005a60..2473ae9 100644
+--- a/lib/gfx/frame.cpp
++++ b/lib/gfx/frame.cpp
+@@ -439,7 +439,7 @@ void initialize() {
+   }
+ 
+   {
+-    constexpr std::array layoutEntries{
++    std::array layoutEntries{
+         // Vertex data buffer
+         wgpu::BindGroupLayoutEntry{
+             .binding = 0,
+@@ -459,13 +459,27 @@ void initialize() {
+                 },
+         },
+     };
++    // Draw census fragment counters (census.hpp), only with AURORA_DRAW_CENSUS=1.
++    const bool censusCounters = census::counters_enabled();
++    const wgpu::BindGroupLayoutEntry censusLayoutEntry{
++        .binding = 2,
++        .visibility = wgpu::ShaderStage::Fragment,
++        .buffer =
++            wgpu::BufferBindingLayout{
++                .type = wgpu::BufferBindingType::Storage,
++            },
++    };
++    std::vector<wgpu::BindGroupLayoutEntry> layoutList(layoutEntries.begin(), layoutEntries.end());
++    if (censusCounters) {
++      layoutList.push_back(censusLayoutEntry);
++    }
+     const wgpu::BindGroupLayoutDescriptor layoutDesc{
+         .label = "Static bind group layout",
+-        .entryCount = layoutEntries.size(),
+-        .entries = layoutEntries.data(),
++        .entryCount = layoutList.size(),
++        .entries = layoutList.data(),
+     };
+     g_resources.staticBindGroupLayout = g_device.CreateBindGroupLayout(&layoutDesc);
+-    const std::array entries{
++    std::vector<wgpu::BindGroupEntry> entries{
+         wgpu::BindGroupEntry{
+             .binding = 0,
+             .buffer = g_resources.vertexBuffer,
+@@ -475,6 +489,12 @@ void initialize() {
+             .buffer = g_resources.storageBuffer,
+         },
+     };
++    if (censusCounters) {
++      entries.push_back(wgpu::BindGroupEntry{
++          .binding = 2,
++          .buffer = census::counter_buffer(),
++      });
++    }
+     const wgpu::BindGroupDescriptor bindGroupDescriptor{
+         .label = "Static bind group",
+         .layout = g_resources.staticBindGroupLayout,
+@@ -686,6 +706,12 @@ void end_frame(EndFrameCallback callback) {
+     auto encoder = std::move(packet.encoder);
+     const auto stats = packet.stats;
+     auto afterSubmitCallbacks = std::move(packet.afterSubmitCallbacks);
++    if (auto census = std::move(packet.census))
++      UNLIKELY {
++        // Draw census (census.hpp): resolve the frame's occlusion queries, read them after submit.
++        census::encode_resolve(encoder, census);
++        afterSubmitCallbacks.emplace_back([census] { census::after_submit(census); });
++      }
+     packet = {};
+     g_resources.stats.drawCallCount = stats.drawCallCount;
+     g_resources.stats.mergedDrawCallCount = stats.mergedDrawCallCount;
+diff --git a/lib/gfx/frame_packet.hpp b/lib/gfx/frame_packet.hpp
+index 564e2f0..143aea8 100644
+--- a/lib/gfx/frame_packet.hpp
++++ b/lib/gfx/frame_packet.hpp
+@@ -4,11 +4,13 @@
+ #include "types.hpp"
+ #include "tex_palette_conv.hpp"
+ #include "texture.hpp"
++#include "census.hpp"
+ 
+ #include <array>
+ #include <cstddef>
+ #include <cstdint>
+ #include <deque>
++#include <memory>
+ #include <string>
+ #include <vector>
+ 
+@@ -47,6 +49,8 @@ enum class CommandType {
+ 
+ struct Command {
+   CommandType type;
++  // Draw census (census.hpp): the draw's index in the frame's capture, UINT32_MAX when none.
++  uint32_t censusIndex = UINT32_MAX;
+ #ifdef AURORA_GFX_DEBUG_GROUPS
+   std::vector<std::string> debugGroupStack;
+ #endif
+@@ -190,9 +194,11 @@ struct FramePacket {
+   std::deque<EncoderTask> encoderTasks;
+   std::deque<FrameOp> ops;
+   std::deque<TextureUpload> textureUploads;
+-#ifdef AURORA_GFX_DEBUG_GROUPS
++  // Debug markers are always recorded (GXInsertDebugMarker): the native port times groups of
++  // draws by them on the GPU (COS_GPU_GROUPS). Nothing is recorded unless the game inserts one.
+   std::vector<std::string> debugMarkers;
+-#endif
++  // The draw census capture of this frame (census.hpp), if one was requested.
++  std::shared_ptr<census::Capture> census;
+   ByteBuffer verts;
+   ByteBuffer uniforms;
+   ByteBuffer indices;
+diff --git a/lib/gfx/recording.cpp b/lib/gfx/recording.cpp
+index 9d1df79..b4b4740 100644
+--- a/lib/gfx/recording.cpp
++++ b/lib/gfx/recording.cpp
+@@ -568,6 +568,7 @@ void begin_recording(FramePacket& packet, size_t frameSlot) {
+   }
+   g_recorder.packet = &packet;
+   g_recorder.frameSlot = frameSlot;
++  packet.census = census::begin_frame(packet.frameIndex);
+   g_passSnapshotPools[frameSlot].used = 0;
+   g_recorder.drawCallCount = 0;
+   g_recorder.mergedDrawCallCount = 0;
+@@ -611,6 +612,7 @@ RecordedFrame end_recording() {
+     g_recorder.debugGroupStack.clear();
+   }
+ #endif
++  census::end_frame();
+   const RecordedFrame recorded{.packet = g_recorder.packet, .frameSlot = g_recorder.frameSlot};
+   g_recorder.packet = nullptr;
+   g_recorder.frameSlot = 0;
+@@ -1221,14 +1223,41 @@ uint32_t align_uniform(uint32_t value) {
+ }
+ 
+ void insert_debug_marker(std::string label) {
+-#if defined(AURORA_GFX_DEBUG_GROUPS)
++  // Always recorded (native/patches/aurora/0008): the native port's GPU timer groups draws by
++  // these markers on the Switch, and the draw census tags each draw with the last one.
++  if (!g_recorder.active() || g_recorder.currentRenderPass == UINT32_MAX) {
++    return;
++  }
++  if (auto* capture = census::recording()) {
++    capture->currentMarker = static_cast<int32_t>(capture->markers.size());
++    capture->markers.push_back(label);
++  }
+   auto& markers = current_frame_packet().debugMarkers;
+   const auto idx = markers.size();
+   markers.emplace_back(std::move(label));
+   push_command(CommandType::DebugMarker, {.debugMarkerIndex = idx});
+-#endif
+ }
+ 
++void set_last_command_census(uint32_t index) noexcept {
++  if (g_recorder.currentRenderPass >= current_render_passes().size()) {
++    return;
++  }
++  auto& commands = current_render_passes()[g_recorder.currentRenderPass].commands;
++  if (!commands.empty()) {
++    commands.back().censusIndex = index;
++  }
++}
++
++uint32_t last_command_census() noexcept {
++  if (g_recorder.currentRenderPass >= current_render_passes().size()) {
++    return UINT32_MAX;
++  }
++  const auto& commands = current_render_passes()[g_recorder.currentRenderPass].commands;
++  return commands.empty() ? UINT32_MAX : commands.back().censusIndex;
++}
++
++uint32_t current_pass_index() noexcept { return g_recorder.currentRenderPass; }
++
+ void push_debug_group(std::string label) {
+ #if defined(AURORA_GFX_DEBUG_GROUPS)
+   g_recorder.debugGroupStack.push_back(std::move(label));
+diff --git a/lib/gfx/recording.hpp b/lib/gfx/recording.hpp
+index c1b4a7d..a9cadc4 100644
+--- a/lib/gfx/recording.hpp
++++ b/lib/gfx/recording.hpp
+@@ -107,4 +107,8 @@ void set_viewport(const Viewport& viewport) noexcept;
+ void set_scissor(const ClipRect& scissor) noexcept;
+ void push_debug_group(std::string label);
+ void insert_debug_marker(std::string label);
++// Draw census (census.hpp): tag the current pass's last command, read it back, the pass index.
++void set_last_command_census(uint32_t index) noexcept;
++uint32_t last_command_census() noexcept;
++uint32_t current_pass_index() noexcept;
+ } // namespace aurora::gfx
+diff --git a/lib/gx/command_processor.cpp b/lib/gx/command_processor.cpp
+index 21b0a83..bdd2cb2 100644
+--- a/lib/gx/command_processor.cpp
++++ b/lib/gx/command_processor.cpp
+@@ -1,5 +1,6 @@
+ #include "command_processor.hpp"
+ 
++#include "../gfx/census.hpp"
+ #include "../gfx/depth_peek.hpp"
+ #include "../gfx/recording.hpp"
+ #include "../internal.hpp"
+@@ -389,12 +390,76 @@ static u32 calc_vtx_size(GXVtxFmt fmt) noexcept {
+   return vtxSize;
+ }
+ 
++// Draw census (native/patches/aurora/0008, lib/gfx/census.hpp): what the draw just pushed is.
++static void census_record(GXPrimitive prim, u16 vtxCount, const PipelineConfig& config,
++                          const ShaderInfo& info) noexcept {
++  auto* capture = gfx::census::recording();
++  if (capture == nullptr || capture->draws.size() >= capture->capacity) {
++    return;
++  }
++  const auto& state = g_gxState;
++  const auto& sc = config.shaderConfig;
++  gfx::census::DrawInfo d{};
++  d.pass = gfx::current_pass_index();
++  d.marker = capture->currentMarker;
++  d.prim = prim;
++  d.vtxCount = vtxCount;
++  d.pipelineHash = sDrawCache.pipelineRef;
++  d.tevStages = static_cast<uint8_t>(sc.tevStageCount);
++  d.indStages = static_cast<uint8_t>(sc.numIndStages);
++  d.alphaTest = sc.alphaCompare ? 1 : 0;
++  d.alphaComp0 = sc.alphaCompare.comp0;
++  d.alphaRef0 = static_cast<uint8_t>(sc.alphaCompare.ref0);
++  d.alphaOp = sc.alphaCompare.op;
++  d.alphaComp1 = sc.alphaCompare.comp1;
++  d.alphaRef1 = static_cast<uint8_t>(sc.alphaCompare.ref1);
++  d.blendMode = config.blendMode;
++  d.blendSrc = config.blendFacSrc;
++  d.blendDst = config.blendFacDst;
++  d.depthCompare = config.depthCompare;
++  d.depthFunc = config.depthFunc;
++  d.depthUpdate = config.depthUpdate;
++  d.colorUpdate = config.colorUpdate;
++  d.alphaUpdate = config.alphaUpdate;
++  d.cull = config.cullMode;
++  d.fog = sc.fogType;
++  d.dstAlpha = config.dstAlpha != UINT32_MAX ? 1 : 0;
++  d.numChans = state.numChans;
++  d.vpWidth = state.renderViewport.width;
++  d.vpHeight = state.renderViewport.height;
++  for (u32 i = 0; i < MaxTextures && d.texCount < 8; ++i) {
++    if (!info.sampledTextures.test(i)) {
++      continue;
++    }
++    auto& t = d.tex[d.texCount++];
++    const auto& bind = state.textures[i];
++    if (bind.ref) {
++      t.width = static_cast<uint16_t>(bind.ref->size.width);
++      t.height = static_cast<uint16_t>(bind.ref->size.height);
++      t.mips = static_cast<uint8_t>(bind.ref->mipCount);
++      t.gxFormat = static_cast<uint8_t>(bind.ref->gxFormat);
++    }
++    t.minFilter = static_cast<uint8_t>(state.loadedTextures[i].min_filter());
++    t.isCopy = state.copyTextures.contains(state.loadedTextures[i].data) ? 1 : 0;
++  }
++  const auto index = static_cast<uint32_t>(capture->draws.size());
++  capture->draws.push_back(d);
++  gfx::set_last_command_census(index);
++}
++
+ static void push_gx_draw(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, gfx::Range vertRange, gfx::Range idxRange,
+                          u32 numIndices) noexcept {
+   auto& state = g_gxState;
+   auto& cache = sDrawCache;
+ 
+   DrawImmediateData immediates{.vtxStart = vertRange.offset, .currentPnMtx = state.currentPnMtx};
++  if (auto* capture = gfx::census::recording())
++    UNLIKELY {
++      // Draw census fragment counters: this draw's slot (census_record below appends it).
++      if (gfx::census::counters_enabled() && capture->draws.size() < capture->capacity) {
++        immediates._pad = static_cast<u32>(capture->draws.size()) + 1;
++      }
++    }
+   for (int i = GX_VA_POS; i <= GX_VA_TEX7; ++i) {
+     if (state.vtxDesc[i] != GX_INDEX8 && state.vtxDesc[i] != GX_INDEX16) {
+       continue;
+@@ -480,6 +545,8 @@ static void push_gx_draw(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, gfx::Rang
+       .instanceCount = instanceCount,
+       .dstAlpha = state.dstAlpha,
+   });
++  if (gfx::census::recording() != nullptr)
++    UNLIKELY { census_record(prim, vtxCount, cache.config, cache.shaderInfo); }
+ }
+ 
+ static void handle_draw_unmerged(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, gfx::Range vertRange) noexcept {
+@@ -550,6 +617,14 @@ static void draw_prim(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, ByteReader&
+     }
+     lastDraw->vtxCount += vtxCount;
+     lastDraw->indexCount += numIndices;
++    if (auto* capture = gfx::census::recording())
++      UNLIKELY {
++        const auto index = gfx::last_command_census();
++        if (index < capture->draws.size()) {
++          capture->draws[index].vtxCount += vtxCount;
++          capture->draws[index].merges++;
++        }
++      }
+     gfx::detail::increment_merged_draw_count();
+     return;
+   }
+diff --git a/lib/gx/shader.cpp b/lib/gx/shader.cpp
+index 43eafcd..645fe65 100644
+--- a/lib/gx/shader.cpp
++++ b/lib/gx/shader.cpp
+@@ -1,3 +1,4 @@
++#include "../gfx/census.hpp"
+ #include "../gfx/hash.hpp"
+ #include "../gfx/types.hpp"
+ 
+@@ -1704,6 +1705,14 @@ std::string build_shader_source(const ShaderConfig& config, DstAlphaMode dstAlph
+     fragmentReturn = "\n    return FragmentOutput(vec4f(prev.rgb, 1.0), prev);";
+   }
+ 
++  // Draw census fragment counters (gfx/census.hpp): invocations, then the fragments that survived
++  // the alpha compare, per draw slot (imm._pad).
++  std::string censusBinding;
++  if (gfx::census::counters_enabled()) {
++    censusBinding = "\n@group(0) @binding(2)\nvar<storage, read_write> census_count: array<atomic<u32>>;";
++    fragmentFnPre.insert(0, "\n    atomicAdd(&census_count[imm._pad * 2u], 1u);");
++    fragmentReturn.insert(0, "\n    atomicAdd(&census_count[imm._pad * 2u + 1u], 1u);");
++  }
+   auto shaderSource =
+       fmt::format(R"""(
+ fn bswap32(v: u32, le: bool) -> u32 {{
+@@ -2052,7 +2061,7 @@ struct Uniform {{
+ @group(0) @binding(0)
+ var<storage, read> vbuf: array<u32>;
+ @group(0) @binding(1)
+-var<storage, read> abuf: array<u32>;
++var<storage, read> abuf: array<u32>;{12}
+ @group(1) @binding(0)
+ var<uniform> ubuf: Uniform;{1}
+ 
+@@ -2074,7 +2083,8 @@ fn fs_main(in: VertexOutput) -> {10} {{{6}{5}{11}
+ }}
+ )""",
+                   uniBufAttrs, texBindings, vtxOutAttrs, vtxInAttrs, vtxXfrAttrs, fragmentFn, fragmentFnPre,
+-                  vtxXfrAttrsPre, uniformPre, fragmentOutput, fragmentOutputType, fragmentReturn);
++                  vtxXfrAttrsPre, uniformPre, fragmentOutput, fragmentOutputType, fragmentReturn,
++                  censusBinding);
+   if (dstAlphaMode == DstAlphaMode::DualSource) {
+     shaderSource.insert(0, "enable dual_source_blending;\n");
+   }

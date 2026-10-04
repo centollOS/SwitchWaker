@@ -31,6 +31,7 @@
 // the same spin); no frame-usage statistics, interpolation, turbo mode or settings; a refused
 // aurora_begin_frame waits and retries instead of skipping the game frame.
 #include "pc_internal.h"
+#include "pc/pc_gpu_opts.h"
 
 #include "JSystem/JAudio/osdsp_task.h"
 #include "JSystem/JKernel/JKRHeap.h"
@@ -61,6 +62,16 @@
 #endif
 #if defined(__SWITCH__)
 #include "cos_switch.h"
+
+// switch/dawn/patches/dawn-switch-gl-gpu-groups.patch: GPU time per group of draws (the frame's
+// last GX debug marker, COS_GPU_GROUPS, or the render pass's label), running totals.
+struct DawnSwitchGpuGroup {
+    char name[64];
+    uint64_t ns;
+    uint64_t segments;
+    uint64_t draws;
+};
+extern "C" size_t dawn_switch_gl_gpu_groups(DawnSwitchGpuGroup* out, size_t max);
 #endif
 
 namespace pc {
@@ -577,6 +588,41 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
                    (unsigned long long)(cur.gpuDisjoint - w.gpuDisjoint));
         }
         sSwGpuFrameNs.clear();
+        // Per group (dawn-switch-gl-gpu-groups.patch): the window's GPU time per frame of each
+        // group, largest first; groups are EFB passes, or draw-list buckets with COS_GPU_GROUPS.
+        static std::vector<DawnSwitchGpuGroup> sGroupsPrev;
+        static std::vector<DawnSwitchGpuGroup> sGroupsNow(512);
+        const size_t groupCount = dawn_switch_gl_gpu_groups(sGroupsNow.data(), sGroupsNow.size());
+        if (gpuFrames > 0 && groupCount > 0) {
+            struct Row {
+                const char* name;
+                double ms, draws;
+            };
+            std::vector<Row> rows;
+            double totalMs = 0;
+            for (size_t i = 0; i < groupCount; ++i) {
+                const DawnSwitchGpuGroup& c = sGroupsNow[i];
+                const DawnSwitchGpuGroup* q = i < sGroupsPrev.size() ? &sGroupsPrev[i] : nullptr;
+                const uint64_t ns = c.ns - (q != nullptr ? q->ns : 0);
+                if (ns == 0) {
+                    continue;
+                }
+                const double ms = msOf(ns) / (double)gpuFrames;
+                rows.push_back(Row{c.name, ms, (double)(c.draws - (q != nullptr ? q->draws : 0)) / (double)gpuFrames});
+                totalMs += ms;
+            }
+            std::sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) { return a.ms > b.ms; });
+            std::string line;
+            char item[160];
+            for (size_t i = 0; i < rows.size() && i < 24; ++i) {
+                snprintf(item, sizeof(item), "%s%s %.2f (%.0f)", i ? ", " : "", rows[i].name, rows[i].ms,
+                         rows[i].draws);
+                line += item;
+            }
+            writef(STDERR_FILENO, "[cos] perf-switch gpu groups per frame (ms, draws; %.2f ms in %zu groups): %s\n",
+                   totalMs, rows.size(), line.c_str());
+        }
+        sGroupsPrev.assign(sGroupsNow.begin(), sGroupsNow.begin() + groupCount);
     }
     {
         // The CPU/GPU overlap check (docs/SWITCH_PERF_STUDY.md, section 6): the first render
@@ -881,6 +927,8 @@ void pc_frame_begin(void) {
     }
     pumpEvents();
     sEventsDoneNs = monotonicNs();
+    // COS_GPU_GROUPS / COS_DRAW_CENSUS (pc_gpu_opts.h): before Aurora starts recording the frame.
+    pc_gpu_groups_frame_begin(pc_frame_count() + 1);
     // Refused while the window cannot present (minimised, no surface yet): the console would not
     // run a frame without a display either. The stall watchdog reports a refusal that lasts.
     for (;;) {
