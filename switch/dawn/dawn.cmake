@@ -715,6 +715,26 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # On top of the GPU groups: the GPU timer's results scaled from the Tegra X1's PTIMER ticks to
+    # real time (x31.25/19.2; COS_SWITCH_GPU_TIMER_SCALE overrides; docs/SWITCH_PERF_STUDY.md,
+    # section 8).
+    file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchGpuTimerGL.h" DAWN_OPENGL_GPU_TIMER_TEXT2)
+    if(NOT DAWN_OPENGL_GPU_TIMER_TEXT2 MATCHES "mScale")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-gpu-timer-scale.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_GPU_TIMER_SCALE_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_GPU_TIMER_SCALE_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_GPU_TIMER_SCALE_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_GPU_TIMER_SCALE_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL GPU timer scale patch:\n"
+                "${DAWN_GL_GPU_TIMER_SCALE_PATCH_OUTPUT}${DAWN_GL_GPU_TIMER_SCALE_PATCH_ERROR}")
+        endif()
+    endif()
+
     set(DAWN_WGPU_HELPERS_SOURCE
         "${dawn_SOURCE_DIR}/src/dawn/native/utils/WGPUHelpers.cpp")
     file(READ "${DAWN_WGPU_HELPERS_SOURCE}" DAWN_WGPU_HELPERS_TEXT)

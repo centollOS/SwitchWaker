@@ -1,0 +1,43 @@
+--- a/src/dawn/native/opengl/SwitchGpuTimerGL.h
++++ b/src/dawn/native/opengl/SwitchGpuTimerGL.h
+@@ -95,6 +95,20 @@
+                 mState = 3;
+             } else {
+                 mState = gl.IsGLExtensionSupported("GL_EXT_disjoint_timer_query") ? 1 : 2;
++                // dawn-switch-gl-gpu-timer-scale.patch: the Tegra X1's PTIMER counts its 19.2 MHz
++                // clock as if it were the 31.25 MHz reference (Linux nvgpu scales its readings by
++                // 31.25/19.2 for that reason), so the elapsed "ns" nouveau reports are 1/1.6276 of
++                // the real time. On the console, frames that are GPU-bound take 1.63-1.65 times
++                // the raw GPU time (A_mori, draw-cost dip windows). COS_SWITCH_GPU_TIMER_SCALE
++                // overrides the factor (1 = raw).
++                mScale = 31250000.0 / 19200000.0;
++                if (const char* scale = std::getenv("COS_SWITCH_GPU_TIMER_SCALE");
++                    scale != nullptr && scale[0] != '\0') {
++                    const double value = std::strtod(scale, nullptr);
++                    if (value > 0.0) {
++                        mScale = value;
++                    }
++                }
+             }
+             gTotals[kGpuTimerState].store(mState, std::memory_order_relaxed);
+         }
+@@ -261,8 +275,9 @@
+             uint64_t firstPass = 0;
+             mFrameNs.clear();
+             for (const Segment& seg : frame) {
+-                GLuint ns = 0;  // 32 bits: up to 4.29 s per segment
+-                gl.GetQueryObjectuiv(seg.query, GL_QUERY_RESULT, &ns);
++                GLuint raw = 0;  // 32 bits: up to 4.29 s per segment
++                gl.GetQueryObjectuiv(seg.query, GL_QUERY_RESULT, &raw);
++                const uint64_t ns = static_cast<uint64_t>(static_cast<double>(raw) * mScale);
+                 sums[seg.segment & ~kGpuSegFirstPass] += ns;
+                 if (seg.segment & kGpuSegFirstPass) {
+                     firstPass += ns;
+@@ -303,6 +318,7 @@
+     }
+ 
+     int mState = 0;  // 0 not checked yet, 1 on, 2 no EXT_disjoint_timer_query, 3 off by env
++    double mScale = 1.0;  // raw query result to real ns (dawn-switch-gl-gpu-timer-scale.patch)
+     bool mOpen = false;
+     uint8_t mOpenSegment = 0;
+     bool mCurrentHasPass = false;

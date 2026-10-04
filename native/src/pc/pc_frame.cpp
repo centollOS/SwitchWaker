@@ -579,14 +579,17 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
             writef(STDERR_FILENO,
                    "[cos] perf-switch gpu per frame (%llu read back): %.2f ms (p95 %.2f, max %.2f): "
                    "efb passes %.2f, tex copy conv %.2f, present %.2f, imgui %.2f, copies %.2f, other "
-                   "%.2f; first pass %.2f; %llu dropped, %llu disjoint\n",
+                   "%.2f; first pass %.2f; %llu dropped, %llu disjoint; timer x%s\n",
                    (unsigned long long)gpuFrames, gms(cur.gpuTotalNs, w.gpuTotalNs), msOf(p95Ns),
                    msOf(maxNs), gms(cur.gpuEfbNs, w.gpuEfbNs), gms(cur.gpuTexConvNs, w.gpuTexConvNs),
                    gms(cur.gpuPresentNs, w.gpuPresentNs), gms(cur.gpuImguiNs, w.gpuImguiNs),
                    gms(cur.gpuCopyNs, w.gpuCopyNs), gms(cur.gpuOtherNs, w.gpuOtherNs),
                    gms(cur.gpuFirstPassNs, w.gpuFirstPassNs),
                    (unsigned long long)(cur.gpuDropped - w.gpuDropped),
-                   (unsigned long long)(cur.gpuDisjoint - w.gpuDisjoint));
+                   (unsigned long long)(cur.gpuDisjoint - w.gpuDisjoint),
+                   // dawn-switch-gl-gpu-timer-scale.patch: Tegra PTIMER ticks to real time.
+                   getenv("COS_SWITCH_GPU_TIMER_SCALE") != nullptr ? getenv("COS_SWITCH_GPU_TIMER_SCALE")
+                                                                   : "1.6276 (PTIMER)");
         }
         sSwGpuFrameNs.clear();
         // Per group (dawn-switch-gl-gpu-groups.patch): the window's GPU time per frame of each
