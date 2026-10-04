@@ -20,7 +20,10 @@
 //                        back to back they left the logos and menus at 4-7 frames/s; with
 //                        COS_PRECOMPILE_DUTY=d (default 0.5; 0 or 1: not throttled) the compile
 //                        thread builds about a fraction d of the time, each build starting right
-//                        after a present; a pipeline a draw waits for is never held back;
+//                        after a present; a pipeline a draw waits for is never held back. Only a
+//                        build slower than COS_PRECOMPILE_SLOW_MS (default 25, a shader cache miss;
+//                        Switch patch 0011) holds the next one back: with Mesa's shader cache warm
+//                        (~12 ms a build) the warm-up runs back to back;
 //   COS_PRECOMPILE=full  the loading screen until every known pipeline is built (minutes; no
 //                        stutter from a pipeline the cache knows afterwards);
 //   COS_PRECOMPILE=all   no loading screen; build every known pipeline whatever the game does,
@@ -96,6 +99,7 @@ struct Progress {
     double compileS = -1; // compile thread time on the warm-up, -1 = unknown
     float throttleDuty = 0; // Switch: the warm-up throttle (0 off), builds held back, time waited
     uint32_t throttled = 0;
+    uint32_t unthrottled = 0; // warm-up builds fast enough (a shader cache hit) to be followed at once
     double throttleWaitS = 0;
 };
 
@@ -113,6 +117,7 @@ Progress readProgress() {
     p.compileS = s.compileNs / 1e9;
     p.throttleDuty = s.throttleDuty;
     p.throttled = s.throttled;
+    p.unthrottled = s.unthrottled;
     p.throttleWaitS = s.throttleWaitNs / 1e9;
 #else
     const AuroraStats* stats = aurora_get_stats();
@@ -175,8 +180,8 @@ void programNote(char* out, size_t size, const Progress& p) {
     const double builds = gl[65] > 0 ? (double)gl[65] : 1.0;
     char throttle[96] = "";
     if (p.throttleDuty > 0) {
-        snprintf(throttle, sizeof(throttle), "; throttle duty %.2f, %u held back, %.1f s waited",
-                 p.throttleDuty, p.throttled, p.throttleWaitS);
+        snprintf(throttle, sizeof(throttle), "; throttle duty %.2f, %u held back, %.1f s waited, %u fast builds not held",
+                 p.throttleDuty, p.throttled, p.throttleWaitS, p.unthrottled);
     }
     // Tint (no GL context) against the GL part (compile, link; the render worker waits for it).
     snprintf(out, size,
@@ -350,13 +355,25 @@ void startThrottle() {
         duty = strtof(env, nullptr);
     }
     const bool on = duty > 0.0f && duty < 1.0f;
+    // COS_PRECOMPILE_SLOW_MS (default 25, about a frame): only a build longer than this (a shader
+    // cache miss) holds the next one back; cache hits (~12 ms) warm up back to back. 0: all held.
+    double slowMs = 25.0;
+    const char* slowEnv = getenv("COS_PRECOMPILE_SLOW_MS");
+    if (slowEnv != nullptr && slowEnv[0] != '\0') {
+        slowMs = strtod(slowEnv, nullptr);
+    }
+    if (!(slowMs >= 0.0)) {
+        slowMs = 0.0;
+    }
+    aurora_switch_set_warmup_slow_ns((uint64_t)(slowMs * 1e6));
     aurora_switch_set_warmup_throttle(on ? duty : 0.0f);
     if (sLog) {
         if (on) {
             writef(STDERR_FILENO,
-                   "[cos] precompile throttle: the rest of the warm-up builds about %.0f%% of the time, "
-                   "each build after a present (COS_PRECOMPILE_DUTY=%.2f)\n",
-                   duty * 100.0, duty);
+                   "[cos] precompile throttle: after a build longer than %.0f ms (COS_PRECOMPILE_SLOW_MS) the "
+                   "next waits so that the warm-up builds about %.0f%% of the time, starting after a present "
+                   "(COS_PRECOMPILE_DUTY=%.2f); faster builds follow at once\n",
+                   slowMs, duty * 100.0, duty);
         } else {
             writef(STDERR_FILENO, "[cos] precompile throttle: off (COS_PRECOMPILE_DUTY=%s)\n",
                    env != nullptr ? env : "");

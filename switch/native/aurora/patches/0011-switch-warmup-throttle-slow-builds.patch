@@ -1,0 +1,88 @@
+Switch: throttle the warm-up only after a slow build (aurora_switch_set_warmup_slow_ns)
+
+With Mesa's persistent shader cache a warm-up build costs 11-13 ms when the cache has the shaders
+and 100-300 ms when it does not. Patch 0009 idled the compile thread after every warm-up build
+for (1 - duty) / duty of its duration and then waited for a present, so a warm cache still
+warmed up at about one pipeline per frame (~1098 pipelines in a minute or more) instead of back
+to back (~6 s). Now only a build longer than the slow threshold (default 25 ms, about a frame:
+a cache miss) holds the next one back; after a fast one the next starts at once. The threshold is
+set with aurora_switch_set_warmup_slow_ns (0: every build held back, as before);
+aurora_switch_get_precompile reports the builds that were not held back (unthrottled).
+
+Switch only (switch/native/aurora/patches); not for upstream.
+
+--- a/include/aurora/switch_precompile.h	2026-10-04 12:54:40
++++ b/include/aurora/switch_precompile.h	2026-10-04 12:54:40
+@@ -30,6 +30,9 @@
+   float throttleDuty;
+   uint32_t throttled;
+   uint64_t throttleWaitNs;
++  /* Warm-up builds the throttle let the next one follow at once: they took no longer than
++   * aurora_switch_set_warmup_slow_ns (a shader cache hit). */
++  uint32_t unthrottled;
+ } AuroraSwitchPrecompile;
+ 
+ void aurora_switch_get_precompile(AuroraSwitchPrecompile* out);
+@@ -47,6 +50,12 @@
+  * gets about 1 - d of the time. Builds a draw asks for are never held back. 0 or >= 1: off (the
+  * default; back to back as before). */
+ void aurora_switch_set_warmup_throttle(float duty);
++
++/* The throttle only holds back the build after a slow one: a warm-up build that took at most ns
++ * (default 25 ms, about a frame: with Mesa's shader cache warm a build costs ~12 ms, a miss
++ * 100-300 ms) lets the next start at once, so a warm cache warms up back to back. 0: every build
++ * is followed by the throttle's idle time, as before. */
++void aurora_switch_set_warmup_slow_ns(uint64_t ns);
+ 
+ #ifdef __cplusplus
+ }
+--- a/lib/gfx/pipeline_cache.cpp	2026-10-04 12:54:40
++++ b/lib/gfx/pipeline_cache.cpp	2026-10-04 12:54:40
+@@ -1065,6 +1065,9 @@
+ static uint64_t g_warmupNextNs = 0;      // no throttled build before this
+ static uint32_t g_warmupThrottled = 0;   // builds held back
+ static uint64_t g_warmupThrottleWaitNs = 0;
++static uint64_t g_warmupSlowNs = 25'000'000; // builds up to this long are not followed by idle time
++static bool g_warmupHold = true;             // the last warm-up build was slow: hold the next one
++static uint32_t g_warmupUnthrottled = 0;     // warm-up builds followed at once (fast)
+ static std::atomic<uint64_t> g_presents{0};
+ 
+ void switch_warmup_note_present() { g_presents.fetch_add(1, std::memory_order_relaxed); }
+@@ -1073,7 +1076,7 @@
+ // draw queues a pipeline, the warm-up empties or the thread ends.
+ static void warmup_throttle_wait(std::unique_lock<std::mutex>& lock) {
+   const auto throttling = [] {
+-    return g_warmupDuty > 0.f && g_pipelineQueue.empty() && !g_backgroundPipelineQueue.empty() &&
++    return g_warmupDuty > 0.f && g_warmupHold && g_pipelineQueue.empty() && !g_backgroundPipelineQueue.empty() &&
+            !g_pipelineThreadEnd;
+   };
+   if (!throttling()) {
+@@ -1149,7 +1152,10 @@
+     const uint64_t compileNs = switch_stats::now_ns() - compileStart;
+     if (throttledBuild) {
+       std::lock_guard lock{g_pipelineMutex};
+-      if (g_warmupDuty > 0.f && g_warmupDuty < 1.f) {
++      g_warmupHold = g_warmupSlowNs == 0 || compileNs > g_warmupSlowNs;
++      if (!g_warmupHold) {
++        ++g_warmupUnthrottled;
++      } else if (g_warmupDuty > 0.f && g_warmupDuty < 1.f) {
+         g_warmupNextNs = switch_stats::now_ns() +
+                          static_cast<uint64_t>(static_cast<double>(compileNs) * (1.0 - g_warmupDuty) / g_warmupDuty);
+       }
+@@ -1438,6 +1444,16 @@
+   out->throttleDuty = g_warmupDuty;
+   out->throttled = g_warmupThrottled;
+   out->throttleWaitNs = g_warmupThrottleWaitNs;
++  out->unthrottled = g_warmupUnthrottled;
++}
++
++void aurora_switch_set_warmup_slow_ns(uint64_t ns) {
++  using namespace aurora::gfx;
++  {
++    std::lock_guard lock{g_pipelineMutex};
++    g_warmupSlowNs = ns;
++  }
++  g_pipelineQueueCv.notify_all();
+ }
+ 
+ void aurora_switch_set_warmup_throttle(float duty) {
