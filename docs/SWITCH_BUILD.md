@@ -439,6 +439,23 @@ before they are needed:
   - `all`: no loading screen; every known pipeline is built whatever the game does, into gameplay
     (a stutter per pipeline), with the corner indicator until done.
   - `off`: nothing is built ahead.
+- Behind the logos and menus (`boot`, after the loading screen) the warm-up is throttled: each
+  build holds the GL context for 0.1-0.3 s and the render worker needs it for every frame, so back
+  to back builds left the logos and title at 4-7 frames/s for about three minutes. Aurora Switch
+  patch 0009 (`aurora_switch_set_warmup_throttle`) keeps the compile thread idle for
+  (1 - d) / d times the previous build's duration and then starts the next build right after a
+  present, so a build overlaps the game thread's next frame; a pipeline a draw waits for is never
+  held back. `COS_PRECOMPILE_DUTY=d` (default 0.5; `0` or `1`: back to back as before) sets d.
+  The warm-up then takes about 1/d as long, and what is not built by the first PLAY scene is built
+  when first drawn. Not real parallelism: Mesa 20.1's nouveau has no threaded compile (no
+  `set_max_shader_compiler_threads`, so `GL_KHR_parallel_shader_compile`'s
+  `GL_COMPLETION_STATUS_KHR` is true as soon as `glLinkProgram` returns), and a second, shared GL
+  context on another thread is not an option on this nouveau (patch 0001: it drew nothing; nouveau
+  contexts share one push buffer without locking).
+- `switch/dawn/patches/dawn-switch-gl-pipeline-compile.patch`: Dawn translates a render pipeline's
+  WGSL to GLSL (Tint, CPU only) before it takes the GL context, so the render worker waits only for
+  Mesa's compile and link. The progress line shows both parts per build ("tint X ms, GL context Y
+  ms each"; the context part includes waiting for the worker to release the context).
 
 The log shows the warm-up (`COS_PRECOMPILE_LOG=0` hides the progress lines; values vary):
 
@@ -449,14 +466,14 @@ The log shows the warm-up (`COS_PRECOMPILE_LOG=0` hides the progress lines; valu
 [cos] precompile loading screen: waiting for P priority pipelines
 [cos] precompile loading screen N/P, T s, F frames presented   <- once a second
 [cos] precompile loading screen done: P/P priority pipelines in T s, F frames presented; N/M of the warm-up built, the game starts
-[cos] precompile N/M pipelines, T s, compile C s (X ms each); GL programs L linked, S shared; frame F, scene LOGO_SCENE
+[cos] precompile throttle: the rest of the warm-up builds about 50% of the time, each build after a present (COS_PRECOMPILE_DUTY=0.50)
+[cos] precompile N/M pipelines, T s, compile C s (X ms each); GL programs L linked, S shared; B pipeline builds: tint X ms, GL context Y ms each; throttle duty 0.50, H held back, W s waited; frame F, scene LOGO_SCENE
 [cos] precompile stopped (PLAY scene; D left to build when first drawn) at N/M pipelines, ...
 [cos] precompile done: M/M pipelines, ...                       <- instead, if it finished first
 ```
 
 Every start compiles again (nothing survives in Mesa), so the loading screen comes back at every
-start, and the logos and menus run slowly while the rest is built: about one frame per pipeline
-built. The game's frame counter does not move during the loading screen; the stall watchdog
+start, and the logos and menus run slower while the rest is built (throttled: see above). The game's frame counter does not move during the loading screen; the stall watchdog
 (`COS_STALL_S`) counts its frames instead. On the Mac the same file is read only if it is copied
 next to `build/native-mac/centollos`; there the whole warm-up of 995 pipelines took 83 s of the compile
 thread with a warm Dawn cache, and frames captured with and without it are identical. The Mac

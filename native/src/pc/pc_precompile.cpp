@@ -14,7 +14,13 @@
 //                        with "Shaders N/M" in the bottom-right corner, until the game first enters
 //                        its PLAY scene: there the warm-up ends and what is left is built when first
 //                        drawn (aurora_switch_stop_precompile, Switch patch 0007). A bundled file
-//                        without the priority table gives no loading screen;
+//                        without the priority table gives no loading screen. Behind the logos the
+//                        warm-up is throttled (Switch patch 0009, aurora_switch_set_warmup_throttle):
+//                        each build holds the GL context the render worker needs for 0.1-0.3 s, so
+//                        back to back they left the logos and menus at 4-7 frames/s; with
+//                        COS_PRECOMPILE_DUTY=d (default 0.5; 0 or 1: not throttled) the compile
+//                        thread builds about a fraction d of the time, each build starting right
+//                        after a present; a pipeline a draw waits for is never held back;
 //   COS_PRECOMPILE=full  the loading screen until every known pipeline is built (minutes; no
 //                        stutter from a pipeline the cache knows afterwards);
 //   COS_PRECOMPILE=all   no loading screen; build every known pipeline whatever the game does,
@@ -51,6 +57,10 @@
 
 // Dawn's shared GL program cache (switch/dawn/patches/dawn-switch-gl-program-share.patch).
 extern "C" void dawn_switch_gl_program_stats(uint64_t* linked, uint64_t* shared);
+// Dawn's GL counters (switch/dawn/patches, switch_stats::Counter): 65-67 are the render pipeline
+// builds, their Tint translation ns and their ns holding the GL context
+// (dawn-switch-gl-pipeline-compile.patch).
+extern "C" void dawn_switch_gl_cmd_stats(uint64_t* out, size_t count);
 #elif defined(__APPLE__)
 #include <limits.h>
 #include <mach-o/dyld.h>
@@ -84,6 +94,9 @@ struct Progress {
     uint32_t priorityTotal = 0; // the priority pipelines queued (0: none known)
     uint32_t priorityDone = 0;
     double compileS = -1; // compile thread time on the warm-up, -1 = unknown
+    float throttleDuty = 0; // Switch: the warm-up throttle (0 off), builds held back, time waited
+    uint32_t throttled = 0;
+    double throttleWaitS = 0;
 };
 
 Progress readProgress() {
@@ -98,6 +111,9 @@ Progress readProgress() {
     p.priorityTotal = s.priorityTotal;
     p.priorityDone = s.priorityDone;
     p.compileS = s.compileNs / 1e9;
+    p.throttleDuty = s.throttleDuty;
+    p.throttled = s.throttled;
+    p.throttleWaitS = s.throttleWaitNs / 1e9;
 #else
     const AuroraStats* stats = aurora_get_stats();
     const uint32_t created = stats != nullptr ? stats->createdPipelines : sCreated0;
@@ -147,16 +163,29 @@ uint32_t readPriorityRows() {
 }
 #endif
 
-// ", 37 GL programs shared" (Switch) or nothing.
-void programNote(char* out, size_t size) {
+// "; GL programs 37 linked, 4 shared; build split ..." (Switch) or nothing.
+void programNote(char* out, size_t size, const Progress& p) {
     out[0] = '\0';
 #if defined(__SWITCH__)
     uint64_t linked = 0;
     uint64_t shared = 0;
     dawn_switch_gl_program_stats(&linked, &shared);
-    snprintf(out, size, "; GL programs %llu linked, %llu shared", (unsigned long long)linked,
-             (unsigned long long)shared);
+    uint64_t gl[68] = {};
+    dawn_switch_gl_cmd_stats(gl, 68);
+    const double builds = gl[65] > 0 ? (double)gl[65] : 1.0;
+    char throttle[96] = "";
+    if (p.throttleDuty > 0) {
+        snprintf(throttle, sizeof(throttle), "; throttle duty %.2f, %u held back, %.1f s waited",
+                 p.throttleDuty, p.throttled, p.throttleWaitS);
+    }
+    // Tint (no GL context) against the GL part (compile, link; the render worker waits for it).
+    snprintf(out, size,
+             "; GL programs %llu linked, %llu shared; %llu pipeline builds: tint %.0f ms, GL context "
+             "%.0f ms each%s",
+             (unsigned long long)linked, (unsigned long long)shared, (unsigned long long)gl[65],
+             gl[66] / 1e6 / builds, gl[67] / 1e6 / builds, throttle);
 #else
+    (void)p;
     (void)size;
 #endif
 }
@@ -168,8 +197,8 @@ void logLine(const char* what, const Progress& p, unsigned int frames, uint64_t 
         snprintf(compile, sizeof(compile), ", compile %.1f s (%.0f ms each)", p.compileS,
                  p.compileS * 1000 / p.done);
     }
-    char programs[96];
-    programNote(programs, sizeof(programs));
+    char programs[256];
+    programNote(programs, sizeof(programs), p);
     writef(STDERR_FILENO, "[cos] precompile %s%u/%u pipelines, %.1f s%s%s; frame %u, scene %s\n", what,
            p.done, p.total, s, compile, programs, frames, traceSceneName(traceScene()));
 }
@@ -305,10 +334,49 @@ void precompileInit() {
 #endif
 }
 
+namespace {
+void loadingScreen();
+
+// COS_PRECOMPILE=boot on the Switch, once the game starts: the rest of the warm-up is throttled
+// (Switch patch 0009) so that the logos and menus keep their frame rate.
+void startThrottle() {
+#if defined(__SWITCH__)
+    if (!sActive || sPolicy != Policy::Boot) {
+        return;
+    }
+    float duty = 0.5f;
+    const char* env = getenv("COS_PRECOMPILE_DUTY");
+    if (env != nullptr && env[0] != '\0') {
+        duty = strtof(env, nullptr);
+    }
+    const bool on = duty > 0.0f && duty < 1.0f;
+    aurora_switch_set_warmup_throttle(on ? duty : 0.0f);
+    if (sLog) {
+        if (on) {
+            writef(STDERR_FILENO,
+                   "[cos] precompile throttle: the rest of the warm-up builds about %.0f%% of the time, "
+                   "each build after a present (COS_PRECOMPILE_DUTY=%.2f)\n",
+                   duty * 100.0, duty);
+        } else {
+            writef(STDERR_FILENO, "[cos] precompile throttle: off (COS_PRECOMPILE_DUTY=%s)\n",
+                   env != nullptr ? env : "");
+        }
+    }
+#endif
+}
+} // namespace
+
 // After precompileInit, before the game starts: with COS_PRECOMPILE=boot or full, present the
-// loading screen until its pipelines are built. Frames keep being presented (about one per
-// pipeline built on the Switch, where a build holds the GL context) and events pumped.
+// loading screen until its pipelines are built, then (boot, Switch) throttle the rest.
 void precompileLoadingScreen() {
+    loadingScreen();
+    startThrottle();
+}
+
+namespace {
+// Frames keep being presented (about one per pipeline built on the Switch, where a build holds the
+// GL context) and events pumped.
+void loadingScreen() {
     if (!sActive || !sUi || (sPolicy != Policy::Boot && sPolicy != Policy::Full)) {
         return;
     }
@@ -366,6 +434,7 @@ void precompileLoadingScreen() {
                presented, p.done, p.total);
     }
 }
+} // namespace
 
 // pc_frame_end before aurora_end_frame, every game frame: "Shaders N/M" in the bottom-right corner
 // while the warm-up runs.

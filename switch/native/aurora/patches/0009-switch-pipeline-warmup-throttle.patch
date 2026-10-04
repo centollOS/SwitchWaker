@@ -1,0 +1,197 @@
+Switch: throttle the boot pipeline warm-up behind the loading screen (aurora_switch_set_warmup_throttle)
+
+After the loading screen (the priority set) the warm-up builds the remaining ~900 known pipelines
+back to back until the first PLAY scene. Each build holds the single GL context for 0.1-0.3 s (Mesa
+20.1 compiles and links from source; nouveau has no threaded compile, so
+GL_KHR_parallel_shader_compile cannot help, and a second, shared context is unsafe on this
+nouveau), and the render worker needs that context for every frame: the logos and title ran at
+4-7 frames/s for about three minutes (hardware log gpu-default-handheld).
+
+aurora_switch_set_warmup_throttle(duty) holds back warm-up builds (those no draw is waiting for):
+after each one the compile thread stays idle for (1 - duty) / duty times its duration, then starts
+the next right after a present (or 100 ms later without one), so a build overlaps the game
+thread's next frame instead of landing in the middle of one. A pipeline a draw asks for is never
+held back (it ends the wait). aurora_switch_get_precompile reports the duty, the builds held back
+and the time waited. Off (0) unless the harness sets it.
+
+Switch only (switch/native/aurora/patches); not for upstream.
+
+diff --git a/include/aurora/switch_precompile.h b/include/aurora/switch_precompile.h
+index cb8e7bc..dfe93af 100644
+--- a/include/aurora/switch_precompile.h
++++ b/include/aurora/switch_precompile.h
+@@ -25,6 +25,11 @@ typedef struct {
+    * the boot path, logos to Outset). The warm-up queues them first. 0/0 without that table. */
+   uint32_t priorityTotal; /* of the warm-up's pipelines (total), those in the priority set */
+   uint32_t priorityDone;  /* of those, built */
++  /* The warm-up throttle (aurora_switch_set_warmup_throttle): its duty (0 off), the warm-up builds
++   * it held back and the compile thread time it spent waiting. */
++  float throttleDuty;
++  uint32_t throttled;
++  uint64_t throttleWaitNs;
+ } AuroraSwitchPrecompile;
+ 
+ void aurora_switch_get_precompile(AuroraSwitchPrecompile* out);
+@@ -34,6 +39,15 @@ void aurora_switch_get_precompile(AuroraSwitchPrecompile* out);
+  * Returns how many were dropped. */
+ uint32_t aurora_switch_stop_precompile(void);
+ 
++/* Throttles the rest of the warm-up so the frames keep coming: each pipeline build holds the GL
++ * context the render worker needs for 0.1-0.3 s, so back to back builds leave the logos and menus
++ * at 4-7 frames/s. With duty d in (0, 1), a warm-up build (one no draw is waiting for) starts only
++ * after the compile thread has stayed idle for (1 - d) / d times the previous warm-up build's
++ * duration, and then right after the next present (or 100 ms later without one), so the worker
++ * gets about 1 - d of the time. Builds a draw asks for are never held back. 0 or >= 1: off (the
++ * default; back to back as before). */
++void aurora_switch_set_warmup_throttle(float duty);
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/lib/aurora.cpp b/lib/aurora.cpp
+index 28cb220..620d29c 100644
+--- a/lib/aurora.cpp
++++ b/lib/aurora.cpp
+@@ -5,6 +5,7 @@
+ #ifdef AURORA_ENABLE_GX
+ #include "gfx/resources.hpp"
+ #include "gfx/frame.hpp"
++#include "gfx/pipeline_cache.hpp"
+ #include "gfx/recording.hpp"
+ #include "gfx/render_worker.hpp"
+ #include "gx/command_processor.hpp"
+@@ -389,6 +390,7 @@ void end_frame() noexcept {
+       }
+       if (status) {
+         gfx::after_present();
++        gfx::switch_warmup_note_present();
+       } else {
+         Log.warn("Surface present failed");
+         webgpu::release_surface();
+diff --git a/lib/gfx/pipeline_cache.cpp b/lib/gfx/pipeline_cache.cpp
+index b018da9..3aa76ec 100644
+--- a/lib/gfx/pipeline_cache.cpp
++++ b/lib/gfx/pipeline_cache.cpp
+@@ -1059,6 +1059,52 @@ static void pipeline_cache_writer() {
+   }
+ }
+ 
++// Switch: the warm-up throttle (aurora_switch_set_warmup_throttle). Duty 0 = off. Under
++// g_pipelineMutex but the present count, which the render worker bumps.
++static float g_warmupDuty = 0.f;
++static uint64_t g_warmupNextNs = 0;      // no throttled build before this
++static uint32_t g_warmupThrottled = 0;   // builds held back
++static uint64_t g_warmupThrottleWaitNs = 0;
++static std::atomic<uint64_t> g_presents{0};
++
++void switch_warmup_note_present() { g_presents.fetch_add(1, std::memory_order_relaxed); }
++
++// With the lock held and the next build a warm-up one: waits until the throttle lets it start, a
++// draw queues a pipeline, the warm-up empties or the thread ends.
++static void warmup_throttle_wait(std::unique_lock<std::mutex>& lock) {
++  const auto throttling = [] {
++    return g_warmupDuty > 0.f && g_pipelineQueue.empty() && !g_backgroundPipelineQueue.empty() &&
++           !g_pipelineThreadEnd;
++  };
++  if (!throttling()) {
++    return;
++  }
++  const uint64_t start = switch_stats::now_ns();
++  bool waited = false;
++  uint64_t presentsAtReady = 0;
++  uint64_t readyNs = 0; // when the idle time was over
++  while (throttling()) {
++    const uint64_t now = switch_stats::now_ns();
++    if (now >= g_warmupNextNs) {
++      if (readyNs == 0) {
++        readyNs = now;
++        presentsAtReady = g_presents.load(std::memory_order_relaxed);
++      }
++      // Right after a present, so the build overlaps the game thread's next frame; 100 ms without
++      // one (a loading pause) is enough waiting.
++      if (g_presents.load(std::memory_order_relaxed) != presentsAtReady || now - readyNs >= 100'000'000) {
++        break;
++      }
++    }
++    waited = true;
++    g_pipelineQueueCv.wait_for(lock, std::chrono::milliseconds(1));
++  }
++  if (waited) {
++    ++g_warmupThrottled;
++    g_warmupThrottleWaitNs += switch_stats::now_ns() - start;
++  }
++}
++
+ static void pipeline_worker() {
+ #ifdef TRACY_ENABLE
+   tracy::SetThreadName("Pipeline compilation thread");
+@@ -1067,6 +1113,7 @@ static void pipeline_worker() {
+   bool hasMore = false;
+   while (g_hasPipelineThread || g_pipelinesPerFrame < BuildPipelinesPerFrame) {
+     PendingPipeline pending;
++    bool throttledBuild = false;
+     {
+       std::unique_lock lock{g_pipelineMutex};
+       if (g_hasPipelineThread) {
+@@ -1078,9 +1125,15 @@ static void pipeline_worker() {
+       } else if (g_pipelineQueue.empty() && g_backgroundPipelineQueue.empty()) {
+         return;
+       }
++      warmup_throttle_wait(lock);
+       if (g_pipelineThreadEnd) {
+         break;
+       }
++      if (g_pipelineQueue.empty() && g_backgroundPipelineQueue.empty()) {
++        hasMore = false; // the warm-up was dropped while the throttle waited
++        continue;
++      }
++      throttledBuild = g_pipelineQueue.empty() && g_warmupDuty > 0.f;
+       auto& source = !g_pipelineQueue.empty() ? g_pipelineQueue : g_backgroundPipelineQueue;
+       pending = std::move(source.front());
+       source.pop_front();
+@@ -1088,6 +1141,13 @@ static void pipeline_worker() {
+     const uint64_t compileStart = switch_stats::now_ns();
+     auto result = pending.create();
+     const uint64_t compileNs = switch_stats::now_ns() - compileStart;
++    if (throttledBuild) {
++      std::lock_guard lock{g_pipelineMutex};
++      if (g_warmupDuty > 0.f && g_warmupDuty < 1.f) {
++        g_warmupNextNs = switch_stats::now_ns() +
++                         static_cast<uint64_t>(static_cast<double>(compileNs) * (1.0 - g_warmupDuty) / g_warmupDuty);
++      }
++    }
+     switch_stats::add_pipeline_compile(compileNs);
+     const auto pipelineCount = result.pipeline_count();
+     {
+@@ -1369,6 +1429,18 @@ void aurora_switch_get_precompile(AuroraSwitchPrecompile* out) {
+   out->stopped = g_warmupStopped;
+   out->priorityTotal = static_cast<uint32_t>(g_priorityQueued.size());
+   out->priorityDone = g_priorityDone;
++  out->throttleDuty = g_warmupDuty;
++  out->throttled = g_warmupThrottled;
++  out->throttleWaitNs = g_warmupThrottleWaitNs;
++}
++
++void aurora_switch_set_warmup_throttle(float duty) {
++  using namespace aurora::gfx;
++  {
++    std::lock_guard lock{g_pipelineMutex};
++    g_warmupDuty = duty > 0.f && duty < 1.f ? duty : 0.f;
++  }
++  g_pipelineQueueCv.notify_all();
+ }
+ 
+ uint32_t aurora_switch_stop_precompile(void) {
+diff --git a/lib/gfx/pipeline_cache.hpp b/lib/gfx/pipeline_cache.hpp
+index 0801a22..7eda56e 100644
+--- a/lib/gfx/pipeline_cache.hpp
++++ b/lib/gfx/pipeline_cache.hpp
+@@ -43,4 +43,8 @@ PipelineRef find_pipeline(const rmlui::PipelineConfig& config);
+ 
+ bool get_pipeline(PipelineRef ref, CompiledPipeline& pipeline);
+ 
++// Switch: a frame was presented (aurora.cpp, after Present); the warm-up throttle
++// (aurora_switch_set_warmup_throttle) starts its next build right after one.
++void switch_warmup_note_present();
++
+ } // namespace aurora::gfx

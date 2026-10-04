@@ -1,0 +1,213 @@
+--- a/src/dawn/native/opengl/PipelineGL.cpp
++++ b/src/dawn/native/opengl/PipelineGL.cpp
+@@ -267,16 +267,26 @@ extern "C" void dawn_switch_gl_program_stats(uint64_t* linked, uint64_t* shared)
+ }
+ #endif
+ 
++// The translation of a pipeline's stages (PipelineGL::TranslateStages).
++struct PipelineGL::TranslatedStages {
++    wgpu::ShaderStage activeStages = wgpu::ShaderStage::None;
++    std::set<CombinedSampler> combinedSamplers;
++    std::vector<TranslatedPipelineShader> translatedShaders;
++    bool needsSSBOLengthUniformBuffer = false;
++    EmulatedTextureBuiltinInfo emulatedTextureBuiltinInfo;
++    Extent3D workgroupSize = {};
++};
++
+ PipelineGL::PipelineGL() : mProgram(0) {}
+ 
+ PipelineGL::~PipelineGL() = default;
+ 
+-MaybeError PipelineGL::InitializeBase(const OpenGLFunctions& gl,
+-                                      const PipelineLayout* layout,
+-                                      const PerStage<ProgrammableStage>& stages,
+-                                      ImmediateMask& pipelineImmediateMask,
+-                                      VertexAttributeMask bgraSwizzleAttributes,
+-                                      Extent3D* workgroupSize) {
++MaybeError PipelineGL::TranslateStages(const OpenGLFunctions& gl,
++                                       const PipelineLayout* layout,
++                                       const PerStage<ProgrammableStage>& stages,
++                                       const ImmediateMask& pipelineImmediateMask,
++                                       VertexAttributeMask bgraSwizzleAttributes,
++                                       TranslatedStages* out) {
+     // Compute the set of active stages.
+     wgpu::ShaderStage activeStages = wgpu::ShaderStage::None;
+     for (SingleShaderStage stage : IterateStages(kAllStages)) {
+@@ -284,11 +294,9 @@ MaybeError PipelineGL::InitializeBase(const OpenGLFunctions& gl,
+             activeStages |= StageBit(stage);
+         }
+     }
++    out->activeStages = activeStages;
+ 
+-    // Create an OpenGL shader for each stage and gather the list of combined samplers.
+-    std::set<CombinedSampler> combinedSamplers;
+-    mNeedsSSBOLengthUniformBuffer = false;
+-    std::vector<TranslatedPipelineShader> translatedShaders;
++    // Translate each stage and gather the list of combined samplers.
+     EmulatedTextureBuiltinRegistrar emulatedTextureBuiltins(layout);
+     for (SingleShaderStage stage : IterateStages(activeStages)) {
+         ShaderModule* module = ToBackend(stages[stage].module.Get());
+@@ -301,17 +309,55 @@ MaybeError PipelineGL::InitializeBase(const OpenGLFunctions& gl,
+                                     bgraSwizzleAttributes, &stageCombinedSamplers, layout,
+                                     &emulatedTextureBuiltins, &needsSSBOLengthUniformBuffer));
+         if (stage == SingleShaderStage::Compute) {
+-            *workgroupSize = translatedShader.workgroupSize;
++            out->workgroupSize = translatedShader.workgroupSize;
+         }
+ 
+-        mNeedsSSBOLengthUniformBuffer |= needsSSBOLengthUniformBuffer;
+-        combinedSamplers.insert(stageCombinedSamplers.begin(), stageCombinedSamplers.end());
++        out->needsSSBOLengthUniformBuffer |= needsSSBOLengthUniformBuffer;
++        out->combinedSamplers.insert(stageCombinedSamplers.begin(), stageCombinedSamplers.end());
+ 
+-        translatedShaders.push_back(
++        out->translatedShaders.push_back(
+             {.stage = stage, .glsl = std::move(translatedShader.glsl)});
+     }
+ 
+-    mEmulatedTextureBuiltinInfo = emulatedTextureBuiltins.AcquireInfo();
++    out->emulatedTextureBuiltinInfo = emulatedTextureBuiltins.AcquireInfo();
++    return {};
++}
++
++#if defined(__SWITCH__)
++MaybeError PipelineGL::PretranslateStages(const OpenGLFunctions& gl,
++                                          const PipelineLayout* layout,
++                                          const PerStage<ProgrammableStage>& stages,
++                                          const ImmediateMask& pipelineImmediateMask,
++                                          VertexAttributeMask bgraSwizzleAttributes) {
++    auto translated = std::make_unique<TranslatedStages>();
++    DAWN_TRY(TranslateStages(gl, layout, stages, pipelineImmediateMask, bgraSwizzleAttributes,
++                             translated.get()));
++    mPretranslated = std::move(translated);
++    return {};
++}
++#endif
++
++MaybeError PipelineGL::InitializeBase(const OpenGLFunctions& gl,
++                                      const PipelineLayout* layout,
++                                      const PerStage<ProgrammableStage>& stages,
++                                      ImmediateMask& pipelineImmediateMask,
++                                      VertexAttributeMask bgraSwizzleAttributes,
++                                      Extent3D* workgroupSize) {
++    // The translation (Tint), done ahead by PretranslateStages or here.
++    std::unique_ptr<TranslatedStages> translated = std::move(mPretranslated);
++    if (translated == nullptr) {
++        translated = std::make_unique<TranslatedStages>();
++        DAWN_TRY(TranslateStages(gl, layout, stages, pipelineImmediateMask, bgraSwizzleAttributes,
++                                 translated.get()));
++    }
++    const wgpu::ShaderStage activeStages = translated->activeStages;
++    const std::set<CombinedSampler>& combinedSamplers = translated->combinedSamplers;
++    const std::vector<TranslatedPipelineShader>& translatedShaders = translated->translatedShaders;
++    mNeedsSSBOLengthUniformBuffer = translated->needsSSBOLengthUniformBuffer;
++    mEmulatedTextureBuiltinInfo = std::move(translated->emulatedTextureBuiltinInfo);
++    if (workgroupSize != nullptr && (activeStages & wgpu::ShaderStage::Compute)) {
++        *workgroupSize = translated->workgroupSize;
++    }
+ 
+     DeviceBase* device = layout->GetDevice();
+     CacheKey programBinaryCacheKey =
+--- a/src/dawn/native/opengl/PipelineGL.h
++++ b/src/dawn/native/opengl/PipelineGL.h
+@@ -28,6 +28,7 @@
+ #ifndef SRC_DAWN_NATIVE_OPENGL_PIPELINEGL_H_
+ #define SRC_DAWN_NATIVE_OPENGL_PIPELINEGL_H_
+ 
++#include <memory>
+ #include <utility>
+ #include <vector>
+ 
+@@ -97,6 +98,17 @@ class PipelineGL {
+                               ImmediateMask& pipelineImmediateMask,
+                               VertexAttributeMask bgraSwizzleAttributes,
+                               Extent3D* workgroupSize = nullptr);
++#if defined(__SWITCH__)
++    // Runs the WGSL -> GLSL translation (Tint, CPU only) of InitializeBase ahead of it, without
++    // the GL context: InitializeBase then only compiles and links, so the context (which the
++    // render worker needs for every frame) is held for the GL part alone. `gl` is only asked
++    // for its version. switch/dawn/patches/dawn-switch-gl-pipeline-compile.patch.
++    MaybeError PretranslateStages(const OpenGLFunctions& gl,
++                                  const PipelineLayout* layout,
++                                  const PerStage<ProgrammableStage>& stages,
++                                  const ImmediateMask& pipelineImmediateMask,
++                                  VertexAttributeMask bgraSwizzleAttributes);
++#endif
+ 
+   protected:
+     GLuint mProgram;
+@@ -107,6 +119,16 @@ class PipelineGL {
+ #endif
+ 
+   private:
++    struct TranslatedStages;
++    MaybeError TranslateStages(const OpenGLFunctions& gl,
++                               const PipelineLayout* layout,
++                               const PerStage<ProgrammableStage>& stages,
++                               const ImmediateMask& pipelineImmediateMask,
++                               VertexAttributeMask bgraSwizzleAttributes,
++                               TranslatedStages* out);
++    // Set by PretranslateStages, used up by InitializeBase.
++    std::unique_ptr<TranslatedStages> mPretranslated;
++
+     ityp::vector<FlatBindingIndex, std::vector<TextureUnit>> mUnitsForSamplers;
+     ityp::vector<FlatBindingIndex, std::vector<TextureUnit>> mUnitsForTextures;
+     std::vector<TextureUnit> mPlaceholderSamplerUnits;
+--- a/src/dawn/native/opengl/RenderPipelineGL.cpp
++++ b/src/dawn/native/opengl/RenderPipelineGL.cpp
+@@ -237,6 +237,23 @@ MaybeError RenderPipeline::InitializeImpl() {
+                                                 sizeof(ClampFragDepthArgs));
+     }
+     Device* device = ToBackend(GetDevice());
++#if defined(__SWITCH__)
++    // Tint's WGSL -> GLSL translation first, without the GL context: the render worker needs the
++    // one context for every frame, so it should only wait for Mesa's compile and link.
++    namespace ss = switch_stats;
++    const uint64_t switchTranslateStart = ss::NowNs();
++    {
++        VertexAttributeMask bgraSwizzleAttributes = {};
++        for (VertexAttributeLocation i : GetAttributeLocationsUsed()) {
++            bgraSwizzleAttributes.set(i,
++                                      GetAttribute(i).format == wgpu::VertexFormat::Unorm8x4BGRA);
++        }
++        DAWN_TRY(PretranslateStages(device->GetGL(/*makeCurrent=*/false),
++                                    ToBackend(GetLayout()), GetAllStages(), mImmediateMask,
++                                    bgraSwizzleAttributes));
++    }
++    const uint64_t switchContextStart = ss::NowNs();
++#endif
+     DAWN_TRY(device->ExecutePipelineGL(
+         [self = Ref<RenderPipeline>(this)](const OpenGLFunctions& gl) -> MaybeError {
+             VertexAttributeMask bgraSwizzleAttributes = {};
+@@ -248,6 +265,15 @@ MaybeError RenderPipeline::InitializeImpl() {
+             return self->InitializeBase(gl, ToBackend(self->GetLayout()), self->GetAllStages(),
+                                         self->mImmediateMask, bgraSwizzleAttributes);
+         }));
++#if defined(__SWITCH__)
++    // Not gLocal: this runs on Aurora's compile thread, not the GL thread.
++    const uint64_t switchEnd = ss::NowNs();
++    ss::gTotals[ss::kPipelineBuilds].fetch_add(1, std::memory_order_relaxed);
++    ss::gTotals[ss::kPipelineTranslateNs].fetch_add(switchContextStart - switchTranslateStart,
++                                                    std::memory_order_relaxed);
++    ss::gTotals[ss::kPipelineContextNs].fetch_add(switchEnd - switchContextStart,
++                                                  std::memory_order_relaxed);
++#endif
+ 
+     return device->EnqueueGL(
+         [self = Ref<RenderPipeline>(this)](const OpenGLFunctions& gl) -> MaybeError {
+--- a/src/dawn/native/opengl/SwitchStatsGL.h
++++ b/src/dawn/native/opengl/SwitchStatsGL.h
+@@ -102,6 +102,13 @@ enum Counter : int {
+     kDeferDeletesForced,
+     kDeferDeletePending,
+     kDeferDeleteState,
++    // Render pipeline builds (dawn-switch-gl-pipeline-compile.patch), from Aurora's compile
++    // thread, added straight to the totals: builds, ns in the Tint translation (without the GL
++    // context), ns holding the GL context (compile, link, uniform set-up; the render worker
++    // waits for this part).
++    kPipelineBuilds,
++    kPipelineTranslateNs,
++    kPipelineContextNs,
+     kCount
+ };
+ 

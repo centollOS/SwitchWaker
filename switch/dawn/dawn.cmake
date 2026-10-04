@@ -574,6 +574,27 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # On top of the deferred deletes: a render pipeline's Tint translation (WGSL -> GLSL) runs
+    # before Dawn takes the GL context, so the render worker, which needs the one context for
+    # every frame, only waits for Mesa's compile and link; per-build tint/context times for the
+    # "[cos] precompile" lines.
+    file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/PipelineGL.h" DAWN_OPENGL_PIPELINE_HEADER_TEXT)
+    if(NOT DAWN_OPENGL_PIPELINE_HEADER_TEXT MATCHES "PretranslateStages")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-pipeline-compile.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_PIPELINE_COMPILE_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_PIPELINE_COMPILE_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_PIPELINE_COMPILE_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_PIPELINE_COMPILE_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL pipeline compile patch:\n"
+                "${DAWN_GL_PIPELINE_COMPILE_PATCH_OUTPUT}${DAWN_GL_PIPELINE_COMPILE_PATCH_ERROR}")
+        endif()
+    endif()
+
     set(DAWN_WGPU_HELPERS_SOURCE
         "${dawn_SOURCE_DIR}/src/dawn/native/utils/WGPUHelpers.cpp")
     file(READ "${DAWN_WGPU_HELPERS_SOURCE}" DAWN_WGPU_HELPERS_TEXT)
