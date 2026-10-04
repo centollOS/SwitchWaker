@@ -512,6 +512,26 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # On top of the pass and GPU timers: COS_SWITCH_GL_FBO_CACHE=1 keeps render pass framebuffers
+    # keyed by their attachments instead of creating and deleting one per pass, and drops repeated
+    # viewport/scissor/depth-range calls in a pass (SwitchFboCacheGL.h; docs/SWITCH_PERF_STUDY.md,
+    # option c). Off by default: the pass set-up is then unchanged.
+    if(NOT EXISTS "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchFboCacheGL.h")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-fbo-cache.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_FBO_CACHE_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_FBO_CACHE_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_FBO_CACHE_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_FBO_CACHE_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL framebuffer cache patch:\n"
+                "${DAWN_GL_FBO_CACHE_PATCH_OUTPUT}${DAWN_GL_FBO_CACHE_PATCH_ERROR}")
+        endif()
+    endif()
+
     set(DAWN_WGPU_HELPERS_SOURCE
         "${dawn_SOURCE_DIR}/src/dawn/native/utils/WGPUHelpers.cpp")
     file(READ "${DAWN_WGPU_HELPERS_SOURCE}" DAWN_WGPU_HELPERS_TEXT)

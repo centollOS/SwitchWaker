@@ -345,6 +345,15 @@ not in the other: always note the mode next to a measurement.
 checks of every GL call, draw and uniform validation included; `[dawn] COS_SWITCH_GL_NO_ERROR:` in
 the log says whether Mesa accepted it. It is an A/B option for the replay times: in such a context
 a GL error has undefined results.
+`COS_SWITCH_GL_FBO_CACHE=1` in `env.txt` (off by default; `switch/dawn/patches/dawn-switch-gl-fbo-cache.patch`,
+`SwitchFboCacheGL.h`) keeps each render pass's framebuffer object, keyed by its attachments (GL
+texture name, level, layer, attachment point), instead of `glGenFramebuffers`, one
+`glFramebufferTexture2D` per attachment, `glDrawBuffers` and `glDeleteFramebuffers` per pass; skips
+the pass's `glBindFramebuffer(GL_READ_FRAMEBUFFER, 0)`; and leaves out `glViewport`, `glScissor` and
+`glDepthRangef` calls that repeat what the pass already set. A texture drops its cached framebuffers
+before `glDeleteTextures` (GL names are reused). `[dawn] COS_SWITCH_GL_FBO_CACHE:` in the log
+confirms it; the "fbo" share of the `execute split` line is what it saves. The game-side GPU options
+`COS_SHADOW_OFFSCREEN` and `COS_DOF` are in `native/README.md` (`native/include/pc/pc_gpu_opts.h`).
 
 "begin" of the perf line is `events` (Aurora's event pump) plus `aurora_begin_frame`, which mostly
 waits for a free frame slot (the render worker still has two frames in flight: GPU-bound or

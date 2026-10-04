@@ -1,0 +1,382 @@
+--- a/src/dawn/native/opengl/CommandBufferGL.cpp
++++ b/src/dawn/native/opengl/CommandBufferGL.cpp
+@@ -28,6 +28,7 @@
+ #include "src/dawn/native/opengl/CommandBufferGL.h"
+ 
+ #include <algorithm>
++#include <array>
+ #include <cstring>
+ #include <optional>
+ #include <utility>
+@@ -54,6 +55,7 @@
+ #include "src/dawn/native/opengl/QuerySetGL.h"
+ #include "src/dawn/native/opengl/RenderPipelineGL.h"
+ #include "src/dawn/native/opengl/SamplerGL.h"
++#include "src/dawn/native/opengl/SwitchFboCacheGL.h"
+ #include "src/dawn/native/opengl/SwitchGpuTimerGL.h"
+ #include "src/dawn/native/opengl/SwitchStatsGL.h"
+ #include "src/dawn/native/opengl/TextureGL.h"
+@@ -1395,6 +1397,13 @@
+                                             PassIndex renderPassIndex) {
+     GLuint fbo = 0;
+     DAWN_SWITCH_STAT(kRenderPasses, 1);
++#if defined(__SWITCH__)
++    // COS_SWITCH_GL_FBO_CACHE=1 (SwitchFboCacheGL.h): reuse the framebuffer of an earlier pass with
++    // the same attachments; it is not deleted at the end of the pass. Viewport, scissor and depth
++    // range calls that repeat what the pass already set are left out.
++    const bool fboCache = switch_fbo_cache::Enabled();
++    bool fboCached = false;
++#endif
+ 
+     const IndirectDrawMetadata& metadata = GetIndirectDrawMetadata()[renderPassIndex];
+     IndirectDrawIndex indirectDrawIndex{0u};
+@@ -1406,7 +1415,41 @@
+         // Windows/Intel. It should break any feedback loop before the clears, even if there
+         // shouldn't be any negative effects from this. Investigate whether it's actually
+         // needed.
++#if defined(__SWITCH__)
++        switch_fbo_cache::Key fboKey;
++        if (fboCache) {
++            for (auto i : renderPass->attachmentState->GetColorAttachmentsMask()) {
++                TextureView* view = ToBackend(renderPass->colorAttachments[i].view.Get());
++                switch_fbo_cache::Attachment a;
++                a.point = GL_COLOR_ATTACHMENT0 + static_cast<uint8_t>(i);
++                view->GetFramebufferAttachment(renderPass->colorAttachments[i].depthSlice,
++                                               &a.texture, &a.target, &a.level, &a.layer);
++                fboKey.Add(a);
++            }
++            if (renderPass->attachmentState->HasDepthStencilAttachment()) {
++                TextureView* view = ToBackend(renderPass->depthStencilAttachment.view.Get());
++                const Format& format = view->GetTexture()->GetFormat();
++                switch_fbo_cache::Attachment a;
++                a.point = format.aspects == (Aspect::Depth | Aspect::Stencil) ? GL_DEPTH_STENCIL_ATTACHMENT
++                          : format.aspects == Aspect::Depth                   ? GL_DEPTH_ATTACHMENT
++                                                                               : GL_STENCIL_ATTACHMENT;
++                view->GetFramebufferAttachment(0, &a.texture, &a.target, &a.level, &a.layer);
++                fboKey.Add(a);
++            }
++            fbo = switch_fbo_cache::Find(fboKey);
++            fboCached = true;
++        }
++        if (fbo != 0) {
++            DAWN_GL_TRY(gl, BindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo));
++        } else
++#endif
++        {
++#if defined(__SWITCH__)
++        if (!fboCache)
++#endif
++        {
+         DAWN_GL_TRY(gl, BindFramebuffer(GL_READ_FRAMEBUFFER, 0));
++        }
+         // TODO(kainino@chromium.org): possible future optimization: create these framebuffers
+         // at Framebuffer build time (or maybe CommandBuffer build time) so they don't have to
+         // be created and destroyed at draw time.
+@@ -1449,7 +1492,13 @@
+             }
+ 
+             DAWN_TRY(textureView->BindToFramebuffer(gl, GL_DRAW_FRAMEBUFFER, glAttachment));
++        }
++#if defined(__SWITCH__)
++        if (fboCached) {
++            switch_fbo_cache::Insert(gl, fboKey, fbo);
+         }
++#endif
++        }
+     }
+ 
+     DAWN_ASSERT(gl.CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+@@ -1466,6 +1515,14 @@
+     DAWN_GL_TRY(gl, DepthRangef(minDepth, maxDepth));
+ 
+     DAWN_GL_TRY(gl, Scissor(0, 0, renderPass->width, renderPass->height));
++#if defined(__SWITCH__)
++    // What this pass last set (the defaults above), for COS_SWITCH_GL_FBO_CACHE=1's dedupe.
++    std::array<int, 4> passViewport = {0, 0, static_cast<int>(renderPass->width),
++                                       static_cast<int>(renderPass->height)};
++    std::array<float, 2> passDepthRange = {minDepth, maxDepth};
++    std::array<int, 4> passScissor = {0, 0, static_cast<int>(renderPass->width),
++                                      static_cast<int>(renderPass->height)};
++#endif
+     DAWN_SWITCH_TICKS_ADD(kPassDefaultStateTicks, switchDefaultStateStart);
+ 
+     // Clear framebuffer attachments as needed
+@@ -1750,7 +1807,12 @@
+ 
+                 if (renderPass->attachmentState->GetSampleCount() > 1) {
+                     DAWN_TRY(ResolveMultisampledRenderTargets(gl, renderPass));
++                }
++#if defined(__SWITCH__)
++                if (fboCached) {
++                    return {};
+                 }
++#endif
+                 DAWN_GL_TRY(gl, DeleteFramebuffers(1, &fbo));
+                 return {};
+             }
+@@ -1765,6 +1827,25 @@
+             case Command::SetViewport: {
+                 SetViewportCmd* cmd = mCommands.NextCommand<SetViewportCmd>();
+                 DAWN_SWITCH_TIME(kPassDynamicStateTicks);
++#if defined(__SWITCH__)
++                if (fboCache && !gl.IsAtLeastGL(4, 1)) {
++                    const std::array<int, 4> vp = {
++                        static_cast<int>(cmd->x), static_cast<int>(cmd->y),
++                        static_cast<int>(cmd->width), static_cast<int>(cmd->height)};
++                    if (vp != passViewport) {
++                        DAWN_GL_TRY(gl, Viewport(vp[0], vp[1], vp[2], vp[3]));
++                        passViewport = vp;
++                    }
++                    minDepth = cmd->minDepth;
++                    maxDepth = cmd->maxDepth;
++                    if (passDepthRange[0] != minDepth || passDepthRange[1] != maxDepth) {
++                        DAWN_GL_TRY(gl, DepthRangef(minDepth, maxDepth));
++                        passDepthRange = {minDepth, maxDepth};
++                    }
++                    immediates.SetClampFragDepth(minDepth, maxDepth);
++                    break;
++                }
++#endif
+                 if (gl.IsAtLeastGL(4, 1)) {
+                     DAWN_GL_TRY(gl, ViewportIndexedf(0, cmd->x, cmd->y, cmd->width, cmd->height));
+                 } else {
+@@ -1785,6 +1866,17 @@
+             case Command::SetScissorRect: {
+                 SetScissorRectCmd* cmd = mCommands.NextCommand<SetScissorRectCmd>();
+                 DAWN_SWITCH_TIME(kPassDynamicStateTicks);
++#if defined(__SWITCH__)
++                if (fboCache) {
++                    const std::array<int, 4> sc = {
++                        static_cast<int>(cmd->x), static_cast<int>(cmd->y),
++                        static_cast<int>(cmd->width), static_cast<int>(cmd->height)};
++                    if (sc == passScissor) {
++                        break;
++                    }
++                    passScissor = sc;
++                }
++#endif
+                 DAWN_GL_TRY(gl, Scissor(cmd->x, cmd->y, cmd->width, cmd->height));
+                 break;
+             }
+--- a/src/dawn/native/opengl/TextureGL.cpp
++++ b/src/dawn/native/opengl/TextureGL.cpp
+@@ -42,6 +42,7 @@
+ #include "src/dawn/native/opengl/DeviceGL.h"
+ #include "src/dawn/native/opengl/SharedFenceGL.h"
+ #include "src/dawn/native/opengl/SharedTextureMemoryGL.h"
++#include "src/dawn/native/opengl/SwitchFboCacheGL.h"
+ #include "src/dawn/native/opengl/UtilsGL.h"
+ #include "src/utils/assert.h"
+ #include "src/utils/compiler.h"
+@@ -322,6 +323,9 @@
+             ToBackend(GetDevice())
+                 ->EnqueueDestroyGL(this, &Texture::GetHandle, reason,
+                                    [](const OpenGLFunctions& gl, GLuint handle) -> MaybeError {
++#if defined(__SWITCH__)
++                                       switch_fbo_cache::Forget(gl, handle);
++#endif
+                                        DAWN_GL_TRY_IGNORE_ERRORS(gl, DeleteTextures(1, &handle));
+                                        return {};
+                                    }));
+@@ -679,6 +683,9 @@
+             ToBackend(GetDevice())
+                 ->EnqueueDestroyGL(this, &TextureView::GetHandle, reason,
+                                    [](const OpenGLFunctions& gl, GLuint handle) -> MaybeError {
++#if defined(__SWITCH__)
++                                       switch_fbo_cache::Forget(gl, handle);
++#endif
+                                        DAWN_GL_TRY_IGNORE_ERRORS(gl, DeleteTextures(1, &handle));
+                                        return {};
+                                    }));
+@@ -731,7 +738,30 @@
+ 
+     return FramebufferTextureHelper(gl, textarget, target, attachment, textureHandle, mipLevel,
+                                     arrayLayer);
++}
++
++#if defined(__SWITCH__)
++void TextureView::GetFramebufferAttachment(GLuint depthSlice,
++                                           GLuint* texture,
++                                           GLenum* target,
++                                           GLuint* level,
++                                           GLuint* layer) const {
++    // As BindToFramebuffer.
++    bool useOwnView = GetFormat().format != GetTexture()->GetFormat().format &&
++                      !GetTexture()->GetFormat().HasDepthOrStencil();
++    if (useOwnView) {
++        *texture = GetHandle();
++        *target = GetGLTarget();
++        *level = 0;
++        *layer = 0;
++    } else {
++        *texture = ToBackend(GetTexture())->GetHandle();
++        *target = ToBackend(GetTexture())->GetGLTarget();
++        *level = GetBaseMipLevel();
++        *layer = GetBaseArrayLayer() + depthSlice;
++    }
+ }
++#endif
+ 
+ GLenum TextureView::GetInternalFormat() const {
+     // Depth/stencil don't support reinterpretation, and the aspect is specified at
+--- a/src/dawn/native/opengl/TextureGL.h
++++ b/src/dawn/native/opengl/TextureGL.h
+@@ -101,6 +101,15 @@
+                                  GLenum target,
+                                  GLenum attachment,
+                                  GLuint depthLayer = 0);
++#if defined(__SWITCH__)
++    // What BindToFramebuffer attaches (texture name, target, level, layer), for the Switch's
++    // framebuffer cache (SwitchFboCacheGL.h).
++    void GetFramebufferAttachment(GLuint depthSlice,
++                                  GLuint* texture,
++                                  GLenum* target,
++                                  GLuint* level,
++                                  GLuint* layer) const;
++#endif
+ 
+   private:
+     TextureView(TextureBase* texture, const UnpackedPtr<TextureViewDescriptor>& descriptor);
+--- /dev/null
++++ b/src/dawn/native/opengl/SwitchFboCacheGL.h
+@@ -0,0 +1,140 @@
++// Switch only (switch/dawn/patches/dawn-switch-gl-fbo-cache.patch), opt-in with
++// COS_SWITCH_GL_FBO_CACHE=1 (an A/B option of the native port; docs/SWITCH_PERF_STUDY.md, option c):
++// ExecuteRenderPass keeps its framebuffer objects, keyed by their attachments (GL texture name,
++// mip level, layer and attachment point), instead of glGenFramebuffers + glFramebufferTexture2D
++// per attachment + glDrawBuffers + glDeleteFramebuffers for every render pass, and skips the
++// glBindFramebuffer(GL_READ_FRAMEBUFFER, 0) before it (every other GL path binds its own read
++// framebuffer). A texture's GL name can be reused once deleted, so Texture and TextureView drop
++// every cached framebuffer that holds their name right before glDeleteTextures. Everything runs on
++// the GL thread (Queue::Submit and the deferred destroys, under the device lock); one device and
++// one context, as on the Switch.
++
++#ifndef SRC_DAWN_NATIVE_OPENGL_SWITCHFBOCACHEGL_H_
++#define SRC_DAWN_NATIVE_OPENGL_SWITCHFBOCACHEGL_H_
++
++#if defined(__SWITCH__)
++
++#include <array>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <vector>
++
++#include "src/dawn/common/Constants.h"
++#include "src/dawn/native/opengl/OpenGLFunctions.h"
++
++namespace dawn::native::opengl::switch_fbo_cache {
++
++struct Attachment {
++    GLenum point;    // GL_COLOR_ATTACHMENTi, GL_DEPTH_ATTACHMENT, ...
++    GLuint texture;  // GL texture name
++    GLenum target;   // texture target (FramebufferTextureHelper's textarget)
++    GLuint level;
++    GLuint layer;
++
++    bool operator==(const Attachment& o) const {
++        return point == o.point && texture == o.texture && target == o.target &&
++               level == o.level && layer == o.layer;
++    }
++};
++
++struct Key {
++    std::array<Attachment, kMaxColorAttachments + 1> attachments{};
++    uint32_t count = 0;
++
++    void Add(const Attachment& a) { attachments[count++] = a; }
++    bool operator==(const Key& o) const {
++        if (count != o.count) {
++            return false;
++        }
++        for (uint32_t i = 0; i < count; ++i) {
++            if (!(attachments[i] == o.attachments[i])) {
++                return false;
++            }
++        }
++        return true;
++    }
++    bool Holds(GLuint texture) const {
++        for (uint32_t i = 0; i < count; ++i) {
++            if (attachments[i].texture == texture) {
++                return true;
++            }
++        }
++        return false;
++    }
++};
++
++struct Entry {
++    Key key;
++    GLuint fbo;
++};
++
++// Aurora's frame uses a dozen distinct attachment sets (EFB, copy-conversion targets, offscreen
++// and snapshot pools, present, ImGui); past this many the cache is emptied and refilled.
++inline constexpr size_t kMaxEntries = 64;
++
++inline int gEnabled = -1;
++inline std::vector<Entry> gEntries;
++inline uint64_t gHits = 0;
++inline uint64_t gMisses = 0;
++
++inline bool Enabled() {
++    if (gEnabled < 0) {
++        const char* v = std::getenv("COS_SWITCH_GL_FBO_CACHE");
++        gEnabled = v != nullptr && std::strcmp(v, "1") == 0 ? 1 : 0;
++        if (gEnabled) {
++            std::fprintf(stderr,
++                         "[dawn] COS_SWITCH_GL_FBO_CACHE: render pass framebuffers cached by "
++                         "attachments\n");
++        }
++    }
++    return gEnabled == 1;
++}
++
++inline GLuint Find(const Key& key) {
++    for (const Entry& e : gEntries) {
++        if (e.key == key) {
++            ++gHits;
++            return e.fbo;
++        }
++    }
++    ++gMisses;
++    return 0;
++}
++
++inline void Insert(const OpenGLFunctions& gl, const Key& key, GLuint fbo) {
++    if (gEntries.size() >= kMaxEntries) {
++        for (const Entry& e : gEntries) {
++            gl.DeleteFramebuffers(1, &e.fbo);
++        }
++        gEntries.clear();
++        std::fprintf(stderr, "[dawn] COS_SWITCH_GL_FBO_CACHE: %zu framebuffers, emptied (%llu hits, "
++                             "%llu misses)\n",
++                     kMaxEntries, static_cast<unsigned long long>(gHits),
++                     static_cast<unsigned long long>(gMisses));
++    }
++    gEntries.push_back({key, fbo});
++}
++
++// Before glDeleteTextures(texture): drop the framebuffers that hold it.
++inline void Forget(const OpenGLFunctions& gl, GLuint texture) {
++    if (gEntries.empty()) {
++        return;
++    }
++    for (size_t i = 0; i < gEntries.size();) {
++        if (gEntries[i].key.Holds(texture)) {
++            gl.DeleteFramebuffers(1, &gEntries[i].fbo);
++            gEntries[i] = gEntries.back();
++            gEntries.pop_back();
++        } else {
++            ++i;
++        }
++    }
++}
++
++}  // namespace dawn::native::opengl::switch_fbo_cache
++
++#endif  // defined(__SWITCH__)
++
++#endif  // SRC_DAWN_NATIVE_OPENGL_SWITCHFBOCACHEGL_H_
