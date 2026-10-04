@@ -90,6 +90,9 @@ telescope-demo 0 --stage sea:44:206 --input native/check/input/telescope-demo.tx
 # above the island's water) with a fixed camera moving over the cliffs under the rope bridge: no
 # frame may lose the foam against its neighbours (the Switch's GL depth precision flicker)
 shore-foam 0 --stage sea:44:8 --aspect 16:9
+# bug B9 (lane hd-glitch): NPCs sharing one model with different material tables (Windfall's
+# people: Ub women, an Sa man) must show their own clothes, the same after a trip into a house
+npc-variants 0 --stage sea:11:0
 
 # options menu (lane options-menu): L+R+Z opens it in Outset, the internal resolution (handheld),
 # depth of field and FPS overlay change live and are saved to the run's settings.ini, the game stays

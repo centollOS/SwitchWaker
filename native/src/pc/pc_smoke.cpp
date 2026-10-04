@@ -327,6 +327,7 @@ const Smoke kSmokes[] = {
     {"bgm-hop", kInGame},
     {"telescope-demo", kInGame},
     {"shore-foam", kInGame},
+    {"npc-variants", kInGame},
     {"options-menu", kInGame},
 };
 

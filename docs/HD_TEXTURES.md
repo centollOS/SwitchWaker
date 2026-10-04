@@ -163,6 +163,21 @@ cached texture whose size differs; the current texture stays until its replaceme
 frames for 8 s. Outset docked, 1024 -> 256 -> 1024: cache 51.8 -> 6.6 -> 51.8 MiB, 64 and 74
 textures reloaded.
 
+## NPC clothes glitch (lane hd-glitch): not the HD path
+
+First hardware report with HD on: Outset's Joel (the kid with the stick) and Windfall people's
+clothes glitched, fine with HD off. Further runs showed the same with HD never turned on, and that
+which NPC is wrong changes after a scene reload: bug B9 (docs/NATIVE_PORT_PLAN.md, "Known bugs").
+NPCs sharing one model with different material tables were drawn with the base model's texture
+objects, and Aurora's object cache reused the first decode of a texture object whatever size and
+format the display list gave it. Fixed in J3D and Aurora patch 0012. The replacement key is
+computed from the texture object being drawn, so with the fix each variant looks up its own image
+(checked: `npc-variants` passes with the pack at 512 and uncapped, and after six toggles and three
+cap changes ending with HD off the four regions read the same means as a run that never turned
+it on).
+With the pack, the four regions are 9-21 (of 441) from the HD-off references: same clothes, HD
+shading. No pack entry had to be excluded.
+
 ## Coverage (census)
 
 `native/tools/hd_census.py CENSUS.txt --pack PACK` matches a census against a pack. Title, Outset

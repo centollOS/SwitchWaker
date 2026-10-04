@@ -204,6 +204,11 @@ void J3DMaterial::makeDisplayList() {
     if (!j3dSys.getMatPacket()->isLocked()) {
         j3dSys.getMatPacket()->mDiffFlag = mDiffFlag;
         makeDisplayList_private(j3dSys.getMatPacket()->getDisplayListObj());
+#if TARGET_PC
+        // Bug B9: the display list now holds the images of j3dSys's texture table (loadTexNo);
+        // the packet binds the same table when it is drawn (J3DMatPacket::draw, loadTexture).
+        j3dSys.getMatPacket()->setTexture(j3dSys.getTexture());
+#endif
     }
 }
 
@@ -260,6 +265,13 @@ void J3DMaterial::diff(u32 param_0) {
         mTexGenBlock->diff(param_0);
         mColorBlock->diff(param_0);
         j3dSys.getMatPacket()->endDiff();
+#if TARGET_PC
+        // Bug B9: diffTexNo wrote the images of j3dSys's texture table into the packet's list
+        // (see makeDisplayList).
+        if ((param_0 >> 16) & 0x0f) {
+            j3dSys.getMatPacket()->setTexture(j3dSys.getTexture());
+        }
+#endif
     }
 }
 

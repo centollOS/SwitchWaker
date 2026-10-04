@@ -1066,6 +1066,7 @@ void pc_frame_end(void) {
     bgmHopFrame(frames);
     telescopeDemoFrame(frames);
     shoreFoamFrame(frames);
+    npcVariantsFrame(frames);
     fileSelectFrame(frames);
     newGameFrame(frames);
     precompileFrame(frames);

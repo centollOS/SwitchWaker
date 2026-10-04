@@ -223,6 +223,9 @@ void setFixedCamera(const float eye[3], const float center[3]);
 // frame and, once the player is in Outset, moves a fixed camera along the cliffs under the rope bridge
 // and measures how much of the shore foam changes from frame to frame.
 void shoreFoamFrame(unsigned int frames);
+// pc_npc_variants.cpp (bug B9): COS_SMOKE=npc-variants; runs from pc_frame_end every game frame
+// and checks that two Windfall women sharing one model keep their own clothes across a reload.
+void npcVariantsFrame(unsigned int frames);
 
 // pc_title.cpp: milestone M9 title (see pc_title_drawn); titleFrame runs from pc_frame_end every
 // game frame. titleReached: the milestone was logged.

@@ -37,7 +37,9 @@ private:
     // Aurora binds a texture only through GXLoadTexObj/GXLoadTlut: it does not resolve the image
     // and TLUT addresses that the material display lists write to the BP registers (loadTexNo).
     // Each entry therefore keeps a texture object (and TLUT object), built from its ResTIMG, which
-    // J3DTevBlock::loadTexture loads when the material is drawn. Pattern of Dusklight
+    // J3DTevBlock::loadTexture loads when the material is drawn: those of the table the packet's
+    // display list was built with (J3DMaterial::makeDisplayList/diff record it, bug B9: a model
+    // drawn with another material table's textures, mDoExt_McaMorf::updateDL). Pattern of Dusklight
     // (ref/dusklight/libs/JSystem/include/JSystem/J3DGraphBase/J3DTexture.h, CC0).
     GXTexObj* mpTexObj;
     GXTlutObj* mpTlutObj;

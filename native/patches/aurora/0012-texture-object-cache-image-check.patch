@@ -1,0 +1,84 @@
+diff --git a/lib/gx/texture.cpp b/lib/gx/texture.cpp
+--- a/lib/gx/texture.cpp
++++ b/lib/gx/texture.cpp
+@@ -48,6 +48,13 @@
+ struct CachedTextureEntry {
+   gfx::TextureHandle handle;
+   u32 texDataVersion = 0;
++  // What the texture object described when it was resolved (patch 0012): a display list can
++  // rewrite a loaded texture's size and format registers after GXLoadTexObj, so one texObjId
++  // may be drawn as different images.
++  u32 width = 0;
++  u32 height = 0;
++  u32 format = 0;
++  u32 mipCount = 0;
+   u32 tlutObjId = 0;
+   u32 tlutDataVersion = 0;
+   uint64_t replacementId = 0;
+@@ -155,6 +162,25 @@
+ std::atomic<uint64_t> s_rescanFrames = 0;
+ std::atomic<bool> s_rescanActivePublic = false;
+ 
++// Patch 0012: a cached entry only stands for the object if it was resolved with the same size,
++// format and mip count. Before, the first interpretation of a texObjId was returned for every
++// later one (bug B9: J3D material display lists with another model's image registers), so what
++// an NPC showed depended on which variant was drawn first.
++uint32_t s_imageMismatchLogs = 0;
++bool same_image(const CachedTextureEntry& entry, const GXTexObj_& obj) noexcept {
++  if (entry.width == obj.width() && entry.height == obj.height() && entry.format == obj.format() &&
++      entry.mipCount == obj.mip_count()) {
++    return true;
++  }
++  if (s_imageMismatchLogs < 16) {
++    ++s_imageMismatchLogs;
++    Log.warn("texture object {} resolved again as {}x{} format {} mips {} (cached {}x{} format {} mips {})",
++             obj.texObjId, obj.width(), obj.height(), obj.format(), obj.mip_count(), entry.width, entry.height,
++             entry.format, entry.mipCount);
++  }
++  return false;
++}
++
+ bool entry_stale(const CachedTextureEntry& entry) noexcept {
+   return entry.scanGeneration < s_rescanAllBefore ||
+          (entry.replacementId != 0 && entry.scanGeneration < s_rescanReplacementsBefore);
+@@ -254,6 +280,10 @@
+ 
+   entry.handle = std::move(handle);
+   entry.texDataVersion = obj.texDataVersion;
++  entry.width = obj.width();
++  entry.height = obj.height();
++  entry.format = obj.format();
++  entry.mipCount = obj.mip_count();
+   entry.tlutObjId = tlutObjId;
+   entry.tlutDataVersion = tlutDataVersion;
+   entry.replacementId = replacementId;
+@@ -688,7 +718,7 @@
+     if (const auto it = s_textureObjectCaches.find(obj.texObjId); it != s_textureObjectCaches.end()) {
+       auto& entry = it->second;
+       if (entry.handle && entry.texDataVersion == obj.texDataVersion && entry.tlutObjId == 0 &&
+-          (!entry_stale(entry) || !take_rescan(obj))) {
++          same_image(entry, obj) && (!entry_stale(entry) || !take_rescan(obj))) {
+         entry.lastUsedFrame = s_frameCount;
+         ++s_stats.objectHits;
+         return entry.handle;
+@@ -739,7 +769,7 @@
+     if (const auto it = s_textureObjectCaches.find(obj.texObjId); it != s_textureObjectCaches.end()) {
+       auto& entry = it->second;
+       if (entry.handle && entry.texDataVersion == obj.texDataVersion && entry.tlutObjId == tlut.tlutObjId &&
+-          entry.tlutDataVersion == tlut.tlutDataVersion && (!entry_stale(entry) || !take_rescan(obj))) {
++          entry.tlutDataVersion == tlut.tlutDataVersion && same_image(entry, obj) && (!entry_stale(entry) || !take_rescan(obj))) {
+         entry.lastUsedFrame = s_frameCount;
+         if (auto tlutIt = s_tlutObjectCaches.find(tlut.tlutObjId); tlutIt != s_tlutObjectCaches.end()) {
+           tlutIt->second.lastUsedFrame = s_frameCount;
+@@ -970,7 +1000,10 @@
+     GXTexObj_ obj = g_gxState.loadedTextures[i];
+     auto& textureBind = g_gxState.textures[i];
+     if (textureBind.generation == s_bindGeneration && obj.texObjId != 0 &&
+-        obj.texObjId == textureBind.texObj.texObjId && obj.texDataVersion == textureBind.texObj.texDataVersion) {
++        obj.texObjId == textureBind.texObj.texObjId && obj.texDataVersion == textureBind.texObj.texDataVersion &&
++        obj.image0 == textureBind.texObj.image0 && obj.mWidth == textureBind.texObj.mWidth &&
++        obj.mHeight == textureBind.texObj.mHeight && obj.mode0 == textureBind.texObj.mode0 &&
++        obj.mode1 == textureBind.texObj.mode1) {
+       touch_bound_texture(obj);
+       continue;
+     }
