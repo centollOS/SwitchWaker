@@ -756,9 +756,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
 
     # A window surface on libnx's NWindow, through the Android native window
     # source and an EGL window surface.
-    set(DAWN_SWAPCHAIN_EGL_SOURCE "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwapChainEGL.cpp")
-    file(READ "${DAWN_SWAPCHAIN_EGL_SOURCE}" DAWN_SWAPCHAIN_EGL_TEXT)
-    if(NOT DAWN_SWAPCHAIN_EGL_TEXT MATCHES "DAWN_PLATFORM_IS\\(SWITCH\\)")
+    # Detected by Surface.cpp's Switch case: later patches (present split, compressed upload) also
+    # put DAWN_PLATFORM_IS(SWITCH) blocks in SwapChainEGL.cpp, so a tree patched in another order
+    # looked done here and built a Dawn whose surface had no NWindow ("[Surface] is invalid").
+    file(READ "${dawn_SOURCE_DIR}/src/dawn/native/Surface.cpp" DAWN_SURFACE_TEXT)
+    if(NOT DAWN_SURFACE_TEXT MATCHES "DAWN_PLATFORM_IS\\(SWITCH\\)")
         execute_process(
             COMMAND "${PATCH_EXECUTABLE}" -p1 -i
                     "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-nwindow-surface.patch"
