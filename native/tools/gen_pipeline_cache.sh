@@ -5,7 +5,8 @@
 #
 #   native/tools/gen_pipeline_cache.sh [--out DIR] [--no-build] [--no-sweep] [--no-prologue]
 #                                      [--sweep-jobs N] [--sweep-frames N] [--sweep-only LIST]
-#                                      [--disc PATH]
+#                                      [--disc PATH] [--merge-from DB [--tier N]]...
+#   native/tools/gen_pipeline_cache.sh --merge-only --merge-from DB [--tier N] [--merge-from ...]
 #   native/tools/gen_pipeline_cache.sh --mark-priority DB
 #
 # Aurora's pipeline cache keeps pipeline *configurations* (GX TEV/blend/vertex-format state, clear
@@ -28,6 +29,23 @@
 # build's Aurora (switch/native/aurora/patches/0008) warms the priority-0 pipelines up first and the
 # loading screen at boot waits for them (COS_PRECOMPILE=boot); unpatched Aurora ignores the table.
 # --mark-priority DB only (re)writes that table in an existing file.
+#
+# --merge-from DB (repeatable) adds the rows of another Aurora pipeline cache, e.g. the console's
+# own user/cache/pipeline_cache.db (scripts/switch/pull_pipeline_cache.sh fetches it) or the cache of
+# any Mac run, as one more tier each: by default the tiers after the Mac runs' (one per file, in
+# order), so they are priority 1 and the Switch builds them after the boot path and the stage sweep;
+# --tier N right after a --merge-from picks its tier (below 4 makes its new rows priority 0). The
+# file is read from a temporary copy (with its -journal, -wal and -shm files: sqlite rolls a hot
+# journal back or replays a WAL on the copy, the original is never written). A row whose key, (type,
+# hash), is already there keeps its earlier tier; only rows with the config version this build's
+# Aurora writes for their type are taken (ClearPipelineConfigVersion, GXPipelineConfigVersion,
+# RmlPipelineConfigVersion in build/native-mac/_deps/aurora-src; without that tree, the versions
+# the bundled file already holds), and only rows whose config blob has its recorded size. The report
+# counts, per file, the rows read, those of another config version or damaged (skipped), those
+# already present and the new ones. Frames past 9,999,999 (a cache recorded over many sessions) are
+# clamped so a row stays in its tier.
+# --merge-only skips the Mac runs and merges the --merge-from files into the existing bundled file
+# (<out>/initial_pipeline_cache.db; its tiers and rows are kept), default tiers after its highest.
 #
 # Output (default build/pipeline-cache/, gitignored): initial_pipeline_cache.db, report.txt and the
 # runs. The file is derived from running the game with the player's own disc, so it is never
@@ -53,6 +71,9 @@ sweep_frames=600
 sweep_only=""
 disc_args=()
 mark_only=""
+merge_only=0
+merge_files=()  # --merge-from files, in order
+merge_tiers=()  # their --tier ("" = the next free tier)
 # Tiers below this are the boot path: priority 0 in pipeline_priority (see above).
 priority_tiers=4
 while [ $# -gt 0 ]; do
@@ -66,6 +87,12 @@ while [ $# -gt 0 ]; do
         --sweep-only) sweep_only="$2"; shift 2 ;;
         --disc) disc_args=(--disc "$2"); shift 2 ;;
         --mark-priority) mark_only="$2"; shift 2 ;;
+        --merge-from) merge_files+=("$2"); merge_tiers+=(""); shift 2 ;;
+        --tier)
+            [ ${#merge_files[@]} -gt 0 ] || { echo "gen_pipeline_cache: --tier must follow a --merge-from" >&2; exit 2; }
+            case "$2" in ''|*[!0-9]*) echo "gen_pipeline_cache: --tier needs a number" >&2; exit 2 ;; esac
+            merge_tiers[${#merge_tiers[@]}-1]="$2"; shift 2 ;;
+        --merge-only) merge_only=1; shift ;;
         -h|--help) sed -n '2,/^set -u/p' "${BASH_SOURCE[0]}" | sed '$d' | sed 's/^# \{0,1\}//'; exit 2 ;;
         *) echo "gen_pipeline_cache: unknown option $1" >&2; exit 2 ;;
     esac
@@ -93,13 +120,63 @@ if [ -n "$mark_only" ]; then
     exit 0
 fi
 
-if [ "$do_build" = 1 ]; then
-    ninja -C "$build" centollos > /dev/null || { echo "gen_pipeline_cache: build failed" >&2; exit 2; }
+if [ "$merge_only" = 1 ] && [ ${#merge_files[@]} -eq 0 ]; then
+    echo "gen_pipeline_cache: --merge-only needs at least one --merge-from DB" >&2; exit 2
 fi
+for f in ${merge_files[@]+"${merge_files[@]}"}; do
+    [ -s "$f" ] || { echo "gen_pipeline_cache: no file $f (--merge-from)" >&2; exit 2; }
+done
 
 mkdir -p "$out"
 out="$(cd "$out" && pwd)"
 stamp="$(date +%Y%m%d-%H%M%S)"
+db="$out/initial_pipeline_cache.db"
+tmp="$out/.initial_pipeline_cache.db.tmp"
+scratch="$(mktemp -d)"
+trap 'rm -rf "$scratch"' EXIT
+
+# The config version this build's Aurora writes for each type (0 clear, 1 GX, 2 RmlUi), as
+# "(type, version), ..." for SQL; empty if the Aurora tree is not there.
+aurora_versions() { # aurora source dir
+    local dir="$1" t v name file list=""
+    for t in "0 ClearPipelineConfigVersion lib/gfx/clear.hpp" "1 GXPipelineConfigVersion lib/gx/pipeline.hpp" \
+             "2 RmlPipelineConfigVersion lib/rmlui/pipeline.hpp"; do
+        read -r v name file <<< "$t"
+        [ -f "$dir/$file" ] || continue
+        local n
+        n=$(sed -n "s/.*constexpr uint32_t $name = \([0-9][0-9]*\);.*/\1/p" "$dir/$file" | head -1)
+        [ -n "$n" ] && list="${list:+$list, }($v, $n)"
+    done
+    echo "$list"
+}
+versions="$(aurora_versions "$build/_deps/aurora-src")"
+versions_from="$build/_deps/aurora-src"
+switch_versions="$(aurora_versions "$repo/build/switch-native/aurora-switch")"
+if [ -n "$versions" ] && [ -n "$switch_versions" ] && [ "$versions" != "$switch_versions" ]; then
+    echo "gen_pipeline_cache: warning: the Mac build's Aurora writes config versions $versions, the Switch build's $switch_versions; rebuild both" >&2
+fi
+
+if [ "$merge_only" = 1 ]; then
+    [ -s "$db" ] || { echo "gen_pipeline_cache: --merge-only: no $db to merge into" >&2; exit 2; }
+    rm -f "$tmp"
+    cp "$db" "$tmp" || exit 1
+    if [ -z "$versions" ]; then
+        versions="$(sqlite3 "$tmp" "SELECT group_concat('(' || type || ', ' || v || ')', ', ') FROM
+  (SELECT type, MAX(config_version) AS v FROM pipeline_cache GROUP BY type)")"
+        versions_from="$db"
+    fi
+    report="$out/report-merge-$stamp.txt"
+    {
+        echo "gen_pipeline_cache --merge-only $stamp ($(git -C "$repo" rev-parse --short HEAD 2>/dev/null || echo '?')): into $db"
+        echo "before: $(sqlite3 "$tmp" 'SELECT COUNT(*) FROM pipeline_cache') rows"
+        printf '%-4s %-16s %-6s %-8s %-8s %s\n' tier run exit runs rows new
+    } > "$report"
+    next_tier=$(( $(sqlite3 "$tmp" 'SELECT COALESCE(MAX(first_frame_used) / 10000000, -1) FROM pipeline_cache') + 1 ))
+else
+if [ "$do_build" = 1 ]; then
+    ninja -C "$build" centollos > /dev/null || { echo "gen_pipeline_cache: build failed" >&2; exit 2; }
+fi
+
 runs="$out/runs-$stamp"
 mkdir -p "$runs"
 export COS_CACHE_PER_RUN=1
@@ -138,8 +215,6 @@ fi
 # --- merge ------------------------------------------------------------------------------------
 # Aurora's schema (lib/gfx/pipeline_cache.cpp, PipelineCacheSchema 1); the seed reader needs
 # aurora_schema = 1 and the pipeline_cache columns.
-db="$out/initial_pipeline_cache.db"
-tmp="$out/.initial_pipeline_cache.db.tmp"
 rm -f "$tmp"
 sqlite3 "$tmp" <<'SQL' || exit 1
 CREATE TABLE aurora_schema(value INTEGER);
@@ -182,8 +257,10 @@ INSERT INTO pipeline_cache (type, hash, config_version, config_size, config, fir
 }
 merged=("${tiers[@]}")
 [ "$sweep" = 1 ] && merged+=("4 boot-sweep boot-sweep")
+max_tier=-1
 for line in "${merged[@]}"; do
     read -r tier name _ <<< "$line"
+    [ "$tier" -gt "$max_tier" ] && max_tier=$tier
     rc="$(cat "$runs/$tier-$name.rc" 2>/dev/null || echo '?')"
     if [ "$name" = boot-sweep ]; then
         merge_tier "$tier" "$name" "$rc" "$runs/$tier-$name"/*/cache/pipeline_cache.db
@@ -191,11 +268,79 @@ for line in "${merged[@]}"; do
         merge_tier "$tier" "$name" "$rc" "$runs/$tier-$name/cache/pipeline_cache.db"
     fi
 done
+next_tier=$((max_tier + 1))
+[ -z "$versions" ] && versions="$(sqlite3 "$tmp" "SELECT group_concat('(' || type || ', ' || v || ')', ', ') FROM
+  (SELECT type, MAX(config_version) AS v FROM pipeline_cache GROUP BY type)")" && versions_from="the Mac runs"
+fi
+
+# --- --merge-from -------------------------------------------------------------------------------
+# merge_file tier db: one more tier from another pipeline cache (see --merge-from above).
+merge_file() {
+    local tier="$1" src="$2" copy ext schema rows wrong bad dup before after
+    copy="$scratch/src-$tier.db"
+    rm -f "$copy" "$copy"-journal "$copy"-wal "$copy"-shm
+    cp "$src" "$copy" || return 1
+    for ext in -journal -wal -shm; do
+        [ -e "$src$ext" ] && { cp "$src$ext" "$copy$ext" || return 1; }
+    done
+    # Opened read-write: a hot journal is rolled back, a WAL replayed (on the copy).
+    if ! sqlite3 "$copy" 'PRAGMA quick_check;' > "$scratch/check.txt" 2>&1 || [ "$(head -1 "$scratch/check.txt")" != ok ]; then
+        echo "gen_pipeline_cache: $src is damaged ($(head -1 "$scratch/check.txt")); skipped" >&2
+        printf '%-4s %-16s %s\n' "$tier" "merge" "damaged, skipped: $src" >> "$report"
+        return 0
+    fi
+    schema=$(sqlite3 "$copy" 'SELECT value FROM aurora_schema' 2>/dev/null | head -1)
+    if [ "$schema" != 1 ] || ! sqlite3 "$copy" 'SELECT type, hash, config_version, config_size, config, first_frame_used FROM pipeline_cache LIMIT 0' > /dev/null 2>&1; then
+        echo "gen_pipeline_cache: $src is not an Aurora pipeline cache of schema 1 (aurora_schema ${schema:-missing}); skipped" >&2
+        printf '%-4s %-16s %s\n' "$tier" "merge" "not schema 1, skipped: $src" >> "$report"
+        return 0
+    fi
+    rows=$(sqlite3 "$copy" 'SELECT COUNT(*) FROM pipeline_cache')
+    wrong=$(sqlite3 "$copy" "SELECT COUNT(*) FROM pipeline_cache WHERE (type, config_version) NOT IN (VALUES $versions)")
+    bad=$(sqlite3 "$copy" "SELECT COUNT(*) FROM pipeline_cache WHERE (type, config_version) IN (VALUES $versions)
+  AND (length(config) != config_size OR typeof(config) != 'blob')")
+    before=$(sqlite3 "$tmp" 'SELECT COUNT(*) FROM pipeline_cache')
+    sqlite3 "$tmp" "ATTACH '$copy' AS src;
+SELECT COUNT(*) FROM src.pipeline_cache s JOIN pipeline_cache d USING (type, hash)
+  WHERE (s.type, s.config_version) IN (VALUES $versions) AND length(s.config) = s.config_size;
+INSERT INTO pipeline_cache (type, hash, config_version, config_size, config, first_frame_used)
+  SELECT type, hash, config_version, config_size, config,
+         MIN(MAX(first_frame_used, 0), 9999999) + $tier * 10000000
+  FROM src.pipeline_cache
+  WHERE (type, config_version) IN (VALUES $versions) AND length(config) = config_size
+    AND typeof(config) = 'blob'
+  ON CONFLICT(type, hash) DO UPDATE SET
+    first_frame_used = MIN(pipeline_cache.first_frame_used, excluded.first_frame_used);" > "$scratch/dup.txt" || return 1
+    dup=$(cat "$scratch/dup.txt")
+    after=$(sqlite3 "$tmp" 'SELECT COUNT(*) FROM pipeline_cache')
+    printf '%-4s %-16s %-6s %-8s %-8s %s\n' "$tier" "merge" "-" 1 "$rows" $((after - before)) >> "$report"
+    echo "     $src: $rows rows, $wrong of another config version (skipped)$( [ "$bad" -gt 0 ] && echo ", $bad damaged (skipped)"), $dup already present, $((after - before)) new" >> "$report"
+    if [ "$wrong" -gt 0 ]; then
+        sqlite3 "$copy" "SELECT '       skipped: type ' || type || ' config version ' || config_version || ': ' || COUNT(*) || ' rows'
+  FROM pipeline_cache WHERE (type, config_version) NOT IN (VALUES $versions) GROUP BY type, config_version" >> "$report"
+    fi
+}
+if [ ${#merge_files[@]} -gt 0 ]; then
+    echo "--merge-from (config versions (type, version): $versions, from $versions_from):" >> "$report"
+    i=0
+    while [ $i -lt ${#merge_files[@]} ]; do
+        t="${merge_tiers[$i]}"
+        if [ -z "$t" ]; then
+            t=$next_tier
+        fi
+        [ "$t" -ge "$next_tier" ] && next_tier=$((t + 1))
+        merge_file "$t" "${merge_files[$i]}" || { echo "gen_pipeline_cache: merging ${merge_files[$i]} failed" >&2; exit 1; }
+        i=$((i + 1))
+    done
+fi
+
 priority_note="$(mark_priority "$tmp")" || exit 1
 sqlite3 "$tmp" 'VACUUM;' || exit 1
 mv -f "$tmp" "$db"
 {
     echo "$priority_note"
+    echo "rows by tier:"
+    sqlite3 "$db" 'SELECT first_frame_used / 10000000, COUNT(*) FROM pipeline_cache GROUP BY 1;'
     echo "rows by type (0 clear, 1 GX, 2 RmlUi) and config version:"
     sqlite3 "$db" 'SELECT type, config_version, COUNT(*), config_size FROM pipeline_cache GROUP BY 1, 2, 4;'
     echo "total $(sqlite3 "$db" 'SELECT COUNT(*) FROM pipeline_cache') rows, $(wc -c < "$db" | tr -d ' ') bytes: $db"
