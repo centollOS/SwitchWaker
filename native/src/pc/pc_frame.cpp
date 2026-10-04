@@ -986,13 +986,19 @@ void pc_frame_begin(void) {
 
 void pc_frame_end(void) {
     const uint64_t endFrameStartNs = monotonicNs();
-    // The options menu (pc_menu.cpp): input, pause and its window, in this frame's ImGui frame.
-    menuFrame();
-    if (gConfig.fpsOverlay) {
-        const uint64_t frameNs = endFrameStartNs - sFrameStartNs;
-        overlayFrame(frameNs > sFrameWaitNs ? frameNs - sFrameWaitNs : 0);
+    {
+        // Our own tools allocate host memory, not the game's current heap (JKRHeap.cpp): with the
+        // menu open its rows, labels and settings strings were about 1,400 operator new calls
+        // (~95 KiB) per 100 frames in the main heap (bug B8).
+        JKRPcHostAllocScope hostAlloc;
+        // The options menu (pc_menu.cpp): input, pause and its window, in this frame's ImGui frame.
+        menuFrame();
+        if (gConfig.fpsOverlay) {
+            const uint64_t frameNs = endFrameStartNs - sFrameStartNs;
+            overlayFrame(frameNs > sFrameWaitNs ? frameNs - sFrameWaitNs : 0);
+        }
+        precompileOverlay();
     }
-    precompileOverlay();
     const AuroraStats* stats;
     {
         // Aurora's frame work allocates host memory, not the game's current heap (JKRHeap.cpp).
