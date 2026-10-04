@@ -1,0 +1,248 @@
+--- a/src/dawn/native/opengl/BufferGL.cpp
++++ b/src/dawn/native/opengl/BufferGL.cpp
+@@ -34,6 +34,7 @@
+ #include "src/dawn/native/ChainUtils.h"
+ #include "src/dawn/native/CommandBuffer.h"
+ #include "src/dawn/native/opengl/DeviceGL.h"
++#include "src/dawn/native/opengl/SwitchDeferredDeleteGL.h"
+ #include "src/dawn/native/opengl/UtilsGL.h"
+ #include "src/utils/compiler.h"
+ 
+@@ -305,6 +306,22 @@ void Buffer::DestroyImpl(DestroyReason reason) {
+     BufferBase::DestroyImpl(reason);
+     mMappedData = nullptr;
+ 
++#if defined(__SWITCH__)
++    // Delete the name once the GPU is done with it (SwitchDeferredDeleteGL.h): freeing a busy bo
++    // blocks on Horizon.
++    if (switch_deferred_delete::Enabled()) {
++        Device* device = ToBackend(GetDevice());
++        IgnoreErrors(device->EnqueueDestroyGL(
++            this, &Buffer::GetHandle, reason,
++            [device](const OpenGLFunctions& gl, GLuint handle) -> MaybeError {
++                switch_deferred_delete::Defer(
++                    gl, switch_deferred_delete::Kind::Buffer, handle,
++                    switch_deferred_delete::SerialAfterIssuedWork(device));
++                return {};
++            }));
++        return;
++    }
++#endif
+     IgnoreErrors(ToBackend(GetDevice())
+                      ->EnqueueDestroyGL(this, &Buffer::GetHandle, reason,
+                                         [](const OpenGLFunctions& gl, GLuint handle) -> MaybeError {
+--- a/src/dawn/native/opengl/DeviceGL.cpp
++++ b/src/dawn/native/opengl/DeviceGL.cpp
+@@ -27,6 +27,7 @@
+ 
+ #include "src/dawn/native/opengl/DeviceGL.h"
+ #include "src/dawn/native/opengl/SwitchStatsGL.h"
++#include "src/dawn/native/opengl/SwitchDeferredDeleteGL.h"
+ 
+ #include <utility>
+ 
+@@ -514,6 +515,12 @@ MaybeError Device::FlushPendingGLCommands() {
+     ContextEGL::ScopedMakeCurrent scopedCurrentContext;
+     DAWN_TRY_ASSIGN(scopedCurrentContext, mContext->MakeCurrent());
+     MarkGLUsed(ExecutionQueueBase::SubmitMode::Normal);
++#if defined(__SWITCH__)
++    // Names destroyed earlier whose GPU work has finished (SwitchDeferredDeleteGL.h).
++    if (GetQueue() != nullptr) {
++        switch_deferred_delete::Collect(mGL, uint64_t(GetQueue()->GetCompletedCommandSerial()));
++    }
++#endif
+     for (auto& work : workList) {
+         DAWN_TRY(work(mGL));
+     }
+--- /dev/null
++++ b/src/dawn/native/opengl/SwitchDeferredDeleteGL.h
+@@ -0,0 +1,116 @@
++// Switch only (switch/dawn/patches/dawn-switch-gl-deferred-delete.patch): GL textures and buffers
++// are deleted once the GPU has finished the work submitted before their destruction, not at once.
++//
++// Why: devkitPro's libdrm_nouveau frees a GPU buffer object with nouveau_bo_del, which waits
++// (nvFenceWait, no timeout) for the last submission that referenced it, and Mesa 20.1's nvc0
++// drops a texture's or buffer's bo right away when its fence is already flushed but not yet
++// signalled (nv50_miptree_destroy, nouveau_buffer_release_gpu_storage). Upstream Linux defers the
++// free in the kernel; on Horizon the CPU blocks. Dawn's swapchain texture is destroyed after every
++// present (SwapChainEGL::PresentImpl), and its last Mesa reference (the framebuffer state of the
++// present) goes at the next frame's first framebuffer validation, the LoadOp clear of the first
++// render pass: that clear waited for the whole previous frame on the GPU (44-46 ms of a 73 ms
++// frame in Outset, docs/SWITCH_PERF_STUDY.md), so CPU and GPU never overlapped.
++//
++// Deleting the GL name only after a Dawn queue serial covering every GL command issued before the
++// destruction has completed makes the bo's fence already signalled when Mesa frees it, so the free
++// does not wait. Everything here runs on the GL thread inside Device::FlushPendingGLCommands
++// (gl_defer). COS_SWITCH_GL_DEFER_DELETE=0 deletes at once again.
++
++#ifndef SRC_DAWN_NATIVE_OPENGL_SWITCHDEFERREDDELETEGL_H_
++#define SRC_DAWN_NATIVE_OPENGL_SWITCHDEFERREDDELETEGL_H_
++
++#if defined(__SWITCH__)
++
++#include <cstdint>
++#include <cstdlib>
++#include <cstring>
++#include <deque>
++
++#include "src/dawn/native/Queue.h"
++#include "src/dawn/native/opengl/OpenGLFunctions.h"
++#include "src/dawn/native/opengl/SwitchFboCacheGL.h"
++#include "src/dawn/native/opengl/SwitchStatsGL.h"
++
++namespace dawn::native::opengl::switch_deferred_delete {
++
++enum class Kind : uint8_t { Texture, Buffer };
++
++struct Entry {
++    uint64_t serial;  // delete once the queue's completed serial reaches this
++    Kind kind;
++    GLuint handle;
++};
++
++// Only the GL thread uses these.
++inline std::deque<Entry> gEntries;
++inline int gEnabled = -1;
++
++// Past this many pending names the oldest are deleted anyway (the completed serial is not
++// advancing): a possible wait instead of an unbounded leak.
++inline constexpr size_t kMaxPending = 1024;
++
++inline bool Enabled() {
++    if (gEnabled < 0) {
++        const char* env = std::getenv("COS_SWITCH_GL_DEFER_DELETE");
++        gEnabled = (env != nullptr && std::strcmp(env, "0") == 0) ? 0 : 1;
++        switch_stats::gTotals[switch_stats::kDeferDeleteState].store(gEnabled ? 1 : 2,
++                                                                     std::memory_order_relaxed);
++    }
++    return gEnabled == 1;
++}
++
++inline void DeleteNow(const OpenGLFunctions& gl, const Entry& entry) {
++    if (entry.kind == Kind::Texture) {
++        switch_fbo_cache::Forget(gl, entry.handle);
++        gl.DeleteTextures(1, &entry.handle);
++    } else {
++        gl.DeleteBuffers(1, &entry.handle);
++    }
++}
++
++inline void PublishPending() {
++    switch_stats::gTotals[switch_stats::kDeferDeletePending].store(gEntries.size(),
++                                                                   std::memory_order_relaxed);
++}
++
++// The queue serial of the next fence: it covers every GL command issued so far (0 without a queue,
++// as during device destruction: deleted at the next Collect).
++template <typename DeviceT>
++uint64_t SerialAfterIssuedWork(DeviceT* device) {
++    auto* queue = device->GetQueue();
++    return queue == nullptr ? 0 : uint64_t(queue->GetLastSubmittedCommandSerial()) + 1;
++}
++
++// A name whose Dawn object was destroyed: deleted by Collect once `serial` has completed.
++inline void Defer(const OpenGLFunctions& gl, Kind kind, GLuint handle, uint64_t serial) {
++    if (handle == 0) {
++        return;
++    }
++    gEntries.push_back({serial, kind, handle});
++    switch_stats::Add(switch_stats::kDeferDeletes, 1);
++    while (gEntries.size() > kMaxPending) {
++        DeleteNow(gl, gEntries.front());
++        gEntries.pop_front();
++        switch_stats::Add(switch_stats::kDeferDeletesForced, 1);
++    }
++    PublishPending();
++}
++
++// Deletes the names whose serial has completed (entries are in serial order).
++inline void Collect(const OpenGLFunctions& gl, uint64_t completedSerial) {
++    if (gEntries.empty()) {
++        return;
++    }
++    while (!gEntries.empty() && gEntries.front().serial <= completedSerial) {
++        DeleteNow(gl, gEntries.front());
++        gEntries.pop_front();
++        switch_stats::Add(switch_stats::kDeferDeletesDone, 1);
++    }
++    PublishPending();
++}
++
++}  // namespace dawn::native::opengl::switch_deferred_delete
++
++#endif  // defined(__SWITCH__)
++
++#endif  // SRC_DAWN_NATIVE_OPENGL_SWITCHDEFERREDDELETEGL_H_
+--- a/src/dawn/native/opengl/SwitchStatsGL.h
++++ b/src/dawn/native/opengl/SwitchStatsGL.h
+@@ -94,6 +94,14 @@ enum Counter : int {
+     kGpuDisjoint,
+     kGpuDropped,
+     kGpuTimerState,
++    // Deferred GL deletes (SwitchDeferredDeleteGL.h): texture/buffer names whose deletion waited
++    // for the GPU, those deleted, those deleted early because too many were pending, the names
++    // pending now (a level), and the state (a level: 1 on, 2 off by COS_SWITCH_GL_DEFER_DELETE=0).
++    kDeferDeletes,
++    kDeferDeletesDone,
++    kDeferDeletesForced,
++    kDeferDeletePending,
++    kDeferDeleteState,
+     kCount
+ };
+ 
+--- a/src/dawn/native/opengl/TextureGL.cpp
++++ b/src/dawn/native/opengl/TextureGL.cpp
+@@ -42,6 +42,7 @@
+ #include "src/dawn/native/opengl/DeviceGL.h"
+ #include "src/dawn/native/opengl/SharedFenceGL.h"
+ #include "src/dawn/native/opengl/SharedTextureMemoryGL.h"
++#include "src/dawn/native/opengl/SwitchDeferredDeleteGL.h"
+ #include "src/dawn/native/opengl/SwitchFboCacheGL.h"
+ #include "src/dawn/native/opengl/UtilsGL.h"
+ #include "src/utils/assert.h"
+@@ -318,6 +319,22 @@ Texture::~Texture() {}
+ 
+ void Texture::DestroyImpl(DestroyReason reason) {
+     TextureBase::DestroyImpl(reason);
++#if defined(__SWITCH__)
++    // Delete the name once the GPU is done with it (SwitchDeferredDeleteGL.h): freeing a busy bo
++    // blocks on Horizon.
++    if (mOwnsHandle == OwnsHandle::Yes && switch_deferred_delete::Enabled()) {
++        Device* device = ToBackend(GetDevice());
++        IgnoreErrors(device->EnqueueDestroyGL(
++            this, &Texture::GetHandle, reason,
++            [device](const OpenGLFunctions& gl, GLuint handle) -> MaybeError {
++                switch_deferred_delete::Defer(
++                    gl, switch_deferred_delete::Kind::Texture, handle,
++                    switch_deferred_delete::SerialAfterIssuedWork(device));
++                return {};
++            }));
++        return;
++    }
++#endif
+     if (mOwnsHandle == OwnsHandle::Yes) {
+         IgnoreErrors(
+             ToBackend(GetDevice())
+@@ -678,6 +695,22 @@ TextureView::~TextureView() {}
+ 
+ void TextureView::DestroyImpl(DestroyReason reason) {
+     TextureViewBase::DestroyImpl(reason);
++#if defined(__SWITCH__)
++    // Delete the name once the GPU is done with it (SwitchDeferredDeleteGL.h): freeing a busy bo
++    // blocks on Horizon.
++    if (mOwnsHandle == OwnsHandle::Yes && switch_deferred_delete::Enabled()) {
++        Device* device = ToBackend(GetDevice());
++        IgnoreErrors(device->EnqueueDestroyGL(
++            this, &TextureView::GetHandle, reason,
++            [device](const OpenGLFunctions& gl, GLuint handle) -> MaybeError {
++                switch_deferred_delete::Defer(
++                    gl, switch_deferred_delete::Kind::Texture, handle,
++                    switch_deferred_delete::SerialAfterIssuedWork(device));
++                return {};
++            }));
++        return;
++    }
++#endif
+     if (mOwnsHandle == OwnsHandle::Yes) {
+         IgnoreErrors(
+             ToBackend(GetDevice())

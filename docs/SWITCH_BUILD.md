@@ -354,6 +354,14 @@ the pass's `glBindFramebuffer(GL_READ_FRAMEBUFFER, 0)`; and leaves out `glViewpo
 before `glDeleteTextures` (GL names are reused). `[dawn] COS_SWITCH_GL_FBO_CACHE:` in the log
 confirms it; the "fbo" share of the `execute split` line is what it saves. The game-side GPU options
 `COS_SHADOW_OFFSCREEN` and `COS_DOF` are in `native/README.md` (`native/include/pc/pc_gpu_opts.h`).
+GL texture and buffer names are deleted only once the GPU has finished the work submitted before
+their Dawn object was destroyed (on by default; `switch/dawn/patches/dawn-switch-gl-deferred-delete.patch`,
+`SwitchDeferredDeleteGL.h`): libnx's `libdrm_nouveau` waits for the GPU when Mesa frees a busy
+buffer object, and Dawn frees its swapchain texture after every present, which made the next
+frame's first clear wait for the whole previous frame on the GPU (`docs/SWITCH_PERF_STUDY.md`,
+section 6). `COS_SWITCH_GL_DEFER_DELETE=0` deletes at once again (A/B). The
+`[cos] perf-switch gl stall:` line shows the first render pass's clear time per frame (tens of us
+when nothing waits) and the deferred, deleted and pending names.
 
 "begin" of the perf line is `events` (Aurora's event pump) plus `aurora_begin_frame`, which mostly
 waits for a free frame slot (the render worker still has two frames in flight: GPU-bound or

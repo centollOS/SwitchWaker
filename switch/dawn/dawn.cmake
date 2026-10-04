@@ -553,6 +553,27 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # On top of the framebuffer cache: GL texture and buffer names are deleted once the GPU has
+    # finished the work submitted before their destruction (SwitchDeferredDeleteGL.h). libnx's
+    # libdrm_nouveau waits for the GPU when Mesa frees a busy bo, and Dawn frees the swapchain
+    # texture every frame: the next frame's first clear waited for the whole previous frame on the
+    # GPU (docs/SWITCH_PERF_STUDY.md, section 6). COS_SWITCH_GL_DEFER_DELETE=0 deletes at once.
+    if(NOT EXISTS "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchDeferredDeleteGL.h")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-deferred-delete.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_DEFERRED_DELETE_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_DEFERRED_DELETE_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_DEFERRED_DELETE_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_DEFERRED_DELETE_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL deferred delete patch:\n"
+                "${DAWN_GL_DEFERRED_DELETE_PATCH_OUTPUT}${DAWN_GL_DEFERRED_DELETE_PATCH_ERROR}")
+        endif()
+    endif()
+
     set(DAWN_WGPU_HELPERS_SOURCE
         "${dawn_SOURCE_DIR}/src/dawn/native/utils/WGPUHelpers.cpp")
     file(READ "${DAWN_WGPU_HELPERS_SOURCE}" DAWN_WGPU_HELPERS_TEXT)

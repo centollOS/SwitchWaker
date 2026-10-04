@@ -99,6 +99,11 @@ typedef struct {
      * Execute yet, 1 on, 2 the driver has no GL_EXT_disjoint_timer_query, 3 COS_SWITCH_GPU_TIMER=0. */
     uint64_t gpuFrames, gpuTotalNs, gpuEfbNs, gpuTexConvNs, gpuPresentNs, gpuImguiNs, gpuCopyNs;
     uint64_t gpuOtherNs, gpuFirstPassNs, gpuDisjoint, gpuDropped, gpuTimerState;
+    /* Deferred GL deletes (switch/dawn/patches/dawn-switch-gl-deferred-delete.patch): texture and
+     * buffer names whose deletion waited for the GPU, deleted, deleted early (too many pending);
+     * pending now and the state (levels: 0 not used yet, 1 on, 2 COS_SWITCH_GL_DEFER_DELETE=0). */
+    uint64_t glDeferDeletes, glDeferDeletesDone, glDeferDeletesForced, glDeferDeletePending;
+    uint64_t glDeferDeleteState;
     /* CPU time (ns, the kernel's per-thread tick count) of the game thread, Aurora's render worker,
      * JAudio's audio thread, the game's DVD thread and every other thread together. */
     uint64_t cpuGameNs, cpuRenderNs, cpuAudioNs, cpuDvdNs, cpuOtherNs;

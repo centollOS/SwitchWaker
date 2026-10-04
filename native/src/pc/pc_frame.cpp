@@ -576,6 +576,23 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
         }
         sSwGpuFrameNs.clear();
     }
+    {
+        // The CPU/GPU overlap check (docs/SWITCH_PERF_STUDY.md, section 6): the first render
+        // pass's LoadOp clears waited for the previous frame's GPU work while Dawn freed its
+        // swapchain texture under it; with the GL deletes deferred they cost tens of us.
+        const double firstPasses = (double)(cur.glFirstPasses - w.glFirstPasses);
+        writef(STDERR_FILENO,
+               "[cos] perf-switch gl stall: first-pass clears %.2f ms per frame; deferred deletes "
+               "%s: +%llu deferred, +%llu deleted, +%llu forced, %llu pending\n",
+               firstPasses > 0 ? msOf(cur.glFirstPassClearNs - w.glFirstPassClearNs) / firstPasses : 0.0,
+               cur.glDeferDeleteState == 1   ? "on"
+               : cur.glDeferDeleteState == 2 ? "off (COS_SWITCH_GL_DEFER_DELETE=0)"
+                                             : "unused",
+               (unsigned long long)(cur.glDeferDeletes - w.glDeferDeletes),
+               (unsigned long long)(cur.glDeferDeletesDone - w.glDeferDeletesDone),
+               (unsigned long long)(cur.glDeferDeletesForced - w.glDeferDeletesForced),
+               (unsigned long long)cur.glDeferDeletePending);
+    }
     // The operation mode and clocks now (docking mid-run changes them).
     char mode[128];
     cos_switch_describe_mode(mode, sizeof(mode));
