@@ -25,6 +25,8 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
     cos_switch_nod_stats(dvd);
     uint64_t cpu[COS_SWITCH_THREAD_ROLES] = {};
     cos_switch_thread_cpu_ns(cpu);
+    uint64_t nv[COS_SWITCH_NV_STATS] = {};
+    cos_switch_nv_stats(nv);
     *out = CosSwitchGfxStats{
         .frameSlotWaitNs = a.frameSlotWaitNs,
         .stagingWaitNs = a.stagingWaitNs,
@@ -120,5 +122,14 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
         .cpuAudioNs = cpu[COS_SWITCH_THREAD_AUDIO],
         .cpuDvdNs = cpu[COS_SWITCH_THREAD_DVD],
         .cpuOtherNs = cpu[COS_SWITCH_THREAD_OTHER],
+        .cpuCompileNs = cpu[COS_SWITCH_THREAD_COMPILE],
+        .nvSpaceCalls = {nv[0], nv[8]},
+        .nvSpaceNs = {nv[1], nv[9]},
+        .nvFenceWaits = {nv[2], nv[10]},
+        .nvFenceWaitNs = {nv[3], nv[11]},
+        .nvFencePolls = {nv[4], nv[12]},
+        .nvKicks = {nv[5], nv[13]},
+        .nvKickNs = {nv[6], nv[14]},
+        .nvPushWords = {nv[7], nv[15]},
     };
 }

@@ -1,0 +1,29 @@
+Switch: let the harness name the pipeline compile thread (aurora_switch_pipeline_thread_started)
+
+The compile thread calls a weak hook when it starts. The Switch harness (thread_wrap.c) uses it
+to report the thread's CPU time on its own and to keep it off the render worker's core, so that
+during the loading screen and the warm-up the two never take turns on one core (Horizon does not
+time-slice threads of equal priority). Without a definition nothing is called.
+
+Switch only (switch/native/aurora/patches); not for upstream.
+
+--- a/lib/gfx/pipeline_cache.cpp	2026-10-04 12:48:10
++++ b/lib/gfx/pipeline_cache.cpp	2026-10-04 12:48:10
+@@ -1104,11 +1104,17 @@
+     g_warmupThrottleWaitNs += switch_stats::now_ns() - start;
+   }
+ }
++
++// Switch: the harness names this thread (its CPU time, and a core away from the render worker's).
++extern "C" __attribute__((weak)) void aurora_switch_pipeline_thread_started(void);
+ 
+ static void pipeline_worker() {
+ #ifdef TRACY_ENABLE
+   tracy::SetThreadName("Pipeline compilation thread");
+ #endif
++  if (aurora_switch_pipeline_thread_started != nullptr) {
++    aurora_switch_pipeline_thread_started();
++  }
+ 
+   bool hasMore = false;
+   while (g_hasPipelineThread || g_pipelinesPerFrame < BuildPipelinesPerFrame) {

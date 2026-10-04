@@ -106,8 +106,18 @@ typedef struct {
     uint64_t glDeferDeleteState;
     /* CPU time (ns, the kernel's per-thread tick count) of the game thread, Aurora's render worker,
      * JAudio's audio thread, the game's DVD thread and every other thread together. */
-    uint64_t cpuGameNs, cpuRenderNs, cpuAudioNs, cpuDvdNs, cpuOtherNs;
+    uint64_t cpuGameNs, cpuRenderNs, cpuAudioNs, cpuDvdNs, cpuOtherNs, cpuCompileNs;
+    /* Mesa's and libdrm_nouveau's waits and submissions (switch/native/source/nv_wrap.c), for the
+     * render worker [0] and every other thread [1]: nouveau_pushbuf_space calls (a push-buffer chunk
+     * filled; includes the wait for the GPU to free the next chunk of the ring) and their time,
+     * blocking nvFenceWait calls and their time, polls, GPU submissions (nvGpuChannelKickoff) and
+     * their time, command words submitted. */
+    uint64_t nvSpaceCalls[2], nvSpaceNs[2], nvFenceWaits[2], nvFenceWaitNs[2], nvFencePolls[2];
+    uint64_t nvKicks[2], nvKickNs[2], nvPushWords[2];
 } CosSwitchGfxStats;
+
+#define COS_SWITCH_NV_STATS 16
+void cos_switch_nv_stats(uint64_t out[COS_SWITCH_NV_STATS]);
 
 void cos_switch_gfx_stats(CosSwitchGfxStats* out);
 
@@ -119,6 +129,7 @@ enum {
     COS_SWITCH_THREAD_RENDER,    /* Aurora's render worker (all of Dawn's GL work) */
     COS_SWITCH_THREAD_AUDIO,     /* JAudio's audio thread (JASystem::TAudioThread) */
     COS_SWITCH_THREAD_DVD,       /* the game's DVD thread (mDoDvdThd) */
+    COS_SWITCH_THREAD_COMPILE,   /* Aurora's pipeline compile thread (Switch patch 0010) */
     COS_SWITCH_THREAD_ROLES
 };
 void cos_switch_thread_role(int role);
@@ -129,6 +140,10 @@ int cos_switch_describe_mode(char* out, size_t size);
 /* CPU time (ns, svcGetInfo ThreadTickCount) of the registered threads per role, running totals;
  * a thread that ended keeps its last value. */
 void cos_switch_thread_cpu_ns(uint64_t out[COS_SWITCH_THREAD_ROLES]);
+/* "render#3 c2/0x4 27.6, other#5 c1/0x7 9.1 (fn 0x1234), ..." into out: every thread that used at
+ * least 0.3 ms of CPU per frame since the last call (frames = game frames since then), with its
+ * preferred core, affinity mask and, for unnamed threads, its entry point (offset in centollos.elf). */
+int cos_switch_thread_table(char* out, size_t size, double frames);
 
 #ifdef __cplusplus
 }

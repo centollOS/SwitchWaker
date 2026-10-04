@@ -245,6 +245,7 @@ add_library(cos_switch_platform STATIC
         "${COS_SWITCH_DIR}/source/cos_switch_stats.cpp"
         "${COS_SWITCH_DIR}/source/cos_shader_cache.cpp"
         "${COS_SWITCH_DIR}/source/thread_wrap.c"
+        "${COS_SWITCH_DIR}/source/nv_wrap.c"
         "${COS_REPO_ROOT}/switch/source/common/usb_log.c")
 target_include_directories(cos_switch_platform PUBLIC "${COS_SWITCH_DIR}/source"
         PRIVATE "${COS_REPO_ROOT}/switch/source/common")
@@ -272,6 +273,10 @@ target_link_libraries(centollos PRIVATE cos_switch_platform ${COS_SWITCH_GL_LIBS
 # Every thread gets a stack Dawn's shader compiler fits in and runs on the application cores
 # (source/thread_wrap.c).
 target_link_options(centollos PRIVATE "LINKER:--wrap=pthread_create")
+# Mesa's and libdrm_nouveau's push-buffer space, GPU waits and submissions, timed per thread for
+# the perf-switch lines (source/nv_wrap.c).
+target_link_options(centollos PRIVATE "LINKER:--wrap=nouveau_pushbuf_space" "LINKER:--wrap=nvFenceWait"
+        "LINKER:--wrap=nvGpuChannelKickoff" "LINKER:--wrap=nvGpuChannelAppendEntry")
 # abort() writes the logs out and a backtrace first (source/cos_switch.cpp).
 target_link_options(centollos PRIVATE "LINKER:--wrap=abort")
 set_target_properties(centollos PROPERTIES OUTPUT_NAME "centollos" SUFFIX ".elf")

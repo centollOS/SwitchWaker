@@ -47,10 +47,12 @@
 #include <array>
 #include <atomic>
 #include <cerrno>
+#include <cstdio>
 #include <cstring>
 #include <ctime>
 #include <fcntl.h>
 #include <numeric>
+#include <string>
 #include <unistd.h>
 #include <vector>
 
@@ -600,10 +602,36 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
     // wall time: a worker CPU time well below its busy time means it waits (GPU, or preempted).
     writef(STDERR_FILENO,
            "[cos] perf-switch cpu per frame: game thread %.2f ms, render worker %.2f ms (busy %.2f ms "
-           "wall), audio %.2f, dvd %.2f, other threads %.2f; %s\n",
+           "wall), audio %.2f, dvd %.2f, compile %.2f, other threads %.2f; %s\n",
            msOf(cur.cpuGameNs - w.cpuGameNs) / n, msOf(cur.cpuRenderNs - w.cpuRenderNs) / n,
            msOf(cur.workerBusyNs - w.workerBusyNs) / n, msOf(cur.cpuAudioNs - w.cpuAudioNs) / n,
-           msOf(cur.cpuDvdNs - w.cpuDvdNs) / n, msOf(cur.cpuOtherNs - w.cpuOtherNs) / n, mode);
+           msOf(cur.cpuDvdNs - w.cpuDvdNs) / n, msOf(cur.cpuCompileNs - w.cpuCompileNs) / n,
+           msOf(cur.cpuOtherNs - w.cpuOtherNs) / n, mode);
+    {
+        // Where the render worker blocks inside Mesa (switch/native/source/nv_wrap.c): push-buffer
+        // chunk switches (they wait for the GPU to retire the ring's next chunk), libdrm's blocking
+        // fence waits, GPU submissions; per frame, the worker and every other thread apart. With
+        // the worker CPU and busy times above: busy - CPU - fence waits = time the worker was
+        // runnable but not running (another thread on its core).
+        const auto nvLine = [&](int i) {
+            char buf[256];
+            snprintf(buf, sizeof(buf),
+                     "pushbuf space %.1f calls %.2f ms, fence waits %.1f %.2f ms (%.1f polls), kicks %.1f "
+                     "%.2f ms, %.1f KiB pushed",
+                     (cur.nvSpaceCalls[i] - w.nvSpaceCalls[i]) / wf, msOf(cur.nvSpaceNs[i] - w.nvSpaceNs[i]) / wf,
+                     (cur.nvFenceWaits[i] - w.nvFenceWaits[i]) / wf,
+                     msOf(cur.nvFenceWaitNs[i] - w.nvFenceWaitNs[i]) / wf,
+                     (cur.nvFencePolls[i] - w.nvFencePolls[i]) / wf, (cur.nvKicks[i] - w.nvKicks[i]) / wf,
+                     msOf(cur.nvKickNs[i] - w.nvKickNs[i]) / wf,
+                     (cur.nvPushWords[i] - w.nvPushWords[i]) * 4.0 / 1024.0 / wf);
+            return std::string(buf);
+        };
+        writef(STDERR_FILENO, "[cos] perf-switch nv per frame: render worker: %s; other threads: %s\n",
+               nvLine(0).c_str(), nvLine(1).c_str());
+        char table[1024];
+        cos_switch_thread_table(table, sizeof(table), n);
+        writef(STDERR_FILENO, "[cos] perf-switch threads (ms CPU per frame): %s\n", table);
+    }
     sSwWindow = cur;
     sSwWindowEvents = ev;
     sSwWindowTexBytes = 0;
