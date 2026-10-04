@@ -79,7 +79,12 @@ void dDlst_2DSCP_c::draw() {
 #if TARGET_PC
     // Widescreen (pc_aspect.h): black bars left and right of the 4:3 picture (the 16:9 code's added
     // code at 0x80004074, branched to from this function's return at 0x802375E4).
-    if (pc_aspect_wide()) {
+    // Bug B6: only while the telescope's frame is up. In the zelda_fly demo (dScp_demoProc) the
+    // game hides the eight wipe panels from demo frame 425 to 1120 and lets the camera's
+    // cinemascope trim frame the picture; the Gecko code still drew its bars there, so the
+    // cutscene showed as a 4:3 window inside the 16:9 screen. With the panels hidden the picture
+    // keeps the full width and only the trim's top and bottom bars, as at 4:3.
+    if (pc_aspect_wide() && mpScp->mWipePanel[0].pane->isVisible()) {
         J2DFillBox(-130.0f, -32.0f, 130.0f, 640.0f, JUtility::TColor(0x000000FF));
         J2DFillBox(640.0f, -32.0f, 130.0f, 640.0f, JUtility::TColor(0x000000FF));
     }
