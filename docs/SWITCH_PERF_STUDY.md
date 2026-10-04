@@ -8,6 +8,11 @@ nvc0 on GM20B), and the hardware log `tasks/b6te8yi1n.output` (8 runs; the newes
 
 ## 0. Summary and recommendation
 
+> **Update 2026-10-04 (section 6):** the hardware run with the timers of section 3.4 confirmed the
+> wait at the first pass's clears, but its cause is not the push-buffer ring of section 2.4: it is
+> libdrm_nouveau waiting for the GPU when Mesa frees the swapchain texture Dawn destroys after every
+> present. Fixed by deferring GL deletes (`dawn-switch-gl-deferred-delete.patch`).
+
 1. The ~20 ms of Dawn GL `execute` that no replay timer accounts for is almost certainly **not CPU
    work: it is the render worker waiting for the GPU inside Mesa**, surfacing in the first GL calls
    that emit commands in a frame (the FBO set-up and clears of the first render pass, which are
@@ -338,3 +343,101 @@ All off by default; `env.txt` variants in `build/switch-envs/` (`shadowoff`, `sh
 Note for Mac pixel compares: outset-control runs are not frame-reproducible across processes at
 16:9 (camera timing differs from run to run), so A/B image checks must render both variants in the
 same frame, as done for the shadows.
+
+## 6. Hardware findings, 2026-10-04 (handheld, GPU 307.2 MHz, EMC 1331.2 MHz)
+
+Log: `build/lanes/switch-gpu/build/switch-logs/gpu-default-handheld.log` (`env.txt`:
+`COS_FB_SCALE=1.5`, overlay on, every timer of section 3.4 present). Fixes on `lane/render-stall`.
+
+### 6.1 No CPU/GPU overlap: the first clear waits for the previous frame
+
+Outset exterior at 1280x720 (frames 10921-11280, 1430-1545 draws, 10-13 passes, 4.1-4.3 MB of
+buffer copies per frame):
+
+| quantity | value |
+|---|---|
+| fps | 13.4-14.5 (game thread `begin` = slot wait 48-55 ms) |
+| GPU per frame (`GL_TIME_ELAPSED`) | 37.6-41.2 ms (p95 41.2-43.6) |
+| render worker | 69-75 ms busy wall, **25.5-26.9 ms CPU** |
+| Dawn `execute` | 57.7-62.9 ms = **first-pass clears 41.9-46.3** + replay 13.8-14.4 + rest ~1.5 |
+| first pass, everything but its clears | 0.3 ms (fbo 0.03, replay 0.26) |
+
+So the frame costs clear-wait + replay + present instead of max(GPU 41, worker CPU ~27): CPU and GPU
+serialise. In light scenes the same clear takes 1-3 ms, about the previous frame's GPU time (logo:
+"clears 2.0" with "gpu 3.3 ms over 2 frames"), and in the Outset windows where the game thread
+paced itself at 30 fps (frames 10801-10860: worker 14.7 ms busy, GPU 13.3 ms) it is 1.1 ms, because
+the GPU had finished by the time the worker started. The wait does not burn CPU (worker CPU far below
+wall), so it is a blocking kernel wait, not Mesa's spinning `nouveau_fence_wait`.
+
+Cause (sources: devkitPro `mesa` branch `switch-20.1.0-rc3`, `libdrm_nouveau`, the Dawn tree):
+
+1. Dawn's `SwapChainEGL::GetCurrentTextureImpl` creates a new 1280x720 texture every frame and
+   `PresentImpl` destroys it right after `eglSwapBuffers` (`mTexture->APIDestroy()`).
+2. Mesa's st/nvc0 still holds a reference to that texture through the present's framebuffer state;
+   it is released at the next framebuffer validation, which is the next frame's first
+   `glClearBuffer*` (Dawn's `LoadOp::Clear` of the first EFB pass; the FBO set-up before it does not
+   validate). That is the last reference: `nv50_miptree_destroy`.
+3. `nv50_miptree_destroy` (and `nouveau_buffer_release_gpu_storage` for buffers) defers the bo free
+   to a fence callback only while the fence is not yet flushed; the texture's fence was flushed by
+   the swap, so it calls `nouveau_bo_ref(NULL)` at once.
+4. The Switch `libdrm_nouveau` frees with `nouveau_bo_del`, which starts with
+   `nouveau_bo_fence_wait(bo, 0)` = `nvFenceWait(fence, -1)`: the CPU blocks until the GPU has
+   retired the last submission that used the texture, i.e. the whole previous frame including the
+   present blit. (On Linux the kernel keeps a busy bo alive; here unmapping it from the GPU address
+   space early would fault, so the port waits.)
+
+Candidates ruled out: the GPU timer queries (`dawn-switch-gl-gpu-timer.patch` checks
+`GL_QUERY_RESULT_AVAILABLE` before reading and keeps queries 8 frames deep; nvc0's non-waiting
+`get_query_result` only polls the fence and kicks; and the 20+ ms "unaccounted" execute time of
+section 3 was there before the timers existed, so `COS_SWITCH_GPU_TIMER=0` cannot change it), Dawn's
+fences (`glClientWaitSync` timeout 0), staging maps (unsynchronised), and clearing a texture the
+previous frame still reads (nouveau orders that on the GPU, the CPU never waits for it). The
+push-buffer ring of section 2.4 is a real back-pressure point but only once a frame's commands
+fill 4 x 512 KiB; it would not land on the first clear every frame.
+
+Fix (`switch/dawn/patches/dawn-switch-gl-deferred-delete.patch`, default on): Dawn GL textures,
+texture views and buffers queue their GL name with the serial of the next queue fence, and
+`Device::FlushPendingGLCommands` deletes the names whose serial has completed. Mesa then frees bos
+whose fences have passed and `nouveau_bo_del` returns at once. `COS_SWITCH_GL_DEFER_DELETE=0` is the
+A/B switch. Throttling now comes from where it should: the NWindow dequeue at present (FIFO, 3
+buffers), the staging buffers and the push-buffer ring. Check on hardware: the new
+`[cos] perf-switch gl stall: first-pass clears X ms per frame; deferred deletes on: +N deferred, +N
+deleted, 0 forced, P pending` line should show tens of microseconds in every scene with about one
+deferred texture per frame, `execute` in Outset should drop by ~45 ms, and the frame should become
+GPU-bound (~41 ms, about 24 fps at 1280x720 handheld) instead of 73 ms; at `COS_FB_SCALE=1.125` or
+docked it should then reach 30.
+
+The GPU timer's classification also filed every GX pass under "other" ("efb passes 0.00"): Aurora
+labels them "EFB N"/"Offscreen N", not "Render pass N". Fixed by
+`dawn-switch-gl-gpu-timer-labels.patch`; in this log "other" (35.8-39.2 ms of 37.6-41.2) is in fact
+the EFB passes, tex copy conv 0.1, present 0.6, ImGui 0.3, copies 0.9-1.1 ms. The GPU frame is
+almost all game draws: internal resolution (option f) and the shadow/DOF options remain the levers.
+
+### 6.2 The background pipeline warm-up blocks frames
+
+After the loading screen (176 priority pipelines in 17.4 s), the other ~920 build back to back until
+the first PLAY scene. Every hitch line of the logo scene (frames 2-26 and on, lines 70-450 of the
+log) has "pipeline compile 126-140 ms (1)" and the render worker's `submit` as long, with worker CPU
+3-5 ms and "other threads" 92-131 ms: Aurora's compile thread does the work inside
+`ExecutePipelineGL`, which holds Dawn's single GL context (`ContextEGL::mExclusiveMakeCurrentMutex`)
+for the whole build - Tint's WGSL -> GLSL translation, then Mesa's GLSL compile and nouveau codegen
+at `glLinkProgram` - and the worker's next `FlushPendingGLCommands` waits for that mutex. Logos and
+title ran at 4-7 fps for about three minutes (527/1094 after 57 s, ~105 ms per pipeline).
+
+No real parallel compile exists on this stack: Mesa 20.1 nouveau has no
+`set_max_shader_compiler_threads`, so `GL_KHR_parallel_shader_compile` (which Dawn already uses
+when present) finishes inside `glLinkProgram`; a shared context on another thread draws nothing here
+(Aurora Switch patch 0001) and nvc0 contexts share the screen's push buffer without locking. Fixes:
+
+- `dawn-switch-gl-pipeline-compile.patch`: the Tint translation runs before the context is taken
+  (`PipelineGL::PretranslateStages`; it needs only the GL version), so the worker waits only for
+  Mesa's compile and link. The `[cos] precompile` line now prints "tint X ms, GL context Y ms each"
+  per build: the first hardware run tells how much of the ~110 ms was Tint.
+- Aurora Switch patch 0009 + `pc_precompile.cpp`: with `COS_PRECOMPILE=boot`, after the loading
+  screen the warm-up is throttled to a duty cycle (`COS_PRECOMPILE_DUTY`, default 0.5): after a
+  build of duration t the compile thread idles t(1-d)/d, then starts the next build right after a
+  present. A pipeline a draw waits for is never held back. Expected at d = 0.5 with ~110 ms builds:
+  a stall of ~110 ms (less the Tint share) every ~220 ms with full-rate frames in between, instead
+  of every frame blocked; the warm-up takes about twice as long, and what the first PLAY scene
+  leaves is built when first drawn as before. Lower d for smoother menus, 1 for the old behaviour.
+
