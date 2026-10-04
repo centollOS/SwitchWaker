@@ -49,7 +49,21 @@ struct mflft_class {
     /* 0x779 */ u8 m779[0x77C - 0x779];
     /* 0x77C */ // vtbl
     
+#if TARGET_PC
+    // MWCC appends this struct's vtable pointer after its members (0x77C). Clang (Itanium ABI) puts
+    // it at offset 0, because the first member fopAc_ac_c is a member and not a base, and moves
+    // `actor` to offset 8: the process system's fopAc_ac_c* is then 8 bytes off `actor`, and
+    // fopAcM_ct(&i_this->actor, mflft_class) built the object 8 bytes past the process (mStts read
+    // a NULL vtable pointer, bug B10). setLiftUp is never overridden and its one caller
+    // (d_a_obj_flame.cpp) has a mflft_class*, so a non-virtual function behaves the same.
+    void setLiftUp(cXyz);
+#else
     virtual void setLiftUp(cXyz);
+#endif
 }; // size = 0x780
+
+#if TARGET_PC
+static_assert(__builtin_offsetof(mflft_class, actor) == 0, "the process header must be at offset 0");
+#endif
 
 #endif /* D_A_MFLFT_H */

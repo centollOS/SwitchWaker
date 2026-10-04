@@ -93,6 +93,10 @@ shore-foam 0 --stage sea:44:8 --aspect 16:9
 # bug B9 (lane hd-glitch): NPCs sharing one model with different material tables (Windfall's
 # people: Ub women, an Sa man) must show their own clothes, the same after a trip into a house
 npc-variants 0 --stage sea:11:0
+# bug B10 (lane b10-mflft): the first dungeon's room 2 (M_NewD2, point 8) creates its rope-hung
+# platform over the lava (MFLFT, d_a_mflft) within a few frames of the boot; its struct's own vtable
+# pointer moved the actor 8 bytes off the process and dCcD_Stts::Init faulted at 0x20 (fails without the fix)
+run 0 --stage M_NewD2:2:8 --frames 900 --uncapped
 
 # options menu (lane options-menu): L+R+Z opens it in Outset, the internal resolution (handheld),
 # depth of field and FPS overlay change live and are saved to the run's settings.ini, the game stays
