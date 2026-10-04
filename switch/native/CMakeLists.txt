@@ -173,10 +173,29 @@ if (TARGET sqlite3)
     target_include_directories(sqlite3 PRIVATE "${_sqlite_dir}")
 endif ()
 
-# Mesa's EGL/GLES, which Dawn reaches through eglGetProcAddress (aurora/patches).
+# Mesa's EGL/GLES, which Dawn reaches through eglGetProcAddress (aurora/patches). By default the
+# Mesa scripts/switch/build_mesa.sh builds (COS_SWITCH_MESA_DIR, set by build_native.sh: devkitPro's
+# switch-mesa 20.1.0-5 recipe plus switch/mesa/patches, the persistent shader cache); empty, the
+# devkitPro package's libraries in portlibs. libdrm_nouveau is the package's either way.
+set(COS_SWITCH_MESA_DIR "" CACHE PATH
+        "Mesa prefix from scripts/switch/build_mesa.sh (lib/, include/); empty: devkitPro's switch-mesa")
+if (COS_SWITCH_MESA_DIR)
+    foreach (_lib EGL GLESv2 glapi)
+        if (NOT EXISTS "${COS_SWITCH_MESA_DIR}/lib/lib${_lib}.a")
+            message(FATAL_ERROR "COS_SWITCH_MESA_DIR has no lib/lib${_lib}.a (scripts/switch/build_mesa.sh)")
+        endif ()
+    endforeach ()
+    set(COS_SWITCH_GL_LIBS "${COS_SWITCH_MESA_DIR}/lib/libEGL.a" "${COS_SWITCH_MESA_DIR}/lib/libGLESv2.a"
+            "${COS_SWITCH_MESA_DIR}/lib/libglapi.a" drm_nouveau)
+    target_include_directories(aurora_core BEFORE PRIVATE "${COS_SWITCH_MESA_DIR}/include")
+    message(STATUS "Mesa: ${COS_SWITCH_MESA_DIR}")
+else ()
+    set(COS_SWITCH_GL_LIBS EGL GLESv2 glapi drm_nouveau)
+    message(STATUS "Mesa: devkitPro's switch-mesa (${SWITCH_PORTLIBS}/lib)")
+endif ()
 target_include_directories(aurora_core PRIVATE "${SWITCH_PORTLIBS}/include")
 target_link_directories(aurora_core PUBLIC "${SWITCH_PORTLIBS}/lib")
-target_link_libraries(aurora_core PUBLIC EGL GLESv2 glapi drm_nouveau nx)
+target_link_libraries(aurora_core PUBLIC ${COS_SWITCH_GL_LIBS} nx)
 
 # Game units: newlib's <ctype.h> macros collide with decomp member names (include/cos_switch_compat.h).
 target_compile_options(cos_game_headers INTERFACE
@@ -243,7 +262,7 @@ target_link_libraries(cos_pc PRIVATE cos_switch_platform)
 if (NOT TARGET centollos)
     message(FATAL_ERROR "native/ did not define the executable centollos (modules or cos_sdk missing)")
 endif ()
-target_link_libraries(centollos PRIVATE cos_switch_platform EGL GLESv2 glapi drm_nouveau)
+target_link_libraries(centollos PRIVATE cos_switch_platform ${COS_SWITCH_GL_LIBS})
 # Every thread gets a stack Dawn's shader compiler fits in and runs on the application cores
 # (source/thread_wrap.c).
 target_link_options(centollos PRIVATE "LINKER:--wrap=pthread_create")
