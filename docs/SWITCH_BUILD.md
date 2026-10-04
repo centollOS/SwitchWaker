@@ -501,39 +501,68 @@ Besides that, the port compiles fewer programs and compiles them before they are
   after a few sessions) and counts them for the harness.
 - `COS_PRECOMPILE` (in `native/env.txt`) says how long to wait and when to stop:
   - `boot` (the default): before the game starts (before the boot logo) a loading screen,
-    "Preparing shaders... N/M" and a bar drawn with Aurora's ImGui, until the priority pipelines are
-    built (about 20-25 s at 126-176 ms each). The screen keeps presenting frames (slowly: a build
-    holds the GL context) and pumping events, so HOME works. Then the game starts and the rest are
-    built behind the logos, title and menus, with "Shaders N/M" in the bottom-right corner, until
-    the game first enters its PLAY scene: there the warm-up ends (Aurora Switch patch 0007) and what
-    is left is built when first drawn, as before. A bundled file without the priority table (an
-    older `gen_pipeline_cache.sh`) gives no loading screen.
+    "Preparing shaders" and a bar drawn with Aurora's ImGui, when `COS_PRECOMPILE_SCREEN` (below)
+    calls for one. The screen keeps presenting frames (slowly: a build holds the GL context) and
+    pumping events, so HOME works. Then the game starts and what is left is built behind the logos,
+    title and menus, with "Shaders N/M" in the bottom-right corner, until the game first enters its
+    PLAY scene: there the warm-up ends (Aurora Switch patch 0007) and what is left is built when
+    first drawn, as before.
   - `full`: the loading screen until every known pipeline is built (1094 at about 2.5 min); nothing
     is left to stutter on a pipeline the cache knows.
-  - `COS_PRECOMPILE_SCREEN` says when `boot` and `full` show that loading screen. `auto` (the
-    default): only when the builds are slow. The warm-up starts with nothing drawn while the
-    harness watches its first builds (up to 8, at most 0.3 s); if they average no more than
-    `COS_PRECOMPILE_SLOW_MS` (25 ms; with the shader cache warm a build costs ~12 ms, a miss
-    100-300 ms), the game starts at once (the boot logo comes up directly) and the warm-up goes
-    on behind the logos: the priority pipelines still build first, the throttle lets fast builds
-    follow back to back, and a pipeline a draw needs before the warm-up reached it is still built
-    when asked for. If they are slow (a cold cache: the first start, a new NRO with new shaders or
-    a new Mesa), the loading screen comes up as before, about 0.3 s after start. If the builds
-    turn slow behind the logos (a partly warm cache) after at least 3 slow builds and the priority
-    pipelines left would take more than 1 s at that pace, the loading screen comes up there, during
-    the logo scene, until they are built (the game's frame counter waits meanwhile). `always`: the
-    loading screen whenever its pipelines are not built yet (the behaviour before `auto`); `never`:
-    no loading screen. One line logs the choice:
+  - `COS_PRECOMPILE_SCREEN` says when `boot` and `full` show that loading screen:
+    - `auto` (the default): when there is slow work to do, for the **whole** warm-up. The warm-up
+      starts with nothing drawn while the harness watches its first builds (up to 8, at most 0.3 s)
+      and reads `user/cache/precompile_state.txt`, the outcome of the last warm-up. The slow work
+      left is: every pipeline left if the first builds average more than `COS_PRECOMPILE_SLOW_MS`
+      (25 ms; with the shader cache warm a build costs ~12 ms, a miss 100-300 ms) — a cold cache:
+      the first start, a new NRO with new shaders or a new Mesa; none if they are fast and the last
+      warm-up was complete; and the pipelines past the point where the last one stopped if it did
+      not finish (the app closed during the loading screen) or if there is no record (the first
+      start with this version), at the cost recorded then (100 ms each if none). If that would take
+      more than `COS_PRECOMPILE_SCREEN_MIN_S` (3 s), the loading screen stays up until every queued
+      pipeline is built, back to back (no throttle), presenting at `COS_PRECOMPILE_SCREEN_FPS`:
+      "Preparando shaders (solo la primera vez): N/M, ~X s" (English on a console in another
+      language: "Preparing shaders (first start only)"; `COS_LANG=es|en` overrides), the time left
+      from the pace of the last 5 s, so builds that turn out to be cache hits shorten it at once.
+      On the console a cold start takes about 2 minutes there (1120 pipelines, ~104 ms each) and
+      the logos, title and menus then run without a single warm-up compile. The record is written
+      when the screen starts, every 2 s while it is up and when it ends (`complete`), and when a
+      warm-up finishes behind the logos. Otherwise (a warm cache, or only a few slow pipelines
+      left) the game starts at once (the boot logo comes up directly) and the warm-up goes on
+      behind the logos as before: the priority pipelines first, the throttle letting fast builds
+      follow back to back, a pipeline a draw needs before the warm-up reached it built when asked
+      for. If the builds turn slow behind the logos (Switch, logo scene: at least 3 slow builds
+      among the last 32, and the pipelines left at that slow share and cost over
+      `COS_PRECOMPILE_SCREEN_MIN_S`), the loading screen comes up there until the whole warm-up is
+      built (the game's frame counter waits meanwhile).
+    - `priority`: what `auto` did before: when the first builds are slow, the loading screen for
+      the 176 priority pipelines only ("Preparing shaders... N/M", about 10-25 s), then the rest
+      behind the logos and menus, throttled (a 100-300 ms hitch per cold build on the title: 101
+      on the first start measured); fast, no screen. If the builds turn slow behind the logos
+      (3 slow builds, priority set left over 1 s at their pace) the screen comes up there for the
+      priority set.
+    - `always`: the loading screen for the priority set (`full`: every pipeline) whenever it is not
+      built yet (the behaviour before `auto`); `never`: no loading screen.
+
+    One line logs the choice, with the counts and the estimate (values vary):
 
     ```
-    [cos] precompile screen auto: 8 builds in 0.10 s, 12.1 ms each (COS_PRECOMPILE_SLOW_MS=25): shaders cached, no loading screen; the game starts and the 168 priority pipelines left build first behind the logos
-    [cos] precompile screen auto: 2 builds in 0.30 s, 151.0 ms each (COS_PRECOMPILE_SLOW_MS=25): shader cache cold, loading screen for the 174 priority pipelines left
-    [cos] precompile screen auto: builds turned slow behind the logos (3 slow builds, 140 ms each; 120 priority pipelines left, about 16.8 s at that pace): loading screen until they are built
+    [cos] precompile screen auto: 4 builds in 0.30 s, 64.4 ms each (COS_PRECOMPILE_SLOW_MS=25): shader cache cold; slow work about 71.9 s (> COS_PRECOMPILE_SCREEN_MIN_S=3.0): loading screen until the whole warm-up is built, 1116 of 1120 pipelines left, about 72 s
+    [cos] precompile screen auto: 8 builds in 0.10 s, 12.1 ms each (COS_PRECOMPILE_SLOW_MS=25): shaders cached and the last warm-up was complete (1120 pipelines); slow work about 0.0 s (<= COS_PRECOMPILE_SCREEN_MIN_S=3.0): no loading screen; the game starts and the 1112 of 1120 pipelines left (168 priority) build behind the logos
+    [cos] precompile screen auto: 8 builds in 0.10 s, 12.3 ms each (COS_PRECOMPILE_SLOW_MS=25): shaders cached so far, but the last warm-up stopped at 527/1120, so the 593 pipelines past it are taken as uncached at 104 ms each (recorded); slow work about 61.7 s (> COS_PRECOMPILE_SCREEN_MIN_S=3.0): loading screen until the whole warm-up is built, 1112 of 1120 pipelines left, about 68 s
+    [cos] precompile screen auto: 8 builds in 0.10 s, 12.0 ms each (COS_PRECOMPILE_SLOW_MS=25): shaders cached so far, but no record of a complete warm-up (precompile_state.txt), so all 1112 left are taken as uncached at 100 ms each; slow work about 111.2 s (> ...): loading screen until the whole warm-up is built, ...
+    [cos] precompile screen auto: builds turned slow behind the logos (5 of the last 32 builds slow, 140 ms each; 800 queued pipelines left, slow work about 17.5 s (> COS_PRECOMPILE_SCREEN_MIN_S=3.0)): loading screen until the whole warm-up is built
+    [cos] precompile screen priority: 2 builds in 0.30 s, 151.0 ms each (COS_PRECOMPILE_SLOW_MS=25): shader cache cold, loading screen for the 174 priority pipelines left
     ```
+
+    The first start of this version on a console whose shader cache is already warm has no record
+    yet, so it shows the screen once; the builds are cache hits (~12 ms), so it lasts ~15 s and
+    writes `complete`. Deleting `precompile_state.txt` (or `user/cache/`) brings that back.
   - `all`: no loading screen; every known pipeline is built whatever the game does, into gameplay
     (a stutter per pipeline), with the corner indicator until done.
   - `off`: nothing is built ahead.
-- Behind the logos and menus (`boot`, after the loading screen) the warm-up is throttled: each
+- Behind the logos and menus (`boot` without a loading screen, or after the priority set's) the
+  warm-up is throttled (after `auto`'s loading screen nothing is left to build): each
   build holds the GL context for 0.1-0.3 s and the render worker needs it for every frame, so back
   to back builds left the logos and title at 4-7 frames/s for about three minutes. Aurora Switch
   patch 0009 (`aurora_switch_set_warmup_throttle`) keeps the compile thread idle for
@@ -556,11 +585,16 @@ The log shows the warm-up (`COS_PRECOMPILE_LOG=0` hides the progress lines; valu
 ```
 [info] [aurora::gfx::pipeline_cache] Seeded pipeline cache from '/switch/centollos/initial_pipeline_cache.db' (R rows merged, 0 rows skipped)
 [info] [aurora::gfx::pipeline_cache] Bundled pipeline cache marks 176 pipelines as priority 0
-[cos] precompile: M pipelines queued from the pipeline cache, P of them priority (boot: loading screen for the priority set, then until the first PLAY scene; COS_PRECOMPILE_SCREEN=auto)
-[cos] precompile screen auto: K builds in T s, X ms each (COS_PRECOMPILE_SLOW_MS=25): shader cache cold, loading screen for the P priority pipelines left
-[cos] precompile loading screen: waiting for P priority pipelines
-[cos] precompile loading screen N/P, T s, F frames presented   <- once a second
-[cos] precompile loading screen done: P/P priority pipelines in T s, F frames presented; N/M of the warm-up built, the game starts
+[cos] precompile: M pipelines queued from the pipeline cache, P of them priority (boot: the warm-up runs until the first PLAY scene; COS_PRECOMPILE_SCREEN=auto (...))
+[cos] precompile screen auto: K builds in T s, X ms each (COS_PRECOMPILE_SLOW_MS=25): shader cache cold; slow work about S s (> COS_PRECOMPILE_SCREEN_MIN_S=3.0): loading screen until the whole warm-up is built, L of M pipelines left, about E s
+[cos] precompile loading screen: waiting for L queued pipelines, 10 frames/s at most (COS_PRECOMPILE_SCREEN_FPS), builds back to back
+[cos] precompile loading screen N/M, T s, F frames presented, about E s left at X ms each   <- once a second
+[cos] precompile loading screen done: M/M queued pipelines in T s, L built (B slow builds, X ms each), F frames presented; M/M of the warm-up built, the game starts
+[cos] precompile done: M/M pipelines, ...                       <- the first game frame: nothing left
+With `priority` or `always` (the priority set on the screen, the rest behind the logos):
+
+```
+[cos] precompile loading screen done: P/P priority pipelines in T s, P built, F frames presented; N/M of the warm-up built, the game starts
 [cos] precompile throttle: the rest of the warm-up builds about 50% of the time, each build after a present (COS_PRECOMPILE_DUTY=0.50)
 [cos] precompile N/M pipelines, T s, compile C s (X ms each); GL programs L linked, S shared; B pipeline builds: tint X ms, GL context Y ms each; throttle duty 0.50, H held back, W s waited; frame F, scene LOGO_SCENE
 [cos] precompile stopped (PLAY scene; D left to build when first drawn) at N/M pipelines, ...
@@ -569,9 +603,10 @@ The log shows the warm-up (`COS_PRECOMPILE_LOG=0` hides the progress lines; valu
 
 Without the shader cache every start compiled again, so the loading screen came back at every
 start and the logos and menus ran slower while the rest was built (throttled: see above).
-With it the first start still does that, and later starts build each known pipeline from the cache
-in about 12 ms (measured: the loading screen then lasted ~2.3 s), so with `COS_PRECOMPILE_SCREEN=auto`
-those starts skip the loading screen and the priority set builds behind the logos; the warm-up is kept
+With it the first start still does that (with `auto`, all of it on the loading screen), and later
+starts build each known pipeline from the cache in about 12 ms (measured: the priority set's
+loading screen then lasted ~2.3 s), so with `COS_PRECOMPILE_SCREEN=auto` those starts skip the
+loading screen and the warm-up builds behind the logos; the warm-up is kept
 (it creates Dawn's pipeline objects, which a first draw would otherwise create) and, once the
 cache's hit rate is confirmed on the console, `full` costs little more than `boot`. The game's frame counter does not move during the loading screen; the stall watchdog
 (`COS_STALL_S`) counts its frames instead. On the Mac the same file is read only if it is copied

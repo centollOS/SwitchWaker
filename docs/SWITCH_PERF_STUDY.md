@@ -568,6 +568,15 @@ Changes (each default on, each with an env switch for the A/B, each checked on M
     after the uniform window change) are pruned by a background compaction 60 s into a run
     (`mesa_shader_cache.use`, "Shader cache" in SWITCH_BUILD.md).
 
+- The first start on hardware with a cold cache (lane/forest-gpu log, `priority` behaviour then
+  called `auto`): the loading screen built the 176 priority pipelines in 10.5 s, then all 101
+  hitches on the title were warm-up builds behind it ("pipeline compile ... (1)", 100-300 ms
+  each; 1120 queued, ~104 ms each cold). `COS_PRECOMPILE_SCREEN=auto` now keeps the loading
+  screen until the whole warm-up is built when the cache is cold or the last warm-up did not
+  finish (`precompile_state.txt`), with "N/M, ~X s" from the measured pace and no throttle:
+  expected ~2 min once, then no warm-up compile on the logos, title or menus. The old behaviour is
+  `COS_PRECOMPILE_SCREEN=priority` (lane/cold-warmup; SWITCH_BUILD.md "Pipeline precompile").
+
 ### 7.4 A/B for the next hardware run
 
 `env.txt` variants in `build/lanes/draw-cost/build/switch-envs/` (all at 720p, GPU profile 460):
