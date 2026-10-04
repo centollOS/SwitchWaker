@@ -1,0 +1,342 @@
+Counters and timers of where shader compilation goes, for the application's log
+(include/mesa_switch.h, mesa_switch_get_stats): glCompileShader (and the compiles the GLSL cache
+deferred), glLinkProgram split into the GLSL linker and the state tracker's LinkShader (GLSL IR to
+TGSI plus the variant nvc0 builds at link time), nvc0_program_translate (TGSI to machine code),
+glProgramBinary/glGetProgramBinary, and the disk cache's gets and puts (filled by 0003).
+
+diff --git a/include/mesa_switch.h b/include/mesa_switch.h
+new file mode 100644
+index 0000000..fd9287d
+--- /dev/null
++++ b/include/mesa_switch.h
+@@ -0,0 +1,68 @@
++/*
++ * Switch (Horizon) build of Mesa 20.1 for the game native port (switch/mesa in that
++ * repository): counters and timers of the GLSL compiler, the state tracker and nvc0's code
++ * generator, and the state of the persistent shader cache, read by the application for its log.
++ * Public header: the build copies it into the install prefix's include directory.
++ */
++#ifndef MESA_SWITCH_H
++#define MESA_SWITCH_H
++
++#include <stdint.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++#define MESA_SWITCH_STATS_VERSION 1
++
++enum mesa_switch_stat {
++   /* glCompileShader (_mesa_glsl_compile_shader): calls, time, and calls the disk cache let it
++    * defer (the shader is compiled later only if the link misses the cache). */
++   MESA_SWITCH_GLSL_COMPILES,
++   MESA_SWITCH_GLSL_COMPILE_NS,
++   MESA_SWITCH_GLSL_COMPILES_SKIPPED,
++   /* glLinkProgram (_mesa_glsl_link_shader): calls and total time; of that, the GLSL linker
++    * (link_shaders, without the deferred compiles it runs), the driver's LinkShader (st: GLSL IR
++    * to TGSI and, for drivers with shareable shaders such as nvc0, the variant whose code
++    * generation is counted below), and links the GLSL cache satisfied. */
++   MESA_SWITCH_LINKS,
++   MESA_SWITCH_LINK_NS,
++   MESA_SWITCH_LINK_GLSL_NS,
++   MESA_SWITCH_LINK_ST_NS,
++   MESA_SWITCH_LINKS_FROM_CACHE,
++   /* nvc0_program_translate: TGSI to machine code (nv50_ir) and header, wherever it runs. */
++   MESA_SWITCH_NVC0_TRANSLATES,
++   MESA_SWITCH_NVC0_TRANSLATE_NS,
++   MESA_SWITCH_NVC0_CACHE_HITS,
++   /* glProgramBinary / glGetProgramBinary. */
++   MESA_SWITCH_BINARY_LOADS,
++   MESA_SWITCH_BINARY_LOAD_FAILS,
++   MESA_SWITCH_BINARY_LOAD_NS,
++   MESA_SWITCH_BINARY_SAVES,
++   MESA_SWITCH_BINARY_SAVE_NS,
++   /* The persistent shader cache (disk_cache on Horizon: one file, see disk_cache.c). */
++   MESA_SWITCH_CACHE_GETS,
++   MESA_SWITCH_CACHE_GET_HITS,
++   MESA_SWITCH_CACHE_GET_NS,
++   MESA_SWITCH_CACHE_CORRUPT,
++   MESA_SWITCH_CACHE_PUTS,
++   MESA_SWITCH_CACHE_PUT_BYTES,
++   MESA_SWITCH_CACHE_PUT_NS,
++   MESA_SWITCH_CACHE_PUTS_DROPPED,
++   MESA_SWITCH_CACHE_HAS_KEY_HITS,
++   MESA_SWITCH_CACHE_HAS_KEY_MISSES,
++   MESA_SWITCH_STAT_COUNT
++};
++
++/* Copies min(count, MESA_SWITCH_STAT_COUNT) running totals to out; returns MESA_SWITCH_STAT_COUNT. */
++unsigned mesa_switch_get_stats(uint64_t *out, unsigned count);
++
++/* One line on the persistent shader cache's state ("off", or its file, entries and what was
++ * discarded at load), for the application's log. Never NULL. */
++const char *mesa_switch_shader_cache_status(void);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
+diff --git a/src/compiler/glsl/glsl_parser_extras.cpp b/src/compiler/glsl/glsl_parser_extras.cpp
+index c394f00..b74c518 100644
+--- a/src/compiler/glsl/glsl_parser_extras.cpp
++++ b/src/compiler/glsl/glsl_parser_extras.cpp
+@@ -34,6 +34,7 @@
+ #include "util/ralloc.h"
+ #include "util/disk_cache.h"
+ #include "util/mesa-sha1.h"
++#include "util/u_switch_stats.h"
+ #include "ast.h"
+ #include "glsl_parser_extras.h"
+ #include "glsl_parser.h"
+@@ -2154,9 +2155,25 @@ can_skip_compile(struct gl_context *ctx, struct gl_shader *shader,
+    return false;
+ }
+ 
++static void
++glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
++                    bool dump_ast, bool dump_hir, bool force_recompile);
++
+ void
+ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
+                           bool dump_ast, bool dump_hir, bool force_recompile)
++{
++   const int64_t start = os_time_get_nano();
++   glsl_compile_shader(ctx, shader, dump_ast, dump_hir, force_recompile);
++   mesa_switch_stat_add(MESA_SWITCH_GLSL_COMPILE_NS, os_time_get_nano() - start);
++   mesa_switch_stat_add(MESA_SWITCH_GLSL_COMPILES, 1);
++   if (shader->CompileStatus == COMPILE_SKIPPED)
++      mesa_switch_stat_add(MESA_SWITCH_GLSL_COMPILES_SKIPPED, 1);
++}
++
++static void
++glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
++                    bool dump_ast, bool dump_hir, bool force_recompile)
+ {
+    const char *source = force_recompile && shader->FallbackSource ?
+       shader->FallbackSource : shader->Source;
+diff --git a/src/gallium/drivers/nouveau/nvc0/nvc0_program.c b/src/gallium/drivers/nouveau/nvc0/nvc0_program.c
+index 4cbe3cb..7cae851 100644
+--- a/src/gallium/drivers/nouveau/nvc0/nvc0_program.c
++++ b/src/gallium/drivers/nouveau/nvc0/nvc0_program.c
+@@ -26,6 +26,7 @@
+ #include "tgsi/tgsi_ureg.h"
+ 
+ #include "nvc0/nvc0_context.h"
++#include "util/u_switch_stats.h"
+ 
+ #include "codegen/nv50_ir_driver.h"
+ #include "nvc0/nve4_compute.h"
+@@ -568,9 +569,24 @@ nvc0_program_dump(struct nvc0_program *prog)
+ }
+ #endif
+ 
++static bool
++program_translate(struct nvc0_program *prog, uint16_t chipset,
++                  struct pipe_debug_callback *debug);
++
+ bool
+ nvc0_program_translate(struct nvc0_program *prog, uint16_t chipset,
+                        struct pipe_debug_callback *debug)
++{
++   const int64_t start = os_time_get_nano();
++   const bool ok = program_translate(prog, chipset, debug);
++   mesa_switch_stat_add(MESA_SWITCH_NVC0_TRANSLATE_NS, os_time_get_nano() - start);
++   mesa_switch_stat_add(MESA_SWITCH_NVC0_TRANSLATES, 1);
++   return ok;
++}
++
++static bool
++program_translate(struct nvc0_program *prog, uint16_t chipset,
++                  struct pipe_debug_callback *debug)
+ {
+    struct nv50_ir_prog_info *info;
+    int ret;
+diff --git a/src/mesa/main/program_binary.c b/src/mesa/main/program_binary.c
+index 8c2db25..37335a1 100644
+--- a/src/mesa/main/program_binary.c
++++ b/src/mesa/main/program_binary.c
+@@ -36,6 +36,7 @@
+ #include "util/bitscan.h"
+ #include "util/blob.h"
+ #include "util/crc32.h"
++#include "util/u_switch_stats.h"
+ #include "program_binary.h"
+ #include "program/prog_parameter.h"
+ 
+@@ -236,6 +237,8 @@ _mesa_get_program_binary(struct gl_context *ctx,
+    struct blob blob;
+    uint8_t driver_sha1[20];
+    unsigned header_size = get_program_binary_header_size();
++   const int64_t start = os_time_get_nano();
++   mesa_switch_stat_add(MESA_SWITCH_BINARY_SAVES, 1);
+ 
+    ctx->Driver.GetProgramBinaryDriverSHA1(ctx, driver_sha1);
+ 
+@@ -257,6 +260,7 @@ _mesa_get_program_binary(struct gl_context *ctx,
+    *length = header_size + blob.size;
+ 
+    blob_finish(&blob);
++   mesa_switch_stat_add(MESA_SWITCH_BINARY_SAVE_NS, os_time_get_nano() - start);
+    return;
+ 
+ fail:
+@@ -266,10 +270,26 @@ fail:
+    blob_finish(&blob);
+ }
+ 
++static void
++program_binary(struct gl_context *ctx, struct gl_shader_program *sh_prog,
++               GLenum binary_format, const GLvoid *binary, GLsizei length);
++
+ void
+ _mesa_program_binary(struct gl_context *ctx, struct gl_shader_program *sh_prog,
+                      GLenum binary_format, const GLvoid *binary,
+                      GLsizei length)
++{
++   const int64_t start = os_time_get_nano();
++   program_binary(ctx, sh_prog, binary_format, binary, length);
++   mesa_switch_stat_add(MESA_SWITCH_BINARY_LOAD_NS, os_time_get_nano() - start);
++   mesa_switch_stat_add(MESA_SWITCH_BINARY_LOADS, 1);
++   if (sh_prog->data->LinkStatus == LINKING_FAILURE)
++      mesa_switch_stat_add(MESA_SWITCH_BINARY_LOAD_FAILS, 1);
++}
++
++static void
++program_binary(struct gl_context *ctx, struct gl_shader_program *sh_prog,
++               GLenum binary_format, const GLvoid *binary, GLsizei length)
+ {
+    uint8_t driver_sha1[20];
+    unsigned header_size = get_program_binary_header_size();
+diff --git a/src/mesa/program/ir_to_mesa.cpp b/src/mesa/program/ir_to_mesa.cpp
+index 3b84723..a97c7f3 100644
+--- a/src/mesa/program/ir_to_mesa.cpp
++++ b/src/mesa/program/ir_to_mesa.cpp
+@@ -52,6 +52,7 @@
+ #include "program/prog_optimize.h"
+ #include "program/prog_print.h"
+ #include "program/program.h"
++#include "util/u_switch_stats.h"
+ #include "program/prog_parameter.h"
+ 
+ 
+@@ -3094,12 +3095,22 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
+    }
+    prog->data->spirv = spirv;
+ 
++   const int64_t link_start = os_time_get_nano();
++   const uint64_t compile_ns_before =
++      mesa_switch_stat_read(MESA_SWITCH_GLSL_COMPILE_NS);
+    if (prog->data->LinkStatus) {
+       if (!spirv)
+          link_shaders(ctx, prog);
+       else
+          _mesa_spirv_link_shaders(ctx, prog);
+    }
++   const int64_t glsl_end = os_time_get_nano();
++   /* The deferred compiles a cache miss runs inside link_shaders count as compiles. */
++   const uint64_t nested_compile_ns =
++      mesa_switch_stat_read(MESA_SWITCH_GLSL_COMPILE_NS) - compile_ns_before;
++   if ((uint64_t)(glsl_end - link_start) > nested_compile_ns)
++      mesa_switch_stat_add(MESA_SWITCH_LINK_GLSL_NS,
++                           (glsl_end - link_start) - nested_compile_ns);
+ 
+    /* If LinkStatus is LINKING_SUCCESS, then reset sampler validated to true.
+     * Validation happens via the LinkShader call below. If LinkStatus is
+@@ -3113,6 +3124,12 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
+    if (prog->data->LinkStatus && !ctx->Driver.LinkShader(ctx, prog)) {
+       prog->data->LinkStatus = LINKING_FAILURE;
+    }
++   const int64_t st_end = os_time_get_nano();
++   mesa_switch_stat_add(MESA_SWITCH_LINK_ST_NS, st_end - glsl_end);
++   mesa_switch_stat_add(MESA_SWITCH_LINK_NS, st_end - link_start);
++   mesa_switch_stat_add(MESA_SWITCH_LINKS, 1);
++   if (prog->data->LinkStatus == LINKING_SKIPPED)
++      mesa_switch_stat_add(MESA_SWITCH_LINKS_FROM_CACHE, 1);
+ 
+    if (prog->data->LinkStatus != LINKING_FAILURE)
+       _mesa_create_program_resource_hash(prog);
+diff --git a/src/util/meson.build b/src/util/meson.build
+index 7ea125e..b12b7d8 100644
+--- a/src/util/meson.build
++++ b/src/util/meson.build
+@@ -24,6 +24,8 @@ subdir('format')
+ subdir('xmlpool')
+ 
+ files_mesa_util = files(
++  'u_switch_stats.c',
++  'u_switch_stats.h',
+   'anon_file.h',
+   'anon_file.c',
+   'bigmath.h',
+diff --git a/src/util/u_switch_stats.c b/src/util/u_switch_stats.c
+new file mode 100644
+index 0000000..317284e
+--- /dev/null
++++ b/src/util/u_switch_stats.c
+@@ -0,0 +1,25 @@
++#include <string.h>
++
++#include "util/u_switch_stats.h"
++
++uint64_t mesa_switch_stats[MESA_SWITCH_STAT_COUNT];
++
++unsigned
++mesa_switch_get_stats(uint64_t *out, unsigned count)
++{
++   if (out) {
++      if (count > MESA_SWITCH_STAT_COUNT)
++         count = MESA_SWITCH_STAT_COUNT;
++      for (unsigned i = 0; i < count; i++)
++         out[i] = p_atomic_read(&mesa_switch_stats[i]);
++   }
++   return MESA_SWITCH_STAT_COUNT;
++}
++
++char mesa_switch_shader_cache_status_line[512] = "off (no shader cache in this build)";
++
++const char *
++mesa_switch_shader_cache_status(void)
++{
++   return mesa_switch_shader_cache_status_line;
++}
+diff --git a/src/util/u_switch_stats.h b/src/util/u_switch_stats.h
+new file mode 100644
+index 0000000..c6cc11f
+--- /dev/null
++++ b/src/util/u_switch_stats.h
+@@ -0,0 +1,33 @@
++/* Counters behind include/mesa_switch.h (Switch builds; harmless elsewhere). */
++#ifndef U_SWITCH_STATS_H
++#define U_SWITCH_STATS_H
++
++#include "mesa_switch.h"
++#include "util/os_time.h"
++#include "util/u_atomic.h"
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++extern uint64_t mesa_switch_stats[MESA_SWITCH_STAT_COUNT];
++/* What mesa_switch_shader_cache_status returns; written by the disk cache when it is created. */
++extern char mesa_switch_shader_cache_status_line[512];
++
++static inline void
++mesa_switch_stat_add(enum mesa_switch_stat stat, uint64_t value)
++{
++   p_atomic_add(&mesa_switch_stats[stat], value);
++}
++
++static inline uint64_t
++mesa_switch_stat_read(enum mesa_switch_stat stat)
++{
++   return p_atomic_read(&mesa_switch_stats[stat]);
++}
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif

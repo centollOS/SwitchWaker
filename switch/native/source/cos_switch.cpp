@@ -8,7 +8,8 @@
 //     writes what is still queued before the process ends.
 //
 // Memory: the process's used and total memory at start, every 15 seconds (from the log writer
-// thread) and at exit: "[switch] memory: used N MiB of M MiB".
+// thread) and at exit: "[switch] memory: used N MiB of M MiB". The shader cache's lines
+// (cos_shader_cache.cpp) come with it while they change, and at exit.
 //
 // Run options: COS_SWITCH_ROOT/env.txt, one NAME=value per line (# comments), applied before the
 // Switch defaults (setenv without overwrite): COS_DISC (the shared GZLE01.iso), COS_RUN_DIR (the
@@ -124,6 +125,10 @@ void writerMain(void*) {
         if (armTicksToNs(armGetSystemTick() - lastMemoryReport) >= 15000000000ULL) {
             lastMemoryReport = armGetSystemTick();
             reportMemory();
+            char shaders[2048];
+            if (cos_switch_shader_cache_report(shaders, sizeof(shaders), 0) > 0) {
+                sayf("%s", shaders);
+            }
         }
         mutexLock(&gRingLock);
         if (queuedLocked() == 0) {
@@ -555,6 +560,11 @@ void cos_switch_start(int argc, char** argv) {
     char mode[160];
     cos_switch_describe_mode(mode, sizeof(mode));
     sayf("[switch] clocks after the gpu profile: %s\n", mode);
+    // Before Aurora starts EGL, which creates Mesa's shader cache (cos_shader_cache.cpp).
+    char note[640];
+    if (cos_switch_shader_cache_setup(note, sizeof(note)) > 0) {
+        sayf("%s", note);
+    }
 }
 
 void cos_switch_flush_logs(void) {
@@ -580,6 +590,10 @@ void cos_switch_exit(int code) {
     }
     restoreGpuProfile();
     reportMemory();
+    char shaders[2048];
+    if (cos_switch_shader_cache_report(shaders, sizeof(shaders), 1) > 0) {
+        sayf("%s", shaders);
+    }
     sayf("[switch] exit %d after %u threads; ending the process\n", code, cos_switch_threads_created());
     cos_switch_flush_logs();
     usb_log_stop(1000);

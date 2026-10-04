@@ -471,6 +471,26 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # On top of the program sharing patch: counts of program binary cache hits, misses, rejected
+    # and stored binaries (dawn_switch_gl_program_binary_stats) for the native port's log; the
+    # Switch build of Mesa (switch/mesa) offers program binaries when its shader cache is on.
+    file(READ "${DAWN_OPENGL_PIPELINE_SOURCE}" DAWN_OPENGL_PIPELINE_TEXT)
+    if(NOT DAWN_OPENGL_PIPELINE_TEXT MATCHES "ProgramBinaryStats")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-program-binary-stats.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_PROGRAM_BINARY_STATS_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_PROGRAM_BINARY_STATS_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_PROGRAM_BINARY_STATS_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_PROGRAM_BINARY_STATS_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL program binary statistics patch:\n"
+                "${DAWN_GL_PROGRAM_BINARY_STATS_PATCH_OUTPUT}${DAWN_GL_PROGRAM_BINARY_STATS_PATCH_ERROR}")
+        endif()
+    endif()
+
     # On top of the replay timers, shared-VAO and functions-by-reference patches: ticks for the
     # parts of CommandBuffer::Execute the replay timers leave out (lazy clears, framebuffer set-up,
     # default state, LoadOp clears, pass end, viewport/scissor/blend commands, buffer and texture
