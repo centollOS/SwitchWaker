@@ -135,9 +135,7 @@ from collections import Counter
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
 BUILD = os.path.join(REPO, "build", "native-mac")
-# The maintainer's disc, used only when it exists and neither --disc nor COS_DISC is given.
-LEGACY_DISC = "/path/to/GZLE01.iso"
-DEFAULT_DISC = os.environ.get("COS_DISC") or (LEGACY_DISC if os.path.isfile(LEGACY_DISC) else None)
+DEFAULT_DISC = os.environ.get("COS_DISC") or None
 DEFAULT_OUT = os.path.join(BUILD, "disc_manifest.json")
 DISC_CHECK_CACHE = os.path.join(BUILD, "runs", "disc_check.txt")
 

@@ -424,9 +424,16 @@ void checkGci(u32 saveCount) {
     expect16("GCI block count", sGci, 0x38, kFileBlocks);
     expect32("GCI comment address", sGci, 0x3C, 0x1C00);
     const u8* data = sGci + kGciHeaderSize;
-    // Block 0: mDoMemCdRWm_HeaderData (banner, icon, comment, info).
-    if (strcmp((const char*)data + 0x1C00, "the game") != 0) {
-        fail("header comment \"%.32s\"", (const char*)data + 0x1C00);
+    // Block 0: mDoMemCdRWm_HeaderData (banner, icon, comment, info). The comment is the game's
+    // title, written by mDoMemCdRWm_BuildHeader: a non-empty printable string inside its 32 bytes.
+    const char* comment = (const char*)data + 0x1C00;
+    const size_t commentLen = strnlen(comment, 32);
+    bool commentPrintable = commentLen > 0 && commentLen < 32;
+    for (size_t i = 0; i < commentLen; i++) {
+        commentPrintable = commentPrintable && comment[i] >= 0x20 && comment[i] < 0x7F;
+    }
+    if (!commentPrintable) {
+        fail("header comment \"%.32s\"", comment);
     }
     if (strstr((const char*)data + 0x1C20, " Save Data") == nullptr) {
         fail("header info \"%.32s\"", (const char*)data + 0x1C20);

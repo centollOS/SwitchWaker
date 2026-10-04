@@ -11,7 +11,7 @@
 #   native/tools/run.sh run --frames 600 [--uncapped]      (prints the [cos] pacing line)
 # `boot-sweep` boots every stage of the disc in turn (step F4-boot-sweep): it hands its options to
 # native/tools/boot_sweep.py (see its --help), which runs this script once per stage.
-# `actor-sweep` (step 6.9, needs --stage, e.g. sea:44:206) spawns every actor profile next to Link,
+# `actor-sweep` (step 6.9, needs --stage, e.g. sea:44:206) spawns every actor profile next to the player,
 # runs it 30 frames and deletes it; COS_ACTOR_SWEEP=<first>[-<last>] limits it to those process
 # names. native/tools/actor_sweep.py runs it again after each fault and lists the faults.
 #
@@ -29,8 +29,7 @@
 #   --sound          play the audio on SDL's default device; without it SDL_AUDIO_DRIVER=dummy
 #                    (headless; an SDL_AUDIO_DRIVER already in the environment is kept)
 #   --disc PATH      COS_DISC, the GZLE01 revision 0 .iso: required (option or environment) for
-#                    every target that boots the game; without either, the maintainer's
-#                    /path/to/GZLE01.iso is used only if it exists
+#                    every target that boots the game
 #   --input PATH     COS_INPUT, the controller script (step 6.3; a relative path is taken from the
 #                    current directory, else from the repository); pad-echo defaults to
 #                    native/check/input/pad-echo.txt. The real new-game flow (new-game M11,
@@ -108,8 +107,6 @@ trace="${COS_TRACE:-}"
 uncapped="${COS_UNCAPPED:-}"
 audio="${COS_AUDIO:-on}"
 disc="${COS_DISC:-}"
-legacy_disc=/path/to/GZLE01.iso
-[ -z "$disc" ] && [ -f "$legacy_disc" ] && disc="$legacy_disc"
 input="${COS_INPUT:-}"
 stage="${COS_BOOT_STAGE:-}"
 shot="${COS_SHOT:-}"

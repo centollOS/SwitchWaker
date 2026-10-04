@@ -16,6 +16,22 @@ find_program(COS_GIT git REQUIRED)
 get_filename_component(_ceiling "${COS_AURORA_SRC}" DIRECTORY)
 set(ENV{GIT_CEILING_DIRECTORIES} "${_ceiling}")
 
+# With COS_AURORA_PATCH_HASH (the FetchContent patch step), a stamp in the tree records the patch
+# set applied last. The per-patch reverse check below cannot tell a fully patched tree apart when
+# later patches change the same lines as earlier ones (0008, 0010 and 0011 do), so a rerun of the
+# patch step (any reconfigure) relies on the stamp instead.
+set(_stamp "${COS_AURORA_SRC}/.cos_aurora_patches")
+if (COS_AURORA_PATCH_HASH AND EXISTS "${_stamp}")
+    file(READ "${_stamp}" _old_hash)
+    string(STRIP "${_old_hash}" _old_hash)
+    if (_old_hash STREQUAL COS_AURORA_PATCH_HASH)
+        message(STATUS "cos_native: Aurora patch set already applied (${_stamp})")
+        return()
+    endif ()
+    message(FATAL_ERROR "cos_native: ${COS_AURORA_SRC} has another Aurora patch set applied; "
+            "delete _deps/aurora-src and _deps/aurora-subbuild in the build directory and configure again")
+endif ()
+
 file(GLOB _patches LIST_DIRECTORIES false "${COS_AURORA_PATCH_DIR}/*.patch")
 list(SORT _patches)
 foreach (_patch IN LISTS _patches)
@@ -35,3 +51,6 @@ foreach (_patch IN LISTS _patches)
     endif ()
     message(STATUS "cos_native: applied Aurora patch ${_name}")
 endforeach ()
+if (COS_AURORA_PATCH_HASH)
+    file(WRITE "${_stamp}" "${COS_AURORA_PATCH_HASH}\n")
+endif ()

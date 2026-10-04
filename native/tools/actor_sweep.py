@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Spawn every actor profile next to Link in Outset, going on after faults (docs/NATIVE_PORT_PHASE4_6.md,
+"""Spawn every actor profile next to the player in Outset, going on after faults (docs/NATIVE_PORT_PHASE4_6.md,
 step 6.9 robustness).
 
   native/tools/actor_sweep.py [options]
 
 Runs `run.sh actor-sweep --stage sea:44:206 --uncapped` (COS_SMOKE=actor-sweep,
-native/src/pc/pc_actor_sweep.cpp: each actor profile is created next to Link, run 30 game frames and
+native/src/pc/pc_actor_sweep.cpp: each actor profile is created next to the player, run 30 game frames and
 deleted; a refused creation is fine). A fault ends that run; the profile it was on is the last
 "begin" line of the run's actor_sweep.txt. The next run starts after it (COS_ACTOR_SWEEP=<n>-<last>),
 until the last profile is done. Each run lands in <sweep dir>/from-<n>/ (the usual run.sh run
@@ -22,7 +22,7 @@ Options:
   --range A-B     process names to sweep (default every one)
   --timeout S     run.sh --timeout per run (default 300)
   --max-runs N    stop after N runs (default 200)
-  --disc PATH     the GZLE01 .iso (default COS_DISC or the maintainer's image)
+  --disc PATH     the GZLE01 .iso (default COS_DISC)
   --exe PATH      the executable (default build/native-mac/centollos)
   --out DIR       the sweep directory (default build/native-mac/runs/actor-sweeps-<timestamp>)
 Nothing here is meant for git.
@@ -80,7 +80,7 @@ def main():
     ap.add_argument("--range", default=None)
     ap.add_argument("--timeout", type=int, default=300)
     ap.add_argument("--max-runs", type=int, default=200)
-    ap.add_argument("--disc", default=os.environ.get("COS_DISC") or boot_sweep.LEGACY_DISC)
+    ap.add_argument("--disc", default=os.environ.get("COS_DISC", ""))
     ap.add_argument("--exe", default=None)
     ap.add_argument("--out", default=None)
     args = ap.parse_args()

@@ -720,9 +720,9 @@ def _gc_argv(cxx: str, version: int) -> list[str]:
     takes its #else) and MSL, compiled by clang for 32-bit big-endian PowerPC EABI, whose struct
     layout rules (natural alignment, 8-byte u64/f64, bitfields from the most significant bit)
     are those of MWCC. Syntax only: nothing is generated."""
-    centollos = os.path.join(NATIVE, "..", "game")
-    msl = os.path.join(centollos, "src", "PowerPC_EABI_Support")
-    incs = [os.path.join(centollos, "include"), os.path.join(centollos, "src"),
+    game = os.path.join(NATIVE, "..", "game")
+    msl = os.path.join(game, "src", "PowerPC_EABI_Support")
+    incs = [os.path.join(game, "include"), os.path.join(game, "src"),
             os.path.join(msl, "MSL", "MSL_C", "MSL_Common", "Include"),
             os.path.join(msl, "MSL", "MSL_C", "PPC_EABI", "Include"),
             os.path.join(msl, "MSL", "MSL_C++", "MSL_Common", "Include"),

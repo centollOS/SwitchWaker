@@ -28,7 +28,7 @@ Options:
   --stall S       run.sh --stall per stage (default 30)
   --only LIST     comma-separated stage names (default: every stage)
   --list          print the chosen starts and exit (no runs)
-  --disc PATH     the GZLE01 .iso (default COS_DISC or the maintainer's image)
+  --disc PATH     the GZLE01 .iso (default COS_DISC)
   --exe PATH      the executable (default build/native-mac/centollos)
   --out DIR       the sweep directory (default build/native-mac/runs/boot-sweep-<timestamp>)
 
@@ -69,7 +69,6 @@ BUILD = os.path.join(REPO, "build", "native-mac")
 COS_RUN = os.path.join(SCRIPT_DIR, "run.sh")
 DISC_MANIFEST = os.path.join(SCRIPT_DIR, "disc_manifest.py")
 MANIFEST = os.path.join(BUILD, "disc_manifest.json")
-LEGACY_DISC = "/path/to/GZLE01.iso"
 
 MEANING = {0: "reached", 1: "check failed", 2: "usage error", 10: "timeout", 11: "stall",
            12: "panic", 13: "signal", 14: "disc problem"}
@@ -78,8 +77,8 @@ MEANING = {0: "reached", 1: "check failed", 2: "usage error", 10: "timeout", 11:
 # "intermittent" when the stage reaches that failure on some runs only and passes otherwise).
 # Documented in docs/NATIVE_PORT_PLAN.md ("boot-sweep expected fails").
 _LKD01 = ("needs event flag 0x2D01 (set by M2tower's rescue.stb before the game ever reaches the "
-          "stage): d_s_play.cpp phase_0 mounts Link's demo animations LkD01.arc only with it, "
-          "the debug boot's new file mounts LkD00.arc, and the stage's Link cutscene asks for "
+          "stage): d_s_play.cpp phase_0 mounts the player's demo animations LkD01.arc only with it, "
+          "the debug boot's new file mounts LkD00.arc, and the stage's the player cutscene asks for "
           "LkD01 file ids (btp 368 and btk 355 name other file types in LkD00)")
 _LKD01_SIG = r"in (JUTNameTab::getIndex|J3DAnmTexPattern::searchUpdateMaterialID) "
 _ENDING = ("the ending stage: the game enters it only with layer 8, whose LBNK entry (0x25) makes "
@@ -94,7 +93,7 @@ _MSMOKE = ("leftover test stage with incomplete disc data: its stage.dzs places 
            "NULL and the original game stops at the same JUT_ASSERT (d_a_door10.cpp:356)")
 _I_SUBAN = ("leftover test stage with incomplete disc data, reached on some runs only: the "
             "sweep's start (room 9) is 424 units from the room's daWarpls (radius 225), and when "
-            "an enemy knocks the idle Link into it the warp's SCLS 0 sends him to sea start 1 "
+            "an enemy knocks the idle player into it the warp's SCLS 0 sends him to sea start 1 "
             "room 47; the disc's sea Room47 PLYR has points 0, 5 and 100-103 only, so "
             "dStage_playerInit finds no point 1 and stops at its JUT_ASSERT (d_stage.cpp:1787; a "
             "retail build reads past the PLYR list). Whether the knock-back happens within the "
@@ -335,8 +334,7 @@ def main():
     ap.add_argument("--stall", type=int, default=30)
     ap.add_argument("--only", default="")
     ap.add_argument("--list", action="store_true")
-    ap.add_argument("--disc", default=os.environ.get("COS_DISC") or
-                    (LEGACY_DISC if os.path.isfile(LEGACY_DISC) else ""))
+    ap.add_argument("--disc", default=os.environ.get("COS_DISC", ""))
     ap.add_argument("--exe", default="")
     ap.add_argument("--out", default="")
     args = ap.parse_args()

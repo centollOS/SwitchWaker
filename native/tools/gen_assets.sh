@@ -9,8 +9,8 @@
 #   --out DIR      where the headers go (default: build/native-mac/assets/GZLE01, the default
 #                  COS_ASSETS_DIR of native/cmake/GameConfig.cmake)
 #
-# Steps: a shallow checkout of the decompilation fork at b09eebc (the commit game
-# was imported from), the disc linked into its orig/GZLE01/, `python configure.py`, then only the
+# Steps: a shallow checkout of the decompilation game/ was imported from, at the commit it was
+# imported from (both read from game/UPSTREAM), the disc linked into its orig/GZLE01/, `python configure.py`, then only the
 # ninja targets that write headers: the `dtk dol split` of main.dol and the RELs (which also
 # checks main.dol's SHA-1) and the converters that turn the extracted model data into headers.
 # The Metrowerks compilers are not downloaded and nothing is compiled. The decomp's tracked
@@ -20,12 +20,14 @@
 # which git ignores: the generated headers are derived from the disc and must never be committed.
 set -euo pipefail
 
-decomp_url="the decompilation fork"
-decomp_pin="b09eebc39852e18397031d9a563a8eae124f21f1"
 version=GZLE01
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$script_dir/../.." && pwd)"
+# game/UPSTREAM: "url=<repository>" and "commit=<sha>" of the decompilation game/ came from.
+decomp_url="$(sed -n 's/^url=//p' "$repo/game/UPSTREAM")"
+decomp_pin="$(sed -n 's/^commit=//p' "$repo/game/UPSTREAM")"
+[ -n "$decomp_url" ] && [ -n "$decomp_pin" ] || { echo "gen_assets: game/UPSTREAM lacks url= or commit=" >&2; exit 2; }
 disc="${COS_DISC:-}"
 decomp="$repo/build/decomp"
 out="$repo/build/native-mac/assets/$version"
@@ -67,7 +69,7 @@ command -v ninja >/dev/null || { echo "gen_assets: needs ninja (brew install nin
 
 # --- the decompilation, at the pin --------------------------------------------------------------
 if [ ! -e "$decomp/.git" ]; then
-    echo "gen_assets: fetching the decompilation fork ${decomp_pin:0:7} into $decomp"
+    echo "gen_assets: fetching the decompilation (${decomp_pin:0:7}) into $decomp"
     mkdir -p "$decomp"
     git -C "$decomp" init -q
     git -C "$decomp" remote add origin "$decomp_url"
