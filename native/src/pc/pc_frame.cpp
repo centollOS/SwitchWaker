@@ -32,6 +32,7 @@
 // aurora_begin_frame waits and retries instead of skipping the game frame.
 #include "pc_internal.h"
 #include "pc/pc_gpu_opts.h"
+#include "pc/pc_dynres.h"
 
 #include "JSystem/JAudio/osdsp_task.h"
 #include "JSystem/JKernel/JKRHeap.h"
@@ -929,6 +930,7 @@ void pc_frame_begin(void) {
     sEventsDoneNs = monotonicNs();
     // COS_GPU_GROUPS / COS_DRAW_CENSUS (pc_gpu_opts.h): before Aurora starts recording the frame.
     pc_gpu_groups_frame_begin(pc_frame_count() + 1);
+    pc_dynres_frame_begin(pc_frame_count() + 1); // COS_DYNRES (pc_dynres.h)
     // Refused while the window cannot present (minimised, no surface yet): the console would not
     // run a frame without a display either. The stall watchdog reports a refusal that lasts.
     for (;;) {

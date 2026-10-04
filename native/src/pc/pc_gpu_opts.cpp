@@ -1,5 +1,6 @@
 // Opt-in GPU-side reductions for A/B runs (native/include/pc/pc_gpu_opts.h).
 #include "pc/pc_gpu_opts.h"
+#include "pc/pc_dynres.h"
 
 #include "pc_internal.h"
 
@@ -293,6 +294,12 @@ void pc_efb_pixel_size(unsigned int logicalW, unsigned int logicalH, unsigned in
         const float sy = static_cast<float>(window.fb_height) / static_cast<float>(logicalFbH);
         w = static_cast<unsigned int>(std::lround(static_cast<float>(logicalW) * sx));
         h = static_cast<unsigned int>(std::lround(static_cast<float>(logicalH) * sy));
+    }
+    // COS_DYNRES (pc_dynres.h): logical coordinates span only the scaled part of the EFB.
+    const float content = pc_dynres_content_scale();
+    if (content < 1.f) {
+        w = static_cast<unsigned int>(std::lround(static_cast<float>(w) * content));
+        h = static_cast<unsigned int>(std::lround(static_cast<float>(h) * content));
     }
     *outW = w != 0 ? w : 1;
     *outH = h != 0 ? h : 1;

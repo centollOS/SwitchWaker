@@ -7,6 +7,7 @@
 #if TARGET_PC
 #include "pc/pc_aspect.h"
 #include "pc/pc_gpu_opts.h"
+#include "pc/pc_dynres.h"
 // COS_GPU_GROUPS (pc_gpu_opts.h): a GX debug marker before each bucket the GPU timer groups by.
 #define PC_GPU_GROUP(name) pc_gpu_group(name)
 void pcMistDrawFullscreen(void* buf, GXBool blend, u32 w, u32 h); // d_kankyo_rain.cpp
@@ -1610,6 +1611,13 @@ bool mDoGph_Painter() {
     graf.setPort();
 
     dComIfGp_setCurrentGrafPort(&graf);
+#if TARGET_PC
+    // COS_DYNRES (pc_dynres.h): the 3D part, from here to the end of the camera block, at the
+    // dynamic resolution level's scale; the 2D after it at the full scale.
+    if (dComIfGp_getWindowNum() != 0 && dComIfGp_getCamera(dComIfGp_getWindow(0)->getCameraID()) != NULL) {
+        pc_dynres_3d_begin();
+    }
+#endif
     dComIfGd_drawCopy2D();
     if (dComIfGp_getWindowNum() != 0) {
         dDlst_window_c* window = dComIfGp_getWindow(0);
@@ -1816,6 +1824,10 @@ bool mDoGph_Painter() {
             }
         }
     }
+
+#if TARGET_PC
+    pc_dynres_3d_end(); // COS_DYNRES: the 3D stretched over the EFB, full scale again
+#endif
 
     if (mCaptureStep == 3) {
 #if VERSION > VERSION_DEMO
