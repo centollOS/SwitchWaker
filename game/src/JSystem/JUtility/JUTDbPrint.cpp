@@ -47,7 +47,15 @@ JUTFont* JUTDbPrint::changeFont(JUTFont* pFont) {
 /* 802C3360-802C33E8       .text enter__10JUTDbPrintFiiiPCci */
 void JUTDbPrint::enter(int param_0, int param_1, int param_2, const char* param_3, int param_4) {
     if (param_4 > 0) {
+#if TARGET_PC
+        // Bug B14: 0x10 was the GameCube's header (0xC) plus the room for the terminating NUL
+        // and alignment; on the host the 8-byte mNext puts the text at 0x10, so strcpy wrote
+        // its NUL one byte past the block (ASan with the JKR poisoning, actor sweep, d_a_bmd).
+        unk_print* ptr = static_cast<unk_print*>(
+            JKRAllocFromHeap(mHeap, offsetof(unk_print, unk_0x0C) + param_4 + 1, -4));
+#else
         unk_print* ptr = static_cast<unk_print*>(JKRAllocFromHeap(mHeap, param_4 + 0x10, -4));
+#endif
         if (ptr != NULL) {
             ptr->unk_0x04 = param_0;
             ptr->unk_0x06 = param_1;
