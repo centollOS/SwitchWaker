@@ -246,7 +246,14 @@ void daMant_packet_c::draw() {
 #endif
     GXTlutObj tlut;
     GXTexObj tex;
+#if TARGET_PC
+    // Bug B15: the palettes are 16 colours (32 bytes, the C4 texture's), but the TLUT is loaded
+    // with 256 entries. The console's GXLoadTlut copied the 480 bytes after the palette into TMEM
+    // unused; Aurora hashes the whole TLUT and read past the global array (ASan, actor sweep).
+    GXInitTlutObj(&tlut, palette, GX_TL_RGB5A3, 16);
+#else
     GXInitTlutObj(&tlut, palette, GX_TL_RGB5A3, 256);
+#endif
     GXInitTexObjCI(&tex, texture, 128, 128, GX_TF_C4, GX_CLAMP, GX_CLAMP, GX_FALSE, GX_TLUT0);
     GXInitTexObjLOD(&tex, GX_LINEAR, GX_LINEAR, 0.0f, 0.0f, 0.0f, GX_FALSE, GX_FALSE, GX_ANISO_1);
     GXLoadTlut(&tlut, GX_TLUT0);
