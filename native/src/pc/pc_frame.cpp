@@ -303,7 +303,7 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
     const unsigned int resLoads = ev.resources - prev.resources;
     const bool sceneChanged = ev.scene != prev.scene;
     const uint64_t beginFrameNs = f.beginNs > f.eventsNs ? f.beginNs - f.eventsNs : 0;
-    char platform[1536] = "";
+    char platform[2048] = "";
 #if defined(__SWITCH__)
     CosSwitchGfxStats now{};
     cos_switch_gfx_stats(&now);
@@ -314,7 +314,9 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
              "%.1f, pipeline compile %.1f ms (%llu), dvd %llu reads %.1f KiB %.1f ms; dawn gl: %llu "
              "draws, %llu tex binds, %llu texparams, execute %.1f, other work %.1f, release %.1f ms "
              "(first pass %.1f: fbo %.1f, clears %.1f, replay %.1f; other passes %.1f; buffer "
-             "copies %.1f, first %.1f; texture copies %.1f); gpu %.1f ms over %llu frames read back; "
+             "copies %.1f, first %.1f; texture copies %.1f; tex uploads %llu in %.1f ms, %llu "
+             "compressed calls (%llu packed), %llu textures created in %.1f ms); gpu %.1f ms over "
+             "%llu frames read back; "
              "cpu: game %.1f, render worker %.1f, audio %.1f, dvd %.1f, other %.1f ms",
              msOf(now.frameSlotWaitNs - p.frameSlotWaitNs), msOf(now.stagingWaitNs - p.stagingWaitNs),
              msOf(now.queueFullWaitNs - p.queueFullWaitNs), msOf(now.workerBusyNs - p.workerBusyNs),
@@ -334,7 +336,12 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
              msOf(now.glFirstPassReplayNs - p.glFirstPassReplayNs),
              msOf(subOrZero(now.glPassTotalNs - p.glPassTotalNs, now.glFirstPassNs - p.glFirstPassNs)),
              msOf(now.glBufCopyNs - p.glBufCopyNs), msOf(now.glFirstBufCopyNs - p.glFirstBufCopyNs),
-             msOf(now.glTexCopyNs - p.glTexCopyNs), msOf(now.gpuTotalNs - p.gpuTotalNs),
+             msOf(now.glTexCopyNs - p.glTexCopyNs), (unsigned long long)(now.glTexUploads - p.glTexUploads),
+             msOf(now.glTexUploadNs - p.glTexUploadNs),
+             (unsigned long long)(now.glCompressedUploadCalls - p.glCompressedUploadCalls),
+             (unsigned long long)(now.glCompressedRepacks - p.glCompressedRepacks),
+             (unsigned long long)(now.glTexCreates - p.glTexCreates), msOf(now.glTexCreateNs - p.glTexCreateNs),
+             msOf(now.gpuTotalNs - p.gpuTotalNs),
              (unsigned long long)(now.gpuFrames - p.gpuFrames), msOf(now.cpuGameNs - p.cpuGameNs),
              msOf(now.cpuRenderNs - p.cpuRenderNs), msOf(now.cpuAudioNs - p.cpuAudioNs),
              msOf(now.cpuDvdNs - p.cpuDvdNs), msOf(now.cpuOtherNs - p.cpuOtherNs));
@@ -472,7 +479,8 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
            "%.1f KiB; dvd %llu reads %.1f KiB %.1f ms; res loads %u; scene %s\n"
            "[cos] perf-switch dawn gl per frame: %.1f passes, %.1f draws, %.1f pipelines, %.1f bind "
            "groups, %.1f tex binds, %.1f texparams (%.1f skipped), %.1f uniform uploads, %.1f buffer "
-           "copies %.1f KiB, %.1f tex uploads; flush %.2f ms (%.1f items): execute %.2f, other work "
+           "copies %.1f KiB, %.1f tex uploads (%.2f ms, %.1f compressed calls, %.1f textures created "
+           "%.2f ms); flush %.2f ms (%.1f items): execute %.2f, other work "
            "%.2f, release %.2f\n",
            last - (unsigned int)n + 1, last, msOf(sSwWindowEventsNs) / n,
            msOf(cur.frameSlotWaitNs - w.frameSlotWaitNs) / n, msOf(cur.stagingWaitNs - w.stagingWaitNs) / n,
@@ -498,7 +506,10 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
            (cur.glTexBinds - w.glTexBinds) / wf, (cur.glTexParams - w.glTexParams) / wf,
            (cur.glTexParamsSkipped - w.glTexParamsSkipped) / wf, (cur.glUniforms - w.glUniforms) / wf,
            (cur.glBufCopies - w.glBufCopies) / wf, (cur.glBufCopyBytes - w.glBufCopyBytes) / 1024.0 / wf,
-           (cur.glTexUploads - w.glTexUploads) / wf, msOf(cur.glFlushNs - w.glFlushNs) / wf,
+           (cur.glTexUploads - w.glTexUploads) / wf, msOf(cur.glTexUploadNs - w.glTexUploadNs) / wf,
+           (cur.glCompressedUploadCalls - w.glCompressedUploadCalls) / wf,
+           (cur.glTexCreates - w.glTexCreates) / wf, msOf(cur.glTexCreateNs - w.glTexCreateNs) / wf,
+           msOf(cur.glFlushNs - w.glFlushNs) / wf,
            (cur.glFlushItems - w.glFlushItems) / wf, msOf(cur.glExecuteNs - w.glExecuteNs) / wf,
            msOf(glOtherWorkNs(cur) - glOtherWorkNs(w)) / wf, msOf(cur.glReleaseNs - w.glReleaseNs) / wf);
     {

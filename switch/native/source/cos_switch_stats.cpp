@@ -19,8 +19,8 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
     aurora_switch_get_stats(&a);
     uint64_t gl[6] = {};
     dawn_switch_gl_queue_stats(gl);
-    uint64_t cmd[71] = {};
-    dawn_switch_gl_cmd_stats(cmd, 71);
+    uint64_t cmd[76] = {};
+    dawn_switch_gl_cmd_stats(cmd, 76);
     uint64_t dvd[3] = {};
     cos_switch_nod_stats(dvd);
     uint64_t cpu[COS_SWITCH_THREAD_ROLES] = {};
@@ -120,6 +120,11 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
         .glPresents = cmd[68],
         .glPresentBlitNs = cmd[69],
         .glPresentSwapNs = cmd[70],
+        .glTexUploadNs = cmd[71],
+        .glCompressedUploadCalls = cmd[72],
+        .glCompressedRepacks = cmd[73],
+        .glTexCreates = cmd[74],
+        .glTexCreateNs = cmd[75],
         .cpuGameNs = cpu[COS_SWITCH_THREAD_GAME],
         .cpuRenderNs = cpu[COS_SWITCH_THREAD_RENDER],
         .cpuAudioNs = cpu[COS_SWITCH_THREAD_AUDIO],

@@ -793,4 +793,26 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
                 "${DAWN_GL_CLIP_CONTROL_PATCH_OUTPUT}${DAWN_GL_CLIP_CONTROL_PATCH_ERROR}")
         endif()
     endif()
+
+    # HD textures: GLES has no GL_UNPACK_COMPRESSED_BLOCK_*, so upstream uploads compressed
+    # textures one row of blocks per glCompressedTexSubImage2D (257 calls for a 512x512 BC7 with
+    # mips, each a Mesa staging bo and GPU copy): turning HD textures on blocked the render worker
+    # for a second. One call per mip level instead (padded rows packed on the CPU), plus upload and
+    # texture creation counters. COS_SWITCH_GL_LEVEL_UPLOAD=0 at run time for the upstream path.
+    file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/CommandBufferGL.cpp" DAWN_OPENGL_COMMAND_BUFFER_TEXT)
+    if(NOT DAWN_OPENGL_COMMAND_BUFFER_TEXT MATCHES "SwitchLevelUploads")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-compressed-upload.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_COMPRESSED_UPLOAD_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_COMPRESSED_UPLOAD_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_COMPRESSED_UPLOAD_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_COMPRESSED_UPLOAD_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL compressed upload patch:\n"
+                "${DAWN_GL_COMPRESSED_UPLOAD_PATCH_OUTPUT}${DAWN_GL_COMPRESSED_UPLOAD_PATCH_ERROR}")
+        endif()
+    endif()
 endif()

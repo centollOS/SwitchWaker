@@ -107,6 +107,10 @@ typedef struct {
     // dawn-switch-gl-present-split.patch: presents, ns in the blit to the window (NWindow dequeue
     // included), ns in eglSwapBuffers.
     uint64_t glPresents, glPresentBlitNs, glPresentSwapNs;
+    /* dawn-switch-gl-compressed-upload.patch: ns in CopyBufferToTexture, glCompressedTexSubImage2D
+     * calls, compressed copies packed on the CPU first, textures created and ns in their creation
+     * (glGenTextures + glTexStorage). */
+    uint64_t glTexUploadNs, glCompressedUploadCalls, glCompressedRepacks, glTexCreates, glTexCreateNs;
     /* CPU time (ns, the kernel's per-thread tick count) of the game thread, Aurora's render worker,
      * JAudio's audio thread, the game's DVD thread and every other thread together. */
     uint64_t cpuGameNs, cpuRenderNs, cpuAudioNs, cpuDvdNs, cpuOtherNs, cpuCompileNs;
