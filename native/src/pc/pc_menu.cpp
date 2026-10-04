@@ -106,6 +106,12 @@ uint32_t readScript() {
 // The face button labelled `label` (A or B) on this controller: a the console maker layout has A on the
 // right (east), an Xbox layout at the bottom (south).
 SDL_GamepadButton labelled(SDL_Gamepad* gp, SDL_GamepadButtonLabel label) {
+#if defined(__SWITCH__)
+    // Aurora's SDL 3 shim (switch/aurora/sdl3_shim) maps the Switch's A to south and B to east, and
+    // has no button labels.
+    (void)gp;
+    return label == SDL_GAMEPAD_BUTTON_LABEL_A ? SDL_GAMEPAD_BUTTON_SOUTH : SDL_GAMEPAD_BUTTON_EAST;
+#endif
     const SDL_GamepadButton buttons[] = {SDL_GAMEPAD_BUTTON_SOUTH, SDL_GAMEPAD_BUTTON_EAST,
                                          SDL_GAMEPAD_BUTTON_WEST, SDL_GAMEPAD_BUTTON_NORTH};
     for (SDL_GamepadButton b : buttons) {
