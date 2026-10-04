@@ -630,6 +630,14 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
         // pass's LoadOp clears waited for the previous frame's GPU work while Dawn freed its
         // swapchain texture under it; with the GL deletes deferred they cost tens of us.
         const double firstPasses = (double)(cur.glFirstPasses - w.glFirstPasses);
+        // The present split (dawn-switch-gl-present-split.patch): the blit to the window, whose
+        // first draw dequeues an NWindow buffer (waits for the compositor to free one), and
+        // eglSwapBuffers (flush and queue). A blit near the GPU time means no CPU/GPU overlap.
+        const double presents = (double)(cur.glPresents - w.glPresents);
+        writef(STDERR_FILENO,
+               "[cos] perf-switch present per present (%.0f): blit+dequeue %.2f ms, swap %.2f ms\n", presents,
+               presents > 0 ? msOf(cur.glPresentBlitNs - w.glPresentBlitNs) / presents : 0.0,
+               presents > 0 ? msOf(cur.glPresentSwapNs - w.glPresentSwapNs) / presents : 0.0);
         writef(STDERR_FILENO,
                "[cos] perf-switch gl stall: first-pass clears %.2f ms per frame; deferred deletes "
                "%s: +%llu deferred, +%llu deleted, +%llu forced, %llu pending\n",

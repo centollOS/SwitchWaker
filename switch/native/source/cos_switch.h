@@ -104,6 +104,9 @@ typedef struct {
      * pending now and the state (levels: 0 not used yet, 1 on, 2 COS_SWITCH_GL_DEFER_DELETE=0). */
     uint64_t glDeferDeletes, glDeferDeletesDone, glDeferDeletesForced, glDeferDeletePending;
     uint64_t glDeferDeleteState;
+    // dawn-switch-gl-present-split.patch: presents, ns in the blit to the window (NWindow dequeue
+    // included), ns in eglSwapBuffers.
+    uint64_t glPresents, glPresentBlitNs, glPresentSwapNs;
     /* CPU time (ns, the kernel's per-thread tick count) of the game thread, Aurora's render worker,
      * JAudio's audio thread, the game's DVD thread and every other thread together. */
     uint64_t cpuGameNs, cpuRenderNs, cpuAudioNs, cpuDvdNs, cpuOtherNs, cpuCompileNs;

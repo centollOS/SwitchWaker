@@ -677,6 +677,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # The present split in two timers (blit to the window, which dequeues the NWindow buffer, and
+    # eglSwapBuffers) and COS_SWITCH_SWAP_INTERVAL (docs/SWITCH_PERF_STUDY.md, section 8).
+    file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchStatsGL.h" DAWN_OPENGL_SWITCH_STATS_TEXT)
+    if(NOT DAWN_OPENGL_SWITCH_STATS_TEXT MATCHES "kPresentBlitNs")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-present-split.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_PRESENT_SPLIT_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_PRESENT_SPLIT_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_PRESENT_SPLIT_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_PRESENT_SPLIT_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL present split patch:\n"
+                "${DAWN_GL_PRESENT_SPLIT_PATCH_OUTPUT}${DAWN_GL_PRESENT_SPLIT_PATCH_ERROR}")
+        endif()
+    endif()
+
     set(DAWN_WGPU_HELPERS_SOURCE
         "${dawn_SOURCE_DIR}/src/dawn/native/utils/WGPUHelpers.cpp")
     file(READ "${DAWN_WGPU_HELPERS_SOURCE}" DAWN_WGPU_HELPERS_TEXT)
