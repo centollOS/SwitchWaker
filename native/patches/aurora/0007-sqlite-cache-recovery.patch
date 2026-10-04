@@ -27,14 +27,20 @@ lib/gfx/pipeline_cache.cpp: the same open retry, and a file found damaged while 
 deleted and the cache started again from an empty file (seeded from the bundled cache); found
 damaged by the writer thread, the file is deleted and the next run starts it again.
 
-lib/sqlite_utils.hpp: is_damaged, reset_on_open_failure, reset_cache_file, ErrorLimiter, and
-apply_cache_pragmas (WAL + NORMAL as before; the Switch patch 0006 sets its own journal).
+lib/sqlite_utils.hpp: is_damaged, reset_on_open_failure, reset_cache_file, ErrorLimiter,
+apply_cache_pragmas (WAL + NORMAL as before; the Switch patch 0006 sets its own journal) and
+journal_fallback (false here; on the Switch it drops a failing journal file for
+journal_mode=MEMORY): Dawn cache stores and prunes, the pipeline cache's seeding from the
+bundled cache and its writer thread try a write once more when it says so, so the bundled
+pipelines are still merged when the journal file fails. Transaction::commit returns its
+result, and the destructor does not roll back a transaction sqlite already ended after an
+I/O error ("cannot rollback - no transaction is active").
 
 diff --git a/lib/gfx/pipeline_cache.cpp b/lib/gfx/pipeline_cache.cpp
-index f8cf35b..07062c5 100644
+index f8cf35b..5ad9da0 100644
 --- a/lib/gfx/pipeline_cache.cpp
 +++ b/lib/gfx/pipeline_cache.cpp
-@@ -547,8 +547,16 @@ static PipelineRef resolve_pipeline(ShaderType type, const rmlui::PipelineConfig
+@@ -547,8 +547,18 @@ static PipelineRef resolve_pipeline(ShaderType type, const rmlui::PipelineConfig
  }
  #endif
  
@@ -42,6 +48,8 @@ index f8cf35b..07062c5 100644
 +// a killed process, a truncated or overwritten file): the file is then deleted and, while loading,
 +// started again from an empty one instead of being left broken for every later run.
 +static bool g_pipelineCacheDamaged = false;
++// The result of the last failed write_pipeline_cache_record (for journal_fallback).
++static int g_pipelineCacheWriteError = SQLITE_OK;
 +
  static void pipeline_cache_abort() {
    g_pipelineCacheBroken = true;
@@ -51,8 +59,87 @@ index f8cf35b..07062c5 100644
    if (g_pipelineCacheLoadStmt != nullptr) {
      sqlite3_finalize(g_pipelineCacheLoadStmt);
      g_pipelineCacheLoadStmt = nullptr;
-@@ -711,39 +719,104 @@ static void seed_pipeline_cache() {
+@@ -612,15 +622,34 @@ static sqlite3* open_pipeline_cache_seed_db(const std::string& path) {
+   return seedDb;
+ }
+ 
++static int seed_pipeline_cache_once();
++static std::string pipeline_cache_db_path();
++
++// Merges the bundled pipeline cache. A write that fails because of the journal file is tried once
++// more after sqlite::journal_fallback (the Switch: journal_mode=MEMORY).
+ static void seed_pipeline_cache() {
+   if (g_pipelineCacheBroken || g_pipelineCacheDb == nullptr || g_pipelineCacheUpsertStmt == nullptr) {
+     return;
    }
++  int ret = seed_pipeline_cache_once();
++  if (ret != SQLITE_OK && sqlite::journal_fallback(g_pipelineCacheDb, ret, pipeline_cache_db_path(), Log)) {
++    ret = seed_pipeline_cache_once();
++  }
++  if (ret != SQLITE_OK) {
++    if (sqlite::is_damaged(ret)) {
++      g_pipelineCacheDamaged = true; // the rollback cleared the connection's error
++    }
++    pipeline_cache_abort();
++  }
++}
++
++// Returns SQLITE_OK, also when there is nothing to merge, or the failed write's result.
++static int seed_pipeline_cache_once() {
+ 
+   const auto seedPath = pipeline_cache_seed_path();
+   sqlite3* seedDb = open_pipeline_cache_seed_db(seedPath);
+   if (seedDb == nullptr) {
+-    return;
++    return SQLITE_OK;
+   }
+ 
+   sqlite3_stmt* seedStmt = nullptr;
+@@ -639,7 +668,7 @@ static void seed_pipeline_cache() {
+   if (ret != SQLITE_OK) {
+     Log.warn("Failed to read bundled pipeline cache rows from '{}': {}", seedPath, sqlite3_errmsg(seedDb));
+     closeSeed();
+-    return;
++    return SQLITE_OK;
+   }
+ 
+   bool writeFailed = false;
+@@ -650,9 +679,9 @@ static void seed_pipeline_cache() {
+     sqlite::Transaction tx(g_pipelineCacheDb, Log, true);
+     if (!tx) {
+       Log.error("Failed to begin pipeline cache seed transaction");
++      const int beginError = sqlite3_errcode(g_pipelineCacheDb);
+       closeSeed();
+-      pipeline_cache_abort();
+-      return;
++      return beginError != SQLITE_OK ? beginError : SQLITE_ERROR;
+     }
+ 
+     while ((ret = sqlite3_step(seedStmt)) == SQLITE_ROW) {
+@@ -695,55 +724,123 @@ static void seed_pipeline_cache() {
+     }
+ 
+     if (!writeFailed && !readFailed) {
+-      tx.commit();
++      if (const int commitRet = tx.commit(); commitRet != SQLITE_OK) {
++        g_pipelineCacheWriteError = commitRet;
++        writeFailed = true;
++      }
+     }
+   }
+ 
+   closeSeed();
+ 
+   if (writeFailed) {
+-    pipeline_cache_abort();
+-    return;
++    return g_pipelineCacheWriteError != SQLITE_OK ? g_pipelineCacheWriteError : SQLITE_ERROR;
+   }
+ 
+   if (!readFailed) {
+     Log.info("Seeded pipeline cache from '{}' ({} rows merged, {} rows skipped)", seedPath, mergedRows, skippedRows);
+   }
++  return SQLITE_OK;
  }
  
 +static std::string pipeline_cache_db_path() {
@@ -166,7 +253,7 @@ index f8cf35b..07062c5 100644
          schemaFailed = true;
        }
      }
-@@ -754,7 +827,7 @@ static bool prepare_pipeline_cache_db() {
+@@ -754,7 +851,7 @@ static bool prepare_pipeline_cache_db() {
        ret = sqlite::exec(g_pipelineCacheDb, schemaQuery.c_str(),
                           [&schemaMatch](int, char**, char**) { schemaMatch = true; });
        if (ret != SQLITE_OK) {
@@ -175,7 +262,7 @@ index f8cf35b..07062c5 100644
          schemaFailed = true;
        }
      }
-@@ -778,7 +851,7 @@ INSERT INTO aurora_schema VALUES ({});)",
+@@ -778,7 +875,7 @@ INSERT INTO aurora_schema VALUES ({});)",
            PipelineCacheSchema);
        ret = sqlite::exec(g_pipelineCacheDb, schemaSql.c_str());
        if (ret != SQLITE_OK) {
@@ -184,7 +271,7 @@ index f8cf35b..07062c5 100644
          schemaFailed = true;
        }
      }
-@@ -789,8 +862,7 @@ INSERT INTO aurora_schema VALUES ({});)",
+@@ -789,8 +886,7 @@ INSERT INTO aurora_schema VALUES ({});)",
    }
  
    if (schemaFailed) {
@@ -194,7 +281,7 @@ index f8cf35b..07062c5 100644
    }
  
    ret = sqlite3_prepare_v3(g_pipelineCacheDb,
-@@ -799,9 +871,8 @@ INSERT INTO aurora_schema VALUES ({});)",
+@@ -799,9 +895,8 @@ INSERT INTO aurora_schema VALUES ({});)",
                             "ORDER BY first_frame_used ASC, rowid ASC",
                             -1, SQLITE_PREPARE_PERSISTENT, &g_pipelineCacheLoadStmt, nullptr);
    if (ret != SQLITE_OK) {
@@ -206,7 +293,7 @@ index f8cf35b..07062c5 100644
    }
  
    ret = sqlite3_prepare_v3(
-@@ -815,9 +886,8 @@ INSERT INTO aurora_schema VALUES ({});)",
+@@ -815,9 +910,8 @@ INSERT INTO aurora_schema VALUES ({});)",
        "first_frame_used = MIN(pipeline_cache.first_frame_used, excluded.first_frame_used)",
        -1, SQLITE_PREPARE_PERSISTENT, &g_pipelineCacheUpsertStmt, nullptr);
    if (ret != SQLITE_OK) {
@@ -218,7 +305,7 @@ index f8cf35b..07062c5 100644
    }
  
    seed_pipeline_cache();
-@@ -837,7 +907,9 @@ static void prune_old_pipeline_cache_versions() {
+@@ -837,7 +931,9 @@ static void prune_old_pipeline_cache_versions() {
                                         underlying(ShaderType::Clear), clear::ClearPipelineConfigVersion);
    auto ret = sqlite::exec(g_pipelineCacheDb, clearDelete.c_str());
    if (ret != SQLITE_OK) {
@@ -229,7 +316,7 @@ index f8cf35b..07062c5 100644
      pipeline_cache_abort();
      return;
    }
-@@ -846,7 +918,9 @@ static void prune_old_pipeline_cache_versions() {
+@@ -846,7 +942,9 @@ static void prune_old_pipeline_cache_versions() {
                                      underlying(ShaderType::GX), gx::GXPipelineConfigVersion);
    ret = sqlite::exec(g_pipelineCacheDb, gxDelete.c_str());
    if (ret != SQLITE_OK) {
@@ -240,7 +327,7 @@ index f8cf35b..07062c5 100644
      pipeline_cache_abort();
      return;
    }
-@@ -856,7 +930,9 @@ static void prune_old_pipeline_cache_versions() {
+@@ -856,7 +954,9 @@ static void prune_old_pipeline_cache_versions() {
                                       underlying(ShaderType::Rml), rmlui::RmlPipelineConfigVersion);
    ret = sqlite::exec(g_pipelineCacheDb, rmlDelete.c_str());
    if (ret != SQLITE_OK) {
@@ -251,7 +338,15 @@ index f8cf35b..07062c5 100644
      pipeline_cache_abort();
    }
  #endif
-@@ -902,7 +978,9 @@ static bool write_pipeline_cache_record(const PipelineCacheWrite& write) {
+@@ -864,6 +964,7 @@ static void prune_old_pipeline_cache_versions() {
+ 
+ static bool write_pipeline_cache_record(const PipelineCacheWrite& write) {
+   const auto fail = [&]() {
++    g_pipelineCacheWriteError = sqlite3_errcode(g_pipelineCacheDb);
+     sqlite3_reset(g_pipelineCacheUpsertStmt);
+     sqlite3_clear_bindings(g_pipelineCacheUpsertStmt);
+     return false;
+@@ -902,7 +1003,9 @@ static bool write_pipeline_cache_record(const PipelineCacheWrite& write) {
  
    ret = sqlite3_step(g_pipelineCacheUpsertStmt);
    if (ret != SQLITE_DONE) {
@@ -262,7 +357,47 @@ index f8cf35b..07062c5 100644
      return fail();
    }
  
-@@ -950,6 +1028,14 @@ static void pipeline_cache_writer() {
+@@ -928,28 +1031,41 @@ static void pipeline_cache_writer() {
+       batch.swap(g_pipelineCacheWriteQueue);
+     }
+ 
+-    bool writeFailed = false;
+-    {
++    // SQLITE_OK or the failed write's result.
++    const auto writeBatch = [&batch]() -> int {
+       sqlite::Transaction tx(g_pipelineCacheDb, Log, true);
+       if (!tx) {
+         Log.error("Failed to begin pipeline cache write transaction");
+-        writeFailed = true;
+-      } else {
+-        for (const auto& write : batch) {
+-          if (!write_pipeline_cache_record(write)) {
+-            writeFailed = true;
+-            break;
+-          }
+-        }
+-
+-        if (!writeFailed) {
+-          tx.commit();
++        const int ret = sqlite3_errcode(g_pipelineCacheDb);
++        return ret != SQLITE_OK ? ret : SQLITE_ERROR;
++      }
++      for (const auto& write : batch) {
++        if (!write_pipeline_cache_record(write)) {
++          return g_pipelineCacheWriteError != SQLITE_OK ? g_pipelineCacheWriteError : SQLITE_ERROR;
+         }
+       }
++      return tx.commit();
++    };
++    int writeRet = writeBatch();
++    if (writeRet != SQLITE_OK &&
++        sqlite::journal_fallback(g_pipelineCacheDb, writeRet, pipeline_cache_db_path(), Log)) {
++      writeRet = writeBatch();
++    }
++    const bool writeFailed = writeRet != SQLITE_OK;
++    if (sqlite::is_damaged(writeRet)) {
++      g_pipelineCacheDamaged = true; // the rollback cleared the connection's error
+     }
  
      if (writeFailed) {
        pipeline_cache_abort();
@@ -277,7 +412,7 @@ index f8cf35b..07062c5 100644
        return;
      }
    }
-@@ -1035,7 +1121,9 @@ static size_t load_pipeline_cache_entries(ShaderType type, uint32_t configVersio
+@@ -1035,7 +1151,9 @@ static size_t load_pipeline_cache_entries(ShaderType type, uint32_t configVersio
    }
  
    if (ret != SQLITE_DONE) {
@@ -288,7 +423,7 @@ index f8cf35b..07062c5 100644
      pipeline_cache_abort();
    }
  
-@@ -1044,7 +1132,25 @@ static size_t load_pipeline_cache_entries(ShaderType type, uint32_t configVersio
+@@ -1044,7 +1162,25 @@ static size_t load_pipeline_cache_entries(ShaderType type, uint32_t configVersio
    return acceptedRows;
  }
  
@@ -315,10 +450,10 @@ index f8cf35b..07062c5 100644
      return 0;
    }
 diff --git a/lib/sqlite_utils.hpp b/lib/sqlite_utils.hpp
-index 38db46b..9370469 100644
+index 38db46b..942caee 100644
 --- a/lib/sqlite_utils.hpp
 +++ b/lib/sqlite_utils.hpp
-@@ -4,8 +4,52 @@
+@@ -4,8 +4,63 @@
  
  #include <sqlite3.h>
  
@@ -334,6 +469,17 @@ index 38db46b..9370469 100644
 +  (void)log;
 +  // WAL mode + NORMAL = no need for disk syncs, consistent but not durable is fine.
 +  return sqlite3_exec(db, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;", nullptr, nullptr, nullptr);
++}
++
++// After a write failed with rc: whether the cache's journal setting was changed so the write can be
++// tried once more (the Switch patch 0006 falls back from a journal file to journal_mode=MEMORY on an
++// I/O error). The failed transaction must already be over.
++inline bool journal_fallback(sqlite3* db, int rc, const std::string& path, Module& log) {
++  (void)db;
++  (void)rc;
++  (void)path;
++  (void)log;
++  return false;
 +}
 +
 +// A result that means the file itself is damaged (a torn write, a truncated or overwritten file):
@@ -371,8 +517,41 @@ index 38db46b..9370469 100644
  inline int exec(sqlite3* db, const char* sql) { return sqlite3_exec(db, sql, nullptr, nullptr, nullptr); }
  
  template <typename T>
+@@ -42,7 +97,8 @@ public:
+   Transaction& operator=(Transaction&&) = delete;
+ 
+   ~Transaction() {
+-    if (!m_active) {
++    // sqlite3_get_autocommit: an I/O error or a full disk may already have rolled it back.
++    if (!m_active || sqlite3_get_autocommit(m_db)) {
+       return;
+     }
+ 
+@@ -52,18 +108,19 @@ public:
+     }
+   }
+ 
+-  void commit() {
++  int commit() {
+     if (!m_active) {
+-      return;
++      return SQLITE_OK;
+     }
+ 
+     const auto ret = sqlite3_exec(m_db, "COMMIT", nullptr, nullptr, nullptr);
+     if (ret != SQLITE_OK) {
+       m_log.error("Failed to commit transaction: {}", sqlite3_errmsg(m_db));
+-      return;
++      return ret;
+     }
+ 
+     m_active = false;
++    return SQLITE_OK;
+   }
+ 
+   explicit operator bool() const { return m_active; }
 diff --git a/lib/webgpu/gpu_cache.cpp b/lib/webgpu/gpu_cache.cpp
-index 6ef44ea..bbd7a63 100644
+index 6ef44ea..d423641 100644
 --- a/lib/webgpu/gpu_cache.cpp
 +++ b/lib/webgpu/gpu_cache.cpp
 @@ -25,6 +25,9 @@ static sqlite3* db;
@@ -636,7 +815,7 @@ index 6ef44ea..bbd7a63 100644
 +              sqlite3_errstr(rc), cache_resets);
 +    cache_broken = true;
 +    return;
-+  }
+   }
 +  ++cache_resets;
 +  const long long oldSize = sqlite::reset_cache_file(file);
 +  if (cache_init_core() != SQLITE_OK) {
@@ -645,7 +824,7 @@ index 6ef44ea..bbd7a63 100644
 +              "without it",
 +              file, what, sqlite3_errstr(rc), oldSize, cache_open_error);
 +    return;
-   }
++  }
 +  Log.warn("GPU cache {} is damaged ({}: {}); deleted it ({} bytes) and started an empty one", file, what,
 +           sqlite3_errstr(rc), oldSize);
 +}
@@ -820,7 +999,7 @@ index 6ef44ea..bbd7a63 100644
    }
  
    if (compressRet < valueSize) {
-@@ -332,25 +454,44 @@ void store_to_cache(void const* key, size_t keySize, void const* value, size_t v
+@@ -332,25 +454,47 @@ void store_to_cache(void const* key, size_t keySize, void const* value, size_t v
    }
  #endif
  
@@ -863,17 +1042,20 @@ index 6ef44ea..bbd7a63 100644
 -  check(sqlite3_bind_null(store_stmt, 4));
 +  return tx.commit();
 +}
-+
-+void store_to_cache(void const* key, size_t keySize, void const* value, size_t valueSize, void*) {
-+  std::lock_guard lock(cache_mutex);
  
 -  tx.commit();
++void store_to_cache(void const* key, size_t keySize, void const* value, size_t valueSize, void*) {
++  std::lock_guard lock(cache_mutex);
++
 +  if (!cache_init()) {
 +    return;
 +  }
 +
 +  const auto keyHash = XXH128(key, keySize, 0);
-+  const int ret = store_locked(keyHash, value, valueSize);
++  int ret = store_locked(keyHash, value, valueSize);
++  if (ret != SQLITE_OK && sqlite::journal_fallback(db, ret, io::fs_path_to_string(cache_path()), Log)) {
++    ret = store_locked(keyHash, value, valueSize);
++  }
 +  if (ret != SQLITE_OK) {
 +    cache_failed("Storing cache entry", ret);
 +    return;
@@ -881,7 +1063,7 @@ index 6ef44ea..bbd7a63 100644
    cache_keys_used.push_back(keyHash);
  }
  
-@@ -366,20 +507,19 @@ void cache_prune() {
+@@ -366,20 +510,19 @@ void cache_prune() {
  
    uint64_t totalRows = 0;
    sqlite3_int64 deletedRows = 0;
@@ -908,7 +1090,7 @@ index 6ef44ea..bbd7a63 100644
      }
      totalRows = *totalRowsResult;
  
-@@ -389,12 +529,15 @@ void cache_prune() {
+@@ -389,12 +532,19 @@ void cache_prune() {
                                    "  SELECT 1 FROM cache_keys_used WHERE cache_keys_used.key = cache.key"
                                    ")");
      if (ret != SQLITE_OK) {
@@ -921,13 +1103,17 @@ index 6ef44ea..bbd7a63 100644
 -    tx.commit();
 +    return tx.commit();
 +  };
-+  if (const int ret = prune(); ret != SQLITE_OK) {
++  int pruneRet = prune();
++  if (pruneRet != SQLITE_OK && sqlite::journal_fallback(db, pruneRet, io::fs_path_to_string(cache_path()), Log)) {
++    pruneRet = prune();
++  }
++  if (const int ret = pruneRet; ret != SQLITE_OK) {
 +    cache_failed("Pruning the Dawn cache", ret);
 +    return;
    }
  
    if (deletedRows == 0) {
-@@ -418,22 +561,12 @@ void cache_prune() {
+@@ -418,22 +568,12 @@ void cache_prune() {
  }
  
  void cache_shutdown() {

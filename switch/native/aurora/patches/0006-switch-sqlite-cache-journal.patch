@@ -7,14 +7,21 @@ failed every lookup ("database disk image is malformed"). Mac kill -9 test with 
 Switch's sqlite build options (switch/aurora/sqlite_kill_test.c): 113 of 150 kills damaged
 the file with MEMORY, 0 of 150 with PERSIST, TRUNCATE or DELETE.
 
-On Horizon the caches now use journal_mode=PERSIST (the -journal file is created once and
-its header zeroed at each commit instead of the file being deleted; with the build's
-exclusive locking it stays open, so the per-transaction create/stat/unlink of a DELETE
-journal never happens), journal_size_limit=4 MiB and synchronous=OFF (what write() handed
-the file system before a kill still reaches the card; a commit cut short is rolled back
-from the journal at the next open). COS_SWITCH_SQLITE_JOURNAL (env.txt) picks persist
-(default), truncate, delete or memory; a journal file that cannot be created falls back to
-memory with one line. Each cache logs its journal mode once when it opens.
+On Horizon the caches use journal_mode=PERSIST (the -journal file is created once and its
+header zeroed at each commit; with the build's exclusive locking it stays open),
+journal_size_limit=4 MiB and synchronous=OFF (what write() handed the file system before a
+kill still reaches the card; a commit cut short is rolled back from the journal at the
+next open). COS_SWITCH_SQLITE_JOURNAL (env.txt) picks persist (default), truncate, delete
+or memory. Each cache logs its journal mode once when it opens.
+
+A journal that does not work falls back to journal_mode=MEMORY for the run, with one
+line: at open, the header's user_version is rewritten with its own value, a write that
+makes sqlite create the journal; and a write that fails later with an I/O error (or
+CANTOPEN) switches the connection and is tried once more (sqlite::journal_fallback, called
+by the shared patch 0007 for Dawn cache stores and prunes, the pipeline cache's seeding
+and its writer thread). The first PERSIST build failed every write on the console with
+SQLITE_IOERR_FSTAT: libnx cannot stat a file that is open for writing, which sqlite does
+when it creates the journal; switch/aurora/sqlite_horizon.c now answers that stat.
 
 The Dawn cache prune no longer VACUUMs on Horizon: that rewrote tens of MiB on the SD card
 (twice with a journal) for seconds with cache_mutex held, so every Dawn lookup on the
@@ -22,26 +29,21 @@ render worker waited; freed pages are reused by later inserts.
 
 A cache that cannot be opened, for any reason, is removed and created once more from an
 empty file (the shared patch native/patches/aurora/0007 does the removal and retry, for
-damaged files only on other platforms). The sqlite build adds exclusive locking and
-in-memory temp files, and its error log goes to the run log (switch/aurora/sqlite_horizon.c).
+damaged files only on other platforms).
 
 Switch only (switch/native/aurora/patches); not for upstream.
 
 diff --git a/lib/sqlite_utils.hpp b/lib/sqlite_utils.hpp
-index 9370469..145803c 100644
+index 942caee..b1eadc5 100644
 --- a/lib/sqlite_utils.hpp
 +++ b/lib/sqlite_utils.hpp
-@@ -7,15 +7,67 @@
+@@ -7,26 +7,130 @@
  #include <filesystem>
  #include <string>
  #include <system_error>
 +#if defined(__SWITCH__)
-+#include <cerrno>
 +#include <cstdlib>
-+#include <cstring>
-+#include <fcntl.h>
 +#include <string_view>
-+#include <unistd.h>
 +#endif
  
  namespace aurora::sqlite {
@@ -59,9 +61,14 @@ index 9370469..145803c 100644
 +  // what write() handed the file system before the kill reaches the card; only a power loss in the
 +  // middle of a commit could still damage the file (then deleted and rebuilt, see is_damaged).
 +  //
-+  // COS_SWITCH_SQLITE_JOURNAL (env.txt): persist (default), truncate, delete or memory (the
-+  // previous setting, no journal file). If the journal file cannot be created the cache keeps
-+  // going with memory.
++  // COS_SWITCH_SQLITE_JOURNAL (env.txt): persist (default), truncate, delete or memory (no journal
++  // file). A journal file that does not work falls back to memory with one line: at open a write
++  // that makes sqlite create the journal (the user_version rewrite below) is tried first, and a
++  // write that fails later with an I/O error switches too (journal_fallback). 2026-10-04: on the
++  // console every write with PERSIST failed with SQLITE_IOERR_FSTAT, because sqlite stats the
++  // database (open for writing) when it creates the journal and libnx's stat cannot open a file
++  // that is open for writing; switch/aurora/sqlite_horizon.c now answers that stat from sqlite's
++  // own descriptor.
 +  const char* mode = "PERSIST";
 +  if (const char* env = std::getenv("COS_SWITCH_SQLITE_JOURNAL"); env != nullptr && env[0] != '\0') {
 +    const std::string value{env};
@@ -73,23 +80,47 @@ index 9370469..145803c 100644
 +      mode = "DELETE";
 +    }
 +  }
-+  if (std::string_view{mode} != "MEMORY") {
-+    const std::string journal = path + "-journal";
-+    const int fd = ::open(journal.c_str(), O_RDWR | O_CREAT, 0644);
-+    if (fd < 0) {
-+      log.warn("Cannot create {} ({}); {} keeps its journal in memory", journal, std::strerror(errno), path);
-+      mode = "MEMORY";
-+    } else {
-+      ::close(fd);
-+    }
-+  }
 +  const std::string pragmas = std::string{"PRAGMA journal_mode="} + mode +
 +                              "; PRAGMA journal_size_limit=4194304; PRAGMA synchronous=OFF;";
-+  const int ret = sqlite3_exec(db, pragmas.c_str(), nullptr, nullptr, nullptr);
-+  if (ret == SQLITE_OK) {
-+    log.info("{}: journal_mode={}, synchronous=OFF", path, mode);
++  int ret = sqlite3_exec(db, pragmas.c_str(), nullptr, nullptr, nullptr);
++  if (ret != SQLITE_OK) {
++    return ret;
 +  }
-+  return ret;
++  if (std::string_view{mode} != "MEMORY") {
++    // Rewrites the header's user_version with its own value: page 1 goes through the journal,
++    // which sqlite creates (and, with exclusive locking, keeps open) here.
++    int version = 0;
++    ret = sqlite3_exec(
++        db, "PRAGMA user_version",
++        [](void* out, int, char** values, char**) {
++          *static_cast<int*>(out) = values[0] != nullptr ? std::atoi(values[0]) : 0;
++          return 0;
++        },
++        &version, nullptr);
++    if (ret == SQLITE_OK) {
++      const std::string probe =
++          "BEGIN IMMEDIATE; PRAGMA user_version=" + std::to_string(version) + "; COMMIT;";
++      ret = sqlite3_exec(db, probe.c_str(), nullptr, nullptr, nullptr);
++    }
++    if (ret != SQLITE_OK) {
++      if (!sqlite3_get_autocommit(db)) {
++        sqlite3_exec(db, "ROLLBACK", nullptr, nullptr, nullptr);
++      }
++      const int primary = ret & 0xff;
++      if (primary != SQLITE_IOERR && primary != SQLITE_CANTOPEN) {
++        return ret; // a damaged file: the caller deletes it and starts again
++      }
++      log.warn("{}: writing through the {} journal failed ({}); journal_mode=MEMORY for this run", path, mode,
++               sqlite3_errstr(ret));
++      mode = "MEMORY";
++      ret = sqlite3_exec(db, "PRAGMA journal_mode=MEMORY;", nullptr, nullptr, nullptr);
++      if (ret != SQLITE_OK) {
++        return ret;
++      }
++    }
++  }
++  log.info("{}: journal_mode={}, synchronous=OFF", path, mode);
++  return SQLITE_OK;
 +#else
    (void)path;
    (void)log;
@@ -98,8 +129,46 @@ index 9370469..145803c 100644
 +#endif
  }
  
+ // After a write failed with rc: whether the cache's journal setting was changed so the write can be
+ // tried once more (the Switch patch 0006 falls back from a journal file to journal_mode=MEMORY on an
+ // I/O error). The failed transaction must already be over.
+ inline bool journal_fallback(sqlite3* db, int rc, const std::string& path, Module& log) {
++#if defined(__SWITCH__)
++  const int primary = rc & 0xff;
++  if (db == nullptr || (primary != SQLITE_IOERR && primary != SQLITE_CANTOPEN)) {
++    return false;
++  }
++  if (!sqlite3_get_autocommit(db)) {
++    sqlite3_exec(db, "ROLLBACK", nullptr, nullptr, nullptr);
++  }
++  std::string current;
++  sqlite3_exec(
++      db, "PRAGMA journal_mode",
++      [](void* out, int, char** values, char**) {
++        *static_cast<std::string*>(out) = values[0] != nullptr ? values[0] : "";
++        return 0;
++      },
++      &current, nullptr);
++  if (current == "memory" || current == "off") {
++    return false;
++  }
++  if (sqlite3_exec(db, "PRAGMA journal_mode=MEMORY;", nullptr, nullptr, nullptr) != SQLITE_OK) {
++    return false;
++  }
++  log.warn("{}: a write through the {} journal failed ({}); journal_mode=MEMORY for this run", path, current,
++           sqlite3_errstr(rc));
++  return true;
++#else
+   (void)db;
+   (void)rc;
+   (void)path;
+   (void)log;
+   return false;
++#endif
+ }
+ 
  // A result that means the file itself is damaged (a torn write, a truncated or overwritten file):
-@@ -26,7 +78,14 @@ inline bool is_damaged(int rc) {
+@@ -37,7 +141,14 @@ inline bool is_damaged(int rc) {
  }
  
  // Whether a cache that failed to open with this result is deleted and created once more.
@@ -116,10 +185,10 @@ index 9370469..145803c 100644
  // Removes a cache database and the files sqlite keeps next to it, so the caller can start it again
  // from an empty file. Returns the size the database had, or -1.
 diff --git a/lib/webgpu/gpu_cache.cpp b/lib/webgpu/gpu_cache.cpp
-index bbd7a63..3dfcadf 100644
+index d423641..8ba35f6 100644
 --- a/lib/webgpu/gpu_cache.cpp
 +++ b/lib/webgpu/gpu_cache.cpp
-@@ -547,6 +547,12 @@ void cache_prune() {
+@@ -554,6 +554,12 @@ void cache_prune() {
  
    Log.info("Pruned {} stale Dawn cache entries", deletedRows);
  
@@ -132,7 +201,7 @@ index bbd7a63..3dfcadf 100644
    // VACUUM if we removed at least 25% of the rows
    if (totalRows != 0 && static_cast<uint64_t>(deletedRows) * 100ull >= totalRows * VacuumPrunePercentThreshold) {
      if (const auto ret = sqlite::exec(db, "VACUUM;"); ret != SQLITE_OK) {
-@@ -558,6 +564,7 @@ void cache_prune() {
+@@ -565,6 +571,7 @@ void cache_prune() {
    if (const auto ret = sqlite::exec(db, "PRAGMA wal_checkpoint(TRUNCATE);"); ret != SQLITE_OK) {
      Log.warn("Failed to checkpoint dawn cache WAL: {}", sqlite3_errmsg(db));
    }

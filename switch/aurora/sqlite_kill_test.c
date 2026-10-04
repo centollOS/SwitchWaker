@@ -5,7 +5,8 @@
 //   cc -O2 -o build/sqlite_kill_test switch/aurora/sqlite_kill_test.c <sqlite-src>/sqlite3.c \
 //      -I<sqlite-src> -DSQLITE_OMIT_WAL=1 -DSQLITE_MAX_MMAP_SIZE=0 -DSQLITE_OMIT_LOAD_EXTENSION=1 \
 //      -DSQLITE_THREADSAFE=1 -DSQLITE_DEFAULT_LOCKING_MODE=1 -DSQLITE_TEMP_STORE=3
-//   (cd <empty dir> && sqlite_kill_test MODE [N] [VACUUM])
+//      -Iswitch/aurora
+//   (cd <empty dir> && sqlite_kill_test MODE [N] [VACUUM] [HORIZON])
 //
 // <sqlite-src>: the amalgamation the NRO builds (build/switch-native/_deps/sqlite3-src). MODE is
 // the journal_mode (memory, persist, truncate, delete); N iterations (100); VACUUM 1 (default) or
@@ -15,6 +16,9 @@
 // PRAGMA integrity_check; a damaged file is counted and deleted. 2026-10-04: memory 113/150
 // damaged (117/150 without VACUUM, 198/300 with journal_size_limit), persist, truncate and
 // delete 0/150 (persist 0/300 with journal_size_limit).
+// HORIZON: off (default); raw: Horizon's stat() emulated (it fails for a file the process has open),
+// which makes every write fail with SQLITE_IOERR_FSTAT (1802) as on the console; fixed: the same
+// with sqlite_horizon.c's stat wrapper (persist and truncate 0/150 damaged, no failed writes).
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +28,21 @@
 #include <unistd.h>
 
 #include "sqlite3.h"
+
+// HORIZON (4th argument): "raw" emulates Horizon's stat() (it fails for a file the process has
+// open, see sqlite_horizon.c) without the fix, "fixed" with sqlite_horizon.c's wrappers.
+#define COS_SQLITE_HORIZON_HOST_TEST 1
+#include "sqlite_horizon.c"
+
+static int emulated_horizon_stat(const char* path, struct stat* st) {
+    for (int i = 0; i < kMaxOpen; i++) {
+        if (s_open[i].path[0] != '\0' && strcmp(s_open[i].path, path) == 0) {
+            errno = EBUSY;
+            return -1;
+        }
+    }
+    return stat(path, st);
+}
 
 static const char* g_mode;
 static const char* g_path = "kt.db";
@@ -89,19 +108,32 @@ int main(int argc, char** argv) {
     g_mode = argc > 1 ? argv[1] : "memory";
     int iters = argc > 2 ? atoi(argv[2]) : 100;
     g_vacuum = argc > 3 ? atoi(argv[3]) : 1;
+    const char* horizon = argc > 4 ? argv[4] : "off";
+    sqlite3_config(SQLITE_CONFIG_LOG, log_to_stderr, NULL);
     sqlite3_vfs_register(sqlite3_vfs_find("unix-none"), 1);
+    if (strcmp(horizon, "off") != 0) {
+        cos_sqlite_horizon_setup();
+        if (strcmp(horizon, "raw") == 0) {
+            sqlite3_vfs_find("unix-none")->xSetSystemCall(sqlite3_vfs_find("unix-none"), "stat",
+                                                          (sqlite3_syscall_ptr)emulated_horizon_stat);
+        } else {
+            s_realStat = emulated_horizon_stat;
+        }
+    }
     unlink(g_path);
     char j[64];
     snprintf(j, sizeof j, "%s-journal", g_path);
     unlink(j);
     srand((unsigned)time(NULL));
-    int corrupt = 0, firstCorrupt = -1;
+    int corrupt = 0, firstCorrupt = -1, writeFailed = 0;
     for (int it = 0; it < iters; it++) {
         pid_t pid = fork();
         if (pid == 0) writer((unsigned)rand());
         usleep(20000 + rand() % 400000);
         kill(pid, SIGKILL);
-        waitpid(pid, NULL, 0);
+        int status = 0;
+        waitpid(pid, &status, 0);
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 4) writeFailed++;
         if (!check()) {
             corrupt++;
             if (firstCorrupt < 0) firstCorrupt = it;
@@ -109,7 +141,7 @@ int main(int argc, char** argv) {
             unlink(j);
         }
     }
-    printf("mode=%s vacuum=%d iterations=%d corrupt=%d (first at %d)\n", g_mode, g_vacuum, iters, corrupt,
-           firstCorrupt);
+    printf("mode=%s vacuum=%d horizon=%s iterations=%d corrupt=%d (first at %d) writer failed=%d\n", g_mode,
+           g_vacuum, horizon, iters, corrupt, firstCorrupt, writeFailed);
     return 0;
 }

@@ -434,7 +434,17 @@ pipeline missed the cache). Now:
   file system reaches the card, so no syncs are needed. Each cache logs
   `<path>: journal_mode=PERSIST, synchronous=OFF` when it opens. `COS_SWITCH_SQLITE_JOURNAL` in
   `env.txt` picks `persist` (default), `truncate`, `delete` or `memory` (the old setting) without a
-  rebuild; a journal file that cannot be created falls back to `memory` with one line.
+  rebuild. A journal that does not work falls back to `memory` for the run with one line
+  (`...: writing through the PERSIST journal failed (...); journal_mode=MEMORY for this run` at
+  open, where a small write makes sqlite create the journal, or `a write through the persist
+  journal failed` later, after which the write is tried again), so the caches and the bundled
+  pipeline cache's merge keep working either way. The first PERSIST build failed every write on
+  the console with `[sqlite] (1802) ... disk I/O error` (`SQLITE_IOERR_FSTAT`): sqlite stats the
+  database when it creates the journal, and libnx's `stat` opens the file to read its size, which
+  Horizon refuses for a file already open for writing. `switch/aurora/sqlite_horizon.c` wraps the
+  VFS's open/close/stat and answers a failed stat of a file sqlite has open with `fstat` of its
+  descriptor; `sqlite_kill_test.c ... persist N 1 raw` reproduces the error on the Mac with an
+  emulated Horizon `stat`, `fixed` runs with the wrapper.
   `switch/aurora/sqlite_kill_test.c` measures it on the Mac with the Switch's sqlite build options
   (a writer doing what the Dawn cache does, killed with SIGKILL at random): `memory` left a damaged
   file after 113 of 150 kills, `persist`, `truncate` and `delete` after none.
