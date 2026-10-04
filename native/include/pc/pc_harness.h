@@ -137,6 +137,12 @@ int pc_boot_event_bits(unsigned short* out, int max);
    Returns how many were stored in out (at most max); exits 2 if malformed. */
 int pc_boot_items(unsigned short* out, int max);
 
+/* Fixed debug camera (bug B7, pc_shore.cpp): with COS_CAMERA=<eye x>,<eye y>,<eye z>,<center x>,
+   <center y>,<center z> (or while COS_SMOKE=shore-foam holds its view), camera_draw (d_camera.cpp)
+   gets that eye and centre in place of the game camera's every frame; returns nonzero then.
+   Without it nothing is changed and 0 is returned. */
+int pc_camera_override(float* eye, float* center);
+
 /* Logs "[cos] MILESTONE <name> frame= retrace= ms=" and exits 0 if <name> is COS_MILESTONE. */
 void pc_milestone(const char* name);
 

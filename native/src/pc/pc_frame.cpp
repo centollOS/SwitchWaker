@@ -954,6 +954,7 @@ void pc_frame_end(void) {
     actorSweepFrame(frames);
     bgmHopFrame(frames);
     telescopeDemoFrame(frames);
+    shoreFoamFrame(frames);
     fileSelectFrame(frames);
     newGameFrame(frames);
     precompileFrame(frames);

@@ -199,6 +199,14 @@ void bgmHopFrame(unsigned int frames);
 void telescopeDemoFrame(unsigned int frames);
 void telescopeDemoFrameEnd(unsigned int frame);
 
+// pc_shore.cpp (bug B7): the fixed debug camera of COS_CAMERA / COS_SMOKE=shore-foam
+// (pc_camera_override applies it from then on).
+void setFixedCamera(const float eye[3], const float center[3]);
+// pc_shore.cpp (bug B7): COS_SMOKE=shore-foam; shoreFoamFrame runs from pc_frame_end every game
+// frame and, once Link is in Outset, moves a fixed camera along the cliffs under the rope bridge
+// and measures how much of the shore foam changes from frame to frame.
+void shoreFoamFrame(unsigned int frames);
+
 // pc_title.cpp: milestone M9 title (see pc_title_drawn); titleFrame runs from pc_frame_end every
 // game frame. titleReached: the milestone was logged.
 void titleFrame(unsigned int frames);
@@ -236,6 +244,16 @@ void shotFrameEnd(unsigned int frame);
 // returns once check ran (or the readback failed, logged, and check did not run).
 void shotProbe(unsigned int frame,
                std::function<void(const std::vector<uint8_t>& rgb, uint32_t width, uint32_t height)> check);
+// pc_shot.cpp: reads back the presented image of game frame `frame` (call right after its
+// aurora_end_frame, e.g. from pc_frame_end's per-frame hooks) and hands it to sink as 8-bit RGB
+// rows, on the render worker (where large allocations come from the host heap, not the game's
+// JKR heaps), then waits for the worker. False (logged) when the readback failed; the sink is
+// not called then. saveFramePng (render worker too) writes such an image as shot-<frame>.png
+// into COS_SHOT_DIR / COS_RUN_DIR / the current directory.
+using FrameSink = void (*)(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t width,
+                           uint32_t height, void* user);
+bool captureFrame(unsigned int frame, FrameSink sink, void* user);
+void saveFramePng(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t width, uint32_t height);
 
 // pc_frame.cpp (step 6.7): creates the COS_PERF file and writes its header row (exit
 // PC_EXIT_USAGE if it cannot be created); nothing without COS_PERF. perfFlush writes out the rows

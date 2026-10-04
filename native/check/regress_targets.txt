@@ -86,3 +86,7 @@ run 0 --stage LinkRM:0:0 --frames 3000 --uncapped --heap-check 1 --input native/
 # and the telescope on X, scripted aim/zoom/look-up); through its cinemascope part the presented
 # picture must reach the left and right edges (no 4:3 side bars)
 telescope-demo 0 --stage sea:44:206 --input native/check/input/telescope-demo.txt --aspect 16:9
+# bug B7 (lane b7-shore): Outset's shore foam and sea shadow decals (room model1.bdl, about one unit
+# above the island's water) with a fixed camera moving over the cliffs under the rope bridge: no
+# frame may lose the foam against its neighbours (the Switch's GL depth precision flicker)
+shore-foam 0 --stage sea:44:8 --aspect 16:9

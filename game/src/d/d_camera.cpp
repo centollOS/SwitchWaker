@@ -6,6 +6,7 @@
 #include "d/dolzel.h" // IWYU pragma: keep
 #if TARGET_PC
 #include "pc/pc_aspect.h"
+#include "pc/pc_harness.h"
 #endif
 #include "d/d_camera.h"
 #include "d/d_bg_s_gnd_chk.h"
@@ -8000,6 +8001,10 @@ static bool camera_draw(camera_process_class* i_this) {
 
     int trim_height = body->mTrimHeight;
     window->setScissor(0.0f, trim_height, mDoMch_render_c::getFbWidth(), mDoMch_render_c::getEfbHeight() - trim_height * 2.0f);
+#if TARGET_PC
+    // Debug harness (bug B7): COS_CAMERA / COS_SMOKE=shore-foam hold a fixed view.
+    pc_camera_override(&i_this->view.mLookat.mEye.x, &i_this->view.mLookat.mCenter.x);
+#endif
     C_MTXPerspective(i_this->view.mProjMtx, i_this->view.mFovy, i_this->view.mAspect, i_this->view.mNear, i_this->view.mFar);
     mDoMtx_lookAt(i_this->view.mViewMtx, &i_this->view.mLookat.mEye, &i_this->view.mLookat.mCenter, &i_this->view.mLookat.mUp, i_this->view.mBank);
 

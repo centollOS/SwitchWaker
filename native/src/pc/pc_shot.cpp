@@ -361,4 +361,27 @@ void shotFrameEnd(unsigned int frame) {
     aurora::gfx::render_worker::synchronize();
 }
 
+bool captureFrame(unsigned int frame, FrameSink sink, void* user) {
+    bool ok = false;
+    aurora::gfx::render_worker::enqueue_work([frame, sink, user, &ok] {
+        std::vector<uint8_t> rgb;
+        uint32_t width = 0, height = 0;
+        ok = readPixels(frame, rgb, width, height);
+        if (ok) {
+            sink(frame, rgb, width, height, user);
+        }
+    });
+    aurora::gfx::render_worker::synchronize();
+    return ok;
+}
+
+void saveFramePng(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t width, uint32_t height) {
+    if (sShotDir == nullptr) {
+        const char* dir = getenv("COS_SHOT_DIR");
+        sShotDir = (dir != nullptr && dir[0] != '\0') ? dir : gConfig.runDir != nullptr ? gConfig.runDir : ".";
+        initCrcTable();
+    }
+    writeShot(frame, rgb, width, height);
+}
+
 } // namespace pc
