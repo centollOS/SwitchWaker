@@ -1,0 +1,25 @@
+# Build image of the native Linux binary (scripts/docker/build.sh linux): Debian 13 with clang,
+# CMake, Ninja and the development headers SDL 3 (built from source by Aurora) needs for its X11,
+# Wayland and audio backends. Dawn and nod come as Aurora's prebuilt packages at configure time.
+# Runtime pieces for the headless smoke runs are included too: Mesa's Vulkan (lavapipe) and GL
+# (llvmpipe) drivers, so the game can render without a GPU inside the container.
+#
+# Multi-arch: builds for the host's architecture (linux/arm64 on Apple silicon, linux/amd64 on PCs);
+# pass --platform to docker build for the other one (slow, emulated).
+FROM docker.io/library/debian:trixie-20250929-slim
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates curl git file xz-utils procps \
+        cmake ninja-build pkg-config python3 \
+        clang lld llvm gcc g++ \
+        zlib1g-dev \
+        libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev \
+        libxtst-dev libxkbcommon-dev libwayland-dev wayland-protocols libdecor-0-dev \
+        libegl-dev libgl-dev libgles-dev libvulkan-dev libdrm-dev libgbm-dev \
+        libasound2-dev libpulse-dev libpipewire-0.3-dev libudev-dev libdbus-1-dev libibus-1.0-dev \
+        mesa-vulkan-drivers libgl1-mesa-dri libegl-mesa0 vulkan-tools xvfb xauth \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV CC=clang CXX=clang++
