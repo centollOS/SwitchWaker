@@ -199,6 +199,13 @@ bool writeFile() {
     }
     const bool ok = fflush(f) == 0;
     fclose(f);
+#ifdef __SWITCH__
+    // Horizon's rename does not replace an existing file (EEXIST): drop the old one first. A kill
+    // between the two calls leaves only the .tmp, and the next save writes it again.
+    if (ok) {
+        remove(s.path.c_str());
+    }
+#endif
     if (!ok || rename(tmp.c_str(), s.path.c_str()) != 0) {
         pc::writef(STDERR_FILENO, "[cos] settings: cannot replace %s: %s\n", s.path.c_str(), strerror(errno));
         return false;
