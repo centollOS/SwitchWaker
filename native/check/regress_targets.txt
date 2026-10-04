@@ -104,6 +104,9 @@ run 0 --stage sea:40:2 --frames 900 --uncapped
 # bug B12 (lane room-sweep): the Ocean minigame stage creates the timer and the starter screens, whose
 # GameCube-size solid heaps were too small for host-sized J2D panes (a NULL pane faulted)
 run 0 --stage Ocean:0:1 --frames 900 --uncapped
+# bug B13 (lane room-sweep): the walk breaks pots in WarpD; the shards' texture-pattern array did not fit
+# its solid heap (sized from the GameCube's struct size); no JKR allocation may fail
+run 0 --stage WarpD:0:21 --frames 900 --uncapped --input native/check/input/room-walk.txt --alloc-max 0
 
 # options menu (lane options-menu): L+R+Z opens it in Outset, the internal resolution (handheld),
 # depth of field and FPS overlay change live and are saved to the run's settings.ini, the game stays

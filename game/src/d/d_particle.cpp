@@ -45,7 +45,16 @@ dPa_J3DmodelEmitter_c::dPa_J3DmodelEmitter_c(JPABaseEmitter* emitter, J3DModelDa
         field_0x20 = NULL;
     } else {
         u16 r29 = field_0x1c->getUpdateMaterialNum();
+#if TARGET_PC
+        // Bug B13: 12 is the GameCube's sizeof(J3DTexNoAnm) and 16 the new[] cookie and alignment
+        // there; on the host the class is 24 bytes and new[] takes 16 more plus 16-byte alignment,
+        // so the J3DTexNoAnm array never fitted and draw() skipped the texture pattern: a broken
+        // pot's shards (daTsubo::eff_break_tsubo, Always.arc's mpm_tubo.btp at the pot type's
+        // frame) showed the shard model's first texture, not their pot's.
+        mpHeap = mDoExt_createSolidHeapToCurrent(r29 * sizeof(J3DTexNoAnm) + 0x20, NULL, 0);
+#else
         mpHeap = mDoExt_createSolidHeapToCurrent(r29 * 12 + 16, NULL, 0);
+#endif
         if (mpHeap) {
             field_0x20 = new J3DTexNoAnm[r29];
             if (field_0x20) {
