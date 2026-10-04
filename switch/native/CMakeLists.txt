@@ -288,4 +288,6 @@ nx_create_nro(cos_nro
         TARGET centollos
         OUTPUT "${CMAKE_BINARY_DIR}/${COS_SWITCH_NRO_NAME}.nro"
         NACP cos_native.nacp
-        NOICON)
+        # Original art drawn by scripts/switch/make_icon.py; the HOME-menu forwarder uses it too
+        # (scripts/switch/build_forwarder.sh).
+        ICON "${CMAKE_CURRENT_SOURCE_DIR}/icon/icon.jpg")
