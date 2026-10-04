@@ -19,7 +19,8 @@
 #             package's libraries rebuilt (same symbols), to check the recipe
 #   --test    also build Mesa's nouveau driver for Linux with 0002-0004 (no devkitPro patches) in
 #             a Debian container and run switch/mesa/test: the cache file (persistence, removal,
-#             a torn tail, a damaged entry, another driver build, the size limit) and nvc0's
+#             a torn tail, a damaged entry, another driver build, the size limit, its index file
+#             read at once and rebuilt or completed when it disagrees) and nvc0's
 #             code cache (a hit gives the same code, header and fixups as a fresh translation)
 #   --jobs N  parallel jobs (default: SWITCH_BUILD_JOBS or 4)
 # Sources are downloaded once into build/switch-mesa/downloads and checked against their sha256.
@@ -49,7 +50,7 @@ while [[ $# -gt 0 ]]; do
         --stock) stock=1; shift ;;
         --test) test=1; shift ;;
         --jobs) jobs=$2; shift 2 ;;
-        -h|--help) sed -n '2,29p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
         *) echo "build_mesa: unknown option $1" >&2; exit 2 ;;
     esac
 done

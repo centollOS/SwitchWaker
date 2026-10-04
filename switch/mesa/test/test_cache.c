@@ -19,12 +19,155 @@ static int failures;
 
 static const char *dir = "/tmp/decomp-cache-test";
 static char path[256];
+static char idx_path[256];
 
 static long fsize(void) { struct stat st; return stat(path, &st) == 0 ? st.st_size : -1; }
+static long isize(void) { struct stat st; return stat(idx_path, &st) == 0 ? st.st_size : -1; }
+
+static void copy_file(const char *from, const char *to)
+{
+   FILE *in = fopen(from, "rb"), *out = fopen(to, "wb");
+   assert(in && out);
+   char buf[65536];
+   size_t n;
+   while ((n = fread(buf, 1, sizeof(buf), in)) > 0) fwrite(buf, 1, n, out);
+   fclose(in); fclose(out);
+}
+
+static void poke(const char *file, long offset, const void *data, size_t size)
+{
+   FILE *f = fopen(file, "r+b");
+   assert(f);
+   fseek(f, offset, SEEK_SET); fwrite(data, 1, size, f); fclose(f);
+}
+
+static const char *reopen(struct disk_cache **c, const char *id)
+{
+   if (*c) disk_cache_destroy(*c);
+   *c = disk_cache_create("GM20B", id, 0);
+   const char *s = mesa_switch_shader_cache_status();
+   printf("status: %s\n", s);
+   return s;
+}
+
+/* The .idx beside the .bin: opening reads it at once, and every way it can disagree with the .bin
+ * (missing, torn, stale, damaged, foreign, older file) falls back to reading the records. */
+static void test_index(void)
+{
+   enum { N = 3000, SIZE = 4000 };
+   unlink(path); unlink(idx_path);
+   struct disk_cache *c = NULL;
+   reopen(&c, "id-idx");
+   CHECK(isize() == 32);
+   static char payload[SIZE];
+   cache_key keys[N];
+   for (unsigned i = 0; i < N; i++) {
+      disk_cache_compute_key(c, &i, sizeof(i), keys[i]);
+      memset(payload, (int)i, sizeof(payload));
+      memcpy(payload, &i, sizeof(i));
+      disk_cache_put(c, keys[i], payload, SIZE - (i % 7), NULL);
+   }
+   CHECK(isize() == 32 + 40L * N);
+   const char *s = reopen(&c, "id-idx");
+   CHECK(strstr(s, ": 3000 entries") && strstr(s, "index: 3000 records in one read") &&
+         !strstr(s, "more read") && !strstr(s, "cut"));
+   size_t sz; void *d;
+   for (unsigned i = 0; i < N; i += 397) {
+      d = disk_cache_get(c, keys[i], &sz);
+      CHECK(d && sz == SIZE - (i % 7) && memcmp(d, &i, sizeof(i)) == 0 &&
+            ((unsigned char *)d)[sz - 1] == (unsigned char)i);
+      free(d);
+   }
+
+   /* No .idx: rebuilt from the .bin once, then read at once again. */
+   unlink(idx_path);
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, ": 3000 entries") && strstr(s, "index rebuilt (no index file): 3000 records read one by one"));
+   CHECK(isize() == 32 + 40L * N);
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, "index: 3000 records in one read"));
+
+   /* A removal and a put after it: tombstones are indexed too. */
+   disk_cache_remove(c, keys[5]);
+   disk_cache_put(c, keys[5], "back", 5, NULL);
+   disk_cache_remove(c, keys[6]);
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, ": 2999 entries") && strstr(s, "index: 3003 records in one read"));
+   d = disk_cache_get(c, keys[5], &sz); CHECK(d && sz == 5 && strcmp(d, "back") == 0); free(d);
+   CHECK(disk_cache_get(c, keys[6], &sz) == NULL);
+   const long n_rec = 3003;
+
+   /* A torn last entry (stopped mid-write): cut, and its record read from the .bin. */
+   CHECK(truncate(idx_path, isize() - 7) == 0);
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, ": 2999 entries") && strstr(s, "3002 records in one read, 1 more read one by one, 1 stale entries cut"));
+   CHECK(isize() == 32 + 40L * n_rec);
+
+   /* A record written without its entry (stopped between the two writes). */
+   char saved[300];
+   snprintf(saved, sizeof(saved), "%s.saved", idx_path);
+   copy_file(idx_path, saved);
+   cache_key extra;
+   disk_cache_compute_key(c, "extra", 5, extra);
+   disk_cache_put(c, extra, "extra", 6, NULL);
+   disk_cache_destroy(c); c = NULL;
+   copy_file(saved, idx_path);
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, ": 3000 entries") && strstr(s, "3003 records in one read, 1 more read one by one") && !strstr(s, "cut"));
+   d = disk_cache_get(c, extra, &sz); CHECK(d && strcmp(d, "extra") == 0); free(d);
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, "index: 3004 records in one read") && !strstr(s, "more read"));
+
+   /* A torn .bin (its last record cut) under a whole .idx: the stale entry and the torn tail go. */
+   disk_cache_destroy(c); c = NULL;
+   CHECK(truncate(path, fsize() - 3) == 0);
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, ": 2999 entries") && strstr(s, "3003 records in one read, 1 stale entries cut") &&
+         strstr(s, "cut 35 bytes of a damaged tail"));
+   CHECK(disk_cache_get(c, extra, &sz) == NULL);
+   CHECK(isize() == 32 + 40L * n_rec);
+
+   /* A damaged entry in the middle: the entries before it are used, the records after it read. */
+   disk_cache_destroy(c); c = NULL;
+   poke(idx_path, 32 + 40 * 100 + 10, "\x42", 1);
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, ": 2999 entries") && strstr(s, "100 records in one read, 2903 more read one by one, 2903 stale entries cut"));
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, "index: 3003 records in one read") && !strstr(s, "more read"));
+
+   /* An .idx of another .bin (another generation): rebuilt. */
+   disk_cache_destroy(c); c = NULL;
+   poke(path, 44, "\x01\x02\x03\x04", 4);
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, ": 2999 entries") && strstr(s, "index rebuilt (the index file belongs to another cache file)"));
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, "index: 3003 records in one read"));
+
+   /* A .bin written before the index existed (generation 0): it gets one, and an index. */
+   disk_cache_destroy(c); c = NULL;
+   poke(path, 44, "\0\0\0\0", 4);
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, ": 2999 entries") && strstr(s, "index rebuilt (the cache file predates the index): 3003 records"));
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, "index: 3003 records in one read"));
+   d = disk_cache_get(c, keys[2999], &sz); CHECK(d && memcmp(d, &(unsigned){2999}, 4) == 0); free(d);
+
+   /* A damaged .idx header: rebuilt. */
+   disk_cache_destroy(c); c = NULL;
+   poke(idx_path, 3, "?", 1);
+   s = reopen(&c, "id-idx");
+   CHECK(strstr(s, "index rebuilt (the index file is damaged or of another version)"));
+
+   /* Another driver build: both files emptied. */
+   s = reopen(&c, "id-idx-2");
+   CHECK(strstr(s, "another driver build") && isize() == 32 && fsize() == 48);
+   disk_cache_destroy(c);
+   unlink(saved);
+}
 
 static void test_store(void)
 {
-   unlink(path);
+   unlink(path); unlink(idx_path);
    struct disk_cache *c = disk_cache_create("GM20B", "id-1", 0);
    CHECK(c);
    printf("status: %s\n", mesa_switch_shader_cache_status());
@@ -166,7 +309,9 @@ int main(void)
    setvbuf(stdout, NULL, _IONBF, 0);
    setenv("MESA_SHADER_CACHE_DIR", dir, 1);
    snprintf(path, sizeof(path), "%s/mesa_shader_cache.bin", dir);
+   snprintf(idx_path, sizeof(idx_path), "%s/mesa_shader_cache.idx", dir);
    test_store();
+   test_index();
 
    unlink(path);
    struct disk_cache *c = disk_cache_create("GM20B", "id-3", 0);

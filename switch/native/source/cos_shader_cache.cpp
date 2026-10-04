@@ -7,7 +7,8 @@
 // blob cache (user/cache/dawn_cache.db) and loads instead of compiling.
 //
 // COS_SWITCH_SHADER_CACHE (env.txt): 1 (default) on; 0 off (MESA_SHADER_CACHE_DISABLE: no cache
-// and no program binaries, as with devkitPro's Mesa); reset deletes the cache file first. The
+// and no program binaries, as with devkitPro's Mesa); reset deletes the cache file (and its index,
+// mesa_shader_cache.idx) first. The
 // file is COS_SWITCH_ROOT/user/cache/mesa_shader_cache.bin unless MESA_SHADER_CACHE_DIR is set
 // (env.txt); deleting user/cache/ (docs: "If something goes wrong") clears it with Aurora's caches.
 //
@@ -55,6 +56,10 @@ int cos_switch_shader_cache_setup(char* note, size_t size) {
         char path[512];
         snprintf(path, sizeof(path), "%s/mesa_shader_cache.bin", getenv("MESA_SHADER_CACHE_DIR"));
         const int removed = unlink(path) == 0;
+        // And its index (mesa_shader_cache.idx; a leftover one would be rebuilt anyway).
+        char idx[512];
+        snprintf(idx, sizeof(idx), "%s/mesa_shader_cache.idx", getenv("MESA_SHADER_CACHE_DIR"));
+        unlink(idx);
         return snprintf(note, size, "[switch] shader cache: COS_SWITCH_SHADER_CACHE=reset: %s %s\n",
                         removed ? "deleted" : "no", path);
     }

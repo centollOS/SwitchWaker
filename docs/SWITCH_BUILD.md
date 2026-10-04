@@ -517,8 +517,15 @@ SD card, so a pipeline built once is not compiled again on later runs:
 - **Patch 0003** keeps Mesa's `disk_cache.h` API in one append-only file,
   `switch/centollos/native/user/cache/mesa_shader_cache.bin` (`MESA_SHADER_CACHE_DIR`, set by
   the port before EGL starts): a header with the sha1 of the driver keys, then records (key, size,
-  CRC-32, payload) written with one `write()` each; an index of the records is read at start (one
-  32-byte read per record), payloads are read when asked for and their CRC checked. Safety: a file
+  CRC-32, payload) written with one `write()` each; payloads are read when asked for and their CRC
+  checked. Beside it, `mesa_shader_cache.idx` lists the records (key, size, offset; 40 bytes and a
+  CRC each, appended after each record): at start it is read in one `read()` instead of one 32-byte
+  read per record of the `.bin` (2747 records took 860 ms on the SD card that way). Its entries are
+  used while they are whole, contiguous and inside the `.bin`, the last one is checked against the
+  `.bin`, and a random generation in both headers ties the two files together; records the index
+  misses (the app stopped between the two writes) are read one by one and added, and a missing,
+  damaged or foreign index is rebuilt from the `.bin` once ("index rebuilt (...)" in the log). The
+  `.bin` keeps its format (version 1). Safety: a file
   from another driver build (the build is named by `MESA_SWITCH_CACHE_ID`, a hash of Mesa's source
   and every patch, written by `build_mesa.sh`), of another format version or with a bad header is
   emptied; a torn last record (the app stopped mid-write) is cut off; a damaged entry is a miss and
@@ -544,19 +551,22 @@ SD card, so a pipeline built once is not compiled again on later runs:
 
   ```
   [switch] shader cache: MESA_SHADER_CACHE_DIR=/switch/centollos/native/user/cache
-  [switch] shader cache: /switch/.../user/cache/mesa_shader_cache.bin: N entries, M MiB, opened in T ms (max 256 MiB)
+  [switch] shader cache: /switch/.../user/cache/mesa_shader_cache.bin: N entries, M MiB, opened in T ms; index: R records in one read (max 256 MiB)
   [switch] shader compile: compiles C (D deferred) X ms; links L (F from cache) Y ms = glsl G + st S; nvc0 T (H from cache) Z ms; binaries loaded B (R refused) W ms, saved V W ms; cache gets ... puts ...; dawn binaries: formats 1, hits h, misses m, refused r, stored s (M MiB)
   ```
 
   On the first start after installing an NRO with a new Mesa: "new file" or "discarded: written by
-  another driver build", dawn binaries mostly misses and stored, nvc0 none from cache. On the next
+  another driver build" (every change to `switch/mesa/patches` renames the driver build, so the
+  NRO with the index starts once from an empty cache too), dawn binaries mostly misses and stored, nvc0 none from cache. On the next
   start: dawn binary hits for the pipelines built before, nvc0 "from cache" close to its total, and
   the precompile lines' "compile ... (X ms each)" should drop from 126-176 ms to a few ms. The
   "glsl", "st" and "nvc0" times of the first start are where a compile's time goes (the GLSL front
   end and linker, GLSL IR to TGSI, and Maxwell code generation); what the precompile line counts
   beyond them is Dawn's own work (Tint, pipeline objects).
 - **Checked off the console** (`build_mesa.sh --test`): the file's persistence, removal, torn tail,
-  damaged entry, another driver build and size limit; nvc0 code from the cache identical to a fresh
+  damaged entry, another driver build and size limit; the index with 3000 entries (read at once,
+  rebuilt when missing, torn, damaged in the middle, of another generation or for a `.bin` from
+  before it, records it misses read from the `.bin`, a torn `.bin` under a whole index); nvc0 code from the cache identical to a fresh
   translation (code, header, state, relocations and fixups, GM20B); and through the GL API (OSMesa
   on softpipe with a test-only disk cache hook), a second run links every program from the cache
   with every compile deferred, draws the same pixels as the first, loads the saved program binaries
