@@ -399,7 +399,11 @@ Besides that, the port compiles fewer programs and compiles them before they are
   tier with its `--no-<name>` switch, and merges them into
   `build/pipeline-cache/initial_pipeline_cache.db` (ordered so the boot path comes first; the row
   counts per tier are in `report.txt`). Its `pipeline_priority` table marks the rows recorded on the boot path (tiers 0-3,
-  logos to Outset: 176 of 1016 rows) priority 0 and the stage sweep's 1;
+  logos to Outset: 176 of 2564 rows in the 2026-10-05 file, 10.7 MB: 984 rows before the gameplay,
+  room, effects, model and screen tiers, which added 1580, 1041 of them from the model and screen
+  sweeps) priority 0 and the rest 1. At 150-190 ms per cold build that is about 6.5-8 minutes of
+  warm-up on a console whose shader cache is cold (the 176 priority ones about 30 s), about 26 s
+  at the ~10 ms of a warm one;
   `gen_pipeline_cache.sh --mark-priority DB` rewrites only that table in an existing file.
   `--merge-from DB [--tier N]` (repeatable) adds another Aurora pipeline cache as one more tier
   (default: after the existing ones, priority 1), e.g. the console's own cache, which records every
