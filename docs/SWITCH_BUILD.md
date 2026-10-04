@@ -393,6 +393,11 @@ Besides that, the port compiles fewer programs and compiles them before they are
   comes first). Its `pipeline_priority` table marks the rows recorded on the boot path (tiers 0-3,
   logos to Outset: 176 of 1016 rows) priority 0 and the stage sweep's 1;
   `gen_pipeline_cache.sh --mark-priority DB` rewrites only that table in an existing file.
+  `--merge-from DB [--tier N]` (repeatable) adds another Aurora pipeline cache as one more tier
+  (default: after the existing ones, priority 1), e.g. the console's own cache, which records every
+  pipeline used in play (see "Growing the list from the console" below), or any Mac run's; rows
+  already present keep their tier, rows of another config version than this build's Aurora writes
+  are skipped and counted. `--merge-only` merges into the existing bundled file without the Mac runs.
   `scripts/switch/push.sh --pipeline-cache` copies it next to the NRO, where Aurora
   merges it into the player's cache at every start (`Seeded pipeline cache from ...`). It holds
   Aurora's pipeline keys (GX TEV stage and combiner selectors, vertex formats, blend, depth and cull
@@ -523,6 +528,28 @@ cache's hit rate is confirmed on the console, `full` costs little more than `boo
 next to `build/native-mac/centollos`; there the whole warm-up of 995 pipelines took 83 s of the compile
 thread with a warm Dawn cache, and frames captured with and without it are identical. The Mac
 draws no loading screen or indicator unless `COS_PRECOMPILE` is set (native/README.md).
+
+### Growing the list from the console
+
+A pipeline the bundled list does not have still compiles when first drawn (a 150-640 ms hitch:
+bomb explosions on Dragon Roost, for one). The console's own cache,
+`switch/centollos/native/user/cache/pipeline_cache.db`, records every pipeline used in play, so
+after playing, with USB file transfer on and the app closed:
+
+```sh
+scripts/switch/pull_pipeline_cache.sh            # -> build/pipeline-cache/console/<timestamp>.db
+native/tools/gen_pipeline_cache.sh --merge-only --merge-from build/pipeline-cache/console/<timestamp>.db
+scripts/switch/push.sh --pipeline-cache
+```
+
+`pull_pipeline_cache.sh [OUT]` copies the database and its `-journal` (the Switch build's PERSIST
+rollback journal, Aurora Switch patch 0006) and `-wal` if present over MTP, twice for the database
+(both copies must match, or it pulls again: the app writes its cache while it runs), opens the copy
+with sqlite (a zeroed journal header is ignored; a hot journal, a commit cut short by HOME, is
+rolled back on the copy as Aurora would at its next start) and writes one clean file with
+`VACUUM INTO`; the raw files stay in `<timestamp>.raw/`. The merge adds the console's new rows as a
+tier after the existing ones (priority 1) and reports how many were new, already known, or of
+another config version (skipped: a cache written by an older NRO).
 
 ## Shader cache
 
