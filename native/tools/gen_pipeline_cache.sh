@@ -35,8 +35,8 @@
 #                      leaf, skull hammer, hookshot, bow (native/check/input/pipeline-items.txt;
 #                      --no-items; --no-gameplay skips tiers 5-7)
 #   8  room-sweep      every room of every stage that has a spawn point (boot_sweep.py --rooms),
-#                      --sweep-frames frames each; --room-skip LIST (default M_NewD2:2, bug B10:
-#                      its lava platform faulted on creation) leaves rooms out (--no-rooms)
+#                      --sweep-frames frames each; --room-skip LIST leaves rooms out (none by
+#                      default; --no-rooms skips the tier)
 #   9  fx              every particle emitter drawn in front of the player (COS_SMOKE=fx-sweep,
 #                      native/src/pc/pc_fx_sweep.cpp): on Outset the common ones and those of
 #                      every scene JPC of the disc, the common ones in M_NewD2, then each stage's
@@ -103,9 +103,8 @@ models=1
 screens=1
 jobs=4
 sweep_jobs=4
-# Rooms the room sweep leaves out: M_NewD2 room 2 faults on creation of its lava platform (bug B10)
-# until that fix is in.
-room_skip="M_NewD2:2"
+# Rooms the room sweep leaves out (--room-skip); none since bug B10 (M_NewD2 room 2) was fixed.
+room_skip=""
 sweep_frames=600
 sweep_only=""
 disc_args=()
