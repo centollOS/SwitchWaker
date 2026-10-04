@@ -44,8 +44,10 @@ set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_shot.cpp" APPEND PROPERTY INCL
         "$<TARGET_PROPERTY:dawn::webgpu_dawn,INTERFACE_INCLUDE_DIRECTORIES>")
 # pc_main.cpp names Aurora's render worker for the Switch's per-thread CPU times
 # (render_worker::enqueue_work; lib/gfx/render_worker.hpp includes only standard headers).
-set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_main.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
-        "${aurora_SOURCE_DIR}")
+# pc_gpu_opts.cpp (COS_SHADOW_OFFSCREEN) reads the EFB's pixel size (lib/window.hpp, whose SDL
+# headers cos_pc already has, and lib/dolphin/vi/vi_internal.hpp); the symbols are aurora_core's.
+set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_main.cpp" "${COS_NATIVE_ROOT}/src/pc/pc_gpu_opts.cpp"
+        APPEND PROPERTY INCLUDE_DIRECTORIES "${aurora_SOURCE_DIR}")
 # pc_overlay.cpp (COS_FPS_OVERLAY) and pc_precompile.cpp (the shader loading screen and indicator)
 # draw with Aurora's ImGui. Headers only: aurora_core links imgui.
 if (TARGET imgui)
