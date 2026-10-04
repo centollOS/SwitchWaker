@@ -3508,6 +3508,22 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   of small pushes (2 MiB of indices and 3.4 MB of vertices in one frame, measured with a temporary
   log in `push`): a runaway draw count of the duplicate, not a single oversize draw nor a limit
   the game comes near. Not changed (dropping draws in Aurora on overflow would hide such bugs).
+  Room sweep results (`--points all`, 155 stages, 1178 spawn points: 1106 booted, 57 rooms without a
+  spawn point, 12 points in rooms with no archive; 900 frames uncapped with the walk, `--jobs 7`,
+  about 20 min). First sweep, before the fixes: 38 FAIL, 11 distinct signatures; port bugs B11
+  (frozen player, ice isle and MiniHyo), B12 (minigame screens, Ocean) and, from the
+  failed-allocation callers, B13 (pot shards); B16 (audio, flaky) open. Final sweep on the tip:
+  0 FAIL.
+
+  | result | specs | class |
+  |---|---|---|
+  | ok | 1013 | the player in the room, 900 frames |
+  | ok-layer | 18 | cutscene spawn points (200 and up, and some 0-2) whose demo is in another layer's bank: pass with layer 2, 8, 9 or 10 |
+  | no-layer | 14 | ADMumi:0:232/244, Edaichi:0:226, Ekaze:0:229, GTower:0:2, GanonK:0:4, M_DaiB:0:228, Otkura:0:230, Pjavdou:0:200, kazeB:0:231, sea:9:225/226, sea:13:227, sea_E:44:206: `PANIC d_event_data.cpp:1070` (the event's demo file is in no layer's bank nor in Stage.arc) with every layer 0-11: the demo is mounted by the scene the game arrives from, or picked by story flags; debug boot, not a crash in game code |
+  | no-floor | 48 | Mjtower and M2tower (every point but 16), ma2room/ma3room/majroom 2:16-17, Hyrule:0:1, Xboss3:0:231: nothing under the spawn point in room.dzb, the player waits in `makeBgWait` (floor of a moving actor or a point the game reaches another way) |
+  | xfail | 10 | the stage sweep's GTower, GanonK, M2ganon (LkD01, event flag 0x2D01), ENDumi (layer 8), Msmoke (door10.bdl); new: A_R00:0:0 (Room0's model.bmd is a text file, room.dzr never loads, no player), E3ROOP:0 (no camera record, the player waits for a camera), sea:26:1 (a boss warp arrival riding the ship, no ship on a new file), I_SubAN:4:0 (a chest of function type 0x7E) |
+  | flaky | 3 | B16, the audio port command through 0 (Cave10:19:0, I_SubAN:16:0, sea:10:100; reruns pass) |
+
 
 - **Widescreen option `COS_ASPECT`** (2026-10-03, lane wide). The community 16:9 Gecko code that the
   translated build applies (mods/widescreen/GZLE01.gecko) is done in C under `TARGET_PC`:

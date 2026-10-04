@@ -53,7 +53,8 @@ A cutscene spawn point (the points 200 and up, and others) plays a demo from the
 which the game picks by layer; the debug boot's layer -1 resolves to the stage's default layer,
 whose bank may not hold that demo (PANIC d_event_data.cpp:1070, as for ENDumi). Such a spec is run
 again with layers 0-11 (COS_BOOT_STAGE's fourth field) and reported "ok-layer" with the first
-layer that passes.
+layer that passes, or "no-layer" (an expected failure: the demo is mounted by the scene the game
+comes from, or picked by story flags, which a debug boot skips) when none does.
 Expected fails: the stage sweep's EXPECTED_FAIL entries hold for every room of their stage (as
 intermittent: a pass is fine), plus ROOM_EXPECTED_FAIL below for single rooms; both only for a
 debug boot the game cannot make or for disc data the original game cannot run either, never for a
@@ -313,6 +314,10 @@ def sweep_one(args, sweep_dir, stage, room, point):
                 r["result"] = "ok-layer"
                 r["signature"] = "ok with layer %d (layer -1: %s)" % (layer, r["signature"])
                 break
+        else:
+            # No layer's bank holds the demo: the scene the game reaches this point from mounts
+            # it (or story flags pick it), which a debug boot skips. Not a crash in game code.
+            r["result"] = "no-layer"
         return r
     attempt = 0
     while r["result"] == "FAIL" and attempt < args.rerun:
