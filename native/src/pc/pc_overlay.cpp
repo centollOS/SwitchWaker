@@ -27,6 +27,7 @@ constexpr uint64_t kWindowNs = 500ull * 1000000ull;
 
 struct OverlayState {
     bool started = false;
+    bool measured = false; // a half-second window closed (fps and game ms are valid)
     uint64_t windowStartNs = 0;
     unsigned int frames = 0;
     uint64_t busyNs = 0;
@@ -80,6 +81,7 @@ void overlayUpdate(uint64_t now) {
     s.windowStartNs = now;
     s.frames = 0;
     s.busyNs = 0;
+    s.measured = true;
 }
 
 } // namespace
@@ -109,6 +111,12 @@ void overlayFrame(uint64_t busyNs) {
                                         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                                         ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs;
     if (ImGui::Begin("##cos_fps_overlay", nullptr, kFlags)) {
+        if (!s.measured) {
+            // Turned on a moment ago (options menu): nothing measured yet.
+            ImGui::TextUnformatted("-- fps");
+            ImGui::End();
+            return;
+        }
         if (gConfig.fpsOverlayCompact) {
             // COS_FPS_OVERLAY_DETAIL=compact (options menu): one line.
             ImGui::Text("%.1f fps  %.1f ms", s.fps, s.gameMs);
