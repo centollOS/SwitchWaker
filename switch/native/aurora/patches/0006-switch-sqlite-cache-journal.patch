@@ -1,153 +1,51 @@
-Switch: sqlite caches without a journal file, rebuilt when they cannot be opened
+Switch: Aurora's sqlite caches without a journal file
 
 On the console both caches (dawn_cache.db and pipeline_cache.db on the SD card) failed
 their first transaction with "database disk image is malformed" on every run, even
 after the files were deleted, so every shader and pipeline was compiled again each run.
 
-On Horizon the caches now use journal_mode=MEMORY and synchronous=OFF instead of WAL
+On Horizon the caches use journal_mode=MEMORY and synchronous=OFF instead of WAL
 (compiled out there) and NORMAL: no rollback journal file is created, stat'ed or
-unlinked next to the database, and nothing waits for the card. A cache that still
-cannot be opened is removed (with any journal left next to it) and created once more
-from an empty file; the log says so with the old file's size. The sqlite build adds
-exclusive locking and in-memory temp files, and its error log goes to the run log
-(switch/aurora/sqlite_horizon.c), which names the exact check that fails if this does
-not cure it.
+unlinked next to the database, and nothing waits for the card. A cache that cannot be
+opened, for any reason, is removed and created once more from an empty file (the shared
+patch native/patches/aurora/0007 does the removal and retry, for damaged files only on
+other platforms). The sqlite build adds exclusive locking and in-memory temp files, and
+its error log goes to the run log (switch/aurora/sqlite_horizon.c).
 
 Switch only (switch/native/aurora/patches); not for upstream.
 
-diff --git a/lib/gfx/pipeline_cache.cpp b/lib/gfx/pipeline_cache.cpp
-index 3b90e22..a192df9 100644
---- a/lib/gfx/pipeline_cache.cpp
-+++ b/lib/gfx/pipeline_cache.cpp
-@@ -716,7 +716,41 @@ static void seed_pipeline_cache() {
-   }
- }
- 
-+static std::string pipeline_cache_db_path() {
-+  return io::fs_path_to_string(io::fs_path_from_string(g_config.cachePath) / "pipeline_cache.db");
-+}
-+
-+#if defined(__SWITCH__)
-+static bool prepare_pipeline_cache_db_once();
-+
-+// Horizon: a cache that cannot be opened is removed and started once more from an empty file
-+// (switch/native/aurora/patches).
-+static bool prepare_pipeline_cache_db() {
-+  static bool s_retried = false;
-+  const bool wasBroken = g_pipelineCacheBroken;
-+  if (prepare_pipeline_cache_db_once()) {
-+    return true;
-+  }
-+  if (wasBroken || s_retried) {
-+    return false;
-+  }
-+  s_retried = true;
-+  const auto path = pipeline_cache_db_path();
-+  const long long oldSize = sqlite::reset_cache_file(path);
-+  Log.warn("Removed {} ({} bytes) and retrying with an empty pipeline cache", path, oldSize);
-+  g_pipelineCacheBroken = false;
-+  if (!prepare_pipeline_cache_db_once()) {
-+    Log.error("Pipeline cache failed again; running without it");
-+    return false;
-+  }
-+  Log.info("Pipeline cache recreated at {}", path);
-+  return true;
-+}
-+
-+static bool prepare_pipeline_cache_db_once() {
-+#else
- static bool prepare_pipeline_cache_db() {
-+#endif
-   if (g_pipelineCacheBroken) {
-     return false;
-   }
-@@ -724,7 +758,7 @@ static bool prepare_pipeline_cache_db() {
-     return true;
-   }
- 
--  const auto path = io::fs_path_to_string(io::fs_path_from_string(g_config.cachePath) / "pipeline_cache.db");
-+  const auto path = pipeline_cache_db_path();
-   auto ret = sqlite3_open(path.c_str(), &g_pipelineCacheDb);
-   if (ret != SQLITE_OK) {
-     Log.error("Failed to open pipeline cache database: {}", sqlite3_errmsg(g_pipelineCacheDb));
-@@ -732,7 +766,7 @@ static bool prepare_pipeline_cache_db() {
-     return false;
-   }
- 
--  ret = sqlite::exec(g_pipelineCacheDb, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
-+  ret = sqlite::exec(g_pipelineCacheDb, sqlite::CachePragmas);
-   if (ret != SQLITE_OK) {
-     Log.error("Failed to set pipeline cache pragmas: {}", sqlite3_errmsg(g_pipelineCacheDb));
-     pipeline_cache_abort();
 diff --git a/lib/sqlite_utils.hpp b/lib/sqlite_utils.hpp
-index 38db46b..8ddaa0b 100644
+index 9370469..a6e51b2 100644
 --- a/lib/sqlite_utils.hpp
 +++ b/lib/sqlite_utils.hpp
-@@ -4,8 +4,32 @@
- 
- #include <sqlite3.h>
- 
-+#include <filesystem>
-+#include <string>
-+#include <system_error>
-+
- namespace aurora::sqlite {
- 
+@@ -14,8 +14,14 @@ namespace aurora::sqlite {
+ inline int apply_cache_pragmas(sqlite3* db, const std::string& path, Module& log) {
+   (void)path;
+   (void)log;
 +#if defined(__SWITCH__)
-+// Horizon (the Switch's SD card through newlib): no rollback journal file next to the database
-+// (the cache tolerates losing its last transaction; a damaged file is removed and rebuilt, see
-+// reset_cache_file) and no syncs.
-+inline constexpr const char* CachePragmas = "PRAGMA journal_mode=MEMORY; PRAGMA synchronous=OFF;";
-+
-+// Removes a cache database (and a journal left next to it) that could not be opened, so the
-+// caller can start it again from an empty file. Returns the size the file had, or -1.
-+inline long long reset_cache_file(const std::string& path) {
-+  std::error_code ec;
-+  const auto size = std::filesystem::file_size(path, ec);
-+  const long long result = ec ? -1 : static_cast<long long>(size);
-+  std::filesystem::remove(path, ec);
-+  std::filesystem::remove(path + "-journal", ec);
-+  return result;
-+}
++  // Horizon (the Switch's SD card through newlib): no rollback journal file next to the database
++  // (a damaged file is removed and rebuilt, see is_damaged) and no syncs. WAL is compiled out.
++  return sqlite3_exec(db, "PRAGMA journal_mode=MEMORY; PRAGMA synchronous=OFF;", nullptr, nullptr, nullptr);
 +#else
-+inline constexpr const char* CachePragmas = "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;";
-+#endif
-+
- inline int exec(sqlite3* db, const char* sql) { return sqlite3_exec(db, sql, nullptr, nullptr, nullptr); }
- 
- template <typename T>
-diff --git a/lib/webgpu/gpu_cache.cpp b/lib/webgpu/gpu_cache.cpp
-index 6ef44ea..68b7308 100644
---- a/lib/webgpu/gpu_cache.cpp
-+++ b/lib/webgpu/gpu_cache.cpp
-@@ -111,7 +111,7 @@ static bool cache_init_core() {
-   }
- 
    // WAL mode + NORMAL = no need for disk syncs, consistent but not durable is fine.
--  ret = sqlite::exec(db, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
-+  ret = sqlite::exec(db, sqlite::CachePragmas);
-   if (ret != SQLITE_OK) {
-     Log.error("Failed to set pragmas: {}", sqlite3_errmsg(db));
-     return false;
-@@ -212,7 +212,21 @@ static bool cache_init() {
-   if (!cache_init_core()) {
-     Log.error("SQLite DB init failed");
-     init_abort();
-+#if defined(__SWITCH__)
-+    // Horizon: start once more from an empty file (switch/native/aurora/patches).
-+    const auto file = io::fs_path_to_string(cache_path());
-+    const long long oldSize = sqlite::reset_cache_file(file);
-+    Log.warn("Removed {} ({} bytes) and retrying with an empty cache", file, oldSize);
-+    cache_broken = false;
-+    if (!cache_init_core()) {
-+      Log.error("SQLite DB init failed again; running without the GPU cache");
-+      init_abort();
-+      return false;
-+    }
-+    Log.info("GPU cache recreated at {}", file);
-+#else
-     return false;
+   return sqlite3_exec(db, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;", nullptr, nullptr, nullptr);
 +#endif
-   }
+ }
  
-   Log.debug("SQLite cache init succeeded");
+ // A result that means the file itself is damaged (a torn write, a truncated or overwritten file):
+@@ -26,7 +32,14 @@ inline bool is_damaged(int rc) {
+ }
+ 
+ // Whether a cache that failed to open with this result is deleted and created once more.
+-inline bool reset_on_open_failure(int rc) { return is_damaged(rc); }
++inline bool reset_on_open_failure(int rc) {
++#if defined(__SWITCH__)
++  // Horizon: any failure (the console's failures did not all say "malformed").
++  return rc != SQLITE_OK;
++#else
++  return is_damaged(rc);
++#endif
++}
+ 
+ // Removes a cache database and the files sqlite keeps next to it, so the caller can start it again
+ // from an empty file. Returns the size the database had, or -1.

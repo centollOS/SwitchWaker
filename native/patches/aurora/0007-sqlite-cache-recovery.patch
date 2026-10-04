@@ -1,0 +1,954 @@
+Aurora's sqlite caches: recover from a damaged file instead of failing every statement
+
+A Dawn cache file damaged by a process killed in the middle of a write (on the Switch, the
+game closed with HOME) opened fine, and then every lookup and insert failed with "database
+disk image is malformed" for the whole run, so every pipeline missed the cache. Worse, the
+error paths returned without resetting the prepared statement, so every later bind failed
+with "bind on a busy prepared statement" (SQLITE_MISUSE): ~19 000 sqlite log lines in one
+console run.
+
+lib/webgpu/gpu_cache.cpp:
+- every lookup, insert and the prune reset their statement and drop its bindings on every
+  path (a scope guard), and roll back their transaction;
+- an SQLITE_CORRUPT or SQLITE_NOTADB result closes the connection, deletes the file (with any
+  -journal/-wal/-shm next to it), creates an empty cache and goes on, with one warning line
+  ("GPU cache ... is damaged (...); deleted it (N bytes) and started an empty one"); after two
+  such resets in a run the cache is turned off for the rest of it, with one line;
+- other errors are logged rate-limited (the first three, then every 1000th, with the count);
+- at open, after the schema check, "SELECT count(*) FROM cache" walks the key index (a few
+  pages, no values) so a file damaged there is replaced before the first lookup; damage
+  elsewhere is caught by the first statement that meets it;
+- a cache that cannot be opened because the file is damaged is deleted and created once more
+  ("Removed ... and retrying"; was Switch-only in the Switch patch 0006);
+- connections are closed after finalizing their statements (sqlite3_close refuses while any
+  are left, which kept the file open and leaked the connection).
+
+lib/gfx/pipeline_cache.cpp: the same open retry, and a file found damaged while loading is
+deleted and the cache started again from an empty file (seeded from the bundled cache); found
+damaged by the writer thread, the file is deleted and the next run starts it again.
+
+lib/sqlite_utils.hpp: is_damaged, reset_on_open_failure, reset_cache_file, ErrorLimiter, and
+apply_cache_pragmas (WAL + NORMAL as before; the Switch patch 0006 sets its own journal).
+
+diff --git a/lib/gfx/pipeline_cache.cpp b/lib/gfx/pipeline_cache.cpp
+index f8cf35b..07062c5 100644
+--- a/lib/gfx/pipeline_cache.cpp
++++ b/lib/gfx/pipeline_cache.cpp
+@@ -547,8 +547,16 @@ static PipelineRef resolve_pipeline(ShaderType type, const rmlui::PipelineConfig
+ }
+ #endif
+ 
++// Set by pipeline_cache_abort when the statement that failed found the file damaged (a write torn by
++// a killed process, a truncated or overwritten file): the file is then deleted and, while loading,
++// started again from an empty one instead of being left broken for every later run.
++static bool g_pipelineCacheDamaged = false;
++
+ static void pipeline_cache_abort() {
+   g_pipelineCacheBroken = true;
++  if (g_pipelineCacheDb != nullptr && sqlite::is_damaged(sqlite3_errcode(g_pipelineCacheDb))) {
++    g_pipelineCacheDamaged = true;
++  }
+   if (g_pipelineCacheLoadStmt != nullptr) {
+     sqlite3_finalize(g_pipelineCacheLoadStmt);
+     g_pipelineCacheLoadStmt = nullptr;
+@@ -711,39 +719,104 @@ static void seed_pipeline_cache() {
+   }
+ }
+ 
++static std::string pipeline_cache_db_path() {
++  return io::fs_path_to_string(io::fs_path_from_string(g_config.cachePath) / "pipeline_cache.db");
++}
++
++// Why the last open failed (the first failing step and its result), for one summary line in
++// prepare_pipeline_cache_db instead of a line per step.
++static int g_pipelineCacheOpenError = SQLITE_OK;
++static std::string g_pipelineCacheOpenMessage;
++
++template <typename... T>
++static void open_error(fmt::format_string<T...> fmt, T&&... args) {
++  if (g_pipelineCacheOpenError != SQLITE_OK) {
++    return;
++  }
++  g_pipelineCacheOpenError = g_pipelineCacheDb != nullptr ? sqlite3_errcode(g_pipelineCacheDb) : SQLITE_CANTOPEN;
++  if (g_pipelineCacheOpenError == SQLITE_OK) {
++    g_pipelineCacheOpenError = SQLITE_ERROR;
++  }
++  g_pipelineCacheOpenMessage = fmt::format(fmt, std::forward<T>(args)...);
++}
++
++static bool prepare_pipeline_cache_db_once();
++
++// Opens the cache; one that cannot be opened because the file is damaged is removed and started
++// once more from an empty file (then seeded again from the bundled cache).
+ static bool prepare_pipeline_cache_db() {
++  static bool s_retried = false;
+   if (g_pipelineCacheBroken) {
+     return false;
+   }
+   if (g_pipelineCacheDb != nullptr) {
+     return true;
+   }
++  g_pipelineCacheOpenError = SQLITE_OK;
++  if (prepare_pipeline_cache_db_once()) {
++    return true;
++  }
++  if (g_pipelineCacheOpenError == SQLITE_OK) {
++    return false; // failed after opening (seeding), already reported
++  }
++  const auto path = pipeline_cache_db_path();
++  const std::string why = g_pipelineCacheOpenMessage;
++  if (s_retried || !sqlite::reset_on_open_failure(g_pipelineCacheOpenError)) {
++    Log.error("Pipeline cache {} could not be opened ({}); running without it", path, why);
++    return false;
++  }
++  s_retried = true;
++  const long long oldSize = sqlite::reset_cache_file(path);
++  g_pipelineCacheBroken = false;
++  g_pipelineCacheDamaged = false;
++  g_pipelineCacheOpenError = SQLITE_OK;
++  if (!prepare_pipeline_cache_db_once()) {
++    Log.error("Pipeline cache {} could not be opened ({}); deleted it ({} bytes) but a new one failed too ({}); "
++              "running without it",
++              path, why, oldSize, g_pipelineCacheOpenMessage);
++    return false;
++  }
++  Log.warn("Pipeline cache {} could not be opened ({}); deleted it ({} bytes) and started an empty one", path, why,
++           oldSize);
++  return true;
++}
+ 
+-  const auto path = io::fs_path_to_string(io::fs_path_from_string(g_config.cachePath) / "pipeline_cache.db");
+-  auto ret = sqlite3_open(path.c_str(), &g_pipelineCacheDb);
+-  if (ret != SQLITE_OK) {
+-    Log.error("Failed to open pipeline cache database: {}", sqlite3_errmsg(g_pipelineCacheDb));
++static bool prepare_pipeline_cache_db_once() {
++  if (g_pipelineCacheBroken) {
++    return false;
++  }
++  if (g_pipelineCacheDb != nullptr) {
++    return true;
++  }
++  const auto fail = [] {
++    open_error("failed");
+     pipeline_cache_abort();
+     return false;
++  };
++
++  const auto path = pipeline_cache_db_path();
++  auto ret = sqlite3_open(path.c_str(), &g_pipelineCacheDb);
++  if (ret != SQLITE_OK) {
++    open_error("Failed to open pipeline cache database: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    return fail();
+   }
+ 
+-  ret = sqlite::exec(g_pipelineCacheDb, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
++  ret = sqlite::apply_cache_pragmas(g_pipelineCacheDb, path, Log);
+   if (ret != SQLITE_OK) {
+-    Log.error("Failed to set pipeline cache pragmas: {}", sqlite3_errmsg(g_pipelineCacheDb));
+-    pipeline_cache_abort();
+-    return false;
++    open_error("Failed to set pipeline cache pragmas: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    return fail();
+   }
+ 
+   bool schemaFailed = false;
+   {
+     sqlite::Transaction tx(g_pipelineCacheDb, Log, true);
+     if (!tx) {
+-      Log.error("Failed to begin pipeline cache schema transaction");
++      open_error("Failed to begin pipeline cache schema transaction");
+       schemaFailed = true;
+     } else {
+       ret = sqlite::exec(g_pipelineCacheDb, "CREATE TABLE IF NOT EXISTS aurora_schema(value INTEGER);");
+       if (ret != SQLITE_OK) {
+-        Log.error("Failed to create pipeline cache schema table: {}", sqlite3_errmsg(g_pipelineCacheDb));
++        open_error("Failed to create pipeline cache schema table: {}", sqlite3_errmsg(g_pipelineCacheDb));
+         schemaFailed = true;
+       }
+     }
+@@ -754,7 +827,7 @@ static bool prepare_pipeline_cache_db() {
+       ret = sqlite::exec(g_pipelineCacheDb, schemaQuery.c_str(),
+                          [&schemaMatch](int, char**, char**) { schemaMatch = true; });
+       if (ret != SQLITE_OK) {
+-        Log.error("Failed to read pipeline cache schema version: {}", sqlite3_errmsg(g_pipelineCacheDb));
++        open_error("Failed to read pipeline cache schema version: {}", sqlite3_errmsg(g_pipelineCacheDb));
+         schemaFailed = true;
+       }
+     }
+@@ -778,7 +851,7 @@ INSERT INTO aurora_schema VALUES ({});)",
+           PipelineCacheSchema);
+       ret = sqlite::exec(g_pipelineCacheDb, schemaSql.c_str());
+       if (ret != SQLITE_OK) {
+-        Log.error("Failed to initialize pipeline cache schema: {}", sqlite3_errmsg(g_pipelineCacheDb));
++        open_error("Failed to initialize pipeline cache schema: {}", sqlite3_errmsg(g_pipelineCacheDb));
+         schemaFailed = true;
+       }
+     }
+@@ -789,8 +862,7 @@ INSERT INTO aurora_schema VALUES ({});)",
+   }
+ 
+   if (schemaFailed) {
+-    pipeline_cache_abort();
+-    return false;
++    return fail();
+   }
+ 
+   ret = sqlite3_prepare_v3(g_pipelineCacheDb,
+@@ -799,9 +871,8 @@ INSERT INTO aurora_schema VALUES ({});)",
+                            "ORDER BY first_frame_used ASC, rowid ASC",
+                            -1, SQLITE_PREPARE_PERSISTENT, &g_pipelineCacheLoadStmt, nullptr);
+   if (ret != SQLITE_OK) {
+-    Log.error("Failed to prepare pipeline cache load statement: {}", sqlite3_errmsg(g_pipelineCacheDb));
+-    pipeline_cache_abort();
+-    return false;
++    open_error("Failed to prepare pipeline cache load statement: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    return fail();
+   }
+ 
+   ret = sqlite3_prepare_v3(
+@@ -815,9 +886,8 @@ INSERT INTO aurora_schema VALUES ({});)",
+       "first_frame_used = MIN(pipeline_cache.first_frame_used, excluded.first_frame_used)",
+       -1, SQLITE_PREPARE_PERSISTENT, &g_pipelineCacheUpsertStmt, nullptr);
+   if (ret != SQLITE_OK) {
+-    Log.error("Failed to prepare pipeline cache upsert statement: {}", sqlite3_errmsg(g_pipelineCacheDb));
+-    pipeline_cache_abort();
+-    return false;
++    open_error("Failed to prepare pipeline cache upsert statement: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    return fail();
+   }
+ 
+   seed_pipeline_cache();
+@@ -837,7 +907,9 @@ static void prune_old_pipeline_cache_versions() {
+                                        underlying(ShaderType::Clear), clear::ClearPipelineConfigVersion);
+   auto ret = sqlite::exec(g_pipelineCacheDb, clearDelete.c_str());
+   if (ret != SQLITE_OK) {
+-    Log.error("Failed to prune clear pipeline cache rows: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    if (!sqlite::is_damaged(ret)) { // a damaged file gets one line where it is deleted
++      Log.error("Failed to prune clear pipeline cache rows: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    }
+     pipeline_cache_abort();
+     return;
+   }
+@@ -846,7 +918,9 @@ static void prune_old_pipeline_cache_versions() {
+                                     underlying(ShaderType::GX), gx::GXPipelineConfigVersion);
+   ret = sqlite::exec(g_pipelineCacheDb, gxDelete.c_str());
+   if (ret != SQLITE_OK) {
+-    Log.error("Failed to prune GX pipeline cache rows: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    if (!sqlite::is_damaged(ret)) { // a damaged file gets one line where it is deleted
++      Log.error("Failed to prune GX pipeline cache rows: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    }
+     pipeline_cache_abort();
+     return;
+   }
+@@ -856,7 +930,9 @@ static void prune_old_pipeline_cache_versions() {
+                                      underlying(ShaderType::Rml), rmlui::RmlPipelineConfigVersion);
+   ret = sqlite::exec(g_pipelineCacheDb, rmlDelete.c_str());
+   if (ret != SQLITE_OK) {
+-    Log.error("Failed to prune RmlUi pipeline cache rows: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    if (!sqlite::is_damaged(ret)) { // a damaged file gets one line where it is deleted
++      Log.error("Failed to prune RmlUi pipeline cache rows: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    }
+     pipeline_cache_abort();
+   }
+ #endif
+@@ -902,7 +978,9 @@ static bool write_pipeline_cache_record(const PipelineCacheWrite& write) {
+ 
+   ret = sqlite3_step(g_pipelineCacheUpsertStmt);
+   if (ret != SQLITE_DONE) {
+-    Log.error("Failed to upsert pipeline cache row: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    if (!sqlite::is_damaged(ret)) { // a damaged file gets one line where it is deleted
++      Log.error("Failed to upsert pipeline cache row: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    }
+     return fail();
+   }
+ 
+@@ -950,6 +1028,14 @@ static void pipeline_cache_writer() {
+ 
+     if (writeFailed) {
+       pipeline_cache_abort();
++      if (g_pipelineCacheDamaged) {
++        // Not reopened here (the other threads only check the pointer): the next run starts an
++        // empty cache, seeded from the bundled one.
++        const auto path = pipeline_cache_db_path();
++        const long long oldSize = sqlite::reset_cache_file(path);
++        Log.warn("Pipeline cache {} is damaged; deleted it ({} bytes), no pipeline cache writes this run", path,
++                 oldSize);
++      }
+       return;
+     }
+   }
+@@ -1035,7 +1121,9 @@ static size_t load_pipeline_cache_entries(ShaderType type, uint32_t configVersio
+   }
+ 
+   if (ret != SQLITE_DONE) {
+-    Log.error("Failed to read pipeline cache rows: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    if (!sqlite::is_damaged(ret)) { // a damaged file gets one line where it is deleted
++      Log.error("Failed to read pipeline cache rows: {}", sqlite3_errmsg(g_pipelineCacheDb));
++    }
+     pipeline_cache_abort();
+   }
+ 
+@@ -1044,7 +1132,25 @@ static size_t load_pipeline_cache_entries(ShaderType type, uint32_t configVersio
+   return acceptedRows;
+ }
+ 
++static size_t load_pipeline_cache_once();
++
++// Loads the known pipelines. A file found damaged while reading is deleted and the cache started
++// again from an empty file (seeded from the bundled cache), once.
+ static size_t load_pipeline_cache() {
++  g_pipelineCacheDamaged = false;
++  size_t acceptedRows = load_pipeline_cache_once();
++  if (g_pipelineCacheBroken && g_pipelineCacheDamaged) {
++    const auto path = pipeline_cache_db_path();
++    const long long oldSize = sqlite::reset_cache_file(path);
++    Log.warn("Pipeline cache {} is damaged; deleted it ({} bytes) and started an empty one", path, oldSize);
++    g_pipelineCacheBroken = false;
++    g_pipelineCacheDamaged = false;
++    acceptedRows += load_pipeline_cache_once();
++  }
++  return acceptedRows;
++}
++
++static size_t load_pipeline_cache_once() {
+   if (!prepare_pipeline_cache_db()) {
+     return 0;
+   }
+diff --git a/lib/sqlite_utils.hpp b/lib/sqlite_utils.hpp
+index 38db46b..9370469 100644
+--- a/lib/sqlite_utils.hpp
++++ b/lib/sqlite_utils.hpp
+@@ -4,8 +4,52 @@
+ 
+ #include <sqlite3.h>
+ 
++#include <filesystem>
++#include <string>
++#include <system_error>
++
+ namespace aurora::sqlite {
+ 
++// Sets a cache database's journal and sync settings (path: the database file).
++inline int apply_cache_pragmas(sqlite3* db, const std::string& path, Module& log) {
++  (void)path;
++  (void)log;
++  // WAL mode + NORMAL = no need for disk syncs, consistent but not durable is fine.
++  return sqlite3_exec(db, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;", nullptr, nullptr, nullptr);
++}
++
++// A result that means the file itself is damaged (a torn write, a truncated or overwritten file):
++// the cache is deleted and started again from an empty file instead of failing every statement.
++inline bool is_damaged(int rc) {
++  rc &= 0xff;
++  return rc == SQLITE_CORRUPT || rc == SQLITE_NOTADB;
++}
++
++// Whether a cache that failed to open with this result is deleted and created once more.
++inline bool reset_on_open_failure(int rc) { return is_damaged(rc); }
++
++// Removes a cache database and the files sqlite keeps next to it, so the caller can start it again
++// from an empty file. Returns the size the database had, or -1.
++inline long long reset_cache_file(const std::string& path) {
++  std::error_code ec;
++  const auto size = std::filesystem::file_size(path, ec);
++  const long long result = ec ? -1 : static_cast<long long>(size);
++  for (const char* suffix : {"", "-journal", "-wal", "-shm"}) {
++    std::filesystem::remove(path + suffix, ec);
++  }
++  return result;
++}
++
++// Logs the first few errors of a kind and then only every 1000th, so a cache that keeps failing
++// cannot flood the log. Returns whether this one is logged; `count` is the total so far.
++struct ErrorLimiter {
++  uint64_t count = 0;
++  bool next() {
++    ++count;
++    return count <= 3 || count % 1000 == 0;
++  }
++};
++
+ inline int exec(sqlite3* db, const char* sql) { return sqlite3_exec(db, sql, nullptr, nullptr, nullptr); }
+ 
+ template <typename T>
+diff --git a/lib/webgpu/gpu_cache.cpp b/lib/webgpu/gpu_cache.cpp
+index 6ef44ea..bbd7a63 100644
+--- a/lib/webgpu/gpu_cache.cpp
++++ b/lib/webgpu/gpu_cache.cpp
+@@ -25,6 +25,9 @@ static sqlite3* db;
+ static sqlite3_stmt* load_stmt;
+ static sqlite3_stmt* store_stmt;
+ static bool cache_broken;
++// Times this run deleted a damaged cache and started an empty one (cache_recover).
++static int cache_resets;
++static sqlite::ErrorLimiter cache_errors;
+ static std::mutex cache_mutex;
+ static std::vector<XXH128_hash_t> cache_keys_used;
+ #if defined(AURORA_CACHE_USE_ZSTD)
+@@ -39,43 +42,92 @@ static std::filesystem::path cache_path() {
+   return io::fs_path_from_string(g_config.cachePath) / "dawn_cache.db";
+ }
+ 
++// Finalizes the statements and closes the connection (sqlite3_close refuses while statements are
++// left, which would keep the file open).
++static void cache_close() {
++  if (load_stmt != nullptr) {
++    sqlite3_finalize(load_stmt);
++    load_stmt = nullptr;
++  }
++  if (store_stmt != nullptr) {
++    sqlite3_finalize(store_stmt);
++    store_stmt = nullptr;
++  }
++  if (db != nullptr) {
++    sqlite3_close(db);
++    db = nullptr;
++  }
++}
++
+ static void init_abort() {
+   cache_broken = true;
+-  sqlite3_close(db);
+-  db = nullptr;
++  cache_close();
+ }
+ 
+-static int check(int ret) {
+-  if (ret != SQLITE_OK) {
+-    Log.error("SQLite operation failed: {}", sqlite3_errmsg(db));
++// Resets a statement and drops its bindings when the scope ends, on every path: a statement left
++// busy after an error makes every later bind fail with SQLITE_MISUSE.
++struct StatementScope {
++  sqlite3_stmt* stmt;
++  ~StatementScope() {
++    sqlite3_reset(stmt);
++    sqlite3_clear_bindings(stmt);
++  }
++};
++
++// A transaction that rolls back unless committed, without logging (the caller reports failures
++// through cache_failed, rate-limited).
++struct CacheTransaction {
++  int rc;
++  bool active;
++  explicit CacheTransaction(const char* begin) : rc(sqlite::exec(db, begin)), active(rc == SQLITE_OK) {}
++  ~CacheTransaction() {
++    if (active) {
++      sqlite::exec(db, "ROLLBACK");
++    }
++  }
++  int commit() {
++    rc = sqlite::exec(db, "COMMIT");
++    if (rc == SQLITE_OK) {
++      active = false;
++    }
++    return rc;
+   }
++};
+ 
+-  return ret;
++// Why the last open failed, kept for one summary line (cache_init) instead of a line per step.
++static std::string cache_open_error;
++
++template <typename... T>
++static void open_error(fmt::format_string<T...> fmt, T&&... args) {
++  if (cache_open_error.empty()) {
++    cache_open_error = fmt::format(fmt, std::forward<T>(args)...);
++  }
+ }
+ 
+-static bool ensure_schema_up_to_date() {
+-  sqlite::Transaction tx(db, Log, true);
+-  if (!tx) {
+-    Log.error("Failed to open schema check transaction", sqlite3_errmsg(db));
+-    return false;
++// Returns SQLITE_OK or the error (taken before the rollback, which clears it).
++static int ensure_schema_up_to_date() {
++  CacheTransaction tx("BEGIN IMMEDIATE");
++  if (!tx.active) {
++    open_error("Failed to open schema check transaction: {}", sqlite3_errmsg(db));
++    return tx.rc;
+   }
+ 
+   auto ret = sqlite::exec(db, "CREATE TABLE IF NOT EXISTS aurora_schema(value INTEGER);");
+   if (ret != SQLITE_OK) {
+-    Log.error("Failed to create schema table: {}", sqlite3_errmsg(db));
+-    return false;
++    open_error("Failed to create schema table: {}", sqlite3_errmsg(db));
++    return ret;
+   }
+ 
+   bool match = false;
+   auto cmd = fmt::format("SELECT * FROM aurora_schema WHERE value = {}", CACHE_SCHEMA);
+   ret = sqlite::exec(db, cmd.c_str(), [&match](int, char**, char**) { match = true; }, nullptr);
+   if (ret != SQLITE_OK) {
+-    Log.error("Failed to check schema table: {}", sqlite3_errmsg(db));
+-    return false;
++    open_error("Failed to check schema table: {}", sqlite3_errmsg(db));
++    return ret;
+   }
+ 
+   if (match) {
+-    return true;
++    return tx.commit();
+   }
+ 
+   cmd = fmt::format(
+@@ -91,52 +143,63 @@ INSERT INTO aurora_schema VALUES ({});)",
+       CACHE_SCHEMA);
+   ret = sqlite::exec(db, cmd.c_str());
+   if (ret != SQLITE_OK) {
+-    Log.error("Failed to update schema: {}", sqlite3_errmsg(db));
+-    return false;
++    open_error("Failed to update schema: {}", sqlite3_errmsg(db));
++    return ret;
+   }
+ 
+-  tx.commit();
+-  return true;
++  ret = tx.commit();
++  if (ret != SQLITE_OK) {
++    open_error("Failed to commit the schema: {}", sqlite3_errmsg(db));
++  }
++  return ret;
+ }
+ 
+-static bool cache_init_core() {
++static int cache_init_core() {
+   Log.debug("SQLite version {}", sqlite3_libversion());
++  cache_open_error.clear();
+ 
+   std::string file = io::fs_path_to_string(cache_path());
+   Log.debug("Using dawn cache at {}", file);
+   auto ret = sqlite3_open(file.c_str(), &db);
+   if (ret != SQLITE_OK) {
+-    Log.error("Failed to open database: {}", sqlite3_errmsg(db));
+-    return false;
++    open_error("Failed to open database: {}", sqlite3_errmsg(db));
++    return ret;
+   }
+ 
+-  // WAL mode + NORMAL = no need for disk syncs, consistent but not durable is fine.
+-  ret = sqlite::exec(db, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
++  ret = sqlite::apply_cache_pragmas(db, file, Log);
+   if (ret != SQLITE_OK) {
+-    Log.error("Failed to set pragmas: {}", sqlite3_errmsg(db));
+-    return false;
++    open_error("Failed to set pragmas: {}", sqlite3_errmsg(db));
++    return ret;
+   }
+ 
+-  if (!ensure_schema_up_to_date()) {
+-    Log.error("Failed to validate schema");
+-    return false;
++  ret = ensure_schema_up_to_date();
++  if (ret != SQLITE_OK) {
++    return ret;
++  }
++
++  // A cheap look at the file before using it: counts the rows through the key index (a few pages,
++  // no values read). Damage elsewhere is caught by the first statement that meets it (cache_failed).
++  ret = sqlite::exec(db, "SELECT count(*) FROM cache");
++  if (ret != SQLITE_OK) {
++    open_error("Failed to read the cache table: {}", sqlite3_errmsg(db));
++    return ret;
+   }
+ 
+   ret = sqlite3_prepare_v3(db, "SELECT value, size, compressed FROM cache WHERE key = ?", -1, SQLITE_PREPARE_PERSISTENT,
+                            &load_stmt, nullptr);
+   if (ret != SQLITE_OK) {
+-    Log.error("Failed to prepare statement: {}", sqlite3_errmsg(db));
+-    return false;
++    open_error("Failed to prepare statement: {}", sqlite3_errmsg(db));
++    return ret;
+   }
+ 
+   ret = sqlite3_prepare_v3(db, "REPLACE INTO cache (key, value, size, compressed) VALUES (?, ?, ?, ?)", -1,
+                            SQLITE_PREPARE_PERSISTENT, &store_stmt, nullptr);
+   if (ret != SQLITE_OK) {
+-    Log.error("Failed to prepare statement: {}", sqlite3_errmsg(db));
+-    return false;
++    open_error("Failed to prepare statement: {}", sqlite3_errmsg(db));
++    return ret;
+   }
+ 
+-  return true;
++  return SQLITE_OK;
+ }
+ 
+ static std::optional<uint64_t> select_uint64(const char* sql) {
+@@ -209,10 +272,28 @@ static bool cache_init() {
+     return true;
+   }
+ 
+-  if (!cache_init_core()) {
+-    Log.error("SQLite DB init failed");
++  const int ret = cache_init_core();
++  if (ret != SQLITE_OK) {
++    const auto file = io::fs_path_to_string(cache_path());
++    const std::string why = cache_open_error;
+     init_abort();
+-    return false;
++    if (!sqlite::reset_on_open_failure(ret)) {
++      Log.error("GPU cache {} could not be opened ({}); running without it", file, why);
++      return false;
++    }
++    // A damaged file: start once more from an empty one.
++    const long long oldSize = sqlite::reset_cache_file(file);
++    ++cache_resets;
++    cache_broken = false;
++    if (cache_init_core() != SQLITE_OK) {
++      Log.error("GPU cache {} could not be opened ({}); deleted it ({} bytes) but a new one failed too ({}); "
++                "running without it",
++                file, why, oldSize, cache_open_error);
++      init_abort();
++      return false;
++    }
++    Log.warn("GPU cache {} could not be opened ({}); deleted it ({} bytes) and started an empty one", file, why,
++             oldSize);
+   }
+ 
+   Log.debug("SQLite cache init succeeded");
+@@ -220,89 +301,130 @@ static bool cache_init() {
+   return true;
+ }
+ 
+-size_t load_from_cache(void const* key, size_t keySize, void* value, size_t valueSize, void*) {
+-  std::lock_guard lock(cache_mutex);
++// A statement failed. A damaged file (a write torn by a killed process, a truncated or overwritten
++// file) is reported once, deleted and replaced by an empty cache, so the run goes on caching
++// instead of failing (and logging) every lookup. Other errors are logged rate-limited. After two
++// resets in one run the cache is turned off for the rest of it.
++static void cache_failed(const char* what, int rc) {
++  if (!sqlite::is_damaged(rc)) {
++    if (cache_errors.next()) {
++      Log.error("{} failed: {} ({} cache errors so far)", what, sqlite3_errstr(rc), cache_errors.count);
++    }
++    return;
++  }
+ 
+-  if (!cache_init()) {
+-    return 0;
++  const auto file = io::fs_path_to_string(cache_path());
++  cache_close();
++  if (cache_resets >= 2) {
++    Log.error("{} failed: {}; the GPU cache was already rebuilt {} times this run, running without it", what,
++              sqlite3_errstr(rc), cache_resets);
++    cache_broken = true;
++    return;
++  }
++  ++cache_resets;
++  const long long oldSize = sqlite::reset_cache_file(file);
++  if (cache_init_core() != SQLITE_OK) {
++    init_abort();
++    Log.error("GPU cache {} is damaged ({}: {}); deleted it ({} bytes) but a new one failed ({}); running "
++              "without it",
++              file, what, sqlite3_errstr(rc), oldSize, cache_open_error);
++    return;
+   }
++  Log.warn("GPU cache {} is damaged ({}: {}); deleted it ({} bytes) and started an empty one", file, what,
++           sqlite3_errstr(rc), oldSize);
++}
+ 
+-  sqlite::Transaction tx(db, Log);
+-  if (!tx) {
+-    Log.error("Failed to open load transaction");
+-    return 0;
++// One lookup with the connection open. Returns SQLITE_OK or the error; foundSize is the stored size
++// (0 for a miss), loaded whether value was filled.
++static int load_locked(const XXH128_hash_t& keyHash, void* value, size_t valueSize, size_t& foundSize,
++                       bool& loaded) {
++  foundSize = 0;
++  loaded = false;
++  CacheTransaction tx("BEGIN");
++  if (!tx.active) {
++    return tx.rc;
+   }
+ 
+-  const auto keyHash = XXH128(key, keySize, 0);
+-  check(sqlite3_bind_blob(load_stmt, 1, &keyHash, sizeof(keyHash), SQLITE_TRANSIENT));
++  StatementScope scope{load_stmt};
++  auto ret = sqlite3_bind_blob(load_stmt, 1, &keyHash, sizeof(keyHash), SQLITE_TRANSIENT);
++  if (ret != SQLITE_OK) {
++    return ret;
++  }
+ 
+-  const auto ret = sqlite3_step(load_stmt);
+-  size_t foundSize;
+-  bool loadSucceeded = false;
+-  if (ret == SQLITE_ROW) {
+-    // Hit
+-    const auto foundPtr = sqlite3_column_blob(load_stmt, 0);
+-    foundSize = sqlite3_column_int64(load_stmt, 1);
+-    const bool compressed = sqlite3_column_int(load_stmt, 2) != 0;
+-
+-    if (value && valueSize == foundSize) {
+-      loadSucceeded = true;
+-      if (compressed) {
++  ret = sqlite3_step(load_stmt);
++  if (ret == SQLITE_DONE) {
++    // Miss
++    return SQLITE_OK;
++  }
++  if (ret != SQLITE_ROW) {
++    return ret;
++  }
++
++  // Hit
++  const auto foundPtr = sqlite3_column_blob(load_stmt, 0);
++  foundSize = sqlite3_column_int64(load_stmt, 1);
++  const bool compressed = sqlite3_column_int(load_stmt, 2) != 0;
++
++  if (value && valueSize == foundSize) {
++    loaded = true;
++    if (compressed) {
+ #if defined(AURORA_CACHE_USE_ZSTD)
+-        const auto compSize = sqlite3_column_bytes(load_stmt, 0);
+-        const auto zstdRet = ZSTD_decompress(value, valueSize, foundPtr, compSize);
+-        if (ZSTD_isError(zstdRet)) {
+-          Log.error("zstd decompression error: {}", ZSTD_getErrorName(zstdRet));
+-          foundSize = 0;
+-          loadSucceeded = false;
+-        } else if (zstdRet != foundSize) {
+-          Log.error("zstd decompression size mismatch: expected {}, got {}", foundSize, zstdRet);
+-          foundSize = 0;
+-          loadSucceeded = false;
+-        }
+-#else
+-        Log.error("Cache entry is zstd-compressed but zstd support is disabled");
++      const auto compSize = sqlite3_column_bytes(load_stmt, 0);
++      const auto zstdRet = ZSTD_decompress(value, valueSize, foundPtr, compSize);
++      if (ZSTD_isError(zstdRet)) {
++        Log.error("zstd decompression error: {}", ZSTD_getErrorName(zstdRet));
++        foundSize = 0;
++        loaded = false;
++      } else if (zstdRet != foundSize) {
++        Log.error("zstd decompression size mismatch: expected {}, got {}", foundSize, zstdRet);
+         foundSize = 0;
+-        loadSucceeded = false;
++        loaded = false;
++      }
++#else
++      Log.error("Cache entry is zstd-compressed but zstd support is disabled");
++      foundSize = 0;
++      loaded = false;
+ #endif
+-      } else {
+-        if (foundSize != 0 && !foundPtr) {
+-          Log.error("Cache entry is missing raw value data");
+-          foundSize = 0;
+-          loadSucceeded = false;
+-        } else if (foundSize != 0) {
+-          std::memcpy(value, foundPtr, foundSize);
+-        }
++    } else {
++      if (foundSize != 0 && !foundPtr) {
++        Log.error("Cache entry is missing raw value data");
++        foundSize = 0;
++        loaded = false;
++      } else if (foundSize != 0) {
++        std::memcpy(value, foundPtr, foundSize);
+       }
+     }
+-  } else if (ret == SQLITE_DONE) {
+-    // Miss
+-    foundSize = 0;
+-  } else {
+-    Log.error("Looking up cache key failed: {}", sqlite3_errmsg(db));
++  }
++  return SQLITE_OK;
++}
++
++size_t load_from_cache(void const* key, size_t keySize, void* value, size_t valueSize, void*) {
++  std::lock_guard lock(cache_mutex);
++
++  if (!cache_init()) {
+     return 0;
+   }
+ 
+-  check(sqlite3_reset(load_stmt));
++  const auto keyHash = XXH128(key, keySize, 0);
++  size_t foundSize = 0;
++  bool loaded = false;
++  const int ret = load_locked(keyHash, value, valueSize, foundSize, loaded);
++  if (ret != SQLITE_OK) {
++    cache_failed("Looking up cache key", ret);
++    return 0;
++  }
+ 
+-  if (loadSucceeded) {
++  if (loaded) {
+     cache_keys_used.push_back(keyHash);
+   }
+ 
+   return foundSize;
+ }
+ 
+-void store_to_cache(void const* key, size_t keySize, void const* value, size_t valueSize, void*) {
+-  std::lock_guard lock(cache_mutex);
+-
+-  if (!cache_init()) {
+-    return;
+-  }
+-
+-  sqlite::Transaction tx(db, Log, true);
+-  if (!tx) {
+-    Log.error("Failed to open store transaction");
+-    return;
++static int store_locked(const XXH128_hash_t& keyHash, void const* value, size_t valueSize) {
++  CacheTransaction tx("BEGIN IMMEDIATE");
++  if (!tx.active) {
++    return tx.rc;
+   }
+ 
+   const void* storedValue = value;
+@@ -312,7 +434,7 @@ void store_to_cache(void const* key, size_t keySize, void const* value, size_t v
+   const auto bound = ZSTD_compressBound(valueSize);
+   if (ZSTD_isError(bound)) {
+     Log.error("Failed to calculate ZSTD_compressBound: {}", ZSTD_getErrorName(bound));
+-    return;
++    return SQLITE_OK;
+   }
+ 
+   if (compress_buffer.size() < bound) {
+@@ -322,7 +444,7 @@ void store_to_cache(void const* key, size_t keySize, void const* value, size_t v
+   const auto compressRet = ZSTD_compress(compress_buffer.data(), compress_buffer.size(), value, valueSize, 0);
+   if (ZSTD_isError(compressRet)) {
+     Log.error("ZSTD compression error: {}", ZSTD_getErrorName(compressRet));
+-    return;
++    return SQLITE_OK;
+   }
+ 
+   if (compressRet < valueSize) {
+@@ -332,25 +454,44 @@ void store_to_cache(void const* key, size_t keySize, void const* value, size_t v
+   }
+ #endif
+ 
+-  const auto keyHash = XXH128(key, keySize, 0);
+-  check(sqlite3_bind_blob64(store_stmt, 1, &keyHash, sizeof(keyHash), SQLITE_TRANSIENT));
+-  check(
+-      sqlite3_bind_blob64(store_stmt, 2, storedValue, storedValueSize, compressed ? SQLITE_STATIC : SQLITE_TRANSIENT));
+-  check(sqlite3_bind_int64(store_stmt, 3, static_cast<sqlite3_int64>(valueSize)));
+-  check(sqlite3_bind_int(store_stmt, 4, compressed));
+-
+-  const auto ret = sqlite3_step(store_stmt);
+-  if (ret != SQLITE_DONE) {
+-    // Error or something
+-    Log.error("Failed to insert row: {}", sqlite3_errmsg(db));
+-    return;
++  {
++    StatementScope scope{store_stmt};
++    int ret = sqlite3_bind_blob64(store_stmt, 1, &keyHash, sizeof(keyHash), SQLITE_TRANSIENT);
++    if (ret == SQLITE_OK) {
++      ret = sqlite3_bind_blob64(store_stmt, 2, storedValue, storedValueSize,
++                                compressed ? SQLITE_STATIC : SQLITE_TRANSIENT);
++    }
++    if (ret == SQLITE_OK) {
++      ret = sqlite3_bind_int64(store_stmt, 3, static_cast<sqlite3_int64>(valueSize));
++    }
++    if (ret == SQLITE_OK) {
++      ret = sqlite3_bind_int(store_stmt, 4, compressed);
++    }
++    if (ret != SQLITE_OK) {
++      return ret;
++    }
++    ret = sqlite3_step(store_stmt);
++    if (ret != SQLITE_DONE) {
++      return ret;
++    }
+   }
+ 
+-  check(sqlite3_reset(store_stmt));
+-  check(sqlite3_bind_null(store_stmt, 2));
+-  check(sqlite3_bind_null(store_stmt, 4));
++  return tx.commit();
++}
++
++void store_to_cache(void const* key, size_t keySize, void const* value, size_t valueSize, void*) {
++  std::lock_guard lock(cache_mutex);
+ 
+-  tx.commit();
++  if (!cache_init()) {
++    return;
++  }
++
++  const auto keyHash = XXH128(key, keySize, 0);
++  const int ret = store_locked(keyHash, value, valueSize);
++  if (ret != SQLITE_OK) {
++    cache_failed("Storing cache entry", ret);
++    return;
++  }
+   cache_keys_used.push_back(keyHash);
+ }
+ 
+@@ -366,20 +507,19 @@ void cache_prune() {
+ 
+   uint64_t totalRows = 0;
+   sqlite3_int64 deletedRows = 0;
+-  {
+-    sqlite::Transaction tx(db, Log, true);
+-    if (!tx) {
+-      Log.error("Failed to open dawn cache prune transaction");
+-      return;
++  const auto prune = [&]() -> int {
++    CacheTransaction tx("BEGIN IMMEDIATE");
++    if (!tx.active) {
++      return tx.rc;
+     }
+ 
+     if (!fill_used_key_table(cache_keys_used)) {
+-      return;
++      return sqlite3_errcode(db) != SQLITE_OK ? sqlite3_errcode(db) : SQLITE_ERROR;
+     }
+ 
+     const auto totalRowsResult = select_uint64("SELECT COUNT(*) FROM cache");
+     if (!totalRowsResult) {
+-      return;
++      return sqlite3_errcode(db) != SQLITE_OK ? sqlite3_errcode(db) : SQLITE_ERROR;
+     }
+     totalRows = *totalRowsResult;
+ 
+@@ -389,12 +529,15 @@ void cache_prune() {
+                                   "  SELECT 1 FROM cache_keys_used WHERE cache_keys_used.key = cache.key"
+                                   ")");
+     if (ret != SQLITE_OK) {
+-      Log.error("Failed to prune dawn cache rows: {}", sqlite3_errmsg(db));
+-      return;
++      return ret;
+     }
+     deletedRows = sqlite3_changes64(db);
+ 
+-    tx.commit();
++    return tx.commit();
++  };
++  if (const int ret = prune(); ret != SQLITE_OK) {
++    cache_failed("Pruning the Dawn cache", ret);
++    return;
+   }
+ 
+   if (deletedRows == 0) {
+@@ -418,22 +561,12 @@ void cache_prune() {
+ }
+ 
+ void cache_shutdown() {
++  std::lock_guard lock(cache_mutex);
+ #if defined(AURORA_CACHE_USE_ZSTD)
+   compress_buffer.clear();
+ #endif
+   cache_keys_used.clear();
+-  if (load_stmt != nullptr) {
+-    check(sqlite3_finalize(load_stmt));
+-    load_stmt = nullptr;
+-  }
+-  if (store_stmt != nullptr) {
+-    check(sqlite3_finalize(store_stmt));
+-    store_stmt = nullptr;
+-  }
+-  if (db != nullptr) {
+-    check(sqlite3_close(db));
+-    db = nullptr;
+-  }
++  cache_close();
+ }
+ 
+ } // namespace aurora::webgpu
