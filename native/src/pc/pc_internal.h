@@ -63,6 +63,11 @@ extern Config gConfig;
 uint64_t elapsedMs();
 uint64_t monotonicNs();
 
+// The running executable's path (the Mac's _NSGetExecutablePath, Linux's /proc/self/exe; not
+// resolved through symlinks). False, with out empty, where the host has no such query (the
+// Switch) or it fails; callers then fall back to argv[0] or the current directory.
+bool executablePath(char* out, size_t size);
+
 // pc_milestone.cpp
 bool isKnownMilestone(const char* name);
 void printMilestones(int fd);

@@ -16,6 +16,7 @@
 #include "cos_switch.h"
 #endif
 #if defined(__APPLE__)
+#include <mach-o/dyld.h>
 #include <pthread.h>
 #include <pthread/qos.h>
 #endif
@@ -105,6 +106,31 @@ uint64_t monotonicNs() {
 
 uint64_t elapsedMs() {
     return (monotonicNs() - sStartNs) / 1000000ull;
+}
+
+bool executablePath(char* out, size_t size) {
+    if (size == 0) {
+        return false;
+    }
+    out[0] = '\0';
+#if defined(__APPLE__)
+    uint32_t len = (uint32_t)size;
+    if (_NSGetExecutablePath(out, &len) != 0) {
+        out[0] = '\0';
+        return false;
+    }
+    return true;
+#elif defined(__linux__)
+    const ssize_t n = readlink("/proc/self/exe", out, size - 1);
+    if (n <= 0) {
+        out[0] = '\0';
+        return false;
+    }
+    out[n] = '\0';
+    return true;
+#else
+    return false;
+#endif
 }
 
 } // namespace pc

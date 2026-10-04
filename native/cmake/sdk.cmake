@@ -29,6 +29,14 @@ target_compile_definitions(cos_sdk PRIVATE "COS_AURORA_COMMIT_STR=\"${COS_AURORA
 target_link_libraries(cos_sdk PUBLIC ${COS_AURORA_LIBS})
 # The DSP behind src/audio/DSP.cpp: Dolphin's DSPHLE (cmake/dsp_hle.cmake).
 target_link_libraries(cos_sdk PRIVATE cos_dsp_hle)
+# Aurora's <dolphin/os.h> declares OSReport, OSVReport and OSPanic DECL_WEAK (weak), so every
+# reference to them is a weak reference. ld64 still loads the archive member that defines them;
+# ELF linkers (ld.lld, GNU ld) do not, and a program whose only definitions are cos_sdk's weak
+# defaults (cos_sdk_smoke: no game objects) would call address 0. Ask for them explicitly.
+if (NOT APPLE AND NOT MSVC)
+    target_link_options(cos_sdk INTERFACE
+            "LINKER:--undefined=OSReport" "LINKER:--undefined=OSVReport" "LINKER:--undefined=OSPanic")
+endif ()
 
 file(GLOB COS_SDK_SMOKE_SOURCES CONFIGURE_DEPENDS
         "${COS_SDK_ROOT}/tests/*.cpp")

@@ -40,6 +40,10 @@
 #include <mach-o/dyld.h>
 #include <mach/mach.h>
 #endif
+#if defined(__linux__)
+#include <link.h>
+#include <sys/uio.h>
+#endif
 
 namespace pc {
 
@@ -91,6 +95,11 @@ bool readWord(uintptr_t addr, uintptr_t* out) {
     return kr == KERN_SUCCESS && got == sizeof(uintptr_t);
 #elif defined(__SWITCH__)
     return cos_switch_read_word(addr, out) != 0;
+#elif defined(__linux__)
+    // process_vm_readv on our own pid fails with EFAULT instead of faulting on an unmapped address.
+    struct iovec local = {out, sizeof(uintptr_t)};
+    struct iovec remote = {(void*)addr, sizeof(uintptr_t)};
+    return process_vm_readv(getpid(), &local, 1, &remote, 1, 0) == (ssize_t)sizeof(uintptr_t);
 #else
     *out = *(const uintptr_t*)addr;
     return true;
@@ -150,6 +159,23 @@ void writeImageBase(int fd) {
     const struct mach_header* header = _dyld_get_image_header(0);
     writef(fd, "[cos] image %s load=0x%llx slide=0x%llx\n", _dyld_get_image_name(0),
            (unsigned long long)(uintptr_t)header, (unsigned long long)_dyld_get_image_vmaddr_slide(0));
+#elif defined(__linux__)
+    // The executable's load address (PIE): addr2line -f -C -i -e centollos <address - load>.
+    struct Base {
+        uintptr_t addr = 0;
+        const char* name = nullptr;
+    } base;
+    dl_iterate_phdr(
+        [](struct dl_phdr_info* phdr, size_t, void* data) -> int {
+            auto* b = (Base*)data;
+            b->addr = (uintptr_t)phdr->dlpi_addr;
+            b->name = phdr->dlpi_name;
+            return 1; // the first object is the executable
+        },
+        &base);
+    writef(fd, "[cos] image %s load=0x%llx: addr2line -f -C -i -e centollos <address - load>\n",
+           base.name != nullptr && base.name[0] != '\0' ? base.name : "(main)",
+           (unsigned long long)base.addr);
 #elif defined(__SWITCH__)
     // The frames below are printed as offsets into centollos.elf, the ELF next to the NRO.
     writef(fd, "[cos] image base=0x%llx: aarch64-none-elf-addr2line -f -C -i -e centollos.elf <offset>\n",
@@ -199,7 +225,11 @@ void writeThreadName(int fd) {
     char name[64] = "";
     pthread_getname_np(pthread_self(), name, sizeof(name));
     uint64_t tid = 0;
+#if defined(__APPLE__)
     pthread_threadid_np(nullptr, &tid);
+#elif defined(__linux__)
+    tid = (uint64_t)gettid();
+#endif
     writef(fd, "[cos] thread %llu \"%s\"\n", (unsigned long long)tid, name);
 #endif
 }
@@ -234,6 +264,34 @@ void crashReport(int fd, int sig, siginfo_t* info, ucontext_t* uc) {
                    (unsigned long long)ss.__x[r], (r % 4) == 3 || r == 28 ? "\n" : "");
         }
         n = collectFrames(pc, lr, fp, frames, kMaxFrames);
+    }
+#elif defined(__linux__) && defined(__aarch64__)
+    if (uc != nullptr) {
+        const auto& mc = uc->uc_mcontext;
+        const uintptr_t pc = (uintptr_t)mc.pc;
+        const uintptr_t lr = (uintptr_t)mc.regs[30];
+        const uintptr_t fp = (uintptr_t)mc.regs[29];
+        writef(fd, "[cos] pc=0x%llx lr=0x%llx fp=0x%llx sp=0x%llx\n", (unsigned long long)pc,
+               (unsigned long long)lr, (unsigned long long)fp, (unsigned long long)mc.sp);
+        for (int r = 0; r < 29; r++) {
+            writef(fd, "%sx%d=0x%llx%s", (r % 4) == 0 ? "[cos]   " : " ", r,
+                   (unsigned long long)mc.regs[r], (r % 4) == 3 || r == 28 ? "\n" : "");
+        }
+        n = collectFrames(pc, lr, fp, frames, kMaxFrames);
+    }
+#elif defined(__linux__) && defined(__x86_64__)
+    if (uc != nullptr) {
+        const greg_t* g = uc->uc_mcontext.gregs;
+        const uintptr_t pc = (uintptr_t)g[REG_RIP];
+        const uintptr_t fp = (uintptr_t)g[REG_RBP];
+        writef(fd, "[cos] rip=0x%llx rbp=0x%llx rsp=0x%llx\n", (unsigned long long)pc,
+               (unsigned long long)fp, (unsigned long long)g[REG_RSP]);
+        writef(fd, "[cos]   rax=0x%llx rbx=0x%llx rcx=0x%llx rdx=0x%llx rsi=0x%llx rdi=0x%llx\n",
+               (unsigned long long)g[REG_RAX], (unsigned long long)g[REG_RBX],
+               (unsigned long long)g[REG_RCX], (unsigned long long)g[REG_RDX],
+               (unsigned long long)g[REG_RSI], (unsigned long long)g[REG_RDI]);
+        // No link register: the return address is the first frame record's.
+        n = collectFrames(pc, 0, fp, frames, kMaxFrames);
     }
 #else
     (void)uc;

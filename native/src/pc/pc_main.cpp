@@ -42,9 +42,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#if defined(__APPLE__)
-#include <mach-o/dyld.h>
-#endif
 #if defined(__SWITCH__)
 #include "JSystem/JAudio/JASAudioThread.h"
 #include "m_Do/m_Do_dvd_thread.h"
@@ -82,12 +79,7 @@ void makeUserPaths(const char* argv0) {
     snprintf(sUserPath, sizeof(sUserPath), "%s/user", COS_SWITCH_ROOT);
 #else
     char exe[PATH_MAX] = {};
-#if defined(__APPLE__)
-    uint32_t size = sizeof(exe);
-    if (_NSGetExecutablePath(exe, &size) != 0) {
-        exe[0] = '\0';
-    }
-#endif
+    executablePath(exe, sizeof(exe));
     if (exe[0] == '\0' && argv0 != nullptr) {
         snprintf(exe, sizeof(exe), "%s", argv0);
     }
@@ -112,6 +104,30 @@ void makeUserPaths(const char* argv0) {
 #endif
     makeDir(sUserPath);
     makeDir(sCachePath);
+}
+
+// COS_BACKEND: the graphics backend Aurora tries first (auto, vulkan, opengl, opengles, metal,
+// d3d12, d3d11, null). Unset or auto: Aurora's own order (Metal on the Mac; Vulkan, then OpenGL
+// ES, then null on Linux). If the requested one fails, Aurora falls back to its order.
+AuroraBackend desiredBackend() {
+    const char* v = getenv("COS_BACKEND");
+    if (v == nullptr || v[0] == '\0' || strcmp(v, "auto") == 0) {
+        return BACKEND_AUTO;
+    }
+    static const struct {
+        const char* name;
+        AuroraBackend backend;
+    } kNames[] = {{"vulkan", BACKEND_VULKAN}, {"opengl", BACKEND_OPENGL},  {"gl", BACKEND_OPENGL},
+                  {"opengles", BACKEND_OPENGLES}, {"gles", BACKEND_OPENGLES}, {"metal", BACKEND_METAL},
+                  {"d3d12", BACKEND_D3D12},   {"d3d11", BACKEND_D3D11},   {"null", BACKEND_NULL}};
+    for (const auto& n : kNames) {
+        if (strcmp(v, n.name) == 0) {
+            return n.backend;
+        }
+    }
+    writef(STDERR_FILENO, "[cos] COS_BACKEND=\"%s\" is not a backend (auto, vulkan, opengl, opengles, "
+                          "metal, d3d12, d3d11, null)\n", v);
+    pc_exit(PC_EXIT_USAGE);
 }
 
 const char* backendName(AuroraBackend backend) {
@@ -203,7 +219,12 @@ void pc_aurora_init(int argc, char* argv[]) {
     config.appName = "centollos";
     config.userPath = sUserPath;
     config.cachePath = sCachePath;
-    config.desiredBackend = BACKEND_AUTO;
+    config.desiredBackend = desiredBackend();
+    // COS_ALLOW_CPU_ADAPTER=1: accept a software adapter (Mesa's lavapipe/llvmpipe, SwiftShader),
+    // which Aurora otherwise skips, e.g. for headless runs in a container without a GPU.
+    if (const char* cpu = getenv("COS_ALLOW_CPU_ADAPTER"); cpu != nullptr && strcmp(cpu, "1") == 0) {
+        config.allowCpuAdapter = true;
+    }
     config.vsync = !gConfig.uncapped;
     config.windowPosX = -1;
     config.windowPosY = -1;

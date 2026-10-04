@@ -21,9 +21,6 @@
 #include <unistd.h>
 #include <vector>
 
-#if defined(__APPLE__)
-#include <mach-o/dyld.h>
-#endif
 #if defined(__SWITCH__)
 #include "cos_switch.h"
 #endif
@@ -93,12 +90,7 @@ void computePath() {
     s.path = COS_SWITCH_ROOT "/user/settings.ini";
 #else
     char exe[PATH_MAX] = {};
-#if defined(__APPLE__)
-    uint32_t size = sizeof(exe);
-    if (_NSGetExecutablePath(exe, &size) != 0) {
-        exe[0] = '\0';
-    }
-#endif
+    pc::executablePath(exe, sizeof(exe));
     char real[PATH_MAX];
     std::string dir = ".";
     if (exe[0] != '\0') {

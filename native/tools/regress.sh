@@ -4,10 +4,12 @@
 #
 # Usage: native/tools/regress.sh [-j N] [--no-build] [--capped]
 #
-#   1. builds every check target of build/native-mac (of the worktree this script lives in);
+#   1. builds every check target of build/native-mac (of the worktree this script lives in), or
+#      of $COS_BUILD_DIR (e.g. build/native-linux);
 #   2. runs the static checks: cos_sdk_smoke, cos_pc_tests, the link census against
-#      native/check/expected_unresolved_phase2.txt, symbol_census --all --dups, the phase 4
-#      inventory against native/check/phase4_baseline.txt;
+#      native/check/expected_unresolved_phase2.txt and symbol_census --all --dups (both on the
+#      Mac only: they read Mach-O objects), the phase 4 inventory against
+#      native/check/phase4_baseline.txt;
 #   3. runs every target listed in native/check/regress_targets.txt through run.sh, N at a
 #      time (default 4), uncapped unless --capped, and compares each exit code with the expected
 #      one in that file.
@@ -19,7 +21,11 @@ set -u
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$script_dir/../.." && pwd)"
-build="$repo/build/native-mac"
+# COS_BUILD_DIR: another build directory (the Linux build: COS_BUILD_DIR=build/native-linux);
+# run.sh reads the same variable. Default build/native-mac.
+build="${COS_BUILD_DIR:-$repo/build/native-mac}"
+case "$build" in /*) ;; *) build="$repo/$build" ;; esac
+export COS_BUILD_DIR="$build"
 targets_file="$repo/native/check/regress_targets.txt"
 
 jobs=4
@@ -44,9 +50,16 @@ report() { # name status detail
     [ "$2" = ok ] || fail=$((fail + 1))
 }
 
+# The link census needs macOS ld64, nm and otool (native/cmake/census.cmake): only on the Mac.
+census=0
+[ "$(uname -s)" = Darwin ] && census=1
+census_target=""
+[ "$census" = 1 ] && census_target=cos_link_census
+
 if [ "$do_build" = 1 ]; then
+    # shellcheck disable=SC2086
     if ninja -C "$build" all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check \
-        cos_link_census > "$out/build.log" 2>&1; then
+        $census_target > "$out/build.log" 2>&1; then
         report build ok ""
     else
         report build FAIL "$out/build.log"
@@ -61,9 +74,15 @@ check() { # name command...
 }
 check sdk_smoke "$build/cos_sdk_smoke"
 check pc_tests "$build/cos_pc_tests"
-check link_census diff -u "$repo/native/check/expected_unresolved_phase2.txt" \
-    "$build/link_census_unresolved.txt"
-check symbol_dups python3 "$script_dir/symbol_census.py" --all --dups
+if [ "$census" = 1 ]; then
+    check link_census diff -u "$repo/native/check/expected_unresolved_phase2.txt" \
+        "$build/link_census_unresolved.txt"
+fi
+# symbol_census.py reads Mach-O objects with nm -m and otool: Mac only. On Linux the strict link
+# of centollos (ld.lld or GNU ld, no duplicate strong definitions allowed) covers the same check.
+if [ "$census" = 1 ]; then
+    check symbol_dups python3 "$script_dir/symbol_census.py" --all --dups
+fi
 check phase4_inventory python3 "$script_dir/phase4_inventory.py" --check \
     "$repo/native/check/phase4_baseline.txt"
 

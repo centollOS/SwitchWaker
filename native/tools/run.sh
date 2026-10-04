@@ -62,6 +62,8 @@
 #   --run-dir DIR    put the run in DIR (created; must not exist yet) instead of
 #                    build/native-mac/runs/<target>-<timestamp>
 #   --quiet          do not print the tail of the log on failure
+# COS_BUILD_DIR in the environment selects another build directory than build/native-mac (the
+# Linux build: COS_BUILD_DIR=build/native-linux); every build/native-mac path above is then in it.
 # Each run reads and writes its own options-menu settings file, <run dir>/settings.ini (COS_SETTINGS,
 # unless already set). Other COS_* variables already in the environment are passed through. COS_CACHE_PER_RUN=1 gives
 # the run its own Aurora caches in <run dir>/cache (COS_CACHE_DIR) instead of the shared
@@ -88,7 +90,10 @@ set -u
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$script_dir/../.." && pwd)"
-build="$repo/build/native-mac"
+# COS_BUILD_DIR: another build directory (e.g. build/native-linux), relative to the repository or
+# absolute; its centollos, runs/ and disc manifest are used instead of build/native-mac's.
+build="${COS_BUILD_DIR:-$repo/build/native-mac}"
+case "$build" in /*) ;; *) build="$repo/$build" ;; esac
 
 milestones=" static-init aurora-up heaps gfx-create frame-loop logo-scene logo-res opening title-stage title file-select new-game outset-debug outset-control outset-real "
 disc_manifest="$script_dir/disc_manifest.py"
@@ -330,15 +335,31 @@ for f in backtrace.txt stall.txt; do
     [ -f "$run_dir/$f" ] || continue
     load="$(sed -n 's/^\[cos\] image .* load=\(0x[0-9a-f]*\).*/\1/p' "$run_dir/$f" | head -1)"
     [ -n "$load" ] || continue
-    {
-        echo
-        echo "[run] atos -o $exe -l $load (file:line where the debug info allows):"
-        grep '^\[cos\] frames' "$run_dir/$f" | while IFS= read -r line; do
-            # shellcheck disable=SC2086
-            atos -o "$exe" -l "$load" ${line#*:} 2>/dev/null | grep -v '^0x' || true
-            echo "--"
-        done
-    } >> "$run_dir/$f"
+    if command -v atos > /dev/null 2>&1; then
+        {
+            echo
+            echo "[run] atos -o $exe -l $load (file:line where the debug info allows):"
+            grep '^\[cos\] frames' "$run_dir/$f" | while IFS= read -r line; do
+                # shellcheck disable=SC2086
+                atos -o "$exe" -l "$load" ${line#*:} 2>/dev/null | grep -v '^0x' || true
+                echo "--"
+            done
+        } >> "$run_dir/$f"
+    elif command -v addr2line > /dev/null 2>&1; then
+        # Linux (PIE): the frames minus the load address are addresses in the ELF.
+        {
+            echo
+            echo "[run] addr2line -f -C -i -e $exe (address - $load):"
+            grep '^\[cos\] frames' "$run_dir/$f" | while IFS= read -r line; do
+                offsets=()
+                for a in ${line#*:}; do
+                    offsets+=("$(printf '0x%x' $((a - load)))")
+                done
+                addr2line -f -C -i -p -e "$exe" "${offsets[@]}" 2>/dev/null || true
+                echo "--"
+            done
+        } >> "$run_dir/$f"
+    fi
 done
 
 case "$rc" in

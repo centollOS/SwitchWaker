@@ -1,0 +1,26 @@
+diff --git a/lib/aurora.cpp b/lib/aurora.cpp
+--- a/lib/aurora.cpp
++++ b/lib/aurora.cpp
+@@ -34,7 +34,9 @@
+ namespace aurora {
+ AuroraConfig g_config;
+ uint32_t g_sdlCustomEventsStart;
+-char g_gameName[4];
++// The disc ID's 4-character game code plus a NUL (centollOS patch 0014): card.cpp's
++// get_card_region() takes strlen() of it, which read past a 4-byte array.
++char g_gameName[5];
+ 
+ namespace {
+ constexpr Module Log{"aurora"};
+diff --git a/lib/internal.hpp b/lib/internal.hpp
+--- a/lib/internal.hpp
++++ b/lib/internal.hpp
+@@ -181,7 +181,7 @@
+ namespace aurora {
+ extern AuroraConfig g_config;
+ extern uint32_t g_sdlCustomEventsStart;
+-extern char g_gameName[4];
++extern char g_gameName[5];
+ 
+ template <typename T>
+ class ArrayRef {

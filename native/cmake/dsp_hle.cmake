@@ -51,8 +51,14 @@ target_include_directories(cos_dsp_hle PRIVATE
         "${COS_RECOMPCORE_DIR}/Source"
         "${COS_RECOMPCORE_DIR}/Externals"
         "${COS_DSP_HLE_ROOT}/generated")
+# Dolphin's architecture macros (its CMakeLists sets them per target CPU).
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$" AND NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+    set(_cos_dsp_arch _M_X86_64=1 _M_X86=1)
+else ()
+    set(_cos_dsp_arch _M_ARM_64=1)
+endif ()
 target_compile_definitions(cos_dsp_hle PRIVATE
-        _ARCH_64=1 _M_ARM_64=1 _DEFAULT_SOURCE __STDC_CONSTANT_MACROS __STDC_LIMIT_MACROS)
+        _ARCH_64=1 ${_cos_dsp_arch} _DEFAULT_SOURCE __STDC_CONSTANT_MACROS __STDC_LIMIT_MACROS)
 target_compile_features(cos_dsp_hle PRIVATE cxx_std_23)
 # Dolphin's code, not ours: its warnings are not acted on here.
 target_compile_options(cos_dsp_hle PRIVATE -fno-strict-aliasing -w)

@@ -107,9 +107,8 @@ extern "C" void dawn_switch_gl_program_stats(uint64_t* linked, uint64_t* shared)
 // builds, their Tint translation ns and their ns holding the GL context
 // (dawn-switch-gl-pipeline-compile.patch).
 extern "C" void dawn_switch_gl_cmd_stats(uint64_t* out, size_t count);
-#elif defined(__APPLE__)
+#else
 #include <limits.h>
-#include <mach-o/dyld.h>
 #include <sqlite3.h>
 #endif
 
@@ -231,12 +230,11 @@ Progress readProgress() {
     return p;
 }
 
-#if defined(__APPLE__) && !defined(__SWITCH__)
+#if !defined(__SWITCH__)
 // The bundled file's priority-0 rows (<directory of the executable>/initial_pipeline_cache.db).
 uint32_t readPriorityRows() {
     char exe[PATH_MAX] = {};
-    uint32_t size = sizeof(exe);
-    if (_NSGetExecutablePath(exe, &size) != 0) {
+    if (!executablePath(exe, sizeof(exe))) {
         return 0;
     }
     char real[PATH_MAX];
@@ -587,11 +585,9 @@ void precompileInit(const char* cacheDir) {
     const AuroraStats* stats = aurora_get_stats();
     sTotal0 = stats != nullptr ? stats->queuedPipelines : 0;
     sCreated0 = stats != nullptr ? stats->createdPipelines : 0;
-#if defined(__APPLE__)
     if (sPolicy == Policy::Boot) {
         sPriorityRows = readPriorityRows();
     }
-#endif
 #endif
     const Progress p = readProgress();
     sActive = p.total > 0;

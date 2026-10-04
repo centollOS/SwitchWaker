@@ -23,6 +23,8 @@ std::atomic<unsigned int> sPulses{0}; // watchdogPulse
 void* watchdogMain(void*) {
 #if defined(__APPLE__)
     pthread_setname_np("decomp-watchdog");
+#elif defined(__linux__)
+    pthread_setname_np(pthread_self(), "cos-watchdog"); // at most 15 characters on Linux
 #endif
     const uint64_t timeoutNs = (uint64_t)(gConfig.timeoutS * 1e9);
     const uint64_t stallNs = (uint64_t)(gConfig.stallS * 1e9);

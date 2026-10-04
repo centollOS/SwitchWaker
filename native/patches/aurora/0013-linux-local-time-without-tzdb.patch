@@ -1,0 +1,18 @@
+diff --git a/lib/dolphin/os/OSTime.cpp b/lib/dolphin/os/OSTime.cpp
+--- a/lib/dolphin/os/OSTime.cpp
++++ b/lib/dolphin/os/OSTime.cpp
+@@ -13,6 +13,14 @@
+ using SystemTime = chrono::time_point<chrono::system_clock>;
+ using LocalTime = chrono::local_time<SystemDuration>;
+ 
++#if defined(__linux__)
++// Linux (centollOS patch 0013): take the localtime_r paths below instead of libstdc++'s time zone
++// database. current_zone() caches the database in objects allocated through the global operator
++// new, which the game replaces with its JKR heaps: once the heap that held them is destroyed (a
++// scene change), the next call faults (as on the Switch, whose patch 0004 avoids it too).
++#undef __cpp_lib_chrono
++#endif
++
+ namespace {
+ // GCN epoch: 2000-01-01 00:00:00 UTC = 946684800 seconds after Unix epoch
+ constexpr SystemTime kGcnEpochUnix{946684800s};
