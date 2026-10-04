@@ -39,6 +39,20 @@ bool JASystem::Kernel::TPortCmd::setPortCmd(JASystem::Kernel::TPortFunc func, JA
 bool JASystem::Kernel::TPortCmd::addPortCmd(JASystem::Kernel::TPortHead* phead) {
     JUT_ASSERT(105, phead != NULL);
     BOOL enable = OSDisableInterrupts();
+#if TARGET_PC
+    // Bug B16 (open): a command with no function would be called through 0 by portCmdMain (a
+    // rare fault on the audio thread, about 1 boot in 400 in the room sweep, never reproduced on
+    // demand). Refuse it and name the callers, so the next occurrence says where it came from.
+    if (mFunc == NULL) {
+        static int reported = 0;
+        if (reported++ < 8) {
+            OSReport("[cos] JAS: port command %p without a function added from %p <- %p\n", this,
+                     __builtin_return_address(0), __builtin_return_address(1));
+        }
+        OSRestoreInterrupts(enable);
+        return false;
+    }
+#endif
     if (mHead) {
         OSRestoreInterrupts(enable);
         return false;
@@ -63,6 +77,13 @@ void JASystem::Kernel::portCmdProcOnce(JASystem::Kernel::TPortHead* phead) {
         if (!cmd) {
             break;
         }
+#if TARGET_PC
+        // Bug B16 (open): see addPortCmd; a command whose function is gone by now is skipped.
+        if (cmd->getFunc() == NULL) {
+            OSReport("[cos] JAS: port command %p without a function in the once list, skipped\n", cmd);
+            continue;
+        }
+#endif
         cmd->getFunc()(cmd->getArgs());
     }
 }
@@ -75,6 +96,13 @@ void JASystem::Kernel::portCmdProcStay(JASystem::Kernel::TPortHead* phead) {
         if (!cmd) {
             break;
         }
+#if TARGET_PC
+        if (cmd->getFunc() == NULL) {
+            OSReport("[cos] JAS: port command %p without a function in the stay list, skipped\n", cmd);
+            cmd = cmd->getNext();
+            continue;
+        }
+#endif
         cmd->getFunc()(cmd->getArgs());
         cmd = cmd->getNext();
     }
