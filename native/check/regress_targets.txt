@@ -98,7 +98,7 @@ options-menu 0 --stage sea:44:206 --input native/check/input/options-menu.txt
 # HD textures (lane hd-textures): the menu's "Texturas HD" on and off with no pack installed
 options-menu 0 --stage sea:44:206 --input native/check/input/hd-textures-menu.txt
 # bug B8 (lane b8-heap): internal resolution changes, Viajar to Dragon Roost and Windfall, then the
-# pause menu's item and save screens with 14 items (the menu window's child heap and the 2D heap,
-# GameCube sizes too small on the host), a save through the save screen on the run's own card and
+# pause menu's item and collection screens with 14 items (the menu window's child heap and the 2D
+# heap, GameCube sizes too small on the host), a save through the save screen on the run's own card and
 # its round trip (load, checksum, card_to_memory: the same items); no JKR allocation may fail
 options-menu 0 --stage sea:44:206 --input native/check/input/menu-travel-save.txt
