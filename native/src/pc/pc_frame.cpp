@@ -165,6 +165,15 @@ uint64_t sFirstPeriodNs = 0;
 uint64_t sLoopStartNs = 0; // first pc_frame_begin
 uint32_t sLoopStartRetrace = 0;
 uint32_t sMaxDrawCalls = 0;     // largest drawCallCount Aurora reported after a frame
+// The largest per-frame use of Aurora's four mapped staging buffers (AuroraStats lastVertSize,
+// lastUniformSize, lastIndexSize, lastStorageSize). Their sizes are fixed (Aurora's
+// lib/gfx/resources.hpp: 5, 24, 2 and 8 MiB) and a frame that needs more aborts in gfx::push (the
+// mapped ByteBuffer cannot grow); the pacing line's companion reports the high-water marks so a
+// sweep shows how close the game comes (step 6.9a follow-up 2).
+uint32_t sMaxVertBytes = 0;
+uint32_t sMaxUniformBytes = 0;
+uint32_t sMaxIndexBytes = 0;
+uint32_t sMaxStorageBytes = 0;
 // COS_TRACE=frame: per-frame times (ns): pc_frame_begin (events and aurora_begin_frame), from there
 // to the pace wait, the wait itself, from the wait to pc_frame_end, and aurora_end_frame.
 bool sTraceFrame = false;
@@ -848,6 +857,10 @@ void writePacing(int fd) {
            steadyRequestedNs / 1e6,
            steadyRequestedNs != 0 ? (double)steadyWallNs / (double)steadyRequestedNs : 0.0,
            gConfig.uncapped ? 1 : 0, (unsigned int)(VIGetRetraceCount() - sLoopStartRetrace));
+    writef(fd, "[cos] gfx high-water: verts=%u KiB/5120 uniforms=%u KiB/24576 indices=%u KiB/2048 "
+               "storage=%u KiB/8192 draws=%u\n",
+           sMaxVertBytes / 1024, sMaxUniformBytes / 1024, sMaxIndexBytes / 1024,
+           sMaxStorageBytes / 1024, (unsigned int)sMaxDrawCalls);
 }
 
 void perfOpen() {
@@ -1048,6 +1061,10 @@ void pc_frame_end(void) {
     }
     if (stats != nullptr) {
         (sLogoCreated ? sUploadSinceLogo : sUploadBeforeLogo) += stats->lastTextureUploadSize;
+        sMaxVertBytes = std::max(sMaxVertBytes, stats->lastVertSize);
+        sMaxUniformBytes = std::max(sMaxUniformBytes, stats->lastUniformSize);
+        sMaxIndexBytes = std::max(sMaxIndexBytes, stats->lastIndexSize);
+        sMaxStorageBytes = std::max(sMaxStorageBytes, stats->lastStorageSize);
     }
 
     const uint64_t perfNow = monotonicNs();

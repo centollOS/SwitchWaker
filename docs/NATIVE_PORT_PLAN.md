@@ -3498,6 +3498,16 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Majuu_Flag after OBJ_IKADA, BWDG after BWD, the BMD hands, AGB's switch) or `prm`/`ctx` (TAG_MDCB
   reads `event_bit[argument]` with the sweep's argument -1; AUCTION indexes its NPC table through
   the auction item list, which a sweep spawn never sets up). Two were port bugs, B14 and B15.
+  Actor-sweep follow-up (2), PLAYER (169): Aurora's staging buffers are fixed per frame
+  (`lib/gfx/resources.hpp`: vertices 5 MiB, uniforms 24 MiB, indices 2 MiB, storage 8 MiB) and a
+  frame that needs more aborts in `gfx::push` (the mapped `ByteBuffer` cannot grow). The pacing
+  line now has a companion, `[cos] gfx high-water: verts=.. uniforms=.. indices=.. storage=..
+  draws=..` (the largest per-frame use of each, from `AuroraStats`). Over the 1106 room-sweep boots
+  the maxima were vertices 971 KiB (19 %), uniforms 7304 KiB (30 %), indices 474 KiB (23 %),
+  storage 1785 KiB (22 %), 4114 draws. With a second player the index buffer fills from thousands
+  of small pushes (2 MiB of indices and 3.4 MB of vertices in one frame, measured with a temporary
+  log in `push`): a runaway draw count of the duplicate, not a single oversize draw nor a limit
+  the game comes near. Not changed (dropping draws in Aurora on overflow would hide such bugs).
 
 - **Widescreen option `COS_ASPECT`** (2026-10-03, lane wide). The community 16:9 Gecko code that the
   translated build applies (mods/widescreen/GZLE01.gecko) is done in C under `TARGET_PC`:
