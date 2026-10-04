@@ -98,7 +98,7 @@ static void queue_device_event(Uint32 type) {
 }
 
 // Low band carries the low-frequency motor, high band the high-frequency one,
-// at the frequencies the console maker's own rumble defaults to.
+// at the frequencies the console's own rumble defaults to.
 static void send_rumble(float low, float high) {
     HidVibrationValue values[2];
     for (int i = 0; i < 2; ++i) {

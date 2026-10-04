@@ -164,7 +164,7 @@
 --- /dev/null
 +++ b/src/dawn/native/opengl/SwitchClipControlGL.h
 @@ -0,0 +1,49 @@
-+// Switch (the game native port, bug B7): depth clipping in WebGPU's [0, w] range.
++// Switch (centollOS, bug B7): depth clipping in WebGPU's [0, w] range.
 +//
 +// Dawn's GL backend kept GL's default [-w, w] clip range for z and had Tint rewrite every vertex
 +// shader's gl_Position.z as 2 * z - w. With Aurora's reversed Z and a near plane of 1, z is about

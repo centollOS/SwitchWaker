@@ -10,7 +10,7 @@
 // One ImGui window with three tabs, Gráficos, Rendimiento and Depuración, navigated by the
 // controller (D-pad or stick: row and value; A: change / confirm; B: back / close; L/R: tab), the
 // keyboard (arrows, Enter, Esc, Q/E) or the mouse (click a tab, a row, a value). The menu reads the
-// controllers itself (SDL gamepads, labels of the face buttons respected, so A is A on a the console maker
+// controllers itself (SDL gamepads, labels of the face buttons respected, so A is A on a Switch-style
 // layout too), plus the COS_INPUT script in COS_SMOKE=options-menu (only there: other scripts press
 // L+R+Z for the game).
 //
@@ -106,7 +106,7 @@ uint32_t readScript() {
     return k;
 }
 
-// The face button labelled `label` (A or B) on this controller: a the console maker layout has A on the
+// The face button labelled `label` (A or B) on this controller: a Switch-style layout has A on the
 // right (east), an Xbox layout at the bottom (south).
 SDL_GamepadButton labelled(SDL_Gamepad* gp, SDL_GamepadButtonLabel label) {
 #if defined(__SWITCH__)
@@ -188,7 +188,7 @@ struct Warp {
 // The main places, by their Spanish names (the sea's rooms are its 7x7 grid squares, A1 = 1).
 const Warp kMainWarps[] = {
     {"sea", 44, 206, "Isla Initia (Outset)"},
-    {"LinkRM", 0, 0, "Casa de Link"},
+    {"LinkRM", 0, 0, "Casa del héroe"},
     {"sea", 11, 0, "Isla Taura (Windfall)"},
     {"sea", 13, 0, "Isla del Dragón (Dragon Roost)"},
     {"M_NewD2", 0, 0, "Caverna del Dragón"},
@@ -475,7 +475,7 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kHdMaxSize), "auto", nullptr, nullptr, 81},
     // Rendimiento
     {"COS_SWITCH_GPU_PROFILE", "Perfil de GPU (portátil)",
-     "Reloj de la GPU en modo portátil (perfiles oficiales de the console maker; la CPU sigue a 1020 MHz).",
+     "Reloj de la GPU en modo portátil (perfiles oficiales de la consola; la CPU sigue a 1020 MHz).",
      PC_SETTING_TAB_PERFORMANCE, PC_SETTING_SWITCH_ONLY, CHOICES(kGpuProfile), "460", applyGpuProfile, nullptr, 10},
     {"COS_FPS_OVERLAY", "Contador de FPS", "Panel de cuadros por segundo y tiempos en la esquina.",
      PC_SETTING_TAB_PERFORMANCE, 0, CHOICES(kOnOff), kSwitch ? "1" : "0", applyOverlay, nullptr, 20},
@@ -806,7 +806,7 @@ std::string rowHelp(const Row& r) {
     case RowKind::EditMode:
         return "Las opciones marcadas [portátil]/[sobremesa] guardan un valor por modo; se aplican solas al "
                "conectar o quitar la base.";
-    case RowKind::Warp: return "Lleva a Link a otro escenario (lugares principales y todos los del disco).";
+    case RowKind::Warp: return "Lleva al jugador a otro escenario (lugares principales y todos los del disco).";
     case RowKind::Screenshot:
         return "Guarda la imagen del juego (sin el menú) como shot-<cuadro>.png en la carpeta del juego.";
     case RowKind::Reload: return std::string("Vuelve a leer ") + pc_settings_path() + ".";
@@ -1000,12 +1000,12 @@ void smokeError(const char* fmt, const std::string& a, const std::string& b = ""
 //   alloc-failures <n>       JKR allocations that failed since the start (bug B8: 0)
 //   card-roundtrip <stage> [<room>]  the game saved through its save screen: the card's save file (the
 //                            run's own card, "#card run") loads back (mDoMemCd_Load, checksum of
-//                            the file the game uses, card_to_memory) with the items Link has now
+//                            the file the game uses, card_to_memory) with the items the player has now
 //                            and the return place <stage> (and <room>) (bug B8)
 // Other lines: "#items <hex,...>" gives the new file of the debug boot those items
 // (COS_BOOT_ITEMS); "#card run" makes memory card A the empty folder <run dir>/card/, so the game
 // saves there and never on the user's card.
-// Always: while the menu is open in the PLAY scene, Link does not move (paused, no input) - the
+// Always: while the menu is open in the PLAY scene, the player does not move (paused, no input) - the
 // script should hold the stick then.
 void smokeParse() {
     FILE* f = gConfig.input != nullptr ? fopen(gConfig.input, "r") : nullptr;
@@ -1048,7 +1048,7 @@ void smokeParse() {
            sSmoke.endFrame, pc_settings_path());
 }
 
-// "#expect card-roundtrip <stage>": the save file the game wrote loads back with the items Link has
+// "#expect card-roundtrip <stage>": the save file the game wrote loads back with the items the player has
 // now and the return place `stage`. Blocks the game thread while the card thread reads (as the
 // file select's load does over several frames); only at the test's end frame.
 void checkCardRoundtrip(const std::string& stage, const std::string& room) {
@@ -1139,7 +1139,7 @@ void smokeFrame(unsigned int frame) {
                 if (d > 0.01f) {
                     char buf[64];
                     snprintf(buf, sizeof(buf), "%u (moved %.3f)", frame, (double)d);
-                    smokeError("Link moved while the menu was open at frame %s%s", buf);
+                    smokeError("the player moved while the menu was open at frame %s%s", buf);
                 }
             }
             sSmoke.pos[0] = p.x;

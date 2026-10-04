@@ -11,7 +11,7 @@ index 0000000..fd9287d
 +++ b/include/mesa_switch.h
 @@ -0,0 +1,68 @@
 +/*
-+ * Switch (Horizon) build of Mesa 20.1 for the game native port (switch/mesa in that
++ * Switch (Horizon) build of Mesa 20.1 for centollOS (switch/mesa in that
 + * repository): counters and timers of the GLSL compiler, the state tracker and nvc0's code
 + * generator, and the state of the persistent shader cache, read by the application for its log.
 + * Public header: the build copies it into the install prefix's include directory.

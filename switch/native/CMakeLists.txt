@@ -283,7 +283,7 @@ set_target_properties(centollos PROPERTIES OUTPUT_NAME "centollos" SUFFIX ".elf"
 
 set(COS_SWITCH_NRO_NAME "centollos" CACHE STRING "File name of the NRO (without .nro)")
 nx_generate_nacp(cos_native.nacp
-        NAME "the game (native)" AUTHOR "the recompilation project contributors" VERSION "0.1.0")
+        NAME "centollOS" AUTHOR "centollOS contributors" VERSION "0.1.0")
 nx_create_nro(cos_nro
         TARGET centollos
         OUTPUT "${CMAKE_BINARY_DIR}/${COS_SWITCH_NRO_NAME}.nro"

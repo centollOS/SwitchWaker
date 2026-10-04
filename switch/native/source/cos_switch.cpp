@@ -15,7 +15,7 @@
 // Switch defaults (setenv without overwrite): COS_DISC (the shared GZLE01.iso), COS_RUN_DIR (the
 // native directory, for backtrace.txt), COS_PERF_EVERY=60, COS_STALL_S=90 and COS_ASPECT=16:9 (the
 // console's 1280x720 screen; COS_ASPECT=4:3 in env.txt gives the GameCube picture, pillarboxed).
-// COS_SWITCH_GPU_PROFILE (460 by default, 384, default) picks the console maker's handheld performance
+// COS_SWITCH_GPU_PROFILE (460 by default, 384, default) picks the console's official handheld performance
 // configuration through apm (CPU 1020 MHz always); the previous one is restored at exit. The options
 // menu changes it at run time (cos_switch_set_gpu_profile). Between env.txt and the defaults,
 // pc_settings_load_early copies the menu's settings file (user/settings.ini) into the environment
@@ -298,7 +298,7 @@ const char* appletTypeName(AppletType type) {
 }
 
 // ---- handheld GPU profile (apm) -------------------------------------------------------------------
-// the console maker's official performance configurations, set through apm the way a retail game asks for
+// The console's official performance configurations, set through apm the way a retail game asks for
 // them: the CPU stays at the stock 1020 MHz, only the handheld GPU clock goes up. From switchbrew,
 // PTM services, "PerformanceConfiguration" (https://switchbrew.org/wiki/PTM_services):
 //   id          CPU     GPU     EMC
@@ -456,7 +456,7 @@ void reportSystem() {
     const AppletType applet = appletGetAppletType();
     char mode[128];
     cos_switch_describe_mode(mode, sizeof(mode));
-    sayf("[switch] centollos native: %s; %s; memory %llu MiB, %llu MiB used at start; core mask 0x%llx; "
+    sayf("[switch] centollOS: %s; %s; memory %llu MiB, %llu MiB used at start; core mask 0x%llx; "
          "image at 0x%llx\n",
          appletTypeName(applet), mode, (unsigned long long)(total >> 20), (unsigned long long)(used >> 20),
          (unsigned long long)cores, (unsigned long long)cos_switch_image_base());
@@ -595,7 +595,7 @@ __attribute__((noreturn)) void __wrap_abort(void) {
 
 void cos_switch_start(int argc, char** argv) {
     startLogs();
-    sayf("[switch] the game, native port (phase 7); argv[0]=%s\n",
+    sayf("[switch] centollOS, native port (phase 7); argv[0]=%s\n",
          argc > 0 && argv != nullptr && argv[0] != nullptr ? argv[0] : "-");
     reportSystem();
     loadEnvFile();

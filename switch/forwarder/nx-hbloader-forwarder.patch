@@ -7,7 +7,7 @@ index 78e4502..55a282f 100644
  #include <unistd.h>
  
 -#define DEFAULT_NRO "sdmc:/hbmenu.nro"
-+// HOME-menu forwarder (the recompilation project, scripts/switch/build_forwarder.sh): the NRO to start
++// HOME-menu forwarder (centollOS, scripts/switch/build_forwarder.sh): the NRO to start
 +// and its argv come from the application's RomFS, romfs:/nextNroPath and romfs:/nextArgv (the
 +// convention of the SAK / nsp-forwarder forwarders), else from this default. When the NRO returns
 +// without chaining another one (envSetNextLoad), the process ends and the HOME menu comes back

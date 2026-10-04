@@ -11,7 +11,7 @@ shows the title and icon whatever the console's language. Choices for the native
     hold back 96 MiB of the application's memory (nx-hbloader calculateMaxHeapSize).
   - No save data, no rating ages (-1), no parental-control flags, LogoHandling = Auto.
   - PresenceGroupId, SaveDataOwnerId, LocalCommunicationId[0] and SeedForPseudoDeviceId = the
-    title ID, as the console maker's tools and hacBrewPack's --titleid fill them.
+    title ID, as the official tools and hacBrewPack's --titleid fill them.
 """
 import argparse
 import struct

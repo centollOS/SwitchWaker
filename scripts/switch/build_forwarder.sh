@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the HOME-menu forwarder: an NSP that installs a "the game (native)" icon on the
+# Build the HOME-menu forwarder: an NSP that installs a "centollOS" icon on the
 # Switch HOME screen and starts sdmc:/switch/centollos/centollos.nro as an application
 # (full memory, the log says "application (title mode)"), without hbmenu.
 #
@@ -21,13 +21,13 @@
 #   romfs    nextNroPath and nextArgv = sdmc:/switch/centollos/centollos.nro. argv[0] is
 #            the NRO's path, as hbmenu passes it (libnx sets the working directory from it; the
 #            game's data dir is the fixed COS_SWITCH_ROOT, switch/native/source/cos_switch.h).
-#   control  control.nacp from switch/forwarder/make_nacp.py ("the game (native)",
-#            "the recompilation project", the version from git describe) and switch/native/icon/icon.jpg
+#   control  control.nacp from switch/forwarder/make_nacp.py ("centollOS",
+#            "centollOS contributors", the version from git describe) and switch/native/icon/icon.jpg
 #            (scripts/switch/make_icon.py) in every language slot.
 #   pack     hacBrewPack v3.05 (pinned below), no logo section.
 #
-# Title ID 0x01FF57574E000000: "01FF" is outside the ranges the console maker has used for retail titles
-# (0100...) and "57574E" is a fixed tag; the low 12 bits are 0 as for any base application
+# Title ID 0x01FF43454E540000: "01FF" is outside the ranges used by retail titles (0100...) and
+# "43454E54" is ASCII "CENT"; the low 12 bits are 0 as for any base application
 # (updates add 0x800). Override with COS_FORWARDER_TITLE_ID if it ever collides.
 set -euo pipefail
 
@@ -35,11 +35,11 @@ root=$(cd "$(dirname "$0")/../.." && pwd)
 source "$root/scripts/switch/container.sh"
 image=${COS_SWITCH_NATIVE_IMAGE:-localhost/centollos-switch-native-build:2026-10-03}
 
-title_id=${COS_FORWARDER_TITLE_ID:-01ff57574e000000}
+title_id=${COS_FORWARDER_TITLE_ID:-01ff43454e540000}
 title_id=$(printf '%s' "${title_id#0x}" | tr 'A-F' 'a-f')
 nro_path=sdmc:/switch/centollos/centollos.nro
-name="the game (native)"
-publisher="the recompilation project"
+name="centollOS"
+publisher="centollOS contributors"
 hbloader_url=https://github.com/switchbrew/nx-hbloader.git
 hbloader_rev=82b95122c5ae8dc059bf23893ba7623c72c86773  # v2.4.5
 hacbrewpack_url=https://github.com/TooTallNate/hacBrewPack.git  # The-4n's repository is gone
