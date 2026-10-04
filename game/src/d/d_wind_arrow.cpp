@@ -9,6 +9,7 @@
 #include "res/Object/Always.h"
 #include "m_Do/m_Do_graphic.h"
 #include "f_op/f_op_kankyo_mng.h"
+#include "f_op/f_op_actor_mng.h"
 #include "JSystem/JKernel/JKRSolidHeap.h"
 #include "dolphin/os/OSCache.h"
 
@@ -50,7 +51,15 @@ BOOL dWindArrow_c::draw() {
         static cXyz l_scale(0.85f, 0.85f, 0.85f);
 
         Mtx mtx;
+#if TARGET_PC
+        // mParam is the boat's process ID (d_a_ship.cpp create), not a pointer cut to 32 bits.
+        fopAc_ac_c* ac = fopAcM_SearchByID(mParam);
+        if (ac == NULL) {
+            return TRUE;
+        }
+#else
         fopAc_ac_c* ac = (fopAc_ac_c*)mParam;
+#endif
         mDoMtx_stack_c::transS(ac->current.pos);
         mDoMtx_stack_c::YrotM(ac->shape_angle.y);
         mDoMtx_copy(mDoMtx_stack_c::get(), mtx);

@@ -4740,8 +4740,15 @@ cPhs_State daShip_c::create() {
         fopAcM_SetMin(this, -325.0f, -50.0f, -325.0f);
         fopAcM_SetMax(this, 325.0f, 570.0f, 240.0f);
         
-        // The this pointer is passed as the param for some reason, but it doesn't actually seem to be used?
+        // The this pointer is passed as the param: dWindArrow_c::draw places the arrow above the boat.
+#if TARGET_PC
+        // The param is a u32 (kankyo_class::mParam): a 64-bit pointer would be cut to its low 32
+        // bits (the sailing crash in dWindArrow_c::draw). Pass the boat's process ID instead;
+        // draw looks it up.
+        fopKyM_create(fpcNm_WIND_ARROW_e, (int)fopAcM_GetID(this), 0, 0, 0);
+#else
         fopKyM_create(fpcNm_WIND_ARROW_e, (intptr_t)this, 0, 0, 0);
+#endif
 
         offStateFlg(daSFLG_UNK2_e);
         mAcch.CrrPos(*dComIfG_Bgsp());
