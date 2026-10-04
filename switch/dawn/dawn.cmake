@@ -815,4 +815,24 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
                 "${DAWN_GL_COMPRESSED_UPLOAD_PATCH_OUTPUT}${DAWN_GL_COMPRESSED_UPLOAD_PATCH_ERROR}")
         endif()
     endif()
+
+    # On top of everything above: the calling thread's render pipeline build times (translation,
+    # waiting for the GL context, holding it) for Aurora's warm-up, which must not take a build
+    # that only waited for the render worker for a shader cache miss.
+    file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/RenderPipelineGL.cpp" DAWN_OPENGL_RENDER_PIPELINE_TEXT)
+    if(NOT DAWN_OPENGL_RENDER_PIPELINE_TEXT MATCHES "dawn_switch_gl_thread_pipeline_ns")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-pipeline-wait.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_PIPELINE_WAIT_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_PIPELINE_WAIT_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_PIPELINE_WAIT_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_PIPELINE_WAIT_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL pipeline wait patch:\n"
+                "${DAWN_GL_PIPELINE_WAIT_PATCH_OUTPUT}${DAWN_GL_PIPELINE_WAIT_PATCH_ERROR}")
+        endif()
+    endif()
 endif()

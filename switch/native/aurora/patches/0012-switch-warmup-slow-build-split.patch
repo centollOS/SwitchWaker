@@ -1,0 +1,190 @@
+Switch: tell a slow warm-up build that waited for the GL context from a shader cache miss
+
+On every warm boot (Mesa's shader cache and Dawn's program binaries complete: 1576 of 1576 nvc0
+cache hits, 787 of 787 binaries, 0 compiles) the 3-4 warm-up builds that ran during the game's
+first frame took 70-130 ms each instead of ~11 ms: the render worker held the one GL context for
+~310 ms in that frame, and a build's time counted its wait for the context. The harness took them
+for cache misses and brought the loading screen up for the whole warm-up.
+
+With Dawn's per-thread build split (switch/dawn/patches/dawn-switch-gl-pipeline-wait.patch):
+- AuroraSwitchPrecompile::contextWaitNs: of compileNs, the warm-up's wait for the GL context;
+- the throttle holds the next warm-up build back only after a build slow for its own work (its
+  time minus the wait) - a build that only waited is no cache miss;
+- aurora_switch_get_slow_builds: the last 32 builds longer than the slow threshold, with their
+  pipeline key and where the time went (translation, context wait, context held), for the
+  "[cos] precompile slow build" lines.
+
+Switch only (switch/native/aurora/patches); not for upstream.
+
+--- a/include/aurora/switch_precompile.h
++++ b/include/aurora/switch_precompile.h
+@@ -33,8 +33,29 @@
+   /* Warm-up builds the throttle let the next one follow at once: they took no longer than
+    * aurora_switch_set_warmup_slow_ns (a shader cache hit). */
+   uint32_t unthrottled;
++  /* Of compileNs, the time the warm-up's builds waited for the GL context while another thread
++   * (the render worker) held it: not shader work. compileNs - contextWaitNs is what the builds
++   * themselves cost (Dawn's dawn_switch_gl_thread_pipeline_ns; 0 without it). */
++  uint64_t contextWaitNs;
+ } AuroraSwitchPrecompile;
+ 
++/* A slow build on the compile thread (longer than aurora_switch_set_warmup_slow_ns): which
++ * pipeline and where its time went. */
++typedef struct {
++  uint64_t seq;         /* 1, 2, ... in the order they happened */
++  uint64_t hash;        /* the runtime pipeline key (PipelineRef) */
++  uint64_t ns;          /* the whole build */
++  uint64_t translateNs; /* Tint's WGSL -> GLSL translation */
++  uint64_t waitNs;      /* waiting for the GL context (another thread held it) */
++  uint64_t heldNs;      /* holding it: Mesa's compile/link or its shader cache lookups */
++  uint32_t warmupDone;  /* the warm-up's done count when it finished */
++  bool warmup;          /* a warm-up pipeline (else first built for a draw) */
++} AuroraSwitchSlowBuild;
++
++/* Copies the slow builds with seq > *sinceSeq still remembered (the last 32), oldest first, up to
++ * max; sets *sinceSeq to the last one copied. Returns how many. */
++uint32_t aurora_switch_get_slow_builds(AuroraSwitchSlowBuild* out, uint32_t max, uint64_t* sinceSeq);
++
+ void aurora_switch_get_precompile(AuroraSwitchPrecompile* out);
+ 
+ /* Ends the warm-up: the pipelines it has not built yet (and no draw has asked for) leave the
+--- a/lib/gfx/pipeline_cache.cpp
++++ b/lib/gfx/pipeline_cache.cpp
+@@ -102,8 +102,37 @@
+ static uint32_t g_warmupDone = 0;
+ static uint32_t g_warmupDropped = 0;
+ static uint64_t g_warmupNs = 0;
++static uint64_t g_warmupWaitNs = 0; // of g_warmupNs, waiting for the GL context
+ static bool g_warmupStopped = false;
+ 
++// Switch: the last slow builds (aurora_switch_get_slow_builds), under g_pipelineMutex.
++static constexpr uint32_t kSlowBuildRing = 32;
++static AuroraSwitchSlowBuild g_slowBuilds[kSlowBuildRing];
++static uint64_t g_slowBuildSeq = 0;
++
++// Dawn's per-thread render pipeline build ns (dawn-switch-gl-pipeline-wait.patch): translation,
++// waiting for the GL context, holding it. Weak: zeros without that patch.
++extern "C" void dawn_switch_gl_thread_pipeline_ns(uint64_t out[3]) __attribute__((weak));
++
++struct BuildSplit {
++  uint64_t translateNs = 0;
++  uint64_t waitNs = 0;
++  uint64_t heldNs = 0;
++};
++
++static BuildSplit thread_build_ns() {
++  uint64_t v[3] = {0, 0, 0};
++  if (dawn_switch_gl_thread_pipeline_ns != nullptr) {
++    dawn_switch_gl_thread_pipeline_ns(v);
++  }
++  return {v[0], v[1], v[2]};
++}
++
++static BuildSplit build_split_since(const BuildSplit& before) {
++  const BuildSplit after = thread_build_ns();
++  return {after.translateNs - before.translateNs, after.waitNs - before.waitNs, after.heldNs - before.heldNs};
++}
++
+ // The priority set (AuroraSwitchPrecompile::priorityTotal): the cache keys the bundled cache's
+ // pipeline_priority table lists with priority 0, read by seed_pipeline_cache; the runtime pipelines
+ // the warm-up queued for them, and of those the ones still to build.
+@@ -112,11 +141,26 @@
+ static absl::flat_hash_set<PipelineRef> g_priorityPending;
+ static uint32_t g_priorityDone = 0;
+ 
+-static void warmup_built(PipelineRef hash, uint64_t ns) {
+-  if (g_warmupPending.erase(hash) != 0) {
++static uint64_t g_slowBuildNs = 25'000'000; // aurora_switch_set_warmup_slow_ns (g_warmupSlowNs's copy)
++
++static void warmup_built(PipelineRef hash, uint64_t ns, const BuildSplit& split = {}) {
++  const bool warmup = g_warmupPending.erase(hash) != 0;
++  if (warmup) {
+     ++g_warmupDone;
+     g_warmupNs += ns;
++    g_warmupWaitNs += std::min(split.waitNs, ns);
+   }
++  if (g_slowBuildNs != 0 && ns > g_slowBuildNs) {
++    AuroraSwitchSlowBuild& b = g_slowBuilds[g_slowBuildSeq % kSlowBuildRing];
++    b.seq = ++g_slowBuildSeq;
++    b.hash = static_cast<uint64_t>(hash);
++    b.ns = ns;
++    b.translateNs = split.translateNs;
++    b.waitNs = split.waitNs;
++    b.heldNs = split.heldNs;
++    b.warmupDone = g_warmupDone;
++    b.warmup = warmup;
++  }
+   if (g_priorityPending.erase(hash) != 0) {
+     ++g_priorityDone;
+   }
+@@ -1229,12 +1273,17 @@
+       pending = std::move(source.front());
+       source.pop_front();
+     }
++    const BuildSplit splitBefore = thread_build_ns();
+     const uint64_t compileStart = switch_stats::now_ns();
+     auto result = pending.create();
+     const uint64_t compileNs = switch_stats::now_ns() - compileStart;
++    const BuildSplit split = build_split_since(splitBefore);
+     if (throttledBuild) {
+       std::lock_guard lock{g_pipelineMutex};
+-      g_warmupHold = g_warmupSlowNs == 0 || compileNs > g_warmupSlowNs;
++      // A build is slow for its own work (a shader cache miss), not for the time it waited for the
++      // GL context while the render worker had it.
++      const uint64_t ownNs = compileNs - std::min(split.waitNs, compileNs);
++      g_warmupHold = g_warmupSlowNs == 0 || ownNs > g_warmupSlowNs;
+       if (!g_warmupHold) {
+         ++g_warmupUnthrottled;
+       } else if (g_warmupDuty > 0.f && g_warmupDuty < 1.f) {
+@@ -1246,7 +1295,7 @@
+     const auto pipelineCount = result.pipeline_count();
+     {
+       std::lock_guard lock{g_pipelineMutex};
+-      warmup_built(pending.hash, compileNs);
++      warmup_built(pending.hash, compileNs, split);
+       g_pipelines.try_emplace(pending.hash, std::move(result));
+       g_pendingPipelines.erase(pending.hash);
+       hasMore = !g_pipelineQueue.empty() || !g_backgroundPipelineQueue.empty();
+@@ -1491,6 +1540,8 @@
+   g_warmupPending.clear();
+   g_warmupTotal = g_warmupDone = g_warmupDropped = 0;
+   g_warmupNs = 0;
++  g_warmupWaitNs = 0;
++  g_slowBuildSeq = 0;
+   g_warmupStopped = false;
+   g_priorityKeys.clear();
+   g_priorityQueued.clear();
+@@ -1547,13 +1598,33 @@
+   out->throttled = g_warmupThrottled;
+   out->throttleWaitNs = g_warmupThrottleWaitNs;
+   out->unthrottled = g_warmupUnthrottled;
++  out->contextWaitNs = g_warmupWaitNs;
+ }
+ 
++uint32_t aurora_switch_get_slow_builds(AuroraSwitchSlowBuild* out, uint32_t max, uint64_t* sinceSeq) {
++  using namespace aurora::gfx;
++  if (out == nullptr || sinceSeq == nullptr) {
++    return 0;
++  }
++  std::lock_guard lock{g_pipelineMutex};
++  uint64_t first = *sinceSeq + 1;
++  if (g_slowBuildSeq > kSlowBuildRing && first <= g_slowBuildSeq - kSlowBuildRing) {
++    first = g_slowBuildSeq - kSlowBuildRing + 1;
++  }
++  uint32_t n = 0;
++  for (uint64_t seq = first; seq <= g_slowBuildSeq && n < max; ++seq) {
++    out[n++] = g_slowBuilds[(seq - 1) % kSlowBuildRing];
++    *sinceSeq = seq;
++  }
++  return n;
++}
++
+ void aurora_switch_set_warmup_slow_ns(uint64_t ns) {
+   using namespace aurora::gfx;
+   {
+     std::lock_guard lock{g_pipelineMutex};
+     g_warmupSlowNs = ns;
++    g_slowBuildNs = ns;
+   }
+   g_pipelineQueueCv.notify_all();
+ }
