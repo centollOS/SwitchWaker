@@ -236,7 +236,7 @@ void pc_aurora_init(int argc, char* argv[]) {
            (unsigned int)info.windowSize.height, (unsigned int)info.windowSize.fb_width,
            (unsigned int)info.windowSize.fb_height, config.vsync ? 1 : 0,
            config.blockingPipelines ? "sync" : "async", sUserPath);
-    precompileInit();
+    precompileInit(sCachePath);
     // COS_PRECOMPILE=boot/full: the loading screen, before the game (and its boot logo) starts.
     precompileLoadingScreen();
 

@@ -394,6 +394,24 @@ extern "C" int cos_switch_describe_mode(char* out, size_t size) {
                     (unsigned)config, cpu / 1e6, gpu / 1e6, emc / 1e6);
 }
 
+extern "C" void cos_switch_system_language(char* out, size_t size) {
+    if (size == 0) {
+        return;
+    }
+    out[0] = '\0';
+    if (R_FAILED(setInitialize())) {
+        return;
+    }
+    u64 code = 0;
+    if (R_SUCCEEDED(setGetSystemLanguage(&code))) {
+        // The language code is an ASCII string of up to 8 bytes ("es-419"), zero padded.
+        char text[9] = {};
+        memcpy(text, &code, 8);
+        snprintf(out, size, "%s", text);
+    }
+    setExit();
+}
+
 namespace {
 
 void reportSystem() {

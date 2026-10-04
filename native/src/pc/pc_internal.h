@@ -270,7 +270,7 @@ void writePacing(int fd);
 // the game starts: returns once the loading screen's pipelines are built, or at once without one);
 // precompileOverlay from pc_frame_end before aurora_end_frame and precompileFrame after it, every
 // game frame.
-void precompileInit();
+void precompileInit(const char* cacheDir);
 void precompileLoadingScreen();
 void precompileOverlay();
 void precompileFrame(unsigned int frames);
