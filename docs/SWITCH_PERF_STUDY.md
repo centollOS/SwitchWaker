@@ -545,6 +545,19 @@ Changes (each default on, each with an env switch for the A/B, each checked on M
   next build back only after a build slower than `COS_PRECOMPILE_SLOW_MS` (default 25; Switch patch
   0011, 3e79acb), so a warm cache warms up back to back (~6 s for ~1100) and cache misses keep the
   duty cycle.
+- With the cache warm the builds cost ~12 ms, yet the loading screen still showed for ~2.3 s on
+  every start, and Mesa took 860 ms to open its cache file (2747 entries, one 32-byte read each)
+  (lane/quick-boot):
+  - `COS_PRECOMPILE_SCREEN=auto` (default): the warm-up starts with nothing drawn; if its first
+    builds (up to 8, at most 0.3 s) average no more than `COS_PRECOMPILE_SLOW_MS`, the game starts
+    at once and the priority set builds first behind the logos (fast builds back to back, a draw's
+    pipeline still built on demand); if not, the loading screen as before. If the builds turn slow
+    during the logo scene (at least 3, and the priority set left over 1 s at their pace) the
+    loading screen comes up there. `always` restores the old behaviour, `never` skips the screen.
+    Expected on a warm start: ~0.1 s of probe instead of ~2.3 s of loading screen before the logo.
+  - Mesa patch 0003 keeps an index beside the cache file (`mesa_shader_cache.idx`, 40 bytes per
+    record) read with one `read()` at start; expected well under 50 ms for ~3000 entries instead
+    of 860 ms. The first start with it rebuilds the cache once (new driver build id).
 
 ### 7.4 A/B for the next hardware run
 
