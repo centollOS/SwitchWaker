@@ -1,0 +1,86 @@
+diff --git a/source/main.c b/source/main.c
+index 78e4502..55a282f 100644
+--- a/source/main.c
++++ b/source/main.c
+@@ -3,7 +3,14 @@
+ #include <fcntl.h>
+ #include <unistd.h>
+ 
+-#define DEFAULT_NRO "sdmc:/hbmenu.nro"
++// HOME-menu forwarder (the recompilation project, scripts/switch/build_forwarder.sh): the NRO to start
++// and its argv come from the application's RomFS, romfs:/nextNroPath and romfs:/nextArgv (the
++// convention of the SAK / nsp-forwarder forwarders), else from this default. When the NRO returns
++// without chaining another one (envSetNextLoad), the process ends and the HOME menu comes back
++// instead of hbmenu.
++#ifndef FORWARDER_DEFAULT_NRO
++#define FORWARDER_DEFAULT_NRO "sdmc:/switch/centollos/centollos.nro"
++#endif
+ 
+ const char g_noticeText[] =
+     "nx-hbloader " VERSION "\0"
+@@ -48,7 +55,7 @@ void NX_NORETURN nroEntrypointTrampoline(const ConfigEntry* entries, u64 handle,
+ 
+ void __libnx_initheap(void)
+ {
+-    static char g_innerheap[0x4000];
++    static char g_innerheap[0x10000]; // forwarder: room for the RomFS mount
+ 
+     extern char* fake_heap_start;
+     extern char* fake_heap_end;
+@@ -105,6 +112,37 @@ void __appInit(void)
+         diagAbortWithResult(MAKERESULT(Module_HomebrewLoader, 2));
+ }
+ 
++// Reads a short text file (trailing whitespace trimmed); false when missing or empty.
++static bool readSmallFile(const char* path, char* out, size_t size)
++{
++    int fd = open(path, O_RDONLY);
++    if (fd < 0)
++        return false;
++    ssize_t n = read(fd, out, size - 1);
++    close(fd);
++    if (n <= 0)
++        return false;
++    while (n > 0 && (out[n-1] == '\n' || out[n-1] == '\r' || out[n-1] == ' ' || out[n-1] == '\t'))
++        n--;
++    out[n] = '\0';
++    return n > 0;
++}
++
++static void loadForwarderTarget(void)
++{
++    bool ok = false;
++    if (R_SUCCEEDED(romfsInit())) {
++        ok = readSmallFile("romfs:/nextNroPath", g_nextNroPath, sizeof g_nextNroPath);
++        if (ok && !readSmallFile("romfs:/nextArgv", g_nextArgv, sizeof g_nextArgv))
++            strcpy(g_nextArgv, g_nextNroPath);
++        romfsExit();
++    }
++    if (!ok) {
++        memcpy(g_nextNroPath, FORWARDER_DEFAULT_NRO, sizeof(FORWARDER_DEFAULT_NRO));
++        memcpy(g_nextArgv,    FORWARDER_DEFAULT_NRO, sizeof(FORWARDER_DEFAULT_NRO));
++    }
++}
++
+ void __wrap_exit(void)
+ {
+     // exit() effectively never gets called, so let's stub it out.
+@@ -353,8 +391,8 @@ void loadNro(void)
+ 
+     if (g_nextNroPath[0] == '\0')
+     {
+-        memcpy(g_nextNroPath, DEFAULT_NRO, sizeof(DEFAULT_NRO));
+-        memcpy(g_nextArgv,    DEFAULT_NRO, sizeof(DEFAULT_NRO));
++        // The forwarded NRO returned without chaining another: back to the HOME menu.
++        svcExitProcess();
+     }
+ 
+     memcpy(g_argv, g_nextArgv, sizeof g_argv);
+@@ -521,6 +559,7 @@ int main(int argc, char **argv)
+ 
+     getIsApplication();
+     getIsAutomaticGameplayRecording();
++    loadForwarderTarget();
+     smExit(); // Close SM as we don't need it anymore.
+     setupHbHeap();
+     getOwnProcessHandle();
