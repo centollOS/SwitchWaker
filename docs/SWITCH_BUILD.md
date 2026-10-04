@@ -388,9 +388,15 @@ Besides that, the port compiles fewer programs and compiles them before they are
 - Aurora queues every pipeline its cache knows (`user/cache/pipeline_cache.db`) on its compile thread
   at start, in order of first use. `native/tools/gen_pipeline_cache.sh` (on the Mac, with your disc)
   records the pipelines of the logos, title and file select, a new game through the prologue,
-  Outset with the player controllable and a 600-frame boot of every stage, and merges them into
-  `build/pipeline-cache/initial_pipeline_cache.db` (about 1000 rows, 4 MB; ordered so the boot path
-  comes first). Its `pipeline_priority` table marks the rows recorded on the boot path (tiers 0-3,
+  Outset with the player controllable and a 600-frame boot of every stage, then scripted gameplay
+  on debug boots with given items (bombs on the Outset pier and in the first dungeon, sword fights
+  with its chuchus and bokoblins, the boomerang, grappling hook, deku leaf, skull hammer, hookshot
+  and bow), a 600-frame boot of every room that has a spawn point (`boot_sweep.py --rooms`; M_NewD2
+  room 2 left out until bug B10's fix is in, `--room-skip`) and an effects sweep (`COS_SMOKE=fx-sweep`:
+  every common particle emitter, then each stage's own, drawn in front of the player), each a tier
+  with its `--no-<name>` switch, and merges them into
+  `build/pipeline-cache/initial_pipeline_cache.db` (ordered so the boot path comes first; the row
+  counts per tier are in `report.txt`). Its `pipeline_priority` table marks the rows recorded on the boot path (tiers 0-3,
   logos to Outset: 176 of 1016 rows) priority 0 and the stage sweep's 1;
   `gen_pipeline_cache.sh --mark-priority DB` rewrites only that table in an existing file.
   `--merge-from DB [--tier N]` (repeatable) adds another Aurora pipeline cache as one more tier

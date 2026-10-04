@@ -1,0 +1,68 @@
+# Controller script of native/tools/gen_pipeline_cache.sh, tier 7 items (syntax in
+# native/src/pc/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each line holding until the next.
+# Run with COS_BOOT_ITEMS=<item>,38 (the item on X, the sword) and --stage sea:44:0 (the Outset
+# pier, the player free from about frame 400), --frames 2400 --uncapped, once per item (boomerang 2D,
+# grappling hook 25, deku leaf 34, skull hammer 33, hookshot 2F, bow 27). Five rounds: X twice
+# (ready, then use: throw, fire, swing, shoot), X held 60 frames and released (aim and let go), A,
+# B, then the stick turns the player a quarter; on the pier's end he may fall into the sea and swim,
+# which is fine (water effects). What the item hits is not checked.
+400 X 0 0
+402 - 0 0
+440 X 0 0
+442 - 0 0
+500 X 0 0
+560 - 0 0
+620 A 0 0
+622 - 0 0
+660 B 0 0
+662 - 0 0
+700 - 0 -127
+730 - 0 0
+780 X 0 0
+782 - 0 0
+820 X 0 0
+822 - 0 0
+880 X 0 0
+940 - 0 0
+1000 A 0 0
+1002 - 0 0
+1040 B 0 0
+1042 - 0 0
+1080 - 127 0
+1110 - 0 0
+1160 X 0 0
+1162 - 0 0
+1200 X 0 0
+1202 - 0 0
+1260 X 0 0
+1320 - 0 0
+1380 A 0 0
+1382 - 0 0
+1420 B 0 0
+1422 - 0 0
+1460 - 0 127
+1490 - 0 0
+1540 X 0 0
+1542 - 0 0
+1580 X 0 0
+1582 - 0 0
+1640 X 0 0
+1700 - 0 0
+1760 A 0 0
+1762 - 0 0
+1800 B 0 0
+1802 - 0 0
+1840 - -127 0
+1870 - 0 0
+1920 X 0 0
+1922 - 0 0
+1960 X 0 0
+1962 - 0 0
+2020 X 0 0
+2080 - 0 0
+2140 A 0 0
+2142 - 0 0
+2180 B 0 0
+2182 - 0 0
+2220 - 0 -127
+2250 - 0 0

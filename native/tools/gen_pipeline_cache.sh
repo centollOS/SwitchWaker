@@ -4,6 +4,8 @@
 # "Pipeline precompile").
 #
 #   native/tools/gen_pipeline_cache.sh [--out DIR] [--no-build] [--no-sweep] [--no-prologue]
+#                                      [--no-bombs] [--no-combat] [--no-items] [--no-gameplay]
+#                                      [--no-rooms] [--room-skip LIST] [--no-fx] [--jobs N]
 #                                      [--sweep-jobs N] [--sweep-frames N] [--sweep-only LIST]
 #                                      [--disc PATH] [--merge-from DB [--tier N]]...
 #   native/tools/gen_pipeline_cache.sh --merge-only --merge-from DB [--tier N] [--merge-from ...]
@@ -21,8 +23,27 @@
 #                      skips it)
 #   3  outset-control  debug boot into Outset, Aryll's lookout event, the player controllable
 #   4  boot-sweep      every stage of the disc, --sweep-frames frames each (--no-sweep skips it)
-# Tiers 0-3 run in parallel, then the sweep. A run that fails still contributes what it recorded
-# (the report says so). The merge keeps one row per (type, hash), the lowest tier's frame.
+#   5  bombs           a bomb bag and the sword on a new file, on the Outset pier (sea:44:0) and in
+#                      the first dungeon's entrance (M_NewD2:0:0): bombs dropped, thrown on land and
+#                      into the sea, one held until it explodes, sword swings
+#                      (native/check/input/pipeline-bombs.txt; --no-bombs)
+#   6  combat          sword and shield against the chuchus and bokoblin of M_NewD2 room 1 and the
+#                      bokoblins of room 6: slashes, spin attacks, hits taken
+#                      (native/check/input/pipeline-combat.txt; --no-combat)
+#   7  items           one run per item on X on the Outset pier: boomerang, grappling hook, deku
+#                      leaf, skull hammer, hookshot, bow (native/check/input/pipeline-items.txt;
+#                      --no-items; --no-gameplay skips tiers 5-7)
+#   8  room-sweep      every room of every stage that has a spawn point (boot_sweep.py --rooms),
+#                      --sweep-frames frames each; --room-skip LIST (default M_NewD2:2, bug B10:
+#                      its lava platform faulted on creation) leaves rooms out (--no-rooms)
+#   9  fx              every particle emitter drawn in front of the player (COS_SMOKE=fx-sweep,
+#                      native/src/pc/pc_fx_sweep.cpp): the common ones on Outset and in M_NewD2,
+#                      then each stage's own (boot_sweep.py --target fx-sweep; --no-fx)
+# The runs of tiers 0-3 and 5-7 and the fx tier's first two go --jobs at a time (default 4), then
+# the sweeps one after the other (--sweep-jobs runs at a time each, default 4). Gameplay runs use
+# the debug stage boot (COS_BOOT_STAGE) with COS_BOOT_ITEMS. A run that fails still contributes
+# what it recorded (the report says so, one line per tier with each run's exit code). The merge
+# keeps one row per (type, hash), the lowest tier's frame.
 #
 # The file also gets a pipeline_priority table (type, hash, priority): priority 0 for the rows of
 # tiers 0-3 (the boot path, logos to Outset: priority_tiers below), 1 for the rest. The Switch
@@ -66,7 +87,16 @@ out="$repo/build/pipeline-cache"
 do_build=1
 sweep=1
 prologue=1
+bombs=1
+combat=1
+items=1
+rooms=1
+fx=1
+jobs=4
 sweep_jobs=4
+# Rooms the room sweep leaves out: M_NewD2 room 2 faults on creation of its lava platform (bug B10)
+# until that fix is in.
+room_skip="M_NewD2:2"
 sweep_frames=600
 sweep_only=""
 disc_args=()
@@ -82,6 +112,14 @@ while [ $# -gt 0 ]; do
         --no-build) do_build=0; shift ;;
         --no-sweep) sweep=0; shift ;;
         --no-prologue) prologue=0; shift ;;
+        --no-bombs) bombs=0; shift ;;
+        --no-combat) combat=0; shift ;;
+        --no-items) items=0; shift ;;
+        --no-rooms) rooms=0; shift ;;
+        --no-fx) fx=0; shift ;;
+        --no-gameplay) bombs=0; combat=0; items=0; shift ;;
+        --jobs) jobs="$2"; shift 2 ;;
+        --room-skip) room_skip="$2"; shift 2 ;;
         --sweep-jobs) sweep_jobs="$2"; shift 2 ;;
         --sweep-frames) sweep_frames="$2"; shift 2 ;;
         --sweep-only) sweep_only="$2"; shift 2 ;;
@@ -181,36 +219,72 @@ runs="$out/runs-$stamp"
 mkdir -p "$runs"
 export COS_CACHE_PER_RUN=1
 
-# tier name target options...
+# One line per run: tier name target env options... (env: NAME=VALUE[,NAME=VALUE] for the run, or -;
+# commas inside a value are written as +). Several runs may share a tier.
 tiers=(
-    "0 file-select file-select --uncapped --input native/check/input/file-select.txt"
-    "1 new-game new-game --uncapped --input native/check/input/new-game.txt"
+    "0 file-select file-select - --uncapped --input native/check/input/file-select.txt"
+    "1 new-game new-game - --uncapped --input native/check/input/new-game.txt"
 )
 # The prologue runs capped: uncapped, the PLAY scene waits ~190 s for the prologue's streamed BGM
 # and the input script's timing no longer matches (docs/NATIVE_PORT_PLAN.md, M14).
-[ "$prologue" = 1 ] && tiers+=("2 outset-real outset-real --timeout 480 --input native/check/input/new-game.txt")
-tiers+=("3 outset-control outset-control --uncapped --stage sea:44:206 --input native/check/input/outset-control.txt")
+[ "$prologue" = 1 ] && tiers+=("2 outset-real outset-real - --timeout 480 --input native/check/input/new-game.txt")
+tiers+=("3 outset-control outset-control - --uncapped --stage sea:44:206 --input native/check/input/outset-control.txt")
+# Gameplay (tiers 5-7; the input scripts' headers say what each does). Items: 31 bomb bag, 38 sword,
+# 3B shield, 2D boomerang, 25 grappling hook, 34 deku leaf, 33 skull hammer,
+# 2F hookshot, 27 bow (the first item goes on X).
+if [ "$bombs" = 1 ]; then
+    tiers+=("5 bombs-outset run COS_BOOT_ITEMS=31+38 --uncapped --frames 2400 --stage sea:44:0 --input native/check/input/pipeline-bombs.txt")
+    tiers+=("5 bombs-cavern run COS_BOOT_ITEMS=31+38 --uncapped --frames 2400 --stage M_NewD2:0:0 --input native/check/input/pipeline-bombs.txt")
+fi
+if [ "$combat" = 1 ]; then
+    tiers+=("6 combat-chuchus run COS_BOOT_ITEMS=38+3B --uncapped --frames 2600 --stage M_NewD2:1:20 --input native/check/input/pipeline-combat.txt")
+    tiers+=("6 combat-bokoblins run COS_BOOT_ITEMS=38+3B --uncapped --frames 2600 --stage M_NewD2:6:9 --input native/check/input/pipeline-combat.txt")
+fi
+if [ "$items" = 1 ]; then
+    for item in 2D:boomerang 25:hook 34:leaf 33:hammer 2F:hookshot 27:bow; do
+        tiers+=("7 item-${item#*:} run COS_BOOT_ITEMS=${item%%:*}+38 --uncapped --frames 2400 --stage sea:44:0 --input native/check/input/pipeline-items.txt")
+    done
+fi
+# Effects (tier 9): every common particle emitter drawn on Outset and in the first dungeon
+# (COS_SMOKE=fx-sweep, native/src/pc/pc_fx_sweep.cpp); each stage's own emitters come from the
+# fx-sweep over every stage below.
+if [ "$fx" = 1 ]; then
+    tiers+=("9 fx-common-outset fx-sweep COS_FX_SWEEP=common --uncapped --timeout 600 --stage sea:44:0")
+    tiers+=("9 fx-common-cavern fx-sweep COS_FX_SWEEP=common --uncapped --timeout 600 --stage M_NewD2:0:0")
+fi
 
-pids=()
+# The runs above, $jobs at a time.
 for line in "${tiers[@]}"; do
-    read -r tier name target opts <<< "$line"
+    read -r tier name target envs opts <<< "$line"
+    while [ "$(jobs -pr | wc -l)" -ge "$jobs" ]; do sleep 1; done
+    run_env=()
+    if [ "$envs" != - ]; then
+        IFS=, read -r -a run_env <<< "$envs"
+        run_env=("${run_env[@]//+/,}")
+    fi
     # shellcheck disable=SC2086  # opts is a word list
-    (cd "$repo" && "$run" "$target" $opts ${disc_args[@]+"${disc_args[@]}"} --quiet \
+    (cd "$repo" && env ${run_env[@]+"${run_env[@]}"} "$run" "$target" $opts ${disc_args[@]+"${disc_args[@]}"} --quiet \
         --run-dir "$runs/$tier-$name" > "$runs/$tier-$name.out" 2>&1
      echo $? > "$runs/$tier-$name.rc") &
-    pids+=($!)
     echo "gen_pipeline_cache: tier $tier $name started"
 done
-for pid in "${pids[@]}"; do wait "$pid"; done
+wait
 
-if [ "$sweep" = 1 ]; then
-    echo "gen_pipeline_cache: tier 4 boot-sweep started ($sweep_frames frames per stage, $sweep_jobs at a time)"
-    sweep_args=(--jobs "$sweep_jobs" --frames "$sweep_frames" --out "$runs/4-boot-sweep")
+# Sweeps, one after the other, $sweep_jobs runs at a time each: tier sweep-name boot_sweep options...
+sweeps=()
+[ "$sweep" = 1 ] && sweeps+=("4 boot-sweep --frames $sweep_frames")
+[ "$rooms" = 1 ] && sweeps+=("8 room-sweep --rooms --frames $sweep_frames${room_skip:+ --skip $room_skip}")
+[ "$fx" = 1 ] && sweeps+=("9 fx-sweep --target fx-sweep --env COS_FX_SWEEP=scene --frames 30000 --timeout 400")
+for line in ${sweeps[@]+"${sweeps[@]}"}; do
+    read -r tier name opts <<< "$line"
+    echo "gen_pipeline_cache: tier $tier $name started ($sweep_jobs at a time: $opts)"
+    sweep_args=(--jobs "$sweep_jobs" --out "$runs/$tier-$name")
     [ -n "$sweep_only" ] && sweep_args+=(--only "$sweep_only")
-    (cd "$repo" && "$run" boot-sweep "${sweep_args[@]}" ${disc_args[@]+"${disc_args[@]}"} \
-        > "$runs/4-boot-sweep.out" 2>&1
-     echo $? > "$runs/4-boot-sweep.rc")
-fi
+    # shellcheck disable=SC2086  # opts is a word list
+    (cd "$repo" && "$run" boot-sweep "${sweep_args[@]}" $opts ${disc_args[@]+"${disc_args[@]}"} \
+        > "$runs/$tier-$name.out" 2>&1
+     echo $? > "$runs/$tier-$name.rc")
+done
 
 # --- merge ------------------------------------------------------------------------------------
 # Aurora's schema (lib/gfx/pipeline_cache.cpp, PipelineCacheSchema 1); the seed reader needs
@@ -255,18 +329,28 @@ INSERT INTO pipeline_cache (type, hash, config_version, config_size, config, fir
     after=$(sqlite3 "$tmp" 'SELECT COUNT(*) FROM pipeline_cache')
     printf '%-4s %-16s %-6s %-8s %-8s %s\n' "$tier" "$name" "$rc" "$n" "$rows" $((after - before)) >> "$report"
 }
-merged=("${tiers[@]}")
-[ "$sweep" = 1 ] && merged+=("4 boot-sweep boot-sweep")
+# One report line per tier: its runs' exit codes, the caches found, their rows, the new rows.
+tier_names=(file-select new-game outset-real outset-control boot-sweep bombs combat items room-sweep fx)
 max_tier=-1
-for line in "${merged[@]}"; do
-    read -r tier name _ <<< "$line"
-    [ "$tier" -gt "$max_tier" ] && max_tier=$tier
-    rc="$(cat "$runs/$tier-$name.rc" 2>/dev/null || echo '?')"
-    if [ "$name" = boot-sweep ]; then
-        merge_tier "$tier" "$name" "$rc" "$runs/$tier-$name"/*/cache/pipeline_cache.db
-    else
-        merge_tier "$tier" "$name" "$rc" "$runs/$tier-$name/cache/pipeline_cache.db"
+t=0
+while [ $t -lt ${#tier_names[@]} ]; do
+    dbs=()
+    rcs=""
+    for line in ${tiers[@]+"${tiers[@]}"} ${sweeps[@]+"${sweeps[@]}"}; do
+        read -r tier name _ <<< "$line"
+        [ "$tier" = "$t" ] || continue
+        rcs="${rcs:+$rcs,}$(cat "$runs/$tier-$name.rc" 2>/dev/null || echo '?')"
+        [ -s "$runs/$tier-$name/cache/pipeline_cache.db" ] && dbs+=("$runs/$tier-$name/cache/pipeline_cache.db")
+        for f in "$runs/$tier-$name"/*/cache/pipeline_cache.db; do
+            [ -s "$f" ] && dbs+=("$f")
+        done
+    done
+    if [ -n "$rcs" ]; then
+        case ",$rcs," in *,[!0,]*) ;; *) rcs=0 ;; esac
+        merge_tier "$t" "${tier_names[$t]}" "$rcs" ${dbs[@]+"${dbs[@]}"}
+        max_tier=$t
     fi
+    t=$((t + 1))
 done
 next_tier=$((max_tier + 1))
 [ -z "$versions" ] && versions="$(sqlite3 "$tmp" "SELECT group_concat('(' || type || ', ' || v || ')', ', ') FROM

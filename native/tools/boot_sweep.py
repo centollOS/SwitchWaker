@@ -20,6 +20,9 @@ The start, from the stage data only (nothing is hard-coded per stage):
     point with the lowest room and point. The layer is left to the game (-1).
   A stage with no PLYR record at all (no play stage, e.g. the name-entry stage) is reported as
   "skip" and does not fail the sweep.
+With --rooms, every room that has a spawn point gets its own run instead (the same rule per room:
+the room's entry with the lowest point, else its lowest spawn point), in <sweep dir>/<stage>-r<N>/;
+native/tools/gen_pipeline_cache.sh uses that to record the pipelines of every room.
 
 Options:
   --jobs N        runs at a time (default 4)
@@ -27,6 +30,10 @@ Options:
   --timeout S     run.sh --timeout per stage (default 150)
   --stall S       run.sh --stall per stage (default 30)
   --only LIST     comma-separated stage names (default: every stage)
+  --rooms         one run per room with a spawn point, not one per stage
+  --skip LIST     comma-separated stages or <stage>:<room> not to run (reported as skip)
+  --target NAME   the run.sh target (default run; e.g. fx-sweep, a smoke test that ends the run)
+  --env NAME=VAL  an environment variable for every run (repeatable), e.g. COS_FX_SWEEP=scene
   --list          print the chosen starts and exit (no runs)
   --disc PATH     the GZLE01 .iso (default COS_DISC)
   --exe PATH      the executable (default build/native-mac/centollos)
@@ -153,8 +160,9 @@ def scls_records(dz):
     return out
 
 
-def choose_starts(manifest):
-    """[(stage, room, point, source)] per stage, in name order; room None: no spawn point."""
+def choose_starts(manifest, per_room=False):
+    """[(stage, room, point, source)] per stage (per room with per_room), in name order; room
+    None: no spawn point."""
     by_path = {r["path"]: r for r in manifest["files"]}
     stages = sorted(m.group(1) for p in by_path for m in [STAGE_ARC.match(p)] if m)
     rooms = {}
@@ -186,13 +194,16 @@ def choose_starts(manifest):
         if not spawns:
             out.append((stage, None, None, "skip"))
             continue
-        entries = sorted(s for s in spawns if (stage, s[0], s[1]) in exits)
-        if entries:
-            room, point = entries[0]
-            out.append((stage, room, point, "exit"))
-        else:
-            room, point = sorted(spawns)[0]
-            out.append((stage, room, point, "spawn"))
+        groups = [[s for s in spawns if s[0] == r] for r in sorted({s[0] for s in spawns})] \
+            if per_room else [list(spawns)]
+        for group in groups:
+            entries = sorted(s for s in group if (stage, s[0], s[1]) in exits)
+            if entries:
+                room, point = entries[0]
+                out.append((stage, room, point, "exit"))
+            else:
+                room, point = sorted(group)[0]
+                out.append((stage, room, point, "spawn"))
     return out
 
 
@@ -295,16 +306,20 @@ def last_frame(run_dir, log):
     return m[-1] if m else "-"
 
 
-def run_stage(args, sweep_dir, stage, room, point):
-    run_dir = os.path.join(sweep_dir, stage)
+def run_stage(args, sweep_dir, key, stage, room, point):
+    run_dir = os.path.join(sweep_dir, key)
     spec = "%s:%d:%d" % (stage, room, point)
-    cmd = [COS_RUN, "run", "--stage", spec, "--frames", str(args.frames), "--uncapped",
+    cmd = [COS_RUN, args.target, "--stage", spec, "--frames", str(args.frames), "--uncapped",
            "--audio", "on", "--timeout", str(args.timeout), "--stall", str(args.stall),
            "--disc", args.disc, "--quiet", "--run-dir", run_dir]
     if args.exe:
         cmd += ["--exe", args.exe]
+    env = dict(os.environ)
+    for item in args.env:
+        name, _, value = item.partition("=")
+        env[name] = value
     start = time.time()
-    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
     try:
         rc = int(read(os.path.join(run_dir, "exit_code.txt")).strip())
     except ValueError:
@@ -333,6 +348,10 @@ def main():
     ap.add_argument("--timeout", type=int, default=150)
     ap.add_argument("--stall", type=int, default=30)
     ap.add_argument("--only", default="")
+    ap.add_argument("--rooms", action="store_true")
+    ap.add_argument("--skip", default="")
+    ap.add_argument("--target", default="run")
+    ap.add_argument("--env", action="append", default=[])
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--disc", default=os.environ.get("COS_DISC", ""))
     ap.add_argument("--exe", default="")
@@ -340,6 +359,9 @@ def main():
     args = ap.parse_args()
     if args.jobs < 1 or args.frames < 1:
         ap.error("--jobs and --frames must be positive")
+    for item in args.env:
+        if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", item):
+            ap.error("--env needs NAME=VALUE, not %r" % item)
     if not args.disc:
         print("boot-sweep: no disc image: pass --disc PATH or set COS_DISC", file=sys.stderr)
         return 14
@@ -348,7 +370,7 @@ def main():
                        args.disc]).returncode != 0:
         return 14
 
-    starts = choose_starts(load_manifest(args.disc))
+    starts = choose_starts(load_manifest(args.disc), per_room=args.rooms)
     if args.only:
         want = set(args.only.split(","))
         unknown = want - {s[0] for s in starts}
@@ -356,9 +378,15 @@ def main():
             print("boot-sweep: no such stage: %s" % ", ".join(sorted(unknown)), file=sys.stderr)
             return 2
         starts = [s for s in starts if s[0] in want]
+    skip = set(x for x in args.skip.split(",") if x)
+    # (key, stage, room, point, source): the key names the run directory and the report line.
+    starts = [("%s-r%d" % (st, room) if args.rooms and room is not None else st, st,
+               None if st in skip or (room is not None and "%s:%d" % (st, room) in skip) else room,
+               point, "skip" if st in skip or "%s:%s" % (st, room) in skip else source)
+              for st, room, point, source in starts]
     if args.list:
-        for stage, room, point, source in starts:
-            print("%s\t%s\t%s" % (stage, "-" if room is None else "%s:%d:%d" % (stage, room, point),
+        for key, stage, room, point, source in starts:
+            print("%s\t%s\t%s" % (key, "-" if room is None else "%s:%d:%d" % (stage, room, point),
                                   source))
         return 0
 
@@ -366,34 +394,37 @@ def main():
                                          "boot-sweep-" + time.strftime("%Y%m%d-%H%M%S"))
     os.makedirs(sweep_dir, exist_ok=False)
     sweep_dir = os.path.abspath(sweep_dir)
-    print("boot-sweep: %d stages, %d at a time, %d frames each; %s" %
-          (len(starts), args.jobs, args.frames, os.path.relpath(sweep_dir, REPO)), flush=True)
+    print("boot-sweep: %d %s, %d at a time, %d frames each, target %s; %s" %
+          (len(starts), "rooms" if args.rooms else "stages", args.jobs, args.frames, args.target,
+           os.path.relpath(sweep_dir, REPO)), flush=True)
 
     results = {}
     t0 = time.time()
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
         futures = {}
-        for stage, room, point, source in starts:
+        for key, stage, room, point, source in starts:
             if room is None:
-                results[stage] = {"rc": None, "play_frame": "-", "last_frame": "-",
-                                  "signature": "skip: no PLYR spawn record", "seconds": 0}
+                results[key] = {"rc": None, "play_frame": "-", "last_frame": "-",
+                                "signature": "skip: --skip" if source == "skip" else
+                                "skip: no PLYR spawn record", "seconds": 0}
                 continue
-            futures[pool.submit(run_stage, args, sweep_dir, stage, room, point)] = stage
+            futures[pool.submit(run_stage, args, sweep_dir, key, stage, room, point)] = (key, stage)
         for fut in concurrent.futures.as_completed(futures):
-            stage = futures[fut]
+            key, stage = futures[fut]
             r = fut.result()
             r["expect"] = expectation(stage, r)
-            results[stage] = r
+            r["stage"] = stage
+            results[key] = r
             print("boot-sweep: %-8s exit %-3s %3ds  %s%s" % (
-                stage, r["rc"], r["seconds"], r["signature"],
+                key, r["rc"], r["seconds"], r["signature"],
                 "  [%s]" % r["expect"] if r["expect"] else ""), flush=True)
 
     report = os.path.join(sweep_dir, "boot_sweep.txt")
     failed = xfail = xpass = 0
     with open(report, "w") as f:
         f.write("stage\tspec\tsource\texit\tmeaning\tplay_frame\tlast_frame\tsignature\n")
-        for stage, room, point, source in starts:
-            r = results[stage]
+        for key, stage, room, point, source in starts:
+            r = results[key]
             spec = "-" if room is None else "%s:%d:%d" % (stage, room, point)
             if r["rc"] is None:
                 meaning = "skip"
@@ -408,14 +439,15 @@ def main():
                 else:
                     failed += r["rc"] != 0
             f.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
-                stage, spec, source, "-" if r["rc"] is None else r["rc"], meaning,
+                key, spec, source, "-" if r["rc"] is None else r["rc"], meaning,
                 r["play_frame"], r["last_frame"], r["signature"]))
-        ran = sum(1 for s in starts if s[1] is not None)
-        for stage in sorted(results):
-            if results[stage].get("expect") == "xfail":
-                f.write("# xfail %s: %s\n" % (stage, EXPECTED_FAIL[stage][1]))
-            elif results[stage].get("expect") == "xpass":
-                f.write("# xpass %s: listed as an expected fail but passed; remove it\n" % stage)
+        ran = sum(1 for s in starts if s[2] is not None)
+        for key in sorted(results):
+            stage = results[key].get("stage", key)
+            if results[key].get("expect") == "xfail":
+                f.write("# xfail %s: %s\n" % (key, EXPECTED_FAIL[stage][1]))
+            elif results[key].get("expect") == "xpass":
+                f.write("# xpass %s: listed as an expected fail but passed; remove it\n" % key)
         f.write("# %d stages, %d run, %d passed, %d failed, %d expected fails, %d skipped; "
                 "%d frames each, %ds\n" % (len(starts), ran, ran - failed - xfail, failed, xfail,
                                            len(starts) - ran, args.frames, int(time.time() - t0)))

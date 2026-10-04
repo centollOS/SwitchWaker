@@ -1,0 +1,51 @@
+# Controller script of native/tools/gen_pipeline_cache.sh, tier 5 bombs (syntax in
+# native/src/pc/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each line holding until the next.
+# Run with COS_BOOT_ITEMS=31,38 (the bomb bag on X, the sword) and --stage sea:44:0 (the Outset pier,
+# the player free from about frame 400, facing the sea) or M_NewD2:0:0 (the first dungeon's
+# entrance), --frames 2400 --uncapped. X takes a bomb out, A throws it, R drops it; the bombs
+# explode on the pier or the ground (fire, smoke, debris), in the sea (splash) and once in the
+# player's hands (he is hurt); then sword slashes and a spin attack. The point is the effects'
+# pipelines, not a precise outcome: what the player walks into differs per stage.
+400  X  0  0
+402  -  0  0
+430  R  0  0
+432  -  0  -127
+520  -  0  0
+650  X  0  0
+652  -  0  0
+690  A  0  0
+692  -  0  0
+850  X  0  0
+852  -  0  0
+1100 -  -127 0
+1130 -  0  0
+1150 X  0  0
+1152 -  0  0
+1190 A  0  0
+1192 -  0  0
+1350 X  0  0
+1352 -  0  0
+1380 R  0  0
+1382 -  0  127
+1460 -  0  0
+1600 B  0  0
+1602 -  0  0
+1630 B  0  0
+1632 -  0  0
+1660 B  0  0
+1662 -  0  0
+1700 B  0  0
+1760 B  -127 0
+1775 B  0  -127
+1790 B  127 0
+1805 B  0  127
+1820 -  0  0
+1900 X  0  0
+1902 -  0  0
+1940 A  0  0
+1942 -  0  0
+2100 X  0  0
+2102 -  0  0
+2130 R  0  0
+2132 -  127 0
+2200 -  0  0

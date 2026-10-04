@@ -206,6 +206,11 @@ bool outsetLinkReady();
 // every game frame and, once outsetLinkReady, spawns every actor profile next to the player in turn,
 // runs it 30 frames and deletes it, then exits 0.
 void actorSweepFrame(unsigned int frames);
+// pc_fx_sweep.cpp: COS_SMOKE=fx-sweep; fxSweepFrame runs from pc_frame_end every game frame and,
+// once outsetLinkReady, creates every loaded particle emitter (common and scene, COS_FX_SWEEP) in
+// front of the player a few at a time, in the Normal and Toon groups, so their pipelines are
+// recorded (native/tools/gen_pipeline_cache.sh), then exits 0.
+void fxSweepFrame(unsigned int frames);
 // pc_bgm_hop.cpp (bug B1): COS_SMOKE=bgm-hop; bgmHopFrame runs from pc_frame_end every game
 // frame and, once the player is in the COS_BOOT_STAGE island room, measures the island BGM, goes to a
 // house and back and checks the BGM came back.

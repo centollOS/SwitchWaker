@@ -1063,6 +1063,7 @@ void pc_frame_end(void) {
     titleAudioFrame(frames);
     outsetFrame(frames);
     actorSweepFrame(frames);
+    fxSweepFrame(frames);
     bgmHopFrame(frames);
     telescopeDemoFrame(frames);
     shoreFoamFrame(frames);
