@@ -185,6 +185,11 @@ public:
     virtual ~J3DTexGenBlockNull() {}
 };
 
+#if TARGET_PC
+// Loads texture map i with j3dSys's texture texNo[i] (0xFFFF: none), as loadTexNo does.
+void J3DLoadTexNoArray(const u16* texNo, u32 num);
+#endif
+
 class J3DTevBlock {
 public:
     virtual void reset(J3DTevBlock*) {}
@@ -193,6 +198,9 @@ public:
     // Loads the textures of the material's texture maps through GXLoadTexObj before its display
     // list is called (see J3DTexture.h; Dusklight pattern, CC0).
     virtual void loadTexture() {}
+    // Copies the block's texture numbers to dst (8 entries at most) and returns how many it has
+    // (bug B11: J3DMatPacket records them with the texture table its display list was built with).
+    virtual u32 getTexNoArray(u16* dst) const { return 0; }
 #endif
     virtual void diff(u32);
     virtual void diffTexNo() {}
@@ -260,6 +268,7 @@ public:
     virtual void reset(J3DTevBlock*);
 #if TARGET_PC
     virtual void loadTexture();
+    virtual u32 getTexNoArray(u16* dst) const;
 #endif
     virtual void load() {}
     virtual void diffTexNo();
@@ -340,6 +349,7 @@ public:
     virtual void reset(J3DTevBlock*);
 #if TARGET_PC
     virtual void loadTexture();
+    virtual u32 getTexNoArray(u16* dst) const;
 #endif
     virtual void load();
     virtual void diffTexNo();
@@ -421,6 +431,7 @@ public:
     virtual void reset(J3DTevBlock*);
 #if TARGET_PC
     virtual void loadTexture();
+    virtual u32 getTexNoArray(u16* dst) const;
 #endif
     virtual void load();
     virtual void diffTexNo();
@@ -502,6 +513,7 @@ public:
     virtual void reset(J3DTevBlock*);
 #if TARGET_PC
     virtual void loadTexture();
+    virtual u32 getTexNoArray(u16* dst) const;
 #endif
     virtual void load();
     virtual void diffTexNo();
@@ -586,6 +598,7 @@ public:
     virtual void reset(J3DTevBlock*);
 #if TARGET_PC
     virtual void loadTexture();
+    virtual u32 getTexNoArray(u16* dst) const;
 #endif
     virtual void load();
     virtual void diffTexNo();

@@ -7,6 +7,7 @@
 
 #include "JSystem/J3DGraphBase/J3DMaterial.h"
 #include "JSystem/J3DGraphBase/J3DGD.h"
+#include "JSystem/J3DGraphBase/J3DPacket.h"
 #include "dolphin/types.h"
 
 /* 802DDBC4-802DDDC4       .text createColorBlock__11J3DMaterialFUl */
@@ -206,11 +207,27 @@ void J3DMaterial::makeDisplayList() {
         makeDisplayList_private(j3dSys.getMatPacket()->getDisplayListObj());
 #if TARGET_PC
         // Bug B9: the display list now holds the images of j3dSys's texture table (loadTexNo);
-        // the packet binds the same table when it is drawn (J3DMatPacket::draw, loadTexture).
-        j3dSys.getMatPacket()->setTexture(j3dSys.getTexture());
+        // the packet binds the same table when it is drawn (J3DMatPacket::draw, loadTexture),
+        // with the texture numbers of this moment (bug B11).
+        j3dSys.getMatPacket()->recordTexture(mTevBlock);
 #endif
     }
 }
+
+#if TARGET_PC
+void J3DMatPacket::recordTexture(J3DTevBlock* pTevBlock) {
+    mpTexture = j3dSys.getTexture();
+    mTexNoRecNum = (u8)pTevBlock->getTexNoArray(mTexNoRec);
+}
+
+void J3DMatPacket::loadTexture(J3DTevBlock* pTevBlock) {
+    if (mTexNoRecNum != 0) {
+        J3DLoadTexNoArray(mTexNoRec, mTexNoRecNum);
+    } else {
+        pTevBlock->loadTexture();
+    }
+}
+#endif
 
 /* 802DEAB0-802DEAD4       .text makeSharedDisplayList__11J3DMaterialFv */
 void J3DMaterial::makeSharedDisplayList() {
@@ -222,7 +239,7 @@ void J3DMaterial::load() {
     j3dSys.setMaterialMode(mMaterialMode);
     if (!j3dSys.checkFlag(J3DSysFlag_UNK2)) {
 #if TARGET_PC
-        mTevBlock->loadTexture();
+        j3dSys.mMatPacket->loadTexture(mTevBlock);
 #endif
         j3dSys.mMatPacket->callDL();
         loadNBTScale(*mTexGenBlock->getNBTScale());
@@ -269,7 +286,7 @@ void J3DMaterial::diff(u32 param_0) {
         // Bug B9: diffTexNo wrote the images of j3dSys's texture table into the packet's list
         // (see makeDisplayList).
         if ((param_0 >> 16) & 0x0f) {
-            j3dSys.getMatPacket()->setTexture(j3dSys.getTexture());
+            j3dSys.getMatPacket()->recordTexture(mTevBlock);
         }
 #endif
     }
@@ -384,7 +401,7 @@ void J3DPatchedMaterial::load() {
         return;
     }
 #if TARGET_PC
-    mTevBlock->loadTexture();
+    j3dSys.mMatPacket->loadTexture(mTevBlock);
 #endif
     j3dSys.mMatPacket->callDL();
 }
@@ -432,7 +449,7 @@ void J3DLockedMaterial::load() {
         return;
     }
 #if TARGET_PC
-    mTevBlock->loadTexture();
+    j3dSys.mMatPacket->loadTexture(mTevBlock);
 #endif
     j3dSys.mMatPacket->callDL();
 }

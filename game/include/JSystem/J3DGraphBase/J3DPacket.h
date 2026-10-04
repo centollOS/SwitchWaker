@@ -18,6 +18,7 @@ class J3DShape;
 class J3DTexMtx;
 class J3DTexMtxObj;
 class J3DTexture;
+class J3DTevBlock;
 
 inline u32 getDiffFlag_LightObjNum(u32 param_1) {
     return (param_1 & 0xf0) >> 4;
@@ -212,7 +213,22 @@ public:
         J3D_ASSERT(646, pMaterial != NULL, "Error : null pointer.");
         mpMaterial = pMaterial;
     }
+#if TARGET_PC
+    void setTexture(J3DTexture* pTexture) {
+        mpTexture = pTexture;
+        mTexNoRecNum = 0;
+    }
+    // Bug B11: when the display list is (re)built, the packet records the texture table it used
+    // (bug B9) together with the material's texture numbers of that moment, as the GameCube's
+    // list holds loadTexNo's images of both. A material whose texture numbers change afterwards
+    // without a rebuild (dMat_ice_c copies the ice material over Link's and his items' and puts
+    // them back once the frozen list is built) is drawn with what the list was built with, not
+    // with its later numbers against the earlier table (an index past the table's end).
+    void recordTexture(J3DTevBlock* pTevBlock);
+    void loadTexture(J3DTevBlock* pTevBlock);
+#else
     void setTexture(J3DTexture* pTexture) { mpTexture = pTexture; }
+#endif
     void setInitShapePacket(J3DShapePacket* packet) { mpInitShapePacket = packet; }
 #if TARGET_PC
     // The draw buffer sorts and merges packets by this pointer: keep all of it on the host.
@@ -240,6 +256,10 @@ public:
     /* 0x34 */ u32 mDiffFlag;
     /* 0x38 */ J3DTexture* mpTexture;
     /* 0x3C */ J3DMaterialAnm* mpMaterialAnm;
+#if TARGET_PC
+    u16 mTexNoRec[8];
+    u8 mTexNoRecNum; // 0: nothing recorded, the material's own numbers are used
+#endif
 };  // Size: 0x40
 
 class J3DCallBackPacket : public J3DPacket {

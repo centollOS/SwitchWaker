@@ -190,6 +190,9 @@ J3DMatPacket::J3DMatPacket() {
     mDiffFlag = -1;
     mpTexture = NULL;
     mpMaterialAnm = NULL;
+#if TARGET_PC
+    mTexNoRecNum = 0;
+#endif
 }
 
 /* 802DB3C4-802DB424       .text __dt__12J3DMatPacketFv */

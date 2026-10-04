@@ -97,6 +97,10 @@ npc-variants 0 --stage sea:11:0
 # platform over the lava (MFLFT, d_a_mflft) within a few frames of the boot; its struct's own vtable
 # pointer moved the actor 8 bytes off the process and dCcD_Stts::Init faulted at 0x20 (fails without the fix)
 run 0 --stage M_NewD2:2:8 --frames 900 --uncapped
+# bug B11 (lane room-sweep): the ice isle (sea room 40, point 2) freezes the player; the frozen display
+# lists were built with the ice table's texture and its numbers, and once the materials were put back the
+# packets paired the ice table with the player's own texture numbers (texture objects past the array)
+run 0 --stage sea:40:2 --frames 900 --uncapped
 
 # options menu (lane options-menu): L+R+Z opens it in Outset, the internal resolution (handheld),
 # depth of field and FPS overlay change live and are saved to the run's settings.ini, the game stays
