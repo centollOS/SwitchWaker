@@ -87,6 +87,81 @@ back), then `COS_HD_TEXTURES=1` in `native/env.txt`.
 | `COS_HD_STATS_EVERY` | 300 | `[cos] hd-textures` line: lookups hit/miss, loads, MiB, load ms avg/max, SD reads, published, cache MiB, evictions, over-budget, pending |
 | `COS_HD_CENSUS` | | file: the Dolphin name of every distinct static texture resolved (works with HD off) |
 | `COS_HD_TOGGLE_FRAMES` | | `a,b,...`: flip the setting at those frames (toggle checks) |
+| `COS_HD_MAX_SIZE` | `auto` | per mode (menu *Tamaño máx. texturas HD*): `auto` (512 handheld, 1024 docked), `256`, `512`, `1024`, `full` |
+| `COS_HD_MAX_SIZE_FRAMES` | | `frame:size,...`: set the cap at those frames (reload checks) |
+| `COS_HD_PUBLISH_US` | 2500 Switch, 3000 else | publish budget per frame, estimated GPU-side time (0: bytes only) |
+| `COS_HD_COST_TEXTURE_US` / `_LEVEL_US` / `_MIB_US` | 300/100/2000 Switch, 50/5/300 else | the estimate: per texture, per mip level, per MiB |
+| `COS_HD_REGISTER_US` | 2000 | game-thread time per frame for (un)registering after a toggle |
+| `COS_HD_RESCAN_KB` | 2048 Switch, 8192 else | static textures looked up again per frame after a toggle (0: no limit) |
+| `COS_SWITCH_GL_LEVEL_UPLOAD` | `1` | Switch: `0` restores Dawn's row-by-row compressed uploads (A/B) |
+
+## Smooth toggling and loading (lane hd-smooth)
+
+First hardware run (512 pack, Outset, handheld): turning HD on from the menu froze the game for
+about 3 s: frames 1324-1332 took 97, 95, 266, 209, 1071, 1065 and 228 ms with only 0.4-3.5 MiB of
+uploads each. The hitch lines show where: frame 1324's `end_frame` 86 ms was the registration on
+the game thread (index read from the SD card plus 5744 registrations, 49.6 ms); from frame 1328
+the render worker's Dawn `execute` took 200-1120 ms with 439 draws, and the GPU timer reported
+up to 1130 ms for the frame.
+
+**Cause**: GLES has no `GL_UNPACK_COMPRESSED_BLOCK_*`, so Dawn's GL backend uploads a compressed
+texture one row of 4x4 blocks per `glCompressedTexSubImage2D` (`DoTexSubImage`,
+`CommandBufferGL.cpp`). A 512x512 BC7 texture with its mips is 257 calls, a 1024 one 513. Mesa
+20.1's nvc0 has no PBO path for compressed formats (`PIPE_CAP_SURFACE_REINTERPRET_BLOCKS` is 0), so
+each call maps the unpack buffer, allocates a staging bo (nvmap IPC on Horizon), copies and queues
+a GPU copy: about 0.1-0.15 ms each. 30 textures in a frame are about 7700 calls, a second.
+Smaller hitches on entering an area with HD on are the same uploads for the new area's textures.
+On the Mac (Metal) none of this exists: there the whole toggle costs 3 ms.
+
+**Fixes**:
+
+- `switch/dawn/patches/dawn-switch-gl-compressed-upload.patch`: one `glCompressedTexSubImage2D`
+  per mip level; a copy whose rows are padded (WebGPU's 256-byte row alignment, mips smaller than
+  64 px in BC7) is packed on the CPU first from the mapped unpack buffer. 512x512 BC7 with mips:
+  257 calls -> 10. Counters for the hitch and perf-switch lines: upload time, compressed calls,
+  packed copies, textures created and their creation time (`glTexStorage`).
+- Aurora patch 0011: the publish budget is also a time budget per frame
+  (`COS_HD_PUBLISH_US`) over an estimate of the GPU-side cost (per texture, per level, per MiB),
+  since a deferred GL backend runs the work later on the render worker where the game thread
+  cannot time it. On the Switch the estimate is scaled every 30 frames by what Dawn measured
+  (upload + creation ns over the estimate of what was published; `scale` in the stats line).
+- Turning on no longer blocks: the index is read on a helper thread, the names are registered in
+  slices of `COS_HD_REGISTER_US` per frame with one shared read state per slice (no per-entry
+  label, thumbnail queueing or cache clear), and instead of clearing the texture-object cache
+  (every scene texture re-hashed and looked up in one frame) its entries are marked stale and
+  looked up again `COS_HD_RESCAN_KB` of source bytes per frame (Aurora patch 0011, gradual
+  rescan). Turning off unregisters in slices too and only marks the objects that used a
+  replacement stale: they keep the HD texture until looked up again, so the originals come back
+  over a few frames instead of being re-uploaded in one.
+- Stats line: phase, cap, publish time per frame on the game thread, largest estimate published in
+  a frame, scale, textures per frame, frames that left work for later, reloads, hashing time per
+  frame, rescanned objects, and hitches (frame intervals over 40 / 100 ms since the last line, how
+  many in a frame with HD work, the longest).
+
+Mac (Outset `sea:44:206`, on at frame 300, off at 600): index read 3-4 ms (helper thread),
+registered in 2 frames (2.0 ms max per frame), first textures 70 ms after the request; publishing
+1.1-2.0 ms per frame at most on the game thread, 25-28 textures per frame at most; hashing
+0.13-0.16 ms per frame; unregistered in 2 frames (2.0 ms max). No frame over 40 ms with HD work
+that a frame without HD work does not also show (the Mac's 40-45 ms frames are unrelated noise).
+HD off after a toggle: LinkRM frame 590 identical to a run that never turned it on.
+
+Switch estimate (to be measured with the stats and hitch lines): registration ~25 ms spread over
+~13 frames (2 ms each); publishing at most about 2.5 ms of GPU-side work per frame (one 512 BC7
+texture is 10 level uploads, about 1-1.5 ms plus its `glTexStorage`), so the 30 textures of Outset
+take about 15-25 frames; the game thread's part stays under 1-2 ms. Expected worst frame: the
+normal frame plus 2-5 ms, well under 40 ms.
+
+## Size cap per mode
+
+One 1024 pack serves both modes: `COS_HD_MAX_SIZE` (menu row *Tamaño máx. texturas HD*, one value
+per mode, `auto` = 512 handheld / 1024 docked) caps the larger side. The pack stores every level
+from the top down to 1x1 right after a 148-byte DX10 header, so the loader reads the header and
+then only the levels that fit (one seek), and rewrites width, height, pitch and mip count: no
+other pack format is needed. A change of the setting or a dock/undock queues a reload of every
+cached texture whose size differs; the current texture stays until its replacement is published
+(same time budget), and loads still in flight at the old size are caught by re-checking every 30
+frames for 8 s. Outset docked, 1024 -> 256 -> 1024: cache 51.8 -> 6.6 -> 51.8 MiB, 64 and 74
+textures reloaded.
 
 ## Coverage (census)
 

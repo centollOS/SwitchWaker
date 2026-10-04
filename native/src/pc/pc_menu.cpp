@@ -426,6 +426,8 @@ const PcSettingChoice kFbScale[] = {
 };
 const PcSettingChoice kAspect[] = {{"16:9", "16:9 (panorámica)"}, {"4:3", "4:3 (GameCube)"}, {"16:10", "16:10"}};
 const PcSettingChoice kOnOff[] = {{"0", "Desactivado"}, {"1", "Activado"}};
+const PcSettingChoice kHdMaxSize[] = {{"auto", "Automático (512 / 1024)"}, {"256", "256"}, {"512", "512"},
+                                      {"1024", "1024"}, {"full", "Sin límite"}};
 const PcSettingChoice kDynres[] = {{"0", "Desactivada"}, {"1", "Automática"}};
 const PcSettingChoice kLowres[] = {{"0", "Completa"}, {"2", "1/2"}, {"4", "1/4"}};
 const PcSettingChoice kSkyLowres[] = {{"0", "Completa"}, {"2", "1/2"}};
@@ -468,6 +470,9 @@ const PcSettingDesc kBuiltins[] = {
      70},
     {"COS_HD_TEXTURES", "Texturas HD", "Usa el paquete de texturas en alta resolución si está instalado.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", nullptr, nullptr, 80},
+    {"COS_HD_MAX_SIZE", "Tamaño máx. texturas HD",
+     "Lado mayor de las texturas HD. Automático: 512 en portátil, 1024 en sobremesa. Se cambian poco a poco.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kHdMaxSize), "auto", nullptr, nullptr, 81},
     // Rendimiento
     {"COS_SWITCH_GPU_PROFILE", "Perfil de GPU (portátil)",
      "Reloj de la GPU en modo portátil (perfiles oficiales de the console maker; la CPU sigue a 1020 MHz).",
