@@ -10,7 +10,7 @@
 #                 and this script checks that no key value reached its logs.
 #   --no-verify   skip the offline hactool check of the NSP
 #
-# Output: build/forwarder/centollos_forwarder.nsp (switch/forwarder/INSTALAR.md: installing it).
+# Output: build/forwarder/centollos_forwarder.nsp (switch/forwarder/INSTALL.md: installing it).
 #
 # How it works (all built from source in the devkitPro container of build_native.sh):
 #   exefs    nx-hbloader v2.4.5 (switchbrew, pinned below) with switch/forwarder/
