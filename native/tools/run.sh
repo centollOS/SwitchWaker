@@ -53,7 +53,8 @@
 #   --run-dir DIR    put the run in DIR (created; must not exist yet) instead of
 #                    build/native-mac/runs/<target>-<timestamp>
 #   --quiet          do not print the tail of the log on failure
-# Other COS_* variables already in the environment are passed through. COS_CACHE_PER_RUN=1 gives
+# Each run reads and writes its own options-menu settings file, <run dir>/settings.ini (COS_SETTINGS,
+# unless already set). Other COS_* variables already in the environment are passed through. COS_CACHE_PER_RUN=1 gives
 # the run its own Aurora caches in <run dir>/cache (COS_CACHE_DIR) instead of the shared
 # build/native-mac/user/cache: its pipeline_cache.db then lists only the pipelines this run used
 # (native/tools/gen_pipeline_cache.sh).
@@ -211,6 +212,10 @@ export COS_STALL_S="$stall_s"
 export COS_AUDIO="$audio"
 export COS_RUN_DIR="$run_dir"
 [ "${COS_CACHE_PER_RUN:-}" = 1 ] && export COS_CACHE_DIR="$run_dir/cache"
+# The options menu's settings file (native/include/pc/pc_settings.h): each run its own, empty at
+# start, so the user's build/native-mac/user/settings.ini never changes what a test does (an
+# explicit COS_SETTINGS in the environment is kept).
+export COS_SETTINGS="${COS_SETTINGS:-$run_dir/settings.ini}"
 [ -n "$frames" ] && export COS_FRAMES="$frames"
 if [ -n "$stage" ]; then export COS_BOOT_STAGE="$stage"; else unset COS_BOOT_STAGE; fi
 [ -n "$trace" ] && export COS_TRACE="$trace"

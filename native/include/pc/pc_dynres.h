@@ -35,6 +35,9 @@ void pc_dynres_3d_begin(void);
 /* The painter, after the 3D drawing and before the 2D: stretches the 3D over the EFB and restores
    the full scale. Nothing if pc_dynres_3d_begin set no reduced scale. */
 void pc_dynres_3d_end(void);
+/* The options menu, between frames: starts over with these values of COS_DYNRES ("0" or NULL:
+   off, "1", "fixed:<scale>") and COS_FB_SCALE (the base; 0 = unset). */
+void pc_dynres_configure(const char* mode, float base);
 /* The content scale in effect for the 3D drawing now (1 = the whole EFB). */
 float pc_dynres_content_scale(void);
 

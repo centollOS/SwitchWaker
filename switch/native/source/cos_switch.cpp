@@ -16,7 +16,10 @@
 // native directory, for backtrace.txt), COS_PERF_EVERY=60, COS_STALL_S=90 and COS_ASPECT=16:9 (the
 // console's 1280x720 screen; COS_ASPECT=4:3 in env.txt gives the GameCube picture, pillarboxed).
 // COS_SWITCH_GPU_PROFILE (460 by default, 384, default) picks the console maker's handheld performance
-// configuration through apm (CPU 1020 MHz always); the previous one is restored at exit.
+// configuration through apm (CPU 1020 MHz always); the previous one is restored at exit. The options
+// menu changes it at run time (cos_switch_set_gpu_profile). Between env.txt and the defaults,
+// pc_settings_load_early copies the menu's settings file (user/settings.ini) into the environment
+// for every variable env.txt does not set.
 //
 // Crash report: libnx's user exception handler prints the exception, the registers, the thread,
 // the NRO's load address and a frame-pointer backtrace as offsets into centollos.elf (for addr2line),
@@ -38,6 +41,8 @@
 
 #include "cos_switch_internal.h"
 #include "usb_log.h"
+
+extern "C" void pc_settings_load_early(void); // native/src/pc/pc_settings.cpp
 
 namespace {
 
@@ -311,21 +316,30 @@ const char* appletTypeName(AppletType type) {
 // COS_SWITCH_GPU_PROFILE=460 (default) | 384 | default | 0x<configuration id>; 460 falls back to
 // 384, then to the system's own configuration, logging each Result.
 bool gApmChanged = false;
+bool gApmHaveSaved = false;
 u32 gApmSaved = 0;
 
-void applyGpuProfile() {
-    const char* profile = getenv("COS_SWITCH_GPU_PROFILE");
+// Applies one COS_SWITCH_GPU_PROFILE value; at start (pc_settings and env.txt already applied) and
+// from the options menu. True if a configuration was accepted or nothing had to be done.
+bool setGpuProfile(const char* profile) {
     if (profile == nullptr || profile[0] == '\0') {
         profile = "460";
-    }
-    if (strcmp(profile, "default") == 0) {
-        sayf("[switch] gpu profile: default (handheld configuration left to the system)\n");
-        return;
     }
     const AppletType applet = appletGetAppletType();
     if (applet != AppletType_Application && applet != AppletType_SystemApplication) {
         sayf("[switch] gpu profile %s skipped: apm needs title mode (application)\n", profile);
-        return;
+        return false;
+    }
+    if (strcmp(profile, "default") == 0) {
+        if (!gApmChanged) {
+            sayf("[switch] gpu profile: default (handheld configuration left to the system)\n");
+            return true;
+        }
+        const Result rc = apmSetPerformanceConfiguration(ApmPerformanceMode_Normal, gApmSaved);
+        sayf("[switch] gpu profile: default, restored handheld configuration 0x%08x: rc 0x%x\n",
+             (unsigned)gApmSaved, (unsigned)rc);
+        gApmChanged = false;
+        return R_SUCCEEDED(rc);
     }
     u32 chain[3] = {};
     int count = 0;
@@ -341,13 +355,16 @@ void applyGpuProfile() {
     if (R_FAILED(rc)) {
         sayf("[switch] gpu profile %s: apmInitialize failed rc 0x%x; system default kept\n", profile,
              (unsigned)rc);
-        return;
+        return false;
     }
-    rc = apmGetPerformanceConfiguration(ApmPerformanceMode_Normal, &gApmSaved);
-    sayf("[switch] gpu profile %s: handheld configuration before 0x%08x (rc 0x%x)\n", profile,
-         (unsigned)gApmSaved, (unsigned)rc);
-    if (R_FAILED(rc)) {
-        gApmSaved = 0x00020003; // the handheld default, to restore at exit
+    if (!gApmHaveSaved) {
+        rc = apmGetPerformanceConfiguration(ApmPerformanceMode_Normal, &gApmSaved);
+        sayf("[switch] gpu profile %s: handheld configuration before 0x%08x (rc 0x%x)\n", profile,
+             (unsigned)gApmSaved, (unsigned)rc);
+        if (R_FAILED(rc)) {
+            gApmSaved = 0x00020003; // the handheld default, to restore at exit
+        }
+        gApmHaveSaved = true;
     }
     for (int i = 0; i < count; i++) {
         rc = apmSetPerformanceConfiguration(ApmPerformanceMode_Normal, chain[i]);
@@ -355,10 +372,15 @@ void applyGpuProfile() {
              (unsigned)rc, R_SUCCEEDED(rc) ? "" : " (failed)");
         if (R_SUCCEEDED(rc)) {
             gApmChanged = true;
-            return;
+            return true;
         }
     }
     sayf("[switch] gpu profile: no configuration accepted; system default kept\n");
+    return false;
+}
+
+void applyGpuProfile() {
+    setGpuProfile(getenv("COS_SWITCH_GPU_PROFILE"));
 }
 
 void restoreGpuProfile() {
@@ -372,6 +394,18 @@ void restoreGpuProfile() {
 }
 
 } // namespace
+
+extern "C" int cos_switch_docked(void) {
+    return appletGetOperationMode() == AppletOperationMode_Console ? 1 : 0;
+}
+
+extern "C" int cos_switch_set_gpu_profile(const char* profile) {
+    const bool ok = setGpuProfile(profile);
+    char mode[160];
+    cos_switch_describe_mode(mode, sizeof(mode));
+    sayf("[switch] clocks after the gpu profile: %s\n", mode);
+    return ok ? 1 : 0;
+}
 
 extern "C" int cos_switch_describe_mode(char* out, size_t size) {
     const char* mode = appletGetOperationMode() == AppletOperationMode_Console ? "docked" : "handheld";
@@ -565,6 +599,9 @@ void cos_switch_start(int argc, char** argv) {
          argc > 0 && argv != nullptr && argv[0] != nullptr ? argv[0] : "-");
     reportSystem();
     loadEnvFile();
+    // The options menu's settings file (native/include/pc/pc_settings.h): after env.txt, whose
+    // lines win over it, and before the Switch defaults below, which it overrides.
+    pc_settings_load_early();
     setDefault("COS_DISC", COS_SWITCH_DEFAULT_DISC);
     setDefault("COS_RUN_DIR", COS_SWITCH_ROOT);
     setDefault("COS_PERF_EVERY", "60");

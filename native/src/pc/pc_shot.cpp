@@ -8,7 +8,8 @@
 //   directory), else the current directory. Without either variable this file does nothing.
 // - The image is Aurora's present source (lib/webgpu/gpu.cpp present_source: the EFB render
 //   texture, its resolved copy under MSAA) at its own size: what the present pass scales into the
-//   window, without the letterboxing and without the ImGui overlay.
+//   window, without the letterboxing and without the ImGui overlay (COS_SHOT_IMGUI=1 draws the
+//   frame's ImGui windows over it on the CPU: the FPS overlay, the options menu).
 // - Threading: Aurora encodes and submits a frame on its render worker, in queue order
 //   (lib/gfx/render_worker.cpp). shotFrameEnd runs on the game thread right after
 //   aurora_end_frame queued the frame, and queues the readback behind it: on the worker, the frame
@@ -28,8 +29,12 @@
 #include <lib/gfx/render_worker.hpp>
 #include <lib/webgpu/gpu.hpp>
 
+#include <imgui.h>
+
 #include <algorithm>
 #include <cerrno>
+#include <cmath>
+#include <memory>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -284,10 +289,143 @@ bool readPixels(unsigned int frame, std::vector<uint8_t>& rgb, uint32_t& outWidt
     return true;
 }
 
-void readBack(unsigned int frame) {
+// COS_SHOT_IMGUI=1: the frame's ImGui draw data (the FPS overlay, the options menu), copied on the
+// game thread right after aurora_end_frame rendered it, then drawn over the read-back image on the
+// CPU: textured, vertex-coloured triangles, alpha-blended, clipped, the texture sampled nearest from
+// the font atlas (the only texture these windows use). Coordinates go from ImGui's display (the
+// window, in points) to the image (the EFB), so a letterboxed window is approximate. For evidence
+// of the menus in tests; the real present composites on the GPU.
+struct ImguiSnap {
+    struct Vtx {
+        float x, y, u, v;
+        uint32_t col;
+    };
+    struct Cmd {
+        float clip[4];
+        uint32_t idxOffset, elemCount, vtxOffset;
+        bool font;
+    };
+    std::vector<Vtx> vtx;
+    std::vector<uint32_t> idx;
+    std::vector<Cmd> cmds;
+    float dispX = 0, dispY = 0, dispW = 0, dispH = 0;
+    const unsigned char* atlas = nullptr;
+    int atlasW = 0, atlasH = 0;
+};
+
+bool sShotImgui = false;
+
+std::shared_ptr<ImguiSnap> snapImgui() {
+    if (!sShotImgui || ImGui::GetCurrentContext() == nullptr) {
+        return nullptr;
+    }
+    ImDrawData* data = ImGui::GetDrawData();
+    if (data == nullptr || !data->Valid || data->CmdListsCount == 0) {
+        return nullptr;
+    }
+    auto snap = std::make_shared<ImguiSnap>();
+    ImGuiIO& io = ImGui::GetIO();
+    unsigned char* pixels = nullptr;
+    io.Fonts->GetTexDataAsRGBA32(&pixels, &snap->atlasW, &snap->atlasH);
+    snap->atlas = pixels;
+    const ImTextureID fontTex = io.Fonts->TexID;
+    snap->dispX = data->DisplayPos.x;
+    snap->dispY = data->DisplayPos.y;
+    snap->dispW = data->DisplaySize.x;
+    snap->dispH = data->DisplaySize.y;
+    for (int l = 0; l < data->CmdListsCount; l++) {
+        const ImDrawList* list = data->CmdLists[l];
+        const uint32_t base = (uint32_t)snap->vtx.size();
+        const uint32_t idxBase = (uint32_t)snap->idx.size();
+        for (const ImDrawVert& v : list->VtxBuffer) {
+            snap->vtx.push_back({v.pos.x, v.pos.y, v.uv.x, v.uv.y, v.col});
+        }
+        for (ImDrawIdx i : list->IdxBuffer) {
+            snap->idx.push_back(i);
+        }
+        for (const ImDrawCmd& c : list->CmdBuffer) {
+            if (c.UserCallback != nullptr) {
+                continue;
+            }
+            snap->cmds.push_back({{c.ClipRect.x, c.ClipRect.y, c.ClipRect.z, c.ClipRect.w},
+                                  idxBase + c.IdxOffset, c.ElemCount, base + c.VtxOffset,
+                                  c.GetTexID() == fontTex});
+        }
+    }
+    return snap;
+}
+
+void compositeImgui(const ImguiSnap& s, std::vector<uint8_t>& rgb, uint32_t width, uint32_t height) {
+    if (s.dispW <= 0 || s.dispH <= 0) {
+        return;
+    }
+    const float sx = width / s.dispW, sy = height / s.dispH;
+    for (const ImguiSnap::Cmd& c : s.cmds) {
+        const int cx0 = std::max(0, (int)std::floor((c.clip[0] - s.dispX) * sx));
+        const int cy0 = std::max(0, (int)std::floor((c.clip[1] - s.dispY) * sy));
+        const int cx1 = std::min((int)width, (int)std::ceil((c.clip[2] - s.dispX) * sx));
+        const int cy1 = std::min((int)height, (int)std::ceil((c.clip[3] - s.dispY) * sy));
+        for (uint32_t t = 0; t + 2 < c.elemCount; t += 3) {
+            const ImguiSnap::Vtx* v[3];
+            for (int k = 0; k < 3; k++) {
+                v[k] = &s.vtx[c.vtxOffset + s.idx[c.idxOffset + t + k]];
+            }
+            float px[3], py[3];
+            for (int k = 0; k < 3; k++) {
+                px[k] = (v[k]->x - s.dispX) * sx;
+                py[k] = (v[k]->y - s.dispY) * sy;
+            }
+            const float area = (px[1] - px[0]) * (py[2] - py[0]) - (px[2] - px[0]) * (py[1] - py[0]);
+            if (std::fabs(area) < 1e-6f) {
+                continue;
+            }
+            const int x0 = std::max(cx0, (int)std::floor(std::min({px[0], px[1], px[2]})));
+            const int x1 = std::min(cx1, (int)std::ceil(std::max({px[0], px[1], px[2]})));
+            const int y0 = std::max(cy0, (int)std::floor(std::min({py[0], py[1], py[2]})));
+            const int y1 = std::min(cy1, (int)std::ceil(std::max({py[0], py[1], py[2]})));
+            for (int y = y0; y < y1; y++) {
+                for (int x = x0; x < x1; x++) {
+                    const float fx = x + 0.5f, fy = y + 0.5f;
+                    const float w0 = ((px[1] - fx) * (py[2] - fy) - (px[2] - fx) * (py[1] - fy)) / area;
+                    const float w1 = ((px[2] - fx) * (py[0] - fy) - (px[0] - fx) * (py[2] - fy)) / area;
+                    const float w2 = 1.0f - w0 - w1;
+                    if (w0 < -1e-4f || w1 < -1e-4f || w2 < -1e-4f) {
+                        continue;
+                    }
+                    float col[4];
+                    for (int ch = 0; ch < 4; ch++) {
+                        col[ch] = (w0 * ((v[0]->col >> (8 * ch)) & 0xFF) + w1 * ((v[1]->col >> (8 * ch)) & 0xFF) +
+                                   w2 * ((v[2]->col >> (8 * ch)) & 0xFF)) /
+                                  255.0f;
+                    }
+                    if (c.font && s.atlas != nullptr) {
+                        const float u = w0 * v[0]->u + w1 * v[1]->u + w2 * v[2]->u;
+                        const float vv = w0 * v[0]->v + w1 * v[1]->v + w2 * v[2]->v;
+                        const int tx = std::min(s.atlasW - 1, std::max(0, (int)(u * s.atlasW)));
+                        const int ty = std::min(s.atlasH - 1, std::max(0, (int)(vv * s.atlasH)));
+                        const unsigned char* texel = s.atlas + ((size_t)ty * s.atlasW + tx) * 4;
+                        for (int ch = 0; ch < 4; ch++) {
+                            col[ch] *= texel[ch] / 255.0f;
+                        }
+                    }
+                    uint8_t* dst = &rgb[((size_t)y * width + x) * 3];
+                    for (int ch = 0; ch < 3; ch++) {
+                        const float out = col[ch] * col[3] * 255.0f + dst[ch] * (1.0f - col[3]);
+                        dst[ch] = (uint8_t)std::min(255.0f, std::max(0.0f, out + 0.5f));
+                    }
+                }
+            }
+        }
+    }
+}
+
+void readBack(unsigned int frame, const std::shared_ptr<ImguiSnap>& imgui) {
     std::vector<uint8_t> rgb;
     uint32_t width = 0, height = 0;
     if (readPixels(frame, rgb, width, height)) {
+        if (imgui != nullptr) {
+            compositeImgui(*imgui, rgb, width, height);
+        }
         writeShot(frame, rgb, width, height);
     }
 }
@@ -330,6 +468,8 @@ bool loadShots() {
         sShotEvery = (unsigned int)n;
     }
     sShotOn = !sShotFrames.empty() || sShotEvery != 0;
+    const char* withImgui = getenv("COS_SHOT_IMGUI");
+    sShotImgui = withImgui != nullptr && strcmp(withImgui, "1") == 0;
     if (!sShotOn) {
         return false;
     }
@@ -357,7 +497,8 @@ void shotFrameEnd(unsigned int frame) {
     if (!sShotOn || !wanted(frame)) {
         return;
     }
-    aurora::gfx::render_worker::enqueue_work([frame] { readBack(frame); });
+    std::shared_ptr<ImguiSnap> imgui = snapImgui();
+    aurora::gfx::render_worker::enqueue_work([frame, imgui] { readBack(frame, imgui); });
     aurora::gfx::render_worker::synchronize();
 }
 

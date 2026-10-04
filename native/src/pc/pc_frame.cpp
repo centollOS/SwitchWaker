@@ -454,6 +454,9 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
     if (gConfig.perfEvery == 0 || sSwFrames < gConfig.perfEvery) {
         return;
     }
+    // COS_PERF_LOG=0 (options menu, "Líneas perf en el log"): the window is measured and closed as
+    // usual, only its lines are left out of the log.
+    if (gConfig.perfLog) {
     const double n = sSwFrames;
     const CosSwitchGfxStats& w = sSwWindow;
     const double workerFrames = cur.workerFrames > w.workerFrames ? cur.workerFrames - w.workerFrames : 0;
@@ -690,6 +693,9 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
         cos_switch_thread_table(table, sizeof(table), n);
         writef(STDERR_FILENO, "[cos] perf-switch threads (ms CPU per frame): %s\n", table);
     }
+    } else {
+        sSwGpuFrameNs.clear();
+    }
     sSwWindow = cur;
     sSwWindowEvents = ev;
     sSwWindowTexBytes = 0;
@@ -777,6 +783,7 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
     if (sPerf.cpuValid) {
         snprintf(cpu, sizeof(cpu), "%.2f ms avg", sPerf.cpuNs / n / 1e6);
     }
+    if (gConfig.perfLog) {
     writef(STDERR_FILENO, "[cos] perf frames %u-%u: game thread %.2f ms avg, %.2f ms max (begin %.2f, "
                           "aurora_end_frame %.2f); pace wait %.2f ms avg; %.1f fps, %.1f retraces/s "
                           "(60 = full speed); cpd_read %.2f, aud_execute %.2f, logic %.2f, painter "
@@ -786,6 +793,7 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
            wallS > 0 ? n / wallS : 0.0, wallS > 0 ? (retrace - sPerf.startRetrace) / wallS : 0.0,
            sPerf.cpdNs / n / 1e6, sPerf.audNs / n / 1e6, sPerf.logicNs / n / 1e6,
            sPerf.painterNs / n / 1e6, cpu);
+    }
     sPerf = PerfWindow{};
     sPerf.started = true;
     sPerf.startNs = now;
@@ -844,6 +852,22 @@ void perfOpen() {
     csvWriteAll(kPerfCsvHeader, strlen(kPerfCsvHeader));
     writef(STDERR_FILENO, "[cos] perf: one CSV row per game frame to %s (COS_PERF)\n",
            gConfig.perfPath);
+}
+
+void perfSetEvery(unsigned int every) {
+    if (every == gConfig.perfEvery) {
+        return;
+    }
+    gConfig.perfEvery = every;
+    if (every != 0) {
+        sPerfOn = true;
+        // A new window from now (the first one otherwise counts from the start of the loop).
+        sPerf = PerfWindow{};
+        sPerf.started = sLoopStartNs != 0;
+        sPerf.startNs = monotonicNs();
+        sPerf.startRetrace = VIGetRetraceCount();
+    }
+    writef(STDERR_FILENO, "[cos] perf: game-thread frame times every %u frames (options menu)\n", every);
 }
 
 void perfFlush() {
@@ -961,6 +985,8 @@ void pc_frame_begin(void) {
 
 void pc_frame_end(void) {
     const uint64_t endFrameStartNs = monotonicNs();
+    // The options menu (pc_menu.cpp): input, pause and its window, in this frame's ImGui frame.
+    menuFrame();
     if (gConfig.fpsOverlay) {
         const uint64_t frameNs = endFrameStartNs - sFrameStartNs;
         overlayFrame(frameNs > sFrameWaitNs ? frameNs - sFrameWaitNs : 0);
@@ -974,6 +1000,7 @@ void pc_frame_end(void) {
         // COS_SHOT: the frame is queued to Aurora's render worker; the readback goes in behind it.
         shotFrameEnd(pc_frame_count() + 1);
         telescopeDemoFrameEnd(pc_frame_count() + 1);
+        menuFrameEnd(pc_frame_count() + 1);
         stats = aurora_get_stats();
     }
     if (gConfig.heapCheckEvery != 0 && (pc_frame_count() + 1) % gConfig.heapCheckEvery == 0) {

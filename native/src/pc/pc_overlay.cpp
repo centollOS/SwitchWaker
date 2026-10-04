@@ -2,6 +2,8 @@
 // ImGui (which presents over the game picture; COS_SHOT images leave it out). Off by default; the
 // Switch build turns it on (switch/native/source/cos_switch.cpp).
 //
+// COS_FPS_OVERLAY_DETAIL=compact keeps only the frame rate and the game thread's time on one line.
+//
 // Every half second it shows the frames per second over that half second (game frames, which on
 // the Switch are also the presents: one each), the game thread's busy time per frame (the frame
 // minus the pace wait, without aurora_end_frame), and on the Switch the render worker's busy time
@@ -107,6 +109,12 @@ void overlayFrame(uint64_t busyNs) {
                                         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                                         ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs;
     if (ImGui::Begin("##cos_fps_overlay", nullptr, kFlags)) {
+        if (gConfig.fpsOverlayCompact) {
+            // COS_FPS_OVERLAY_DETAIL=compact (options menu): one line.
+            ImGui::Text("%.1f fps  %.1f ms", s.fps, s.gameMs);
+            ImGui::End();
+            return;
+        }
         ImGui::Text("%.1f fps", s.fps);
         ImGui::Text("game %.1f ms", s.gameMs);
 #if defined(__SWITCH__)

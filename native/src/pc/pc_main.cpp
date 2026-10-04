@@ -180,6 +180,11 @@ void applyFrameBufferScale(const AuroraWindowSize& window) {
 
 } // namespace
 
+void setFrameBufferScale(float scale) {
+    VISetFrameBufferScale(scale);
+    writef(STDERR_FILENO, "[cos] fb scale: %g (options menu)\n", (double)scale);
+}
+
 } // namespace pc
 
 using namespace pc;
@@ -236,6 +241,8 @@ void pc_aurora_init(int argc, char* argv[]) {
            (unsigned int)info.windowSize.height, (unsigned int)info.windowSize.fb_width,
            (unsigned int)info.windowSize.fb_height, config.vsync ? 1 : 0,
            config.blockingPipelines ? "sync" : "async", sUserPath);
+    // The options menu's built-in settings (pc_menu.cpp), once Aurora and ImGui exist.
+    menuInit();
     precompileInit(sCachePath);
     // COS_PRECOMPILE=boot/full: the loading screen, before the game (and its boot logo) starts.
     precompileLoadingScreen();

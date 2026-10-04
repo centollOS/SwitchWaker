@@ -1,0 +1,65 @@
+# COS_SMOKE=options-menu (native/src/pc/pc_menu.cpp), with --stage sea:44:206 (Outset; Link is in
+# the room from about frame 291). Opens the menu with L+R+Z, changes the internal resolution
+# (handheld) from the window's size to 1.5 (1280x720 at 16:9, 960x720 at 4:3) and turns the depth of
+# field off (Gráficos), turns the FPS overlay on (Rendimiento), looks at Depuración, closes it with B;
+# then opens it again and warps to Windfall (Depuración > Viajar > 3rd entry). The menu must pause
+# the game while it is open; the run checks the "#expect" lines at frame 900.
+#expect opened 2
+#expect setting COS_FB_SCALE 1.5
+#expect saved COS_FB_SCALE@handheld=1.5
+#expect setting COS_DOF 0
+#expect saved COS_DOF=0
+#expect setting COS_FPS_OVERLAY 1
+#expect saved COS_FPS_OVERLAY=1
+#expect overlay 1
+#expect efb-height 720
+#expect stage sea 11
+#expect end 900
+# frame buttons stickX stickY
+400 L+R+Z 0 0
+403 - 0 0
+# Gráficos: down to "Resolución interna", right four times (0 -> 1.0 -> 1.125 -> 1.25 -> 1.5)
+406 DOWN 0 0
+408 - 0 0
+410 RIGHT 0 0
+412 - 0 0
+414 RIGHT 0 0
+416 - 0 0
+418 RIGHT 0 0
+420 - 0 0
+422 RIGHT 0 0
+424 - 0 0
+# down four times to "Profundidad de campo", A turns it off
+426 DOWN 0 0
+428 - 0 0
+430 DOWN 0 0
+432 - 0 0
+434 DOWN 0 0
+436 - 0 0
+438 DOWN 0 0
+440 - 0 0
+442 A 0 0
+444 - 0 0
+# R: Rendimiento; down to "Contador de FPS", A turns it on
+450 R 0 0
+452 - 0 0
+454 DOWN 0 0
+456 - 0 0
+458 A 0 0
+460 - 0 0
+# R: Depuración; B closes the menu
+466 R 0 0
+468 - 0 0
+474 B 0 0
+476 - 0 0
+# open again (Depuración is still the tab): A on "Viajar", down twice to Windfall, A
+540 L+R+Z 0 0
+543 - 0 0
+546 A 0 0
+548 - 0 0
+550 DOWN 0 0
+552 - 0 0
+554 DOWN 0 0
+556 - 0 0
+562 A 0 0
+564 - 0 0

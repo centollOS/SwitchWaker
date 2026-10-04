@@ -363,6 +363,23 @@ void loadInput() {
     sLoaded = true;
 }
 
+bool inputScriptAt(unsigned int frame, uint16_t* buttons, int8_t* stickX, int8_t* stickY) {
+    if (!sLoaded) {
+        return false;
+    }
+    const InputLine* line = nullptr;
+    for (const InputLine& l : sScript) {
+        if (l.frame > frame) {
+            break;
+        }
+        line = &l;
+    }
+    *buttons = line != nullptr ? line->buttons : 0;
+    *stickX = line != nullptr ? line->stickX : 0;
+    *stickY = line != nullptr ? line->stickY : 0;
+    return true;
+}
+
 } // namespace pc
 
 using namespace pc;

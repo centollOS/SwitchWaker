@@ -115,6 +115,16 @@ void pc_gpu_group_packet(const void* packet);
 /* Called by the frame loop before each game frame's aurora_begin_frame (frame = pc_frame_count()+1). */
 void pc_gpu_groups_frame_begin(unsigned int frame);
 
+/* Run-time changes from the options menu (pc_menu.cpp), game thread, between frames: the same
+   values as the variables (COS_SHADOW_OFFSCREEN as PC_SHADOW_OFFSCREEN_*, COS_DOF 0/1,
+   COS_MIST_LOWRES and COS_SKY_LOWRES 0 or 2-4, COS_GPU_GROUPS 0-2). Each takes effect with the
+   next frame the game draws. */
+void pc_shadow_offscreen_set(int mode);
+void pc_dof_set(int enabled);
+void pc_mist_lowres_set(int div);
+void pc_sky_lowres_set(int div);
+void pc_gpu_groups_set(int level);
+
 #ifdef __cplusplus
 }
 #endif

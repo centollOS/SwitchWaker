@@ -44,6 +44,12 @@ struct Config {
     // COS_FPS_OVERLAY: a frame-rate panel drawn with Aurora's ImGui (pc_overlay.cpp). Off by default;
     // the Switch build sets 1.
     bool fpsOverlay = false;
+    // COS_FPS_OVERLAY_DETAIL=compact: the panel shows the frame rate and the game thread only
+    // (full, the default: every line). The options menu changes both at run time.
+    bool fpsOverlayCompact = false;
+    // COS_PERF_LOG=0: no "[cos] perf" / "[cos] perf-switch" lines (the windows are still measured,
+    // COS_PERF's CSV and the hitch lines are unchanged). Default 1.
+    bool perfLog = true;
 };
 
 extern Config gConfig;
@@ -147,6 +153,10 @@ void printSmokes(int fd);
 // pc_input.cpp (step 6.3): reads the COS_INPUT script (exit PC_EXIT_USAGE if it is malformed, or
 // if COS_SMOKE=pad-echo has none).
 void loadInput();
+// pc_input.cpp: the COS_INPUT script's state for game frame `frame` (GameCube PAD_* bits and the
+// raw main stick); false without a script. The options menu reads it (the game's pad reads are
+// blocked while the menu is open).
+bool inputScriptAt(unsigned int frame, uint16_t* buttons, int8_t* stickX, int8_t* stickY);
 
 // pc_watchdog.cpp
 void startWatchdog();
@@ -260,10 +270,26 @@ void saveFramePng(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t 
 // still buffered (pc_exit; any thread, never blocks).
 void perfOpen();
 void perfFlush();
+// pc_frame.cpp: COS_PERF_EVERY changed at run time (options menu); 0 stops the perf lines.
+void perfSetEvery(unsigned int every);
 
 // pc_frame.cpp: "[cos] pacing: frames= wall= requested= ..." since the frame loop started (nothing
 // before it).
 void writePacing(int fd);
+
+// pc_main.cpp: COS_FB_SCALE at run time (options menu): Aurora resizes the EFB with the next event
+// pump. 0 = the window's size.
+void setFrameBufferScale(float scale);
+
+// pc_menu.cpp: the options menu (ZL+ZR+Minus / L+R+Z / F1). menuInit registers the built-in
+// settings (after aurora_initialize); menuFrame runs in pc_frame_end before the FPS overlay, inside
+// the frame's ImGui frame. menuOpen: the menu is open (the game is paused and gets no pad input).
+void menuInit();
+void menuFrame();
+bool menuOpen();
+// pc_menu.cpp: after aurora_end_frame of game frame `frame` (the screenshot action, and
+// COS_SMOKE=options-menu's checks).
+void menuFrameEnd(unsigned int frame);
 
 // pc_precompile.cpp: Aurora's boot pipeline warm-up (COS_PRECOMPILE, COS_PRECOMPILE_LOG).
 // precompileInit runs right after aurora_initialize and precompileLoadingScreen after it (before

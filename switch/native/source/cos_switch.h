@@ -143,6 +143,13 @@ int cos_switch_describe_mode(char* out, size_t size);
 /* The console's system language as its code ("es", "es-419", "en-US", ...) into out (at least 9
  * bytes); out is "" if the settings service cannot be read. Asks the settings service: call it once. */
 void cos_switch_system_language(char* out, size_t size);
+/* 1 when the console is docked (appletGetOperationMode: Console), 0 in handheld. A service call:
+ * a few times a second at most (pc_settings_poll_mode). */
+int cos_switch_docked(void);
+/* The options menu (pc_menu.cpp, "Perfil de GPU"): applies a COS_SWITCH_GPU_PROFILE value now
+ * ("460", "384", "default" or "0x<configuration id>") through apm, as at start; "default" restores
+ * the configuration the system had. 1 if apm accepted it (or nothing had to change). */
+int cos_switch_set_gpu_profile(const char* profile);
 /* CPU time (ns, svcGetInfo ThreadTickCount) of the registered threads per role, running totals;
  * a thread that ended keeps its last value. */
 void cos_switch_thread_cpu_ns(uint64_t out[COS_SWITCH_THREAD_ROLES]);

@@ -474,4 +474,40 @@ int pc_dof_enabled(void) {
     return sDof;
 }
 
+void pc_shadow_offscreen_set(int mode) {
+    pc_shadow_offscreen(); // read the variable first, so it cannot override this later
+    sShadowOffscreen = mode == PC_SHADOW_OFFSCREEN_SAME || mode == PC_SHADOW_OFFSCREEN_GC ? mode
+                                                                                         : PC_SHADOW_OFFSCREEN_OFF;
+    pc::writef(STDERR_FILENO, "[cos] shadow offscreen: %s (options menu)\n",
+               sShadowOffscreen == PC_SHADOW_OFFSCREEN_SAME ? "1"
+               : sShadowOffscreen == PC_SHADOW_OFFSCREEN_GC ? "gc"
+                                                            : "off");
+}
+
+void pc_dof_set(int enabled) {
+    pc_dof_enabled();
+    sDof = enabled ? 1 : 0;
+    pc::writef(STDERR_FILENO, "[cos] depth of field: %s (options menu)\n", sDof ? "on" : "off");
+}
+
+void pc_mist_lowres_set(int div) {
+    pc_mist_lowres();
+    sMistLowres = div < 2 ? 0 : div > 4 ? 4 : div;
+    pc::writef(STDERR_FILENO, "[cos] mist low-res: %d (options menu)\n", sMistLowres);
+}
+
+void pc_sky_lowres_set(int div) {
+    skyLowres();
+    sSkyLowres = div < 2 ? 0 : div > 4 ? 4 : div;
+    pc::writef(STDERR_FILENO, "[cos] sky low-res: %d (options menu)\n", sSkyLowres);
+}
+
+void pc_gpu_groups_set(int level) {
+    if (sGroupsEnv < 0) {
+        groupsInit();
+    }
+    sGroupsEnv = level < 0 ? 0 : level > 2 ? 2 : level;
+    pc::writef(STDERR_FILENO, "[cos] gpu groups: %d (options menu)\n", sGroupsEnv);
+}
+
 } // extern "C"

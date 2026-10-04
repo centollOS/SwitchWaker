@@ -48,12 +48,15 @@ set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_shot.cpp" APPEND PROPERTY INCL
 # headers cos_pc already has, and lib/dolphin/vi/vi_internal.hpp); the symbols are aurora_core's.
 set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_main.cpp" "${COS_NATIVE_ROOT}/src/pc/pc_gpu_opts.cpp"
         APPEND PROPERTY INCLUDE_DIRECTORIES "${aurora_SOURCE_DIR}")
-# pc_overlay.cpp (COS_FPS_OVERLAY) and pc_precompile.cpp (the shader loading screen and indicator)
-# draw with Aurora's ImGui. Headers only: aurora_core links imgui.
+# pc_overlay.cpp (COS_FPS_OVERLAY), pc_precompile.cpp (the shader loading screen and indicator) and
+# pc_menu.cpp (the options menu) draw with Aurora's ImGui; pc_shot.cpp composites ImGui's draw data
+# into COS_SHOT images with COS_SHOT_IMGUI=1. Headers only: aurora_core links imgui.
 if (TARGET imgui)
-    set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_overlay.cpp" "${COS_NATIVE_ROOT}/src/pc/pc_precompile.cpp"
+    set(_pc_imgui_sources "${COS_NATIVE_ROOT}/src/pc/pc_overlay.cpp" "${COS_NATIVE_ROOT}/src/pc/pc_precompile.cpp"
+            "${COS_NATIVE_ROOT}/src/pc/pc_menu.cpp" "${COS_NATIVE_ROOT}/src/pc/pc_shot.cpp")
+    set_property(SOURCE ${_pc_imgui_sources}
             APPEND PROPERTY INCLUDE_DIRECTORIES "$<TARGET_PROPERTY:imgui,INTERFACE_INCLUDE_DIRECTORIES>")
-    set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_overlay.cpp" "${COS_NATIVE_ROOT}/src/pc/pc_precompile.cpp"
+    set_property(SOURCE ${_pc_imgui_sources}
             APPEND PROPERTY COMPILE_DEFINITIONS "$<TARGET_PROPERTY:imgui,INTERFACE_COMPILE_DEFINITIONS>")
 endif ()
 # pc_precompile.cpp reads the bundled pipeline cache's priority count on the Mac (COS_PRECOMPILE=boot

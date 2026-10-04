@@ -61,13 +61,13 @@ double envDouble(const char* name, double fallback) {
     return end != v ? d : fallback;
 }
 
-void init() {
+// v: the COS_DYNRES value; base: the COS_FB_SCALE value (0 when unset).
+void initWith(const char* v, float base) {
     s.init = true;
-    const char* v = getenv("COS_DYNRES");
     if (v == nullptr || *v == '\0' || strcmp(v, "0") == 0) {
         return;
     }
-    s.base = (float)envDouble("COS_FB_SCALE", 0.0);
+    s.base = base;
     if (!(s.base > 0.f)) {
         pc::writef(STDERR_FILENO, "[cos] COS_DYNRES needs COS_FB_SCALE (a fixed internal resolution); off\n");
         return;
@@ -121,6 +121,10 @@ void init() {
                s.mode == Mode::Auto && s.cycle == 0 ? " (no GPU timer here: stays at the base)" : "",
 #endif
                s.highMs, s.lowMs);
+}
+
+void init() {
+    initWith(getenv("COS_DYNRES"), (float)envDouble("COS_FB_SCALE", 0.0));
 }
 
 double p95() {
@@ -254,6 +258,17 @@ void pc_dynres_frame_begin(unsigned int frame) {
                 s.underCount = 0;
             }
         }
+    }
+}
+
+void pc_dynres_configure(const char* mode, float base) {
+    if (s.applied) {
+        AuroraSetContentScale(1.0f);
+    }
+    s = State{};
+    initWith(mode, base);
+    if (s.mode == Mode::Off) {
+        pc::writef(STDERR_FILENO, "[cos] dynres: off (options menu)\n");
     }
 }
 

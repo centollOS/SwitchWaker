@@ -1,6 +1,7 @@
 // Run harness of the native executable centollos: environment, start-up order and exit
 // (docs/NATIVE_PORT_PHASE4_6.md, step 6.0). Public API in native/include/pc/pc_harness.h.
 #include "pc_internal.h"
+#include "pc/pc_settings.h"
 #include "pc/pc_aspect.h"
 
 #include <atomic>
@@ -116,6 +117,9 @@ void pc_harness_init(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
     sStartNs = monotonicNs();
+    // The options menu's settings file (pc_settings.h) into the environment before anything reads
+    // it (on the Switch cos_switch_start did it already, between env.txt and its defaults).
+    pc_settings_load_early();
 
     // Line-buffered stdout: the game reports with printf/OSReport into a pipe or file; a watchdog
     // or crash exit must not lose the last lines in a full buffer.
@@ -144,6 +148,10 @@ void pc_harness_init(int argc, char* argv[]) {
     gConfig.hitchMs = envCount("COS_HITCH_MS");
     gConfig.heapCheckEvery = envCount("COS_HEAP_CHECK");
     gConfig.fpsOverlay = envFlag("COS_FPS_OVERLAY", false);
+    if (const char* detail = envString("COS_FPS_OVERLAY_DETAIL"); detail != nullptr) {
+        gConfig.fpsOverlayCompact = strcmp(detail, "compact") == 0;
+    }
+    gConfig.perfLog = envFlag("COS_PERF_LOG", true);
 
     writef(STDERR_FILENO,
            "[cos] harness: smoke=%s milestone=%s timeout=%gs stall=%gs frames=%u trace=%s "
