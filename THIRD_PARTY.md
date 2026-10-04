@@ -1,9 +1,9 @@
 # Third-party code
 
-> DRAFT: to review once {{NAME}} and {{LICENSE}} are decided. Pins are the ones the build uses
-> today; licenses marked "check" were not read from a local copy when this was written.
+Pins are the ones the build uses today; licenses marked "check" were not read from a local copy
+when this was written.
 
-{{NAME}} contains, builds against, or fetches at build time the components below. Nothing in this
+centollOS contains, builds against, or fetches at build time the components below. Nothing in this
 list is game data: the repository contains no asset, executable or data file of the game, and every
 build reads them from the player's own disc.
 
@@ -11,15 +11,16 @@ build reads them from the player's own disc.
 
 | Path | Origin | License |
 |---|---|---|
-| `game/` | The game's decompilation: [the decompilation fork](https://github.com/snrubrm/tww) at `b09eebc`, a fork of [the upstream decompilation](https://github.com/zeldaret/tww), changed by later commits of this repository | CC0-1.0 (`game/LICENSE`) |
+| `game/` | The game's decompilation, imported from a fork ([github.com/snrubrm/tww](https://github.com/snrubrm/tww)) at `b09eebc` of the community decompilation project ([github.com/zeldaret/tww](https://github.com/zeldaret/tww)), changed by later commits of this repository under `TARGET_PC` (see `game/README.md`) | CC0-1.0 (`game/LICENSE`) |
 | `native/include/helpers/{endian.h,endian_gx.hpp,endian_ssystem.h,offset_ptr.h}`, `native/src/helpers/offset_ptr.cpp` | [Dusklight](https://github.com/TwilitRealm/dusklight) (TwilitRealm) at `40457c6`; the SDK-over-Aurora layer follows Dusklight's model | CC0-1.0 |
-| `native/dsp_hle/` | Adapted from [the upstream recompilation project](https://github.com/elliotttate/Wind-Waker-Recomp) (`runtime/host/src/dsp_hle_backend.cpp`, `apple/ios/src/dsp_common_shim.cpp`); compiles Dolphin's DSPHLE (below) | GPL-2.0-or-later (SPDX headers in each file) |
+| `native/dsp_hle/` | Adapted from elliotttate's recompilation project ([github.com/elliotttate/Wind-Waker-Recomp](https://github.com/elliotttate/Wind-Waker-Recomp)) (`runtime/host/src/dsp_hle_backend.cpp`, `apple/ios/src/dsp_common_shim.cpp`); compiles Dolphin's DSPHLE (below) | GPL-2.0-or-later (`native/dsp_hle/LICENSE`, SPDX headers in each file) |
 | `native/patches/aurora/`, `switch/native/aurora/patches/` | Patches to Aurora | same as Aurora (MIT) |
 | `switch/dawn/patches/` | Patches to Dawn (Horizon/OpenGL ES backend) | same as Dawn (BSD-3-Clause) |
 | `switch/mesa/patches/`, `switch/mesa/test/` | Patches to Mesa (devkitPro's switch-mesa recipe) and their tests | same as Mesa (MIT) |
 | `switch/forwarder/nx-hbloader-forwarder.patch` | Patch to nx-hbloader | same as nx-hbloader (ISC) |
 
-Everything else is the project's own code under {{LICENSE}}.
+Everything else is the project's own code under the MIT license (`LICENSE`), copyright Pulpparty
+and depende3000, and the centollOS contributors.
 
 ## Fetched at build time (not in the repository)
 

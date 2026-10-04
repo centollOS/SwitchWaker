@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 // cos_dsp_hle: Dolphin's high-level DSP (DSPHLE, the JAudio ucode for the game) as the
 // GameCube DSP behind cos_sdk's DSP library (native/sdk/src/audio/DSP.cpp). Step 5.A of
 // docs/NATIVE_PORT_PHASE4_6.md, decision H6 (B).
