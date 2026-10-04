@@ -167,6 +167,19 @@ scripts/switch/build_native.sh       # build/switch-native/centollos.nro and cen
   `SWITCH_BUILD_JOBS`) sets the parallel jobs, default 4. `--aurora`, `--assets`, `--recompcore` and
   `--dawn-src` point at other copies of the inputs; from a git worktree (`build/lanes/<lane>`) the
   main checkout's are used.
+- Mesa (EGL, GLES and the nouveau driver) is built from source by `scripts/switch/build_mesa.sh`
+  the first time (about 2 minutes; output `build/switch-mesa/prefix`, also reused from the main
+  checkout by a worktree): devkitPro's `switch-mesa` 20.1.0-5 recipe (Mesa 20.1.0-rc3 and
+  devkitPro's patches from `pacman-packages` `f103fe88`, sha256-checked, configured as the PKGBUILD
+  does in `localhost/centollos-switch-mesa-build:2026-10-04`, `scripts/switch/Containerfile.mesa`)
+  plus `switch/mesa/patches`: 0001 a newlib `timespec_get` clash of the newer devkitA64, 0002
+  compile counters and timers for the log, 0003 the disk shader cache on Horizon, 0004 nvc0's code
+  generation through that cache (see "Shader cache" below). `build_mesa.sh --stock` builds the
+  recipe with 0001 alone (the package's global symbols, one for one); `--test` also builds Mesa's
+  nouveau and OSMesa for Linux with 0002-0004 and runs `switch/mesa/test` (the cache file, nvc0's
+  cached code against a fresh translation, and the GLSL cache and program binaries through the GL
+  API). `build_native.sh --mesa DIR` links another prefix, `--stock-mesa` devkitPro's package from
+  the image (no shader cache). libdrm_nouveau is the package's either way.
 - Output: `build/switch-native/centollos.nro` (about 21 MB) and `build/switch-native/centollos.elf`, the
   same program with its symbols, for `addr2line`. Keep the ELF of the NRO you test.
 
@@ -406,15 +419,10 @@ error log is in the run log as `[sqlite] (code) message` lines, which name the f
 
 Every new pipeline costs 0.1-0.4 s on the console, and the game stutters for that long: Dawn's GL
 backend links one GL program per pipeline on the single GL context (with `gl_defer` the render
-worker waits for it), and Mesa 20.1 compiles every program from GLSL on every run. There is no
-binary to keep: Dawn already stores `glGetProgramBinary` results in its blob cache
-(`dawn_cache.db`) where the driver offers them, but the devkitPro `switch-mesa` 20.1.0 build
-reports `GL_NUM_PROGRAM_BINARY_FORMATS` 0. Its meson rule compiles the disk shader cache out on
-Horizon (`-DENABLE_SHADER_CACHE` only when `host_machine.system() != 'horizon'`), so nouveau's
-`get_disk_shader_cache` returns NULL, Mesa's state tracker sets `NumProgramBinaryFormats` only
-when there is a disk cache, and `MESA_GLSL_CACHE_DIR`/`MESA_SHADER_CACHE_DIR` do nothing (no
-`disk_cache_create` in `libEGL.a`). What remains is to compile fewer programs and to compile them
-before they are needed:
+worker waits for it). With devkitPro's `switch-mesa` package Mesa 20.1 compiled every program from
+GLSL on every run (no disk cache, no program binaries); the Mesa the NRO now links keeps them
+across runs ("Shader cache" below), so this is the cost of a pipeline's first build on a console.
+Besides that, the port compiles fewer programs and compiles them before they are needed:
 
 - `switch/dawn/patches/dawn-switch-gl-program-share.patch`: pipelines whose stages translate to the
   same GLSL share one linked program. Aurora's GX pipelines that differ only in blend, depth, cull or
@@ -483,12 +491,76 @@ The log shows the warm-up (`COS_PRECOMPILE_LOG=0` hides the progress lines; valu
 [cos] precompile done: M/M pipelines, ...                       <- instead, if it finished first
 ```
 
-Every start compiles again (nothing survives in Mesa), so the loading screen comes back at every
-start, and the logos and menus run slower while the rest is built (throttled: see above). The game's frame counter does not move during the loading screen; the stall watchdog
+Without the shader cache every start compiled again, so the loading screen came back at every
+start and the logos and menus ran slower while the rest was built (throttled: see above).
+With it the first start still does that, and later starts build each known pipeline from the cache
+in milliseconds, so the warm-up and its loading screen should take seconds; the warm-up is kept
+(it creates Dawn's pipeline objects, which a first draw would otherwise create) and, once the
+cache's hit rate is confirmed on the console, `full` costs little more than `boot`. The game's frame counter does not move during the loading screen; the stall watchdog
 (`COS_STALL_S`) counts its frames instead. On the Mac the same file is read only if it is copied
 next to `build/native-mac/centollos`; there the whole warm-up of 995 pipelines took 83 s of the compile
 thread with a warm Dawn cache, and frames captured with and without it are identical. The Mac
 draws no loading screen or indicator unless `COS_PRECOMPILE` is set (native/README.md).
+
+### Shader cache
+
+The NRO's Mesa (`scripts/switch/build_mesa.sh`, `switch/mesa/patches`) keeps compiled shaders on the
+SD card, so a pipeline built once is not compiled again on later runs:
+
+- **Why devkitPro's package had none.** Its meson change compiles the disk shader cache out on
+  Horizon (`-DENABLE_SHADER_CACHE` only when `host_machine.system() != 'horizon'`), so nouveau's
+  `get_disk_shader_cache` returned NULL, the state tracker left `GL_NUM_PROGRAM_BINARY_FORMATS` at 0,
+  and `MESA_GLSL_CACHE_DIR`/`MESA_SHADER_CACHE_DIR` did nothing. Mesa's file cache needs mmap,
+  flock, getpwuid, zlib and one file per entry under 256 directories, and nouveau names its build
+  with dladdr's build-id: none of that exists on Horizon (and thousands of small files open slowly
+  on the SD card's FAT32/exFAT).
+- **Patch 0003** keeps Mesa's `disk_cache.h` API in one append-only file,
+  `switch/centollos/native/user/cache/mesa_shader_cache.bin` (`MESA_SHADER_CACHE_DIR`, set by
+  the port before EGL starts): a header with the sha1 of the driver keys, then records (key, size,
+  CRC-32, payload) written with one `write()` each; an index of the records is read at start (one
+  32-byte read per record), payloads are read when asked for and their CRC checked. Safety: a file
+  from another driver build (the build is named by `MESA_SWITCH_CACHE_ID`, a hash of Mesa's source
+  and every patch, written by `build_mesa.sh`), of another format version or with a bad header is
+  emptied; a torn last record (the app stopped mid-write) is cut off; a damaged entry is a miss and
+  is written again; nothing is evicted, and past 256 MiB (`MESA_GLSL_CACHE_MAX_SIZE`) new entries
+  are dropped. With it Mesa's GLSL cache works (a shader seen before is not compiled: the compile is
+  deferred, and the link loads the program's GLSL metadata and TGSI from the cache) and Mesa offers
+  one program binary format, which Dawn's GL backend already uses: it stores each program's
+  `glGetProgramBinary` in its blob cache (`user/cache/dawn_cache.db`) and loads it with
+  `glProgramBinary` instead of compiling (a stale or damaged binary is refused by Mesa's checksum
+  and driver sha1, and Dawn then compiles from source).
+- **Patch 0004**: neither of those skips nvc0's code generation (TGSI to Maxwell code, run when a
+  program is linked or loaded). Mesa added a disk cache for it upstream in 20.3, after splitting
+  `nv50_ir_prog_info`; 0004 is a smaller equivalent for 20.1: `nvc0_program_translate` looks the
+  translated program (code, header, relocations, interpolation fixups, header state) up by a key of
+  its inputs (chipset, stage, TGSI tokens, user clip planes) before running the compiler. Fixup
+  function pointers are stored as indices into the GM107 emitter's table, the emitter of the
+  console's GM20B.
+- **Off switch:** `COS_SWITCH_SHADER_CACHE=0` in `env.txt` (Mesa then behaves as the package did:
+  no cache, no program binaries); `COS_SWITCH_SHADER_CACHE=reset` deletes the file at start.
+  Deleting `user/cache/` clears it with Aurora's caches.
+- **Log.** Once EGL is up, and then every 15 s while the counters change and at exit (values
+  vary):
+
+  ```
+  [switch] shader cache: MESA_SHADER_CACHE_DIR=/switch/centollos/native/user/cache
+  [switch] shader cache: /switch/.../user/cache/mesa_shader_cache.bin: N entries, M MiB, opened in T ms (max 256 MiB)
+  [switch] shader compile: compiles C (D deferred) X ms; links L (F from cache) Y ms = glsl G + st S; nvc0 T (H from cache) Z ms; binaries loaded B (R refused) W ms, saved V W ms; cache gets ... puts ...; dawn binaries: formats 1, hits h, misses m, refused r, stored s (M MiB)
+  ```
+
+  On the first start after installing an NRO with a new Mesa: "new file" or "discarded: written by
+  another driver build", dawn binaries mostly misses and stored, nvc0 none from cache. On the next
+  start: dawn binary hits for the pipelines built before, nvc0 "from cache" close to its total, and
+  the precompile lines' "compile ... (X ms each)" should drop from 126-176 ms to a few ms. The
+  "glsl", "st" and "nvc0" times of the first start are where a compile's time goes (the GLSL front
+  end and linker, GLSL IR to TGSI, and Maxwell code generation); what the precompile line counts
+  beyond them is Dawn's own work (Tint, pipeline objects).
+- **Checked off the console** (`build_mesa.sh --test`): the file's persistence, removal, torn tail,
+  damaged entry, another driver build and size limit; nvc0 code from the cache identical to a fresh
+  translation (code, header, state, relocations and fixups, GM20B); and through the GL API (OSMesa
+  on softpipe with a test-only disk cache hook), a second run links every program from the cache
+  with every compile deferred, draws the same pixels as the first, loads the saved program binaries
+  with the same pixels, and refuses a damaged binary.
 
 Threads: the game thread runs on core 0; JAudio's, the DVD thread, Aurora's and Dawn's
 workers prefer cores 1 and 2 (`switch/native/source/thread_wrap.c`). Every 15 seconds, at exit

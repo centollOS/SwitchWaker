@@ -150,11 +150,16 @@ if [[ ! -f $host/source.stamp ]] || [[ $(cat "$host/source.stamp") != "$cache_id
     rm -rf "$host"
     mkdir -p "$host"
     tar -xf "$downloads/mesa-$mesa_version.tar.xz" -C "$host"
+    # devkitPro's two Python 3.9 fixes of the GL API generators (the OSMesa build needs them).
+    patch -d "$hsrc" -p1 -s -i "$downloads/gl_XML.py.patch"
+    patch -d "$hsrc" -p1 -s -i "$downloads/glX_XML.py.patch"
     for p in "$root"/switch/mesa/patches/000[234]-*.patch; do
         # The top-level meson.build hunk edits devkitPro's Horizon branch, absent upstream.
         awk '/^diff --git/ { skip = ($3 == "a/meson.build") } !skip' "$p" |
             patch -d "$hsrc" -p1 -s
     done
+    # Test only: give softpipe a disk cache, to drive the GLSL cache through OSMesa.
+    patch -d "$hsrc" -p1 -s -i "$root/switch/mesa/test/softpipe-disk-cache.patch"
     echo '#define MESA_SWITCH_CACHE_ID "host-test"' > "$hsrc/include/mesa_switch_cache_id.h"
     printf '%s\n' "$cache_id" > "$host/source.stamp"
 fi
@@ -185,4 +190,25 @@ g++ -std=c++14 -c /work/switch/mesa/test/test_fixups.cpp $I -o /tmp/test_fixups.
 g++ /tmp/test_cache.o /tmp/test_fixups.o -Wl,--start-group "${libs[@]/#/$B/}" -Wl,--end-group \
     -ldrm_nouveau -ldrm -lz -lzstd -lexpat -lpthread -lm -ldl -o /tmp/test_cache
 /tmp/test_cache
+
+# The GL API on top (OSMesa, softpipe): GLSL cache hits and program binaries, run twice.
+if [[ ! -f build-osmesa/build.ninja ]]; then
+    meson setup build-osmesa -Dbuildtype=debugoptimized -Db_ndebug=false \
+        -Dc_args=-DMESA_DISK_CACHE_SINGLE_FILE -Dcpp_args=-DMESA_DISK_CACHE_SINGLE_FILE \
+        -Dgallium-drivers=swrast -Dosmesa=gallium -Ddri-drivers= -Dvulkan-drivers= -Dplatforms= \
+        -Dglx=disabled -Degl=false -Dgbm=false -Dllvm=false -Dgles1=false -Dgles2=false \
+        -Dshared-glapi=true >../osmesa-meson.log 2>&1 || { tail -40 ../osmesa-meson.log; exit 1; }
+fi
+ninja -C build-osmesa >../osmesa-ninja.log 2>&1 || { grep -B2 -A20 "^FAILED" ../osmesa-ninja.log | head -60; exit 1; }
+gcc -O1 -g /work/switch/mesa/test/test_glsl_cache.c -Iinclude -Lbuild-osmesa/src/gallium/targets/osmesa \
+    -lOSMesa -o /tmp/test_glsl_cache
+export LD_LIBRARY_PATH=build-osmesa/src/gallium/targets/osmesa:build-osmesa/src/mapi/shared-glapi
+export MESA_SHADER_CACHE_DIR=/tmp/glsl-cache-test MESA_GLSL=cache_info
+rm -rf /tmp/glsl-cache-test && mkdir -p /tmp/glsl-cache-test
+/tmp/test_glsl_cache store 2>/tmp/store.err
+/tmp/test_glsl_cache load 2>/tmp/load.err
+hits=$(grep -c "loading shader program meta data from cache" /tmp/load.err || true)
+deferred=$(grep -c "deferring compile of shader" /tmp/load.err || true)
+echo "second run: $hits programs linked from the cache, $deferred compiles deferred"
+[[ $hits == 6 && $deferred == 12 ]] || { echo "GLSL cache: expected 6 and 12"; exit 1; }
 '

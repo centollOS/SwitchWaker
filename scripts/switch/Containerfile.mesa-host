@@ -1,0 +1,5 @@
+# Host image of the Switch Mesa patches' test (scripts/switch/build_mesa.sh --test): Debian with what
+# Mesa 20.1 needs to build its nouveau driver for Linux (no GPU is used: the test runs the
+# shader cache and nvc0's code generator only).
+FROM docker.io/library/debian:bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential meson ninja-build pkg-config flex bison python3-mako libdrm-dev zlib1g-dev libexpat1-dev libzstd-dev && rm -rf /var/lib/apt/lists/*
