@@ -23,6 +23,7 @@
 #include "JSystem/JMessage/data.h"
 #include "JSystem/JUtility/TColor.h"
 #include "f_op/f_op_msg_mng.h"
+#include "../src/pc/pc_precompile_gate.h"
 
 #include <cmath>
 #include <cstdint>
@@ -464,6 +465,85 @@ void testBmg() {
     CHECK(TParseValue<TParseValue_endian_big_<u32> >::parse(file + 8) == 3);
 }
 
+
+// ---- the warm-up's late loading screen (pc_precompile_gate.h) ----------------------------------
+
+void testLateGate() {
+    pc::LateGateConfig cfg; // 16 builds, 8 slow, 1.5 s, COS_PRECOMPILE_SCREEN_MIN_S 3
+    // The warm boot seen on the console every time: the first frame's 3 builds took 98 ms each
+    // (all shader cache hits that waited for the GL context), then everything is fast. The old rule
+    // (3 slow, 1121 left at 98 ms: 110 s) brought the screen up; now the sample is too small.
+    {
+        pc::LateGate gate(cfg);
+        pc::LateGateVerdict v = gate.add(3, 3, 0.295, 1121);
+        CHECK(!v.screen && !v.sampleEnough);
+        for (int frame = 0; frame < 120; frame++) {
+            v = gate.add(4, 0, 0.0, 1100 - frame * 4);
+            CHECK(!v.screen);
+        }
+        CHECK(v.windowSlow == 0 && v.leftMs == 0.0);
+    }
+    // A cold (or wiped) shader cache behind the logos, throttled: one 150 ms build a frame. Below
+    // 8 slow builds and 1.5 s nothing; the 10th build (1.5 s measured) brings the screen up, with
+    // every pipeline left taken as slow (all of the recent builds were).
+    {
+        pc::LateGate gate(cfg);
+        pc::LateGateVerdict v;
+        int shownAt = -1;
+        for (int i = 1; i <= 20 && shownAt < 0; i++) {
+            v = gate.add(1, 1, 0.150, 1000 - i);
+            if (v.screen) {
+                shownAt = i;
+            }
+        }
+        CHECK(shownAt == 10);
+        CHECK(v.slowShare == 1.0 && v.slowEachMs > 149.0 && v.slowEachMs < 151.0);
+        CHECK(v.leftMs > 990 * 149.0 && v.leftMs < 990 * 151.0);
+    }
+    // Half the recent builds slow at 100 ms, 1000 left: 16 builds with 8 slow is enough sample, and
+    // the estimate is the hit ratio's: 1000 * 0.5 * 100 ms = 50 s, not 1000 * 100 ms.
+    {
+        pc::LateGate gate(cfg);
+        pc::LateGateVerdict v;
+        for (int i = 0; i < 8; i++) {
+            v = gate.add(2, 1, 0.100, 1000);
+        }
+        CHECK(v.windowBuilds == 16 && v.windowSlow == 8 && v.sampleEnough && v.screen);
+        CHECK(v.leftMs > 49000.0 && v.leftMs < 51000.0);
+    }
+    // Sparse misses (2 of 16 slow, 0.2 s measured): built behind the logos, no screen.
+    {
+        pc::LateGate gate(cfg);
+        pc::LateGateVerdict v;
+        for (int i = 0; i < 16; i++) {
+            v = gate.add(1, (i % 8) == 0 ? 1 : 0, 0.100, 900);
+        }
+        CHECK(!v.sampleEnough && !v.screen);
+    }
+    // Enough sample but little left: 8 of 16 slow at 100 ms with 40 left is 2 s of slow work, under
+    // COS_PRECOMPILE_SCREEN_MIN_S.
+    {
+        pc::LateGate gate(cfg);
+        pc::LateGateVerdict v;
+        for (int i = 0; i < 8; i++) {
+            v = gate.add(2, 1, 0.100, 40);
+        }
+        CHECK(v.sampleEnough && !v.screen && v.leftMs < 3000.0);
+    }
+    // The window follows the recent builds: an early slow burst followed by 16 fast builds no
+    // longer counts (the measured time keeps growing only with slow builds).
+    {
+        pc::LateGate gate(cfg);
+        pc::LateGateVerdict v = gate.add(6, 6, 0.6, 1000);
+        CHECK(!v.screen);
+        for (int i = 0; i < 16; i++) {
+            v = gate.add(1, 0, 0.0, 1000);
+        }
+        CHECK(v.windowSlow == 0 && !v.screen);
+        CHECK(v.measuredSlowS > 0.59 && v.measuredSlowS < 0.61);
+    }
+}
+
 } // namespace
 
 int main() {
@@ -475,6 +555,7 @@ int main() {
     testOffsetPtrPanics();
     testTColor();
     testBmg();
+    testLateGate();
     if (g_failures != 0) {
         std::printf("FAIL: %d checks\n", g_failures);
         return 1;

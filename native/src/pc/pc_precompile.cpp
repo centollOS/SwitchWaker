@@ -49,8 +49,15 @@
 //            start (or the first after a shader change) does the one-time work up front and the
 //            title and menus never stutter on it. Otherwise the game starts at once and the warm-up
 //            goes on behind the logos as with priority's fast case; if the builds turn slow there
-//            (Switch, logo scene) and the slow work left at the recent pace passes the same limit,
-//            the loading screen comes up there until the whole warm-up is built;
+//            (Switch, logo scene) the loading screen comes up there until the whole warm-up is
+//            built, once the sample is big enough (at least 8 slow builds among the last 16, or
+//            1.5 s of slow work measured) and the slow work left - the pipelines left times the
+//            recent builds' slow share times their cost - passes the same limit (pc_precompile_gate.h).
+//            A build's time leaves out its wait for the GL context (another thread, the render
+//            worker, had it; Dawn's dawn-switch-gl-pipeline-wait.patch): on a warm boot the builds
+//            during the game's first frame waited ~100 ms each for it and used to bring up the
+//            screen. Every build longer than COS_PRECOMPILE_SLOW_MS is logged ("[cos] precompile
+//            slow build": its pipeline key and where its time went);
 //   priority the earlier auto: the loading screen for the priority set only, when the first builds
 //            are slow (cold); the rest builds behind the logos (throttled). If the builds turn slow
 //            behind the logos and the priority pipelines left would take more than kLateMs at that
@@ -106,6 +113,8 @@ extern "C" void dawn_switch_gl_cmd_stats(uint64_t* out, size_t count);
 #include <sqlite3.h>
 #endif
 
+#include "pc_precompile_gate.h"
+
 namespace pc {
 
 namespace {
@@ -127,8 +136,12 @@ constexpr double kLateMs = 1000.0; // priority
 // auto: a cold build's cost when none was measured or recorded (the console: 104 ms on average over
 // 1120 pipelines), and the recent builds behind the logos whose slow share predicts the rest.
 constexpr double kColdBuildMs = 100.0;
-constexpr uint32_t kLateWindowBuilds = 32;
-constexpr int kLateWindowFrames = 128;
+// auto behind the logos: the sample needed and the estimate (pc_precompile_gate.h).
+constexpr uint32_t kLateWindowBuilds = 16;
+constexpr uint32_t kLateMinSlowBuilds = 8;
+constexpr double kLateMinSlowS = 1.5;
+// "[cos] precompile slow build" lines at most (a cold cache has a thousand).
+constexpr uint32_t kSlowBuildLogMax = 48;
 
 bool sLog = false;
 bool sUi = false;     // draw the loading screen and the corner indicator
@@ -143,15 +156,17 @@ uint32_t sLateDone = 0;     // auto behind the logos: the warm-up's done count a
 double sLateCompileS = 0;   //   at the previous frame, and the slow builds seen since the game
 uint32_t sSlowBuilds = 0;   //   started and their compile time
 double sSlowS = 0;
-// auto behind the logos: the recent frames that built something (builds, slow builds, their time).
-struct LateSample {
-    uint32_t builds;
-    uint32_t slowBuilds;
-    double slowS;
-};
-LateSample sLateRing[kLateWindowFrames];
-int sLateRingPos = 0;
-int sLateRingCount = 0;
+// auto behind the logos: the recent builds' slow share and cost.
+LateGate sLateGate;
+double sLateWaitS = 0;        // the warm-up's GL context wait at the previous frame
+// The slow builds Aurora reported (Switch patch 0012): the last one read, those logged, and of
+// those read since the previous frame, the warm-up's slow ones behind the logos and their own time.
+uint64_t sSlowSeq = 0;
+uint32_t sSlowLogged = 0;
+uint32_t sSlowLost = 0;     // slow builds Aurora's ring dropped before they were read
+uint32_t sSlowOwnTotal = 0; // of the slow builds read, those slow for their own work
+uint32_t sFrameSlowBuilds = 0;
+double sFrameSlowS = 0;
 double sScreenMinS = 3.0;   // COS_PRECOMPILE_SCREEN_MIN_S
 bool sTargetAll = false;    // auto: the loading screen (when it comes up) waits for the whole warm-up
 bool sSpanish = false;      // the loading screen's language
@@ -173,6 +188,9 @@ struct Progress {
     uint32_t priorityTotal = 0; // the priority pipelines queued (0: none known)
     uint32_t priorityDone = 0;
     double compileS = -1; // compile thread time on the warm-up, -1 = unknown
+    double waitS = 0;     // of compileS, waiting for the GL context (another thread had it)
+    // The builds' own time (compileS without the wait for the GL context), -1 = unknown.
+    double ownS() const { return compileS < 0 ? -1 : compileS - waitS; }
     float throttleDuty = 0; // Switch: the warm-up throttle (0 off), builds held back, time waited
     uint32_t throttled = 0;
     uint32_t unthrottled = 0; // warm-up builds fast enough (a shader cache hit) to be followed at once
@@ -191,6 +209,7 @@ Progress readProgress() {
     p.priorityTotal = s.priorityTotal;
     p.priorityDone = s.priorityDone;
     p.compileS = s.compileNs / 1e9;
+    p.waitS = s.contextWaitNs / 1e9;
     p.throttleDuty = s.throttleDuty;
     p.throttled = s.throttled;
     p.unthrottled = s.unthrottled;
@@ -369,10 +388,15 @@ void programNote(char* out, size_t size, const Progress& p) {
 
 void logLine(const char* what, const Progress& p, unsigned int frames, uint64_t now) {
     const double s = (now - sStartNs) / 1e9;
-    char compile[64] = "";
+    char compile[192] = "";
     if (p.compileS >= 0 && p.done > 0) {
-        snprintf(compile, sizeof(compile), ", compile %.1f s (%.0f ms each)", p.compileS,
-                 p.compileS * 1000 / p.done);
+        // The wait for the GL context (the render worker had it) and the builds slower than
+        // COS_PRECOMPILE_SLOW_MS: for their own work (cache misses), or only for that wait.
+        snprintf(compile, sizeof(compile),
+                 ", compile %.1f s (%.0f ms each; %.1f s of it waiting for the GL context); %llu slow builds, "
+                 "%u of them for their own work%s",
+                 p.compileS, p.compileS * 1000 / p.done, p.waitS, (unsigned long long)sSlowSeq, sSlowOwnTotal,
+                 sSlowLost > 0 ? " (of those read)" : "");
     }
     char programs[256];
     programNote(programs, sizeof(programs), p);
@@ -533,6 +557,10 @@ void precompileInit(const char* cacheDir) {
     if (!(sSlowMs >= 0.0)) {
         sSlowMs = 0.0;
     }
+#if defined(__SWITCH__)
+    // Also the threshold of Aurora's slow build list, from the probe on.
+    aurora_switch_set_warmup_slow_ns((uint64_t)(sSlowMs * 1e6));
+#endif
     // COS_PRECOMPILE_SCREEN_MIN_S (default 3): auto shows the loading screen only when the slow work
     // left would take longer than this; less is built behind the logos.
     const char* minEnv = getenv("COS_PRECOMPILE_SCREEN_MIN_S");
@@ -541,6 +569,14 @@ void precompileInit(const char* cacheDir) {
     }
     if (!(sScreenMinS >= 0.0)) {
         sScreenMinS = 0.0;
+    }
+    {
+        LateGateConfig gate;
+        gate.windowBuilds = kLateWindowBuilds;
+        gate.minSlowBuilds = kLateMinSlowBuilds;
+        gate.minSlowS = kLateMinSlowS;
+        gate.screenMinS = sScreenMinS;
+        sLateGate.setConfig(gate);
     }
     const char* log = getenv("COS_PRECOMPILE_LOG");
     sLog = log == nullptr || log[0] == '\0' ? logDefault : strcmp(log, "0") != 0;
@@ -701,7 +737,7 @@ Probe probe() {
     // build (the warm-up runs back to back meanwhile).
     m.compileKnown = p.compileS >= 0 && p0.compileS >= 0;
     m.eachMs = m.builds == 0 ? m.wallS * 1000.0
-                             : (m.compileKnown ? (p.compileS - p0.compileS) : m.wallS) * 1000.0 / m.builds;
+                             : (m.compileKnown ? (p.ownS() - p0.ownS()) : m.wallS) * 1000.0 / m.builds;
     m.finished = t.finished;
     m.fast = t.finished || (m.builds > 0 && m.eachMs <= sSlowMs);
     if (m.builds == 0) {
@@ -840,7 +876,7 @@ void runLoadingScreen(double estMs) {
     uint32_t slowBuilds = 0;
     double slowS = 0;
     uint32_t prevDone = p.done;
-    double prevCompileS = p.compileS;
+    double prevCompileS = p.ownS();
     uint64_t prevNs = startNs;
     const uint32_t startDone = p.done;
     auto recordedSlowMs = [&]() { return slowBuilds >= 4 ? slowS * 1000.0 / slowBuilds : 0.0; };
@@ -863,13 +899,13 @@ void runLoadingScreen(double estMs) {
         if (p.done > prevDone) {
             const uint32_t builds = p.done - prevDone;
             const bool compileKnown = p.compileS >= 0 && prevCompileS >= 0;
-            const double spentS = compileKnown ? p.compileS - prevCompileS : (now0 - prevNs) / 1e9;
+            const double spentS = compileKnown ? p.ownS() - prevCompileS : (now0 - prevNs) / 1e9;
             if (spentS * 1000.0 / builds > sSlowMs) {
                 slowBuilds += builds;
                 slowS += spentS;
             }
             prevDone = p.done;
-            prevCompileS = p.compileS;
+            prevCompileS = p.ownS();
             prevNs = now0;
         }
         if (t.finished) {
@@ -987,6 +1023,7 @@ void loadingScreen() {
         const Progress now = readProgress();
         sLateDone = now.done;
         sLateCompileS = now.compileS;
+        sLateWaitS = now.waitS;
         return;
     }
     if (sScreen == Screen::Always && sLog) {
@@ -997,13 +1034,65 @@ void loadingScreen() {
     runLoadingScreen(estMs);
 }
 
+// Every game frame while the warm-up runs (Switch patch 0012): logs the builds Aurora found slower
+// than COS_PRECOMPILE_SLOW_MS since the last call - which pipeline, and whether the time went to
+// its own shader work or to waiting for the GL context - and counts, for lateScreenCheck, the
+// warm-up's builds behind the logos that were slow for their own work.
+void drainSlowBuilds() {
+    sFrameSlowBuilds = 0;
+    sFrameSlowS = 0;
+#if defined(__SWITCH__)
+    AuroraSwitchSlowBuild builds[32];
+    const uint64_t prevSeq = sSlowSeq;
+    const uint32_t n = aurora_switch_get_slow_builds(builds, 32, &sSlowSeq);
+    if (n > 0 && builds[0].seq > prevSeq + 1) {
+        sSlowLost += (uint32_t)(builds[0].seq - prevSeq - 1); // more than Aurora's ring keeps
+    }
+    for (uint32_t i = 0; i < n; i++) {
+        const AuroraSwitchSlowBuild& b = builds[i];
+        const double ownMs = (b.ns - (b.waitNs < b.ns ? b.waitNs : b.ns)) / 1e6;
+        const bool slowOwn = ownMs > sSlowMs;
+        if (slowOwn) {
+            sSlowOwnTotal++;
+        }
+        // This frame's warm-up builds behind the logos (lateScreenCheck's sLateDone: the done count
+        // at the previous frame) that were slow for their own work.
+        if (b.warmup && slowOwn && sBehindLogos && b.warmupDone > sLateDone) {
+            sFrameSlowBuilds++;
+            sFrameSlowS += ownMs / 1000.0;
+        }
+        if (!sLog) {
+            continue;
+        }
+        if (sSlowLogged >= kSlowBuildLogMax) {
+            if (sSlowLogged++ == kSlowBuildLogMax) {
+                writef(STDERR_FILENO, "[cos] precompile slow build: more than %u; the rest are not listed\n",
+                       kSlowBuildLogMax);
+            }
+            continue;
+        }
+        sSlowLogged++;
+        writef(STDERR_FILENO,
+               "[cos] precompile slow build %llu: pipeline %016llx (%s, %u/%u built), %.1f ms: tint %.1f, waited "
+               "for the GL context %.1f, held it %.1f ms (%s); frame %u\n",
+               (unsigned long long)b.seq, (unsigned long long)b.hash, b.warmup ? "warm-up" : "for a draw",
+               b.warmupDone, readProgress().total, b.ns / 1e6, b.translateNs / 1e6, b.waitNs / 1e6,
+               b.heldNs / 1e6,
+               slowOwn ? "its own work: a shader cache miss or a slow cache read"
+                       : "slow only for the wait: the render worker had the context, not a cache miss",
+               pc_frame_count());
+    }
+#endif
+}
+
 // With the game started behind no loading screen (auto or priority), every frame while the logos
 // run: whether the builds turned slow (a partly warm shader cache) enough to bring the loading
-// screen up there. auto: at least kLateSlowBuilds slow builds among the recent kLateWindowBuilds,
-// and the queued pipelines left at the recent builds' slow share and cost would take more than
-// COS_PRECOMPILE_SCREEN_MIN_S; priority: the priority set left at the slow builds' pace would take
-// more than kLateMs. Needs the compile thread's time (Switch); once past the logo scene, or with the
-// target built, it stops looking.
+// screen up there. auto: LateGate (pc_precompile_gate.h) over the builds slow for their own work
+// (drainSlowBuilds): a sample big enough (kLateMinSlowBuilds of the last kLateWindowBuilds, or
+// kLateMinSlowS measured) and the slow work left at the recent slow share and cost over
+// COS_PRECOMPILE_SCREEN_MIN_S; priority: the priority set left at the slow builds' pace (own time,
+// the GL context wait left out) would take more than kLateMs. Needs the compile thread's time
+// (Switch); once past the logo scene, or with the target built, it stops looking.
 void lateScreenCheck(const Progress& p) {
     if (!sBehindLogos || sLateChecked) {
         return;
@@ -1015,42 +1104,28 @@ void lateScreenCheck(const Progress& p) {
         return;
     }
     const uint32_t builds = p.done - sLateDone;
-    const double compileS = p.compileS - sLateCompileS;
+    const double compileS = (p.compileS - sLateCompileS) - (p.waitS - sLateWaitS);
     sLateDone = p.done;
     sLateCompileS = p.compileS;
+    sLateWaitS = p.waitS;
     if (builds == 0) {
         return;
     }
-    const bool slow = compileS * 1000.0 / builds > sSlowMs;
     double leftMs = 0;
-    char detail[160];
+    char detail[256];
     if (sScreen == Screen::Auto) {
-        sLateRing[sLateRingPos] = {builds, slow ? builds : 0u, slow ? compileS : 0.0};
-        sLateRingPos = (sLateRingPos + 1) % kLateWindowFrames;
-        if (sLateRingCount < kLateWindowFrames) {
-            sLateRingCount++;
-        }
-        uint32_t windowBuilds = 0;
-        uint32_t windowSlow = 0;
-        double windowSlowS = 0;
-        for (int i = 0; i < sLateRingCount && windowBuilds < kLateWindowBuilds; i++) {
-            const LateSample& s = sLateRing[(sLateRingPos - 1 - i + kLateWindowFrames) % kLateWindowFrames];
-            windowBuilds += s.builds;
-            windowSlow += s.slowBuilds;
-            windowSlowS += s.slowS;
-        }
-        // The slow work left: the pipelines left times the recent builds' slow time per build.
-        leftMs = (t.total - t.done) * windowSlowS * 1000.0 / windowBuilds;
-        if (windowSlow < kLateSlowBuilds || leftMs <= sScreenMinS * 1000.0) {
+        const LateGateVerdict v = sLateGate.add(builds, sFrameSlowBuilds, sFrameSlowS, t.total - t.done);
+        if (!v.screen) {
             return;
         }
+        leftMs = v.leftMs;
         snprintf(detail, sizeof(detail),
-                 "%u of the last %u builds slow, %.0f ms each; %u queued pipelines left, slow work about %.1f s "
-                 "(> COS_PRECOMPILE_SCREEN_MIN_S=%.1f)",
-                 windowSlow, windowBuilds, windowSlowS * 1000.0 / windowSlow, t.total - t.done, leftMs / 1000.0,
-                 sScreenMinS);
+                 "%u of the last %u builds slow, %.0f ms each; %.1f s of slow work measured; %u queued pipelines "
+                 "left, %.0f%% of them slow at that share: about %.1f s (> COS_PRECOMPILE_SCREEN_MIN_S=%.1f)",
+                 v.windowSlow, v.windowBuilds, v.slowEachMs, v.measuredSlowS, t.total - t.done,
+                 v.slowShare * 100.0, leftMs / 1000.0, sScreenMinS);
     } else {
-        if (!slow) {
+        if (!(compileS * 1000.0 / builds > sSlowMs)) {
             return;
         }
         sSlowBuilds += builds;
@@ -1106,6 +1181,7 @@ void precompileFrame(unsigned int frames) {
         return;
     }
     const uint64_t now = monotonicNs();
+    drainSlowBuilds();
     if (sPolicy == Policy::Boot && traceScene() == kPlayScene) {
 #if defined(__SWITCH__)
         stopWarmup("PLAY scene", frames, now);
