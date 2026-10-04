@@ -635,6 +635,27 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
+    # On top of the uniform window: a render pipeline change issues only the fixed-function GL
+    # state calls whose value differs from what the pass's pipelines last set
+    # (COS_SWITCH_GL_STATE_CACHE=0 at run time for the old path).
+    file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/PersistentPipelineStateGL.h"
+         DAWN_OPENGL_PERSISTENT_STATE_TEXT)
+    if(NOT DAWN_OPENGL_PERSISTENT_STATE_TEXT MATCHES "StateCacheEnabled")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-state-cache.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_STATE_CACHE_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_STATE_CACHE_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_STATE_CACHE_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_STATE_CACHE_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL state cache patch:\n"
+                "${DAWN_GL_STATE_CACHE_PATCH_OUTPUT}${DAWN_GL_STATE_CACHE_PATCH_ERROR}")
+        endif()
+    endif()
+
     set(DAWN_WGPU_HELPERS_SOURCE
         "${dawn_SOURCE_DIR}/src/dawn/native/utils/WGPUHelpers.cpp")
     file(READ "${DAWN_WGPU_HELPERS_SOURCE}" DAWN_WGPU_HELPERS_TEXT)
