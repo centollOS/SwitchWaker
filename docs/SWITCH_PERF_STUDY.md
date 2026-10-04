@@ -557,7 +557,10 @@ Changes (each default on, each with an env switch for the A/B, each checked on M
     Expected on a warm start: ~0.1 s of probe instead of ~2.3 s of loading screen before the logo.
   - Mesa patch 0003 keeps an index beside the cache file (`mesa_shader_cache.idx`, 40 bytes per
     record) read with one `read()` at start; expected well under 50 ms for ~3000 entries instead
-    of 860 ms. The first start with it rebuilds the cache once (new driver build id).
+    of 860 ms. The first start with it rebuilds the cache once (new driver build id). Entries
+    unused for 5 runs (a shader change orphans every old entry: 5135 entries, 26.4 MiB, 2241 ms
+    after the uniform window change) are pruned by a background compaction 60 s into a run
+    (`mesa_shader_cache.use`, "Shader cache" in SWITCH_BUILD.md).
 
 ### 7.4 A/B for the next hardware run
 

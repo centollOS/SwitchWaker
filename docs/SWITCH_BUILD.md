@@ -547,7 +547,21 @@ SD card, so a pipeline built once is not compiled again on later runs:
   `.bin`, and a random generation in both headers ties the two files together; records the index
   misses (the app stopped between the two writes) are read one by one and added, and a missing,
   damaged or foreign index is rebuilt from the `.bin` once ("index rebuilt (...)" in the log). The
-  `.bin` keeps its format (version 1). Safety: a file
+  `.bin` keeps its format (version 1). **Pruning:** nothing was ever removed, so a shader change
+  left every old entry in the file (after the uniform window change: 5135 entries, 26.4 MiB,
+  opened in 2241 ms). `mesa_shader_cache.use` records the run in which each entry was last used
+  (stored, or read by a lookup; read with one `read()` at start, written by a maintenance thread
+  every 15 s while it changed and at exit). Once per run, 60 s after start
+  (`MESA_SHADER_CACHE_PRUNE_DELAY`), that thread compacts the file if the entries unused for 5 runs
+  (`MESA_SHADER_CACHE_PRUNE_BOOTS`; 0: never) plus dead records are a quarter of it and at least
+  1 MiB (or any, past three quarters of the size limit): it copies the kept records into
+  `.bin.tmp` through its own descriptor in 512 KiB steps (the game and the compile thread keep
+  using the cache meanwhile), then, holding the cache's lock for the swap only, adds the records
+  written meanwhile, writes the new index and replaces the files. A start that finds `.bin.tmp`
+  without `.bin` (stopped mid-swap) takes it; other leftover `.tmp` files are deleted. An entry
+  missing from, or a damaged, `.use` counts as used in the current run, so nothing is pruned on a
+  guess. Mesa's GLSL-cache entries of programs Dawn loads as binaries are not read again and so
+  get pruned after 5 runs: they only matter if Dawn's binary is lost, and are rebuilt then. Safety: a file
   from another driver build (the build is named by `MESA_SWITCH_CACHE_ID`, a hash of Mesa's source
   and every patch, written by `build_mesa.sh`), of another format version or with a bad header is
   emptied; a torn last record (the app stopped mid-write) is cut off; a damaged entry is a miss and
@@ -573,7 +587,8 @@ SD card, so a pipeline built once is not compiled again on later runs:
 
   ```
   [switch] shader cache: MESA_SHADER_CACHE_DIR=/switch/centollos/native/user/cache
-  [switch] shader cache: /switch/.../user/cache/mesa_shader_cache.bin: N entries, M MiB, opened in T ms; index: R records in one read (max 256 MiB)
+  [switch] shader cache: /switch/.../user/cache/mesa_shader_cache.bin: N entries, M MiB, opened in T ms; index: R records in one read; U unused for 5+ runs; run B (max 256 MiB)
+  [switch] shader cache: compacted /switch/.../mesa_shader_cache.bin in T ms: K of N entries kept, U unused for 5+ runs dropped, M MiB -> M' MiB (run B)   <- at most once a run
   [switch] shader compile: compiles C (D deferred) X ms; links L (F from cache) Y ms = glsl G + st S; nvc0 T (H from cache) Z ms; binaries loaded B (R refused) W ms, saved V W ms; cache gets ... puts ...; dawn binaries: formats 1, hits h, misses m, refused r, stored s (M MiB)
   ```
 
@@ -588,7 +603,10 @@ SD card, so a pipeline built once is not compiled again on later runs:
 - **Checked off the console** (`build_mesa.sh --test`): the file's persistence, removal, torn tail,
   damaged entry, another driver build and size limit; the index with 3000 entries (read at once,
   rebuilt when missing, torn, damaged in the middle, of another generation or for a `.bin` from
-  before it, records it misses read from the `.bin`, a torn `.bin` under a whole index); nvc0 code from the cache identical to a fresh
+  before it, records it misses read from the `.bin`, a torn `.bin` under a whole index); pruning
+  (entries unused for N runs dropped by a compaction, the rest still readable and indexed, writes
+  after it, a swap interrupted at either point, a damaged use file, the maintenance thread doing
+  it by itself); nvc0 code from the cache identical to a fresh
   translation (code, header, state, relocations and fixups, GM20B); and through the GL API (OSMesa
   on softpipe with a test-only disk cache hook), a second run links every program from the cache
   with every compile deferred, draws the same pixels as the first, loads the saved program binaries

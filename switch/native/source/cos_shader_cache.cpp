@@ -14,7 +14,8 @@
 //
 // Log: "[switch] shader cache: <file>: N entries, ... MiB, opened in T ms" once Mesa has opened it
 // (or why it is off), and "[switch] shader compile: ..." with Mesa's compile counters and timers
-// and Dawn's program binary counts, every 15 s while they change and at exit.
+// and Dawn's program binary counts, every 15 s while they change and at exit; "[switch] shader
+// cache: compacted ..." when Mesa's maintenance thread pruned stale entries (once a run at most).
 #include "cos_switch_internal.h"
 
 #include <cstdint>
@@ -37,6 +38,7 @@ namespace {
 constexpr const char* kDefaultDir = COS_SWITCH_ROOT "/user/cache";
 
 bool gStatusShown = false;
+bool gMaintenanceShown = false;
 uint64_t gLastSignature = 0;
 
 double ms(uint64_t ns) { return ns / 1e6; }
@@ -56,10 +58,13 @@ int cos_switch_shader_cache_setup(char* note, size_t size) {
         char path[512];
         snprintf(path, sizeof(path), "%s/mesa_shader_cache.bin", getenv("MESA_SHADER_CACHE_DIR"));
         const int removed = unlink(path) == 0;
-        // And its index (mesa_shader_cache.idx; a leftover one would be rebuilt anyway).
-        char idx[512];
-        snprintf(idx, sizeof(idx), "%s/mesa_shader_cache.idx", getenv("MESA_SHADER_CACHE_DIR"));
-        unlink(idx);
+        // And its index and use record (a leftover index would be rebuilt anyway).
+        static const char* const kSides[] = {"idx", "use"};
+        for (const char* side : kSides) {
+            char other[512];
+            snprintf(other, sizeof(other), "%s/mesa_shader_cache.%s", getenv("MESA_SHADER_CACHE_DIR"), side);
+            unlink(other);
+        }
         return snprintf(note, size, "[switch] shader cache: COS_SWITCH_SHADER_CACHE=reset: %s %s\n",
                         removed ? "deleted" : "no", path);
     }
@@ -81,6 +86,12 @@ int cos_switch_shader_cache_report(char* out, size_t size, int force) {
     if (opened && !gStatusShown) {
         gStatusShown = true;
         n += snprintf(out + n, size - n, "[switch] shader cache: %s\n", status);
+    }
+    // The cache's maintenance thread compacts it at most once a run (stale entries pruned).
+    const char* maintenance = mesa_switch_shader_cache_maintenance();
+    if (maintenance[0] != '\0' && !gMaintenanceShown && (size_t)n < size) {
+        gMaintenanceShown = true;
+        n += snprintf(out + n, size - n, "[switch] shader cache: %s\n", maintenance);
     }
     uint64_t s[MESA_SWITCH_STAT_COUNT] = {};
     mesa_switch_get_stats(s, MESA_SWITCH_STAT_COUNT);

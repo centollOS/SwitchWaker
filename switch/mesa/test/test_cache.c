@@ -12,6 +12,8 @@
 #include "tgsi/tgsi_parse.h"
 #include "nvc0/nvc0_context.h"
 #include "nvc0/nvc0_program.h"
+bool disk_cache_switch_maintain(struct disk_cache *cache, int mode);
+const char *mesa_switch_shader_cache_maintenance(void);
 int compare_relocs_fixups(const void *ra, const void *rb, const void *fa, const void *fb, unsigned *nfix);
 
 static int failures;
@@ -20,6 +22,7 @@ static int failures;
 static const char *dir = "/tmp/decomp-cache-test";
 static char path[256];
 static char idx_path[256];
+static char use_path[256];
 
 static long fsize(void) { struct stat st; return stat(path, &st) == 0 ? st.st_size : -1; }
 static long isize(void) { struct stat st; return stat(idx_path, &st) == 0 ? st.st_size : -1; }
@@ -252,6 +255,113 @@ static void test_store(void)
    unsetenv("MESA_SHADER_CACHE_DISABLE");
 }
 
+
+/* Pruning: entries unused for MESA_SHADER_CACHE_PRUNE_BOOTS runs leave the file at a compaction,
+ * which keeps every other entry readable and the index and use files consistent. */
+static void test_prune(void)
+{
+   setenv("MESA_SHADER_CACHE_PRUNE_BOOTS", "2", 1);
+   unlink(path); unlink(idx_path); unlink(use_path);
+   enum { NA = 60, NB = 20, SA = 20000, SB = 1000 };
+   static char payload[SA];
+   cache_key a[NA], b[NB], k;
+   struct disk_cache *c = NULL;
+   const char *s = reopen(&c, "id-prune");                          /* run 1: A and B */
+   CHECK(strstr(s, "; run 1"));
+   for (unsigned i = 0; i < NA; i++) {
+      unsigned v = 1000 + i;
+      disk_cache_compute_key(c, &v, sizeof(v), a[i]);
+      memset(payload, (int)i, SA);
+      disk_cache_put(c, a[i], payload, SA, NULL);
+   }
+   for (unsigned i = 0; i < NB; i++) {
+      unsigned v = 2000 + i;
+      disk_cache_compute_key(c, &v, sizeof(v), b[i]);
+      memset(payload, (int)(i + 100), SB);
+      disk_cache_put(c, b[i], payload, SB, NULL);
+   }
+   s = reopen(&c, "id-prune");                                      /* run 2: B used */
+   CHECK(strstr(s, ": 80 entries") && strstr(s, "; run 2") && !strstr(s, "unused"));
+   size_t sz; void *d;
+   for (unsigned i = 0; i < NB; i++) { d = disk_cache_get(c, b[i], &sz); CHECK(d && sz == SB); free(d); }
+   CHECK(!disk_cache_switch_maintain(c, 1));                        /* nothing stale yet */
+   s = reopen(&c, "id-prune");                                      /* run 3: A unused for 2 runs */
+   CHECK(strstr(s, ": 80 entries") && strstr(s, "; 60 unused for 2+ runs") && strstr(s, "; run 3"));
+   long before = fsize();
+   CHECK(mesa_switch_shader_cache_maintenance()[0] == '\0');
+   CHECK(disk_cache_switch_maintain(c, 1));
+   printf("maintenance: %s\n", mesa_switch_shader_cache_maintenance());
+   CHECK(strstr(mesa_switch_shader_cache_maintenance(), "20 of 80 entries kept, 60 unused for 2+ runs dropped"));
+   CHECK(fsize() == 48 + NB * (32 + SB) && fsize() < before);
+   CHECK(isize() == 32 + 40 * NB);
+   CHECK(disk_cache_get(c, a[0], &sz) == NULL);
+   for (unsigned i = 0; i < NB; i++) {
+      d = disk_cache_get(c, b[i], &sz);
+      CHECK(d && sz == SB && ((unsigned char *)d)[SB - 1] == (unsigned char)(i + 100));
+      free(d);
+   }
+   disk_cache_compute_key(c, "after", 5, k);                         /* writes go on after it */
+   disk_cache_put(c, k, "after", 6, NULL);
+   d = disk_cache_get(c, k, &sz); CHECK(d && strcmp(d, "after") == 0); free(d);
+   s = reopen(&c, "id-prune");
+   CHECK(strstr(s, ": 21 entries") && strstr(s, "index: 21 records in one read") && !strstr(s, "unused"));
+   d = disk_cache_get(c, b[3], &sz); CHECK(d && sz == SB); free(d);
+   CHECK(!disk_cache_switch_maintain(c, 1));                        /* nothing worth it now */
+
+   /* Stopped between replacing the files: the .tmp ones are taken. */
+   disk_cache_destroy(c); c = NULL;
+   char bin_tmp[300], idx_tmp[300];
+   snprintf(bin_tmp, sizeof(bin_tmp), "%s.tmp", path);
+   snprintf(idx_tmp, sizeof(idx_tmp), "%s.tmp", idx_path);
+   CHECK(rename(path, bin_tmp) == 0 && rename(idx_path, idx_tmp) == 0);
+   s = reopen(&c, "id-prune");
+   CHECK(strstr(s, ": 21 entries") && strstr(s, "took the file of an interrupted compaction") &&
+         strstr(s, "index: 21 records in one read"));
+   d = disk_cache_get(c, k, &sz); CHECK(d && strcmp(d, "after") == 0); free(d);
+
+   /* Stopped during the copy: the .tmp left behind is deleted, the file is untouched. */
+   disk_cache_destroy(c); c = NULL;
+   FILE *f = fopen(bin_tmp, "wb"); fwrite("partial", 1, 7, f); fclose(f);
+   s = reopen(&c, "id-prune");
+   CHECK(strstr(s, ": 21 entries") && !strstr(s, "interrupted") && access(bin_tmp, F_OK) != 0);
+
+   /* A damaged use file: every entry counts as used, nothing is pruned. */
+   disk_cache_destroy(c); c = NULL;
+   poke(use_path, 40, "\x99", 1);
+   s = reopen(&c, "id-prune");
+   CHECK(strstr(s, ": 21 entries") && !strstr(s, "unused"));
+   /* Forced with nothing stale: the same entries, compacted file. */
+   CHECK(disk_cache_switch_maintain(c, 2));
+   CHECK(strstr(mesa_switch_shader_cache_maintenance(), "21 of 21 entries kept, 0 unused"));
+   s = reopen(&c, "id-prune");
+   CHECK(strstr(s, ": 21 entries") && strstr(s, "index: 21 records in one read"));
+   disk_cache_destroy(c); c = NULL;
+
+   /* The maintenance thread does it by itself (MESA_SHADER_CACHE_PRUNE_DELAY after creation, at
+    * its first wake-up 15 s in), while the cache stays usable. */
+   setenv("MESA_SHADER_CACHE_PRUNE_BOOTS", "1", 1);
+   setenv("MESA_SHADER_CACHE_PRUNE_DELAY", "0", 1);
+   reopen(&c, "id-prune-2");                                         /* emptied: a new build */
+   for (unsigned i = 0; i < NA; i++) {
+      memset(payload, (int)i, SA);
+      disk_cache_put(c, a[i], payload, SA, NULL);
+   }
+   disk_cache_put(c, b[0], "keep", 5, NULL);
+   s = reopen(&c, "id-prune-2");
+   CHECK(strstr(s, ": 61 entries") && strstr(s, "61 unused for 1+ runs"));
+   d = disk_cache_get(c, b[0], &sz); CHECK(d && strcmp(d, "keep") == 0); free(d);
+   sleep(17);
+   printf("maintenance: %s\n", mesa_switch_shader_cache_maintenance());
+   CHECK(strstr(mesa_switch_shader_cache_maintenance(), "1 of 61 entries kept, 60 unused for 1+ runs dropped"));
+   d = disk_cache_get(c, b[0], &sz); CHECK(d && strcmp(d, "keep") == 0); free(d);
+   CHECK(disk_cache_get(c, a[1], &sz) == NULL);
+   s = reopen(&c, "id-prune-2");
+   CHECK(strstr(s, ": 1 entries") && strstr(s, "index: 1 records in one read"));
+   disk_cache_destroy(c);
+   unsetenv("MESA_SHADER_CACHE_PRUNE_DELAY");
+   unsetenv("MESA_SHADER_CACHE_PRUNE_BOOTS");
+}
+
 static const char *vs_text =
    "VERT\n"
    "DCL IN[0]\nDCL IN[1]\nDCL IN[2]\n"
@@ -310,8 +420,10 @@ int main(void)
    setenv("MESA_SHADER_CACHE_DIR", dir, 1);
    snprintf(path, sizeof(path), "%s/mesa_shader_cache.bin", dir);
    snprintf(idx_path, sizeof(idx_path), "%s/mesa_shader_cache.idx", dir);
+   snprintf(use_path, sizeof(use_path), "%s/mesa_shader_cache.use", dir);
    test_store();
    test_index();
+   test_prune();
 
    unlink(path);
    struct disk_cache *c = disk_cache_create("GM20B", "id-3", 0);
