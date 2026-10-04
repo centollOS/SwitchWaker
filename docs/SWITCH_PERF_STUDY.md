@@ -310,3 +310,31 @@ worker CPU ticks (timer 4); `execute` with glFinish on; pass-0 begin ticks; game
 - devkitPro switch-mesa history (the port dates from 2018; the console runs 20.1.0-rc3):
   https://devkitpro.org/viewtopic.php?p=16134 , https://devkitpro.org/viewtopic.php?p=16211
 - Switch libdrm_nouveau port (push-buffer submission via libnx): https://github.com/devkitPro/libdrm_nouveau
+
+## Appendix B - opt-in GPU switches for the A/B session (lane/gpu-opts)
+
+All off by default; `env.txt` variants in `build/switch-envs/` (`shadowoff`, `shadowgc`, `fbocache`,
+`nodof`, `best` = 960x540 + shadowoff + fbocache, `bestnodof`).
+
+- **`COS_SHADOW_OFFSCREEN=1`** (option a1; `d_drawlist.cpp`, `pc_gpu_opts.cpp`): the casters go into
+  a `GXCreateFrameBuffer` target the pixel size of their 256x256 EFB corner (512x384 at 1280x720),
+  copied at the size Aurora gave the 128x128 copy (256x192). Mac, same frame, both paths rendered
+  into separate copy textures and drawn side by side: pixel-identical at 2560x1440, 1280x720 and
+  960x540. Pass count does not change (one offscreen segment per shadow instead of one EFB segment,
+  plus a discarded trailing offscreen segment): with two shadows 5 GX segments, 4 resolves and 2
+  partial-clear draws either way, but the render targets bound per frame go from 4.61 to 3.16 Mpx,
+  the main EFB is no longer split and reloaded per shadow, and the post-copy depth clears become
+  full-target clears. Expect a small GPU gain (well under the 1-3 ms of the table's upper bound;
+  the per-pass GPU timer will tell). `=gc` renders at the GameCube's 256x256/128x128 at any
+  resolution: a third of the caster pixels, softer shadows.
+- **`COS_SWITCH_GL_FBO_CACHE=1`** (option c; `dawn-switch-gl-fbo-cache.patch`): CPU-side only (Gen/
+  attach/DrawBuffers/Delete per pass, the READ unbind, repeated viewport/scissor/depth range);
+  not testable on the Mac (Metal). Read it in the `execute split` fbo column.
+- **`COS_DOF=0`** (`m_Do_graphic.cpp` drawDepth): no Z16 copy, no half-size colour copy, no
+  full-screen composite unless monotone or motion blur is on; letterbox bars kept. Mac, two
+  shadows: 5 GX segments / 4 resolves become 3 / 2 (Dawn passes 11 -> 7 with the overlay). Far
+  scenery is no longer softened.
+
+Note for Mac pixel compares: outset-control runs are not frame-reproducible across processes at
+16:9 (camera timing differs from run to run), so A/B image checks must render both variants in the
+same frame, as done for the shadows.
