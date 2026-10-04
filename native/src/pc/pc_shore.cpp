@@ -25,7 +25,14 @@
 // as shot-<frame>.png in the run directory. Exit 0 or 1. Reproduced on the Mac by putting Tint's
 // GL arithmetic into Aurora's vertex shader (z' = 2z - w, then z'/w * 0.5 + 0.5, times w): three
 // flicker frames (as low as 34 % of their neighbours) where Metal itself stays above 98 %.
+//
+// COS_ACTOR_LIST=<frame>[,<frame>...] logs every actor at those game frames (process name, its
+// dStage name, room, position, angle, parameters and argument), to aim COS_CAMERA at an NPC.
 #include "pc_internal.h"
+
+#include "d/d_com_inf_game.h"
+#include "d/d_stage.h"
+#include "f_op/f_op_actor_mng.h"
 
 #include <algorithm>
 #include <cerrno>
@@ -141,7 +148,43 @@ void measureFrame(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t 
 
 } // namespace
 
+namespace {
+void* listActor(void* proc, void*) {
+    fopAc_ac_c* ac = (fopAc_ac_c*)proc;
+    const s16 name = fopAcM_GetName(ac);
+    const char* stage = dStage_getName(name, -1);
+    if (stage == nullptr || (unsigned char)stage[0] >= 0x80) {
+        stage = dStage_getName(name, 0);
+    }
+    writef(STDERR_FILENO, "[cos] actor %d %s room %d pos %.0f %.0f %.0f angle %d params %08x argument %d\n", (int)name,
+           stage != nullptr && (unsigned char)stage[0] < 0x80 ? stage : "-", (int)fopAcM_GetRoomNo(ac),
+           (double)ac->current.pos.x, (double)ac->current.pos.y, (double)ac->current.pos.z,
+           (int)ac->shape_angle.y, (unsigned)fopAcM_GetParam(ac), (int)ac->argument);
+    return nullptr;
+}
+
+void actorListFrame(unsigned int frames) {
+    static const char* list = getenv("COS_ACTOR_LIST");
+    if (list == nullptr || list[0] == '\0') {
+        return;
+    }
+    for (const char* p = list; *p != '\0';) {
+        char* end = nullptr;
+        const unsigned long f = strtoul(p, &end, 10);
+        if (end == p) {
+            return;
+        }
+        if (f == frames) {
+            writef(STDERR_FILENO, "[cos] actor list frame %u\n", frames);
+            fopAcIt_Judge(listActor, nullptr);
+        }
+        p = *end == ',' ? end + 1 : end;
+    }
+}
+} // namespace
+
 void shoreFoamFrame(unsigned int frames) {
+    actorListFrame(frames);
     if (!sChecked) {
         sChecked = true;
         if (gConfig.smoke == nullptr || strcmp(gConfig.smoke, "shore-foam") != 0) {
