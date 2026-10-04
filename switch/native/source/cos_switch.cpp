@@ -14,6 +14,8 @@
 // Switch defaults (setenv without overwrite): COS_DISC (the shared GZLE01.iso), COS_RUN_DIR (the
 // native directory, for backtrace.txt), COS_PERF_EVERY=60, COS_STALL_S=90 and COS_ASPECT=16:9 (the
 // console's 1280x720 screen; COS_ASPECT=4:3 in env.txt gives the GameCube picture, pillarboxed).
+// COS_SWITCH_GPU_PROFILE (460 by default, 384, default) picks the console maker's handheld performance
+// configuration through apm (CPU 1020 MHz always); the previous one is restored at exit.
 //
 // Crash report: libnx's user exception handler prints the exception, the registers, the thread,
 // the NRO's load address and a frame-pointer backtrace as offsets into centollos.elf (for addr2line),
@@ -285,18 +287,106 @@ const char* appletTypeName(AppletType type) {
     }
 }
 
+// ---- handheld GPU profile (apm) -------------------------------------------------------------------
+// the console maker's official performance configurations, set through apm the way a retail game asks for
+// them: the CPU stays at the stock 1020 MHz, only the handheld GPU clock goes up. From switchbrew,
+// PTM services, "PerformanceConfiguration" (https://switchbrew.org/wiki/PTM_services):
+//   id          CPU     GPU     EMC
+//   0x00020003  1020.0  307.2   1331.2   handheld default
+//   0x00020004  1020.0  384.0   1331.2
+//   0x92220008  1020.0  460.8   1331.2
+//   0x00010001  1020.0  768.0   1600.0   docked default (left alone: nothing faster at CPU 1020)
+//   0x00010000  1020.0  384.0   1600.0 / 0x92220007 1020.0 460.8 1600.0   (EMC 1600; not used here:
+//               switchbrew does not say they are accepted in handheld, try with COS_SWITCH_GPU_PROFILE=0x...)
+// ApmPerformanceMode_Normal is handheld, _Boost docked. apm keeps one configuration per mode and
+// switches between them itself when the console is docked or undocked (libnx's own
+// __nx_applet_PerformanceConfiguration sets both once at start), so nothing is re-applied on a
+// mode change. libnx's appletInitialize already opened apm for an application (apmInitialize is
+// reference counted); in applet mode apm is not available to homebrew and the profile is skipped.
+// COS_SWITCH_GPU_PROFILE=460 (default) | 384 | default | 0x<configuration id>; 460 falls back to
+// 384, then to the system's own configuration, logging each Result.
+bool gApmChanged = false;
+u32 gApmSaved = 0;
+
+void applyGpuProfile() {
+    const char* profile = getenv("COS_SWITCH_GPU_PROFILE");
+    if (profile == nullptr || profile[0] == '\0') {
+        profile = "460";
+    }
+    if (strcmp(profile, "default") == 0) {
+        sayf("[switch] gpu profile: default (handheld configuration left to the system)\n");
+        return;
+    }
+    const AppletType applet = appletGetAppletType();
+    if (applet != AppletType_Application && applet != AppletType_SystemApplication) {
+        sayf("[switch] gpu profile %s skipped: apm needs title mode (application)\n", profile);
+        return;
+    }
+    u32 chain[3] = {};
+    int count = 0;
+    if (strcmp(profile, "460") == 0) {
+        chain[count++] = 0x92220008;
+        chain[count++] = 0x00020004;
+    } else if (strcmp(profile, "384") == 0) {
+        chain[count++] = 0x00020004;
+    } else {
+        chain[count++] = (u32)strtoul(profile, nullptr, 0);
+    }
+    Result rc = apmInitialize();
+    if (R_FAILED(rc)) {
+        sayf("[switch] gpu profile %s: apmInitialize failed rc 0x%x; system default kept\n", profile,
+             (unsigned)rc);
+        return;
+    }
+    rc = apmGetPerformanceConfiguration(ApmPerformanceMode_Normal, &gApmSaved);
+    sayf("[switch] gpu profile %s: handheld configuration before 0x%08x (rc 0x%x)\n", profile,
+         (unsigned)gApmSaved, (unsigned)rc);
+    if (R_FAILED(rc)) {
+        gApmSaved = 0x00020003; // the handheld default, to restore at exit
+    }
+    for (int i = 0; i < count; i++) {
+        rc = apmSetPerformanceConfiguration(ApmPerformanceMode_Normal, chain[i]);
+        sayf("[switch] gpu profile: set handheld configuration 0x%08x: rc 0x%x%s\n", (unsigned)chain[i],
+             (unsigned)rc, R_SUCCEEDED(rc) ? "" : " (failed)");
+        if (R_SUCCEEDED(rc)) {
+            gApmChanged = true;
+            return;
+        }
+    }
+    sayf("[switch] gpu profile: no configuration accepted; system default kept\n");
+}
+
+void restoreGpuProfile() {
+    if (!gApmChanged) {
+        return;
+    }
+    gApmChanged = false;
+    const Result rc = apmSetPerformanceConfiguration(ApmPerformanceMode_Normal, gApmSaved);
+    sayf("[switch] gpu profile: restored handheld configuration 0x%08x: rc 0x%x\n", (unsigned)gApmSaved,
+         (unsigned)rc);
+}
+
 } // namespace
 
 extern "C" int cos_switch_describe_mode(char* out, size_t size) {
     const char* mode = appletGetOperationMode() == AppletOperationMode_Console ? "docked" : "handheld";
-    u32 gpu = 0, emc = 0;
+    // The configuration apm is applying now (application only; 0 when it cannot be read).
+    u32 config = 0;
+    const AppletType applet = appletGetAppletType();
+    if (applet == AppletType_Application || applet == AppletType_SystemApplication) {
+        appletGetCurrentPerformanceConfiguration(&config);
+    }
+    u32 cpu = 0, gpu = 0, emc = 0;
+    const bool cpuOk = readClock(PcvModuleId_CpuBus, PcvModule_CpuBus, &cpu);
     const bool gpuOk = readClock(PcvModuleId_GPU, PcvModule_GPU, &gpu);
     const bool emcOk = readClock(PcvModuleId_EMC, PcvModule_EMC, &emc);
-    if (!gpuOk && !emcOk) {
-        return snprintf(out, size, "%s, clocks unavailable (%s rc 0x%x)", mode,
-                        hosversionAtLeast(8, 0, 0) ? "clkrst" : "pcv", (unsigned)gClockServiceRc);
+    if (!cpuOk && !gpuOk && !emcOk) {
+        return snprintf(out, size, "%s, config 0x%08x, clocks unavailable (%s rc 0x%x)", mode,
+                        (unsigned)config, hosversionAtLeast(8, 0, 0) ? "clkrst" : "pcv",
+                        (unsigned)gClockServiceRc);
     }
-    return snprintf(out, size, "%s, gpu %.1f MHz, emc %.1f MHz", mode, gpu / 1e6, emc / 1e6);
+    return snprintf(out, size, "%s, config 0x%08x, cpu %.1f MHz, gpu %.1f MHz, emc %.1f MHz", mode,
+                    (unsigned)config, cpu / 1e6, gpu / 1e6, emc / 1e6);
 }
 
 namespace {
@@ -418,6 +508,7 @@ void __libnx_exception_handler(ThreadExceptionDump* ctx) {
         }
     }
     crashReport(ctx);
+    restoreGpuProfile();
     cos_switch_flush_logs();
     usb_log_stop(1000);
     // Not handled: the kernel goes on as without this handler (Atmosphère's crash report, then the
@@ -460,6 +551,10 @@ void cos_switch_start(int argc, char** argv) {
     setDefault("COS_ASPECT", "16:9");
     // The internal resolution: 1280x720, the screen's (COS_FB_SCALE=1.125 960x540, 1.0 854x480).
     setDefault("COS_FB_SCALE", "1.5");
+    applyGpuProfile();
+    char mode[160];
+    cos_switch_describe_mode(mode, sizeof(mode));
+    sayf("[switch] clocks after the gpu profile: %s\n", mode);
 }
 
 void cos_switch_flush_logs(void) {
@@ -483,6 +578,7 @@ void cos_switch_exit(int code) {
             svcSleepThread(1000000000ULL);
         }
     }
+    restoreGpuProfile();
     reportMemory();
     sayf("[switch] exit %d after %u threads; ending the process\n", code, cos_switch_threads_created());
     cos_switch_flush_logs();

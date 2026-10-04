@@ -335,11 +335,22 @@ audio thread, the game's DVD thread (`mDoDvdThd`) and all other threads together
 worker, Dawn's and the log threads). A render worker CPU time well below its busy wall time (first
 line) means the worker waits rather than works: for the GPU inside Mesa, or for a core another
 thread holds (study, timer 4). The hitch line has the same five numbers for the hitch frame.
-The line ends with the operation mode (handheld or docked) and the GPU and memory controller (EMC)
-clocks at that moment (clkrst, or pcv before firmware 8.0.0; "clocks unavailable" if the service
+The line ends with the operation mode (handheld or docked), the apm performance configuration in
+force and the CPU, GPU and memory controller (EMC) clocks at that moment (clkrst, or pcv before firmware 8.0.0; "clocks unavailable" if the service
 refuses the app); the `[switch] centollos native:` start-up line has the same. At stock the GPU runs at
 307.2 or 384 MHz handheld and 768 MHz docked, so the same frame can be GPU-bound in one mode and
 not in the other: always note the mode next to a measurement.
+Handheld GPU profile: at start the app asks apm (`apmSetPerformanceConfiguration`, handheld =
+`ApmPerformanceMode_Normal`) for one of the console maker's official configurations, CPU always at the stock
+1020 MHz (switchbrew, PTM services, PerformanceConfiguration): `COS_SWITCH_GPU_PROFILE=460` (the
+default; `0x92220008`, GPU 460.8 MHz, EMC 1331.2), `384` (`0x00020004`, GPU 384, EMC 1331.2),
+`default` (the system's, `0x00020003`, GPU 307.2) or a raw `0x...` id. 460 falls back to 384, then
+to the system's; every Result is logged (`[switch] gpu profile:`), then `[switch] clocks after the
+gpu profile:` reads the clocks back. apm keeps a configuration per mode and swaps them on docking,
+so docked stays at the system's 768 MHz (no official docked configuration with CPU 1020 is faster)
+and nothing is re-applied. The previous handheld configuration is restored at exit and on a crash.
+Title mode only (apm is the application's service). Env files for the 720p target:
+`build/switch-envs/default720-460.txt` and `default720-384.txt`.
 `COS_SWITCH_GL_NO_ERROR=1` in `env.txt` makes Dawn ask for a `KHR_no_error` GL context
 (`switch/dawn/patches/dawn-switch-gl-no-error-context.patch`), in which Mesa skips the error
 checks of every GL call, draw and uniform validation included; `[dawn] COS_SWITCH_GL_NO_ERROR:` in
