@@ -13,6 +13,12 @@
  *                         256x256 target and 128x128 textures (at 1280x720, a third of the caster
  *                         pixels and a quarter of the copy texels); shadow edges are softer/blockier,
  *                         as on the console. For measurement.
+ * COS_DOF=0               drawDepth (m_Do_graphic.cpp, every play frame: the distance blur, i.e.
+ *                         depth of field) is skipped while neither the monotone (grey) effect nor
+ *                         the motion blur (which reads drawDepth's colour copy) is on: far scenery
+ *                         is no longer softened. Gone with it: the Z16 copy of the depth buffer and
+ *                         the half-size colour copy (two EFB pass breaks and their conversion
+ *                         passes) and the full-screen composite. For measurement.
  *
  * The first call of each reads its variable; game code calls them on the game thread only.
  */
@@ -38,6 +44,9 @@ void pc_efb_pixel_size(unsigned int logicalW, unsigned int logicalH, unsigned in
 /* Logs the offscreen shadow target's size the first time and whenever it changes. */
 void pc_shadow_offscreen_opened(unsigned int w, unsigned int h, unsigned int copyW,
                                 unsigned int copyH);
+
+/* Zero when COS_DOF=0 (the depth-of-field composite is skipped where that is safe). */
+int pc_dof_enabled(void);
 
 #ifdef __cplusplus
 }

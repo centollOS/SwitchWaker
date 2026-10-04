@@ -6,6 +6,7 @@
 #include "m_Do/machine.h" // IWYU pragma: keep
 #if TARGET_PC
 #include "pc/pc_aspect.h"
+#include "pc/pc_gpu_opts.h"
 #endif
 #include "m_Do/m_Do_graphic.h"
 #include "SSystem/SComponent/c_lib.h"
@@ -675,6 +676,14 @@ void drawDepth(view_class* view, view_port_class* viewport, int depth) {
     u16 hh = h >> 1;
     GXSetCopyFilter(GX_FALSE, NULL, GX_TRUE, JUTGetVideoManager()->getRenderMode()->vfilter);
 
+#if TARGET_PC
+    // COS_DOF=0 (pc_gpu_opts.h): no depth of field while neither the monotone effect nor the
+    // motion blur (motionBlure reads the colour copy) needs it. The copies and the composite quad
+    // are left out; the letterbox bars and the scissor/projection at the end are not.
+    const bool dof = pc_dof_enabled() || mDoGph_gInf_c::isMonotone() || mDoGph_gInf_c::isBlure();
+    if (dof)
+#endif
+    {
     GXSetTexCopySrc(x, y, w, h);
     GXSetTexCopyDst(hw, hh, GX_TF_Z16, GX_TRUE);
     GXCopyTex(zbuf, GX_FALSE);
@@ -682,6 +691,7 @@ void drawDepth(view_class* view, view_port_class* viewport, int depth) {
     GXSetTexCopySrc(x, y, w, h);
     GXSetTexCopyDst(hw, hh, (GXTexFmt)mDoGph_gInf_c::getFrameBufferTimg()->format, GX_TRUE);
     GXCopyTex(fbbuf, GX_FALSE);
+    }
 
     GXInitTexObj(mDoGph_gInf_c::getZbufferTexObj(), zbuf, hw, hh, GX_TF_IA8, GX_CLAMP, GX_CLAMP, GX_FALSE);
     GXInitTexObjLOD(mDoGph_gInf_c::getZbufferTexObj(), GX_NEAR, GX_NEAR, 0.0f, 0.0f, 0.0f, GX_FALSE, GX_FALSE, GX_ANISO_1);
@@ -692,8 +702,13 @@ void drawDepth(view_class* view, view_port_class* viewport, int depth) {
 #if VERSION == VERSION_PAL
     GXInvalidateTexAll();
 #endif
+#if TARGET_PC
+    if (dof)
+#endif
+    {
     GXLoadTexObj(mDoGph_gInf_c::getFrameBufferTexObj(), GX_TEXMAP1);
     GXLoadTexObj(mDoGph_gInf_c::getZbufferTexObj(), GX_TEXMAP0);
+    }
 #if VERSION <= VERSION_JPN
     mDoGph_gInf_c::calcFade();
 #endif
@@ -757,6 +772,10 @@ void drawDepth(view_class* view, view_port_class* viewport, int depth) {
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_S16, 0);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_S8, 0);
 
+#if TARGET_PC
+    if (dof)
+#endif
+    {
     GXBegin(GX_QUADS, GX_VTXFMT0, 4);
         GXPosition3s16(x, y, -5);
         GXTexCoord2s8(0, 0);
@@ -770,6 +789,7 @@ void drawDepth(view_class* view, view_port_class* viewport, int depth) {
         GXPosition3s16(x, h, -5);
         GXTexCoord2s8(0, 1);
     GXEnd();
+    }
 
     GXSetTevSwapModeTable(GX_TEV_SWAP3, GX_CH_BLUE, GX_CH_BLUE, GX_CH_BLUE, GX_CH_ALPHA);
     GXSetTevSwapMode(GX_TEVSTAGE0, GX_TEV_SWAP0, GX_TEV_SWAP0);

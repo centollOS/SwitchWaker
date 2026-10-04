@@ -15,6 +15,7 @@ namespace {
 
 // -1 until the first call reads the variable.
 int sShadowOffscreen = -1;
+int sDof = -1;
 
 bool envIs(const char* name, const char* value) {
     const char* v = getenv(name);
@@ -65,6 +66,16 @@ void pc_shadow_offscreen_opened(unsigned int w, unsigned int h, unsigned int cop
         pc::writef(STDERR_FILENO, "[cos] shadow offscreen target %ux%u, I4 copies %ux%u (frame %u)\n", w, h,
                    copyW, copyH, pc_frame_count());
     }
+}
+
+int pc_dof_enabled(void) {
+    if (sDof < 0) {
+        sDof = envIs("COS_DOF", "0") ? 0 : 1;
+        if (!sDof) {
+            pc::writef(STDERR_FILENO, "[cos] COS_DOF=0: depth-of-field composite skipped\n");
+        }
+    }
+    return sDof;
 }
 
 } // extern "C"
