@@ -40,7 +40,8 @@ void pc_hd_textures_init(const char* userPath);
 /* After aurora_end_frame: applies a requested toggle, the test toggles and the stats line. */
 void pc_hd_textures_frame_end(unsigned int frame);
 
-/* The runtime setting (the options menu's "Texturas HD" binds to it). Turning it on opens the pack
+/* The runtime setting (the options menu's "Texturas HD" row, COS_HD_TEXTURES in pc_settings.h, reaches
+   it through a subscription made by pc_hd_textures_init). Turning it on opens the pack
    (COS_HD_PACK) at the end of the current frame; returns false, and stays off, if there is no
    usable pack. Turning it off unregisters every replacement: the original textures come back. */
 bool cos_hd_textures_set_enabled(bool enabled);

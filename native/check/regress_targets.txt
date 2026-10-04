@@ -95,3 +95,5 @@ shore-foam 0 --stage sea:44:8 --aspect 16:9
 # depth of field and FPS overlay change live and are saved to the run's settings.ini, the game stays
 # paused while it is open, then Depuración > Viajar takes Link to Windfall (sea room 11)
 options-menu 0 --stage sea:44:206 --input native/check/input/options-menu.txt
+# HD textures (lane hd-textures): the menu's "Texturas HD" on and off with no pack installed
+options-menu 0 --stage sea:44:206 --input native/check/input/hd-textures-menu.txt

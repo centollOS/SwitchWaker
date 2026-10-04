@@ -28,8 +28,11 @@ the player's SD card).
   are re-resolved. The replacement cache holds at most `COS_HD_BUDGET_MB`; least recently looked-up
   textures are evicted, never one bound in the last 60 frames; a load that cannot fit is dropped and
   retried 300 frames later (Aurora patch 0010).
-- **Runtime toggle**: `cos_hd_textures_set_enabled(bool)` (`native/include/pc/pc_hd_textures.h`) for
-  the options menu; applied at the end of the frame. Off unregisters everything: the picture is
+- **Runtime toggle**: the options menu's *Gráficos > Texturas HD* (`COS_HD_TEXTURES` in
+  `pc_settings.h`, saved in `settings.ini`) reaches `cos_hd_textures_set_enabled(bool)`
+  (`native/include/pc/pc_hd_textures.h`) through a settings subscription; applied at the end of the
+  frame. Without a pack, turning it on logs "no pack" and stays off (regression target
+  `options-menu ... hd-textures-menu.txt`). Off unregisters everything: the picture is
   pixel-identical to a run that never turned it on (checked: LinkRM, on at frame 200, off at 400,
   frame 590 identical).
 

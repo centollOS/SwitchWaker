@@ -21,6 +21,7 @@
 //   names: the Dolphin file names (tex1_..._<fmt>[_arb].dds), not terminated.
 
 #include "pc/pc_hd_textures.h"
+#include "pc/pc_settings.h"
 #include "pc_internal.h"
 
 #include <dolphin/gx.h>
@@ -321,6 +322,13 @@ void censusObserver(const aurora::texture::TextureSourceKey& key, void*) {
     }
 }
 
+// The options menu's "Texturas HD" row (pc_menu.cpp, COS_HD_TEXTURES): a change of its value turns
+// the replacement on or off at the end of the frame. Turning it on without a pack logs why and
+// stays off.
+void onSettingChanged(const char*, const char* value, void*) {
+    cos_hd_textures_set_enabled(value != nullptr && strcmp(value, "1") == 0);
+}
+
 uint64_t envU64(const char* name, uint64_t fallback, uint64_t lo, uint64_t hi) {
     const char* v = getenv(name);
     if (v == nullptr || *v == '\0') {
@@ -376,6 +384,8 @@ void pc_hd_textures_init(const char* userPath) {
             writef(STDERR_FILENO, "[cos] hd-textures: census of the static textures to %s\n", census);
         }
     }
+    pc_settings_subscribe("COS_HD_TEXTURES", onSettingChanged, nullptr);
+    // The settings file's value is in the environment already (pc_settings_load_early).
     const char* on = getenv("COS_HD_TEXTURES");
     if (on != nullptr && strcmp(on, "1") == 0) {
         sState.requested = enableNow();
