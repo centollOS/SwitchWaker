@@ -707,3 +707,38 @@ without the mist change), `5-groups-material`, `6-flushpasses`, `7-swap0`, `8-dy
 `15-rawtimer` (GPU timer without the PTIMER correction, to confirm the 1.63 ratio on the new
 build). Read: "gpu per frame" (now real time), "gpu groups per frame", "present per present",
 "[cos] dynres:" lines, fps.
+
+## 9. Open sea on the boat: GPU cost per pixel (Mac census, 1280x720; lane/sailing)
+
+Untested on the console until now: sailing needs the boat, which an early file does not have. The
+sailing preset (`COS_BOOT_PRESET=sailing`, options menu Depuración > "Navegar (barco, vela y
+batuta)") puts it on the file; `COS_SMOKE=sailing` sails 60 s north from Windfall's sea room (11)
+into room 18 (native/README.md).
+
+Mac run: `COS_FB_SCALE=1.5 COS_PERF_EVERY=300 COS_DRAW_CENSUS=420,1500,2100 native/tools/run.sh
+sailing --preset sailing --aspect 16:9` (capped). Game thread 1.5-2.0 ms a frame (logic 0.4-1.4,
+painter 0.5-1.0), 30.0 fps; 446-783 draws a frame (well under section 7's 1400-1550).
+
+| bucket (material / packet) | frame 420 (boat stopped, sail going up) | frame 1500 (sailing) | frame 2100 (sailing) | what it is |
+|---|---|---|---|---|
+| shadow | **5.05** (9 draws) | **4.11** (5) | **4.26** (5) | real-time shadow volumes of the boat and the player: the camera sits just behind the boat, inside or next to the volumes, so they cover most of the screen (Outset on foot: 0.00) |
+| sky | 3.76 (33) | 4.04 (67) | 4.30 (55) | dome (`lambert1_v_x` 1.1-1.3, `sora_v` 0.8), blended layers, vrkumo clouds (0.3-0.85, 21-54 draws) and the sea surface |
+| of which `daSea_packet_c` | 0.56 (3 draws, 8412 vertices) | 0.60 (4, 9330) | | the sea surface: an opaque grid the CPU rebuilds every frame, drawn in the sky list; cheap in pixels |
+| alpha_model | 1.00 | 1.00 | 1.00 | drawAlphaBuffer's full-screen quad |
+| dof | 1.00 | 1.00 | 1.00 | depth-of-field composite |
+| motion_blur | 1.00 | - | - | full-screen blend while the sail goes up |
+| particle | 0.05 (9) | 0.63 (309) | 0.69 (309) | the wake and spray: many small sprites (draw count more than pixels) |
+| opa_bg + xlu_bg | 0.62 | - | - | Windfall's room: its water plane `SC_01_umi` 0.56, the island far away (frame 420 only) |
+| 2D | 0.34 | 0.34 | 0.34 | HUD |
+| total | **12.88** | **11.32** | **11.87** | |
+
+With section 8's console model (about 2.4 ms of GPU per 720p screen of fragments, about 13 screens
+fit in a 30 fps frame) the open sea is about 27-31 ms of GPU: at the edge, unlike Outset on foot
+(7.1 screens). The shadow volumes alone are about 4-5 screens (10-12 ms), the sky about 4 (9-10 ms).
+What to try on the console, in this order: `COS_SKY_LOWRES=2` (the sky at half resolution: about
+-2 screens, section 8.4), `COS_DYNRES=1` (the 3D at 1.25 / 1.125 when the GPU p95 is over 30 ms),
+`COS_DOF=0` (-1 screen, changes the look); `COS_GPU_GROUPS=1` shows the shadow and sky buckets'
+real GPU times in the perf-switch "gpu groups" line. A cheaper shadow volume near the camera would
+be the largest single saving but changes the shadow algorithm (not done). CPU: the sea grid
+(`daSea_packet_c`, about 9000 vertices built a frame) and the wake particles (about 300 draws)
+are the sea's own CPU work; the Mac's whole logic is 0.4-1.4 ms.
