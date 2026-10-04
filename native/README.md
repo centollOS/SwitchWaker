@@ -466,6 +466,38 @@ Exit codes: 0 reached, 1 smoke check failed, 2 usage error, 10 timeout, 11 stall
   developer mode off it exits 3 without starting lldb, which would wait for an authorisation
   prompt.
 
+### Options menu
+
+`pc_menu.cpp` / `pc_settings.cpp` (API: `native/include/pc/pc_settings.h`): an ImGui options window
+opened with **F1** or **L+R+Z** (a GameCube-style pad, or a `COS_INPUT` script) on the Mac and
+**ZL+ZR+Minus** on the Switch; **B**/Esc or the same combination closes it. Tabs *Gráficos*,
+*Rendimiento* and *Depuración* (Spanish labels, a help line for the selected row); controller
+(D-pad/stick, A change, B back, L/R tab), keyboard (arrows, Enter, Esc, Q/E) or mouse. While it is
+open the PLAY scene is paused (hit-stop pause timer) and the game gets no pad input.
+
+- Each row is an existing variable (`COS_FB_SCALE`, `COS_DYNRES`, `COS_MIST_LOWRES`,
+  `COS_SKY_LOWRES`, `COS_DOF`, `COS_SHADOW_OFFSCREEN`, `COS_ASPECT`, `COS_HD_TEXTURES`,
+  `COS_SWITCH_GPU_PROFILE`, `COS_FPS_OVERLAY`, `COS_PRECOMPILE`, `COS_PRECOMPILE_SCREEN`,
+  `COS_PERF_EVERY`, `COS_GPU_GROUPS`) or a new one: `COS_FPS_OVERLAY_DETAIL=full|compact`,
+  `COS_PERF_LOG=0|1` (hide/show the perf and perf-switch lines). `COS_ASPECT`, `COS_PRECOMPILE` and
+  `COS_PRECOMPILE_SCREEN` apply at the next start ("requiere reiniciar"); the rest at once.
+- Depuración: travel to a stage (main places by name, and every stage of the disc with the start
+  `boot_sweep.py --list` picks; PLAY scene only), a screenshot (`shot-<frame>.png` in
+  `COS_RUN_DIR`, without the menu), reload the settings file.
+- Values are saved to `user/settings.ini` next to the executable (Switch:
+  `/switch/centollos/native/user/settings.ini`; `COS_SETTINGS=<path>` names another file,
+  and `run.sh` gives every run its own `<run dir>/settings.ini`). Lines `NAME=value`, or
+  `NAME@handheld=` / `NAME@docked=` for the per-mode rows (internal and dynamic resolution, mist,
+  sky): the Switch applies the other mode's values when docked or undocked; the Mac is handheld
+  unless `COS_OPERATION_MODE=docked`.
+- Precedence: the environment at start (the Mac's environment, the Switch's `env.txt`) wins over
+  the file, so test kits keep working; such rows show as fixed (`[fijo]`) and cannot be changed.
+- Other modules add rows with `pc_settings_register` or follow one with `pc_settings_get` /
+  `pc_settings_subscribe` (the HD texture loader: `COS_HD_TEXTURES`, "0"/"1").
+- `COS_SMOKE=options-menu` drives the menu from its `COS_INPUT` script and checks the script's
+  `#expect` lines (`native/check/input/options-menu.txt`; regression target). `COS_SHOT_IMGUI=1`
+  draws the ImGui windows (menu, FPS overlay) into `COS_SHOT` images.
+
 ## The Switch (phase 7)
 
 `scripts/switch/build_native.sh` builds this tree as a Switch NRO, `build/switch-native/centollos.nro`,
