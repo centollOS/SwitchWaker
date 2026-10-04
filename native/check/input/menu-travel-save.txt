@@ -1,4 +1,4 @@
-# Bug B8 (lane b8-heap): COS_SMOKE=options-menu with --stage sea:44:206 (Outset; Link is in the room
+# Bug B8 (lane b8-heap): COS_SMOKE=options-menu with --stage sea:44:206 (Outset; the player is in the room
 # from about frame 291), on a new file given 14 items ("#items", COS_BOOT_ITEMS) and its own empty
 # memory card ("#card run"). As on the Switch run that crashed: the internal resolution changed
 # several times, then Depuración > Viajar to Dragon Roost (sea room 13), again to Windfall (sea
@@ -8,7 +8,7 @@
 # d_menu_save.cpp:184, as on the Switch; the item screen with these items ran out too). Then the
 # save through the save screen (Save, Yes, create the save file: Yes, Yes, continue: Yes), START
 # closes the menu. At frame 3300: no JKR allocation
-# failed, Link is at Windfall, and the card's save file loads back (checksum, card_to_memory) with
+# failed, the player is at Windfall, and the card's save file loads back (checksum, card_to_memory) with
 # the same 14 items and the return place sea room 44 (Outset: warping does not set it).
 #items 20,22,23,24,25,27,29,2C,2D,2F,30,31,33,34
 #card run

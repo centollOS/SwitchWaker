@@ -1,14 +1,14 @@
 // COS_SMOKE=blur-pos (bug B3, docs/NATIVE_PORT_PLAN.md "Known bugs"): the sword blur positions.
 //
-// Runs from pc_heaps_created, then exits. Link's sword trail (daPy_swBlur_c) is drawn from a
+// Runs from pc_heaps_created, then exits. The player's sword trail (daPy_swBlur_c) is drawn from a
 // *_POS resource of /res/Object/LkAnm.arc: a raw array of big-endian Vec pairs (sword root and
-// tip in Link's model space, one pair per animation frame) that daPy_lk_c::setBlurPosResource
+// tip in the player's model space, one pair per animation frame) that daPy_lk_c::setBlurPosResource
 // copies into mSwBlur.mpPosBuffer. Read in host order, those floats are garbage and the trail's
 // quads cover the screen in white (bug B3, seen as a "white polygon" when the sword hits Orca's
 // spear). The test mounts LkAnm.arc in main RAM, as the game does, and reads every *_POS
 // resource (dRes_INDEX_LKANM__BTJUMPCUT_POS_e .. dRes_INDEX_LKANM__WEAPONTURN_POS_e) through
 // daPy_readBlurPosResource, the TARGET_PC reader setBlurPosResource uses. Each must be a
-// non-empty whole number of Vec pairs whose every value is finite and within 1000 units of Link
+// non-empty whole number of Vec pairs whose every value is finite and within 1000 units of the player
 // (the sword is about 100 units long), with some value beyond 1 unit (not all zero).
 // Exit 0 when every check holds, 1 otherwise.
 #include "pc_internal.h"

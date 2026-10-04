@@ -92,7 +92,7 @@ SD card layout:
 
 | Path on the SD card | Contents |
 |---|---|
-| `switch/centollos/centollos.nro` | the app: "the game (native)" in the Homebrew Menu |
+| `switch/centollos/centollos.nro` | the app: "centollOS" in the Homebrew Menu |
 | `switch/centollos/GZLE01.iso` | your disc image |
 | `switch/centollos/initial_pipeline_cache.db` | optional: pipelines to precompile at boot, made on the Mac from your disc (never committed) |
 | `switch/centollos/native/env.txt` | optional run options |
@@ -102,7 +102,7 @@ SD card layout:
 ## Run
 
 Start the Homebrew Menu in title mode (hold **R** while opening an installed game; an applet has far
-less memory than the game needs, and the log says so) and open *the game (native)**. The CPU
+less memory than the game needs, and the log says so) and open **centollOS**. The CPU
 stays at its stock 1020 MHz. With USB connected, `uv run scripts/switch/usb_log.py --out
 build/switch-logs/native-live.log` shows the log live.
 
@@ -134,8 +134,8 @@ run decides.
 What the log shows, in order (the same `[cos]` lines as on the Mac; values vary):
 
 ```
-[switch] the game, native port (phase 7); argv[0]=sdmc:/switch/centollos/centollos.nro
-[switch] centollos native: application (title mode); memory 3xxx MiB, ... core mask 0x7; image at 0x...
+[switch] centollOS, native port (phase 7); argv[0]=sdmc:/switch/centollos/centollos.nro
+[switch] centollOS: application (title mode); memory 3xxx MiB, ... core mask 0x7; image at 0x...
 [switch] logs: /switch/centollos/native/centollos.log open, USB live log started
 [cos] harness: smoke=- milestone=- timeout=0s stall=90s ...
 [cos] perf: game-thread frame times every 60 frames (COS_PERF_EVERY)
@@ -252,7 +252,7 @@ line) means the worker waits rather than works: for the GPU inside Mesa, or for 
 thread holds (study, timer 4). The hitch line has the same five numbers for the hitch frame.
 The line ends with the operation mode (handheld or docked), the apm performance configuration in
 force and the CPU, GPU and memory controller (EMC) clocks at that moment (clkrst, or pcv before firmware 8.0.0; "clocks unavailable" if the service
-refuses the app); the `[switch] centollos native:` start-up line has the same. At stock the GPU runs at
+refuses the app); the `[switch] centollOS:` start-up line has the same. At stock the GPU runs at
 307.2 or 384 MHz handheld and 768 MHz docked, so the same frame can be GPU-bound in one mode and
 not in the other: always note the mode next to a measurement.
 Handheld GPU profile: at start the app asks apm (`apmSetPerformanceConfiguration`, handheld =
@@ -388,7 +388,7 @@ Besides that, the port compiles fewer programs and compiles them before they are
 - Aurora queues every pipeline its cache knows (`user/cache/pipeline_cache.db`) on its compile thread
   at start, in order of first use. `native/tools/gen_pipeline_cache.sh` (on the Mac, with your disc)
   records the pipelines of the logos, title and file select, a new game through the prologue,
-  Outset with Link controllable and a 600-frame boot of every stage, and merges them into
+  Outset with the player controllable and a 600-frame boot of every stage, and merges them into
   `build/pipeline-cache/initial_pipeline_cache.db` (about 1000 rows, 4 MB; ordered so the boot path
   comes first). Its `pipeline_priority` table marks the rows recorded on the boot path (tiers 0-3,
   logos to Outset: 176 of 1016 rows) priority 0 and the stage sweep's 1;

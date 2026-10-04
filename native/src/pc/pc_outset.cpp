@@ -1,5 +1,5 @@
 // Milestone M12 outset-debug (docs/NATIVE_PORT_PHASE4_6.md, milestone table; boot loop):
-// COS_BOOT_STAGE put Link in the requested stage (Outset, sea room 44 point 206): the PLAY scene
+// COS_BOOT_STAGE put the player in the requested stage (Outset, sea room 44 point 206): the PLAY scene
 // runs, the start room is up and the player actor exists, then the game ran 300 more frames
 // without a fault.
 //
@@ -14,11 +14,11 @@
 // When all three hold it logs the player's position; 300 frames later it reports the milestone.
 // Until then it logs the first unmet condition every 600 frames. The probe changes no game state.
 //
-// Milestone M13 outset-control (step 6.6) builds on the same probe: once Link is in the room, every
+// Milestone M13 outset-control (step 6.6) builds on the same probe: once the player is in the room, every
 // run of game frames in which the converted main stick of pad 0 (g_mDoCPd_cpadInfo[0], what the
 // game itself reads, so COS_INPUT's script) is held past kStickHeld is measured; when a hold
-// reaches kHoldFrames, Link's horizontal displacement over it is logged and, if above kMoveUnits,
-// Link counts as controllable. outset-control is reported once Link was controllable and
+// reaches kHoldFrames, the player's horizontal displacement over it is logged and, if above kMoveUnits,
+// The player counts as controllable. outset-control is reported once the player was controllable and
 // kControlFrames frames passed since he was in the room (the game ran that long without a fault).
 #include "pc_internal.h"
 
@@ -41,8 +41,8 @@ constexpr unsigned int kOutsetFrames = 300;
 constexpr unsigned int kStatusEvery = 600;
 
 // M13: a hold of the main stick past kStickHeld (mMainStickValue, 0..1) for kHoldFrames frames
-// must move Link more than kMoveUnits horizontally, and the game must run kControlFrames frames
-// after Link is in the room.
+// must move the player more than kMoveUnits horizontally, and the game must run kControlFrames frames
+// after the player is in the room.
 constexpr float kStickHeld = 0.5f;
 constexpr unsigned int kHoldFrames = 120;
 constexpr float kMoveUnits = 300.0f;
@@ -58,7 +58,7 @@ const char* sLastReason = nullptr;
 bool sDebugDone = false;
 bool sControlled = false;
 unsigned int sHeld = 0;      // frames of the current stick hold
-cXyz sHoldStart;             // Link's position on its first frame
+cXyz sHoldStart;             // the player's position on its first frame
 int sEventRunning = -1;      // dComIfGp_event_runCheck on the last frame (-1: not read yet)
 
 void* isPlayScene(void* proc, void*) {
@@ -130,7 +130,7 @@ void controlFrame(unsigned int frames) {
     const float dx = pos.x - sHoldStart.x;
     const float dz = pos.z - sHoldStart.z;
     const float moved = std::sqrt(dx * dx + dz * dz);
-    writef(STDERR_FILENO, "[cos] outset-control: frame %u: stick held %u frames, Link moved %.1f "
+    writef(STDERR_FILENO, "[cos] outset-control: frame %u: stick held %u frames, the player moved %.1f "
                           "units (%.1f, %.1f, %.1f) -> (%.1f, %.1f, %.1f)%s\n",
            frames, kHoldFrames, (double)moved, (double)sHoldStart.x, (double)sHoldStart.y,
            (double)sHoldStart.z, (double)pos.x, (double)pos.y, (double)pos.z,
@@ -150,21 +150,21 @@ void outsetFrame(unsigned int frames) {
         const unsigned int since = frames - sReadyFrame;
         if (!sDebugDone && since >= kOutsetFrames) {
             sDebugDone = true;
-            writef(STDERR_FILENO, "[cos] outset-debug: %u frames since Link was in room %d\n",
+            writef(STDERR_FILENO, "[cos] outset-debug: %u frames since the player was in room %d\n",
                    since, sRoomNo);
             pc_milestone("outset-debug");
         }
         const int running = dComIfGp_event_runCheck() ? 1 : 0;
         if (running != sEventRunning) {
             writef(STDERR_FILENO, "[cos] outset-control: frame %u: event %s\n", frames,
-                   running ? "running" : "over (Link free)");
+                   running ? "running" : "over (the player free)");
             sEventRunning = running;
         }
         controlFrame(frames);
         if (since % kStatusEvery == 0) {
             fopAc_ac_c* player = dComIfGp_getPlayer(0);
             if (player != nullptr) {
-                writef(STDERR_FILENO, "[cos] outset-control: frame %u: Link at (%.1f, %.1f, %.1f)%s%s\n",
+                writef(STDERR_FILENO, "[cos] outset-control: frame %u: The player at (%.1f, %.1f, %.1f)%s%s\n",
                        frames, (double)player->current.pos.x, (double)player->current.pos.y,
                        (double)player->current.pos.z,
                        dComIfGp_event_runCheck() ? ", event running" : "",
@@ -173,7 +173,7 @@ void outsetFrame(unsigned int frames) {
         }
         if (sControlled && since >= kControlFrames) {
             sDone = true;
-            writef(STDERR_FILENO, "[cos] outset-control: Link controllable, %u frames since he was "
+            writef(STDERR_FILENO, "[cos] outset-control: The player controllable, %u frames since he was "
                                   "in room %d\n", since, sRoomNo);
             pc_milestone("outset-control");
         }
@@ -192,7 +192,7 @@ void outsetFrame(unsigned int frames) {
     sReady = true;
     sReadyFrame = frames;
     fopAc_ac_c* player = dComIfGp_getPlayer(0);
-    writef(STDERR_FILENO, "[cos] outset-debug: Link in %s room %d at frame %u: PLAY scene "
+    writef(STDERR_FILENO, "[cos] outset-debug: The player in %s room %d at frame %u: PLAY scene "
                           "executing, room up, player at (%.1f, %.1f, %.1f) room %d\n",
            pc_boot_stage()->stage, sRoomNo, frames, (double)player->current.pos.x,
            (double)player->current.pos.y, (double)player->current.pos.z,

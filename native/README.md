@@ -1,9 +1,9 @@
 # Native port: the game built from its decompilation
 
-`game/` holds the source of the game decompilation: `src/`, `include/` and its license,
-imported unchanged from the decompilation fork at `b09eebc` and changed only
-by later commits in this repository. That fork builds on the work of the
-the upstream decompilation contributors and completes the remaining functions
+`game/` holds the source of the game's decompilation: `src/`, `include/` and its license,
+imported unchanged from a fork of the community decompilation at `b09eebc` and changed only by
+later commits in this repository (origin and credits: [game/README.md](../game/README.md)). That
+fork builds on the work of the decompilation's contributors and completes the remaining functions
 with AI assistance; it is not part of upstream. Both are CC0-1.0 (`game/LICENSE`).
 
 At the import, the fork's own build (`configure.py`, Metrowerks compilers) reproduced the
@@ -17,7 +17,8 @@ the repository, under `build/`.
 The goal is a native build of the game on Aurora: on the Mac first, then the Switch, following the
 approach of [Dusklight](https://github.com/TwilitRealm/dusklight) (CC0), whose
 SDK-over-Aurora layer and static REL linking are the reference. Why: the translated build runs at
-about 6-8 percent speed on the Switch (`docs/SWITCH_IMPLEMENTATION_CHECKLIST.md` of the upstream recompilation project), and native code
+about 6-8 percent speed on the Switch (measured in the recompilation project this work started
+from), and native code
 costs about 0.9 host instructions per guest instruction against 27 for the translation.
 
 ## Quick start (Mac)
@@ -157,8 +158,8 @@ git; `-DCOS_ASSETS_DIR=` points elsewhere.
 
 From `framework` on, most units need them (`d/d_com_inf_game.h` includes `res/Object/Always.h`).
 `native/tools/gen_assets.sh` generates them: it checks out the decomp
-(the decompilation fork at `b09eebc`, the commit `game` was imported
-from) under `build/decomp`, links the disc into its `orig/GZLE01/`, runs its `configure.py`
+(the repository and commit `game/` was imported from, read from `game/UPSTREAM`) under
+`build/decomp`, links the disc into its `orig/GZLE01/`, runs its `configure.py`
 and builds only the targets that write headers (the `dtk dol split`, which also checks main.dol's
 SHA-1, and the model data converters; no Metrowerks compiler is downloaded), then copies the
 decomp's `assets/GZLE01/res` and the generated `build/GZLE01/include/assets` into place. It needs
@@ -220,7 +221,7 @@ The DSP behind `cos_sdk` is Dolphin's high-level DSP emulation (step 5.A, decisi
 tree is a git worktree (`build/lanes/<lane>`); pass `-DCOS_RECOMPCORE_DIR=...` otherwise.
 `native/tools/fetch_recompcore.sh` puts it in `ref/recompcore`: a shallow checkout, without
 submodules, of [elliotttate/RecompCore](https://github.com/elliotttate/RecompCore) at `8ab24da`
-(branch `bluewake`, the commit the upstream recompilation project builds from).
+(branch `bluewake`, the commit the DSP adapter in `native/dsp_hle` was written against).
 
 ### SDK headers
 

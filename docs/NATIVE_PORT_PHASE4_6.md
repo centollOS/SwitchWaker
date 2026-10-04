@@ -30,7 +30,7 @@
 4. **Pointers that must fit in 32 bits can be kept inside MEM1.** Aurora's `OSCachedToPhysical` returns an offset into its MEM1 block. If every JKR heap stays inside MEM1 (`AuroraConfig.mem1Size`), each u32 "physical address" the game hands to the DSP, AI or AR remains valid. This matters for phase 5. Also, macOS arm64's 4 GiB `__PAGEZERO` means a pointer truncated to 32 bits always faults, so truncation bugs show up immediately.
 5. **The game's title screen is a 3D stage.** `dComIfG_changeOpeningScene` sets `sea_T` room 44, which is Outset. So "boot to title" already needs stage files, dzb collision, J3D, actors and particles. The logo scene loads about 15 resource kinds first: messages, fonts, ruby font, `common.jpc`, item table, actor data, fmap, lod, error/menu resources.
 6. **Audio:**
-   - The game's JAudio1 `DSPBuffer` is 0x180 bytes with the same automixer layout as JAudio2's `TChannel`. Both drive the "the princess" DSP ucode family. The streamed AFC files are decoded on the CPU (`StreamLib::__DecodeADPCM`) and played as direct PCM from main RAM.
+   - The game's JAudio1 `DSPBuffer` is 0x180 bytes with the same automixer layout as JAudio2's `TChannel`. Both drive the same DSP ucode family (Dolphin names it after the game series). The streamed AFC files are decoded on the CPU (`StreamLib::__DecodeADPCM`) and played as direct PCM from main RAM.
    - Dusklight does not emulate the DSP. It replaced the mail protocol: `JASAudioThread::run` is removed, an SDL3 stream callback drives `updateDSP`, and `DuskDsp` (953 lines, CC0, plus freeverb) mixes the `TChannel`s. `DspStub.cpp` crashes on any mail call.
    - This repository already has a second option. `runtime/host/src/dsp_hle_backend.cpp` wraps Dolphin's DSPHLE (the JAudio ucode) for the translated build, with an "audio envelope r = 0.999 against LLE" result and Switch runs. It is GPLv2+; the repository as a whole is GPLv3 (`RIGHTS_AND_LICENSES.md`).
 7. **Aurora 3227d76 has no screenshot or readback API.** It has `aurora_get_stats()` (draw calls, texture uploads) and a `BACKEND_NULL` that is available only if the prebuilt Dawn package enables it.
@@ -61,10 +61,10 @@ There are two tracks plus an audio side-track:
 | M8 | title-stage | room 44 loaded; collision registered; actors created; 300 frames without a fault |
 | M9 | title | `d_a_title` created and drawing (BLO + JPA) |
 | M10 | file-select | scripted START reaches the name / file-select scene |
-| M12 | outset-debug | `COS_BOOT_STAGE` puts Link in Outset; PLAY scene; player actor exists |
-| M13 | outset-control | holding the stick for 120 frames moves Link more than 300 units; 3,600 frames without a fault |
+| M12 | outset-debug | `COS_BOOT_STAGE` puts the player in Outset; PLAY scene; player actor exists |
+| M13 | outset-control | holding the stick for 120 frames moves the player more than 300 units; 3,600 frames without a fault |
 | M11 | new-game | from a clean memory card, `native/check/input/new-game.txt` goes title -> START -> create the save file (Yes) -> file select -> new file -> name entry (a name, END); the name scene went through each step, the save file is on the card, the player name is set, and the prologue (OPEN scene) has executed 60 frames |
-| M14 | outset-real | the same run continues through the prologue and the intro event(s)/STB demo(s): PLAY scene in the save's return place (Outset, sea room 44), start room up, player actor exists; an event ran and no event or demo is running (Link free); a 120-frame stick hold moves Link more than 300 units; 300 frames since he was first free |
+| M14 | outset-real | the same run continues through the prologue and the intro event(s)/STB demo(s): PLAY scene in the save's return place (Outset, sea room 44), start room up, player actor exists; an event ran and no event or demo is running (the player free); a 120-frame stick hold moves the player more than 300 units; 300 frames since he was first free |
 
 ### The crash-to-fix loop (phases 4 and 6 together)
 
@@ -111,7 +111,7 @@ loop:
 **6.0 Run harness**
 - Files: new `native/src/pc/{pc_disc,pc_milestone,pc_crash,pc_smoke,pc_watchdog}.cpp` (globbed by `executable.cmake`), `native/tools/run.sh`, `native/tools/lldb_crash.sh`.
 - Environment variables:
-  - `COS_DISC`: required. The run script defaults it to `/path/to/GZLE01.iso`, which is never committed; add `*.iso`/`*.ciso` to `.gitignore`.
+  - `COS_DISC`: required. The disc image is never committed; add `*.iso`/`*.ciso` to `.gitignore`.
   - `COS_SMOKE`, `COS_MILESTONE`, `COS_TIMEOUT_S`, `COS_STALL_S`, `COS_TRACE`, `COS_UNCAPPED`, `COS_AUDIO`, `COS_FRAMES`.
 - Exit codes: 0 reached, 10 timeout, 11 stall, 12 panic, 13 signal, 14 disc problem.
 - The crash handler (`sigaction` plus `backtrace_symbols_fd`) prints the scene, frame and last resource. If 3.9 put `COS_SMOKE` handling in `m_Do_main.cpp`, move it here.
@@ -188,7 +188,7 @@ loop:
 - Gate: p95 of the game thread ≤ 25 ms on the pessimistic estimate, leaving margin under 33.3 ms. Audio and Aurora's GX are budgeted separately because they run on other cores.
 
 **6.9 Robustness**
-- `COS_SMOKE=actor-sweep`: spawn every profile next to Link in Outset, run 30 frames, delete. Pass means no fault; a refused creation is fine. `native/tools/actor_sweep.py` goes on after each fault and lists profile -> signature (results: 6.9a in the plan log).
+- `COS_SMOKE=actor-sweep`: spawn every profile next to the player in Outset, run 30 frames, delete. Pass means no fault; a refused creation is fine. `native/tools/actor_sweep.py` goes on after each fault and lists profile -> signature (results: 6.9a in the plan log).
 - A 30-minute soak.
 - An ASan build in `build/native-mac-asan` through M0–M13. ASan does not see inside JKR heaps, but catches stack, global and malloc errors.
 
@@ -374,11 +374,11 @@ Every edit goes under `#if TARGET_PC`. Dusklight's macros make `BE(T)` plain `T`
 - **H9. Prerequisites on your side:** `DevToolsSecurity` enabled for lldb, and whether the `.iso` or `.ciso` is the canonical disc (I'd suggest a SHA-1 check of the ISO on first use).
 
 ### Critical files for implementation
-- ~/Documents/centollos/ref/dusklight/include/helpers/endian.h (and `offset_ptr.h`, `src/helpers/offset_ptr.cpp`)
-- ~/Documents/centollos/game/include/JSystem/JKernel/JKRArchive.h (with `JKRExpHeap.h` and `ref/dusklight/libs/JSystem/include/JSystem/JKernel/JKRArchive.h`)
-- ~/Documents/centollos/game/include/JSystem/J3DGraphLoader/J3DModelLoader.h (with `include/d/d_stage.h`, `include/d/d_bg_w.h`)
-- ~/Documents/centollos/game/src/m_Do/m_Do_main.cpp (with `ref/dusklight/src/m_Do/m_Do_main.cpp`, `ref/dusklight/libs/JSystem/src/JFramework/JFWDisplay.cpp`)
-- ~/Documents/centollos/game/src/JSystem/JAudio/JASDSPBuf.cpp (with `JASAudioThread.cpp`, `dspproc.c`, `ref/dusklight/src/dusk/audio/DuskDsp.cpp`, `runtime/host/src/dsp_hle_backend.cpp`)
+- ref/dusklight/include/helpers/endian.h (and `offset_ptr.h`, `src/helpers/offset_ptr.cpp`)
+- game/include/JSystem/JKernel/JKRArchive.h (with `JKRExpHeap.h` and `ref/dusklight/libs/JSystem/include/JSystem/JKernel/JKRArchive.h`)
+- game/include/JSystem/J3DGraphLoader/J3DModelLoader.h (with `include/d/d_stage.h`, `include/d/d_bg_w.h`)
+- game/src/m_Do/m_Do_main.cpp (with `ref/dusklight/src/m_Do/m_Do_main.cpp`, `ref/dusklight/libs/JSystem/src/JFramework/JFWDisplay.cpp`)
+- game/src/JSystem/JAudio/JASDSPBuf.cpp (with `JASAudioThread.cpp`, `dspproc.c`, `ref/dusklight/src/dusk/audio/DuskDsp.cpp`, `runtime/host/src/dsp_hle_backend.cpp`)
 
 ## Decisions taken (2026-10-03)
 
@@ -392,7 +392,7 @@ Phase 3 is done (`centollos` links with nothing unresolved; `COS_SMOKE=static-in
 - **H6:** (B) reuse this repository's Dolphin JAudio ucode HLE adapter (`runtime/host/src/dsp_hle_backend.cpp`, GPLv2+, proven on this game and on the Switch); the repository is GPLv3.
 - **H7:** gate = game-thread p95 ≤ 25 ms on the pessimistic A57 estimate; it only counts once confirmed by a Switch measurement in phase 7.
 - **H8:** build with `-fno-strict-aliasing`.
-- **H9:** disc = `/path/to/GZLE01.iso` (SHA-1 checked on first use, never committed). macOS developer mode was enabled and its access dialogs approved on 2026-10-03: `lldb --batch` now launches `centollos` without prompting (checked with `COS_SMOKE=static-init`), so `lldb_crash.sh` is usable; the built-in crash handler stays the first tool.
+- **H9:** disc = `$COS_DISC` (SHA-1 checked on first use, never committed). macOS developer mode was enabled and its access dialogs approved on 2026-10-03: `lldb --batch` now launches `centollos` without prompting (checked with `COS_SMOKE=static-init`), so `lldb_crash.sh` is usable; the built-in crash handler stays the first tool.
 - **H10 (2026-10-03, at M7):** no audio-off interface gating. The game's JAudio1 cannot run uninitialised (`talkOut` -> `checkStreamPlaying` faults on a null `StreamMgr::streamUpdate` when `mDoAud_Create` is skipped), so `COS_AUDIO=off` stops being the boot mode. Phase 5's first steps move ahead of M7: 5.1 (audio data formats) and 5.2 (JAudio 64-bit), then step 5.A: `mDoAud_Create` runs to completion with `COS_AUDIO=on` (sound output may still be silent), including the DSP task handshake; if the handshake needs a real DSP backend, 5.4 option (B) (H6) is pulled in here. After 5.A the harness default is `COS_AUDIO=on` and every earlier milestone is rerun with it. The particle solid heap (0x16e800, `dPa_modelControl_c`) is scaled for 64-bit objects under H5 when the boot loop hits it.
 - **H11 (2026-10-03, at M12):** H3's "no Aurora patch" is lifted. Aurora bugs are fixed with small patches kept in `native/patches/aurora/` (one root cause per patch, a header explaining the GameCube behaviour and the upstream status), applied automatically both to the FetchContent download and to a local `FETCHCONTENT_SOURCE_DIR_AURORA` checkout without modifying the shared checkout in place (each build dir gets a patched copy or equivalent), so fresh clones, every lane and the Switch build see the same Aurora. First case: `tev_op` emits `.r`/`.rg`/`.rgb` on scalar alpha arguments for `GX_TEV_COMP_R8/GR16/BGR24_*` in an alpha stage (WGSL parse abort in `build_shader`, sea room 44); on hardware these compare the colour channels of the stage's A and B inputs, as Dolphin does. Boot loops may now return a fix that needs an Aurora patch instead of `stuck`.
 

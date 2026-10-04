@@ -4,7 +4,7 @@
 // COS_CAMERA=<eye x>,<eye y>,<eye z>,<center x>,<center y>,<center z> replaces the eye and the
 // centre of the game camera's look-at in camera_draw (d_camera.cpp, TARGET_PC) every frame, after
 // the camera ran: the view, the projection and the clipping use the fixed camera; the game itself
-// (the camera's logic, Link, the sea that follows Link) is not changed. Malformed: exit 2.
+// (the camera's logic, the player, the sea that follows the player) is not changed. Malformed: exit 2.
 //
 // COS_SMOKE=shore-foam (with COS_BOOT_STAGE in Outset, e.g. sea:44:8): B7 (Switch) was the white
 // foam lines and the dark sea shadow around Outset's cliffs and rocks flickering from frame to
@@ -15,7 +15,7 @@
 // Dawn's OpenGL backend lost that precision: Tint rewrote every vertex's z as 2z - w for GL's
 // [-1, 1] clip range, which rounds z to about 2^-24 of w. The decals then lost the depth test in
 // patches that moved with the camera. On Metal (and Vulkan, D3D) z keeps its float precision.
-// Once Link is in the room, the test holds a fixed camera over the cliffs and rocks under the
+// Once the player is in the room, the test holds a fixed camera over the cliffs and rocks under the
 // rope bridge (kSettleFrames), then moves it sideways kStep units a frame for kPathFrames frames,
 // reading each frame back (captureFrame) and counting the near-white pixels in a region of the
 // picture that holds the cliff and rock foam (foamMask). It fails when the median frame has less
@@ -73,7 +73,7 @@ void setFixedCamera(const float eye[3], const float center[3]) {
 namespace {
 
 // COS_SMOKE=shore-foam: the camera path, the measured region and the limits.
-constexpr unsigned int kSettleFrames = 90;  // after Link is in the room: room, sky and HUD up
+constexpr unsigned int kSettleFrames = 90;  // after the player is in the room: room, sky and HUD up
 constexpr unsigned int kPathFrames = 60;    // frames measured while the camera moves
 constexpr float kEye0[3] = {-196800.0f, 2400.0f, 318300.0f};
 constexpr float kCenter0[3] = {-197600.0f, 0.0f, 321800.0f};

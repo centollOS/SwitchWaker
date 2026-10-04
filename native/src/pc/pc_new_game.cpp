@@ -24,7 +24,7 @@
 // probe then waits for the PLAY scene to execute, the start room to be up (stageRoomReady,
 // pc_title_stage.cpp) and the player actor to exist, and from then on logs every change of the
 // event system (dComIfGp_event_runCheck) and of the STB demo manager (dDemo_manager_c mode: 1
-// playing, 2 ended). Link is free once an event ran since the PLAY scene began (the intro) and no
+// playing, 2 ended). The player is free once an event ran since the PLAY scene began (the intro) and no
 // event or demo is running. While he is free, every hold of pad 0's converted main stick past
 // kStickHeld is measured as in M13 (pc_outset.cpp): a kHoldFrames hold must move him more than
 // kMoveUnits. outset-real is logged once he moved so and kFreeFrames frames passed since he was
@@ -210,7 +210,7 @@ void openFrame(unsigned int frames) {
     }
 }
 
-// The first unmet condition for Link in the start room of the PLAY scene, or nullptr.
+// The first unmet condition for the player in the start room of the PLAY scene, or nullptr.
 const char* playUnmet() {
     if (executing(fpcNm_PLAY_SCENE_e) == nullptr) {
         return "PLAY scene not executing";
@@ -247,7 +247,7 @@ void controlFrame(unsigned int frames, fopAc_ac_c* player) {
     const float dx = pos.x - sHoldStart.x;
     const float dz = pos.z - sHoldStart.z;
     const float moved = std::sqrt(dx * dx + dz * dz);
-    writef(STDERR_FILENO, "[cos] outset-real: frame %u: stick held %u frames, Link moved %.1f "
+    writef(STDERR_FILENO, "[cos] outset-real: frame %u: stick held %u frames, the player moved %.1f "
                           "units (%.1f, %.1f, %.1f) -> (%.1f, %.1f, %.1f)\n",
            frames, kHoldFrames, (double)moved, (double)sHoldStart.x, (double)sHoldStart.y,
            (double)sHoldStart.z, (double)pos.x, (double)pos.y, (double)pos.z);
@@ -266,7 +266,7 @@ void playFrame(unsigned int frames) {
         sPlayFrame = frames;
         sRoomNo = dComIfGp_getStartStageRoomNo();
         fopAc_ac_c* player = dComIfGp_getPlayer(0);
-        writef(STDERR_FILENO, "[cos] outset-real: Link in %s room %d at frame %u: PLAY scene "
+        writef(STDERR_FILENO, "[cos] outset-real: The player in %s room %d at frame %u: PLAY scene "
                               "executing, room up, player at (%.1f, %.1f, %.1f)\n",
                dComIfGp_getStartStageName(), sRoomNo, frames, (double)player->current.pos.x,
                (double)player->current.pos.y, (double)player->current.pos.z);
@@ -309,7 +309,7 @@ void playFrame(unsigned int frames) {
         sHeld = 0;
         if (free) {
             sFreeFrame = frames;
-            writef(STDERR_FILENO, "[cos] outset-real: frame %u: Link free in %s room %d at (%.1f, "
+            writef(STDERR_FILENO, "[cos] outset-real: frame %u: The player free in %s room %d at (%.1f, "
                                   "%.1f, %.1f); %u STB demo(s) played\n",
                    frames, dComIfGp_getStartStageName(), dComIfGp_getStartStageRoomNo(),
                    (double)player->current.pos.x, (double)player->current.pos.y,
@@ -325,14 +325,14 @@ void playFrame(unsigned int frames) {
     }
     controlFrame(frames, player);
     if (!sControlled) {
-        waiting("outset-real", frames, "Link free, no stick hold has moved him yet");
+        waiting("outset-real", frames, "the player is free, no stick hold has moved him yet");
         return;
     }
     if (frames - sFreeFrame < kFreeFrames) {
         return;
     }
     sPhase = kDone;
-    writef(STDERR_FILENO, "[cos] outset-real: Link controllable in %s room %d, %u frames since he "
+    writef(STDERR_FILENO, "[cos] outset-real: The player controllable in %s room %d, %u frames since he "
                           "was free; %u STB demo(s) played\n",
            dComIfGp_getStartStageName(), dComIfGp_getStartStageRoomNo(), frames - sFreeFrame,
            sDemos);

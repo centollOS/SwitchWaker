@@ -16,9 +16,9 @@
 # 10,000,000 frames, so the Switch compiles the boot path first):
 #   0  file-select     logos, opening, title, file select (native/check/input/file-select.txt)
 #   1  new-game        title -> name entry -> OPEN scene (native/check/input/new-game.txt)
-#   2  outset-real     the new-game prologue to Link free in Outset (capped, ~7 min; --no-prologue
+#   2  outset-real     the new-game prologue to the player free in Outset (capped, ~7 min; --no-prologue
 #                      skips it)
-#   3  outset-control  debug boot into Outset, Aryll's lookout event, Link controllable
+#   3  outset-control  debug boot into Outset, Aryll's lookout event, the player controllable
 #   4  boot-sweep      every stage of the disc, --sweep-frames frames each (--no-sweep skips it)
 # Tiers 0-3 run in parallel, then the sweep. A run that fails still contributes what it recorded
 # (the report says so). The merge keeps one row per (type, hash), the lowest tier's frame.

@@ -195,19 +195,19 @@ const char* stageRoomReady(int roomNo, int* created);
 // stage's start room; outsetFrame (pc_frame_end, every game frame) waits until the PLAY scene
 // executes with that stage, the room is up and the player actor finished creating, then reports
 // outset-debug 300 frames later. It then measures M13 outset-control: a 120-frame hold of pad 0's
-// main stick that moves Link more than 300 units, and 3,600 frames since he was in the room.
+// main stick that moves the player more than 300 units, and 3,600 frames since he was in the room.
 void outsetArm(const char* stageName, int roomNo);
 void outsetFrame(unsigned int frames);
-// pc_outset.cpp: the M12 probe found Link in the COS_BOOT_STAGE start room (PLAY scene executing,
+// pc_outset.cpp: the M12 probe found the player in the COS_BOOT_STAGE start room (PLAY scene executing,
 // room up, player actor created).
 bool outsetLinkReady();
 
 // pc_actor_sweep.cpp (step 6.9): COS_SMOKE=actor-sweep; actorSweepFrame runs from pc_frame_end
-// every game frame and, once outsetLinkReady, spawns every actor profile next to Link in turn,
+// every game frame and, once outsetLinkReady, spawns every actor profile next to the player in turn,
 // runs it 30 frames and deletes it, then exits 0.
 void actorSweepFrame(unsigned int frames);
 // pc_bgm_hop.cpp (bug B1): COS_SMOKE=bgm-hop; bgmHopFrame runs from pc_frame_end every game
-// frame and, once Link is in the COS_BOOT_STAGE island room, measures the island BGM, goes to a
+// frame and, once the player is in the COS_BOOT_STAGE island room, measures the island BGM, goes to a
 // house and back and checks the BGM came back.
 void bgmHopFrame(unsigned int frames);
 // pc_telescope_demo.cpp (bug B6): COS_SMOKE=telescope-demo; telescopeDemoFrame runs from pc_frame_end every game
@@ -220,7 +220,7 @@ void telescopeDemoFrameEnd(unsigned int frame);
 // (pc_camera_override applies it from then on).
 void setFixedCamera(const float eye[3], const float center[3]);
 // pc_shore.cpp (bug B7): COS_SMOKE=shore-foam; shoreFoamFrame runs from pc_frame_end every game
-// frame and, once Link is in Outset, moves a fixed camera along the cliffs under the rope bridge
+// frame and, once the player is in Outset, moves a fixed camera along the cliffs under the rope bridge
 // and measures how much of the shore foam changes from frame to frame.
 void shoreFoamFrame(unsigned int frames);
 

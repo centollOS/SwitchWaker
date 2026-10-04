@@ -884,7 +884,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   writing to 0x1234567; `fopScn_Create` reports the scene (`pc_trace_scene`) and
   `my_DVDConvertPathToEntrynum` the resource path (`pc_trace_resource`) for the crash report and
   `COS_TRACE=scene,res`. `native/tools/run.sh <target>`: milestone or smoke, default timeout
-  180 s and stall 30 s, `COS_AUDIO=off`, disc default `/path/to/GZLE01.iso`
+  180 s and stall 30 s, `COS_AUDIO=off`, disc default `$COS_DISC`
   with its `main.dol` SHA-1 checked against `8d28bab6…` on first use (cached by size and mtime in
   `build/native-mac/runs/disc_check.txt`), run directory `build/native-mac/runs/<target>-<ts>/`
   (`command.txt`, `env.txt`, `run.log`, `exit_code.txt`, `backtrace.txt`/`stall.txt` with `atos`
@@ -2413,7 +2413,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   image is the EFB at its own size (1920x1440 on a Retina 960x720 window, about 8 MB per PNG),
   without letterboxing or the ImGui overlay. Verified: `logo-res --shot 30,200` (boot logo,
   Dolby logo) and `run --frames 3000 --shot 300,1500,3000` (`opening` itself ends at frame 281):
-  frame 300 black (stage fade-in), 1500 and 3000 the title over sea room 44 with Link and the HUD.
+  frame 300 black (stage fade-in), 1500 and 3000 the title over sea room 44 with the player and the HUD.
 
 - **M8 boot loop, iteration 1** (2026-10-03, endian): the title demo printed
   "デモデータ読み込みエラー！！" because `JStudio::stb::TParse` read the STB container in host
@@ -2552,10 +2552,10 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   only, until a PLAY_SCENE process executes with the requested start stage, the room is up (the M8
   room checks, now shared as `stageRoomReady` in `pc_title_stage.cpp`) and `dComIfGp_getPlayer(0)`
   is a PLAYER actor that finished creating; it reports outset-debug 300 frames later (until then it
-  logs the first unmet condition). Link is in sea room 44 at frame 289 at (-195138, 1650, 313772);
+  logs the first unmet condition). The player is in sea room 44 at frame 289 at (-195138, 1650, 313772);
   M12 at frame 589, 3/3 runs. Adds `outset-debug 0 --stage sea:44:206` to the regression targets.
   Reviewed: regress passed; 3/3 capped `outset-debug --stage sea:44:206` runs reached M12 in 15 s
-  (Link in room 44 at frame 289); the probe only reads game state.
+  (the player in room 44 at frame 289); the probe only reads game state.
 - **Step 4.16: events, camera, paths, message flow and maps** (2026-10-03, lane outset). Event
   list, stage camera/arrow records and paths were already big-endian (4.9a/c, M7 iter 6); the
   debug boot into Outset (`sea:44:206`, Aryll's lookout event) then hit four root causes in turn,
@@ -2586,7 +2586,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   F2-agb-map below).
   Result: `outset-debug --stage sea:44:206` 3/3; an uncapped 4,000-frame run plays Aryll's
   lookout event with its messages ("I knew you'd be here!") with no fault; a capped 6,400-frame
-  run tapping A through the event ends with Link free on the lookout, no fault. Uncapped, the
+  run tapping A through the event ends with the player free on the lookout, no fault. Uncapped, the
   same input stalled at frame 5856 in `JFWDisplay::calcCombinationRatio` (not fixed here, see
   render issues: likely `JUTVideo::sVideoInterval` 0 from back-to-back host retraces).
   Reviewed (round 1): regress passed; `outset-debug --stage sea:44:206` 3/3 in 15-16 s; the
@@ -2595,14 +2595,14 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
 
 - M13 boot loop (lane outset, iter 1, harness; step 6.6): `outset-control --stage sea:44:206`
   had no probe and no input script. `native/src/pc/pc_outset.cpp` now also reports outset-control:
-  after Link is in the room it logs every change of `dComIfGp_event_runCheck`, measures each run of
+  after the player is in the room it logs every change of `dComIfGp_event_runCheck`, measures each run of
   frames in which `g_mDoCPd_cpadInfo[0].mMainStickValue` > 0.5 and, when one reaches 120 frames,
-  logs Link's horizontal displacement over it; one above 300 units makes Link controllable, and the
+  logs the player's horizontal displacement over it; one above 300 units makes the player controllable, and the
   milestone is reported once he is and 3,600 frames passed since he was in the room (read-only).
   New script `native/check/input/outset-control.txt`: B taps every 10 frames advance Aryll's
-  lookout event (over at frame 3269; A is not used because, once Link is free, A next to Aryll
+  lookout event (over at frame 3269; A is not used because, once the player is free, A next to Aryll
   starts a new talk), then six 140-frame stick holds; the lookout's railing blocks some directions
-  (293, 120, 200 units), the fourth moves Link 353 units. M13 at frame 4100, 3/3 capped runs in
+  (293, 120, 200 units), the fourth moves the player 353 units. M13 at frame 4100, 3/3 capped runs in
   132-133 s, identical positions. Adds the target to the regression list.
   Reviewed: regression passes; 3/3 capped runs reach M13 at frame 4100 (132 s) with identical
   probe lines. M13 reached.
@@ -2777,7 +2777,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   harness). Signature (2 of 14 in a 141/155 sweep, tied with `d_bg_w_hf.cpp:365` and
   `JAISoundTable.cpp`): SIGSEGV addr=0x0 in `JUTNameTab::getIndex` (JUTNameTab.cpp:34) <-
   `J3DAnmTextureSRTKey::searchUpdateMaterialID` from `daPy_lk_c::dProcTool` ->
-  `setDemoTextureAnime` (GTower, M2ganon). Cause: the debug boot, not game code. Link's stage
+  `setDemoTextureAnime` (GTower, M2ganon). Cause: the debug boot, not game code. The player's stage
   cutscene asks for demo texture animations by file id (btp 368, btk 355); `phase_0` of
   d_s_play.cpp mounts `LkD01.arc` only when event flag 0x2D01 is set (by M2tower's `rescue.stb`,
   which the game always plays before these stages) and `LkD00.arc` otherwise. The debug boot's
@@ -2824,7 +2824,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   signature of fix 5 (`JUTNameTab::getIndex` <- `searchUpdateMaterialID`). Reviewed: GanonK and
   M2tower re-run (no JAISoundTable panic), regression passes.
 
-- **Boot-sweep fix 8: Link's demo texture-pattern id read big-endian** (2026-10-03, lane outset,
+- **Boot-sweep fix 8: The player's demo texture-pattern id read big-endian** (2026-10-03, lane outset,
   endian). Most common signature (3 of 12 in a 143/155 sweep, 2 of them the fix-5 expected
   fails): SIGSEGV in `JUTNameTab::getIndex` <- `J3DAnmTextureSRTKey::searchUpdateMaterialID` <-
   `daPy_lk_c::setDemoTextureAnime` <- `dProcTool` (GanonK, GTower, M2ganon). Root cause (noted in
@@ -2834,7 +2834,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   iterator, as `front()`/`back()` already do (GameCube line kept in `#else`). With the right id
   the three stages stop at the LkD00 btp/btk mismatch of fix 5 in
   `J3DAnmTexPattern::searchUpdateMaterialID`; checked with LkD01 forced (temporary edit,
-  reverted): GTower and M2ganon reach frame 600, GanonK gets past Link's cutscene and stops at
+  reverted): GTower and M2ganon reach frame 600, GanonK gets past the player's cutscene and stops at
   the `fpcLyTg_ToQueue` signature also seen in Atorizk. GanonK (the final battle, after M2tower's
   rescue) joins the expected fails for the same 0x2D01 reason; the expected-fail regex now
   accepts both the btk and btp form of that crash. Sweep: 143 -> 145 of 155 (7 fail, 3 expected
@@ -2870,7 +2870,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   literal size. sea 1:0 now reaches frame 900. Sweep: sea passes, but I_SubAN (9:0) now fails
   3 runs out of 3 (the build without this fix passes it 3 out of 3): at frame 452 an event
   starts that did not start before, its Ywarp00 (params 0xFF: no switch, active from the start)
-  sends Link out by room 9's SCLS 0 (sea, start 1, room 47), and `dStage_playerInit` stops at
+  sends the player out by room 9's SCLS 0 (sea, start 1, room 47), and `dStage_playerInit` stops at
   `PANIC d_stage.cpp:1787` (`i != num`) because sea room 47's PLYR list has points 0, 5 and
   100-103 but no 1. I_SubAN is a test stage the game never reaches; whether that SCLS is broken
   data or the event is reached for another reason is left for the next iteration. 146 of 155
@@ -2961,8 +2961,8 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   `portCmdMain` holds `OSDisableInterrupts` (cos_sdk's OS lock) while it runs both lists, which
   gives the console's exclusion and orders the writer's stores before the reads. Sweeps after:
   149/150/150 of 155, no `portCmdMain` crash; regression passes. Left: I_SubAN (9:0)
-  `PANIC d_stage.cpp:1787` (about 1 run in 4): an enemy knocks the idle Link into the room's
-  `daWarpls` (at -39000, 6200; Link spawns 424 units away, the warp radius is 225), the warp's
+  `PANIC d_stage.cpp:1787` (about 1 run in 4): an enemy knocks the idle player into the room's
+  `daWarpls` (at -39000, 6200; the player spawns 424 units away, the warp radius is 225), the warp's
   SCLS 0 sends him to sea start 1 room 47, and the disc's sea Room47 PLYR has points 0, 100-103
   and 5 only (no layers; the real Bomb Island submarine SubD43 exits to sea start 5). Disc data
   of a leftover test stage, candidate for the expected-fail list.
@@ -2974,7 +2974,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   - **I_SubAN (9:0) `PANIC d_stage.cpp:1787`** (2 of 13 sweeps): disc data, as fix 15 said;
     re-read from the disc: every I_SubAN room's SCLS 0 leads to `sea` start 1, room 9's to sea
     room 47, and sea Room47's PLYR has points 0, 5 and 100-103 only. Reached only when an enemy
-    knocks the idle Link into room 9's warp within the run (timing of the loads and the enemy).
+    knocks the idle player into room 9's warp within the run (timing of the loads and the enemy).
     `boot_sweep.py` lists it as an expected fail marked `intermittent`: a pass is a pass
     (no xpass), the listed panic an xfail, any other failure a failure.
   - **`CRASH SIGSEGV addr=0x0` in `JASystem::Kernel::portCmdMain` (JASCmdStack.cpp:130)** on the
@@ -3041,7 +3041,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   them before each material display list (TARGET_PC, Dusklight pattern). Cause 2: Aurora fed
   `GX_TG_SRTG` texgens the raw vertex colour instead of the lit channel; H11 patch
   `0002-srtg-texgen-lit-colour.patch`. See render issues.
-  Reviewed: regress passed; title shots 900/1300 show sky, clouds, subtitle and Link in his
+  Reviewed: regress passed; title shots 900/1300 show sky, clouds, subtitle and the player in his
   colours with toon shading; outset-debug shot 400 shows the horizon cloud band. Committed as two
   commits (one per cause).
 
@@ -3055,7 +3055,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   file-select shots 900/1200 show stars without lines, title shot 600 intact; regress passes.
 
 - R3-title-hud (lane boot, render triage, no code change): the title showed the gameplay HUD
-  (hearts, rupees, A/B/X/Y/Z, "Crouch", camera arrows), Link in gameplay, a black jagged King of
+  (hearts, rupees, A/B/X/Y/Z, "Crouch", camera arrows), the player in gameplay, a black jagged King of
   Red Lions left of the logo and a green striped pole. Already fixed by integrated work: the run
   that showed it (lane shot, `run --frames 3000 --shot 300,1500,3000`, shot 1500) logs
   "デモデータ読み込みエラー！！", i.e. it predates the M8 boot loop's STB fixes (iterations 1-5,
@@ -3065,7 +3065,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   sampling stale textures, fixed by R1-lighting (3c3f2ae). See render issues.
   Checked with COS_SHOT on the current tree: `run --frames 1310 --shot 600,900,1300` and
   `run --frames 3010 --uncapped --shot 1500,2000,2500,3000` show no HUD in any frame (title over
-  Outset, Link on the cliff, open sea, then the prologue scroll and text).
+  Outset, the player on the cliff, open sea, then the prologue scroll and text).
   Reviewed: the before-run (lane shot, 14:47) predates the STB commits 5395c07..8eb9db8
   (14:56-15:21); reran both runs on 28c72a8, no HUD and no demo-data error; regress passes.
 
@@ -3154,7 +3154,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   event "Trim" modes (`'STAN'`...) and `styleEvCamera`'s style search (`'FN01'`, index -1).
   Under `TARGET_PC` the new `dCamera_strTag` (d_camera.h) reads the four characters big-endian
   as the console does. See render issues (A1). Reviewed: GanonE:0:0 / M_DaiMB:12:0 shot 1190 and
-  kinBOSS:0:0 shot 900 rerun and inspected (Link from behind on the floor), `unifdef -UTARGET_PC`
+  kinBOSS:0:0 shot 900 rerun and inspected (the player from behind on the floor), `unifdef -UTARGET_PC`
   unchanged, `regress.sh -j 3` all checks passed.
 - RA-A2 (lane boot, render audit A2): Kalle Demos renders correctly; the A2 picture came from
   A1's camera. Under the floor (A1 reverted for diagnosis), the camera saw the boss's open flower
@@ -3169,13 +3169,13 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   fade. So the blue bulb and the cyan/green/magenta petals are the model's own colours, not a
   host-order BRK or texture decode. Seen from above the floor (a temporary diagnostic camera,
   not committed), the flower is a pale blue lily with white-spotted petals and Makar at its centre.
-  The new `native/check/input/kinboss-fight.txt` walks Link to the flower: the flower closes and
+  The new `native/check/input/kinboss-fight.txt` walks the player to the flower: the flower closes and
   rises, and from frame ~1500 the fight camera frames the bulb. The bulb is blue-violet with a
   lighter zigzag and yellow spots, the flower is green/cyan, and the barbed tentacles and the
   ceiling vines with their flower-tipped anchors are drawn. The geometry is clean and the
   envelope-skinned vines bend smoothly, so the
   suspected corrupt skinned vertices are not there. Shots inspected: `run --stage kinBOSS:0:0
-  --frames 1200 --uncapped --shot 590,900` (unchanged, boss out of view behind Link) and `run
+  --frames 1200 --uncapped --shot 590,900` (unchanged, boss out of view behind the player) and `run
   --stage kinBOSS:0:0 --frames 2500 --uncapped --input native/check/input/kinboss-fight.txt
   --shot 590,1100,1800,2400`. See render issues (A2).
   Reviewed: the fight script rerun, shots 1100 (closing blue spotted flower, cutscene), 1800 and
@@ -3188,7 +3188,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   one dim heart and no rupee counter (the audit's picture). CPU load alone (10 `yes` processes,
   runs one at a time) gave 0/4. A temporary `dMsg_Execute` trace (removed) showed identical
   message logic in good and bad runs: message 0x961, statuses 1, 2, 6, 7, and `output_text`
-  `CC[ffffffff]GM[0]CR[0]Link! Is that you? ...` (137 bytes) complete at frame ~620. Save data
+  `CC[ffffffff]GM[0]CR[0]the player! Is that you? ...` (137 bytes) complete at frame ~620. Save data
   (life 12/12, name "Link") was the same too. `aurora_get_stats` (temporary, removed) showed the
   cause: good runs had 0 pipelines queued and 350 created by frame ~350; bad runs still had
   220-300 queued at frame 1100, compiling about one per 25 frames. Aurora's GX `find_pipeline`
@@ -3204,7 +3204,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   So a shot shows every draw, as on the console (Dolphin's default `ShaderCompilationMode::
   Synchronous` does the same; skip-drawing is its opt-in mode). Plain runs keep async compiles.
   Checked (shots inspected): 6 parallel cold-cache runs (fresh user dirs) with
-  `COS_SYNC_PIPELINES=0` drew neither Orca, Link, the HUD nor the box at 900/1190 (0/6 with text),
+  `COS_SYNC_PIPELINES=0` drew neither Orca, the player, the HUD nor the box at 900/1190 (0/6 with text),
   while 6 with sync drew the full frame, text included (6/6; about 50 s wall each when cold, 9 s
   warm). 10 parallel runs with the shared cache and the default had text at 900 and 1190 (10/10),
   and so did the step's repro. Not fixed here (already known, see the amp-sweep entry):
@@ -3213,9 +3213,9 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Reviewed: the step's repro (log shows `pipelines=sync`) and 6 parallel runs of it with separate
   run dirs, shots 900 and 1190 inspected (Orca's text, full HUD in all); `regress.sh -j 3`
   all checks passed.
-- RA-A4 (lane boot, render audit A4): not a defect, and not Link's shadow. The white lobed shapes
-  behind Link in K_Testc are three `Obj_Ygush00` spring actors (`Ygush00.arc`, `ygush00.bdl`,
-  placed by the test map's Room0 at (-800,0,-700), (-800,0,-600) and (-800,0,-400), with Link
+- RA-A4 (lane boot, render audit A4): not a defect, and not the player's shadow. The white lobed shapes
+  behind the player in K_Testc are three `Obj_Ygush00` spring actors (`Ygush00.arc`, `ygush00.bdl`,
+  placed by the test map's Room0 at (-800,0,-700), (-800,0,-600) and (-800,0,-400), with the player
   starting at (-800,0,-900)). Their only material, `suimen`, is an opaque toon water surface (no
   blend, alpha compare always). Stages 0-2 add the two scrolling I8 textures and multiply by the
   third. Stage 3 is a `GX_TEV_COMP_R8_GT` threshold (prev.r > A2 = 128 selects C2 = 4.0). Stage 4
@@ -3228,7 +3228,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Ygush00, where BG1 is C0 (140,164,192) and K0 (15,56,53). How it was found (all temporary code
   removed): first a trace of the `dDlst_shadowReal_c` receiver triangles, which were only the floor
   at y=2. Turning fog off in the shadow pass did not change the blob. Skipping
-  `dDlst_shadowControl_c::draw` removed the dark shadow at Link's feet, which is Link's real-time
+  `dDlst_shadowControl_c::draw` removed the dark shadow at the player's feet, which is the player's real-time
   shadow and is correct, and kept the blob. Skipping the draw lists one at a time removed the blob
   only with `drawOpaList`. An actor census near the player found the three `Obj_Ygush00`. A dump
   of Aurora's WGSL for `suimen` matched the decoded MDL3 TEV stages exactly, and the runtime C0/K0
@@ -3238,7 +3238,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   changed in the code. Shots inspected: the repro `run --stage K_Testc:0:0 --frames 1200
   --uncapped --shot 590,900` before and after (identical) and `run --stage Omori:0:0 --frames 700
   --uncapped --shot 600`. See render issues (A4).
-  Reviewed: the repro shots 590 and 900 inspected (white lobes behind Link, dark shadow at his
+  Reviewed: the repro shots 590 and 900 inspected (white lobes behind the player, dark shadow at his
   feet); an independent parse of the disc's `Pale` chunks confirmed BG1 C0/K0 = (255,255,255) in
   all four K_Testc palettes and (140,164,192)/(15,56,53) in Omori; `regress.sh -j 3` all
   checks passed.
@@ -3345,7 +3345,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
 - **M14 outset-real reached** (2026-10-03, lane audio, boot loop iteration 1, no code change):
   `outset-real --input native/check/input/new-game.txt --timeout 480`, capped, passes 3/3 (~410 s
   each, two of them in parallel): OPEN scene gone at frame ~8020, PLAY scene in sea room 44 at
-  ~8060, the intro event and its STB demo run 2973 demo frames (to ~11040), Link is free, the
+  ~8060, the intro event and its STB demo run 2973 demo frames (to ~11040), the player is free, the
   script's fourth stick hold moves him 356 units, milestone at frame 12420. The NG-probe's "PLAY
   scene never created" was a pacing artifact, not a stream leak: `dScnPly` `phase_00` waits until
   the prologue's streamed BGM (JA_STRM_DEMO_01_01, ~218 s real time) has ended and freed the stream
@@ -3387,14 +3387,14 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
 
 - **Step 6.9a actor sweep** (2026-10-03, lane audio). `COS_SMOKE=actor-sweep`
   (`native/src/pc/pc_actor_sweep.cpp`, `run.sh actor-sweep --stage sea:44:206`): once the M12
-  probe has Link in Outset's start room (plus 60 frames), every actor profile of
+  probe has the player in Outset's start room (plus 60 frames), every actor profile of
   `g_fpcPfLst_ProfileList` (leaf sub-method `g_fopAc_Method`: 453 of the 502 names; scenes, overlaps,
   kankyo, message and camera processes are skipped) is created in turn with
-  `fopAcM_create(name, parameter 0, 150 units in front of Link, Link's room)` from Link's layer,
+  `fopAcM_create(name, parameter 0, 150 units in front of the player, the player's room)` from the player's layer,
   run 30 game frames (found each frame among the creating and the executing processes) and deleted
   with `fpcM_Delete` (a process still creating is aborted that way), then 3 frames pass before the
   next one so a fault Aurora's worker reports a frame late stays attributed. After each profile the
-  PLAY scene, Link and the stage must still be there (else exit 1). `<run dir>/actor_sweep.txt` gets
+  PLAY scene, the player and the stage must still be there (else exit 1). `<run dir>/actor_sweep.txt` gets
   a `begin` line before each creation (written straight to the file) and a result line after
   (`ran`, `refused`, `deleted-itself`, `creating`, `not-deleted`). `COS_ACTOR_SWEEP=<first>[-<last>]`
   limits the process names. `native/tools/actor_sweep.py` runs the smoke again after each fault
@@ -3427,7 +3427,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   | SHUTTER (114), first sweep only | Htobi1 | SIGSEGV 0x20010 `cNdIt_Judge` <- `fopAcIt_Judge` <- `dEvt_control_c::moveApproval` | ? (flaky) |
   | LEAF_LIFT (122), second sweep only | Olift | SIGSEGV 0x0 `cPhs_Handler` <- `daLlift_c::_create` (d_a_leaflift.cpp:162) | ? (flaky) |
   | Obj_Vds (134) | Vds | SIGSEGV 0x14f4 `daObjVds::Act_c::process_off_main` (its Swlight actors) | ctx |
-  | PLAYER (169) | Link | SIGABRT in Aurora `gfx::push` <- `gx::fifo::draw_prim` (FIFO worker), second Link | dup / Aurora |
+  | PLAYER (169) | The player | SIGABRT in Aurora `gfx::push` <- `gx::fifo::draw_prim` (FIFO worker), second player | dup / Aurora |
   | GRID (172) | Grid | SIGSEGV 0x4b4 `ho_move` <- `daGrid_c::_create` (the ship) | ctx |
   | SAIL (173) | Psail | SIGSEGV 0x3be `daSail_Create` (d_a_sail.cpp:650, parent ship) | ctx |
   | PIRATE_FLAG (174) | - | SIGSEGV 0x3c0 `daPirate_Flag_Execute` (d_a_pirate_flag.cpp:470, `l_p_ship`) | ctx |
@@ -3445,7 +3445,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Follow-ups (not fixed here): (1) SHUTTER / LEAF_LIFT: faults that move between sweeps (a
   corrupted actor list, a phase handler reached through 0) point at memory damaged by an earlier
   profile of the same run; bisect with `COS_ACTOR_SWEEP=100-122` and run under the ASan build
-  (step 6.9 part 3). (2) PLAYER: Aurora aborts in `gfx::push` on a second Link's draw; check the
+  (step 6.9 part 3). (2) PLAYER: Aurora aborts in `gfx::push` on a second player's draw; check the
   abort's size against Aurora's buffer limits (an Aurora robustness item even if two Links never
   happen in the game). (3) SEA: a second sea stalls `daSea_packet_c::draw`; confirm it is the
   singleton's static state. (4) MFLFT: `mStts` at 0x20 from create; read d_a_mflft.cpp's create
@@ -3475,7 +3475,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   centred, not stretched, the sky across the whole width), Outset after M13 (the view shows more on
   both sides, hearts and magic at the left edge, buttons at the right, minimap and its buttons at
   the bottom left with the map clipped to its frame, rupees at the bottom right, no horizontal
-  stretch: Link's height is the same share of the frame), the item menu (centred, the captured
+  stretch: The player's height is the same share of the frame), the item menu (centred, the captured
   background across the width), and 16:10 Outset. `regress.sh -j 3`: all checks passed, with three
   new targets (`outset-control --aspect 16:9`, `file-select --aspect 16:10`, `static-init 2 --aspect
   21:9`; `run.sh --aspect` sets `COS_ASPECT`). Not checked on screen: culling at the edges in
@@ -3537,15 +3537,15 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   **Fixed** by F1-vi-stall: `VIWaitForRetrace` spaces retraces by at least 1 us of `OSGetTick`.
 - **Outset (sea room 44) draws badly** (found by M12, `--shot`; after step 4.16 the event camera
   shows the lookout and island geometry, so the missing island was event/camera state; character
-  models (Link, Aryll) draw as black silhouettes with noisy faces): at frame 400 the backdrop band
+  models (the player, Aryll) draw as black silhouettes with noisy faces): at frame 400 the backdrop band
   behind the clouds is a grid of garbage-coloured blocks (a texture decoded or sampled wrongly) and
   the island geometry is missing (only a distant grey silhouette and the sea); by frame 1450 the
   view shows only the sea under the letterbox. Not yet triaged (render vs. camera/event state); M12
   does not depend on it, M13 may. The backdrop band is **fixed** by the J3D texture fix below (step
   R1-lighting): it was the horizon cloud model drawn with stale textures, and now shows the cloud
   band. The missing island and the sea-only view after frame 1000 remain open.
-- **Characters and J3D models draw black or posterised grey** (step R1-lighting, lane boot): Link and
-  Aryll solid black in Outset, Link a streaky grey on the title, "the game" subtitle of the
+- **Characters and J3D models draw black or posterised grey** (step R1-lighting, lane boot): The player and
+  Aryll solid black in Outset, the player a streaky grey on the title, "the game" subtitle of the
   title logo and the title's sky backdrop a grid of garbage blocks. Two independent causes, both
   **fixed**:
   1. (main) J3D textures were never bound. `loadTexNo` puts a material's textures in its display
@@ -3571,8 +3571,8 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
      `vertex_lighting_0.xy`), so the toon ramp was always sampled at its shadow end. Fixed by
      `native/patches/aurora/0002-srtg-texgen-lit-colour.patch` (decision H11).
   Checked with COS_SHOT: `run --frames 1310 --shot 900,1300` (title) shows the logo with its
-  subtitle, the sky and clouds, the King of Red Lions and Link in his blue shirt and orange
-  trousers with two-tone toon shading; without patch 0002 Link is uniformly in shadow colours.
+  subtitle, the sky and clouds, the King of Red Lions and the player in his blue shirt and orange
+  trousers with two-tone toon shading; without patch 0002 the player is uniformly in shadow colours.
   `outset-debug --stage sea:44:206 --shot 400` shows the horizon cloud band instead of the garbage
   blocks; Outset's island and characters are not in view in that run (open entry above).
 - **Name-scene backdrop garbled, title subtitle garbled** (step R2-textures, lane boot;
@@ -3598,7 +3598,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   (step R3-title-hud, lane boot; title `run --frames 3000 --shot 1500` of a build that logged
   "デモデータ読み込みエラー！！"): not a render bug. Two causes, both **fixed** by earlier work:
   1. (main) The title demo's STB did not parse (big-endian STB/FVB containers, JStudio list node
-     offsets, adaptor operands), so the title stage ran without its demo event: Link stood in
+     offsets, adaptor operands), so the title stage ran without its demo event: The player stood in
      play and `dMeter_statusCheck` (d_meter.cpp) set none of the event flags that hide the meter
      (`dComIfGp_event_runCheck()` false). Fixed by the M8 boot loop iterations 1-5 (STB parse
      through 8eb9db8); the demo now plays and the HUD is hidden, as on the GameCube.
@@ -3638,7 +3638,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   keeps its cached upload), any other array with the vertex/normal/colour count times the stride
   of its type; all big-endian (`J3DVertexData::getColNum` added for the colour count). Check:
   `run --stage sea:44:206 --frames 1500 --shot 400,800,1200,1490` logs 0 such lines (before
-  341205) and the shots equal the ones before (Outset lookout, Aryll, Link close-up), title
+  341205) and the shots equal the ones before (Outset lookout, Aryll, the player close-up), title
   `run --frames 610 --shot 600` unchanged and 0 lines. Two independent issues seen while checking
   are the next two entries.
 - **CPU skinning computes nothing on the host** (found by R4-arraybase): the C++ bodies of the
@@ -3694,16 +3694,16 @@ scene (`run --frames 1210 --input native/check/input/file-select.txt --shot 1200
 stages). Title, name scene and Outset look right, and so do most stages: the sea, the sky, clouds,
 characters, toon shading, grass, HUD and message boxes. These are not defects: black skies in
 stages whose Stage.arc has no `vr_sky.bdl` (DmSpot0, Mukao, kazan, KATA_HB, the K_Test* maps,
-I_TestR, Ebesso); greyscale Hyroom and Xboss0-3 (the game's monochrome effect); Link drawn red or
+I_TestR, Ebesso); greyscale Hyroom and Xboss0-3 (the game's monochrome effect); the player drawn red or
 orange while burning (A_nami, K_Test8, Xboss0). Stages that fail to boot are left to the boot-sweep
 loop. Open defects, most visible first (one probable root cause per row):
 
 | # | Defect | Stages | Suspected cause | Repro |
 |---|--------|--------|-----------------|-------|
-| A1 | Arena floors are missing: below the walls the frame shows one flat colour, the same everywhere in a stage (RGB 48,48,45 in GanonE/GanonM/M_DaiMB, 59,59,59 in Xboss2, black in SirenB/kazeMB/kinBOSS). Link stands over nothing. | kinBOSS, GanonE, GanonM, M_DaiMB, Xboss2, SirenB, kazeMB; GanonB likely (dark brown gradient where its lava should be) | **Fixed** by RA-A1: not a render issue. The room-entry event camera found no `RelActor` ("@PLAYER" matched by a host-order u32 read of its name against `'@PLA'`), so its relative eye/centre offsets became world positions and the camera sat under the floor (eye (0,-40,-170) in GanonE), whose triangles are back-face culled from below. `dCamera_strTag` reads such tags big-endian. Checked with COS_SHOT (inspected, before/after): GanonE:0:0 and M_DaiMB:12:0 shot 1190, kinBOSS:0:0 shot 900 went from walls over the clear colour (kinBOSS: Kalle Demos seen from below) to Link seen from behind on the tiled/earth floor; GanonM:0:0, Xboss2:0:0, SirenB:0:0, GanonB:0:0 and kazeMB:6:0 (the sweep start; kazeMB:0:0 faults in `dStage_escapeRestart` with no player, before and after) shot 1190 all show the floor; title shot 1300 unchanged. | `native/tools/run.sh run --stage GanonE:0:0 --frames 1200 --uncapped --shot 1190` (also `M_DaiMB:12:0`, `kinBOSS:0:0 --shot 900`) |
-| A2 | Kalle Demos (the `Bmd` actor) draws as large flat blue, magenta and cyan polygons with jagged leaves. (Seen with the camera under the arena floor, A1; after RA-A1 the frame-900 view is behind Link and the boss is out of view: recheck A2 from a shot that frames it.) On the GameCube it has a textured red bulb and green tentacles. | kinBOSS | **Not a defect; resolved by RA-A1** (checked in RA-A2): the flat blue/magenta/cyan polygons were the undersides of the boss's open flower (material `hana_sitahana`), seen from A1's under-floor camera. The flower's colours come from its own `bkm_body` CMPR texture (cyan/blue/violet, a green-to-magenta band), decoded independently from the disc; the TEV stages sample it unswizzled and `bkm.brk` animates only the death fade. With the camera fixed, the fight (Link walks to the flower) shows the blue-violet yellow-spotted bulb, the green/cyan petals, the barbed tentacles and the ceiling vines. Their geometry is intact and the skinned vines bend smoothly. The "red bulb" in the audit was a wrong expectation. | `native/tools/run.sh run --stage kinBOSS:0:0 --frames 2500 --uncapped --input native/check/input/kinboss-fight.txt --shot 1100,1800,2400` |
+| A1 | Arena floors are missing: below the walls the frame shows one flat colour, the same everywhere in a stage (RGB 48,48,45 in GanonE/GanonM/M_DaiMB, 59,59,59 in Xboss2, black in SirenB/kazeMB/kinBOSS). The player stands over nothing. | kinBOSS, GanonE, GanonM, M_DaiMB, Xboss2, SirenB, kazeMB; GanonB likely (dark brown gradient where its lava should be) | **Fixed** by RA-A1: not a render issue. The room-entry event camera found no `RelActor` ("@PLAYER" matched by a host-order u32 read of its name against `'@PLA'`), so its relative eye/centre offsets became world positions and the camera sat under the floor (eye (0,-40,-170) in GanonE), whose triangles are back-face culled from below. `dCamera_strTag` reads such tags big-endian. Checked with COS_SHOT (inspected, before/after): GanonE:0:0 and M_DaiMB:12:0 shot 1190, kinBOSS:0:0 shot 900 went from walls over the clear colour (kinBOSS: Kalle Demos seen from below) to the player seen from behind on the tiled/earth floor; GanonM:0:0, Xboss2:0:0, SirenB:0:0, GanonB:0:0 and kazeMB:6:0 (the sweep start; kazeMB:0:0 faults in `dStage_escapeRestart` with no player, before and after) shot 1190 all show the floor; title shot 1300 unchanged. | `native/tools/run.sh run --stage GanonE:0:0 --frames 1200 --uncapped --shot 1190` (also `M_DaiMB:12:0`, `kinBOSS:0:0 --shot 900`) |
+| A2 | Kalle Demos (the `Bmd` actor) draws as large flat blue, magenta and cyan polygons with jagged leaves. (Seen with the camera under the arena floor, A1; after RA-A1 the frame-900 view is behind the player and the boss is out of view: recheck A2 from a shot that frames it.) On the GameCube it has a textured red bulb and green tentacles. | kinBOSS | **Not a defect; resolved by RA-A1** (checked in RA-A2): the flat blue/magenta/cyan polygons were the undersides of the boss's open flower (material `hana_sitahana`), seen from A1's under-floor camera. The flower's colours come from its own `bkm_body` CMPR texture (cyan/blue/violet, a green-to-magenta band), decoded independently from the disc; the TEV stages sample it unswizzled and `bkm.brk` animates only the death fade. With the camera fixed, the fight (the player walks to the flower) shows the blue-violet yellow-spotted bulb, the green/cyan petals, the barbed tentacles and the ceiling vines. Their geometry is intact and the skinned vines bend smoothly. The "red bulb" in the audit was a wrong expectation. | `native/tools/run.sh run --stage kinBOSS:0:0 --frames 2500 --uncapped --input native/check/input/kinboss-fight.txt --shot 1100,1800,2400` |
 | A3 | Orca's message box shows its dark panel, the Next button and the arrow but no text, at frames 590, 900 and 1190. The Ojhous2 and Outset boxes show their text. | Ojhous | **Fixed** by RA-A3: not a game or decode issue, a harness timing artefact. Aurora skips a draw until its pipeline is compiled (`PipelinePriority::Normal`, "async skip draw"). In the parallel boot sweep, several game processes were compiling Metal pipelines at once and contending for the shared Dawn cache ("database is locked"), so about 300 pipelines were still queued at frame 1100 and the text's and most of the HUD's draws never showed. The game state matched good runs exactly: message 0x961, the same status sequence, and `output_text` "Link! Is that you? ..." complete by frame ~620. The BMG text, font and colours are fine. Aurora patch 0005 adds `AuroraConfig::blockingPipelines`, and `COS_SYNC_PIPELINES` (default on with `COS_SHOT`/`COS_SHOT_EVERY`) turns it on, so a captured frame shows every draw, as the console and Dolphin's default synchronous shader mode do. Checked (COS_SHOT, inspected): with cold caches and 6 parallel runs, async gave 0/6 with text at 900/1190 (no characters, HUD or box), sync 6/6; with the shared cache, 10/10 parallel runs show the text. | `native/tools/run.sh run --stage Ojhous:0:0 --frames 1200 --uncapped --shot 900,1190` (to reproduce the old behaviour: run 8 at once with `COS_SYNC_PIPELINES=0` and fresh user dirs) |
-| A4 | Link's real-time shadow is drawn as a bright white lobed blob on the floor. Elsewhere (VrTest, A_umikz, Kaisen) it is dark. | K_Testc | **Not a defect** (checked in RA-A4). The blob is not a shadow: Link's real-time shadow is the dark shape at his feet and is correct. The white shapes are three `Obj_Ygush00` springs that the test map places in front of Link. Their toon water material `suimen` lerps the palette's BG1 K0 (water) to BG1 C0 (foam). K_Testc's `Pale` chunk on the disc sets both to (255,255,255) in every palette, so the console draws them white too. Hiding the shadow pass keeps the blob, and hiding `drawOpaList` removes it. With Omori's BG1 colours forced on (diagnostic only), the springs show dark teal water and scrolling light-blue foam rings, so the textures, BTK and TEV compare are right. | `native/tools/run.sh run --stage K_Testc:0:0 --frames 1200 --uncapped --shot 590,900` |
+| A4 | The player's real-time shadow is drawn as a bright white lobed blob on the floor. Elsewhere (VrTest, A_umikz, Kaisen) it is dark. | K_Testc | **Not a defect** (checked in RA-A4). The blob is not a shadow: The player's real-time shadow is the dark shape at his feet and is correct. The white shapes are three `Obj_Ygush00` springs that the test map places in front of the player. Their toon water material `suimen` lerps the palette's BG1 K0 (water) to BG1 C0 (foam). K_Testc's `Pale` chunk on the disc sets both to (255,255,255) in every palette, so the console draws them white too. Hiding the shadow pass keeps the blob, and hiding `drawOpaList` removes it. With Omori's BG1 colours forced on (diagnostic only), the springs show dark teal water and scrolling light-blue foam rings, so the textures, BTK and TEV compare are right. | `native/tools/run.sh run --stage K_Testc:0:0 --frames 1200 --uncapped --shot 590,900` |
 | A5 | Two crossed opaque white quads (an X) hang in the cave in every shot. They look like a light-shaft or billboard model that keeps its bind orientation. | SubD43 | **Not a defect** (checked in RA-A5). The X is the cave's two authored light beams: two `LTag1` (`daTagLight` type 1) actors, each drawing `mspot.bdl`, a 16-sided cylinder (radius 51, 3000 units long after scale). Their authored angles (x ±90°, y ±45°) make the beams run horizontally from the side walls and cross above the Ecube pillar. No joint or shape is a billboard (all matrix types 0, BBoard flag 0). The `Kogen1_v_x` material is a solid-white I4 texture times vertex alpha 0x00-0x73 with SRCALPHA/INVSRCALPHA blend, so it is a translucent white shaft (at most 45%) that fades along its length, and the `Hokori_v_x` dust adds on top. The J3D material data, the Aurora pipeline state and the disc's vertex data agree. The beams are translucent, not opaque. | `native/tools/run.sh run --stage SubD43:0:0 --frames 1200 --uncapped --shot 900` |
 | A6 | Tingle Tower's walls and floor show a huge blocky, smeared Tingle mural (texels several screen pixels wide). The easel painting is sharp. | tincle | **Not a defect** (checked in RA-A6): the authentic low-resolution texture of an unused test room. In Room0's `model.bdl` the room box (shape 1, material `kabe_v`, x -350..350, y 0..889, z -350..750: floor, walls and ceiling) and the easel canvas (`iizeru_e_v`) both use TEX1 texture 1, `tincle_e`: a 64x64 CMPR paint-mess picture with a face, one mip, LINEAR/LINEAR, REPEAT. The room box's UVs span only -1..2 by -3..1, so about 190 texels cover a 700-unit wall (about 6 screen pixels per texel at 1080p), while the 25-unit easel shows one copy (sharp). The only other texture, `mokume` (256x256 paint-splattered wood), is on the furniture (`lambert5_v`). No mip, LOD or size is involved, and the decoded texture, UVs and binding match the disc. Datamining notes on the unused `Tincle` model describe the same: one paint-mess texture with a face covering the walls, ceiling and canvas. | `native/tools/run.sh run --stage tincle:0:0 --frames 1200 --uncapped --shot 900` |
 | A7 | The island is untextured flat sand and blue, and the house and pier are pure white silhouettes. | Ebesso | **Not a defect** (checked in RA-A7): the authentic look of an unfinished test map. Ebesso's Room0.arc holds two BMD models (no MDL3, so J3D builds every material from MAT3). `model.bmd` has two materials: `beach1` (the island: TEV TEXC x RASC, colour channel lighting off with material colour (255,255,255)) samples its only texture `beach`, a 128x128 RGB565 sand image that is nearly flat (14 colours, 7585 of 16384 texels (240,196,104), a lighter rim), and `lambert17` (the house, pier and ladder: Maya's default material name) has no texture, one TEV stage that passes RASC, lighting off and material colour (255,255,255), so the GameCube draws it pure white too. `setLightTevColorType` (the room's daBg draw) only rewrites TEV C0/K0, the light mask and the light, none of which these stages read. The flat blue lagoon is `model1.bmd`'s untextured `umi_water1_v`/`umi_water2` (KONST K0 x RASC, K0 from the room's palette). The material colours of this path were byte-reversed on the host before RA-A7's J3DMatBlock fix (`loadMatColors`/`loadAmbColors`, next entry), but Ebesso's are all symmetric (ffffffff, ccccccff only in the sea's lighting-off channel that its KONST stages ignore, ambient 32323232), so the frame is the same before and after. | `native/tools/run.sh run --stage Ebesso:0:0 --frames 1200 --uncapped --shot 590` |
@@ -3724,11 +3724,11 @@ does. Check: `COS_SHOT=430,440,450,460 run --frames 470 --uncapped` (inspected, 
 
 | # | Found | Platform | Bug | Status |
 |---|---|---|---|---|
-| B1 | 2026-10-03, hardware play (NRO 4c6b54d2, a2535d2 line) | Switch (likely all hosts) | Outset: after entering a house and walking back out, the island's background music does not come back (the scene change house -> sea stops the BGM and it is never restarted, or the restart request is dropped). | closed 2026-10-04: confirmed on hardware (NRO e5afa1c8, 4e490f4): entering and leaving Onobuta and Obshop on Outset, the island BGM comes back every time. Never reproduced on the Mac; most likely fixed by 124a812 (JAI sequence port args read with an 8-byte stride, so volume/fade commands had been lost). Earlier investigation (lane bugs-b1-b3, bgm-hop smoke c0fecd2): not reproduced on the Mac (lane bugs-b1-b3), still open: with the debug boot the BGM comes back every time. Tried: real doors (Omasao and Onobuta, walked out, in and out again with the A button), scene changes as a door's SCLS exit makes them (sea:44 -> Omasao, LinkRM, Onobuta, Ojhous -> sea:44), ten round trips in one run, and the story BGM variants ISLAND_LINK_0 (0x80000038, new file) and ISLAND_LINK_2 (0x8000000E, event bits 0x3510 and 0x0001 on): each time JAIZelBasic restarts the island BGM about 60 frames after the island (setScene -> sceneChange -> sceneBgmStart from dScnPly_Execute), mpMainBgmSound is set and the audio dump is back to the level it had before (about 3000 RMS outside, 1000 in the houses). Console behaviour that also gives a silent Outset: from 20:00 to 5:00 the island has no BGM (processTime fades it at 20:00 only while Link is outside; sceneBgmStart skips it at night), and time only passes once Link has the game; bgm 0 is also the console's choice while event 0x0101 is set and 0x0E20 is not. Next: on hardware, the time of day and the stage/house when it happens, and the [cos] bgm-hop lines of COS_SMOKE=bgm-hop (regression target, sea:44:0 -> Omasao -> sea:44:0, about 40 s; it fails if the BGM is not started again or the island is more than 6 dB quieter) |
+| B1 | 2026-10-03, hardware play (NRO 4c6b54d2, a2535d2 line) | Switch (likely all hosts) | Outset: after entering a house and walking back out, the island's background music does not come back (the scene change house -> sea stops the BGM and it is never restarted, or the restart request is dropped). | closed 2026-10-04: confirmed on hardware (NRO e5afa1c8, 4e490f4): entering and leaving Onobuta and Obshop on Outset, the island BGM comes back every time. Never reproduced on the Mac; most likely fixed by 124a812 (JAI sequence port args read with an 8-byte stride, so volume/fade commands had been lost). Earlier investigation (lane bugs-b1-b3, bgm-hop smoke c0fecd2): not reproduced on the Mac (lane bugs-b1-b3), still open: with the debug boot the BGM comes back every time. Tried: real doors (Omasao and Onobuta, walked out, in and out again with the A button), scene changes as a door's SCLS exit makes them (sea:44 -> Omasao, LinkRM, Onobuta, Ojhous -> sea:44), ten round trips in one run, and the story BGM variants ISLAND_LINK_0 (0x80000038, new file) and ISLAND_LINK_2 (0x8000000E, event bits 0x3510 and 0x0001 on): each time JAIZelBasic restarts the island BGM about 60 frames after the island (setScene -> sceneChange -> sceneBgmStart from dScnPly_Execute), mpMainBgmSound is set and the audio dump is back to the level it had before (about 3000 RMS outside, 1000 in the houses). Console behaviour that also gives a silent Outset: from 20:00 to 5:00 the island has no BGM (processTime fades it at 20:00 only while the player is outside; sceneBgmStart skips it at night), and time only passes once the player has the game; bgm 0 is also the console's choice while event 0x0101 is set and 0x0E20 is not. Next: on hardware, the time of day and the stage/house when it happens, and the [cos] bgm-hop lines of COS_SMOKE=bgm-hop (regression target, sea:44:0 -> Omasao -> sea:44:0, about 40 s; it fails if the BGM is not started again or the island is more than 6 dB quieter) |
 | B2 | 2026-10-03, hardware play (NRO 4c6b54d2, bcb691f9) | all hosts | Outset: the tunic event (stage LinkRM, STB demo) panics at JPAEmitterManager.cpp:86 (`groupID < 16`) from JStudio_JParticle::TAdaptor_particle::TVVOOn_BEGIN_FADE_IN_: the particle adaptor read its STB operands (particle id/group/resource manager, parent/relation enables) in host byte order, so the group came out as the low byte of the id. The first run looked like a hang only because the USB log dropped; the SD centollos.log of the second run has the panic. | fixed: operands read as BE(T) like the JStage adaptors (8eb9db8); to confirm on hardware |
-| B3 | 2026-10-04, hardware play (NRO bcb691f9) | Switch (likely all hosts) | Sword training with Orca (Outset): when Link's sword hits Orca's spear, a white polygon covers the whole screen instead of the small hit spark. Likely the hit-spark particle/effect (JPA emitter or a 2D/3D flash) drawn with a wrong matrix/scale/blend (e.g. host-order particle data, a projection or a full-screen quad from an unconverted vertex format). | fixed (lane bugs-b1-b3): not the hit spark but Link's sword trail (daPy_swBlur_c). daPy_lk_c::setBlurPosResource copies a *_POS resource of LkAnm.arc (raw big-endian Vec pairs, the sword root and tip per frame) into mSwBlur.mpPosBuffer and the trail's quads were built from those floats in host order (values up to 1e38): the TARGET_PC reader daPy_readBlurPosResource swaps them. Reproduced on the Mac with --stage Ojhous:0 and a scripted roll/slash (52 % of frame 1650 near-white, 0.6 % after the fix, the trail drawn as a thin arc). The JPA sparks (0x000C ID_AK_JN_NG, 0x002C hibana) draw correctly. Regression: COS_SMOKE=blur-pos (all 19 *_POS resources finite and within 1000 units; fails on every one without the swap) |
-| B4 | 2026-10-04, hardware play (NRO f1a2291b) | Switch | Outset, Link's house (LinkRM room 0), talking to the grandmother before the tunic: data abort esr=0x92000045 far=0x2436575 on Aurora's render worker in newlib's `_malloc_r` (ROOM_SCENE frame 2898, last_res /res/Object/Ep.arc), from the `std::unordered_set<std::string>` copy of Dawn's `OpenGLFunctions` that `CommandBuffer::Execute`'s `LazyClearSyncScope` lambda made on every submit (captured `[gl]` by value: hundreds of mallocs per frame on the worker). The malloc only found the damage: a free chunk's `bk` held 0x0000000002436565, which reads as a heap pointer 0x2436565xx stored one byte lower (a native pointer written at an odd address or a few bytes past a block's end). Mac reproduction: debug boot `LinkRM:0:0` on a new file starts the grandmother's event itself (talk, tunic demo, room reload); it runs clean under ASan (`COS_ASAN`, overlay on) and with every JKR heap checked every frame (`COS_HEAP_CHECK=1`), also entering through the door (`sea:44:1`). So the damage comes from Switch-only code (Dawn's GL backend and our patches, Mesa/nouveau, whose GPU buffers live in the newlib heap, the Switch glue) or from a path the Mac runs do not take. | not reproduced since 8bfbc80 (watching): the user talked to the grandmother again on hardware (2026-10-04, NROs up to e5afa1c8) with no crash, and the Mac runs stay clean under ASan and COS_HEAP_CHECK. The damage source was never proven, so if a malloc fault or heap damage ever returns, run with COS_HEAP_CHECK=1 in env.txt. Earlier notes: open: the per-submit copy is gone (8bfbc80, the crash site, also a perf fix); the next hardware run should use `COS_HEAP_CHECK=1` in env.txt (JKR checks plus a walk of newlib's free lists every frame: the first damaged frame then faults on the game thread in `heapCheckFrame`). Regression: `run --stage LinkRM:0:0 --heap-check 1 --input native/check/input/grandma-talk.txt` |
-| B5 | 2026-10-04, Mac (B4 reproduction) | all hosts | After the grandmother's tunic event Link wore garbled colours: `daPy_lk_c` swaps the clothes texture by copying a ResTIMG header over the J3DTexture entry, and on the host each entry keeps a GXTexObj that the copy left on the other image (the casual CI4 image drawn without its palette). | fixed: the three swap sites rebuild the entry's texture object (a76a3da) |
+| B3 | 2026-10-04, hardware play (NRO bcb691f9) | Switch (likely all hosts) | Sword training with Orca (Outset): when the player's sword hits Orca's spear, a white polygon covers the whole screen instead of the small hit spark. Likely the hit-spark particle/effect (JPA emitter or a 2D/3D flash) drawn with a wrong matrix/scale/blend (e.g. host-order particle data, a projection or a full-screen quad from an unconverted vertex format). | fixed (lane bugs-b1-b3): not the hit spark but the player's sword trail (daPy_swBlur_c). daPy_lk_c::setBlurPosResource copies a *_POS resource of LkAnm.arc (raw big-endian Vec pairs, the sword root and tip per frame) into mSwBlur.mpPosBuffer and the trail's quads were built from those floats in host order (values up to 1e38): the TARGET_PC reader daPy_readBlurPosResource swaps them. Reproduced on the Mac with --stage Ojhous:0 and a scripted roll/slash (52 % of frame 1650 near-white, 0.6 % after the fix, the trail drawn as a thin arc). The JPA sparks (0x000C ID_AK_JN_NG, 0x002C hibana) draw correctly. Regression: COS_SMOKE=blur-pos (all 19 *_POS resources finite and within 1000 units; fails on every one without the swap) |
+| B4 | 2026-10-04, hardware play (NRO f1a2291b) | Switch | Outset, the player's house (LinkRM room 0), talking to the grandmother before the tunic: data abort esr=0x92000045 far=0x2436575 on Aurora's render worker in newlib's `_malloc_r` (ROOM_SCENE frame 2898, last_res /res/Object/Ep.arc), from the `std::unordered_set<std::string>` copy of Dawn's `OpenGLFunctions` that `CommandBuffer::Execute`'s `LazyClearSyncScope` lambda made on every submit (captured `[gl]` by value: hundreds of mallocs per frame on the worker). The malloc only found the damage: a free chunk's `bk` held 0x0000000002436565, which reads as a heap pointer 0x2436565xx stored one byte lower (a native pointer written at an odd address or a few bytes past a block's end). Mac reproduction: debug boot `LinkRM:0:0` on a new file starts the grandmother's event itself (talk, tunic demo, room reload); it runs clean under ASan (`COS_ASAN`, overlay on) and with every JKR heap checked every frame (`COS_HEAP_CHECK=1`), also entering through the door (`sea:44:1`). So the damage comes from Switch-only code (Dawn's GL backend and our patches, Mesa/nouveau, whose GPU buffers live in the newlib heap, the Switch glue) or from a path the Mac runs do not take. | not reproduced since 8bfbc80 (watching): the user talked to the grandmother again on hardware (2026-10-04, NROs up to e5afa1c8) with no crash, and the Mac runs stay clean under ASan and COS_HEAP_CHECK. The damage source was never proven, so if a malloc fault or heap damage ever returns, run with COS_HEAP_CHECK=1 in env.txt. Earlier notes: open: the per-submit copy is gone (8bfbc80, the crash site, also a perf fix); the next hardware run should use `COS_HEAP_CHECK=1` in env.txt (JKR checks plus a walk of newlib's free lists every frame: the first damaged frame then faults on the game thread in `heapCheckFrame`). Regression: `run --stage LinkRM:0:0 --heap-check 1 --input native/check/input/grandma-talk.txt` |
+| B5 | 2026-10-04, Mac (B4 reproduction) | all hosts | After the grandmother's tunic event the player wore garbled colours: `daPy_lk_c` swaps the clothes texture by copying a ResTIMG header over the J3DTexture entry, and on the host each entry keeps a GXTexObj that the copy left on the other image (the casual CI4 image drawn without its palette). | fixed: the three swap sites rebuild the entry's texture object (a76a3da) |
 | B6 | 2026-10-04, hardware play (photo build/bug-reports/B6-helmaroc-cutscene-switch.jpg) | all hosts at 16:9 / 16:10 (`COS_ASPECT`, the Switch default) | Prologue, Outset lookout: the telescope demo `telescope_demo` (the Helmaroc King chasing Tetra's ship, seen through Aryll's telescope) showed its cinemascope part as a 4:3 window inside the 16:9 screen, black bars left and right as well as above and below. Our port of the 16:9 Gecko code (`dDlst_2DSCP_c::draw`, d_scope.cpp) fills -130..0 and 640..770 of the 2D screen in black whenever the telescope's screen is drawn, to keep the telescope's 4:3 frame; from demo frame 425 to 1120 `dScp_demoProc` hides the eight wipe panels and lets the camera's cinemascope trim frame the picture, but the bars were still drawn. The two small dark shapes in the photo are distant islands and ships on the horizon (the same at 4:3). | fixed (lane b6-cutscene): the bars are drawn only while the wipe panels are visible; 4:3 unchanged. Reproduced on the Mac with `--stage sea:44:206`, `COS_BOOT_EVENTS=2A80`, `COS_BOOT_ITEMS=20` (new harness options) and native/check/input/telescope-demo.txt (C-stick columns, also new). Other letterboxed cutscenes checked at 16:9 (intro event at sea:44:206, tunic demo in LinkRM): full width already. Regression: `COS_SMOKE=telescope-demo` at 16:9 (the left and right 4 % of the picture must not be black through the cinemascope part; fails without the fix). Before/after: build/bug-reports/B6-before-16x9-f5100.jpg, B6-after-16x9-f5100.jpg; to confirm on hardware |
-| B7 | 2026-10-04, hardware play (video, build/bug-reports/B7) | Switch (Dawn GL only) | Outset, Link on the rope bridge, camera looking down at the sea against the cliffs: the white foam line where the sea meets the cliffs and rocks, and the darker sea shadow around them, flicker from frame to frame (solid, dotted, gone). Not on the Mac. The foam and shadow are translucent decals of the room's model1.bdl (SC_01_mizu_v..., textures Txa_nami/Txa_umi_kiwa/Txa_umi_kage; z compare LEQUAL, no z update), about one unit above the island's opaque water (SC_01_mizu, z update) and drawn after it; on Outset the daSea grid is culled (wave height 0), the open sea is vrbox2's skybox sea. Aurora draws with reversed Z (Depth32Float, near plane 1, far 400000); Dawn's GL backend kept GL's [-w, w] clip range and Tint rewrote every vertex's z as 2z - w, which rounds z (about 1) against w (the distance, thousands) to about 2^-24 of w: at a few thousand units the decals' one-unit lead is lost in rounding noise that changes as the camera moves. Reproduced on the Mac by putting the same arithmetic into Aurora's vertex shader (local experiment): the shore-foam smoke then sees frames whose foam drops to 34 % of their neighbours, with foam and shadow gone around the rocks (build/bug-reports/B7/evidence). | fixed for the Switch, to confirm on hardware (lane b7-shore): Dawn patch dawn-switch-gl-clip-control sets glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE) (GLES GL_EXT_clip_control, exposed by the console's Mesa 20.1 on nvc0) and the new Tint option depth_zero_to_one drops the 2z - w rewrite: GL gets the depth precision Metal has, same depth values; `[dawn] COS_SWITCH_GL_CLIP_CONTROL:` logs the path, `=0` restores the old one (A/B). The Mac is unchanged. Regression: `shore-foam 0 --stage sea:44:8 --aspect 16:9` (COS_SMOKE=shore-foam: a fixed camera, COS_CAMERA, moved over the cliffs under the bridge; fails on a frame with under 90 % of its neighbours' foam; Metal 0.998); it can run on the console from env.txt. The sea itself (flat saturated blue) looks the same on the Mac: the island water SC_01_mizu is untextured by design, so not a separate bug |
+| B7 | 2026-10-04, hardware play (video, build/bug-reports/B7) | Switch (Dawn GL only) | Outset, the player on the rope bridge, camera looking down at the sea against the cliffs: the white foam line where the sea meets the cliffs and rocks, and the darker sea shadow around them, flicker from frame to frame (solid, dotted, gone). Not on the Mac. The foam and shadow are translucent decals of the room's model1.bdl (SC_01_mizu_v..., textures Txa_nami/Txa_umi_kiwa/Txa_umi_kage; z compare LEQUAL, no z update), about one unit above the island's opaque water (SC_01_mizu, z update) and drawn after it; on Outset the daSea grid is culled (wave height 0), the open sea is vrbox2's skybox sea. Aurora draws with reversed Z (Depth32Float, near plane 1, far 400000); Dawn's GL backend kept GL's [-w, w] clip range and Tint rewrote every vertex's z as 2z - w, which rounds z (about 1) against w (the distance, thousands) to about 2^-24 of w: at a few thousand units the decals' one-unit lead is lost in rounding noise that changes as the camera moves. Reproduced on the Mac by putting the same arithmetic into Aurora's vertex shader (local experiment): the shore-foam smoke then sees frames whose foam drops to 34 % of their neighbours, with foam and shadow gone around the rocks (build/bug-reports/B7/evidence). | fixed for the Switch, to confirm on hardware (lane b7-shore): Dawn patch dawn-switch-gl-clip-control sets glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE) (GLES GL_EXT_clip_control, exposed by the console's Mesa 20.1 on nvc0) and the new Tint option depth_zero_to_one drops the 2z - w rewrite: GL gets the depth precision Metal has, same depth values; `[dawn] COS_SWITCH_GL_CLIP_CONTROL:` logs the path, `=0` restores the old one (A/B). The Mac is unchanged. Regression: `shore-foam 0 --stage sea:44:8 --aspect 16:9` (COS_SMOKE=shore-foam: a fixed camera, COS_CAMERA, moved over the cliffs under the bridge; fails on a frame with under 90 % of its neighbours' foam; Metal 0.998); it can run on the console from env.txt. The sea itself (flat saturated blue) looks the same on the Mac: the island water SC_01_mizu is untextured by design, so not a separate bug |
 | B8 | 2026-10-04, hardware play (options menu NRO, build/bug-reports/B8/menu-run1.log) | all hosts | After many internal resolution changes in the new options menu and Depuración > Viajar from Outset to Windfall (sea room 11), the pause menu's collection (Quest Status) screen panicked in d_menu_save.cpp:184 (`new dFile_error_c()` returned NULL; addr2line: dMenu_save_c::_create <- dMenu_Collect_c::_create <- dMs_collect_create <- dMs_Execute, ROOM_SCENE frame 9412); the console showed its unexpected-error screen. Cause: the pause menu's screens live in the menu window's child heap (`JKRExpHeap::create(0x506A1)` in d_menu_window.cpp) inside the PLAY scene's 2D heap (`fopMsgM_createExpHeap(0x73EA1)`), GameCube sizes for objects that hold 64-bit pointers on the host: the collection screen alone needs about 353 KiB of the 321 KiB, the item screen 319 KiB on a new file and more with items. Reproduced on the Mac without the menu: debug boot `sea:11:0`, START, R (same panic and stack); the travel is not involved (dComIfGp_setNextStage; a Windfall -> Outset -> Dragon Roost -> Windfall chain leaves every heap as a debug boot at Windfall does) and neither are the resolution changes (Aurora's resize runs in host memory). Side finding: the options menu, FPS overlay and precompile overlay allocated their host objects (~1,400 operator new per 100 frames with the menu open) in the game's current JKR heap (main), not the cause but wrong. | fixed, to confirm on hardware (lane b8-heap): menu child heap 0x506A1 * 3 and 2D heap 0x73EA1 * 3 (d_s_play.cpp, d_message_paper.cpp), HUD heap 0x2a819 * 2 (d_meter.cpp), about 1.6 MiB more of the game heap's 54 MiB free; 611 of 964 KiB stay free on the collection screen. pc_frame_end runs the menu and overlays in a JKRPcHostAllocScope. Every failed JKR allocation is now logged on all hosts (`[cos] heap: cannot alloc ... in the <heap> ...: size, free, largest free block`), and `COS_HEAP_REPORT=N` logs every game heap, the exp heaps in the game heap and the 2D heap's children every N frames (also when the options menu opens). Regression: `options-menu 0 --stage sea:44:206 --input native/check/input/menu-travel-save.txt` (resolution changes, Viajar to Dragon Roost and Windfall, item and collection screens with 14 items, a save through the save screen on the run's own card and its load round trip; `#items`, `#card run`, `#expect alloc-failures`, `#expect card-roundtrip` in the options-menu smoke) |

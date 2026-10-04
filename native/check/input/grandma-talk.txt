@@ -1,9 +1,9 @@
 # Controller script of the grandmother's tunic talk (bug B4; syntax in native/src/pc/pc_input.cpp):
 # <frame> <buttons> <stickX> <stickY>, each line holding until the next. Run with
 # --stage LinkRM:0:0 on a new file (debug stage boot): the room is reloaded at about frame 355 and
-# the grandmother's event starts by itself ("I've been waiting for you, Link."): her talk, the tunic
-# demo (STB with the particle adaptor of bug B2, Link's clothes swapped in place) and the room
-# reload at about frame 2480, after which Link is free in the tunic. B taps (held two frames, every
+# the grandmother's event starts by itself ("I've been waiting for you, the player."): her talk, the tunic
+# demo (STB with the particle adaptor of bug B2, the player's clothes swapped in place) and the room
+# reload at about frame 2480, after which the player is free in the tunic. B taps (held two frames, every
 # ten) advance the messages from frame 400 to 2600. The regression runs it with --heap-check 1.
 400   B  0  0
 402   -  0  0

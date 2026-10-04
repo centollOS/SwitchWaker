@@ -3,7 +3,7 @@
 //
 // B1 (hardware): in Outset, after entering a house and walking back out, the island's BGM did not
 // come back. The test does the same scene changes the doors make, without the door events: once
-// Link is in the boot room (the M12 probe, pc_outset.cpp), bgmHopFrame (pc_frame_end, every game
+// The player is in the boot room (the M12 probe, pc_outset.cpp), bgmHopFrame (pc_frame_end, every game
 // frame, between game frames) waits kSettleFrames, then
 // 1. measures the island: kWindowFrames of audio output (cos_sdk's COSAIGetOutputStats, RMS in
 //    dBFS) with JAIZelBasic's main BGM, which must be playing (mpMainBgmSound set);

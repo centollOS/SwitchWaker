@@ -224,7 +224,7 @@ All Switch-only, under `switch/dawn/patches/dawn-switch-gl-replay-timers.patch` 
    37 ms wall confirms a wait, not contention.
 5. **Start-up facts**: `appletGetOperationMode()` (handheld/docked), GPU and EMC clock via
    `clkrstOpenSession(PcvModuleId_GPU/EMC)` + `clkrstGetClockRate` (or `pcvGetClockRate` on old FW),
-   printed once in the `[switch] centollos native:` line.
+   printed once in the `[switch] centollOS:` line.
 6. Optional: the run with `COS_FPS_OVERLAY=0` for a clean pass count (removes the ImGui pass).
 
 ## 4. Options, ranked for "stable 30 fps in Outset" (worker < ~25 ms)
@@ -266,7 +266,7 @@ Decision:
 **Step 2a (GPU-bound, expected) - internal resolution (option f), 0.5-1 day.** `COS_FB_SCALE`
 through `VISetFrameBufferScale`; measure 1.125 (960x540) and 1.0 (854x480) with `COS_FPS_OVERLAY=0`,
 reading GPU elapsed per pass and fps. Accept the largest scale that keeps GPU elapsed < 28 ms
-(p95) in Outset exterior with Link running. Then option (a1) if the per-pass GPU timer shows the
+(p95) in Outset exterior with the player running. Then option (a1) if the per-pass GPU timer shows the
 shadow segments and their clears above ~2 ms. If the console was handheld, state the docked numbers
 in the docs as well (768 MHz GPU: likely 30 fps at 1280x720 without further work).
 
@@ -658,7 +658,7 @@ per screen of fragments (Outset 7.1 screens ~11 ms raw; A_mori 29.3 screens ~45 
 | filter (dKankyo_cloud_Packet) | **12.45** (81 draws) | - | the mist ("moya"): blended camera-facing sprites, no depth test, alpha compare > 0, fog |
 | opa (dGrass_packet_c) | 4.68 (1082 draws) | 0.04 | grass tufts, alpha-tested, depth write |
 | sky | 3.41 | 3.97 | dome + blended layers + vrkumo clouds, drawn first, mostly hidden later |
-| shadow | 3.20 | 0.00 | real-time shadow volumes (alpha-only writes; the box covers the screen near Link) |
+| shadow | 3.20 | 0.00 | real-time shadow volumes (alpha-only writes; the box covers the screen near the player) |
 | opa_bg | 2.28 | 0.67 | the stage (leaves alpha-tested) |
 | dof | 1.27 | 1.27 | depth-of-field composite (COS_DOF=0 removes it, changes the look) |
 | alpha_model | 1.00 | 1.00 | drawAlphaBuffer's full-screen quad, every frame |

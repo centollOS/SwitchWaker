@@ -38,7 +38,7 @@ anm-sweep 0
 # F2-agb-map (lane outset): every AGB floor map (.amp) through mDoLib_cnvind16/32, GBA buffer order
 amp-sweep 0
 stb-sweep 0
-# bug B3: Link's sword blur positions (LkAnm.arc *_POS) read in host order
+# bug B3: The player's sword blur positions (LkAnm.arc *_POS) read in host order
 blur-pos 0
 # bug B1: Outset's BGM after a house (sea -> Omasao -> sea), audio level and BGM state
 bgm-hop 0 --stage sea:44:0
@@ -54,10 +54,10 @@ static-init 2 --stage sea
 # step 5.5: after the title, the AI output is above -40 dBFS RMS and the sequence ticks advance
 title-audio 0
 
-# milestone M12 (boot loop, lane outset): debug stage boot puts Link in Outset
+# milestone M12 (boot loop, lane outset): debug stage boot puts the player in Outset
 outset-debug 0 --stage sea:44:206
 
-# milestone M13 (step 6.6, lane outset): Link is controllable in Outset after Aryll's lookout event
+# milestone M13 (step 6.6, lane outset): The player is controllable in Outset after Aryll's lookout event
 outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.txt
 
 # F1-vi-stall (lane outset): M13 uncapped, retraces back to back; JUTVideo's measured retrace
@@ -77,7 +77,7 @@ static-init 2 --aspect 21:9
 # (fix NG-run-dir)
 new-game 0 --input native/check/input/new-game.txt
 
-# bug B4 (lane b4-grandma): the grandmother's tunic talk and demo in Link's house (debug boot at
+# bug B4 (lane b4-grandma): the grandmother's tunic talk and demo in the player's house (debug boot at
 # LinkRM point 0 starts it on a new file), every JKR heap checked every frame (and newlib's free
 # lists on the Switch); the run must end at --frames with no fault, panic or damaged heap
 run 0 --stage LinkRM:0:0 --frames 3000 --uncapped --heap-check 1 --input native/check/input/grandma-talk.txt
@@ -93,7 +93,7 @@ shore-foam 0 --stage sea:44:8 --aspect 16:9
 
 # options menu (lane options-menu): L+R+Z opens it in Outset, the internal resolution (handheld),
 # depth of field and FPS overlay change live and are saved to the run's settings.ini, the game stays
-# paused while it is open, then Depuración > Viajar takes Link to Windfall (sea room 11)
+# paused while it is open, then Depuración > Viajar takes the player to Windfall (sea room 11)
 options-menu 0 --stage sea:44:206 --input native/check/input/options-menu.txt
 # HD textures (lane hd-textures): the menu's "Texturas HD" on and off with no pack installed
 options-menu 0 --stage sea:44:206 --input native/check/input/hd-textures-menu.txt

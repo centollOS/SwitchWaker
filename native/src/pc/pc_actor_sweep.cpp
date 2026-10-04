@@ -1,19 +1,19 @@
 // COS_SMOKE=actor-sweep (docs/NATIVE_PORT_PHASE4_6.md, step 6.9 robustness): with the debug stage
-// boot (COS_BOOT_STAGE, e.g. sea:44:206, Outset), once Link is in the start room (the M12 probe,
-// pc_outset.cpp), every actor profile of g_fpcPfLst_ProfileList is spawned next to Link in turn,
+// boot (COS_BOOT_STAGE, e.g. sea:44:206, Outset), once the player is in the start room (the M12 probe,
+// pc_outset.cpp), every actor profile of g_fpcPfLst_ProfileList is spawned next to the player in turn,
 // run for kRunFrames game frames and deleted. Pass = no fault; a refused creation is fine.
 //
 // actorSweepFrame (pc_frame_end, every game frame) drives it between game frames, outside
 // fapGm_Execute:
 // - an actor profile is one whose leaf sub-method is g_fopAc_Method (the scenes, overlaps, kankyo,
 //   message and camera processes are not actors and are skipped);
-// - it is created with fopAcM_create(procName, parameter 0, kSpawnDistance in front of Link,
-//   Link's room), from Link's layer (as if Link had spawned it), facing Link;
+// - it is created with fopAcM_create(procName, parameter 0, kSpawnDistance in front of the player,
+//   The player's room), from the player's layer (as if the player had spawned it), facing the player;
 // - each frame it is looked for among the creating processes and the executing ones. Gone before
 //   kRunFrames frames: refused (creation failed) or deleted itself. Still there after kRunFrames
 //   frames: fpcM_Delete (a process still creating is aborted that way too), then wait until it is
 //   gone (kDeleteFrames at most);
-// - after each profile, the PLAY scene and Link must still be there, otherwise the sweep stops
+// - after each profile, the PLAY scene and the player must still be there, otherwise the sweep stops
 //   (exit 1: the rest would not run in Outset).
 // COS_ACTOR_SWEEP=<first>[-<last>] limits the sweep to those process names (fpcNm_*, the
 // profile list index); native/tools/actor_sweep.py uses it to go on after a fault.
@@ -44,7 +44,7 @@ namespace pc {
 
 namespace {
 
-constexpr unsigned int kSettleFrames = 60;  // after Link is in the room, before the first spawn
+constexpr unsigned int kSettleFrames = 60;  // after the player is in the room, before the first spawn
 constexpr unsigned int kRunFrames = 30;     // per actor (step 6.9)
 constexpr unsigned int kDeleteFrames = 120; // to finish a deletion
 constexpr unsigned int kGapFrames = 3;      // between one actor gone and the next spawn (Aurora
@@ -107,14 +107,14 @@ void finish(const char* result) {
     sId = fpcM_ERROR_PROCESS_ID_e;
 }
 
-// nullptr while Outset is still running with Link in it.
+// nullptr while Outset is still running with the player in it.
 const char* sceneLost() {
     if (fpcM_Search(isPlayScene, nullptr) == nullptr) {
         return "PLAY scene gone";
     }
     fopAc_ac_c* player = dComIfGp_getPlayer(0);
     if (player == nullptr || fopAcM_GetName(player) != fpcNm_PLAYER_e) {
-        return "Link gone";
+        return "player gone";
     }
     const PcBootStage* boot = pc_boot_stage();
     const char* stage = dComIfGp_getStartStageName();
@@ -161,7 +161,7 @@ void spawn() {
     if (sFd >= 0) {
         writef(sFd, "%d %s begin\n", sProc, stageName(sProc));
     }
-    // Created from Link's layer, as an actor Link spawned would be.
+    // Created from the player's layer, as an actor the player spawned would be.
     layer_class* saved = fpcLy_CurrentLayer();
     fpcLy_SetCurrentLayer(static_cast<base_process_class*>(player)->mLyTg.mpLayer);
     sId = fopAcM_create((s16)sProc, 0, &pos, room, &angle);
@@ -214,7 +214,7 @@ void actorSweepFrame(unsigned int frames) {
         if (sSince < kSettleFrames) {
             return;
         }
-        writef(STDERR_FILENO, "[cos] actor-sweep: Link in the room; sweeping from frame %u\n",
+        writef(STDERR_FILENO, "[cos] actor-sweep: The player in the room; sweeping from frame %u\n",
                frames);
         sState = kNext;
     }

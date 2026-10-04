@@ -4,7 +4,7 @@ GameCube behaviour: a texgen of type GX_TG_SRTG with source GX_TG_COLOR0/1 (XF t
 type 2/3, "colour strgbc") takes S and T from the R and G of colour channel 0/1 after
 lighting, with Q = 1. Dolphin's VertexShaderGen writes
 `texture_coord_N.xyz = vec3(vertex_lighting_0.x, vertex_lighting_0.y, 1)`. The game's
-toon shading relies on it: J3D materials of Link, Aryll, the King of Red Lions and other
+toon shading relies on it: J3D materials of the player, Aryll, the King of Red Lions and other
 actors light channel 0 (N.L) and sample a toon ramp texture at that (S, T).
 
 Aurora 3227d76 used the vertex attribute GX_VA_CLR0/1 instead, which these models do not

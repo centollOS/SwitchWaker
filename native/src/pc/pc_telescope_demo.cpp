@@ -1,5 +1,5 @@
 // COS_SMOKE=telescope-demo (bug B6, docs/NATIVE_PORT_PLAN.md "Known bugs"): the telescope demo of the
-// prologue (event telescope_demo: Link watches the Helmaroc King chase Tetra's ship through Aryll's
+// prologue (event telescope_demo: The player watches the Helmaroc King chase Tetra's ship through Aryll's
 // telescope) keeps the full width of a widescreen picture. Run with
 //   --stage sea:44:206 --input native/check/input/telescope-demo.txt [--aspect 16:9]
 // The test gives the debug boot's new file event bit 0x2A80 (the grandmother's tunic done: Aryll
