@@ -148,6 +148,9 @@ void pc_harness_init(int argc, char* argv[]) {
     gConfig.hitchMs = envCount("COS_HITCH_MS");
     gConfig.heapCheckEvery = envCount("COS_HEAP_CHECK");
     gConfig.heapReportEvery = envCount("COS_HEAP_REPORT");
+    if (const char* v = getenv("COS_ALLOC_FAILURES_MAX"); v != nullptr && v[0] != '\0') {
+        gConfig.allocFailuresMax = atoi(v);
+    }
     gConfig.fpsOverlay = envFlag("COS_FPS_OVERLAY", false);
     if (const char* detail = envString("COS_FPS_OVERLAY_DETAIL"); detail != nullptr) {
         gConfig.fpsOverlayCompact = strcmp(detail, "compact") == 0;

@@ -29,6 +29,12 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
+#if defined(__APPLE__)
+#include <cxxabi.h>
+#include <dlfcn.h>
+#include <execinfo.h>
+#endif
 #include <cstring>
 #include <new>
 #include <unistd.h>
@@ -563,6 +569,38 @@ static void reportAllocFailure(JKRHeap* heap, u32 size, int alignment) {
            (unsigned)size, alignment, name, (unsigned)heap->getHeapSize(),
            (unsigned)heap->getTotalFreeSize(), (unsigned)heap->getFreeSize(), current,
            pc_frame_count(), sCount);
+#if defined(__APPLE__)
+    // The callers (room sweep: a failure the game survives has no crash backtrace to tell whose
+    // fixed-size heap is too small for host-sized objects, bugs B8 and B12). The first 16 only.
+    if (sCount <= 16) {
+        void* frames[12];
+        const int count = backtrace(frames, 12);
+        char line[1024];
+        int n = snprintf(line, sizeof(line), "[cos] heap:   from");
+        for (int i = 2; i < count && n < (int)sizeof(line) - 2; i++) {
+            Dl_info info;
+            const char* sym = nullptr;
+            char* demangled = nullptr;
+            if (dladdr(frames[i], &info) != 0 && info.dli_sname != nullptr) {
+                int status = 0;
+                demangled = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
+                sym = demangled != nullptr ? demangled : info.dli_sname;
+            }
+            char shortName[160];
+            snprintf(shortName, sizeof(shortName), "%s", sym != nullptr ? sym : "?");
+            if (char* paren = strchr(shortName, '(')) {
+                *paren = '\0';
+            }
+            n += snprintf(line + n, sizeof(line) - n, "%s %s", i == 2 ? "" : " <-", shortName);
+            free(demangled);
+        }
+        if (n >= (int)sizeof(line)) {
+            n = (int)sizeof(line) - 2;
+        }
+        line[n++] = '\n';
+        write(STDERR_FILENO, line, n);
+    }
+#endif
 }
 
 unsigned int heapAllocFailures() {

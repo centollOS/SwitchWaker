@@ -24,6 +24,8 @@
 
 #include "d/d_com_inf_game.h"
 #include "f_op/f_op_actor_mng.h"
+#include "f_pc/f_pc_create_iter.h"
+#include "f_pc/f_pc_create_req.h"
 #include "f_pc/f_pc_manager.h"
 #include "f_pc/f_pc_name.h"
 #include "m_Do/m_Do_controller_pad.h"
@@ -63,6 +65,24 @@ int sEventRunning = -1;      // dComIfGp_event_runCheck on the last frame (-1: n
 
 void* isPlayScene(void* proc, void*) {
     return fpcM_GetName(proc) == fpcNm_PLAY_SCENE_e ? proc : nullptr;
+}
+
+// The room sweep (native/tools/room_sweep.py): a PLAY scene that never starts executing is held by
+// a child process whose creation never completes (a player with no floor under its spawn point
+// waits in makeBgWait, a camera waits for a player); name the processes still creating (process
+// name, its dStage name for an actor, ID) so the report says which.
+void* logCreating(void* req, void* count) {
+    create_request* r = static_cast<create_request*>(req);
+    base_process_class* proc = r->mpRes;
+    if (proc != nullptr && (*(unsigned int*)count)++ < 16) {
+        const s16 name = fpcM_GetName(proc);
+        const char* stageName = fopAc_IsActor(proc) ?
+                                    dStage_getName(name, -1) : nullptr;
+        writef(STDERR_FILENO, "[cos] outset-debug:   creating: process %d %s id %u\n", (int)name,
+               stageName != nullptr && (unsigned char)stageName[0] < 0x80 ? stageName : "-",
+               (unsigned int)r->mBsPcId);
+    }
+    return nullptr;
 }
 
 const char* unmet(const PcBootStage* boot) {
@@ -184,6 +204,10 @@ void outsetFrame(unsigned int frames) {
     if (reason != nullptr) {
         if (reason != sLastReason || (frames - sArmFrame) % kStatusEvery == 0) {
             writef(STDERR_FILENO, "[cos] outset-debug: frame %u: waiting: %s\n", frames, reason);
+            if (reason == sLastReason && strcmp(reason, "PLAY scene not executing") == 0) {
+                unsigned int count = 0;
+                fpcCtIt_Judge(logCreating, &count);
+            }
             sLastReason = reason;
         }
         return;

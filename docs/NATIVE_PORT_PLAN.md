@@ -3455,6 +3455,31 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   sea:44:206 --uncapped` exit 0 (19 ran, 2 refused, 1 deleted itself); a third full sweep gave 21
   faulting runs (the table minus KITA/KOKIIE and LEAF_LIFT, plus SHUTTER), so the del/? rows are flaky.
 
+- **Step 6.9c room sweep** (2026-10-04, lane room-sweep). Bug B10 (the first dungeon's room 2)
+  slipped through because the stage sweep boots each stage at one start only.
+  `native/tools/run.sh room-sweep` (`native/tools/room_sweep.py`) boots every room of every stage:
+  the spawn points come from the stage data as in `boot_sweep.py` (stage.dzs PLYR records, else
+  each room.dzr's own), one per room (`--points room`, an SCLS entry preferred) or every point
+  (`--points all`), each run `run --stage S:R:P --frames 900 --uncapped --audio on`, `--jobs 6` at a
+  time, with an idle walk (`native/check/input/room-walk.txt`: from frame 300 a slow circle and a B
+  tap every 60 frames, so nearby actors see the player move). Classification as in the stage
+  sweep (exit code, crash/panic/stall signature, `boot_sweep.py`'s format; its symbolised frames
+  now also for an executable not named `centollos`), deduplicated by signature, each failing spec
+  rerun once (`flaky` when the rerun passes). A run that reaches its last frame without the player
+  in the room (no `outset-debug: The player in` line) is a failure `NO-PLAY`: `pc_outset.cpp`
+  now lists the processes still creating when it reports the PLAY scene not executing; the sweep
+  checks the spawn point against its room's collision (room.dzb read from the disc) and reports
+  `no-floor` (an expected failure: the player waits in `makeBgWait` as on the console) when nothing
+  is under it. A cutscene spawn point that stops at `PANIC d_event_data.cpp:1070` (its demo is in
+  the bank of another layer, as ENDumi) is rerun with layers 0-11 and reported `ok-layer`. Rooms
+  without a spawn point are `no-spawn`, spawn points in a room the disc has no archive for
+  `no-arc`. Expected fails: the stage sweep's per stage plus `ROOM_EXPECTED_FAIL` per room or
+  point, with the reason. Report: `build/room-sweep/<timestamp>/room_sweep.md` (counts, a table
+  of distinct signatures with their specs, a table of every run) and `room_sweep.tsv`. Every
+  failed JKR allocation now logs its callers (`[cos] heap:   from ...`, the first 16, Mac), and
+  `run.sh --alloc-max N` (`COS_ALLOC_FAILURES_MAX`) makes a run with more than N failed JKR
+  allocations exit 1 at `--frames`.
+
 - **Widescreen option `COS_ASPECT`** (2026-10-03, lane wide). The community 16:9 Gecko code that the
   translated build applies (mods/widescreen/GZLE01.gecko) is done in C under `TARGET_PC`:
   `COS_ASPECT=4:3|16:9|16:10` (`native/include/pc/pc_aspect.h`, `native/src/pc/pc_aspect.cpp`; 4:3 by

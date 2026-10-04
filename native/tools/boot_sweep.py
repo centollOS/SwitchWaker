@@ -243,7 +243,7 @@ def game_frames(text, count=2):
         return None
     frames = []
     for line in m.group(1).splitlines():
-        fm = re.match(r"^(.*?) \(in centollos\)(?: \((.*?)\))?", line)
+        fm = re.match(r"^(.*?) \(in centollos[^)]*\)(?: \((.*?)\))?", line)
         if not fm:
             continue
         func = fm.group(1)

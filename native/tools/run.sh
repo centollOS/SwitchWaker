@@ -11,6 +11,8 @@
 #   native/tools/run.sh run --frames 600 [--uncapped]      (prints the [cos] pacing line)
 # `boot-sweep` boots every stage of the disc in turn (step F4-boot-sweep): it hands its options to
 # native/tools/boot_sweep.py (see its --help), which runs this script once per stage.
+# `room-sweep` boots every room of every stage (one spawn point per room, or every point) with an
+# idle walk: it hands its options to native/tools/room_sweep.py (see its --help).
 # `actor-sweep` (step 6.9, needs --stage, e.g. sea:44:206) spawns every actor profile next to the player,
 # runs it 30 frames and deletes it; COS_ACTOR_SWEEP=<first>[-<last>] limits it to those process
 # names. native/tools/actor_sweep.py runs it again after each fault and lists the faults.
@@ -53,6 +55,8 @@
 #                    (COS_HEAP_REPORT=N in the environment: every N frames one line with each game
 #                    heap's free total and largest free block, the exp heaps inside the game heap
 #                    and the 2D heap's children; a failed JKR allocation is always logged, bug B8)
+#   --alloc-max N    COS_ALLOC_FAILURES_MAX: a run that reaches --frames with more than N failed JKR
+#                    allocations exits 1 (bug B13: a heap too small that the game survives)
 #   --build          run `ninja -C build/native-mac centollos` first
 #   --exe PATH       the executable (default build/native-mac/centollos)
 #   --run-dir DIR    put the run in DIR (created; must not exist yet) instead of
@@ -102,6 +106,9 @@ case "$target" in -h|--help) usage ;; esac
 if [ "$target" = boot-sweep ]; then
     exec python3 "$script_dir/boot_sweep.py" "$@"
 fi
+if [ "$target" = room-sweep ]; then
+    exec python3 "$script_dir/room_sweep.py" "$@"
+fi
 
 timeout_s=180
 stall_s=30
@@ -142,6 +149,7 @@ while [ $# -gt 0 ]; do
         --shot) shot="$2"; shift 2 ;;
         --aspect) aspect="$2"; shift 2 ;;
         --heap-check) heap_check="$2"; shift 2 ;;
+        --alloc-max) export COS_ALLOC_FAILURES_MAX="$2"; shift 2 ;;
         --build) do_build=1; shift ;;
         --exe) exe="$2"; shift 2 ;;
         --quiet) quiet=1; shift ;;

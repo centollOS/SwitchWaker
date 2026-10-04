@@ -87,6 +87,13 @@ void pc_frame_tick(void) {
         writef(STDERR_FILENO, "[cos] FRAMES %u done retrace=%u ms=%llu\n", n,
                (unsigned int)VIGetRetraceCount(), (unsigned long long)elapsedMs());
         writePacing(STDERR_FILENO);
+        // COS_ALLOC_FAILURES_MAX=N: more failed JKR allocations than N fail the run (bug B13: a
+        // heap too small for host-sized objects that the game survives, with a part missing).
+        if (gConfig.allocFailuresMax >= 0 && heapAllocFailures() > (unsigned int)gConfig.allocFailuresMax) {
+            writef(STDERR_FILENO, "[cos] FRAMES: %u JKR allocations failed, COS_ALLOC_FAILURES_MAX=%d\n",
+                   heapAllocFailures(), gConfig.allocFailuresMax);
+            pc_exit(PC_EXIT_CHECK_FAILED);
+        }
         pc_exit(PC_EXIT_REACHED);
     }
 }
