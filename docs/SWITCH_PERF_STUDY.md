@@ -8,6 +8,12 @@ nvc0 on GM20B), and the hardware log `tasks/b6te8yi1n.output` (8 runs; the newes
 
 ## 0. Summary and recommendation
 
+> **Update 2026-10-04 (section 8):** the GPU timer under-reads by 1.63x on the Switch (Tegra PTIMER
+> at 19.2 MHz counted as 31.25 MHz); with real times, Outset's dips and the forest are GPU-bound.
+> The forest's mist alone was 12.45 of 29 screens of fragments per frame at 720p: now drawn at a
+> quarter of the resolution with the same blend (default). Dynamic resolution (`COS_DYNRES=1`) and
+> a lower-resolution sky (`COS_SKY_LOWRES=2`) are opt-in.
+
 > **Update 2026-10-04 (section 6):** the hardware run with the timers of section 3.4 confirmed the
 > wait at the first pass's clears, but its cause is not the push-buffer ring of section 2.4: it is
 > libdrm_nouveau waiting for the GPU when Mesa frees the swapchain texture Dawn destroys after every
@@ -569,3 +575,126 @@ Changes (each default on, each with an env switch for the A/B, each checked on M
 `3-nowindow`, `4-nostatecache`, `5-isolate` (`COS_SWITCH_CORES=isolate`), `6-oldwarmup` (60 fps
 loading screen, every warm-up build throttled, compile thread placed as before). The first run of
 `1-default` recompiles every GL program once (new GLSL): compare the second run.
+
+## 8. The Outset forest (A_mori): GPU cost per pixel (720p handheld, GPU 460.8 MHz; lane/forest-gpu)
+
+Log: `build/bug-reports/P1-amori/decomp-tetra.log` (NRO of feature/switch-native b5cd1f5..c1c43fa
+era, `COS_FB_SCALE=1.5`, official handheld profile 0x92220008). A_mori room 0 (the forest north
+of Outset where Tetra is rescued) from "stage: A_mori room 0 created at frame 34278" to frame
+38880; Outset ("sea room 44") before and after.
+
+### 8.1 What the hardware log shows
+
+| windows | fps | draws | GPU timer ms (raw) | worker CPU | worker wall | wall / raw GPU |
+|---|---|---|---|---|---|---|
+| Outset 38941-40740 | 29.7-30.1 | 580-1920 | 6.8-15.5 | 10-28 | 14.3-30.6 | paced |
+| A_mori 35041-35400 (good) | 29.9-30.0 | 450-610 | 18.3-20.2 | 12-14 | 14.9-33.6 | paced |
+| A_mori 34321-38820 (62 windows < 29 fps) | 13.3-28.4 | 420-1780 | 20.5-45.7 | 11.7-24.5 | 25.9-74.9 | **1.61 mean, 1.64 GPU-bound** |
+| A_mori 37081-37140 (worst) | 13.3 | 1035 | 45.68 (p95 48.4) | 19.4 | 74.9 | 1.64 |
+
+The forest is slow with *fewer* draws than Outset: the cost is per pixel, not per draw. In every
+slow window the render worker's wall time is 1.61-1.67 times the GPU timer's frame time,
+whatever its CPU time (12-25 ms); lane draw-cost's Outset dip windows (section 7.1) show the same
+ratio (42.6-43.6 ms wall for 26.0-26.5 ms of GPU, 49.1 for 30.1). A constant ratio rather than a
+constant gap means the frames are GPU-bound and **the GPU timer under-reads by about 1.63**:
+the Tegra X1's PTIMER is clocked at 19.2 MHz but counts as if it ran at the 31.25 MHz reference
+(Linux nvgpu scales its PTIMER readings by 31.25/19.2 = 1.6276 for that reason), so nouveau's
+GL_TIME_ELAPSED "ns" are 1/1.6276 of real time. `dawn-switch-gl-gpu-timer-scale.patch` (ec8160a)
+now scales every result (`COS_SWITCH_GPU_TIMER_SCALE=1` gives the raw values of older logs). In
+real time the forest's worst window is ~74 ms of GPU per frame, Outset's 30 fps windows 11-25 ms,
+and section 7.1's 1300-1550-draw dips were GPU-bound at ~42-49 ms (the push-buffer waits and
+idle worker time there were the worker waiting for the GPU), not CPU-bound.
+
+The large "present" of the slow windows (52 ms of 75 in the worst) is the same thing: the NWindow
+dequeue waits for the compositor, which waits for the GPU. `dawn-switch-gl-present-split.patch`
+(d13b07a) splits it ("present per present: blit+dequeue X, swap Y") and adds
+`COS_SWITCH_SWAP_INTERVAL`; `COS_SWITCH_GL_FLUSH_PASSES=1` (fe1ced7) kicks every render pass to
+the GPU as it is replayed. Both were added while the frame time looked like GPU + CPU; with the
+timer corrected they are checks, not expected wins.
+
+The GPU timer's "copies" (0.5-6.9 ms in A_mori, 0.4-0.8 in Outset) are not EFB copies: the forest
+copies the same four as Outset (two shadow I4 512x384 -> 256x192, the DOF Z16 and RGBA8
+1280x720 -> 640x360, the latter through TexCopyConv passes). The segment holds the staging
+buffer copies at the start of a frame, which on a GPU-bound frame wait for the previous frame's
+draws to stop reading the vertex/uniform buffers.
+
+### 8.2 Tools (ce7da8e)
+
+- **Switch, GPU time per group** (`dawn-switch-gl-gpu-groups.patch`): each timer segment carries
+  a group, the frame's last GX debug marker or, before one, the pass label ("EFB 3",
+  "Offscreen 1", "TexCopyConv Pass"; copies "copies"). New perf-switch line
+  `gpu groups per frame (ms, draws; total in n groups): name ms (draws), ...` (largest 24).
+  Without markers it times each EFB pass. `COS_GPU_GROUPS=1`: a marker per draw-list bucket
+  (sky, opa_bg, shadow, alpha_model, opa_p, opa, xlu_bg, xlu_p1, xlu, particle*, filter, spot,
+  maskoff, motion_blur, dof, particle_proj, invisible, 2d, shadow_image). `COS_GPU_GROUPS=2`:
+  also per J3D packet whose label changes ("opa|mat:<material>", or the packet class; on the
+  Switch "vt+offset" from pc_gpu_group's address, resolve with `nm centollos.elf`).
+- **Mac, draw census** (`native/patches/aurora/0008`, `COS_DRAW_CENSUS=<frame>[,...]`,
+  `native/tools/census.py`): every GX draw of the frame with bucket/material, vertices,
+  pipeline summary, textures and the fragments its shader ran for (Metal's occlusion queries are
+  boolean, so with `AURORA_DRAW_CENSUS=1`, set by COS_DRAW_CENSUS, the GX fragment shaders count
+  invocations and alpha-compare survivors per draw in a storage buffer); passes and EFB copies
+  in a second CSV. For discarding or blended draws "shaded" is every rasterised fragment (as on
+  Maxwell, where discard means late Z); for opaque ones the Mac's hidden-surface removal may skip
+  hidden fragments.
+
+Hardware model from the two logs: at 1280x720 the GPU spends ~1.5 ms (raw timer), ~2.4 ms real,
+per screen of fragments (Outset 7.1 screens ~11 ms raw; A_mori 29.3 screens ~45 ms raw). A
+30 fps frame (33 ms, minus the present) holds ~13 screens of 720p fragments.
+
+### 8.3 Where the forest's fragments go (census, 1280x720, A_mori frame 399; Outset sea 44 frame 399)
+
+| bucket (material / packet) | A_mori screens | Outset screens | what it is |
+|---|---|---|---|
+| filter (dKankyo_cloud_Packet) | **12.45** (81 draws) | - | the mist ("moya"): blended camera-facing sprites, no depth test, alpha compare > 0, fog |
+| opa (dGrass_packet_c) | 4.68 (1082 draws) | 0.04 | grass tufts, alpha-tested, depth write |
+| sky | 3.41 | 3.97 | dome + blended layers + vrkumo clouds, drawn first, mostly hidden later |
+| shadow | 3.20 | 0.00 | real-time shadow volumes (alpha-only writes; the box covers the screen near Link) |
+| opa_bg | 2.28 | 0.67 | the stage (leaves alpha-tested) |
+| dof | 1.27 | 1.27 | depth-of-field composite (COS_DOF=0 removes it, changes the look) |
+| alpha_model | 1.00 | 1.00 | drawAlphaBuffer's full-screen quad, every frame |
+| total | **29.3** | **7.1** | |
+
+Textures are not the issue: nearly all are 64x64-256x256 CMPR/I4 without mipmaps (the game's
+own; adding mipmaps would change the look), anisotropy only where the game asks for it.
+
+### 8.4 Changes
+
+- **Mist at a quarter of the resolution, same blend** (fe8b588, `COS_MIST_LOWRES`, default 4,
+  0 = old): the sprites only blend among themselves and over the scene, so S' = S*T + M with
+  T = prod(1-a_i) and M the sprites over black. Offscreen target 1/n of the EFB; pass 1 the
+  original blend into colour (M), pass 2 ONE/INV_SRC_ALPHA into alpha only, no fog (D = 1-T);
+  copy, then ONE/INV_SRC_ALPHA over the EFB, colour only: S' = M + S(1-D). Skipped while spot
+  lights or motion blur read the EFB alpha the mist no longer writes, or with a partial viewport.
+  Same-frame Mac A/B (`COS_MIST_AB=<frame>`): max 6-7/255, mean ~1.5/255 at /2, /3, /4, 16:9 and
+  4:3, 960x720 and 854x480. Census: mist 12.45 -> 2.56 screens, frame 29.3 -> 19.4.
+- **Sky at a lower resolution** (811918e, `COS_SKY_LOWRES=2`, opt-in): the sky lists drawn into a
+  1/n target over a copy of the cleared EFB and stretched back (colour only). Outset A/B at /2:
+  max 24/255, mean 0.26 (horizon clouds a little softer), A_mori max 7. Sky 3.41 -> 1.85 screens.
+- **Dynamic resolution** (d2b5171, `COS_DYNRES=1`, off by default): Aurora's EFB content scale
+  (`native/patches/aurora/0009`, GX_AURORA_SET_CONTENT_SCALE) maps logical EFB coordinates to
+  the top-left part of the EFB, so the 3D renders at 1.25 (1067x600) or 1.125 (960x540) and is
+  stretched over the EFB before the 2D, which stays at 1280x720. Down one level after two
+  evaluations (every 30 frames) with the 60-frame GPU p95 over 30 ms, up after four with the
+  pixel-ratio-scaled p95 under 27 ms; `fixed:<scale>` and `COS_DYNRES_CYCLE` for checks.
+- Considered and not done: drawing the sky after the opaque scenery with depth test (would cut the
+  hidden 2-3 screens without a resolution change, but the vrkumo clouds and the sun have no depth
+  compare and the shadow/alpha-buffer passes in between read the EFB; needs a forced-depth
+  pipeline variant per sky draw); shadow volumes and the alpha-buffer quad (the shadow algorithm
+  itself); grass (discard is needed, a depth prepass does not save shading); mipmap generation
+  (changes the look).
+
+Expected on the console from the census and the 2.4 ms-per-screen model: the forest's worst view
+from ~74 ms to ~47 ms (mist) and ~44 ms (with the sky option); 30 fps there needs the 3D at
+1.125 (`COS_DYNRES=1` does it on its own) or about 13 screens of fragments at 720p.
+
+### 8.5 A/B for the next hardware run
+
+NRO: `build/lanes/forest-gpu/build/switch-native/centollos.nro`; `env.txt` variants in
+`build/lanes/forest-gpu/build/switch-envs/` (all 720p, GPU profile 460, overlay, perf lines):
+`1-default` (mist /4), `2-mistoff`, `3-groups` and `4-groups-mistoff` (bucket timings with and
+without the mist change), `5-groups-material`, `6-flushpasses`, `7-swap0`, `8-dynres`,
+`9-dynres-fixed1125`, `10-mist2`, `11-nodof`, `12-dynres-flush`, `13-sky2`, `14-sky2-dynres`,
+`15-rawtimer` (GPU timer without the PTIMER correction, to confirm the 1.63 ratio on the new
+build). Read: "gpu per frame" (now real time), "gpu groups per frame", "present per present",
+"[cos] dynres:" lines, fps.
