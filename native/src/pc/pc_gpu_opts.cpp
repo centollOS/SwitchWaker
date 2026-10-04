@@ -16,7 +16,9 @@
 #include <dlfcn.h>
 #endif
 
+#include <dolphin/gx.h>
 #include <dolphin/gx/GXAurora.h>
+#include <dolphin/mtx.h>
 
 #include "JSystem/J3DGraphAnimator/J3DModel.h"
 #include "JSystem/J3DGraphAnimator/J3DModelData.h"
@@ -120,7 +122,7 @@ extern "C" {
 
 // Frames from a comma-separated list (for A/B checks that must render both variants of one frame:
 // the game's timing, and with it the scene, drifts as soon as a frame costs more or less).
-std::vector<unsigned int> parseFrames(const char* list) {
+static std::vector<unsigned int> parseFrames(const char* list) {
     std::vector<unsigned int> frames;
     while (list != nullptr && *list != '\0') {
         char* end = nullptr;
@@ -188,10 +190,14 @@ void* pc_mist_lowres_target(unsigned int* w, unsigned int* h) {
     return sBuffer.data();
 }
 
+// COS_MIST_AB or COS_SKY_AB: the A/B frame (one of them per run).
 static unsigned int mistAbFrame() {
     static int sFrame = -1;
     if (sFrame < 0) {
         const char* v = getenv("COS_MIST_AB");
+        if (v == nullptr) {
+            v = getenv("COS_SKY_AB");
+        }
         sFrame = v != nullptr ? atoi(v) : 0;
     }
     return (unsigned int)sFrame;
@@ -224,6 +230,149 @@ void* pc_mist_ab_show(void) {
         return pc_mist_ab_buffer(2);
     }
     return nullptr;
+}
+
+// A quad over the current viewport textured with the RGBA8 copy texture named by buf, bilinear,
+// opaque (no blend), colour only or colour and alpha; z off. Leaves the projection orthographic
+// and PNMTX0 the identity.
+static void fullscreenTexture(void* buf, u16 w, u16 h, bool alpha) {
+    GXTexObj texObj;
+    GXInitTexObj(&texObj, buf, w, h, GX_TF_RGBA8, GX_CLAMP, GX_CLAMP, GX_FALSE);
+    GXInitTexObjLOD(&texObj, GX_LINEAR, GX_LINEAR, 0.0f, 0.0f, 0.0f, GX_FALSE, GX_FALSE, GX_ANISO_1);
+    GXLoadTexObj(&texObj, GX_TEXMAP0);
+    GXSetNumChans(0);
+    GXSetNumTexGens(1);
+    GXSetTexCoordGen(GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY);
+    GXSetNumTevStages(1);
+    GXSetNumIndStages(0);
+    GXSetTevDirect(GX_TEVSTAGE0);
+    GXSetTevOrder(GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR_NULL);
+    GXSetTevColorIn(GX_TEVSTAGE0, GX_CC_ZERO, GX_CC_ZERO, GX_CC_ZERO, GX_CC_TEXC);
+    GXSetTevColorOp(GX_TEVSTAGE0, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV);
+    GXSetTevAlphaIn(GX_TEVSTAGE0, GX_CA_ZERO, GX_CA_ZERO, GX_CA_ZERO, GX_CA_TEXA);
+    GXSetTevAlphaOp(GX_TEVSTAGE0, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV);
+    GXSetBlendMode(GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_SET);
+    GXSetColorUpdate(GX_TRUE);
+    GXSetAlphaUpdate(alpha ? GX_TRUE : GX_FALSE);
+    GXSetAlphaCompare(GX_ALWAYS, 0, GX_AOP_OR, GX_ALWAYS, 0);
+    GXSetZMode(GX_FALSE, GX_ALWAYS, GX_FALSE);
+    GXSetFog(GX_FOG_NONE, 0.0f, 1.0f, 0.1f, 1.0f, GXColor{0, 0, 0, 0});
+    GXSetFogRangeAdj(GX_FALSE, 0, nullptr);
+    GXSetCullMode(GX_CULL_NONE);
+    Mtx44 ortho;
+    C_MTXOrtho(ortho, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 10.0f);
+    GXSetProjection(ortho, GX_ORTHOGRAPHIC);
+    Mtx identity;
+    PSMTXIdentity(identity);
+    GXLoadPosMtxImm(identity, GX_PNMTX0);
+    GXSetCurrentMtx(GX_PNMTX0);
+    GXClearVtxDesc();
+    GXSetVtxDesc(GX_VA_POS, GX_DIRECT);
+    GXSetVtxDesc(GX_VA_TEX0, GX_DIRECT);
+    GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_S8, 0);
+    GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_S8, 0);
+    GXBegin(GX_QUADS, GX_VTXFMT0, 4);
+    GXPosition3s8(0, 0, -5);
+    GXTexCoord2s8(0, 0);
+    GXPosition3s8(1, 0, -5);
+    GXTexCoord2s8(1, 0);
+    GXPosition3s8(1, 1, -5);
+    GXTexCoord2s8(1, 1);
+    GXPosition3s8(0, 1, -5);
+    GXTexCoord2s8(0, 1);
+    GXEnd();
+}
+
+namespace {
+int sSkyLowres = -1;
+bool sSkyActive = false;
+unsigned int sSkyW = 0, sSkyH = 0;
+f32 sSkyViewport[6];
+u32 sSkyScissor[4];
+std::vector<unsigned char> sSkyBg, sSkyTarget;
+
+int skyLowres() {
+    if (sSkyLowres < 0) {
+        const char* v = getenv("COS_SKY_LOWRES");
+        sSkyLowres = v == nullptr ? 0 : atoi(v);
+        sSkyLowres = sSkyLowres < 2 ? 0 : sSkyLowres > 4 ? 4 : sSkyLowres;
+        if (sSkyLowres != 0) {
+            pc::writef(STDERR_FILENO, "[cos] COS_SKY_LOWRES=%d: sky drawn at 1/%d resolution\n", sSkyLowres,
+                       sSkyLowres);
+        }
+    }
+    return sSkyLowres;
+}
+} // namespace
+
+int pc_sky_ab_frame(void) { return getenv("COS_SKY_AB") != nullptr && pc_mist_ab_frame(); }
+
+void pc_ab_copy_efb(void* buf) {
+    GXSetTexCopySrc(0, 0, 640, 480);
+    GXSetTexCopyDst(640, 480, GX_TF_RGBA8, GX_FALSE);
+    GXCopyTex(buf, GX_FALSE);
+    GXPixModeSync();
+}
+
+void pc_sky_ab_restore(void) {
+    // The cleared EFB the sky started from (pc_sky_lowres_begin's copy), colour and alpha.
+    fullscreenTexture(sSkyBg.data(), 640, 480, true);
+}
+
+int pc_sky_lowres_begin(float vpNear, float vpFar, int hasSky, int copy2dEmpty) {
+    sSkyActive = false;
+    const int div = skyLowres();
+    if (div < 2 || !hasSky || !copy2dEmpty) {
+        return 0;
+    }
+    GXGetViewportv(sSkyViewport);
+    if (sSkyViewport[0] != 0.0f || sSkyViewport[1] != 0.0f || sSkyViewport[2] != 640.0f ||
+        sSkyViewport[3] != 480.0f) {
+        return 0;
+    }
+    GXGetScissor(&sSkyScissor[0], &sSkyScissor[1], &sSkyScissor[2], &sSkyScissor[3]);
+    unsigned int efbW = 0, efbH = 0;
+    pc_efb_pixel_size(640, 480, &efbW, &efbH);
+    sSkyW = (efbW + div - 1) / div;
+    sSkyH = (efbH + div - 1) / div;
+    if (sSkyW < 16 || sSkyH < 16) {
+        return 0;
+    }
+    if (sSkyBg.empty()) {
+        JKRPcHostAllocScope hostAlloc; // not the game's heaps
+        sSkyBg.resize(2560 * 1440 * 4);
+        sSkyTarget.resize(2560 * 1440 * 4);
+    }
+    // The cleared EFB (its clear colour shows where the sky does not cover) as the background.
+    GXSetTexCopySrc(0, 0, 640, 480);
+    GXSetTexCopyDst(640, 480, GX_TF_RGBA8, GX_FALSE);
+    GXCopyTex(sSkyBg.data(), GX_FALSE);
+    GXPixModeSync();
+    GXCreateFrameBuffer(sSkyW, sSkyH);
+    GXSetViewport(0.0f, 0.0f, (f32)sSkyW, (f32)sSkyH, vpNear, vpFar);
+    GXSetScissor(0, 0, sSkyW, sSkyH);
+    fullscreenTexture(sSkyBg.data(), 640, 480, true);
+    // The sky lists set their own projection from the camera (dComIfGd_drawOpaListSky draws with
+    // the projection the painter loaded): the caller reloads it.
+    sSkyActive = true;
+    return 1;
+}
+
+void pc_sky_lowres_end(void) {
+    if (!sSkyActive) {
+        return;
+    }
+    sSkyActive = false;
+    GXSetTexCopySrc(0, 0, sSkyW, sSkyH);
+    GXSetTexCopyDst(sSkyW, sSkyH, GX_TF_RGBA8, GX_FALSE);
+    GXCopyTex(sSkyTarget.data(), GX_FALSE);
+    GXPixModeSync();
+    GXRestoreFrameBuffer();
+    GXSetViewport(sSkyViewport[0], sSkyViewport[1], sSkyViewport[2], sSkyViewport[3], sSkyViewport[4],
+                  sSkyViewport[5]);
+    GXSetScissor(sSkyScissor[0], sSkyScissor[1], sSkyScissor[2], sSkyScissor[3]);
+    // Colour only: the sky wrote no alpha, the EFB keeps its cleared alpha.
+    fullscreenTexture(sSkyTarget.data(), (u16)sSkyW, (u16)sSkyH, false);
 }
 
 int pc_gpu_groups_level = 0;
