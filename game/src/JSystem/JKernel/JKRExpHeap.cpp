@@ -14,6 +14,46 @@
 #include "dolphin/types.h"
 #include "new.h"
 
+#if TARGET_PC && defined(__has_feature)
+#if __has_feature(address_sanitizer)
+// COS_ASAN build (native/CMakeLists.txt): ASan sees host malloc only, and the game's JKR heaps are
+// one malloc'd arena each, so a write through a pointer to a freed JKR block (an actor deleted, its
+// solid heap given back) goes unseen and damages whatever is allocated there next. Here the
+// payload of every block the heap frees is poisoned and every block it hands out unpoisoned for the
+// size asked for, so ASan reports such an access where it happens (and an overrun past the size
+// asked for). The heap's own code reads and writes block headers inside freed areas (splitting and
+// joining blocks), so this file is not instrumented, and every header it builds is unpoisoned, so
+// code elsewhere that walks the lists (pc_heap.cpp) reads them freely. COS_JKR_POISON=0 turns
+// the poisoning off.
+#include <sanitizer/asan_interface.h>
+#include <stdlib.h>
+#define COS_JKR_POISON 1
+#pragma clang attribute push(__attribute__((no_sanitize("address"))), apply_to = function)
+static bool jkrPoisonOn() {
+    static int on = -1;
+    if (on < 0) {
+        const char* env = getenv("COS_JKR_POISON");
+        on = (env != NULL && env[0] == '0') ? 0 : 1;
+    }
+    return on != 0;
+}
+static void jkrPoison(void* p, uintptr_t size) {
+    // Whole 8-byte shadow granules inside the payload only: a partly poisoned granule at the end
+    // would also cover the start of the next block's header.
+    const uintptr_t begin = ((uintptr_t)p + 7) & ~(uintptr_t)7;
+    const uintptr_t end = ((uintptr_t)p + size) & ~(uintptr_t)7;
+    if (jkrPoisonOn() && end > begin) {
+        ASAN_POISON_MEMORY_REGION((void*)begin, end - begin);
+    }
+}
+static void jkrUnpoison(void* p, uintptr_t size) {
+    if (size != 0) {
+        ASAN_UNPOISON_MEMORY_REGION(p, size);
+    }
+}
+#endif
+#endif
+
 /* 802B1558-802B15D0       .text createRoot__10JKRExpHeapFib */
 JKRExpHeap* JKRExpHeap::createRoot(int maxHeaps, bool errorFlag) {
     JKRExpHeap* heap = NULL;
@@ -132,6 +172,13 @@ void* JKRExpHeap::do_alloc(u32 size, int alignment) {
 #if TARGET_PC
     if (ptr == NULL) {
         JKRPcReportAllocFailure(this, size, alignment);
+    }
+#endif
+#if COS_JKR_POISON
+    if (ptr != NULL) {
+        CMemBlock* block = CMemBlock::getBlock(ptr);
+        jkrUnpoison(block, sizeof(CMemBlock));
+        jkrUnpoison(ptr, size);
     }
 #endif
 
@@ -375,6 +422,9 @@ void JKRExpHeap::do_free(void* ptr) {
     if (getStartAddr() <= ptr && ptr <= getEndAddr()) {
         CMemBlock* block = CMemBlock::getHeapBlock(ptr);
         if (block) {
+#if COS_JKR_POISON
+            jkrPoison(block + 1, block->size);
+#endif
             block->free(this);
         }
     } else {
@@ -397,6 +447,9 @@ void JKRExpHeap::do_freeAll() {
 #endif
     mHeadUsedList = NULL;
     mTailUsedList = NULL;
+#if COS_JKR_POISON
+    jkrPoison(mHeadFreeList + 1, mHeadFreeList->size);
+#endif
     unlock();
 }
 
@@ -407,6 +460,9 @@ void JKRExpHeap::do_freeTail() {
         if ((block->mFlags & 0x80) != 0) {
             dispose(block + 1, block->size);
             CMemBlock* temp = block->mNext;
+#if COS_JKR_POISON
+            jkrPoison(block + 1, block->size);
+#endif
             block->free(this);
             block = temp;
         } else {
@@ -435,6 +491,9 @@ s32 JKRExpHeap::do_resize(void* ptr, u32 size) {
     }
 
     size = ALIGN_NEXT(size, 4);
+#if COS_JKR_POISON
+    const u32 oldSize = block->size;
+#endif
     if (size == block->size) {
         unlock();
         return size;
@@ -480,6 +539,14 @@ s32 JKRExpHeap::do_resize(void* ptr, u32 size) {
         }
     }
 
+#if COS_JKR_POISON
+    // Grown: the size asked for is usable. Shrunk: the tail given back (a free block now, whose
+    // header allocFore built and unpoisoned) is not.
+    jkrUnpoison(ptr, size);
+    if (oldSize > block->size + sizeof(CMemBlock)) {
+        jkrPoison((u8*)ptr + block->size + sizeof(CMemBlock), oldSize - block->size - sizeof(CMemBlock));
+    }
+#endif
     unlock();
     return block->size;
 }
@@ -988,6 +1055,9 @@ bool JKRExpHeap::dump_sort() {
 
 /* 802B2F7C-802B2F9C       .text initiate__Q210JKRExpHeap9CMemBlockFPQ210JKRExpHeap9CMemBlockPQ210JKRExpHeap9CMemBlockUlUcUc */
 void JKRExpHeap::CMemBlock::initiate(CMemBlock* prev, CMemBlock* next, u32 size, u8 groupId, u8 alignment) {
+#if COS_JKR_POISON
+    jkrUnpoison(this, sizeof(CMemBlock));
+#endif
     mMagic = 'HM';
     mFlags = alignment;
     mGroupId = groupId;
@@ -1007,6 +1077,9 @@ JKRExpHeap::CMemBlock* JKRExpHeap::CMemBlock::allocFore(u32 size, u8 groupId1, u
 #else
         block = (CMemBlock*)(size + (u32)this);
 #endif
+#if COS_JKR_POISON
+        jkrUnpoison(&block[1], sizeof(CMemBlock));
+#endif
         block[1].mGroupId = groupId2;
         block[1].mFlags = alignment2;
         block[1].size = this->size - (size + sizeof(CMemBlock));
@@ -1024,6 +1097,9 @@ JKRExpHeap::CMemBlock* JKRExpHeap::CMemBlock::allocBack(u32 size, u8 groupId1, u
         newblock = (CMemBlock*)((uintptr_t)this + getSize() - size);
 #else
         newblock = (CMemBlock*)((u32)this + getSize() - size);
+#endif
+#if COS_JKR_POISON
+        jkrUnpoison(newblock, sizeof(CMemBlock));
 #endif
         newblock->mGroupId = groupId2;
         newblock->mFlags = alignment2 | 0x80;
@@ -1127,3 +1203,7 @@ u32 JKRExpHeap::getHeapType() {
 u8 JKRExpHeap::do_getCurrentGroupId() {
     return mCurrentGroupId;
 }
+
+#if COS_JKR_POISON
+#pragma clang attribute pop
+#endif

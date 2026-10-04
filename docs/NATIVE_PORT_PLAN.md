@@ -3479,6 +3479,25 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   failed JKR allocation now logs its callers (`[cos] heap:   from ...`, the first 16, Mac), and
   `run.sh --alloc-max N` (`COS_ALLOC_FAILURES_MAX`) makes a run with more than N failed JKR
   allocations exit 1 at `--frames`.
+  Actor-sweep follow-up (1), the faults that moved between sweeps (SHUTTER 114, LEAF_LIFT 122):
+  ASan sees host malloc only and the JKR heaps are one arena each, so under `COS_ASAN`
+  `JKRExpHeap` now poisons the payload of every block it frees (and `freeAll`, a shrinking
+  `resize`) and unpoisons each block it hands out for the size asked for (whole 8-byte granules;
+  `JKRExpHeap.cpp` itself is not instrumented and unpoisons every header it builds;
+  `COS_JKR_POISON=0` turns it off): a use of freed JKR memory is reported where it happens. The
+  ASan actor sweep then reported, after BALANCELIFT (113) was deleted, reads of poisoned memory in
+  `daBalancelift_c::calc_weight`: the lift creates its second side as a child
+  (`fopAcM_createChild`) holding `mpWeight`/`mpUpdateFlags` into the first, and the sweep deleted
+  only the swept actor, so the second side went on writing `*mpUpdateFlags |= 2` (and
+  `*mpWeight = 0`) every frame into the freed parent: the memory the next profiles' allocations
+  got, hence SHUTTER's corrupted list and LEAF_LIFT's phase handler through 0. Game behaviour under
+  a deletion the game never makes (it deletes both sides with their room), not a port bug: the
+  sweep now deletes the swept actor's descendants (`parentActorID`, transitively) with it, and
+  `COS_ACTOR_SWEEP=100-133` runs clean. The other poisoned reads are the same class (`del`, a
+  neighbour or child keeping a pointer to the deleted actor: Tousekiki after the pirate ship,
+  Majuu_Flag after OBJ_IKADA, BWDG after BWD, the BMD hands, AGB's switch) or `prm`/`ctx` (TAG_MDCB
+  reads `event_bit[argument]` with the sweep's argument -1; AUCTION indexes its NPC table through
+  the auction item list, which a sweep spawn never sets up). Two were port bugs, B14 and B15.
 
 - **Widescreen option `COS_ASPECT`** (2026-10-03, lane wide). The community 16:9 Gecko code that the
   translated build applies (mods/widescreen/GZLE01.gecko) is done in C under `TARGET_PC`:

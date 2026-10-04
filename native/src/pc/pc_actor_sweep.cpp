@@ -12,7 +12,10 @@
 // - each frame it is looked for among the creating processes and the executing ones. Gone before
 //   kRunFrames frames: refused (creation failed) or deleted itself. Still there after kRunFrames
 //   frames: fpcM_Delete (a process still creating is aborted that way too), then wait until it is
-//   gone (kDeleteFrames at most);
+//   gone (kDeleteFrames at most). The actors it created (parentActorID, transitively) are deleted
+//   with it, as the game deletes them with their room: a child left running keeps pointers into
+//   its deleted parent (the balance lift's second side writes the first's mWeight/mUpdateFlags
+//   every frame), which damaged the next profiles' memory (step 6.9c: SHUTTER, LEAF_LIFT);
 // - after each profile, the PLAY scene and the player must still be there, otherwise the sweep stops
 //   (exit 1: the rest would not run in Outset).
 // COS_ACTOR_SWEEP=<first>[-<last>] limits the sweep to those process names (fpcNm_*, the
@@ -78,6 +81,53 @@ void* judgeExecutingById(void* proc, void* id) {
 void* judgeCreatingById(void* req, void* id) {
     create_request* r = static_cast<create_request*>(req);
     return r->mBsPcId == *(fpc_ProcID*)id ? r : nullptr;
+}
+
+// The executing actors whose parentActorID is in `ids` (process IDs); appended to `ids`.
+struct ChildScan {
+    fpc_ProcID ids[64];
+    unsigned int count;
+    bool added;
+};
+
+void* collectChild(void* proc, void* data) {
+    ChildScan* scan = static_cast<ChildScan*>(data);
+    if (!fopAc_IsActor(proc)) {
+        return nullptr;
+    }
+    fopAc_ac_c* actor = static_cast<fopAc_ac_c*>(proc);
+    const fpc_ProcID id = fopAcM_GetID(actor);
+    const fpc_ProcID parent = fopAcM_GetLinkId(actor);
+    bool isChild = false;
+    for (unsigned int i = 0; i < scan->count; i++) {
+        if (scan->ids[i] == id) {
+            return nullptr;
+        }
+        isChild = isChild || scan->ids[i] == parent;
+    }
+    if (isChild && scan->count < 64) {
+        scan->ids[scan->count++] = id;
+        scan->added = true;
+    }
+    return nullptr;
+}
+
+// Deletes the descendants of the swept actor; returns how many.
+unsigned int deleteChildren(fpc_ProcID root) {
+    ChildScan scan;
+    scan.ids[0] = root;
+    scan.count = 1;
+    do {
+        scan.added = false;
+        fpcM_Search(collectChild, &scan);
+    } while (scan.added);
+    for (unsigned int i = 1; i < scan.count; i++) {
+        fpc_ProcID id = scan.ids[i];
+        if (void* child = fpcM_Search(judgeExecutingById, &id)) {
+            fpcM_Delete(child);
+        }
+    }
+    return scan.count - 1;
 }
 
 bool isActorProfile(const process_profile_definition* prof) {
@@ -281,6 +331,10 @@ void actorSweepFrame(unsigned int frames) {
             sExecuted++;
         } else {
             sDeletedCreating++;
+        }
+        if (const unsigned int children = deleteChildren(sId)) {
+            writef(STDERR_FILENO, "[cos] actor-sweep: process %d (%s): %u child actor(s) deleted "
+                                  "with it\n", sProc, stageName(sProc), children);
         }
         fpcM_Delete(proc);
         sState = kDeleting;
