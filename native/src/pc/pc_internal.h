@@ -292,6 +292,9 @@ void setFrameBufferScale(float scale);
 // settings (after aurora_initialize); menuFrame runs in pc_frame_end before the FPS overlay, inside
 // the frame's ImGui frame. menuOpen: the menu is open (the game is paused and gets no pad input).
 void menuInit();
+// pc_menu.cpp: the options-menu smoke script asked for its own memory card ("#card run"); pc_main
+// then calls prepareRunCard before the game's CARDInit.
+bool menuSmokeWantsRunCard();
 void menuFrame();
 bool menuOpen();
 // pc_menu.cpp: after aurora_end_frame of game frame `frame` (the screenshot action, and

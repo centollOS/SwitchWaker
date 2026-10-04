@@ -1272,7 +1272,12 @@ cPhs_State dMessage_Paper_c::_create() {
     mMsgID = fpcM_ERROR_PROCESS_ID_e;
     mMsgFlag = 0;
 
+#if TARGET_PC
+    // Bug B8: the 2D heap, tripled as in phase_4 of d_s_play.cpp.
+    JKRExpHeap* heap = fopMsgM_createExpHeap(0x73EA1 * 3);
+#else
     JKRExpHeap* heap = fopMsgM_createExpHeap(0x73EA1);
+#endif
     JUT_ASSERT(59, heap != NULL);
     dComIfGp_setExpHeap2D(heap);
 

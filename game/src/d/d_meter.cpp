@@ -7858,7 +7858,13 @@ static cPhs_State dMeter_Create(msg_class* i_this) {
     rupy_soundOnFlag = 0;
 #endif
 
+#if TARGET_PC
+    // Bug B8 (decision H5): the HUD's screens hold 64-bit pointers on the host; with the GameCube's
+    // 0x2a819 only about 25 KiB of its 170 KiB were left free at Windfall. Doubled.
+    i_Meter->heap = fopMsgM_createExpHeap(0x2a819 * 2);
+#else
     i_Meter->heap = fopMsgM_createExpHeap(0x2a819);
+#endif
     JUT_ASSERT(VERSION_SELECT(13172, 13354, 13475, 13474), i_Meter->heap != NULL);
 
     JKRHeap* oldHeap = mDoExt_setCurrentHeap(i_Meter->heap);

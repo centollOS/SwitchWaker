@@ -1174,7 +1174,17 @@ void dMs_cloth_create(sub_ms_screen_class* i_Ms) {
     JUT_ASSERT(VERSION_SELECT(2682, 2568, 2683, 2683), dMs_capture_c != NULL);
 
     JKRHeap* parent = i_Ms->parentHeap_0xfc;
+#if TARGET_PC
+    // Bug B8 (decision H5): the GameCube's 0x506A1 holds the item, collection, map and save
+    // screens, whose J2D panes, textures and dFile_error_c hold 64-bit pointers on the host. With
+    // the GameCube size the item screen alone left 2 KiB free on a new file, and with more items
+    // the heap ran out (new dFile_error_c -> NULL, d_menu_save.cpp:184 on the Switch; a NULL
+    // JUTTexture in J2DPicture::drawTexCoord on the Mac). Three times the size, from the 2D heap
+    // (tripled in phase_4 of d_s_play.cpp and in d_message_paper.cpp).
+    i_Ms->childHeap = JKRExpHeap::create(0x506A1 * 3, parent, false);
+#else
     i_Ms->childHeap = JKRExpHeap::create(0x506A1, parent, false);
+#endif
     JUT_ASSERT(VERSION_SELECT(2685, 2571, 2686, 2686), i_Ms->childHeap != NULL);
 }
 

@@ -34,6 +34,9 @@
 
 #include "d/d_com_inf_game.h"
 #include "d/d_s_play.h"
+#include "d/d_save.h"
+#include "m_Do/m_Do_MemCard.h"
+#include "m_Do/m_Do_MemCardRWmng.h"
 #include "f_op/f_op_actor_mng.h"
 #include "f_pc/f_pc_manager.h"
 #include "f_pc/f_pc_name.h"
@@ -971,6 +974,7 @@ struct Smoke {
     float pos[3] = {};
     unsigned int openFrames = 0;
     unsigned int pausedChecks = 0;
+    bool runCard = false; // "#card run"
 } sSmoke;
 
 void smokeError(const char* fmt, const std::string& a, const std::string& b = "") {
@@ -988,6 +992,14 @@ void smokeError(const char* fmt, const std::string& a, const std::string& b = ""
 //   efb-height <h>           the EFB's pixel height (pc_efb_pixel_size of 640x480)
 //   stage <name> <room>      the PLAY scene's stage and room
 //   overlay <0|1>            the FPS overlay is shown
+//   alloc-failures <n>       JKR allocations that failed since the start (bug B8: 0)
+//   card-roundtrip <stage> [<room>]  the game saved through its save screen: the card's save file (the
+//                            run's own card, "#card run") loads back (mDoMemCd_Load, checksum of
+//                            the file the game uses, card_to_memory) with the items Link has now
+//                            and the return place <stage> (and <room>) (bug B8)
+// Other lines: "#items <hex,...>" gives the new file of the debug boot those items
+// (COS_BOOT_ITEMS); "#card run" makes memory card A the empty folder <run dir>/card/, so the game
+// saves there and never on the user's card.
 // Always: while the menu is open in the PLAY scene, Link does not move (paused, no input) - the
 // script should hold the stick then.
 void smokeParse() {
@@ -998,6 +1010,17 @@ void smokeParse() {
     }
     char line[512];
     while (fgets(line, sizeof(line), f) != nullptr) {
+        if (strncmp(line, "#items ", 7) == 0) {
+            char items[256] = {};
+            if (sscanf(line + 7, "%255s", items) == 1) {
+                setenv("COS_BOOT_ITEMS", items, 1);
+            }
+            continue;
+        }
+        if (strncmp(line, "#card run", 9) == 0) {
+            sSmoke.runCard = true;
+            continue;
+        }
         if (strncmp(line, "#expect ", 8) != 0) {
             continue;
         }
@@ -1018,6 +1041,70 @@ void smokeParse() {
     }
     writef(STDERR_FILENO, "[cos] options-menu: %zu checks at frame %u; settings file %s\n", sSmoke.expects.size(),
            sSmoke.endFrame, pc_settings_path());
+}
+
+// "#expect card-roundtrip <stage>": the save file the game wrote loads back with the items Link has
+// now and the return place `stage`. Blocks the game thread while the card thread reads (as the
+// file select's load does over several frames); only at the test's end frame.
+void checkCardRoundtrip(const std::string& stage, const std::string& room) {
+    alignas(32) static u8 sLoaded[3 * sizeof(card_gamedata)];
+    u8 itemsNow[dInvSlot_ItemLast_e];
+    for (int slot = 0; slot < dInvSlot_ItemLast_e; slot++) {
+        itemsNow[slot] = dComIfGs_getItem(slot);
+    }
+    const int dataNum = dComIfGs_getDataNum();
+    if (!sSmoke.runCard || runCardGciPath() == nullptr || access(runCardGciPath(), R_OK) != 0) {
+        smokeError("card-roundtrip: no save file %s%s (needs \"#card run\" and a save through the save screen)",
+                   runCardGciPath() != nullptr ? runCardGciPath() : "(no run card)");
+        return;
+    }
+    auto wait = [](const char* what) {
+        for (int i = 0; i < 5000 && !mDoMemCd_isCardCommNone(); i++) {
+            usleep(2000);
+        }
+        if (!mDoMemCd_isCardCommNone()) {
+            smokeError("card-roundtrip: %s did not finish in 10 s%s", what);
+            return false;
+        }
+        return true;
+    };
+    if (!wait("the card thread's last command")) {
+        return;
+    }
+    memset(sLoaded, 0, sizeof(sLoaded));
+    mDoMemCd_Load();
+    if (!wait("the load")) {
+        return;
+    }
+    const u32 load = mDoMemCd_LoadSync(sLoaded, sizeof(sLoaded), 0);
+    if (load != 1) {
+        smokeError("card-roundtrip: LoadSync %s%s", std::to_string(load));
+        return;
+    }
+    if (!mDoMemCdRWm_TestCheckSumGameData(&sLoaded[dataNum * sizeof(card_gamedata)])) {
+        smokeError("card-roundtrip: file %s fails its checksum%s", std::to_string(dataNum + 1));
+        return;
+    }
+    dComIfGs_setCardToMemory(sLoaded, dataNum);
+    int same = 0;
+    for (int slot = 0; slot < dInvSlot_ItemLast_e; slot++) {
+        if (dComIfGs_getItem(slot) != itemsNow[slot]) {
+            char what[96];
+            snprintf(what, sizeof(what), "slot %d: 0x%02x, had 0x%02x", slot, dComIfGs_getItem(slot), itemsNow[slot]);
+            smokeError("card-roundtrip: loaded item %s%s", what);
+        } else if (itemsNow[slot] != 0xFF) {
+            same++;
+        }
+    }
+    dSv_player_return_place_c& place = g_dComIfG_gameInfo.save.getPlayer().getPlayerReturnPlace();
+    if (stage != place.getName() || (!room.empty() && place.getRoomNo() != atoi(room.c_str()))) {
+        smokeError("card-roundtrip: return place %s, expected %s",
+                   std::string(place.getName()) + " room " + std::to_string(place.getRoomNo()),
+                   stage + (room.empty() ? "" : " room " + room));
+    }
+    writef(STDERR_FILENO, "[cos] options-menu: card-roundtrip: file %d loaded back, %d items as saved, return "
+                          "place %s room %d point %d\n",
+           dataNum + 1, same, place.getName(), place.getRoomNo(), place.getPoint());
 }
 
 bool fileHasLine(const std::string& want) {
@@ -1101,6 +1188,14 @@ void smokeFrame(unsigned int frame) {
             if ((gConfig.fpsOverlay ? 1 : 0) != atoi(e.a.c_str())) {
                 smokeError("overlay %s, expected %s", gConfig.fpsOverlay ? "1" : "0", e.a);
             }
+        } else if (e.kind == "alloc-failures") {
+            if (heapAllocFailures() != (unsigned int)atoi(e.a.c_str())) {
+                smokeError("%s JKR allocations failed, expected %s", std::to_string(heapAllocFailures()), e.a);
+            } else {
+                writef(STDERR_FILENO, "[cos] options-menu: ok %u failed JKR allocations\n", heapAllocFailures());
+            }
+        } else if (e.kind == "card-roundtrip") {
+            checkCardRoundtrip(e.a, e.b);
         } else {
             smokeError("unknown #expect %s%s", e.kind);
         }
@@ -1118,6 +1213,10 @@ void saveShot(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t widt
 }
 
 } // namespace
+
+bool menuSmokeWantsRunCard() {
+    return sSmoke.on && sSmoke.runCard;
+}
 
 void menuInit() {
     if (m.initialized) {

@@ -287,6 +287,10 @@ void pc_aurora_init(int argc, char* argv[]) {
     if (newGameNeedsCleanCard()) {
         prepareRunCard(gConfig.milestone);
     }
+    // COS_SMOKE=options-menu with "#card run" (bug B8's save through the save screen).
+    if (menuSmokeWantsRunCard()) {
+        prepareRunCard("options-menu");
+    }
 
     // Smoke tests that need Aurora and OSInit but none of the game's main code (heap) end here.
     runAuroraSmoke();
