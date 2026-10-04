@@ -11,13 +11,13 @@
 //   over every message (characters and tags, against the independent walk);
 // - fopMsgM, as the message windows read it: every INF1 entry through
 //   fopMsgM_msgGet_c::getMesgEntry (all fields); for every message number, getMesgHeader routes
-//   to the file fopMsgM_hyrule_language_check chooses, and in that file fopMsgM_msgGet_c and
+//   to the file the game's language check (fopMsgM) chooses, and in that file fopMsgM_msgGet_c and
 //   fopMsgM_itemMsgGet_c::getMessage return the first entry with the number, and
 //   fopMsgM_messageGet decodes it (control tags dropped, the player name inserted, 0x1A for tag
 //   0x1E) to the same text as the independent decoder;
 // - the colour table: fopMsgM_getColorTable for every CLT1 entry of color.bmc;
 // - the message fonts: mDoExt_getMesgFont (rock_24_20_4i_usa.bfn) and mDoExt_getRubyFont
-//   (hyrule.bfn) are JUTResFonts checked as the font smoke test checks a disc font (checkResFont).
+//   (kRubyFont) are JUTResFonts checked as the font smoke test checks a disc font (checkResFont).
 // <COS_RUN_DIR>/msg_sweep.txt gets what the game's code read (BMG, BMC and FONT lines in
 // disc_manifest.py's names); native/tools/run.sh compares it with the manifest
 // (disc_manifest.py --check-msg): every BMG's counts and message-ID digest, the colour digest and
@@ -44,6 +44,10 @@
 namespace pc {
 
 namespace {
+
+// The ruby (furigana) font of the message archives, as mDoExt_initFontCommon looks it up.
+constexpr char kRubyFont[] = "hyrule.bfn";
+constexpr char kRubyFontPath[] = "/res/Msg/rubyres.arc:hyrule.bfn";
 
 int sErrors = 0;
 
@@ -328,7 +332,7 @@ struct FopResult {
     uint32_t distinct = 0;     // distinct numbers among them
     uint64_t idsDigest = kFnvBasis;
     uint32_t decoded = 0;      // numbers fopMsgM routes to this file, checked and decoded
-    uint32_t elsewhere = 0;    // numbers fopMsgM_hyrule_language_check routes to the other file
+    uint32_t elsewhere = 0;    // numbers the language check routes to the other file
     uint32_t duplicates = 0;   // entries whose number an earlier entry already has
     uint32_t decodedBytes = 0;
 };
@@ -560,7 +564,7 @@ void checkFont(JUTFont* font, JKRArchive* arc, const char* name, const char* pat
     checkColors(msgArc, "/res/Msg/bmgres.arc:color.bmc", fd);
     checkFont(mDoExt_getMesgFont(), fontArc, "rock_24_20_4i_usa.bfn",
               "/res/Msg/fontres.arc:rock_24_20_4i_usa.bfn", fd);
-    checkFont(mDoExt_getRubyFont(), rubyArc, "hyrule.bfn", "/res/Msg/rubyres.arc:hyrule.bfn", fd);
+    checkFont(mDoExt_getRubyFont(), rubyArc, kRubyFont, kRubyFontPath, fd);
     if (fd >= 0) {
         close(fd);
     }

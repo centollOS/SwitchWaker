@@ -5,7 +5,7 @@
 // <COS_RUN_DIR>/card, so the test starts from an empty, freshly formatted GCI folder and never
 // touches the user's card. Then, from pc_heaps_created (main01, right after mDoMch_Create started
 // the memory card thread):
-// 1. attach: mDoMemCd_UpDate until the card thread mounted the card (no "gczelda" file yet);
+// 1. attach: mDoMemCd_UpDate until the card thread mounted the card (no save file yet);
 // 2. new save: dSv_info_c::init, then distinctive values in every multi-byte field that goes to
 //    the card (status A/B, item record timer, reserve flags, map, info, priest position, a
 //    stage's memory bits, the ocean bits) and a few byte fields, through the game's setters;
@@ -13,7 +13,7 @@
 //    memory_to_card into file 1, mDoMemCdRWm_SetCheckSumGameData on each, mDoMemCd_Save of the
 //    three, mDoMemCd_SaveSync until done (this creates the file: header block, two copies);
 // 4. the GCI file on disk, read independently with plain big-endian loads at the GameCube offsets:
-//    its 0x40-byte directory entry (GZLE/01/gczelda, 12 blocks, comment at 0x1C00), the header
+//    its 0x40-byte directory entry (GZLE/01/kSaveFile, 12 blocks, comment at 0x1C00), the header
 //    block's title, both copies of card_savedata (save count 1, data version 0, the halfword
 //    checksum of the block, each file's byte checksum) and every value set in 2. at its offset in
 //    the packed file;
@@ -62,6 +62,8 @@ void fail(const char* fmt, ...) {
 }
 
 // The GameCube layout of the card, written down independently of the game's structs.
+// The game's card file name (the name m_Do_MemCard.cpp passes to CARDOpen and CARDCreate).
+constexpr char kSaveFile[] = "gczelda";
 constexpr uint32_t kGciHeaderSize = 0x40;  // the directory entry a .gci starts with
 constexpr uint32_t kBlockSize = 0x2000;    // card_savedata, card_pictdata, the header block
 constexpr uint32_t kFileBlocks = 0x18000 / kBlockSize; // mDoMemCd_Ctrl_c::store's CARDCreate size
@@ -416,8 +418,8 @@ void checkGci(u32 saveCount) {
     if (memcmp(sGci + 0x0, "GZLE", 4) != 0 || memcmp(sGci + 0x4, "01", 2) != 0) {
         fail("GCI entry game/maker \"%.4s\"/\"%.2s\", want GZLE/01", (const char*)sGci, (const char*)sGci + 4);
     }
-    if (strncmp((const char*)sGci + 0x8, "gczelda", 32) != 0) {
-        fail("GCI entry file name \"%.32s\", want gczelda", (const char*)sGci + 0x8);
+    if (strncmp((const char*)sGci + 0x8, kSaveFile, 32) != 0) {
+        fail("GCI entry file name \"%.32s\", want %s", (const char*)sGci + 0x8, kSaveFile);
     }
     expect8("GCI banner format", sGci, 0x07, 1);
     expect32("GCI icon address", sGci, 0x2C, 0);
@@ -459,7 +461,7 @@ void prepareRunCard(const char* who) {
     }
     // A trailing slash: CARDSetBasePath keeps a path with no file name as the base directory.
     snprintf(sCardBase, sizeof(sCardBase), "%s/card/", gConfig.runDir);
-    snprintf(sGciPath, sizeof(sGciPath), "%sUSA/Card A/01-GZLE-gczelda.gci", sCardBase);
+    snprintf(sGciPath, sizeof(sGciPath), "%sUSA/Card A/01-GZLE-%s.gci", sCardBase, kSaveFile);
     CARDSetBasePath(sCardBase, 0);
     writef(STDERR_FILENO, "[cos] %s: memory card A is the empty folder %s\n", who, sCardBase);
 }
@@ -482,7 +484,7 @@ void prepareSaveSmoke() {
     mDoMemCd_UpDate();
     waitFor("attach", [] { return mDoMemCd_isCardCommNone(); });
     if (g_mDoMemCd_control.field_0x1660 != 2) {
-        fail("after attach the card state is %d, want 2 (mounted, no gczelda file)",
+        fail("after attach the card state is %d, want 2 (mounted, no save file)",
              (int)g_mDoMemCd_control.field_0x1660);
     }
 
