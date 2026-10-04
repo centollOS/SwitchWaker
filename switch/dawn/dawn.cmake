@@ -694,4 +694,24 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
                 "${DAWN_NWINDOW_PATCH_OUTPUT}${DAWN_NWINDOW_PATCH_ERROR}")
         endif()
     endif()
+
+    # Bug B7: clip z to WebGPU's [0, w] with glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE) instead
+    # of Tint's 2z - w remap, which rounded every vertex's depth to about 2^-24 of w and made
+    # Outset's shore foam decals flicker (SwitchClipControlGL.h; COS_SWITCH_GL_CLIP_CONTROL=0 at
+    # run time for the old remap).
+    if(NOT EXISTS "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchClipControlGL.h")
+        execute_process(
+            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
+                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-clip-control.patch"
+            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
+            RESULT_VARIABLE DAWN_GL_CLIP_CONTROL_PATCH_RESULT
+            OUTPUT_VARIABLE DAWN_GL_CLIP_CONTROL_PATCH_OUTPUT
+            ERROR_VARIABLE DAWN_GL_CLIP_CONTROL_PATCH_ERROR
+        )
+        if(NOT DAWN_GL_CLIP_CONTROL_PATCH_RESULT EQUAL 0)
+            message(FATAL_ERROR
+                "Could not apply the Dawn Switch GL clip control patch:\n"
+                "${DAWN_GL_CLIP_CONTROL_PATCH_OUTPUT}${DAWN_GL_CLIP_CONTROL_PATCH_ERROR}")
+        endif()
+    endif()
 endif()

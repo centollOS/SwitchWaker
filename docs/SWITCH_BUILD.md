@@ -369,6 +369,17 @@ Title mode only (apm is the application's service). Env files for the 720p targe
 checks of every GL call, draw and uniform validation included; `[dawn] COS_SWITCH_GL_NO_ERROR:` in
 the log says whether Mesa accepted it. It is an A/B option for the replay times: in such a context
 a GL error has undefined results.
+Depth uses WebGPU's [0, w] clip range in GL as well (on by default; bug B7,
+`switch/dawn/patches/dawn-switch-gl-clip-control.patch`, `SwitchClipControlGL.h`): Dawn sets
+`glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE)` (`GL_EXT_clip_control`, which the console's Mesa
+exposes) and Tint no longer rewrites each vertex's z as `2z - w` for GL's [-w, w] range. That
+rewrite rounded the depth to about 2^-24 of the distance (Aurora uses reversed Z with the game's
+near plane of 1), so decals a unit above another surface, such as Outset's shore foam, lost the
+depth test in patches that flickered as the camera moved. `[dawn] COS_SWITCH_GL_CLIP_CONTROL:` in
+the log says which path runs; `COS_SWITCH_GL_CLIP_CONTROL=0` in `env.txt` brings the rewrite back
+(A/B). The shaders change with it, so the first run after the update rebuilds them (cold shader
+cache). `COS_SMOKE=shore-foam` with `COS_BOOT_STAGE=sea:44:8` in `env.txt` runs the Mac's
+regression check of the foam on the console (`[cos] shore-foam:` lines; native/README.md).
 `COS_SWITCH_GL_FBO_CACHE=1` in `env.txt` (off by default; `switch/dawn/patches/dawn-switch-gl-fbo-cache.patch`,
 `SwitchFboCacheGL.h`) keeps each render pass's framebuffer object, keyed by its attachments (GL
 texture name, level, layer, attachment point), instead of `glGenFramebuffers`, one
