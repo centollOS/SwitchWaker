@@ -262,6 +262,19 @@ bool newGameNeedsCleanCard();
 // pc_boot.cpp (step 6.4): parses COS_BOOT_STAGE into gBootStage (exit PC_EXIT_USAGE if it is
 // malformed).
 void loadBootStage();
+// Debug story presets (pc_preset.cpp): COS_BOOT_PRESET (checked; nullptr when unset) and the
+// sailing preset's state, put on the file in memory (inPlay: the PLAY scene runs, so the button
+// items shown are updated too). Its spawn is kSailingSpawn: on the boat, Windfall's north-west corner.
+struct PresetSpawn {
+    const char* stage;
+    int room;
+    int point;
+    const char* spec; // as COS_BOOT_STAGE
+};
+constexpr PresetSpawn kSailingSpawn = {"sea", 11, 102, "sea:11:102"};
+const char* bootPreset();
+void applySailingPreset(bool inPlay);
+
 
 // pc_shot.cpp: parses COS_SHOT / COS_SHOT_EVERY (exit PC_EXIT_USAGE if malformed); without
 // them the screenshots stay off. Returns whether any frame will be captured.

@@ -109,3 +109,8 @@ options-menu 0 --stage sea:44:206 --input native/check/input/hd-textures-menu.tx
 # heap, GameCube sizes too small on the host), a save through the save screen on the run's own card and
 # its round trip (load, checksum, card_to_memory: the same items); no JKR allocation may fail
 options-menu 0 --stage sea:44:206 --input native/check/input/menu-travel-save.txt
+# sailing preset (lane sailing): Depuración > "Navegar (barco, vela y batuta)" on Outset's new file puts
+# the boat, the sail (X), the wind baton (Y), the wind song and the open sea on the file in memory and
+# takes the player to Windfall's sea room on the boat; an unknown COS_BOOT_PRESET is a usage error
+options-menu 0 --stage sea:44:206 --input native/check/input/menu-sailing.txt
+static-init 2 --preset bogus

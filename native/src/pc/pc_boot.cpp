@@ -7,7 +7,8 @@
 // This file parses the request, logs it, and checks that the game honoured it: the next stage the
 // request left (pc_boot_stage_requested) and the start stage of the first PLAY scene
 // (pc_play_stage_started) must both be the requested one. Reaching a working stage is M12, not
-// this harness.
+// this harness. COS_BOOT_PRESET=sailing (pc_preset.cpp) puts a story preset on the new file and,
+// without COS_BOOT_STAGE, boots at the preset's spawn.
 #include "pc_internal.h"
 
 #include <cerrno>
@@ -87,6 +88,13 @@ int parseHexList(const char* var, const char* what, unsigned long maxValue, cons
 } // namespace
 
 void loadBootStage() {
+    // COS_BOOT_PRESET (pc_preset.cpp) without COS_BOOT_STAGE boots at the preset's own spawn.
+    const char* preset = bootPreset();
+    if (gConfig.bootStage == nullptr && preset != nullptr) {
+        gConfig.bootStage = kSailingSpawn.spec;
+        writef(STDERR_FILENO, "[cos] boot-stage: COS_BOOT_PRESET=%s starts at its spawn %s\n", preset,
+               gConfig.bootStage);
+    }
     const char* spec = gConfig.bootStage;
     if (spec == nullptr) {
         return;

@@ -39,6 +39,9 @@
 #                    e.g. sea:44:206 (Outset, where the new game starts); COS_BOOT_EVENTS=2A80[,...]
 #                    in the environment sets those story event bits on the new file and
 #                    COS_BOOT_ITEMS=20[,...] gives it those items, the first on X (bug B6)
+#   --preset NAME    COS_BOOT_PRESET, a story preset on the debug boot's new file: sailing (the
+#                    boat, its sail on X, the wind baton on Y and the wind song; without --stage
+#                    the boot starts on the boat at sea:11:102, Windfall's north-west corner)
 #   --shot LIST      COS_SHOT, game frames whose presented image is saved as shot-<frame>.png in
 #                    the run directory, e.g. 30,200 (COS_SHOT_EVERY=n in the environment: every
 #                    n-th frame; COS_SHOT_DIR: another directory). A run with shots compiles each
@@ -109,6 +112,7 @@ audio="${COS_AUDIO:-on}"
 disc="${COS_DISC:-}"
 input="${COS_INPUT:-}"
 stage="${COS_BOOT_STAGE:-}"
+preset="${COS_BOOT_PRESET:-}"
 shot="${COS_SHOT:-}"
 audio_dump="${COS_AUDIO_DUMP:-}"
 perf="${COS_PERF:-}"
@@ -134,6 +138,7 @@ while [ $# -gt 0 ]; do
         --disc) disc="$2"; shift 2 ;;
         --input) input="$2"; shift 2 ;;
         --stage) stage="$2"; shift 2 ;;
+        --preset) preset="$2"; shift 2 ;;
         --shot) shot="$2"; shift 2 ;;
         --aspect) aspect="$2"; shift 2 ;;
         --heap-check) heap_check="$2"; shift 2 ;;
@@ -218,6 +223,7 @@ export COS_RUN_DIR="$run_dir"
 export COS_SETTINGS="${COS_SETTINGS:-$run_dir/settings.ini}"
 [ -n "$frames" ] && export COS_FRAMES="$frames"
 if [ -n "$stage" ]; then export COS_BOOT_STAGE="$stage"; else unset COS_BOOT_STAGE; fi
+if [ -n "$preset" ]; then export COS_BOOT_PRESET="$preset"; else unset COS_BOOT_PRESET; fi
 [ -n "$trace" ] && export COS_TRACE="$trace"
 [ -n "$shot" ] && export COS_SHOT="$shot"
 [ -n "$uncapped" ] && export COS_UNCAPPED="$uncapped"

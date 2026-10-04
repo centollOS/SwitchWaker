@@ -35,6 +35,8 @@
 #include "d/d_com_inf_game.h"
 #include "d/d_s_play.h"
 #include "d/d_save.h"
+#include "d/d_item_data.h"
+#include "d/actor/d_a_player.h"
 #include "m_Do/m_Do_MemCard.h"
 #include "m_Do/m_Do_MemCardRWmng.h"
 #include "f_op/f_op_actor_mng.h"
@@ -503,7 +505,7 @@ const PcSettingDesc kBuiltins[] = {
 
 // ---- menu state ----------------------------------------------------------------------------------
 
-enum class RowKind { EditMode, Setting, Warp, Screenshot, Reload };
+enum class RowKind { EditMode, Setting, Warp, Sailing, Screenshot, Reload };
 
 struct Row {
     RowKind kind;
@@ -553,6 +555,7 @@ std::vector<Row> rowsOf(int tab) {
     }
     if (tab == PC_SETTING_TAB_DEBUG) {
         rows.push_back({RowKind::Warp});
+        rows.push_back({RowKind::Sailing});
         rows.push_back({RowKind::Screenshot});
         rows.push_back({RowKind::Reload});
     }
@@ -631,6 +634,20 @@ void doWarp(const Warp& w) {
     dComIfGp_setNextStage(w.stage, (s16)w.point, (s8)w.room, -1);
 }
 
+// "Navegar (barco, vela y batuta)": the sailing preset (pc_preset.cpp) on the file being played, in
+// memory only (the game's own save screen keeps it), then to its spawn on the boat.
+void doSailing() {
+    if (!inPlay()) {
+        toast("Navegar solo funciona durante la partida");
+        return;
+    }
+    applySailingPreset(true);
+    setOpen(false);
+    writef(STDERR_FILENO, "[cos] menu: sailing preset, warp to %s room %d point %d\n", kSailingSpawn.stage,
+           kSailingSpawn.room, kSailingSpawn.point);
+    dComIfGp_setNextStage(kSailingSpawn.stage, (s16)kSailingSpawn.point, (s8)kSailingSpawn.room, -1);
+}
+
 void activate(const Row& r, int dir) {
     switch (r.kind) {
     case RowKind::EditMode:
@@ -643,6 +660,11 @@ void activate(const Row& r, int dir) {
         if (dir == 0) {
             m.warpPage = true;
             m.scrollToRow = true;
+        }
+        break;
+    case RowKind::Sailing:
+        if (dir == 0) {
+            doSailing();
         }
         break;
     case RowKind::Screenshot:
@@ -755,6 +777,7 @@ std::string rowLabel(const Row& r) {
     switch (r.kind) {
     case RowKind::EditMode: return "Perfil a editar";
     case RowKind::Warp: return "Viajar a un escenario...";
+    case RowKind::Sailing: return "Navegar (barco, vela y batuta)";
     case RowKind::Screenshot: return "Capturar pantalla";
     case RowKind::Reload: return "Recargar ajustes del archivo";
     case RowKind::Setting: break;
@@ -771,6 +794,7 @@ std::string rowValue(const Row& r) {
     case RowKind::EditMode:
         return std::string(pc_settings_mode_name(m.editMode)) + (m.editMode == pc_settings_mode() ? " (activo)" : "");
     case RowKind::Warp: return inPlay() ? "A: elegir" : "solo en partida";
+    case RowKind::Sailing: return inPlay() ? "A: zarpar" : "solo en partida";
     case RowKind::Screenshot: return "A: capturar";
     case RowKind::Reload: return "A: recargar";
     case RowKind::Setting: break;
@@ -807,6 +831,9 @@ std::string rowHelp(const Row& r) {
         return "Las opciones marcadas [portátil]/[sobremesa] guardan un valor por modo; se aplican solas al "
                "conectar o quitar la base.";
     case RowKind::Warp: return "Lleva al jugador a otro escenario (lugares principales y todos los del disco).";
+    case RowKind::Sailing:
+        return "Da a esta partida el barco, la vela (X), la batuta (Y) y la canción del viento, y lleva al jugador "
+               "en barco junto a Isla Taura. Solo en memoria: se guarda únicamente si guardas la partida.";
     case RowKind::Screenshot:
         return "Guarda la imagen del juego (sin el menú) como shot-<cuadro>.png en la carpeta del juego.";
     case RowKind::Reload: return std::string("Vuelve a leer ") + pc_settings_path() + ".";
@@ -998,6 +1025,7 @@ void smokeError(const char* fmt, const std::string& a, const std::string& b = ""
 //   stage <name> <room>      the PLAY scene's stage and room
 //   overlay <0|1>            the FPS overlay is shown
 //   alloc-failures <n>       JKR allocations that failed since the start (bug B8: 0)
+//   riding <0|1>             the player rides the boat with the sail on X (Depuración > Navegar)
 //   card-roundtrip <stage> [<room>]  the game saved through its save screen: the card's save file (the
 //                            run's own card, "#card run") loads back (mDoMemCd_Load, checksum of
 //                            the file the game uses, card_to_memory) with the items the player has now
@@ -1188,6 +1216,18 @@ void smokeFrame(unsigned int frame) {
                 smokeError("stage %s, expected %s", std::string(name) + " " + std::to_string(room), e.a + " " + e.b);
             } else {
                 writef(STDERR_FILENO, "[cos] options-menu: ok stage %s room %d\n", name, room);
+            }
+        } else if (e.kind == "riding") {
+            // The sailing preset (Navegar): the player on the boat, the sail on X.
+            const bool riding = inPlay() && dComIfGp_checkPlayerStatus0(0, daPyStts0_SHIP_RIDE_e) != 0 &&
+                                dComIfGp_getShipActor() != nullptr;
+            const bool sail = dComIfGs_getSelectItem(dItemBtn_X_e) != dInvSlot_NONE_e &&
+                              dComIfGs_getItem(dComIfGs_getSelectItem(dItemBtn_X_e)) == dItemNo_SAIL_e;
+            if ((riding && sail ? 1 : 0) != atoi(e.a.c_str())) {
+                smokeError("riding %s, expected %s", std::string(riding ? "1" : "0") + (sail ? " (sail on X)" : " (no sail on X)"),
+                           e.a);
+            } else {
+                writef(STDERR_FILENO, "[cos] options-menu: ok riding %s\n", e.a.c_str());
             }
         } else if (e.kind == "overlay") {
             if ((gConfig.fpsOverlay ? 1 : 0) != atoi(e.a.c_str())) {

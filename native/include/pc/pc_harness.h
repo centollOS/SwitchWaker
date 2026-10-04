@@ -18,6 +18,7 @@
  *   COS_BOOT_STAGE <stage>:<room>[:<point>[:<layer>]]: debug stage boot (step 6.4, pc_boot.cpp)
  *   COS_BOOT_EVENTS hex event bits the debug boot sets on its new file, e.g. 2A80 (pc_boot.cpp)
  *   COS_BOOT_ITEMS hex item numbers the debug boot gives its new file, the first on X, e.g. 20
+ *   COS_BOOT_PRESET sailing: a story preset on the debug boot's new file (pc_preset.cpp)
  *   COS_PERF_EVERY every this many frames, one line of game-thread frame times (pc_frame.cpp)
  *   COS_PERF       file that gets one CSV row of game-thread times per game frame (step 6.7)
  *   COS_ASPECT     4:3 (default), 16:9 or 16:10: the widescreen option (pc_aspect.h)
@@ -139,6 +140,11 @@ int pc_boot_event_bits(unsigned short* out, int max);
    telescope) the debug boot gives its new file with execItemGet; the first one is put on X.
    Returns how many were stored in out (at most max); exits 2 if malformed. */
 int pc_boot_items(unsigned short* out, int max);
+/* COS_BOOT_PRESET=sailing (pc_preset.cpp): the debug boot puts that story preset on its new file
+   after COS_BOOT_EVENTS and COS_BOOT_ITEMS (event bits, items, the X/Y items); without
+   COS_BOOT_STAGE the boot starts at the preset's spawn (sailing: sea:11:102, on the boat).
+   Exits 2 for an unknown preset. Nothing without COS_BOOT_PRESET. */
+void pc_boot_preset_apply(void);
 
 /* Fixed debug camera (bug B7, pc_shore.cpp): with COS_CAMERA=<eye x>,<eye y>,<eye z>,<center x>,
    <center y>,<center z> (or while COS_SMOKE=shore-foam holds its view), camera_draw (d_camera.cpp)

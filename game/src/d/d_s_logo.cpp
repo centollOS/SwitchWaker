@@ -530,6 +530,9 @@ static void pcBootStage(dScnLogo_c* i_this) {
             }
         }
     }
+    // COS_BOOT_PRESET (pc_preset.cpp): a story preset, e.g. sailing (the boat, its sail, the wind
+    // baton and song).
+    pc_boot_preset_apply();
     const PcBootStage* boot = pc_boot_stage();
     dComIfGp_offEnableNextStage();
     dComIfGp_setNextStage(boot->stage, boot->point, boot->room, boot->layer);
