@@ -119,7 +119,10 @@ most of these options at run time and saves them to `native/user/settings.ini` o
 separate values for handheld and docked where it says *[portátil]* / *[sobremesa]* (applied when the
 console is docked or undocked). A line in `env.txt` wins over the menu's file: that row shows as
 fixed (`[fijo]`); remove the line from `env.txt` to set it from the menu ([native/README.md](../native/README.md),
-"Options menu").
+"Options menu"). To try sailing on an early file: Depuración > **Navegar (barco, vela y batuta)** gives
+the file being played the boat, the sail (X), the wind baton (Y), the wind song and the open sea, and
+puts the player on the boat next to Windfall; it stays in memory unless the game is saved
+(`COS_BOOT_PRESET=sailing` in `env.txt` does the same on a fresh file at boot).
 
 Internal resolution: `COS_FB_SCALE` is Aurora's frame-buffer scale (`VISetFrameBufferScale`, the
 "internal resolution" setting of Dusklight): the game's 640x480 EFB times the scale, widened to the

@@ -1069,6 +1069,7 @@ void pc_frame_end(void) {
     telescopeDemoFrame(frames);
     shoreFoamFrame(frames);
     npcVariantsFrame(frames);
+    sailingFrame(frames);
     fileSelectFrame(frames);
     newGameFrame(frames);
     precompileFrame(frames);

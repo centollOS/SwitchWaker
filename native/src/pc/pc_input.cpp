@@ -68,6 +68,10 @@ uint32_t sEchoLastTrig = 0;
 float sEchoLastX = 0;
 float sEchoLastY = 0;
 const unsigned int kEchoTail = 8;
+
+// setDrivenPad: a smoke test's own controller state for port 0.
+bool sDriven = false;
+PADStatus sDrivenStatus;
 const unsigned int kEchoMaxErrorLines = 40;
 
 // The buttons mDoCPd_Convert maps into interface_of_controller_pad.
@@ -380,6 +384,18 @@ bool inputScriptAt(unsigned int frame, uint16_t* buttons, int8_t* stickX, int8_t
     return true;
 }
 
+void setDrivenPad(bool on, uint16_t buttons, int8_t stickX, int8_t stickY) {
+    sDriven = on;
+    memset(&sDrivenStatus, 0, sizeof(sDrivenStatus));
+    if (on) {
+        sDrivenStatus.button = buttons;
+        sDrivenStatus.stickX = stickX;
+        sDrivenStatus.stickY = stickY;
+        sDrivenStatus.triggerLeft = (buttons & PAD_TRIGGER_L) ? kTriggerFull : 0;
+        sDrivenStatus.triggerRight = (buttons & PAD_TRIGGER_R) ? kTriggerFull : 0;
+    }
+}
+
 } // namespace pc
 
 using namespace pc;
@@ -387,6 +403,11 @@ using namespace pc;
 extern "C" {
 
 void pc_pad_feed(void) {
+    if (sDriven) {
+        // A smoke test steering port 0 itself (setDrivenPad, COS_SMOKE=sailing) wins over a script.
+        PADSetVirtualStatus(0, &sDrivenStatus);
+        return;
+    }
     if (!sLoaded) {
         return;
     }

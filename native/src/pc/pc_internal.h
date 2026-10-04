@@ -274,7 +274,10 @@ struct PresetSpawn {
 constexpr PresetSpawn kSailingSpawn = {"sea", 11, 102, "sea:11:102"};
 const char* bootPreset();
 void applySailingPreset(bool inPlay);
-
+// A smoke test's own controller state for port 0 (pc_input.cpp; COS_SMOKE=sailing); on wins over a
+// COS_INPUT script.
+void setDrivenPad(bool on, uint16_t buttons, int8_t stickX, int8_t stickY);
+void sailingFrame(unsigned int frames);
 
 // pc_shot.cpp: parses COS_SHOT / COS_SHOT_EVERY (exit PC_EXIT_USAGE if malformed); without
 // them the screenshots stay off. Returns whether any frame will be captured.

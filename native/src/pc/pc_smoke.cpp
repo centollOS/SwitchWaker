@@ -330,6 +330,7 @@ const Smoke kSmokes[] = {
     {"telescope-demo", kInGame},
     {"shore-foam", kInGame},
     {"npc-variants", kInGame},
+    {"sailing", kInGame},
     {"options-menu", kInGame},
 };
 
