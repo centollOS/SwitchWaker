@@ -64,7 +64,7 @@ outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.tx
 # interval must never be 0 (JFWDisplay::calcCombinationRatio loops by it)
 outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.txt --uncapped
 
-# widescreen option (lane wide, docs/MODS.md): M13 with the 16:9 code's changes (camera aspect,
+# widescreen option (lane wide, docs/WIDESCREEN.md): M13 with the 16:9 code's changes (camera aspect,
 # 2D bounds, HUD and minimap moved) and the title to the name scene at 16:10 (the interpolated
 # values, the wipe and the full-screen masks)
 outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.txt --aspect 16:9

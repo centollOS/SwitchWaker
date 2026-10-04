@@ -1,7 +1,8 @@
 # cos_dsp_hle: the DSP behind cos_sdk's DSP library (step 5.A of docs/NATIVE_PORT_PHASE4_6.md,
 # decisions H6 and H10). Dolphin's high-level DSP emulation (DSPHLE with its JAudio ucode, GPLv2+;
 # this repository is GPLv3), compiled from the RecompCore checkout (ref/recompcore) the way the
-# iOS and Switch hosts compile it (apple/ios/CMakeLists.txt, switch/host/CMakeLists.txt), behind
+# iOS and Switch hosts of the upstream recompilation project compile it (apple/ios/CMakeLists.txt,
+# switch/host/CMakeLists.txt there), behind
 # a small API of its own (native/dsp_hle/cos_dsp_hle.h) so cos_sdk never sees a Dolphin header.
 #
 # COS_RECOMPCORE_DIR is the RecompCore source checkout. By default it is ref/recompcore of the

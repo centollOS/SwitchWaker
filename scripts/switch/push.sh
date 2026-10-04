@@ -1,23 +1,19 @@
 #!/usr/bin/env bash
-# Copy Switch probe NROs to the console over USB (MTP) and pull back their logs.
+# Copy the native port's NRO and its inputs to the console over USB (MTP) and pull back its logs.
 #
-#   scripts/switch/push.sh [--build] [host|host-aurora|native|dawn|gles|boot|FILE.nro]...   (default: dawn)
+#   scripts/switch/push.sh [--build] [native|FILE.nro]...   (default: native)
 #   scripts/switch/push.sh --logs
-#   scripts/switch/push.sh --game DISC.iso
 #   scripts/switch/push.sh --disc DISC.iso
 #   scripts/switch/push.sh --native-env ENV.txt
 #   scripts/switch/push.sh --pipeline-cache [FILE.db]
 #
 # Enable USB file transfer on the console first (Horizon's own, haze or DBI).
 # Files go to sdmc:/switch/centollos/, are read back, and must match
-# the local SHA-256. --build runs each probe's build script first. --logs
-# copies the probes' *.log files into build/switch-logs/. --game copies the
-# headless host's inputs from the player's own disc: the disc image as
-# GZLE01.iso, the DSP ROMs, and main.dol and the 415 RELs extracted by
-# scripts/builder/build.sh --source-only (build/device/game); files already
-# on the console with the same size are skipped. --disc copies only the disc
-# image (all the native port reads; same name and place as --game's). `native`
-# is the native port's NRO (scripts/switch/build_native.sh), centollos.nro;
+# the local SHA-256. --build runs scripts/switch/build_native.sh first. --logs
+# copies the native port's logs into build/switch-logs/native/. --disc copies
+# the player's disc image as GZLE01.iso (all the native port reads; skipped if
+# already on the console with the same size). `native` is the native port's NRO
+# (scripts/switch/build_native.sh), centollos.nro;
 # --native-env copies a run options file as its native/env.txt. --pipeline-cache copies the
 # bundled pipeline cache that native/tools/gen_pipeline_cache.sh made (default
 # build/pipeline-cache/initial_pipeline_cache.db; it is derived from the player's disc and never
@@ -40,24 +36,6 @@ if [[ ! -x $tool || $source -nt $tool ]]; then
     fi
     # shellcheck disable=SC2086  # pkg-config output is a word list
     cc -O2 -Wall -o "$tool" "$source" $flags
-fi
-
-if [[ ${1:-} == --game ]]; then
-    disc=${2:?usage: push.sh --game DISC.iso}
-    game="$root/build/device/game"
-    if [[ ! -f $game/main.dol || ! -d $game/rels ]]; then
-        echo "push: run scripts/builder/build.sh DISC.iso --source-only first" >&2
-        exit 1
-    fi
-    staging=$(mktemp -d)
-    trap 'rm -rf "$staging"' EXIT
-    # Name the disc as the host expects without copying 1.4 GB.
-    ln -s "$(cd "$(dirname "$disc")" && pwd)/$(basename "$disc")" "$staging/GZLE01.iso"
-    "$tool" push-many "$remote_dir" "$staging/GZLE01.iso" \
-        "$root/ref/recompcore/Data/Sys/GC/dsp_rom.bin" "$root/ref/recompcore/Data/Sys/GC/dsp_coef.bin"
-    "$tool" push-many "$remote_dir/game" "$game/main.dol"
-    "$tool" push-many "$remote_dir/game/rels" "$game"/rels/*
-    exit 0
 fi
 
 if [[ ${1:-} == --disc ]]; then
@@ -101,14 +79,7 @@ if [[ ${1:-} == --pipeline-cache ]]; then
 fi
 
 if [[ ${1:-} == --logs ]]; then
-    mkdir -p "$root/build/switch-logs"
-    for log in boot-probe.log gles-probe.log dawn-probe.log host.log; do
-        status=0
-        "$tool" pull "$remote_dir" "$log" "$root/build/switch-logs/$log" || status=$?
-        # 3: that probe has not written a log yet.
-        [[ $status -eq 0 || $status -eq 3 ]] || exit "$status"
-    done
-    # The native port's logs (switch/native/source/cos_switch.cpp).
+    # The native port's logs (switch/native/source/cos_switch.cpp); status 3: no log written yet.
     mkdir -p "$root/build/switch-logs/native"
     for log in centollos.log centollos.prev.log; do
         status=0
@@ -123,16 +94,11 @@ if [[ ${1:-} == --build ]]; then
     build=1
     shift
 fi
-[[ $# -gt 0 ]] || set -- dawn
+[[ $# -gt 0 ]] || set -- native
 
 for target in "$@"; do
     case $target in
-        host) script=build_host.sh nro=build/switch-host/BlueWakeSwitch.nro ;;
-        host-aurora) script='' nro=${SWITCH_HOST_BUILD_DIR:-build/switch-host-aurora}/BlueWakeSwitchAurora.nro ;;
         native) script=build_native.sh nro=build/switch-native/centollos.nro ;;
-        dawn) script=build_dawn_probe.sh nro=build/switch-dawn-probe/BlueWakeDawnOffscreenProbe.nro ;;
-        gles) script=build_gles_probe.sh nro=build/switch-gles-probe/BlueWakeGlesProbe.nro ;;
-        boot) script=build_probe.sh nro=build/switch-probe/BlueWakeSwitchProbe.nro ;;
         *.nro) script='' nro=$target ;;
         *) echo "push: unknown target $target" >&2; exit 2 ;;
     esac

@@ -5,7 +5,7 @@
 #   native/tools/fetch_recompcore.sh [DIR]      (default: ref/recompcore of this repository)
 #
 # It clones https://github.com/elliotttate/RecompCore at the commit the recompilation project builds from
-# (branch bluewake, patches/recompcore/README.md), shallow and without submodules: only the
+# (branch bluewake; patches/recompcore/README.md of the upstream recompilation project), shallow and without submodules: only the
 # DSPHLE, DSP accelerator and Common sources are compiled, nothing is generated inside it. An
 # existing checkout at the pin is left alone; one at another commit is reported, not changed.
 set -euo pipefail

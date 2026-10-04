@@ -3,15 +3,15 @@
  *
  * COS_ASPECT=4:3 | 16:9 | 16:10 (default 4:3; the Switch harness sets 16:9). At 4:3 the game runs
  * as on the GameCube. A wider aspect does in C what the community 16:9 Gecko code does to the
- * GameCube executable (mods/widescreen/GZLE01.gecko, Dolphin's GZLE01.ini "$16:9 Widescreen"; each
- * of its lines is decoded in docs/MODS.md): the camera's aspect (projection and view culling), the
+ * GameCube executable (Dolphin's GZLE01.ini "$16:9 Widescreen"; each of its lines is decoded in
+ * docs/WIDESCREEN.md): the camera's aspect (projection and view culling), the
  * 2D screen bounds, the HUD and minimap positions, the menus' full-screen masks, and Aurora
  * presents the 640x480 picture stretched to that aspect (Aurora patch 0006), as a widescreen TV
  * shows the console's anamorphic output.
  *
  * Each number the 16:9 code changes is interpolated between the game's 4:3 value and the code's
  * 16:9 value with t = (A - 4/3) / (16/9 - 4/3): 0 at 4:3, 1 at 16:9, 0.6 at 16:10, the same
- * interpolation as scripts/mods/widescreen_aspect.py.
+ * interpolation as the upstream recompilation project's scripts/mods/widescreen_aspect.py.
  *
  * The first call reads COS_ASPECT; pc_harness_init makes that call (and exits 2 on a malformed
  * value), so game code reads a fixed value. Static initialisers must not call these: the Switch

@@ -17,7 +17,7 @@ the repository, under `build/`.
 The goal is a native build of the game on Aurora: on the Mac first, then the Switch, following the
 approach of [Dusklight](https://github.com/TwilitRealm/dusklight) (CC0), whose
 SDK-over-Aurora layer and static REL linking are the reference. Why: the translated build runs at
-about 6-8 percent speed on the Switch (`docs/SWITCH_IMPLEMENTATION_CHECKLIST.md`), and native code
+about 6-8 percent speed on the Switch (`docs/SWITCH_IMPLEMENTATION_CHECKLIST.md` of the upstream recompilation project), and native code
 costs about 0.9 host instructions per guest instruction against 27 for the translation.
 
 ## Quick start (Mac)
@@ -220,7 +220,7 @@ The DSP behind `cos_sdk` is Dolphin's high-level DSP emulation (step 5.A, decisi
 tree is a git worktree (`build/lanes/<lane>`); pass `-DCOS_RECOMPCORE_DIR=...` otherwise.
 `native/tools/fetch_recompcore.sh` puts it in `ref/recompcore`: a shallow checkout, without
 submodules, of [elliotttate/RecompCore](https://github.com/elliotttate/RecompCore) at `8ab24da`
-(branch `bluewake`, the commit the recompilation project builds from; `patches/recompcore/README.md`).
+(branch `bluewake`, the commit the upstream recompilation project builds from).
 
 ### SDK headers
 
@@ -424,7 +424,7 @@ COS_DISC=/nonexistent build/native-mac/centollos; echo $?   # 14
 | `COS_PRECOMPILE` | the Switch's boot warm-up (docs/SWITCH_BUILD.md, "Pipeline precompile"): `boot` (Switch default) a "Preparing shaders" loading screen (Aurora's ImGui) before the game starts when `COS_PRECOMPILE_SCREEN` calls for one (`auto`: until every queued pipeline is built; `priority`/`always`: until the pipelines the bundled cache marks priority 0, the boot path, are built), then the rest are built behind the logos and menus with "Shaders N/M" in the bottom-right corner until the game first enters its PLAY scene, where the warm-up ends; `full` the loading screen until every known pipeline is built; `all` no loading screen, every known pipeline built (indicator until done); `off` none. On the Mac unset changes nothing (Aurora's warm-up runs to the end, nothing drawn); set, the loading screen and indicator are drawn to try them (`boot` waits for as many pipelines as the bundled file next to `centollos` marks priority 0; `off` only hides them) |
 | `COS_PERF` | a file that gets one CSV row per game frame (step 6.7; `run.sh --perf perf.csv` puts it in the run directory); see "Performance instrumentation" |
 | `COS_RUN_DIR` | where `backtrace.txt` and `stall.txt` go (set by `run.sh`) |
-| `COS_ASPECT` | `4:3` (default on the Mac), `16:9` (default on the Switch) or `16:10`: the widescreen option, the community 16:9 Gecko code done in C (wider view and culling, HUD at the screen edges) with Aurora presenting the picture at that aspect ([docs/MODS.md](../docs/MODS.md), "Widescreen in the native port") |
+| `COS_ASPECT` | `4:3` (default on the Mac), `16:9` (default on the Switch) or `16:10`: the widescreen option, the community 16:9 Gecko code done in C (wider view and culling, HUD at the screen edges) with Aurora presenting the picture at that aspect ([docs/WIDESCREEN.md](../docs/WIDESCREEN.md)) |
 | `COS_FB_SCALE` | the internal resolution: Aurora's frame-buffer scale (`VISetFrameBufferScale`) of the 640x480 EFB, widened to the window's aspect; at 16:9 `1.5` = 1280x720, `1.125` = 960x540, `1.0` = 854x480 (EFB copies scale with it; the present pass resamples to the window; `COS_SHOT` images are at this size). Unset or `0`: the window's own size (the Mac's default); the Switch sets `1.5` ([docs/SWITCH_BUILD.md](../docs/SWITCH_BUILD.md)) |
 | `COS_HD_TEXTURES` | `1`: replace the game's textures from a Dolphin-format HD pack (off by default). `COS_HD_PACK` names the pack: a directory converted by `scripts/hd/build_hd_pack.sh` (`index.bin` + `dataNN.bin`) or a Dolphin texture folder of loose `tex1_*.dds`; default `<user>/hd_textures`. Also `COS_HD_BUDGET_MB`, `COS_HD_PUBLISH_MB`, `COS_HD_WORKERS`, `COS_HD_STATS_EVERY`, `COS_HD_CENSUS`, `COS_HD_TOGGLE_FRAMES` ([docs/HD_TEXTURES.md](../docs/HD_TEXTURES.md)) |
 | `COS_SHADOW_OFFSCREEN` | GPU A/B option (docs/SWITCH_PERF_STUDY.md, option a1; `native/include/pc/pc_gpu_opts.h`), default off: `1` draws the real-time shadow casters into an offscreen target (`GXCreateFrameBuffer`) of the size their 256x256 EFB corner has at the internal resolution, so the main EFB pass is not split per shadow; the I4 shadow textures are pixel-identical. `gc`: the GameCube's 256x256 target and 128x128 textures at any resolution (softer, cheaper shadows; for measurement) |

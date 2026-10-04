@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // cos_dsp_hle (cos_dsp_hle.h): Dolphin's DSPHLE behind the DSP register interface cos_sdk uses.
 //
-// Provenance: adapted from this repository's runtime/host/src/dsp_hle_backend.cpp (the
+// Provenance: adapted from the upstream recompilation project's runtime/host/src/dsp_hle_backend.cpp (the
 // translated build's HLE backend, GPLv2+ like the Dolphin code it links) and
 // runtime/host/src/dsp_adapter_donor_stubs.cpp (Core::System, CoreTiming and SystemTimers
 // stubs). Dolphin's HLE reaches the rest of the emulator through Core::System; the few services

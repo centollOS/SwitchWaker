@@ -142,7 +142,7 @@ DEFAULT_OUT = os.path.join(BUILD, "disc_manifest.json")
 DISC_CHECK_CACHE = os.path.join(BUILD, "runs", "disc_check.txt")
 
 # The supported disc (decision H9): GZLE01 revision 0 as a plain .iso. These hashes are the only
-# disc-derived values in the repository. The main.dol hash is the one scripts/prepare.py and
+# disc-derived values in the repository. The main.dol hash is the one the upstream recompilation project's scripts/prepare.py and
 # native/tools/run.sh have always checked; the image hash was taken from that same disc.
 EXPECTED_ISO_SHA1 = "0289e70f470dc758c73be9b8bcd8c865fb82d8ae"
 EXPECTED_DOL_SHA1 = "8d28bab68bb5078c38e43f29206f0bd01f7e7a67"

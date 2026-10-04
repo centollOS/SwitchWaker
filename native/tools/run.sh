@@ -45,7 +45,7 @@
 #                    n-th frame; COS_SHOT_DIR: another directory). A run with shots compiles each
 #                    pipeline before its first draw (COS_SYNC_PIPELINES, default on with shots), so
 #                    a shot never misses a draw whose pipeline was still compiling
-#   --aspect A       COS_ASPECT: 4:3, 16:9 or 16:10 (the widescreen option, docs/MODS.md)
+#   --aspect A       COS_ASPECT: 4:3, 16:9 or 16:10 (the widescreen option, docs/WIDESCREEN.md)
 #   --heap-check N   COS_HEAP_CHECK: every N game frames check() every JKR heap (and, on the
 #                    Switch, walk newlib's free lists); a damaged heap ends the run as exit 1
 #                    (COS_HEAP_REPORT=N in the environment: every N frames one line with each game

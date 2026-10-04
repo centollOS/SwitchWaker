@@ -1,4 +1,4 @@
-// COS_ASPECT: the widescreen option (native/include/pc/pc_aspect.h, docs/MODS.md).
+// COS_ASPECT: the widescreen option (native/include/pc/pc_aspect.h, docs/WIDESCREEN.md).
 #include "pc/pc_aspect.h"
 
 #include "pc_internal.h"

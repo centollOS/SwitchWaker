@@ -16,10 +16,10 @@
 #                     git -C ref/aurora worktree add --detach build/aurora-3227d76 3227d76)
 #   --assets DIR      the asset headers generated from the player's disc, as for the Mac build
 #                     (build/native-mac/assets/GZLE01; native/README.md, "Asset headers")
-#   --recompcore DIR  RecompCore (ref/recompcore), for Dolphin's DSP HLE (scripts/bootstrap.sh)
+#   --recompcore DIR  RecompCore (ref/recompcore), for Dolphin's DSP HLE (native/tools/fetch_recompcore.sh)
 #   --dawn-src DIR    an already fetched Dawn source tree to reuse instead of downloading it
-#                     (default: build/switch-dawn-probe/_deps/dawn-src if the translated port's
-#                     Dawn probe was built; the Horizon patches are applied to it if missing)
+#                     (default: build/switch-dawn-probe/_deps/dawn-src if a Dawn source was
+#                     fetched there before; the Horizon patches are applied to it if missing)
 #   --mesa DIR        the Mesa prefix to link (default: build/switch-mesa/prefix of this checkout,
 #                     else of the main checkout; built first with scripts/switch/build_mesa.sh
 #                     when neither exists): devkitPro's switch-mesa recipe plus switch/mesa/patches
@@ -31,7 +31,7 @@
 # The first build fetches Dawn's dependencies, SDL 3's headers, ImGui, Tracy, fmt, xxhash and
 # sqlite into build/switch-native and compiles Dawn: allow an hour or more. Later builds reuse it.
 # The NRO contains code built from headers generated from the player's disc: for their own
-# console only (AGENTS.md).
+# console only (docs/SWITCH_BUILD.md).
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
@@ -94,7 +94,7 @@ if [[ ! -d $assets/include/assets ]]; then
     exit 1
 fi
 if [[ ! -f $recompcore/Source/Core/Core/HW/DSPHLE/UCodes/UCodes.cpp ]]; then
-    echo "build_native: no RecompCore checkout (--recompcore); run scripts/bootstrap.sh" >&2
+    echo "build_native: no RecompCore checkout (--recompcore); run native/tools/fetch_recompcore.sh" >&2
     exit 1
 fi
 aurora=$(cd "$aurora" && pwd)

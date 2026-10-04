@@ -15,7 +15,7 @@ extern "C" {
 /* The native port's directory on the SD card, without the "sdmc:" device: sqlite (Aurora's
  * caches) treats a path that does not start with '/' as relative. */
 #define COS_SWITCH_ROOT "/switch/centollos/native"
-/* The disc image, shared with the translated port (scripts/switch/push.sh --game). */
+/* The disc image (scripts/switch/push.sh --disc). */
 #define COS_SWITCH_DEFAULT_DISC "/switch/centollos/GZLE01.iso"
 
 /* Ends the process with `code`, from any thread: flushes the logs to the SD card and the USB

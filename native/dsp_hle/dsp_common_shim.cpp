@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // cos_dsp_hle: the Dolphin Common services DSPHLE needs, without Dolphin's libcommon.
 //
-// Provenance: copied from this repository's apple/ios/src/dsp_common_shim.cpp (the iOS host's
+// Provenance: copied from the upstream recompilation project's apple/ios/src/dsp_common_shim.cpp (the iOS host's
 // shim for the same Dolphin sources, GPLv2+), unchanged but for this header. The original's
 // comments follow.
 //

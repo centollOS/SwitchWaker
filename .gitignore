@@ -1,0 +1,46 @@
+# Inputs and outputs outside git: fetched sources (ref/), every build directory (build/).
+# Nothing derived from the player's disc is ever committed.
+ref/
+/build*/
+cmake-build-*/
+
+# Disc images and extracted game data
+*.iso
+*.rvz
+*.gcm
+*.nfs
+*.wbfs
+*.wia
+*.ciso
+*.gcz
+*.dol
+*.rel
+
+# Saves, captures, signing material
+*.sav
+*.gci
+*.card
+*.raw
+*.profraw
+*.profdata
+dolphin_*.bin
+*.keys
+*.p12
+
+# Build artifacts
+*.o
+*.a
+*.dylib
+*.nro
+*.nsp
+*.nacp
+*.elf
+
+# Tools and editors
+__pycache__/
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+*.log
