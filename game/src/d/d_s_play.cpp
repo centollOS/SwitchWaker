@@ -394,6 +394,9 @@ static BOOL dScnPly_Draw(dScnPly_ply_c* i_this) {
     for (create_tag_class* i = fopDwIt_Begin(); i != NULL; i = fopDwIt_Next(i)) {
         fpcM_Draw(i->mpTagData);
     }
+#if TARGET_PC
+    pc_play_draw();
+#endif
 
     if (!dMenu_flag()) {
         dComIfGp_particle_drawModelParticle();

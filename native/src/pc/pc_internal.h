@@ -211,6 +211,11 @@ void actorSweepFrame(unsigned int frames);
 // front of the player a few at a time, in the Normal and Toon groups, so their pipelines are
 // recorded (native/tools/gen_pipeline_cache.sh), then exits 0.
 void fxSweepFrame(unsigned int frames);
+// pc_res_sweep.cpp: COS_SMOKE=res-sweep; resSweepFrame runs from pc_frame_end every game frame and,
+// once outsetLinkReady, takes every archive of the disc in turn and draws its J3D models (lit as an
+// actor, then as a room) and its BLO screens for a frame each from the PLAY scene's draw
+// (pc_play_draw), so their pipelines are recorded; exits 0 when done.
+void resSweepFrame(unsigned int frames);
 // pc_bgm_hop.cpp (bug B1): COS_SMOKE=bgm-hop; bgmHopFrame runs from pc_frame_end every game
 // frame and, once the player is in the COS_BOOT_STAGE island room, measures the island BGM, goes to a
 // house and back and checks the BGM came back.

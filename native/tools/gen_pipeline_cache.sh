@@ -5,7 +5,8 @@
 #
 #   native/tools/gen_pipeline_cache.sh [--out DIR] [--no-build] [--no-sweep] [--no-prologue]
 #                                      [--no-bombs] [--no-combat] [--no-items] [--no-gameplay]
-#                                      [--no-rooms] [--room-skip LIST] [--no-fx] [--jobs N]
+#                                      [--no-rooms] [--room-skip LIST] [--no-fx] [--no-models]
+#                                      [--no-screens] [--jobs N]
 #                                      [--sweep-jobs N] [--sweep-frames N] [--sweep-only LIST]
 #                                      [--disc PATH] [--merge-from DB [--tier N]]...
 #   native/tools/gen_pipeline_cache.sh --merge-only --merge-from DB [--tier N] [--merge-from ...]
@@ -37,8 +38,14 @@
 #                      --sweep-frames frames each; --room-skip LIST (default M_NewD2:2, bug B10:
 #                      its lava platform faulted on creation) leaves rooms out (--no-rooms)
 #   9  fx              every particle emitter drawn in front of the player (COS_SMOKE=fx-sweep,
-#                      native/src/pc/pc_fx_sweep.cpp): the common ones on Outset and in M_NewD2,
-#                      then each stage's own (boot_sweep.py --target fx-sweep; --no-fx)
+#                      native/src/pc/pc_fx_sweep.cpp): on Outset the common ones and those of
+#                      every scene JPC of the disc, the common ones in M_NewD2, then each stage's
+#                      own in its stage (boot_sweep.py --target fx-sweep; --no-fx)
+#  10  model-sweep     every BMD/BDL model of every archive of the disc drawn on the Outset pier,
+#                      lit as an actor and as a room (COS_SMOKE=res-sweep, native/src/pc/
+#                      pc_res_sweep.cpp), in --sweep-jobs shards; a shard that faults goes on after
+#                      the archive it faulted on (listed in faulted.txt) (--no-models)
+#  11  screen-sweep    every BLO screen of the disc drawn once, the same way (--no-screens)
 # The runs of tiers 0-3 and 5-7 and the fx tier's first two go --jobs at a time (default 4), then
 # the sweeps one after the other (--sweep-jobs runs at a time each, default 4). Gameplay runs use
 # the debug stage boot (COS_BOOT_STAGE) with COS_BOOT_ITEMS. A run that fails still contributes
@@ -92,6 +99,8 @@ combat=1
 items=1
 rooms=1
 fx=1
+models=1
+screens=1
 jobs=4
 sweep_jobs=4
 # Rooms the room sweep leaves out: M_NewD2 room 2 faults on creation of its lava platform (bug B10)
@@ -117,6 +126,8 @@ while [ $# -gt 0 ]; do
         --no-items) items=0; shift ;;
         --no-rooms) rooms=0; shift ;;
         --no-fx) fx=0; shift ;;
+        --no-models) models=0; shift ;;
+        --no-screens) screens=0; shift ;;
         --no-gameplay) bombs=0; combat=0; items=0; shift ;;
         --jobs) jobs="$2"; shift 2 ;;
         --room-skip) room_skip="$2"; shift 2 ;;
@@ -245,11 +256,12 @@ if [ "$items" = 1 ]; then
         tiers+=("7 item-${item#*:} run COS_BOOT_ITEMS=${item%%:*}+38 --uncapped --frames 2400 --stage sea:44:0 --input native/check/input/pipeline-items.txt")
     done
 fi
-# Effects (tier 9): every common particle emitter drawn on Outset and in the first dungeon
-# (COS_SMOKE=fx-sweep, native/src/pc/pc_fx_sweep.cpp); each stage's own emitters come from the
-# fx-sweep over every stage below.
+# Effects (tier 9): on Outset every common particle emitter and every emitter of every scene JPC of
+# the disc (COS_SMOKE=fx-sweep COS_FX_SWEEP=disc, native/src/pc/pc_fx_sweep.cpp), the common ones
+# again in the first dungeon; each stage's own emitters in their stage come from the fx-sweep over
+# every stage below.
 if [ "$fx" = 1 ]; then
-    tiers+=("9 fx-common-outset fx-sweep COS_FX_SWEEP=common --uncapped --timeout 600 --stage sea:44:0")
+    tiers+=("9 fx-disc fx-sweep COS_FX_SWEEP=disc --uncapped --timeout 1500 --stage sea:44:0")
     tiers+=("9 fx-common-cavern fx-sweep COS_FX_SWEEP=common --uncapped --timeout 600 --stage M_NewD2:0:0")
 fi
 
@@ -285,6 +297,43 @@ for line in ${sweeps[@]+"${sweeps[@]}"}; do
         > "$runs/$tier-$name.out" 2>&1
      echo $? > "$runs/$tier-$name.rc")
 done
+
+# Disc resources (tiers 10-11, COS_SMOKE=res-sweep, native/src/pc/pc_res_sweep.cpp) on the Outset
+# pier: every J3D model of every archive drawn lit as an actor and as a room, split into
+# $sweep_jobs shards run side by side; every BLO screen drawn once. A run that faults is started
+# again after the archive it was on (named last in res_sweep.txt); that archive is listed in
+# <tier dir>/faulted.txt.
+res_shard() { # tier name which shard
+    local tier="$1" name="$2" which="$3" shard="$4" from=0 attempt=0 rc dir last
+    while [ $attempt -lt 40 ]; do
+        dir="$runs/$tier-$name/s${shard%/*}-a$attempt"
+        (cd "$repo" && env COS_RES_SWEEP="$which" COS_RES_SWEEP_SHARD="$shard" COS_RES_SWEEP_FROM="$from" \
+            "$run" res-sweep --uncapped --timeout 1500 --stage sea:44:0 ${disc_args[@]+"${disc_args[@]}"} --quiet \
+            --run-dir "$dir" > "$dir.out" 2>&1)
+        rc=$?
+        [ $rc = 0 ] && return 0
+        last=$(sed -n 's/^begin \([0-9]*\) \(.*\)$/\1 \2/p' "$dir/res_sweep.txt" 2>/dev/null | tail -1)
+        [ -n "$last" ] || return $rc
+        echo "$last exit $rc ($dir)" >> "$runs/$tier-$name/faulted.txt"
+        from=$(( ${last%% *} + 1 ))
+        attempt=$((attempt + 1))
+    done
+    return 1
+}
+res_tier() { # tier name which shards
+    local tier="$1" name="$2" which="$3" shards="$4" k=0 bad=0 pids=()
+    mkdir -p "$runs/$tier-$name"
+    echo "gen_pipeline_cache: tier $tier $name started ($shards shards)"
+    while [ $k -lt "$shards" ]; do
+        res_shard "$tier" "$name" "$which" "$k/$shards" &
+        pids+=($!)
+        k=$((k + 1))
+    done
+    for pid in "${pids[@]}"; do wait "$pid" || bad=1; done
+    echo $bad > "$runs/$tier-$name.rc"
+}
+[ "$models" = 1 ] && res_tier 10 model-sweep models "$sweep_jobs" && sweeps+=("10 model-sweep")
+[ "$screens" = 1 ] && res_tier 11 screen-sweep screens 1 && sweeps+=("11 screen-sweep")
 
 # --- merge ------------------------------------------------------------------------------------
 # Aurora's schema (lib/gfx/pipeline_cache.cpp, PipelineCacheSchema 1); the seed reader needs
@@ -330,7 +379,8 @@ INSERT INTO pipeline_cache (type, hash, config_version, config_size, config, fir
     printf '%-4s %-16s %-6s %-8s %-8s %s\n' "$tier" "$name" "$rc" "$n" "$rows" $((after - before)) >> "$report"
 }
 # One report line per tier: its runs' exit codes, the caches found, their rows, the new rows.
-tier_names=(file-select new-game outset-real outset-control boot-sweep bombs combat items room-sweep fx)
+tier_names=(file-select new-game outset-real outset-control boot-sweep bombs combat items room-sweep fx
+            model-sweep screen-sweep)
 max_tier=-1
 t=0
 while [ $t -lt ${#tier_names[@]} ]; do
@@ -341,7 +391,7 @@ while [ $t -lt ${#tier_names[@]} ]; do
         [ "$tier" = "$t" ] || continue
         rcs="${rcs:+$rcs,}$(cat "$runs/$tier-$name.rc" 2>/dev/null || echo '?')"
         [ -s "$runs/$tier-$name/cache/pipeline_cache.db" ] && dbs+=("$runs/$tier-$name/cache/pipeline_cache.db")
-        for f in "$runs/$tier-$name"/*/cache/pipeline_cache.db; do
+        for f in "$runs/$tier-$name"/*/cache/pipeline_cache.db "$runs/$tier-$name"/*/*/cache/pipeline_cache.db; do
             [ -s "$f" ] && dbs+=("$f")
         done
     done

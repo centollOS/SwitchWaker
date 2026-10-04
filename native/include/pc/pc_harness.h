@@ -125,6 +125,9 @@ const struct PcBootStage* pc_boot_stage(void);
    Logs it and checks it against COS_BOOT_STAGE (exit 1 on a difference), then logs M6 logo-res
    (the request stands in for dComIfG_changeOpeningScene). */
 void pc_boot_stage_requested(const char* stage, int room, int point, int layer);
+// dScnPly_Draw, after the actors' draws: the harness's own draws into the game's draw lists
+// (COS_SMOKE=res-sweep, native/src/pc/pc_res_sweep.cpp); nothing otherwise.
+void pc_play_draw(void);
 /* d_s_play.cpp phase_1, when a PLAY scene takes the next stage as its start stage: with
    COS_BOOT_STAGE, the first one must be the requested stage (logged; exit 1 on a difference). */
 void pc_play_stage_started(const char* stage, int room, int point, int layer);

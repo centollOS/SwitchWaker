@@ -1064,6 +1064,7 @@ void pc_frame_end(void) {
     outsetFrame(frames);
     actorSweepFrame(frames);
     fxSweepFrame(frames);
+    resSweepFrame(frames);
     bgmHopFrame(frames);
     telescopeDemoFrame(frames);
     shoreFoamFrame(frames);

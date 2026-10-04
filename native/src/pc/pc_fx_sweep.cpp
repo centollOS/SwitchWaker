@@ -6,6 +6,10 @@
 // - the emitters are those of the common particle resource (common.jpc, resource manager 0) and of
 //   the stage's scene resource (Pscene*.jpc, manager 1, user indexes with bit 15 set), each listed in
 //   the order of its resource; COS_FX_SWEEP=common|scene|all (default all) picks them;
+//   COS_FX_SWEEP=disc takes the common ones, then every /res/Particle/Pscene*.jpc of the disc in
+//   turn, whichever stage uses it: each loaded into a heap of this sweep and its resource manager
+//   put in the scene manager's place (JPAEmitterManager::pResMgrArray[1]) while its emitters run,
+//   the stage's own put back at the end;
 // - each one is created twice, in the Normal and the Toon draw groups (dPa_control_c::setNormal /
 //   setToon, the groups most game effects use; m_Do_graphic draws them in different passes), with
 //   no callback but the heat-haze one dPa_control_c::set gives to user indexes with bit 14 set;
@@ -24,6 +28,11 @@
 #include "JSystem/JParticle/JPAEmitterLoader.h"
 #include "JSystem/JParticle/JPAEmitterManager.h"
 #include "JSystem/JParticle/JPAResourceManager.h"
+#include "JSystem/JKernel/JKRDvdRipper.h"
+#include "JSystem/JKernel/JKRExpHeap.h"
+#include "m_Do/m_Do_graphic.h"
+
+#include <dolphin/dvd.h>
 #include "d/d_com_inf_game.h"
 #include "d/d_particle.h"
 #include "f_op/f_op_actor_mng.h"
@@ -67,6 +76,14 @@ int sNumSlots = 0;
 unsigned int sSince = 0;
 int sFd = -1;
 unsigned int sCreated = 0, sRefused = 0, sEnded = 0, sDeleted = 0, sBatches = 0;
+// COS_FX_SWEEP=disc: every /res/Particle/Pscene*.jpc of the disc in turn, each in its own resource
+// manager put in the scene manager's place (pResMgrArray[1]) while its emitters run.
+bool sDisc = false;
+char sJpcs[128][48];
+int sNumJpcs = 0, sJpc = -1;
+JKRExpHeap* sJpcHeap = nullptr;
+JPAResourceManager* sSavedScene = nullptr;
+unsigned int sJpcsSwept = 0;
 
 const u8 kGroups[2] = {dPa_control_c::dPtclGroup_Normal_e, dPa_control_c::dPtclGroup_Toon_e};
 const char* const kGroupNames[2] = {"normal", "toon"};
@@ -173,6 +190,61 @@ void spawnBatch() {
     sBatches++;
 }
 
+void listJpcs() {
+    DVDDir dir;
+    if (!DVDOpenDir("/res/Particle", &dir)) {
+        return;
+    }
+    DVDDirEntry entry;
+    while (DVDReadDir(&dir, &entry) && sNumJpcs < 128) {
+        if (entry.name == nullptr || entry.isDir || strncmp(entry.name, "Pscene", 6) != 0) {
+            continue;
+        }
+        snprintf(sJpcs[sNumJpcs++], sizeof(sJpcs[0]), "/res/Particle/%s", entry.name);
+    }
+    DVDCloseDir(&dir);
+}
+
+// The next scene JPC of the disc in the scene manager's place, its emitters in sIds; false when
+// none is left (the stage's own scene manager is back).
+bool nextJpc() {
+    JPAEmitterManager* emng = dPa_control_c::getEmitterManager();
+    if (sJpcHeap != nullptr) {
+        sJpcHeap->freeAll();
+    }
+    for (;;) {
+        sJpc++;
+        if (sJpc >= sNumJpcs) {
+            emng->pResMgrArray[1] = sSavedScene;
+            return false;
+        }
+        void* data = JKRDvdRipper::loadToMainRAM(sJpcs[sJpc], nullptr, EXPAND_SWITCH_UNKNOWN1, 0,
+                                                 sJpcHeap, JKRDvdRipper::ALLOC_DIRECTION_FORWARD,
+                                                 0, nullptr);
+        if (data == nullptr) {
+            writef(STDERR_FILENO, "[cos] fx-sweep: %s not read\n", sJpcs[sJpc]);
+            continue;
+        }
+        JPAResourceManager* mng = new (sJpcHeap, 0) JPAResourceManager(data, sJpcHeap);
+        if (mng == nullptr) {
+            sJpcHeap->freeAll();
+            continue;
+        }
+        mng->swapTexture(mDoGph_gInf_c::getFrameBufferTimg(), "AK_kagerouSwap00");
+        emng->pResMgrArray[1] = mng;
+        sNumIds = 0;
+        addIds(mng, true);
+        sNext = 0;
+        sJpcsSwept++;
+        if (sFd >= 0) {
+            writef(sFd, "jpc %s: %d emitters\n", sJpcs[sJpc], sNumIds);
+        }
+        if (sNumIds > 0) {
+            return true;
+        }
+    }
+}
+
 } // namespace
 
 void fxSweepFrame(unsigned int frames) {
@@ -209,11 +281,12 @@ void fxSweepFrame(unsigned int frames) {
         if (which == nullptr || *which == '\0') {
             which = "all";
         }
-        const bool common = strcmp(which, "all") == 0 || strcmp(which, "common") == 0;
+        sDisc = strcmp(which, "disc") == 0;
+        const bool common = sDisc || strcmp(which, "all") == 0 || strcmp(which, "common") == 0;
         const bool scene = strcmp(which, "all") == 0 || strcmp(which, "scene") == 0;
         if (!common && !scene) {
-            writef(STDERR_FILENO, "[cos] fx-sweep: COS_FX_SWEEP=\"%s\" is not common, scene or "
-                                  "all\n", which);
+            writef(STDERR_FILENO, "[cos] fx-sweep: COS_FX_SWEEP=\"%s\" is not common, scene, all "
+                                  "or disc\n", which);
             pc_exit(PC_EXIT_USAGE);
         }
         dPa_control_c* particle = g_dComIfG_gameInfo.play.getParticle();
@@ -224,14 +297,26 @@ void fxSweepFrame(unsigned int frames) {
         if (common) {
             addIds(particle->mCommonResMng, false);
         }
+        if (sDisc) {
+            listJpcs();
+            sJpcHeap = JKRExpHeap::create(16 << 20, JKRHeap::getRootHeap(), false);
+            if (sJpcHeap == nullptr) {
+                writef(STDERR_FILENO, "[cos] fx-sweep: no heap for the scene JPCs (root free %d)\n",
+                       (int)JKRHeap::getRootHeap()->getTotalFreeSize());
+                pc_exit(PC_EXIT_CHECK_FAILED);
+            }
+            sSavedScene = dPa_control_c::getEmitterManager()->pResMgrArray[1];
+            writef(STDERR_FILENO, "[cos] fx-sweep: COS_FX_SWEEP=disc: the common emitters, then "
+                                  "the %d scene JPCs of /res/Particle\n", sNumJpcs);
+        }
         sNumCommon = sNumIds;
         if (scene) {
             addIds(particle->mSceneResMng, true);
         }
         writef(STDERR_FILENO, "[cos] fx-sweep: the player in the room; %d emitters (%d common, %d "
-                              "scene, COS_FX_SWEEP=%s) x %d groups, %d at a time, %u frames each, "
-                              "from frame %u\n",
-               sNumIds, sNumCommon, sNumIds - sNumCommon, which, sPasses, kBatch, kRunFrames,
+                              "scene of scene resource %u, COS_FX_SWEEP=%s) x %d groups, %d at a "
+                              "time, %u frames each, from frame %u\n",
+               sNumIds, sNumCommon, sNumIds - sNumCommon, (unsigned)particle->mSceneNo, which, sPasses, kBatch, kRunFrames,
                frames);
         sState = kNext;
     }
@@ -251,11 +336,15 @@ void fxSweepFrame(unsigned int frames) {
     }
 
     if (sState == kNext) {
+        if (sNext >= sNumIds * sPasses && sDisc && nextJpc()) {
+            // the next JPC's emitters (sIds, sNext reset)
+        }
         if (sNext >= sNumIds * sPasses) {
             sState = kDone;
             writef(STDERR_FILENO, "[cos] fx-sweep: %u batches: %u emitters created, %u refused, %u "
-                                  "deleted after %u frames, %u ended by themselves\n",
-                   sBatches, sCreated, sRefused, sDeleted, kRunFrames, sEnded);
+                                  "deleted after %u frames, %u ended by themselves; %u scene JPCs "
+                                  "of the disc\n",
+                   sBatches, sCreated, sRefused, sDeleted, kRunFrames, sEnded, sJpcsSwept);
             if (sFd >= 0) {
                 writef(sFd, "done: %u batches, %u created, %u refused, %u deleted, %u ended\n",
                        sBatches, sCreated, sRefused, sDeleted, sEnded);

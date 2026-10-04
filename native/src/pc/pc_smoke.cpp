@@ -325,6 +325,7 @@ const Smoke kSmokes[] = {
     {"title-audio", kInGame},
     {"actor-sweep", kInGame},
     {"fx-sweep", kInGame},
+    {"res-sweep", kInGame},
     {"bgm-hop", kInGame},
     {"telescope-demo", kInGame},
     {"shore-foam", kInGame},

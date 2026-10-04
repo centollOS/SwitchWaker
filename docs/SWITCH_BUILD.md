@@ -392,9 +392,11 @@ Besides that, the port compiles fewer programs and compiles them before they are
   on debug boots with given items (bombs on the Outset pier and in the first dungeon, sword fights
   with its chuchus and bokoblins, the boomerang, grappling hook, deku leaf, skull hammer, hookshot
   and bow), a 600-frame boot of every room that has a spawn point (`boot_sweep.py --rooms`; M_NewD2
-  room 2 left out until bug B10's fix is in, `--room-skip`) and an effects sweep (`COS_SMOKE=fx-sweep`:
-  every common particle emitter, then each stage's own, drawn in front of the player), each a tier
-  with its `--no-<name>` switch, and merges them into
+  room 2 left out until bug B10's fix is in, `--room-skip`), an effects sweep (`COS_SMOKE=fx-sweep`:
+  every particle emitter of every JPC on the disc, then each stage's own in its stage, drawn in
+  front of the player) and a sweep of the disc's resources (`COS_SMOKE=res-sweep`: every BMD/BDL
+  model of every archive drawn lit as an actor and as a room, every BLO screen drawn once), each a
+  tier with its `--no-<name>` switch, and merges them into
   `build/pipeline-cache/initial_pipeline_cache.db` (ordered so the boot path comes first; the row
   counts per tier are in `report.txt`). Its `pipeline_priority` table marks the rows recorded on the boot path (tiers 0-3,
   logos to Outset: 176 of 1016 rows) priority 0 and the stage sweep's 1;
