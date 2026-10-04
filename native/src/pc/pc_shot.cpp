@@ -34,6 +34,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <functional>
 #include <string>
 #include <unistd.h>
 #include <vector>
@@ -197,21 +198,22 @@ void writeShot(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t wid
            (unsigned int)height, path);
 }
 
-// Runs on the render worker, after the frame's submit and present.
-void readBack(unsigned int frame) {
+// Runs on the render worker, after the frame's submit and present: the present source as 8-bit
+// RGB rows into rgb. False (logged) if it cannot be read.
+bool readPixels(unsigned int frame, std::vector<uint8_t>& rgb, uint32_t& outWidth, uint32_t& outHeight) {
     const gpu::TextureWithSampler& source = gpu::present_source();
     const uint32_t width = source.size.width;
     const uint32_t height = source.size.height;
     if (!source.texture || width == 0 || height == 0) {
         writef(STDERR_FILENO, "[cos] shot: frame %u: no present source\n", frame);
-        return;
+        return false;
     }
     uint8_t probe[3];
     const uint8_t zero[4] = {};
     if (!texelToRgb(source.format, zero, probe)) {
         writef(STDERR_FILENO, "[cos] shot: frame %u: present source format %u not supported\n", frame,
                (unsigned int)source.format);
-        return;
+        return false;
     }
 
     const uint32_t bytesPerRow = (width * 4 + 255) & ~255u;
@@ -259,16 +261,16 @@ void readBack(unsigned int frame) {
     if (wait != wgpu::WaitStatus::Success || !mapped) {
         writef(STDERR_FILENO, "[cos] shot: frame %u: readback did not complete (wait %u)\n", frame,
                (unsigned int)wait);
-        return;
+        return false;
     }
 
     const uint8_t* data = static_cast<const uint8_t*>(buffer.GetConstMappedRange(0, size));
     if (data == nullptr) {
         writef(STDERR_FILENO, "[cos] shot: frame %u: no mapped range\n", frame);
         buffer.Unmap();
-        return;
+        return false;
     }
-    std::vector<uint8_t> rgb((size_t)width * height * 3);
+    rgb.assign((size_t)width * height * 3, 0);
     for (uint32_t y = 0; y < height; y++) {
         const uint8_t* row = data + (size_t)y * bytesPerRow;
         uint8_t* out = rgb.data() + (size_t)y * width * 3;
@@ -277,7 +279,17 @@ void readBack(unsigned int frame) {
         }
     }
     buffer.Unmap();
-    writeShot(frame, rgb, width, height);
+    outWidth = width;
+    outHeight = height;
+    return true;
+}
+
+void readBack(unsigned int frame) {
+    std::vector<uint8_t> rgb;
+    uint32_t width = 0, height = 0;
+    if (readPixels(frame, rgb, width, height)) {
+        writeShot(frame, rgb, width, height);
+    }
 }
 
 bool wanted(unsigned int frame) {
@@ -327,6 +339,18 @@ bool loadShots() {
     writef(STDERR_FILENO, "[cos] shot: %zu frame(s) listed, every %u, into %s\n", sShotFrames.size(),
            sShotEvery, sShotDir);
     return true;
+}
+
+void shotProbe(unsigned int frame,
+               std::function<void(const std::vector<uint8_t>&, uint32_t, uint32_t)> check) {
+    aurora::gfx::render_worker::enqueue_work([frame, &check] {
+        std::vector<uint8_t> rgb;
+        uint32_t width = 0, height = 0;
+        if (readPixels(frame, rgb, width, height)) {
+            check(rgb, width, height);
+        }
+    });
+    aurora::gfx::render_worker::synchronize();
 }
 
 void shotFrameEnd(unsigned int frame) {

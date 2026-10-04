@@ -6,6 +6,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <vector>
 
 class JUTResFont;
 
@@ -191,6 +193,11 @@ void actorSweepFrame(unsigned int frames);
 // frame and, once Link is in the COS_BOOT_STAGE island room, measures the island BGM, goes to a
 // house and back and checks the BGM came back.
 void bgmHopFrame(unsigned int frames);
+// pc_telescope_demo.cpp (bug B6): COS_SMOKE=telescope-demo; telescopeDemoFrame runs from pc_frame_end every game
+// frame (and telescopeDemoFrameEnd right after aurora_end_frame): through the telescope demo's
+// cinemascope part, the picture must reach the left and right edges.
+void telescopeDemoFrame(unsigned int frames);
+void telescopeDemoFrameEnd(unsigned int frame);
 
 // pc_title.cpp: milestone M9 title (see pc_title_drawn); titleFrame runs from pc_frame_end every
 // game frame. titleReached: the milestone was logged.
@@ -224,6 +231,11 @@ bool loadShots();
 // pc_shot.cpp: after aurora_end_frame of game frame `frame` (pc_frame_count numbering): saves the
 // presented image as shot-<frame>.png if COS_SHOT or COS_SHOT_EVERY names that frame.
 void shotFrameEnd(unsigned int frame);
+// pc_shot.cpp (bug B6): reads back the frame Aurora just presented (call it right after
+// aurora_end_frame, as shotFrameEnd is) and hands check its 8-bit RGB rows on the render worker;
+// returns once check ran (or the readback failed, logged, and check did not run).
+void shotProbe(unsigned int frame,
+               std::function<void(const std::vector<uint8_t>& rgb, uint32_t width, uint32_t height)> check);
 
 // pc_frame.cpp (step 6.7): creates the COS_PERF file and writes its header row (exit
 // PC_EXIT_USAGE if it cannot be created); nothing without COS_PERF. perfFlush writes out the rows

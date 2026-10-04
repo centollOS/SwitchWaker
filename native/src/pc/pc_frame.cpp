@@ -912,6 +912,7 @@ void pc_frame_end(void) {
         aurora_end_frame();
         // COS_SHOT: the frame is queued to Aurora's render worker; the readback goes in behind it.
         shotFrameEnd(pc_frame_count() + 1);
+        telescopeDemoFrameEnd(pc_frame_count() + 1);
         stats = aurora_get_stats();
     }
     if (gConfig.heapCheckEvery != 0 && (pc_frame_count() + 1) % gConfig.heapCheckEvery == 0) {
@@ -952,6 +953,7 @@ void pc_frame_end(void) {
     outsetFrame(frames);
     actorSweepFrame(frames);
     bgmHopFrame(frames);
+    telescopeDemoFrame(frames);
     fileSelectFrame(frames);
     newGameFrame(frames);
     precompileFrame(frames);

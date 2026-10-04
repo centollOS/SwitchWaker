@@ -81,3 +81,8 @@ new-game 0 --input native/check/input/new-game.txt
 # LinkRM point 0 starts it on a new file), every JKR heap checked every frame (and newlib's free
 # lists on the Switch); the run must end at --frames with no fault, panic or damaged heap
 run 0 --stage LinkRM:0:0 --frames 3000 --uncapped --heap-check 1 --input native/check/input/grandma-talk.txt
+
+# bug B6 (lane b6-cutscene): the telescope demo telescope_demo at 16:9 (new file with event bit 0x2A80
+# and the telescope on X, scripted aim/zoom/look-up); through its cinemascope part the presented
+# picture must reach the left and right edges (no 4:3 side bars)
+telescope-demo 0 --stage sea:44:206 --input native/check/input/telescope-demo.txt --aspect 16:9
