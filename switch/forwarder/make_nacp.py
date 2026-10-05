@@ -7,8 +7,10 @@ Layout: switchbrew "NACP Format" (0x4000 bytes). Every language slot gets the sa
 publisher (scripts/switch/build_forwarder.sh writes an icon for each of them too), so the HOME menu
 shows the title and icon whatever the console's language. Choices for the native port:
   - StartupUserAccount = None: no user picker (the game keeps its saves on the SD card).
-  - Screenshot = Allow, VideoCapture = Disable: automatic gameplay recording would make hbloader
-    hold back 96 MiB of the application's memory (nx-hbloader calculateMaxHeapSize).
+  - Screenshot = Allow, VideoCapture = Manual (1): the system may capture video (SysDVR streams
+    the screen through it, and the capture button records); automatic recording (2) would make
+    hbloader hold back 96 MiB of the application's memory (nx-hbloader calculateMaxHeapSize:
+    only video_capture == 2 sets g_isAutomaticGameplayRecording).
   - No save data, no rating ages (-1), no parental-control flags, LogoHandling = Auto.
   - PresenceGroupId, SaveDataOwnerId, LocalCommunicationId[0] and SeedForPseudoDeviceId = the
     title ID, as the official tools and hacBrewPack's --titleid fill them.
@@ -51,7 +53,7 @@ def main():
     struct.pack_into("<I", n, 0x302C, (1 << len(LANGUAGES)) - 1)  # SupportedLanguageFlag
     struct.pack_into("<I", n, 0x3030, 0)  # ParentalControlFlag
     n[0x3034] = 0  # Screenshot: Allow
-    n[0x3035] = 0  # VideoCapture: Disable
+    n[0x3035] = 1  # VideoCapture: Manual (not 2: see above)
     n[0x3036] = 0  # DataLossConfirmation: None
     n[0x3037] = 0  # PlayLogPolicy: All
     struct.pack_into("<Q", n, 0x3038, tid)  # PresenceGroupId

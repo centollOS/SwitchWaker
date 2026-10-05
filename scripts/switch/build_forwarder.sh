@@ -192,7 +192,7 @@ check(cstr(nacp[0:0x200]) == name, f"NACP title {cstr(nacp[0:0x200])!r}")
 check(cstr(nacp[0x200:0x300]) == pub, f"NACP publisher {cstr(nacp[0x200:0x300])!r}")
 check(cstr(nacp[0x3060:0x3070]) == ver, f"NACP version {cstr(nacp[0x3060:0x3070])!r}")
 check(nacp[0x3025] == 0, "NACP StartupUserAccount = None")
-check(nacp[0x3035] == 0, "NACP VideoCapture = Disable (no 96 MiB recording reserve)")
+check(nacp[0x3035] == 1, "NACP VideoCapture = Manual (capture allowed, no 96 MiB recording reserve)")
 check(struct.unpack_from("<Q", nacp, 0x3078)[0] == tid, "NACP SaveDataOwnerId = title ID")
 ref = open(icon, "rb").read()
 for lang in ("AmericanEnglish", "Spanish", "LatinAmericanSpanish"):
