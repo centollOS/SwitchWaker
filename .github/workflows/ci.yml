@@ -13,12 +13,14 @@
 #                 and kept in the GitHub Actions cache, so a later job (or a fork) starts warm
 # Downloads (Aurora, Dawn and nod packages, SDL 3 ...) are cached across runs with actions/cache;
 # images with the buildx GitHub Actions cache.
+#
+# Manual only (Actions tab, "Run workflow"): the repository is private, so every run spends the
+# account's Actions minutes (about 14 runner minutes a run), while the real check is the local
+# regression (native/tools/regress.sh) with the disc. Put push/pull_request back once CI can build
+# the whole game (docs/RUNTIME_ASSETS.md).
 name: ci
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:

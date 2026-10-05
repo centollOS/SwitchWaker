@@ -101,7 +101,8 @@ an estimate: [docs/WINDOWS.md](docs/WINDOWS.md).
 
 `.github/workflows/ci.yml` checks what can be checked without a disc: scripts lint, Aurora, the SDK
 layer and the run harness built and unit-tested on Linux x86_64 and aarch64, and the Switch build
-images cached. **Full builds of the game always need your disc**, because headers generated from it
+images cached. It runs only when started by hand (Actions tab, "Run workflow"), to keep the
+private repository's Actions minutes for when CI can build the game. **Full builds of the game always need your disc**, because headers generated from it
 are compiled in; [docs/RUNTIME_ASSETS.md](docs/RUNTIME_ASSETS.md) describes how that data could be
 loaded at run time instead, which would allow CI builds of the game and binary releases.
 
