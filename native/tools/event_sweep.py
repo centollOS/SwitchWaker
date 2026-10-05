@@ -19,7 +19,8 @@ Each run lands in <sweep dir>/<stage>/from-<n>/ (the usual run.sh run directory)
                                signature, run directory;
   <sweep dir>/event_sweep.md   counts, the distinct fault signatures with their events, the events
                                stuck on an engine staff, the stages that did not boot.
-Results: end, end-other (another event followed), not-started, stage-change (the event asked for
+Results: end, end-other (another event followed), not-started, no-demo (a PACKAGE staff's STB is
+in no demo bank of the disc; a demo in a bank the boot layer did not mount is mounted first), stage-change (the event asked for
 another stage: the run ends there), scene-lost, and for an event that made no progress or timed
 out (the staff still waiting are listed as <name>:<cut>:<staff type>):
   stuck-missing-cast  every waiting staff is an actor not in the debug-booted stage;
@@ -29,7 +30,8 @@ out (the staff still waiting are listed as <name>:<cut>:<staff type>):
   stuck               an engine staff (camera, message, demo package, timekeeper, ...) waits;
 the first two are harness artifacts. FAULT: the run ended on the event (exit code and signature as
 boot_sweep.py writes them); FAULT-after: the fault came after the event had ended, before the next
-one; boot-fail: the stage did not reach its first event (xfail when boot_sweep.py lists the stage
+one (an event that faults with boot_sweep.py's LkD01 signature runs again on a file with event
+flag 0x2D01, the player's later demo animations; its row then says retry=2D01); boot-fail: the stage did not reach its first event (xfail when boot_sweep.py lists the stage
 as an expected fail with that signature).
 Exit 0 when no event faulted (FAULT/FAULT-after) and every stage booted or is an xfail; 1 otherwise.
 
@@ -82,6 +84,7 @@ dm = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(dm)
 
 PRINT_LOCK = threading.Lock()
+DEMOS = ""
 FAULTS = ("FAULT", "FAULT-after")
 
 
@@ -122,6 +125,20 @@ def event_lists(disc):
                 names = [dm.cstr(d, top + k * 0xB0, 32) for k in range(num)]
             out[m.group(1)] = names
     return out
+
+
+def demo_banks(manifest):
+    """"<file>:<bank>,..." for every STB of the demo banks (/res/Object/DemoNN.arc), the lowest bank
+    for a file in several, as the smoke's COS_EVENT_SWEEP_DEMOS."""
+    banks = {}
+    for r in manifest["files"]:
+        m = re.match(r"^/res/Object/Demo(\d+)\.arc$", r["path"])
+        if m:
+            for x in r.get("files", []):
+                if x["path"].endswith(".stb"):
+                    name = x["path"].rsplit("/", 1)[-1]
+                    banks[name] = min(banks.get(name, 99), int(m.group(1)))
+    return ",".join("%s:%d" % kv for kv in sorted(banks.items()))
 
 
 def select_events(lists, stages, common_min, common_in, all_events):
@@ -217,6 +234,23 @@ def classify(r):
 
 def sweep_stage(args, out, stage, room, point, todo, names):
     spec = "%s:%d:%d" % (stage, room, point)
+    rows, runs, boot = run_events(args, out, stage, spec, todo, names, {}, "")
+    # The player's later demo animations (LkD01.arc) are mounted only with event flag 0x2D01
+    # (boot_sweep.py's LkD01 expected fail): an event that faults with that signature runs again
+    # on a file with the flag (COS_BOOT_EVENTS=2D01).
+    lk = sorted(r["idx"] for r in rows if r["cls"] == "FAULT" and re.search(boot_sweep._LKD01_SIG, r["signature"]))
+    if lk and boot is None:
+        rows2, runs2, _ = run_events(args, out, stage, spec, lk, names, {"COS_BOOT_EVENTS": "2D01"}, "-2D01")
+        runs += runs2
+        again = {r["idx"]: r for r in rows2 if r["idx"] in lk}
+        for r in again.values():
+            r["retry"] = "2D01"
+        rows = [r for r in rows if not (r["idx"] in again and r["cls"] == "FAULT")] + list(again.values())
+    return {"stage": stage, "spec": spec, "num": len(names), "rows": rows, "boot": boot, "runs": runs}
+
+
+def run_events(args, out, stage, spec, todo, names, extra_env, suffix):
+    """Runs the smoke until every index of todo has a result: (rows, runs, boot failure or None)."""
     rows = []
     stage_dir = os.path.join(out, stage)
     os.makedirs(stage_dir, exist_ok=True)
@@ -225,15 +259,15 @@ def sweep_stage(args, out, stage, room, point, todo, names):
     while todo and runs < args.max_runs:
         runs += 1
         start = todo[0]
-        run_dir = os.path.join(stage_dir, "from-%d" % start)
+        run_dir = os.path.join(stage_dir, "from-%d%s" % (start, suffix))
         cmd = [COS_RUN, "event-sweep", "--stage", spec, "--uncapped", "--timeout", str(args.run_timeout),
                "--stall", "30", "--disc", args.disc, "--quiet", "--run-dir", run_dir]
         if args.heap_check:
             cmd += ["--heap-check", str(args.heap_check)]
         if args.exe:
             cmd += ["--exe", args.exe]
-        env = dict(os.environ, COS_EVENT_SWEEP=ranges(todo), COS_CACHE_PER_RUN="1",
-                   COS_EVENT_SWEEP_SECONDS=str(args.timeout))
+        env = dict(os.environ, COS_EVENT_SWEEP=ranges(todo), COS_CACHE_PER_RUN="1", COS_EVENT_SWEEP_DEMOS=DEMOS,
+                   COS_EVENT_SWEEP_SECONDS=str(args.timeout), **extra_env)
         t0 = time.time()
         subprocess.run(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         try:
@@ -256,7 +290,7 @@ def sweep_stage(args, out, stage, room, point, todo, names):
             if begin and "missing" not in r:
                 r["missing"] = begin[2].get("missing", "-")
             rows.append(r)
-        log("%s from %d: exit %d after %ds, %d events%s" % (stage, start, rc, time.time() - t0, len(results),
+        log("%s from %d%s: exit %d after %ds, %d events%s" % (stage, start, suffix, rc, time.time() - t0, len(results),
                                                              "" if rc == 0 else ": " + sig))
         if done:
             break
@@ -283,7 +317,7 @@ def sweep_stage(args, out, stage, room, point, todo, names):
             boot = {"stage": stage, "spec": spec, "rc": rc, "signature": "no event ran from %d: %s" % (start, sig),
                     "run": rel}
             break
-    return {"stage": stage, "spec": spec, "num": num, "rows": rows, "boot": boot, "runs": runs}
+    return rows, runs, boot
 
 
 def md_escape(s):
@@ -316,6 +350,8 @@ def main():
 
     manifest = boot_sweep.load_manifest(args.disc)
     starts = [s for s in boot_sweep.choose_starts(manifest) if s[1] is not None]
+    global DEMOS
+    DEMOS = demo_banks(manifest)
     lists = event_lists(args.disc)
     todo = select_events(lists, [s[0] for s in starts], args.common_min, args.common_in.split(","),
                          args.all_events)
@@ -353,7 +389,8 @@ def main():
     with open(os.path.join(out, "event_sweep.tsv"), "w") as f:
         f.write("stage\tidx\tname\tresult\tframes\tseconds\tmissing\tdetails\texit\tsignature\trun\n")
         for r in rows:
-            det = " ".join("%s=%s" % (k, r[k]) for k in ("waiting", "why", "next", "running") if r.get(k))
+            det = " ".join("%s=%s" % (k, r[k]) for k in ("waiting", "why", "next", "running", "demo", "demo-frame", "retry")
+                           if r.get(k))
             f.write("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
                 r["stage"], r["idx"], r["name"], r["cls"], r["frames"], r["seconds"], r.get("missing", "-"),
                 det or "-", r["rc"], r["signature"] or "-", r["run"]))

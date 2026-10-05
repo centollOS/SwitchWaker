@@ -21,6 +21,9 @@
 //      written as <name>:<cut>:<staff type> (dEvDtStaff_c::StaffType_e: 0 an actor, 2 the camera,
 //      7 the message, 11 a demo package, ...; <name>:><cut>:<type> when its cut ended and the next
 //      one waits for its start flags);
+//   PACKAGE staff play a demo (STB) from the room's demo bank (DemoNN.arc, the boot layer's LBNK entry)
+//   or Stage.arc; for a demo in neither, the bank the driver names (COS_EVENT_SWEEP_DEMOS) is mounted
+//   as the room's demo bank before the order ("no-demo" when none holds it);
 //   4. an event that asks for a stage change (dComIfGp_isEnableNextStage) ends the run
 //      ("stage-change <stage>"), as does a lost PLAY scene or player ("scene-lost"); the driver
 //      (native/tools/event_sweep.py) boots again from the next index. Between events kGapFrames
@@ -73,7 +76,7 @@ constexpr unsigned int kResetFrames = 120;     // reset -> no event running
 constexpr unsigned int kGapFrames = 20;        // without any event between two events
 constexpr unsigned int kGapMaxFrames = 1800;   // an event the stage started by itself: reset after
 
-enum State { kOff, kWaitLink, kNext, kOrder, kRun, kReset, kGap, kDone };
+enum State { kOff, kWaitLink, kNext, kDemo, kOrder, kRun, kReset, kGap, kDone };
 
 State sState = kOff;
 bool sChecked = false;
@@ -226,6 +229,13 @@ void waitingStaff(unsigned int frames) {
                           "message status %d, sub BGM 0x%x\n",
            frames, ctl->mEventId, ev != nullptr ? ev->getName() : "(no data)", sRunFrames, ctl->getMode(),
            (int)dComIfGp_getMesgStatus(), (unsigned)mDoAud_checkPlayingSubBgmFlag());
+    if (dDemo_manager_c* demo = dComIfGp_demo_get()) {
+        if (dComIfGp_demo_mode() != 0) {
+            writef(STDERR_FILENO, "[cos] event-sweep:   demo mode %d, frame %d (%u without messages)\n",
+                   (int)dComIfGp_demo_mode(), demo->getFrame(), (unsigned)demo->getFrameNoMsg());
+            detail(" demo-frame=%d", demo->getFrame());
+        }
+    }
     if (ev == nullptr) {
         detail(" waiting=(no event data)");
         return;
@@ -413,6 +423,58 @@ bool putBack() {
     return true;
 }
 
+// The demo (STB) a PACKAGE staff of event idx plays and the game would not find
+// (dEvDtStaff_c::specialProcPackage looks in the room's demo bank, DemoNN.arc of the layer's LBNK
+// entry, then in Stage.arc, and asserts it found it), or nullptr.
+const char* missingDemo(int idx) {
+    dEvent_manager_c* mng = manager();
+    dEvDtEvent_c* ev = mng->getEventData((s16)idx);
+    for (int i = 0; ev != nullptr && i < ev->getNStaff() && i < 20; i++) {
+        dEvDtStaff_c* staff = mng->mList.getStaffP(ev->getStaff(i));
+        if (staff->getType() != dEvDtStaff_c::PACKAGE_e) {
+            continue;
+        }
+        int guard = 0;
+        for (s32 c = (s32)staff->getStartCut(); c != -1 && guard < 256; guard++) {
+            dEvDtCut_c* cut = mng->mList.getCutP(c);
+            for (s32 d = (s32)cut->getDataTop(); d != -1 && guard < 4096; guard++) {
+                dEvDtData_c* data = mng->mList.getDataP(d);
+                if (strcmp(data->getName(), "FileName") == 0 && data->getType() == dEvDtData_c::TYPE_STRING &&
+                    data->getIndex() >= 0 && data->getNumber() > 0) {
+                    const char* file = mng->mList.getSDataP(data->getIndex());
+                    const char* arc = dStage_roomControl_c::getDemoArcName();
+                    if ((arc[0] == '\0' || dComIfG_getObjectRes(arc, file) == nullptr) &&
+                        dComIfG_getStageRes("Stage", file) == nullptr) {
+                        return file;
+                    }
+                }
+                d = data->getNext();
+            }
+            c = (s32)cut->getNext();
+        }
+    }
+    return nullptr;
+}
+
+// COS_EVENT_SWEEP_DEMOS=<file>:<bank>,...: the demo bank (DemoNN.arc) holding each STB, from the
+// disc (native/tools/event_sweep.py); -1 when the file is not listed.
+int demoBank(const char* file) {
+    const char* v = getenv("COS_EVENT_SWEEP_DEMOS");
+    const size_t len = strlen(file);
+    for (const char* p = v; p != nullptr && *p != '\0';) {
+        const char* colon = strchr(p, ':');
+        if (colon == nullptr) {
+            break;
+        }
+        if ((size_t)(colon - p) == len && strncmp(p, file, len) == 0) {
+            return atoi(colon + 1);
+        }
+        const char* comma = strchr(colon, ',');
+        p = comma != nullptr ? comma + 1 : nullptr;
+    }
+    return -1;
+}
+
 [[noreturn]] void stopRun(const char* why) {
     setDrivenPad(true, 0, 0, 0);
     if (sFd >= 0) {
@@ -565,6 +627,56 @@ void eventSweepFrame(unsigned int frames) {
         }
         sStartNs = monotonicNs();
         sRunFrames = 0;
+        sSince = 0;
+        if (const char* file = missingDemo(sIdx)) {
+            // The demo is in a bank the boot layer did not mount: mount that bank in its place, as
+            // d_s_room.cpp phase_2 mounts the layer's (the demo bank is only used by events).
+            const int bank = demoBank(file);
+            if (bank < 0 || bank >= 100) {
+                detail(" demo=%s", file);
+                sNotStarted++;
+                result("no-demo");
+                sState = kGap;
+                sSince = 0;
+                return;
+            }
+            char* arc = dStage_roomControl_c::getDemoArcName();
+            if (arc[0] != '\0') {
+                dComIfG_deleteObjectRes(arc);
+            }
+            snprintf(arc, 8, "Demo%02d", bank);
+            writef(STDERR_FILENO, "[cos] event-sweep: event %d plays %s: mounting %s\n", sIdx, file, arc);
+            detail(" demo=%s", arc);
+            if (!dComIfG_setObjectRes(arc, JKRArchive::DEFAULT_MOUNT_DIRECTION, nullptr)) {
+                arc[0] = '\0';
+                sNotStarted++;
+                result("no-demo");
+                sState = kGap;
+                sSince = 0;
+                return;
+            }
+            sState = kDemo;
+            return;
+        }
+        sState = kOrder;
+        order();
+        return;
+    }
+
+    if (sState == kDemo) {
+        const int rt = dComIfG_syncObjectRes(dStage_roomControl_c::getDemoArcName());
+        if (rt > 0 && sSince < 1800) {
+            return;
+        }
+        if (rt != 0) {
+            dStage_roomControl_c::getDemoArcName()[0] = '\0';
+            sNotStarted++;
+            result("no-demo");
+            sState = kGap;
+            sSince = 0;
+            return;
+        }
+        sStartNs = monotonicNs();
         sSince = 0;
         sState = kOrder;
         order();
