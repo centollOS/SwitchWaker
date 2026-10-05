@@ -130,3 +130,6 @@ static-init 2 --preset bogus
 # sea room boundary (11 -> 18), room 18 up within 90 frames (bug B18: a room loaded while sailing stayed
 # paused and the island's far model covered it) and at least 20000 units; perf summary and four shots in the run directory
 sailing 0 --preset sailing
+# COS_SMOKE=rope (bug B19): Niko's rope lesson on Tetra's ship (Asoko layer 2): the player hangs where
+# they grab the rope (not at its top) and R + stick back slides them down it
+rope 0 --stage Asoko:0:0:2

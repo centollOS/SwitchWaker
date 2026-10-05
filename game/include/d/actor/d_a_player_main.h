@@ -1139,6 +1139,9 @@ public:
     BOOL procWaitTurn();
     BOOL procMoveTurn_init(int);
     BOOL procMoveTurn();
+#if TARGET_PC
+    void debugGrabRope(fopAc_ac_c* rope, const cXyz& at);
+#endif
     BOOL procSlip_init();
     BOOL procSlip();
     BOOL procSlideFront_init(s16);

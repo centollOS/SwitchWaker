@@ -14,6 +14,9 @@
 #include "d/actor/d_a_player_main.h"
 #include "d/actor/d_a_player_HIO.h"
 #include "d/actor/d_a_himo2.h"
+#if TARGET_PC
+#include "d/actor/d_a_himo3.h"
+#endif
 #include "d/d_attention.h"
 #include "f_op/f_op_actor_mng.h"
 #include "m_Do/m_Do_audio.h"
@@ -541,10 +544,21 @@ BOOL daPy_lk_c::procRopeSwing_init(fopAc_ac_c* param_0, s16 param_1) {
             mEquipItem = dItemNo_GRAPPLING_HOOK_e;
             local_84 = param_0->current.pos - current.pos;
             f32 dVar8 = (local_84.abs() - 95.0f);
+#if TARGET_PC
+            // The rope's length, himo3_class::m15FC: the GameCube code reaches it through
+            // himo2_class (m1120[34].m10.y is offset 0x15FC there too), but on PC the two classes'
+            // layouts differ and that read is another field (bug B19: the player snapped to the
+            // rope's top and could not climb down).
+            const f32 ropeLength = ((himo3_class*)param_0)->m15FC;
+            if (dVar8 > ropeLength) {
+                dVar8 = ropeLength;
+            }
+#else
             cXyz* temp = &((himo2_class*)param_0)->m1120[34].m10;
             if (dVar8 > DEMO_SELECT(temp->z, temp->y)) {
                 dVar8 = DEMO_SELECT(temp->z, temp->y);
             }
+#endif
             local_84.normalize();
             current.pos = (param_0->current.pos - (local_84 * dVar8));
         }
@@ -1047,9 +1061,14 @@ BOOL daPy_lk_c::procRopeDown_init() {
             }
         }
     } else {
+#if TARGET_PC
+        // The hanging rope's length (bug B19; see procRopeSwing_init).
+        f32 temp2 = ((himo3_class*)mActorKeepRope.getActor())->m15FC;
+#else
         himo2_class* rope = (himo2_class*)mActorKeepRope.getActor();
         cXyz* temp = &rope->m1120[34].m10;
         f32 temp2 = DEMO_SELECT(temp->z, temp->y);
+#endif
         m35A4 = mRopePos.y - temp2;
     }
     
@@ -1284,3 +1303,23 @@ BOOL daPy_lk_c::procRopeUpHang() {
     }
     return true;
 }
+
+#if TARGET_PC
+// COS_SMOKE=rope (native/src/pc/pc_rope.cpp, bug B19): puts the player at *at and grabs the hanging
+// rope as the collision in changeRopeSwingProc does, so the test does not depend on reaching the
+// rope through the ship's hold.
+void daPy_lk_c::debugGrabRope(fopAc_ac_c* rope, const cXyz& at) {
+    current.pos = at;
+    old.pos = at;
+    procRopeSwing_init(rope, 0x1800);
+}
+
+extern "C" int pc_debug_grab_rope(fopAc_ac_c* rope, const cXyz* at) {
+    daPy_lk_c* player = daPy_getPlayerLinkActorClass();
+    if (player == NULL || rope == NULL) {
+        return 0;
+    }
+    player->debugGrabRope(rope, *at);
+    return 1;
+}
+#endif

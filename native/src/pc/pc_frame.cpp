@@ -1087,6 +1087,7 @@ void pc_frame_end(void) {
     shoreFoamFrame(frames);
     npcVariantsFrame(frames);
     sailingFrame(frames);
+    ropeFrame(frames);
     fileSelectFrame(frames);
     newGameFrame(frames);
     precompileFrame(frames);

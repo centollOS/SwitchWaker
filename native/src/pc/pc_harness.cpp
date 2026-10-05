@@ -217,13 +217,14 @@ void pc_harness_init(int argc, char* argv[]) {
     // A captured frame must show every draw, as the console does: Aurora's default skips a draw
     // until its pipeline is compiled, so what a shot shows would depend on how busy the machine
     // is (render audit A3: Orca's text missing in parallel boot-sweep runs).
-    // COS_SMOKE=telescope-demo (bug B6), shore-foam (bug B7), npc-variants (bug B9) and sailing read
+    // COS_SMOKE=telescope-demo (bug B6), shore-foam (bug B7), npc-variants (bug B9), sailing and rope read
     // the picture back too.
     const bool capturing = loadShots() ||
                            (gConfig.smoke != nullptr && (strcmp(gConfig.smoke, "telescope-demo") == 0 ||
                                                          strcmp(gConfig.smoke, "shore-foam") == 0 ||
                                                          strcmp(gConfig.smoke, "npc-variants") == 0 ||
-                                                         strcmp(gConfig.smoke, "sailing") == 0));
+                                                         strcmp(gConfig.smoke, "sailing") == 0 ||
+                                                         strcmp(gConfig.smoke, "rope") == 0));
     gConfig.syncPipelines = envFlag("COS_SYNC_PIPELINES", capturing);
     perfOpen();
 

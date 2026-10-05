@@ -284,6 +284,8 @@ void applySailingPreset(bool inPlay);
 // COS_INPUT script.
 void setDrivenPad(bool on, uint16_t buttons, int8_t stickX, int8_t stickY);
 void sailingFrame(unsigned int frames);
+// COS_SMOKE=rope (pc_rope.cpp, bug B19): the hanging ropes of Tetra's ship.
+void ropeFrame(unsigned int frames);
 
 // pc_shot.cpp: parses COS_SHOT / COS_SHOT_EVERY (exit PC_EXIT_USAGE if malformed); without
 // them the screenshots stay off. Returns whether any frame will be captured.
