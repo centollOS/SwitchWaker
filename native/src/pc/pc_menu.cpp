@@ -501,6 +501,10 @@ const PcSettingDesc kBuiltins[] = {
     {"COS_PERF_LOG", "Líneas perf en el registro",
      "Oculta o muestra las líneas [cos] perf y perf-switch (las mediciones siguen).",
      PC_SETTING_TAB_DEBUG, 0, CHOICES(kShowHide), "1", applyPerfLog, nullptr, 110},
+    {"COS_USB_LOG", "Registro en directo por USB",
+     "Envía el registro por USB a scripts/switch/usb_log.py mientras juegas. Desactívalo para dejar el USB "
+     "libre (por ejemplo, para SysDVR por USB); el registro en la tarjeta SD se mantiene.",
+     PC_SETTING_TAB_DEBUG, PC_SETTING_RESTART | PC_SETTING_SWITCH_ONLY, CHOICES(kOnOff), "1", nullptr, nullptr, 120},
 };
 
 // ---- menu state ----------------------------------------------------------------------------------

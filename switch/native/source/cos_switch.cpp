@@ -210,7 +210,6 @@ void startLogs() {
     mutexInit(&gRingLock);
     mutexInit(&gFileLock);
     condvarInit(&gRingChanged);
-    gUsb = usb_log_start();
     if (gLogFile != nullptr) {
         gWriterRunning.store(true, std::memory_order_release);
         // Core 2, away from the game thread (core 0); the process's default core if that fails.
@@ -460,8 +459,7 @@ void reportSystem() {
          "image at 0x%llx\n",
          appletTypeName(applet), mode, (unsigned long long)(total >> 20), (unsigned long long)(used >> 20),
          (unsigned long long)cores, (unsigned long long)cos_switch_image_base());
-    sayf("[switch] logs: %s %s, USB live log %s\n", kLogPath, gLogFile != nullptr ? "open" : "NOT open",
-         gUsb ? "started" : "unavailable");
+    sayf("[switch] logs: %s %s\n", kLogPath, gLogFile != nullptr ? "open" : "NOT open");
     if (applet != AppletType_Application && applet != AppletType_SystemApplication) {
         sayf("[switch] WARNING: not started as an application: applets get far less memory than "
              "the game needs. Hold R while starting an installed game to open the Homebrew Menu in "
@@ -602,6 +600,21 @@ void cos_switch_start(int argc, char** argv) {
     // The options menu's settings file (native/include/pc/pc_settings.h): after env.txt, whose
     // lines win over it, and before the Switch defaults below, which it overrides.
     pc_settings_load_early();
+    // The USB live log (scripts/switch/usb_log.py) holds the console's USB port as 057e:3000 for
+    // the whole run; COS_USB_LOG=0 (env.txt, or Depuración > "Registro en directo por USB", at the
+    // next start) leaves it free, e.g. for SysDVR's USB mode. The log file on the SD card is kept
+    // either way. Started after env.txt and the settings file, so the lines before it are only in
+    // the file.
+    setDefault("COS_USB_LOG", "1");
+    {
+        const char* usb = getenv("COS_USB_LOG");
+        if (usb != nullptr && strcmp(usb, "0") == 0) {
+            sayf("[switch] USB live log off (COS_USB_LOG=0): the USB port is free\n");
+        } else {
+            gUsb = usb_log_start();
+            sayf("[switch] USB live log %s\n", gUsb ? "started" : "unavailable");
+        }
+    }
     setDefault("COS_DISC", COS_SWITCH_DEFAULT_DISC);
     setDefault("COS_RUN_DIR", COS_SWITCH_ROOT);
     setDefault("COS_PERF_EVERY", "60");
