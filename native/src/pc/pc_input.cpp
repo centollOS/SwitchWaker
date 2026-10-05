@@ -384,13 +384,15 @@ bool inputScriptAt(unsigned int frame, uint16_t* buttons, int8_t* stickX, int8_t
     return true;
 }
 
-void setDrivenPad(bool on, uint16_t buttons, int8_t stickX, int8_t stickY) {
+void setDrivenPad(bool on, uint16_t buttons, int8_t stickX, int8_t stickY, int8_t substickX, int8_t substickY) {
     sDriven = on;
     memset(&sDrivenStatus, 0, sizeof(sDrivenStatus));
     if (on) {
         sDrivenStatus.button = buttons;
         sDrivenStatus.stickX = stickX;
         sDrivenStatus.stickY = stickY;
+        sDrivenStatus.substickX = substickX;
+        sDrivenStatus.substickY = substickY;
         sDrivenStatus.triggerLeft = (buttons & PAD_TRIGGER_L) ? kTriggerFull : 0;
         sDrivenStatus.triggerRight = (buttons & PAD_TRIGGER_R) ? kTriggerFull : 0;
     }

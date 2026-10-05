@@ -145,3 +145,7 @@ ky-procs 0 --preset sailing
 # COS_SMOKE=chest: the chest of Niko's rope lesson (takara3, the Spoils Bag) created in front of the player on
 # Tetra's ship and opened end to end (DEFAULT_TREASURE starts and ends); the stuck-event watch logs it
 chest 0 --stage Asoko:0:0:2
+# COS_SMOKE=camera-invert: the options' inverted camera axes (Gráficos > "Invertir cámara horizontal" /
+# "vertical"): the C stick turns the camera's yaw and pitch the opposite way with the axis inverted,
+# and the wind baton's left hand still reads the C stick's real direction
+camera-invert 0 --stage sea:11:9

@@ -1101,6 +1101,7 @@ void pc_frame_end(void) {
     kyProcsFrame(frames);
     chestFrame(frames);
     eventWatchFrame(frames);
+    cameraInvertFrame(frames);
     fileSelectFrame(frames);
     newGameFrame(frames);
     precompileFrame(frames);
