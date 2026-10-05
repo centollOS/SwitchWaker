@@ -176,7 +176,22 @@ cPhs_State dPn_c::_create() {
     } else {
         JKRHeap * oldHeap = mDoExt_setCurrentHeap(mpHeap);
         if (dvd->sync()) {
+#if TARGET_PC
+            {
+                // Every place-name BTI on the disc (/res/placename/pn_XX.bti) is 0x3860 bytes, and
+                // the GameCube copied 0x3c00 from its read buffer: 0x3a0 bytes of whatever followed
+                // it in the heap, past the texture's data and never drawn. Copy the file and clear
+                // the rest (ASan, use-after-poison with --heap-check 1).
+                u32 size = dvd->getMemSize() > 0 ? (u32)dvd->getMemSize() : 0;
+                if (size > 0x3c00) {
+                    size = 0x3c00;
+                }
+                memcpy(mpTIMG, dvd->getMemAddress(), size);
+                memset((u8*)mpTIMG + size, 0, 0x3c00 - size);
+            }
+#else
             memcpy(mpTIMG, dvd->getMemAddress(), 0x3c00);
+#endif
 #if VERSION <= VERSION_JPN
             DCFlushRangeNoSync(mpTIMG, 0x3c00);
 #else
