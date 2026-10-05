@@ -22,7 +22,7 @@ pipelines are attributed to that enemy), --jobs at a time; a fault ends only tha
 Defaults: --stage M_NewD2:0:0 (the first dungeon's entrance: the smoke spawns on the first of eight
 directions with floor at the player's height; the Outset pier, sea:44:0, drowns him), --frames
 1200 per case, items bombs (X), sword, shield, bow
-(Y), hookshot (Z), a fairy in a bottle. --death adds one case at the end (the first Bk variant)
+(Y), hookshot (Z), an empty bottle (the smoke puts a fairy in it). --death adds one case at the end (the first mo2 variant, a moblin)
 with COS_COMBAT_DEATH=1: the player is left to die (fairy revival, then game over).
 --home boots each case in the room of the disc placement its parameters came from instead (at
 that room's spawn point, as room_sweep.py picks it; --stage for an unplaced name or a room without
@@ -74,7 +74,7 @@ REPO = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
 COS_RUN = os.path.join(SCRIPT_DIR, "run.sh")
 ACTOR_DIR = os.path.join(REPO, "game", "src", "d", "actor")
 D_STAGE = os.path.join(REPO, "game", "src", "d", "d_stage.cpp")
-DEFAULT_ITEMS = "31,38,3B,27,2F,57"
+DEFAULT_ITEMS = "31,38,3B,27,2F,50"
 
 _spec = importlib.util.spec_from_file_location("boot_sweep", os.path.join(SCRIPT_DIR, "boot_sweep.py"))
 boot_sweep = importlib.util.module_from_spec(_spec)
@@ -84,8 +84,15 @@ room_sweep = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(room_sweep)
 
 # Boss rooms whose boss needs story event bits to be there (COS_BOOT_EVENTS), or other per-room
-# setup: (stage, room) -> {env}. Filled from the sweep's screenshots.
-ROOM_SETUP: dict = {}
+# setup: stage or (stage, room) -> {env}.
+ROOM_SETUP: dict = {
+    # Event flag 0x2D01 (set by M2tower's rescue.stb): d_s_play.cpp mounts the player's demo
+    # animations LkD01.arc only with it, and these stages' cutscenes ask for LkD01 files
+    # (boot_sweep.py's _LKD01: without it the debug boot stops in J3DAnmTexPattern).
+    "GTower": {"COS_BOOT_EVENTS": "2D01"},
+    "M2ganon": {"COS_BOOT_EVENTS": "2D01"},
+    "GanonK": {"COS_BOOT_EVENTS": "2D01"},
+}
 
 # Boss and mini-boss stages by name: a B suffix (M_DragB, SirenB, kazeB...) only counts with an enemy in
 # the room (figureB, KATA_HB are not boss stages); the others count even without one (the boss
@@ -314,7 +321,8 @@ def sweep(args, mode):
                           "COS_COMBAT_FRAMES": str(args.frames),
                           "COS_COMBAT_SHOT_EVERY": str(args.shot_every)}, why))
         if args.death:
-            first = next((i for i, c in enumerate(cases) if c[0] == "Bk"), 0)
+            first = next((i for i, c in enumerate(cases) if c[0] == "mo2"),
+                         next((i for i, c in enumerate(cases) if c[0] == "Bk"), 0))
             jobs.append(("death_%s" % safe(cases[first][0]), "death %s" % cases[first][0], args.stage,
                          {"COS_COMBAT_SWEEP_LIST": listfile, "COS_COMBAT_SWEEP": str(first),
                           "COS_COMBAT_FRAMES": str(max(args.frames, 2400)), "COS_COMBAT_DEATH": "1",
@@ -326,6 +334,7 @@ def sweep(args, mode):
                 continue
             env = {"COS_COMBAT_MODE": "room", "COS_COMBAT_FRAMES": str(args.frames),
                    "COS_COMBAT_SHOT_EVERY": str(args.shot_every)}
+            env.update(ROOM_SETUP.get(stage, {}))
             env.update(ROOM_SETUP.get((stage, room), {}))
             jobs.append(("%s_%d_%d" % (stage, room, point), "%s:%d:%d" % (stage, room, point),
                          "%s:%d:%d" % (stage, room, point), env, why))

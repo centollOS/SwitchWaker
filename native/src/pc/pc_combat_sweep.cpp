@@ -15,18 +15,19 @@
 //   COS_COMBAT_SWEEP=<first>[-<last>] limits the cases (list lines from 0, or process names).
 // - room: nothing is spawned; the player fights whatever the room holds (a boss room, a
 //   minigame) for COS_COMBAT_FRAMES frames (default 6000), walking towards the nearest enemy
-//   actor, or wandering when there is none, then the run exits 0.
+//   actor (horizontal distance), or wandering when there is none, then the run exits 0.
 // The cycle (kCycle frames): first kIdleFrames frames standing still with L released, so the
 // enemy comes and hits the player; then, L held to lock on: sword slashes (B) while
 // walking towards the target, a spin attack (B held, the stick around), A (jump attack locked on,
 // parry when the prompt shows, talk/advance text otherwise), X (the first boot item: bombs: take
 // one out, A throws it), Y (bow: ready, draw, release), Z (hookshot: ready, fire). The boot items
-// (COS_BOOT_ITEMS, e.g. 31,38,3B,27,2F,57: bombs on X, sword, shield, bow, hookshot, a fairy in a
-// bottle) go to X, then the first two items found of bow/hookshot/boomerang/hammer to Y and Z.
+// (COS_BOOT_ITEMS, e.g. 31,38,3B,27,2F,50: bombs on X, sword, shield, bow, hookshot, an empty
+// bottle, which gets a fairy) go to X, then the first two items found of bow/hookshot/boomerang/hammer to Y and Z.
 // Hearts: the maximum is raised to kMaxLife quarters; when the life drops to kLowLife or less it is
-// refilled (counted), so the player takes hits without dying. COS_COMBAT_DEATH=1: from the middle
-// of each case on, no refill: the player dies (a fairy in a bottle revives him once; then the
-// game-over scene leaves the stage, which ends the run as reached once a death was seen).
+// refilled (counted), so the player takes hits without dying. COS_COMBAT_DEATH=1: from kDeathStart
+// frames into each case on, no refill, one heart left and no fighting back: the player dies (a
+// fairy in a bottle revives him once; then the game-over scene leaves the stage, which ends the
+// run as reached once a death was seen).
 // Bombs and arrows are topped up every second.
 // COS_COMBAT_SHOT_EVERY=<n>: a screenshot (shot-<frame>.png) every n frames of fighting (and 90
 // frames into each case), default 0 (off) in spawn mode, 600 in room mode.
@@ -337,6 +338,16 @@ int slotOf(u8 item) {
 void setup() {
     dComIfGs_setMaxLife((u8)kMaxLife);
     dComIfGs_setLife(kMaxLife);
+    // An empty bottle (boot item 50) gets a fairy, for the revival (execItemGet of the fairy
+    // bottle item only sets its "got" flag).
+    if (dComIfGs_checkBottle(dItemNo_EMPTY_BOTTLE_e) != 0) {
+        dComIfGs_setBottleItemIn(dItemNo_EMPTY_BOTTLE_e, dItemNo_FAIRY_BOTTLE_e);
+        writef(STDERR_FILENO, "[cos] combat-sweep: a fairy in the bottle\n");
+    } else {
+        writef(STDERR_FILENO, "[cos] combat-sweep: bottles %02x %02x %02x %02x\n",
+               dComIfGs_getItem(dInvSlot_BOTTLE0_e), dComIfGs_getItem(dInvSlot_BOTTLE0_e + 1),
+               dComIfGs_getItem(dInvSlot_BOTTLE0_e + 2), dComIfGs_getItem(dInvSlot_BOTTLE0_e + 3));
+    }
     const u8 yz[] = {dItemNo_BOW_e, dItemNo_HOOKSHOT_e, dItemNo_BOOMERANG_e, dItemNo_SKULL_HAMMER_e};
     int btn = dItemBtn_Y_e;
     for (u8 item : yz) {
@@ -436,12 +447,25 @@ void* nearestEnemy(void* proc, void* data) {
     if (a == n->player || fopAcM_GetGroup(a) != fopAc_ENEMY_e) {
         return nullptr;
     }
-    const float d = fopAcM_searchActorDistance(n->player, a);
+    // Horizontal distance: a boss waiting below the arena for its intro (Molgera at y -20000)
+    // is still walked to, and the intro starts.
+    const float d = fopAcM_searchActorDistanceXZ(n->player, a);
     if (d < n->dist) {
         n->dist = d;
         n->best = a;
     }
     return nullptr;
+}
+
+// COS_COMBAT_DEATH: from kDeathStart frames into the case the player stops fighting and gets
+// no refill (his life is cut to one heart once), so the enemy kills him.
+constexpr unsigned int kDeathStart = 240;
+constexpr unsigned int kGameOverFrames = 900; // dead (or in an event) that long since a death: game over
+unsigned int sDeadFrames = 0;
+bool sDeathCut = false;
+
+bool dying() {
+    return sDeathMode && sAlive > kDeathStart;
 }
 
 // One frame of the fight against target (nullptr: the nearest enemy actor, or wander).
@@ -452,13 +476,19 @@ void drivePad(fopAc_ac_c* target) {
         return;
     }
     if (target == nullptr) {
-        Nearest n = {player, nullptr, 3000.0f};
+        Nearest n = {player, nullptr, 1e9f};
         fpcM_Search(nearestEnemy, &n);
         target = n.best;
     }
     bool walk = false;
     s8 sx = 0, sy = 0;
     u16 b = cycleButtons(sFight, &walk, &sx, &sy);
+    if (dying()) {
+        b = 0;
+        walk = false;
+        sx = sy = 0;
+
+    }
     if (walk) {
         if (target != nullptr) {
             const float d = fopAcM_searchActorDistance(player, target);
@@ -481,6 +511,13 @@ void drivePad(fopAc_ac_c* target) {
 }
 
 void keepAlive(bool refill) {
+    if (!refill && (!sDeathCut || (dComIfGs_getLife() > 4 && sDeaths < 2))) {
+        // Once, and again after the fairy revived him.
+        sDeathCut = true;
+        dComIfGs_setLife(4);
+        sLastLife = 4;
+        writef(STDERR_FILENO, "[cos] combat-sweep: death mode: life cut to one heart, no refills\n");
+    }
     const u16 life = dComIfGs_getLife();
     if (life < sLastLife) {
         sHits++;
@@ -689,9 +726,24 @@ void combatSweepFrame(unsigned int frames) {
         }
     }
 
+    // Death mode: dead for good (no fairy left): the game-over screen (an event that never ends;
+    // the game may already have given the life back for the continue); its save prompt is left
+    // alone (no card writes) and the run ends.
+    if (sDeathMode && sDeaths > 0 && (dComIfGs_getLife() == 0 || dComIfGp_event_runCheck())) {
+        if (++sDeadFrames >= kGameOverFrames) {
+            captureFrame(frames, shotSink, nullptr);
+            writef(STDERR_FILENO, "[cos] combat-sweep: game over after %u death(s) (death mode)\n", sDeaths);
+            writeResult("game-over");
+            endSweep();
+            return;
+        }
+    } else {
+        sDeadFrames = 0;
+    }
+
     if (sMode == kRoomMode) {
         sAlive++;
-        keepAlive(!(sDeathMode && sAlive > sFrames / 2));
+        keepAlive(!dying());
         drivePad(nullptr);
         maybeShot(frames);
         if (sAlive >= sFrames) {
@@ -746,7 +798,7 @@ void combatSweepFrame(unsigned int frames) {
     }
 
     if (sState == kFight || sState == kTail) {
-        keepAlive(!(sDeathMode && sAlive > sFrames / 2));
+        keepAlive(!dying());
         drivePad(enemy);
         maybeShot(frames);
     }
