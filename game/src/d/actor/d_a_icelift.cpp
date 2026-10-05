@@ -30,6 +30,13 @@ bool daIlift_c::_delete() {
 #else
     if (heap != NULL) dComIfG_Bgsp()->Release(mBgW);
 #endif
+#if TARGET_PC
+    // _create fails a type of 2 or more (K_Test9 has two) before loading anything, and the delete
+    // that follows read m_arcname[mType] past the table; dComIfG_resDelete ignores the name for a
+    // phase that never loaded, so the GameCube got away with it. Skip it (ASan,
+    // global-buffer-overflow).
+    if (mType < ARRAY_SIZE(m_arcname))
+#endif
     dComIfG_resDelete(&mPhs, m_arcname[mType]);
     return true;
 }
