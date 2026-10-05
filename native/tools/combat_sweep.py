@@ -1,0 +1,446 @@
+#!/usr/bin/env python3
+"""Fight every enemy, and play every boss, mini-boss and minigame room, for crash detection and to
+record the pipelines combat uses (COS_SMOKE=combat-sweep, native/src/pc/pc_combat_sweep.cpp).
+
+  native/tools/combat_sweep.py enemies [options]     every enemy spawned in front of the player
+  native/tools/combat_sweep.py rooms [options]       every boss / mini-boss / minigame room
+  native/tools/combat_sweep.py list-enemies|list-rooms   print the cases and exit
+  native/tools/combat_sweep.py pipelines --bundled DB SWEEP_DIR...   the new-pipelines table
+
+Every run is `run.sh combat-sweep ... --uncapped` with COS_CACHE_PER_RUN=1, so each run directory
+holds cache/pipeline_cache.db: the pipelines that run used (gen_pipeline_cache.sh --merge-from).
+
+enemies: the enemy actors come from the code, not a hand list: every actor profile whose group is
+fopAc_ENEMY_e (game/src/d/actor/*.cpp, the profile's "Group" field), plus the actors that use the
+enemy freeze/burn helpers (enemy_ice/enemy_fire) whatever their group (morths, kargarocs...);
+except the plain actors and NPCs among them (Zelda in Ganon's tower), so the morths and the pigs
+(group fopAc_ENV_e); their dStage names come from d_stage.cpp's OBJNAME table. Each name is spawned with the parameters
+and angle x/z of its placements on the disc (every ACTR/ACT0-b/TGOB record of every stage and
+room): the most common one and up to --variants-1 more with another low byte (the type field of
+most enemies); a name the disc never places is spawned with parameters 0. One run per case (so the
+pipelines are attributed to that enemy), --jobs at a time; a fault ends only that case's run.
+Defaults: --stage M_NewD2:0:0 (the first dungeon's entrance: the smoke spawns on the first of eight
+directions with floor at the player's height; the Outset pier, sea:44:0, drowns him), --frames
+1200 per case, items bombs (X), sword, shield, bow
+(Y), hookshot (Z), a fairy in a bottle. --death adds one case at the end (the first Bk variant)
+with COS_COMBAT_DEATH=1: the player is left to die (fairy revival, then game over).
+--home boots each case in the room of the disc placement its parameters came from instead (at
+that room's spawn point, as room_sweep.py picks it; --stage for an unplaced name or a room without
+a spawn point), so the enemy is fought under its own stage's lights and fog.
+
+rooms: the rooms come from the disc's stage list and the code: (1) every room of the stages whose
+name marks a boss or mini-boss stage (B, BOSS or MB suffix, Xboss*, Ganon*, GTower, M2tower,
+M2ganon) that holds an enemy actor (or, but for the B suffix, any room of such a stage when none
+does); (2) every room
+that places an actor whose code runs a minigame (dComIfGp_startMiniGame, MiniGameRupee,
+dMinigame_Starter_c, dTimer_create*, MiniGameInit, TYPE_MINIGAME); (3) EXTRA_ROOMS (Mrs. Marie's
+school, asked for, found by no rule). Spawn point: as room_sweep.py
+picks it (an SCLS entry when there is one). Each room is run with COS_COMBAT_MODE=room for
+--frames frames (default 6000) of the combat cycle against the nearest enemy, a screenshot every
+--shot-every frames (default 1000). ROOM_SETUP below adds story event bits (COS_BOOT_EVENTS)
+where a boss needs them to appear.
+
+Options (both): --jobs N (default 2), --timeout S per run (default 600), --only LIST (names or
+stage:room), --disc PATH, --exe PATH, --out DIR (default build/combat-sweep/<mode>-<timestamp>),
+--items LIST (COS_BOOT_ITEMS).
+Report: <out>/combat_sweep.tsv and .md: per case the result (died, timeout, refused,
+self-deleted, left-stage, done, FAULT with the boot_sweep.py signature), the smoke's counters,
+and the number of pipelines in its cache. Exit 0 if no run faulted, 1 otherwise.
+
+pipelines: for each run directory under the given sweep directories, the pipelines of its
+cache/pipeline_cache.db that the bundled file (--bundled, default
+build/pipeline-cache/initial_pipeline_cache.db) lacks, keyed (type, hash); also how many of them
+no other run of the sweeps had. Written to <first sweep dir>/new_pipelines.tsv and printed, top
+contributors first.
+Nothing here is meant for git.
+"""
+
+from __future__ import annotations
+
+import argparse
+import collections
+import concurrent.futures
+import glob
+import importlib.util
+import os
+import re
+import sqlite3
+import subprocess
+import sys
+import time
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
+COS_RUN = os.path.join(SCRIPT_DIR, "run.sh")
+ACTOR_DIR = os.path.join(REPO, "game", "src", "d", "actor")
+D_STAGE = os.path.join(REPO, "game", "src", "d", "d_stage.cpp")
+DEFAULT_ITEMS = "31,38,3B,27,2F,57"
+
+_spec = importlib.util.spec_from_file_location("boot_sweep", os.path.join(SCRIPT_DIR, "boot_sweep.py"))
+boot_sweep = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(boot_sweep)
+_spec = importlib.util.spec_from_file_location("room_sweep", os.path.join(SCRIPT_DIR, "room_sweep.py"))
+room_sweep = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(room_sweep)
+
+# Boss rooms whose boss needs story event bits to be there (COS_BOOT_EVENTS), or other per-room
+# setup: (stage, room) -> {env}. Filled from the sweep's screenshots.
+ROOM_SETUP: dict = {}
+
+# Boss and mini-boss stages by name: a B suffix (M_DragB, SirenB, kazeB...) only counts with an enemy in
+# the room (figureB, KATA_HB are not boss stages); the others count even without one (the boss
+# of M2ganon, GanonK... comes with an event).
+BOSS_STAGE = re.compile(r"^(?:.*(?:B|BOSS|MB)|Xboss\d|Ganon[A-Z]|GTower|M2tower|M2ganon)$")
+BOSS_STAGE_STRONG = re.compile(r"^(?:.*(?:BOSS|MB)|Xboss\d|Ganon[A-Z]|GTower|M2tower|M2ganon)$")
+# Rooms asked for by name that no code rule finds: Mrs. Marie's school on Windfall (d_a_npc_ho).
+EXTRA_ROOMS = [("Nitiyou", 0, "requested:Ho")]
+MINIGAME_CODE = re.compile(r"dComIfGp_startMiniGame|MiniGameRupee|dMinigame_Starter_c|"
+                           r"dTimer_create|MiniGameInit|TYPE_MINIGAME")
+# Code that refers to minigames only to stay out of them.
+MINIGAME_EXCLUDE = {"d_a_player_main.cpp", "d_a_ship.cpp", "d_a_arrow.cpp"}
+
+
+def actor_profiles():
+    """{file: [(profile, procname enum, group)]} from game/src/d/actor/*.cpp."""
+    out = {}
+    for path in sorted(glob.glob(os.path.join(ACTOR_DIR, "*.cpp"))):
+        text = boot_sweep.read(path)
+        profs = []
+        for m in re.finditer(r"actor_process_profile_definition2? g_profile_(\w+) = \{(.*?)\n\};",
+                             text, re.S):
+            body = m.group(2)
+            pn = re.search(r"/\* Proc Name\s*\*/\s*(fpcNm_\w+)", body)
+            gr = re.search(r"/\* Group\s*\*/\s*(\w+)", body)
+            if pn:
+                profs.append((m.group(1), pn.group(1), gr.group(1) if gr else "?"))
+        out[os.path.basename(path)] = profs
+    return out
+
+
+def object_names():
+    """{fpcNm enum: [dStage names]} from d_stage.cpp's OBJNAME table."""
+    names = collections.defaultdict(list)
+    for m in re.finditer(r'OBJNAME\("([^"]+)",\s*(fpcNm_\w+)', boot_sweep.read(D_STAGE)):
+        names[m.group(2)].append(m.group(1))
+    return names
+
+
+def placements(manifest):
+    """{dStage name: [(params, angle x, angle z, stage, room)]} over every stage and room file."""
+    out = collections.defaultdict(list)
+    for r in manifest["files"]:
+        m = boot_sweep.ROOM_ARC.match(r["path"]) or boot_sweep.STAGE_ARC.match(r["path"])
+        if not m:
+            continue
+        dz = boot_sweep.stage_file(r)
+        if not dz:
+            continue
+        room = int(m.group(2)) if m.re is boot_sweep.ROOM_ARC else -1
+        for tag, lst in dz.get("actors", {}).items():
+            for a in lst:
+                ang = a.get("angle") or [0, 0, 0]
+                out[a["name"]].append((a["params"] & 0xFFFFFFFF, ang[0], ang[2], m.group(1), room))
+    return out
+
+
+def enemy_cases(manifest, variants):
+    """[(name, params, angle x, angle z, why, [(stage, room) of its placements])]."""
+    profs = actor_profiles()
+    names = object_names()
+    procs = []  # (enum, why)
+    seen = set()
+    for f, lst in profs.items():
+        for prof, enum, group in lst:
+            if group == "fopAc_ENEMY_e" and enum != "fpcNm_PLAYER_e" and enum not in seen:
+                procs.append((enum, "group"))
+                seen.add(enum)
+    for f, lst in profs.items():
+        text = boot_sweep.read(os.path.join(ACTOR_DIR, f))
+        if re.search(r"\benemy_(?:ice|fire)\(", text):
+            for prof, enum, group in lst:
+                if enum not in seen and group not in ("fopAc_ACTOR_e", "fopAc_NPC_e"):
+                    procs.append((enum, "enemy_ice"))
+                    seen.add(enum)
+    places = placements(manifest)
+    cases = []
+    for enum, why in procs:
+        for name in names.get(enum, []):
+            pl = places.get(name, [])
+            if not pl:
+                cases.append((name, 0, 0, 0, why + ",unplaced", []))
+                continue
+            count = collections.Counter((p, ax, az) for p, ax, az, _, _ in pl)
+            chosen, lows = [], set()
+            for (p, ax, az), _ in count.most_common():
+                if len(chosen) >= variants:
+                    break
+                if chosen and (p & 0xFF) in lows:
+                    continue
+                chosen.append((p, ax, az))
+                lows.add(p & 0xFF)
+            for p, ax, az in chosen:
+                homes = [(st, rm) for pp, x, z, st, rm in pl if (pp, x, z) == (p, ax, az)]
+                cases.append((name, p, ax, az, why, homes))
+        if not names.get(enum):
+            print("combat_sweep: %s has no dStage name; skipped" % enum, file=sys.stderr)
+    return cases
+
+
+def room_cases(manifest):
+    """[(stage, room, point, why)] for the boss, mini-boss and minigame rooms."""
+    profs = actor_profiles()
+    names = object_names()
+    enemy_names, minigame_names = set(), {}
+    for f, lst in profs.items():
+        text = boot_sweep.read(os.path.join(ACTOR_DIR, f))
+        ice = re.search(r"\benemy_(?:ice|fire)\(", text)
+        mg = f not in MINIGAME_EXCLUDE and MINIGAME_CODE.search(text)
+        for prof, enum, group in lst:
+            if group == "fopAc_ENEMY_e" or ice:
+                enemy_names.update(names.get(enum, []))
+            if mg:
+                for n in names.get(enum, []):
+                    minigame_names[n] = f
+    stages, rooms, points, exits = room_sweep.spawn_points(manifest)
+    by_path = {r["path"]: r for r in manifest["files"]}
+    room_actors = {}
+    for stage in stages:
+        for n in rooms.get(stage, []):
+            dz = boot_sweep.stage_file(by_path["/res/Stage/%s/Room%d.arc" % (stage, n)]) or {}
+            room_actors[(stage, n)] = {a["name"] for lst in dz.get("actors", {}).values() for a in lst}
+    out = []
+    for stage in stages:
+        boss = bool(BOSS_STAGE.match(stage))
+        cand = []
+        for n in sorted(rooms.get(stage, [])):
+            acts = room_actors.get((stage, n), set())
+            why = []
+            if boss and acts & enemy_names:
+                why.append("boss-stage:" + "+".join(sorted(acts & enemy_names)))
+            mg = sorted(a for a in acts if a in minigame_names)
+            if mg:
+                why.append("minigame:" + "+".join(mg))
+            if why:
+                cand.append((n, ";".join(why)))
+        if BOSS_STAGE_STRONG.match(stage) and not cand:
+            cand = [(n, "boss-stage") for n in sorted(rooms.get(stage, []))]
+        cand += [(n, why) for st, n, why in EXTRA_ROOMS if st == stage]
+        for n, why in cand:
+            pts = points[stage].get(n, [])
+            if not pts:
+                continue
+            entries = [p for p in pts if (stage, n, p) in exits]
+            out.append((stage, n, (entries or pts)[0], why))
+    return out
+
+
+def run_one(args, run_dir, stage, env):
+    cmd = [COS_RUN, "combat-sweep", "--stage", stage, "--uncapped", "--timeout", str(args.timeout),
+           "--disc", args.disc, "--quiet", "--run-dir", run_dir]
+    if args.exe:
+        cmd += ["--exe", args.exe]
+    full = dict(os.environ, COS_CACHE_PER_RUN="1", COS_BOOT_ITEMS=args.items, **env)
+    t0 = time.time()
+    subprocess.run(cmd, env=full, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        rc = int(boot_sweep.read(os.path.join(run_dir, "exit_code.txt")).strip())
+    except ValueError:
+        rc = -1
+    boot_sweep.collapse_log(os.path.join(run_dir, "run.log"))
+    log = boot_sweep.read(os.path.join(run_dir, "run.log"))
+    lines = [l for l in boot_sweep.read(os.path.join(run_dir, "combat_sweep.txt")).splitlines()
+             if l and not l.startswith("#")]
+    result = lines[-1] if lines else ""
+    r = {"rc": rc, "seconds": int(time.time() - t0), "line": result,
+         "signature": boot_sweep.signature(run_dir, rc, log), "pipelines": cache_rows(run_dir)}
+    f = result.split()
+    if rc in (0, 1) and len(f) >= 5 and f[4] != "begin":
+        r["result"] = f[4]
+        r["counters"] = " ".join(f[5:])
+    elif rc == 0:
+        r["result"] = "ok"
+        r["counters"] = ""
+    else:
+        r["result"] = "FAULT" if rc in (10, 11, 12, 13) or "begin" in result else "FAIL"
+        r["counters"] = ""
+    if rc == 0 and "combat-sweep: the player in the room" not in log:
+        r["result"] = "NO-PLAY"
+    return r
+
+
+def cache_rows(run_dir):
+    db = os.path.join(run_dir, "cache", "pipeline_cache.db")
+    if not os.path.isfile(db):
+        return -1
+    try:
+        with sqlite3.connect("file:%s?mode=ro" % db, uri=True) as c:
+            return c.execute("SELECT COUNT(*) FROM pipeline_cache").fetchone()[0]
+    except sqlite3.Error:
+        return -1
+
+
+def safe(s):
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", s)
+
+
+def sweep(args, mode):
+    manifest = boot_sweep.load_manifest(args.disc)
+    jobs = []  # (key, label, stage, env)
+    if mode == "enemies":
+        cases = enemy_cases(manifest, args.variants)
+        listfile = os.path.join(args.out, "cases.txt")
+        with open(listfile, "w") as f:
+            f.write("# <dStage name> <params hex> <angle x> <angle z>   (why)\n")
+            for name, p, ax, az, why, homes in cases:
+                f.write("%s %08x %d %d\n" % (name, p, ax, az))
+        spawns = None
+        if args.home:
+            _, _, points, exits = room_sweep.spawn_points(manifest)
+        for i, (name, p, ax, az, why, homes) in enumerate(cases):
+            if args.only and name not in args.only.split(","):
+                continue
+            stage = args.stage
+            if args.home:
+                # The first placement whose room has a spawn point (an SCLS entry preferred).
+                for st, rm in homes:
+                    pts = points.get(st, {}).get(rm if rm >= 0 else 0, [])
+                    if pts:
+                        entries = [q for q in pts if (st, rm, q) in exits]
+                        stage = "%s:%d:%d" % (st, rm if rm >= 0 else 0, (entries or pts)[0])
+                        break
+                why += ",home=" + stage
+            jobs.append(("%03d_%s_%08x" % (i, safe(name), p), "%s %08x" % (name, p), stage,
+                         {"COS_COMBAT_SWEEP_LIST": listfile, "COS_COMBAT_SWEEP": str(i),
+                          "COS_COMBAT_FRAMES": str(args.frames),
+                          "COS_COMBAT_SHOT_EVERY": str(args.shot_every)}, why))
+        if args.death:
+            first = next((i for i, c in enumerate(cases) if c[0] == "Bk"), 0)
+            jobs.append(("death_%s" % safe(cases[first][0]), "death %s" % cases[first][0], args.stage,
+                         {"COS_COMBAT_SWEEP_LIST": listfile, "COS_COMBAT_SWEEP": str(first),
+                          "COS_COMBAT_FRAMES": str(max(args.frames, 2400)), "COS_COMBAT_DEATH": "1",
+                          "COS_COMBAT_SHOT_EVERY": "200"}, "death"))
+    else:
+        for stage, room, point, why in room_cases(manifest):
+            if args.only and stage not in args.only.split(",") and \
+                    "%s:%d" % (stage, room) not in args.only.split(","):
+                continue
+            env = {"COS_COMBAT_MODE": "room", "COS_COMBAT_FRAMES": str(args.frames),
+                   "COS_COMBAT_SHOT_EVERY": str(args.shot_every)}
+            env.update(ROOM_SETUP.get((stage, room), {}))
+            jobs.append(("%s_%d_%d" % (stage, room, point), "%s:%d:%d" % (stage, room, point),
+                         "%s:%d:%d" % (stage, room, point), env, why))
+    print("combat_sweep %s: %d runs, %d at a time; %s" % (mode, len(jobs), args.jobs,
+                                                        os.path.relpath(args.out, REPO)), flush=True)
+    results = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
+        futs = {pool.submit(run_one, args, os.path.join(args.out, "runs", key), stage, env): key
+                for key, label, stage, env, why in jobs}
+        done = 0
+        for fut in concurrent.futures.as_completed(futs):
+            key = futs[fut]
+            r = fut.result()
+            results[key] = r
+            done += 1
+            print("[%d/%d] %s: %s exit %d %s%s" % (done, len(jobs), key, r["result"], r["rc"],
+                  r["counters"], "" if r["rc"] in (0,) else "  " + r["signature"]), flush=True)
+    counts = collections.Counter(r["result"] for r in results.values())
+    with open(os.path.join(args.out, "combat_sweep.tsv"), "w") as f:
+        f.write("key\tcase\twhy\tresult\texit\tpipelines\tcounters\tsignature\tseconds\n")
+        for key, label, stage, env, why in jobs:
+            r = results[key]
+            f.write("\t".join([key, label, why, r["result"], str(r["rc"]), str(r["pipelines"]),
+                               r["counters"], r["signature"], str(r["seconds"])]) + "\n")
+    with open(os.path.join(args.out, "combat_sweep.md"), "w") as f:
+        f.write("# combat_sweep %s %s\n\n" % (mode, os.path.basename(args.out)))
+        f.write("stage %s, %d frames, items %s; results: %s\n\n" % (
+            args.stage if mode == "enemies" else "(per room)", args.frames, args.items,
+            ", ".join("%s %d" % kv for kv in sorted(counts.items()))))
+        f.write("| case | why | result | exit | pipelines | counters | signature |\n"
+                "|---|---|---|---|---|---|---|\n")
+        for key, label, stage, env, why in jobs:
+            r = results[key]
+            f.write("| %s | %s | %s | %d | %d | %s | %s |\n" % (
+                label, why, r["result"], r["rc"], r["pipelines"], r["counters"],
+                r["signature"].replace("|", "\\|") if r["rc"] else ""))
+    print("combat_sweep %s: %s" % (mode, ", ".join("%s %d" % kv for kv in sorted(counts.items()))))
+    return 1 if counts["FAULT"] or counts["FAIL"] else 0
+
+
+def pipelines(args):
+    bundled = set()
+    with sqlite3.connect("file:%s?mode=ro" % args.bundled, uri=True) as c:
+        bundled.update(c.execute("SELECT type, hash FROM pipeline_cache"))
+    per_run = {}
+    for d in args.sweeps:
+        for db in sorted(glob.glob(os.path.join(d, "runs", "*", "cache", "pipeline_cache.db"))):
+            run = os.path.basename(os.path.dirname(os.path.dirname(db)))
+            try:
+                with sqlite3.connect(db) as c:
+                    keys = set(c.execute("SELECT type, hash FROM pipeline_cache"))
+            except sqlite3.Error as e:
+                print("combat_sweep: %s: %s" % (db, e), file=sys.stderr)
+                continue
+            per_run[(os.path.basename(os.path.normpath(d)), run)] = keys - bundled
+    owners = collections.Counter(k for s in per_run.values() for k in s)
+    union = set().union(*per_run.values()) if per_run else set()
+    rows = sorted(((len(s), sum(1 for k in s if owners[k] == 1), sw, run)
+                   for (sw, run), s in per_run.items()), reverse=True)
+    out = os.path.join(args.sweeps[0], "new_pipelines.tsv")
+    with open(out, "w") as f:
+        f.write("# vs %s (%d rows); %d new pipelines in all over %d runs\n"
+                % (args.bundled, len(bundled), len(union), len(per_run)))
+        f.write("new\tonly_here\tsweep\trun\n")
+        for n, only, sw, run in rows:
+            f.write("%d\t%d\t%s\t%s\n" % (n, only, sw, run))
+    print(open(out).read(), end="")
+    return 0
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    ap.add_argument("mode", choices=("enemies", "rooms", "list-enemies", "list-rooms", "pipelines"))
+    ap.add_argument("sweeps", nargs="*")
+    ap.add_argument("--jobs", type=int, default=2)
+    ap.add_argument("--frames", type=int, default=None)
+    ap.add_argument("--shot-every", type=int, default=None)
+    ap.add_argument("--timeout", type=int, default=600)
+    ap.add_argument("--stage", default="M_NewD2:0:0")
+    ap.add_argument("--variants", type=int, default=2)
+    ap.add_argument("--items", default=DEFAULT_ITEMS)
+    ap.add_argument("--death", action="store_true")
+    ap.add_argument("--home", action="store_true")
+    ap.add_argument("--only", default="")
+    ap.add_argument("--disc", default=os.environ.get("COS_DISC", ""))
+    ap.add_argument("--exe", default="")
+    ap.add_argument("--out", default="")
+    ap.add_argument("--bundled", default=os.path.join(REPO, "build", "pipeline-cache",
+                                                      "initial_pipeline_cache.db"))
+    args = ap.parse_args()
+    if args.mode == "pipelines":
+        if not args.sweeps:
+            ap.error("pipelines needs sweep directories")
+        return pipelines(args)
+    if not args.disc:
+        print("combat_sweep: no disc image: pass --disc PATH or set COS_DISC", file=sys.stderr)
+        return 14
+    args.disc = os.path.abspath(args.disc)
+    if args.mode == "list-enemies":
+        for c in enemy_cases(boot_sweep.load_manifest(args.disc), args.variants):
+            print("%s\t%08x\t%d\t%d\t%s\t%s" % (c[:5] + (" ".join("%s:%d" % h for h in c[5][:4]),)))
+        return 0
+    if args.mode == "list-rooms":
+        for c in room_cases(boot_sweep.load_manifest(args.disc)):
+            print("%s\t%d\t%d\t%s" % c)
+        return 0
+    if args.frames is None:
+        args.frames = 1200 if args.mode == "enemies" else 6000
+    if args.shot_every is None:
+        args.shot_every = 400 if args.mode == "enemies" else 1000
+    args.out = os.path.abspath(args.out or os.path.join(
+        REPO, "build", "combat-sweep", "%s-%s" % (args.mode, time.strftime("%Y%m%d-%H%M%S"))))
+    os.makedirs(os.path.join(args.out, "runs"), exist_ok=False)
+    return sweep(args, args.mode)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

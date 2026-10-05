@@ -1088,6 +1088,7 @@ void pc_frame_end(void) {
     titleAudioFrame(frames);
     outsetFrame(frames);
     actorSweepFrame(frames);
+    combatSweepFrame(frames);
     fxSweepFrame(frames);
     resSweepFrame(frames);
     bgmHopFrame(frames);
