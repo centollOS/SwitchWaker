@@ -1089,6 +1089,7 @@ void pc_frame_end(void) {
     sailingFrame(frames);
     ropeFrame(frames);
     evcamFrame(frames);
+    windScreenFrame(frames);
     fileSelectFrame(frames);
     newGameFrame(frames);
     precompileFrame(frames);

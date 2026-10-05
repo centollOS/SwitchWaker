@@ -224,7 +224,8 @@ void pc_harness_init(int argc, char* argv[]) {
                                                          strcmp(gConfig.smoke, "shore-foam") == 0 ||
                                                          strcmp(gConfig.smoke, "npc-variants") == 0 ||
                                                          strcmp(gConfig.smoke, "sailing") == 0 ||
-                                                         strcmp(gConfig.smoke, "rope") == 0));
+                                                         strcmp(gConfig.smoke, "rope") == 0 ||
+                                                         strcmp(gConfig.smoke, "wind-screen") == 0));
     gConfig.syncPipelines = envFlag("COS_SYNC_PIPELINES", capturing);
     perfOpen();
 

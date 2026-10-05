@@ -136,3 +136,6 @@ rope 0 --stage Asoko:0:0:2
 # COS_SMOKE=evcam (bug B20): the event camera's pointer arguments ("Type", &value as the bottle, food
 # and item cameras pass them) read back through getEvIntData; a 32-bit mValue crashed
 evcam 0 --stage sea:44:206
+# COS_SMOKE=wind-screen (bug B21): the wind song's wind-direction screen (d_operate_wind) opens with no
+# failed allocation; its GameCube-sized 20000-byte heap ran out and panicked
+wind-screen 0 --preset sailing

@@ -847,7 +847,14 @@ static cPhs_State dOw_Create(msg_class* i_msg) {
     g_owHIO.entryHIO("風向操作表示画面");
 #endif
 
+#if TARGET_PC
+    // Bug B21: two J2DScreens and their panes hold 64-bit pointers on the host; the GameCube's
+    // 20000 bytes ran out in _create (a 0x338-byte allocation, then the panic at its assert)
+    // as soon as the wind song opened this screen. Doubled, as the HUD's (bug B8).
+    JKRExpHeap* heap = fopMsgM_createExpHeap(20000 * 2);
+#else
     JKRExpHeap* heap = fopMsgM_createExpHeap(20000);
+#endif
     JUT_ASSERT(VERSION_SELECT(1310, 1310, 1351, 1351), heap != NULL);
     i_this->setHeap(heap);
 

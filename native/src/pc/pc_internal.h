@@ -288,6 +288,8 @@ void sailingFrame(unsigned int frames);
 void ropeFrame(unsigned int frames);
 // COS_SMOKE=evcam (pc_evcam.cpp, bug B20): the event camera's pointer arguments.
 void evcamFrame(unsigned int frames);
+// COS_SMOKE=wind-screen (pc_wind_screen.cpp): the wind song's wind-direction screen.
+void windScreenFrame(unsigned int frames);
 
 // pc_shot.cpp: parses COS_SHOT / COS_SHOT_EVERY (exit PC_EXIT_USAGE if malformed); without
 // them the screenshots stay off. Returns whether any frame will be captured.
