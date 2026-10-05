@@ -64,7 +64,7 @@ void daTag_Kf1_c::setStt(signed char state) {
 }
 
 /* 00000234-00000294       .text next_msgStatus__11daTag_Kf1_cFPUl */
-u16 daTag_Kf1_c::next_msgStatus(unsigned long* msg) {
+u16 daTag_Kf1_c::next_msgStatus(u32* msg) {
     u16 status = fopMsgStts_MSG_CONTINUES_e;
     switch (*msg) {
     case 0x1C30:

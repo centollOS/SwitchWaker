@@ -785,7 +785,7 @@ void daNpc_Bj1_c::setReg(unsigned short reg) {
 }
 
 /* 00001B14-00001E84       .text next_msgStatus__11daNpc_Bj1_cFPUl */
-u16 daNpc_Bj1_c::next_msgStatus(unsigned long* msg) {
+u16 daNpc_Bj1_c::next_msgStatus(u32* msg) {
     u16 result = 15;
     switch (*msg) {
     case 0x13ED:

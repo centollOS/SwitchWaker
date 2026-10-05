@@ -889,7 +889,7 @@ void daNpc_Ko1_c::lookBack() {
 }
 
 /* 00001FFC-00002204       .text next_msgStatus__11daNpc_Ko1_cFPUl */
-u16 daNpc_Ko1_c::next_msgStatus(unsigned long* pMsg) {
+u16 daNpc_Ko1_c::next_msgStatus(u32* pMsg) {
     u16 result = 15;
     switch (*pMsg) {
     case 0xAF4:

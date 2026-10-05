@@ -63,7 +63,14 @@ public:
     bool chk_manzai_1();
     bool chk_partsNotMove();
     void lookBack();
+#if TARGET_PC
+    // u32 is unsigned int on the host, not unsigned long: declared with unsigned long this did not
+    // override fopNpc_npc_c::next_msgStatus, so talk() called the base one (MSG_ENDS) and the
+    // conversation ended after its first message. override makes the compiler check it.
+    u16 next_msgStatus(u32*) override;
+#else
     virtual u16 next_msgStatus(unsigned long*);
+#endif
     u32 getMsg_HNA_0();
     u32 getMsg_HNA_1();
     u32 getMsg_HNA_2();

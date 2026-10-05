@@ -35,13 +35,16 @@ static cPhs_State fopScnRq_phase_Done(scene_request_class* i_sceneReq) {
     return cPhs_NEXT_e;
 }
 
-static void fopScnRq_Execute(scene_request_class* i_sceneReq) {
+// fpcNdRq_Handler switches on what this returns (done, failed, or go on): void on the GameCube,
+// where r3 still held cPhs_Do's result; on PC that would be whatever the compiler leaves in the
+// return register (it happens to be the same today). Returns it (zeldaret/tww 92e7ebe1).
+static cPhs_State fopScnRq_Execute(scene_request_class* i_sceneReq) {
     cPhs_State phase_state = cPhs_Do(&i_sceneReq->mReqPhsProcCls, i_sceneReq);
     switch (phase_state) {
     case cPhs_NEXT_e:
-        fopScnRq_Execute(i_sceneReq);
-        break;
+        return fopScnRq_Execute(i_sceneReq);
     }
+    return phase_state;
 }
 
 static int fopScnRq_PostMethod(void* param_1, scene_request_class* i_sceneReq) {

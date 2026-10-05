@@ -108,6 +108,10 @@ set(COS_GAME_COMPILE_OPTIONS
         -Wno-ignored-attributes
         -Wno-writable-strings
         # 64-bit diagnostics (int-to-pointer-cast, ...) stay visible on purpose: phase 4 input.
+        # A derived method that only hides a virtual one (u32 is unsigned int on the host, unsigned
+        # long on MWCC: next_msgStatus(unsigned long*) did not override fopNpc_npc_c's, and five
+        # NPCs' talks ended after one message) is an error with clang (Mac, Linux).
+        $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang,AppleClang>>:-Werror=overloaded-virtual>
         -ferror-limit=50)
 
 # Phase 4 inventory (docs/NATIVE_PORT_PHASE4_6.md, step 4.0a): the 64-bit and missing-return

@@ -509,7 +509,7 @@ void daNpc_Kk1_c::anmAtr(unsigned short status) {
 }
 
 /* 000011A0-0000149C       .text next_msgStatus__11daNpc_Kk1_cFPUl */
-u16 daNpc_Kk1_c::next_msgStatus(unsigned long* pMsg) {
+u16 daNpc_Kk1_c::next_msgStatus(u32* pMsg) {
     u16 result = fopMsgStts_MSG_CONTINUES_e;
     switch (*pMsg) {
     case 0x1C85:

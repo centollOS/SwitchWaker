@@ -327,7 +327,7 @@ void daNpc_Km1_c::setStt(signed char param_1) {
 }
 
 /* 00000C64-00000C6C       .text next_msgStatus__11daNpc_Km1_cFPUl */
-u16 daNpc_Km1_c::next_msgStatus(unsigned long*) {
+u16 daNpc_Km1_c::next_msgStatus(u32*) {
     return fopMsgStts_MSG_ENDS_e;
 }
 

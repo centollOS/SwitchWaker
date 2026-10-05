@@ -8162,7 +8162,9 @@ static cPhs_State camera_create(camera_class* i_this) {
 }
 
 /* 8017C9B0-8017C9DC       .text camera_delete__FP20camera_process_class */
-static bool camera_delete(camera_process_class* i_this) {
+// int, not bool: both are called through the process method table's int-returning pointers, and
+// a bool return leaves the register's upper bits undefined on PC (zeldaret/tww 3a091431).
+static int camera_delete(camera_process_class* i_this) {
     dCamera_c* camera = &i_this->mCamera;
 
     if (camera->CameraID() == 0) {
@@ -8174,7 +8176,7 @@ static bool camera_delete(camera_process_class* i_this) {
 }
 
 /* 8017C9DC-8017C9E4       .text is_camera_delete__FPv */
-static bool is_camera_delete(void*) {
+static int is_camera_delete(void*) {
     return TRUE;
 }
 

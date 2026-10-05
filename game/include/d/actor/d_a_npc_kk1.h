@@ -43,7 +43,14 @@ public:
     void ctrlAnmAtr();
     void setAnm_ATR();
     void anmAtr(unsigned short);
+#if TARGET_PC
+    // u32 is unsigned int on the host, not unsigned long: declared with unsigned long this did not
+    // override fopNpc_npc_c::next_msgStatus, so talk() called the base one (MSG_ENDS) and the
+    // conversation ended after its first message. override makes the compiler check it.
+    u16 next_msgStatus(u32*) override;
+#else
     u16 next_msgStatus(unsigned long*);
+#endif
     u32 getMsg_KK1_0();
     u32 getMsg();
     void eventOrder();

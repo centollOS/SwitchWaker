@@ -49,7 +49,14 @@ public:
     bool getMaskInf(unsigned char*);
     bool chkReg(unsigned short);
     void setReg(unsigned short);
+#if TARGET_PC
+    // u32 is unsigned int on the host, not unsigned long: declared with unsigned long this did not
+    // override fopNpc_npc_c::next_msgStatus, so talk() called the base one (MSG_ENDS) and the
+    // conversation ended after its first message. override makes the compiler check it.
+    u16 next_msgStatus(u32*) override;
+#else
     virtual u16 next_msgStatus(unsigned long*);
+#endif
     u32 getMsg_BJ1_0();
     u32 getMsg_BJ2_0();
     u32 getMsg_BJ3_0();

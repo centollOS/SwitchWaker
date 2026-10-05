@@ -466,6 +466,9 @@ void dMCloth_c::plot(float xMin, float yMin, float xMax, float yMax) {
 
             yPos -= yStep;
         }
+        // Each column's GXBegin needs its GXEnd: a no-op on the GameCube, but Aurora finishes the
+        // draw there (zeldaret/tww 3a091431, "add missing GXEnd").
+        GXEnd();
 
         xPos += xStep;
     }
@@ -552,6 +555,9 @@ void dMCloth_c::plot_shadow(float xMin, float yMin, float xMax, float yMax) {
 
             yPos -= yStep;
         }
+        // Each column's GXBegin needs its GXEnd: a no-op on the GameCube, but Aurora finishes the
+        // draw there (zeldaret/tww 3a091431, "add missing GXEnd").
+        GXEnd();
 
         xPos += xStep;
     }
