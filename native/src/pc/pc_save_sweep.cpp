@@ -21,9 +21,9 @@
 //
 // COS_SMOKE=save-load (no COS_BOOT_STAGE; COS_CARD_DIR names the card folder of a save-sweep run):
 // the real boot: START on the title (every kStartEvery frames) until the name scene runs, then A
-// every kAEvery frames (the file select: file 1, start). When the PLAY scene first exists (the name
-// scene loaded the file with dComIfGs_setCardToMemory and dComIfGs_gameStart asked for its return
-// place), the state in memory is packed again (dComIfGs_setMemoryToCard) and compared region by
+// every kAEvery frames (the file select: file 1, start). When the name scene reaches changeGameScene
+// (it loaded the file with dComIfGs_setCardToMemory; dComIfGs_gameStart then asks for its return
+// place), before any actor of the stage runs, the state in memory is packed again (dComIfGs_setMemoryToCard) and compared region by
 // region with file 1 of the card, read from the GCI on disk (only status B's save date, 8 bytes,
 // differs: memory_to_card stamps it anew); <COS_RUN_DIR>/save_loaded.txt gets the summary. Then
 // the start stage must be the save's return place and the player must stand in its room for
@@ -67,6 +67,7 @@ constexpr uint32_t kGciHeaderSize = 0x40;
 constexpr uint32_t kBlockSize = 0x2000;
 constexpr uint32_t kSaveDataFiles = 0x8;
 constexpr uint32_t kFileBlocks = 12;
+constexpr int kMainChangeGameScene = 9; // dScnName_c::MainProc[9]
 
 struct Region {
     const char* name;
@@ -376,6 +377,32 @@ void saveFrame(unsigned int frames) {
     }
 }
 
+bool sCompared = false;
+
+// The state the file select loaded, against the card: run when the name scene reaches
+// changeGameScene (FileSelectMainNormal ran dComIfGs_setCardToMemory, dComIfGs_gameStart is next),
+// before the PLAY scene's actors run (Outset's mailbox, d_a_obj_toripost createInit, stocks
+// letters into the event registers as soon as it is created).
+void compareLoaded() {
+    sCompared = true;
+    logReturnPlace("loaded");
+    const int slot = dComIfGs_getDataNum();
+    memset(sRepacked, 0, sizeof(sRepacked));
+    dComIfGs_setMemoryToCard(sRepacked, slot);
+    const u8* mine = &sRepacked[slot * sizeof(card_gamedata)];
+    writeSummary("save_loaded.txt", mine, "loaded through the file select");
+    const size_t size = readGci();
+    if (size != kGciHeaderSize + kFileBlocks * kBlockSize) {
+        failExit("the GCI %s is 0x%zX bytes", runCardGciPath() ? runCardGciPath() : "(none)", size);
+    }
+    const int diffs = compareFiles("loaded state vs card", mine, gciFile(1, slot));
+    if (diffs != 0) {
+        failExit("%d region(s) of the loaded state differ from file %d of the card", diffs, slot + 1);
+    }
+    writef(STDERR_FILENO, "[cos] save-load: the loaded state equals file %d of the card (but the save date)\n",
+           slot + 1);
+}
+
 void loadFrame(unsigned int frames) {
     ++sSince;
     if (sState == kTitle) {
@@ -402,22 +429,9 @@ void loadFrame(unsigned int frames) {
         setDrivenPad(true, 0, 0, 0);
         writef(STDERR_FILENO, "[cos] save-load: frame %u: PLAY scene requested for %s room %d point %d\n", frames,
                dComIfGp_getStartStageName(), (int)dComIfGp_getNextStageRoomNo(), (int)dComIfGp_getNextStagePoint());
-        logReturnPlace("loaded");
-        const int slot = dComIfGs_getDataNum();
-        memset(sRepacked, 0, sizeof(sRepacked));
-        dComIfGs_setMemoryToCard(sRepacked, slot);
-        const u8* mine = &sRepacked[slot * sizeof(card_gamedata)];
-        writeSummary("save_loaded.txt", mine, "loaded through the file select");
-        const size_t size = readGci();
-        if (size != kGciHeaderSize + kFileBlocks * kBlockSize) {
-            failExit("the GCI %s is 0x%zX bytes", runCardGciPath() ? runCardGciPath() : "(none)", size);
+        if (!sCompared) {
+            failExit("the PLAY scene came without the name scene's changeGameScene (no comparison made)");
         }
-        const int diffs = compareFiles("loaded state vs card", mine, gciFile(1, slot));
-        if (diffs != 0) {
-            failExit("%d region(s) of the loaded state differ from file %d of the card", diffs, slot + 1);
-        }
-        writef(STDERR_FILENO, "[cos] save-load: the loaded state equals file %d of the card (but the save date)\n",
-               slot + 1);
         sState = kPlay;
         sSince = 0;
         return;
@@ -486,6 +500,9 @@ void saveLoadNameScene(int mainProc, int memCardCheckProc, int drawProc) {
         sNameMain = mainProc;
         sNameCard = memCardCheckProc;
         sNameDraw = drawProc;
+    }
+    if (mainProc == kMainChangeGameScene && !sCompared) {
+        compareLoaded();
     }
 }
 
