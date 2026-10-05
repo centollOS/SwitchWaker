@@ -48,7 +48,8 @@ stage:room), --disc PATH, --exe PATH, --out DIR (default build/combat-sweep/<mod
 --items LIST (COS_BOOT_ITEMS).
 Report: <out>/combat_sweep.tsv and .md: per case the result (died, timeout, refused,
 self-deleted, left-stage, done, FAULT with the boot_sweep.py signature), the smoke's counters,
-and the number of pipelines in its cache. Exit 0 if no run faulted, 1 otherwise.
+the number of pipelines in its cache and the high-water marks of Aurora's fixed staging buffers
+(KiB of vertices/uniforms/indices/storage of 5120/24576/2048/8192: a frame past one aborts). Exit 0 if no run faulted, 1 otherwise.
 
 pipelines: for each run directory under the given sweep directories, the pipelines of its
 cache/pipeline_cache.db that the bundled file (--bundled, default
@@ -285,7 +286,10 @@ def run_one(args, run_dir, stage, env):
     lines = [l for l in boot_sweep.read(os.path.join(run_dir, "combat_sweep.txt")).splitlines()
              if l and not l.startswith("#")]
     result = lines[-1] if lines else ""
+    hw = re.findall(r"gfx high-water: verts=(\d+) KiB/\d+ uniforms=(\d+) KiB/\d+ indices=(\d+) KiB/\d+ "
+                    r"storage=(\d+) KiB", log)
     r = {"rc": rc, "seconds": int(time.time() - t0), "line": result,
+         "highwater": "/".join(hw[-1]) if hw else "-",
          "signature": boot_sweep.signature(run_dir, rc, log), "pipelines": cache_rows(run_dir)}
     f = result.split()
     if rc in (0, 1) and len(f) >= 5 and f[4] != "begin":
@@ -392,11 +396,12 @@ def sweep(args, mode):
                   r["counters"], "" if r["rc"] in (0,) else "  " + r["signature"]), flush=True)
     counts = collections.Counter(r["result"] for r in results.values())
     with open(os.path.join(args.out, "combat_sweep.tsv"), "w") as f:
-        f.write("key\tcase\twhy\tresult\texit\tpipelines\tcounters\tsignature\tseconds\n")
+        f.write("key\tcase\twhy\tresult\texit\tpipelines\tcounters\tsignature\tseconds\t"
+                "gfx_kib_vert/unif/idx/stor\n")
         for key, label, stage, env, why in jobs:
             r = results[key]
             f.write("\t".join([key, label, why, r["result"], str(r["rc"]), str(r["pipelines"]),
-                               r["counters"], r["signature"], str(r["seconds"])]) + "\n")
+                               r["counters"], r["signature"], str(r["seconds"]), r["highwater"]]) + "\n")
     with open(os.path.join(args.out, "combat_sweep.md"), "w") as f:
         f.write("# combat_sweep %s %s\n\n" % (mode, os.path.basename(args.out)))
         f.write("stage %s, %d frames, items %s; results: %s\n\n" % (

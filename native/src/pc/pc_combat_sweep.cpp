@@ -627,6 +627,7 @@ void spawn() {
 
 void endSweep() {
     sState = kDone;
+    writePacing(STDERR_FILENO); // with the gfx staging buffers' high-water marks
     setDrivenPad(false, 0, 0, 0);
     if (sMode == kSpawnMode) {
         writef(STDERR_FILENO, "[cos] combat-sweep: %d cases: %u died, %u timeout, %u refused, %u "
@@ -727,6 +728,7 @@ void combatSweepFrame(unsigned int frames) {
                    dComIfGp_getNextStageRoomNo(), dComIfGp_getNextStagePoint());
             sLeft++;
             writeResult(lost);
+            writePacing(STDERR_FILENO);
             pc_exit(PC_EXIT_CHECK_FAILED);
         }
     }
