@@ -33,7 +33,14 @@ int fopScnPause_Disable(scene_class* i_scene) {
         if (!tmp) {
             fpcM_PauseDisable(i_scene, 1);
             fpcM_PauseDisable(i_scene, 2);
+#if TARGET_PC
+        // ((int*)tmp)[1] is mBsPcId at offset 4 on the GameCube; on PC base_process_class starts
+        // with a vtable pointer, so that read took half of it, fpcEx_IsExist failed and a scene
+        // created under a parent node (a sea room loaded while sailing) stayed paused (bug B18).
+        } else if (fpcEx_IsExist(((base_process_class*)tmp)->mBsPcId) == 1) {
+#else
         } else if (fpcEx_IsExist((s32)((int*)tmp)[1]) == 1) {
+#endif
 #endif
             if (!fpcM_IsPause(tmp, 1)) {
                 fpcM_PauseDisable(i_scene, 1);

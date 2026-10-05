@@ -18,7 +18,10 @@
 //      again, up to three times;
 //   5. sail: the main stick steers the tiller (left/right) toward heading 0 (+z, north, downwind);
 //      every frame's wall time is kept for the perf summary; the stay room must change from 11
-//      (a sea room boundary crossed) and the boat must cover at least kMinDistance;
+//      (a sea room boundary crossed) and the boat must cover at least kMinDistance; the room entered
+//      must be up (dStage_roomControl_c status 0x01, set by its room scene's first execute) within
+//      kRoomUpFrames: until then the island's far model (d_a_lod_bg) stays drawn over it and
+//      loadRoom loads no other room (bug B18);
 //   6. exit 0 when every check held, else 1. Shots (shot-<frame>.png in the run directory): on the
 //      boat, the sail up at speed, just after the room boundary, and the last frame.
 // The perf summary line: "[cos] sailing: perf ..." with the mean, median, p95 and worst frame wall
@@ -57,6 +60,7 @@ constexpr unsigned int kReboardPressFrames = 30;
 constexpr unsigned int kWindFrames = 150;    // the wind must have turned by then
 constexpr unsigned int kSailUpFrames = 45;   // after X, the sail must be up
 constexpr unsigned int kSailFrames = 1800;   // 60 s at 30 fps
+constexpr unsigned int kRoomUpFrames = 90; // after the boundary, the new room must be up
 constexpr float kMinDistance = 20000.0f;     // units the boat must cover (the boundary is 25000 away)
 constexpr s16 kHeading = 0;                  // +z: north from Windfall's corner to room 18
 constexpr s16 kWindNorth = 0x4000;           // dKyw_wind_set: (cos y, 0, sin y) = +z
@@ -73,6 +77,7 @@ int sLastRoom = -1;
 bool sCrossed = false;
 unsigned int sCrossFrame = 0;
 bool sShotAfterCross = false;
+bool sRoomUpChecked = false;
 cXyz sStartPos;
 cXyz sLastPos;
 float sTravelled = 0.0f;
@@ -391,6 +396,16 @@ void sailingFrame(unsigned int frames) {
         }
         if (sSince == 300) {
             shot(frames, "sailing north, sail up");
+        }
+        if (sCrossed && !sRoomUpChecked && frames >= sCrossFrame + kRoomUpFrames) {
+            sRoomUpChecked = true;
+            const int up = sLastRoom;
+            const bool isUp = dComIfGp_roomControl_checkStatusFlag(up, 0x01) != 0;
+            writef(STDERR_FILENO, "[cos] sailing: frame %u: room %d %s %u frames after the boundary\n", frames, up,
+                   isUp ? "is up" : "is NOT up", kRoomUpFrames);
+            if (!isUp) {
+                fail("the sea room entered never came up (its room scene did not run)");
+            }
         }
         if (sCrossed && !sShotAfterCross && frames >= sCrossFrame + 30) {
             sShotAfterCross = true;

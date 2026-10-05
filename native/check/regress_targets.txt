@@ -127,5 +127,6 @@ static-init 2 --preset bogus
 # COS_SMOKE=sailing (lane sailing): the sailing preset's boot on the boat, off it with A and back on
 # with A after swimming to it (bug B17: the preset lacked event bits 0x0A80/0x1980), the wind turned north (the wind
 # song's dKyw_tact_wind_set), the sail up with X, 60 s of sailing north steered by the stick, across the
-# sea room boundary (11 -> 18) and at least 20000 units; perf summary and four shots in the run directory
+# sea room boundary (11 -> 18), room 18 up within 90 frames (bug B18: a room loaded while sailing stayed
+# paused and the island's far model covered it) and at least 20000 units; perf summary and four shots in the run directory
 sailing 0 --preset sailing
