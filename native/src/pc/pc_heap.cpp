@@ -23,6 +23,7 @@
 #include "JSystem/JKernel/JKRSolidHeap.h"
 #include "m_Do/m_Do_ext.h"
 #include "d/d_com_inf_game.h"
+#include "f_op/f_op_actor_mng.h"
 
 #include <aurora/aurora.h>
 #include <dolphin/os.h>
@@ -554,6 +555,28 @@ static void describeHeap(JKRHeap* heap, char* out, size_t outSize) {
 
 static unsigned int sAllocFailures = 0;
 
+static void* actorWithHeap(void* proc, void* heap) {
+    return ((fopAc_ac_c*)proc)->heap == heap ? proc : nullptr;
+}
+
+// The actor whose own heap (fopAc_ac_c::heap, fopAcM_entrySolidHeap) heap or the current heap is:
+// " (actor fpcNm 0x...)" or "". A failure the game survives in an actor's heap has no backtrace on
+// the console; the process name says which actor's heap is too small.
+static void describeOwner(JKRHeap* heap, char* out, size_t outSize) {
+    out[0] = '\0';
+    if (heapName(heap) != nullptr) {
+        return;
+    }
+    fopAc_ac_c* actor = fopAcM_Search(actorWithHeap, heap);
+    if (actor == nullptr && JKRHeap::getCurrentHeap() != heap) {
+        actor = fopAcM_Search(actorWithHeap, JKRHeap::getCurrentHeap());
+    }
+    if (actor != nullptr) {
+        snprintf(out, outSize, "; actor fpcNm 0x%04X (process %u, room %d)", (unsigned)fopAcM_GetName(actor),
+                 (unsigned)fopAcM_GetID(actor), (int)fopAcM_GetRoomNo(actor));
+    }
+}
+
 static void reportAllocFailure(JKRHeap* heap, u32 size, int alignment) {
     const unsigned int sCount = ++sAllocFailures;
     if (sCount > 64 && sCount % 256 != 0) {
@@ -563,11 +586,13 @@ static void reportAllocFailure(JKRHeap* heap, u32 size, int alignment) {
     describeHeap(heap, name, sizeof(name));
     char current[96];
     describeHeap(JKRHeap::getCurrentHeap(), current, sizeof(current));
+    char owner[96];
+    describeOwner(heap, owner, sizeof(owner));
     writef(STDERR_FILENO,
            "[cos] heap: cannot alloc 0x%x bytes (align %d) in the %s: size 0x%x, free 0x%x, largest "
-           "free block 0x%x; current %s; frame %u, failure #%u\n",
+           "free block 0x%x; current %s%s; frame %u, failure #%u\n",
            (unsigned)size, alignment, name, (unsigned)heap->getHeapSize(),
-           (unsigned)heap->getTotalFreeSize(), (unsigned)heap->getFreeSize(), current,
+           (unsigned)heap->getTotalFreeSize(), (unsigned)heap->getFreeSize(), current, owner,
            pc_frame_count(), sCount);
 #if defined(__APPLE__)
     // The callers (room sweep: a failure the game survives has no crash backtrace to tell whose
