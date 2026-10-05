@@ -47,7 +47,8 @@ Options (both): --jobs N (default 2), --timeout S per run (default 600), --only 
 stage:room), --disc PATH, --exe PATH, --out DIR (default build/combat-sweep/<mode>-<timestamp>),
 --items LIST (COS_BOOT_ITEMS).
 Report: <out>/combat_sweep.tsv and .md: per case the result (died, timeout, refused,
-self-deleted, left-stage, done, FAULT with the boot_sweep.py signature), the smoke's counters,
+self-deleted, left-stage, done, FAULT with the boot_sweep.py signature, xfail for ROOM_EXPECTED),
+the smoke's counters,
 the number of pipelines in its cache and the high-water marks of Aurora's fixed staging buffers
 (KiB of vertices/uniforms/indices/storage of 5120/24576/2048/8192: a frame past one aborts). Exit 0 if no run faulted, 1 otherwise.
 
@@ -101,6 +102,22 @@ ROOM_SETUP: dict = {
 # Boss and mini-boss stages by name: a B suffix (M_DragB, SirenB, kazeB...) only counts with an enemy in
 # the room (figureB, KATA_HB are not boss stages); the others count even without one (the boss
 # of M2ganon, GanonK... comes with an event).
+# (stage, room) -> (signature regex, reason): runs whose failure is not a port bug.
+_GANONC = ("leftover rooms: GanonC's doors link no room (TGDR angle x 4095, rooms 63/63) and no SCLS "
+           "exit leads to rooms 1-5, so the game never enters them; their Phantom Ganon throws energy "
+           "balls whose hit effect (0x8245, ID_AK_SN_BPGHITDARKSHOT00) is in Pscene080 (GanonJ, the "
+           "real maze) but not in GanonC's Pscene084, and d_a_fgmahou.cpp uses the NULL emitter "
+           "unchecked (a NULL access on the GameCube too)")
+_E3ROOP = ("leftover E3 stage without a camera record (room_sweep.py ROOM_EXPECTED_FAIL): the PLAY "
+           "scene never finishes creating")
+ROOM_EXPECTED = {
+    ("GanonC", 1): (r"addr=0x2a4 .* in C_MTXIdentity", _GANONC),
+    ("GanonC", 2): (r"addr=0x2a4 .* in C_MTXIdentity", _GANONC),
+    ("GanonC", 3): (r"addr=0x2a4 .* in C_MTXIdentity", _GANONC),
+    ("GanonC", 4): (r"addr=0x2a4 .* in C_MTXIdentity", _GANONC),
+    ("E3ROOP", 0): (r"TIMEOUT|timeout|state: scene=ROOM_SCENE", _E3ROOP),
+}
+
 BOSS_STAGE = re.compile(r"^(?:.*(?:B|BOSS|MB)|Xboss\d|Ganon[A-Z]|GTower|M2tower|M2ganon)$")
 BOSS_STAGE_STRONG = re.compile(r"^(?:.*(?:BOSS|MB)|Xboss\d|Ganon[A-Z]|GTower|M2tower|M2ganon)$")
 # Rooms asked for by name that no code rule finds: Mrs. Marie's school on Windfall (d_a_npc_ho).
@@ -379,6 +396,8 @@ def sweep(args, mode):
             env.update(ROOM_SETUP.get(stage, {}))
             env.update(ROOM_SETUP.get((stage, room), {}))
             spec = "%s:%d:%d" % (stage, room, point) + ("" if layer is None else ":%d" % layer)
+            if (stage, room) in ROOM_EXPECTED:
+                why += ";xfail"
             jobs.append((spec.replace(":", "_"), spec, spec, env, why))
     print("combat_sweep %s: %d runs, %d at a time; %s" % (mode, len(jobs), args.jobs,
                                                         os.path.relpath(args.out, REPO)), flush=True)
@@ -390,6 +409,10 @@ def sweep(args, mode):
         for fut in concurrent.futures.as_completed(futs):
             key = futs[fut]
             r = fut.result()
+            m = re.match(r"(\w+?)_(\d+)_\d+", key)
+            exp = ROOM_EXPECTED.get((m.group(1), int(m.group(2)))) if m and mode == "rooms" else None
+            if exp and r["result"] in ("FAULT", "FAIL") and re.search(exp[0], r["signature"]):
+                r["result"] = "xfail"
             results[key] = r
             done += 1
             print("[%d/%d] %s: %s exit %d %s%s" % (done, len(jobs), key, r["result"], r["rc"],
