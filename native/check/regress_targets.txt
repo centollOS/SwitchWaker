@@ -162,3 +162,9 @@ camera-invert 0 --stage sea:11:9
 # every frame; Dragon Roost's settled ash wrote one SNOW_EFF past its array into the next heap block's
 # header (caught by the ASan build: native/CMakeLists.txt, "AddressSanitizer variant")
 stage-hop 0 --stage Adanmae:0:0 --heap-check 1
+# COS_SMOKE=event-sweep (bug B34): the sea's awake_zola demo (Demo28) sends a message code after the
+# message process is gone; the demo's message control kept the freed resource container and
+# JMessage::TResourceContainer::Get_groupID walked it (SIGSEGV on about half the runs; the ASan
+# build sees every one). A crash ends the run with 13; the event itself stays "stuck" on its
+# message, as without a message process anywhere
+event-sweep 0 --stage sea:1:0 --env COS_EVENT_SWEEP=120 --env COS_EVENT_SWEEP_SECONDS=20 --env COS_EVENT_SWEEP_DEMOS=awake_zola.stb:28
