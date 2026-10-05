@@ -1068,9 +1068,17 @@ void pc_frame_end(void) {
     }
 
     const uint64_t perfNow = monotonicNs();
-    perfFrameEnd(endFrameStartNs, perfNow, stats);
-    if (sPerfOn) {
-        perfPlatformFrame(sLastPerfFrame, sLastEvents, stats, pc_frame_count() + 1, perfNow);
+    {
+        // The perf lines keep static vectors across frames (perfPlatformFrame's GPU groups and
+        // timings): through the global operator new their storage went into whichever game heap was
+        // current, a room's heap included, and a scene change freed it under them; the next
+        // allocation walked a damaged free list (console crash in JKRExpHeap::allocFromHead from
+        // perfPlatformFrame, 5 s after entering a stage). Host allocations come from malloc.
+        JKRPcHostAllocScope hostAlloc;
+        perfFrameEnd(endFrameStartNs, perfNow, stats);
+        if (sPerfOn) {
+            perfPlatformFrame(sLastPerfFrame, sLastEvents, stats, pc_frame_count() + 1, perfNow);
+        }
     }
     pc_frame_tick();
 
