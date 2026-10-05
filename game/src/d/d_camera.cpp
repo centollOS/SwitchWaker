@@ -7699,7 +7699,15 @@ int dCamera_c::StartShake(s32 i_length, u8* i_pattern, s32 i_flags, cXyz i_pos) 
     }
 
     var_r28 = i_length & 7;
+#if TARGET_PC
+    // At the longest pattern i == PATTERN_LENGTH_MAX: the GameCube read the byte after the 4-byte
+    // pattern (a u32 on dVibration_c::Run's stack) and masked it to 0 ((0xFF << 8) & byte). Same
+    // value without the out-of-bounds read (ASan, stack-buffer-overflow).
+    const u8 tail = i < PATTERN_LENGTH_MAX ? i_pattern[i] : 0;
+    m544[i] = (0xFF << (8 - var_r28)) & tail;
+#else
     m544[i] = (0xFF << (8 - var_r28)) & i_pattern[i];
+#endif
 
     if (i_length == (PATTERN_LENGTH_MAX << 3)) {
         m548[i] = m544[i] | (i_pattern[0] >> var_r28);

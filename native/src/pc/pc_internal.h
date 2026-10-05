@@ -297,6 +297,8 @@ void kyProcsFrame(unsigned int frames);
 void chestFrame(unsigned int frames);
 // Stuck-event watch (pc_event_watch.cpp): logs an event that runs for more than 20 s.
 void eventWatchFrame(unsigned int frames);
+// COS_SMOKE=stage-hop (pc_stage_hop.cpp): door-like scene changes through COS_STAGE_HOP.
+void stageHopFrame(unsigned int frames);
 // COS_SMOKE=camera-invert (pc_camera_invert.cpp): the inverted camera axes.
 void cameraInvertFrame(unsigned int frames);
 

@@ -149,3 +149,7 @@ chest 0 --stage Asoko:0:0:2
 # "vertical"): the C stick turns the camera's yaw and pitch the opposite way with the axis inverted,
 # and the wind baton's left hand still reads the C stick's real direction
 camera-invert 0 --stage sea:11:9
+# COS_SMOKE=stage-hop (bug B23): Adanmae -> Atorizk -> Adanmae three times with every JKR heap checked
+# every frame; Dragon Roost's settled ash wrote one SNOW_EFF past its array into the next heap block's
+# header (caught by the ASan build: native/CMakeLists.txt, "AddressSanitizer variant")
+stage-hop 0 --stage Adanmae:0:0 --heap-check 1

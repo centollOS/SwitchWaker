@@ -116,7 +116,16 @@ public:
     virtual ~dKankyo_snow_Packet();
 
     /* 0x0010 */ u8* mpTexture;
+#if TARGET_PC
+    // One more than the GameCube's 250: dKyr_kazanbai_tamari_move (Dragon Roost's settled ash)
+    // starts at mEff[mTamariStart + 200] = mEff[250] (mTamariStart is 50), one past the end. On the
+    // GameCube that element lay over this object's tail and the next block's padding; on PC it
+    // reached the next heap block's header (its mPrev's upper half took mTimer, e.g. 0x1b), and
+    // freeing that block at the next room change faulted in JKRExpHeap::recycleFreeBlock.
+    /* 0x0014 */ SNOW_EFF mEff[251];
+#else
     /* 0x0014 */ SNOW_EFF mEff[250];
+#endif
     /* 0x36C4 */ cXyz mOldEyePos;
     /* 0x36D0 */ f32 field_0x36d0;
     /* 0x36D4 */ f32 field_0x36d4;
