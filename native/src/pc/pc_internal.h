@@ -282,7 +282,8 @@ const char* bootPreset();
 void applySailingPreset(bool inPlay);
 // A smoke test's own controller state for port 0 (pc_input.cpp; COS_SMOKE=sailing); on wins over a
 // COS_INPUT script.
-void setDrivenPad(bool on, uint16_t buttons, int8_t stickX, int8_t stickY);
+void setDrivenPad(bool on, uint16_t buttons, int8_t stickX, int8_t stickY, int8_t substickX = 0,
+                  int8_t substickY = 0);
 void sailingFrame(unsigned int frames);
 // COS_SMOKE=rope (pc_rope.cpp, bug B19): the hanging ropes of Tetra's ship.
 void ropeFrame(unsigned int frames);
@@ -296,6 +297,8 @@ void kyProcsFrame(unsigned int frames);
 void chestFrame(unsigned int frames);
 // Stuck-event watch (pc_event_watch.cpp): logs an event that runs for more than 20 s.
 void eventWatchFrame(unsigned int frames);
+// COS_SMOKE=camera-invert (pc_camera_invert.cpp): the inverted camera axes.
+void cameraInvertFrame(unsigned int frames);
 
 // pc_shot.cpp: parses COS_SHOT / COS_SHOT_EVERY (exit PC_EXIT_USAGE if malformed); without
 // them the screenshots stay off. Returns whether any frame will be captured.

@@ -32,6 +32,8 @@
 
 #include "pc_internal.h"
 
+#include "pc/pc_controls.h"
+
 #include "d/d_com_inf_game.h"
 #include "d/d_s_play.h"
 #include "d/d_save.h"
@@ -397,6 +399,8 @@ void applyDynres(const char*, const char* v, void*) {
 void applyMist(const char*, const char* v, void*) { pc_mist_lowres_set(atoi(v)); }
 void applySky(const char*, const char* v, void*) { pc_sky_lowres_set(atoi(v)); }
 void applyDof(const char*, const char* v, void*) { pc_dof_set(strcmp(v, "0") != 0); }
+void applyCameraInvertX(const char*, const char* v, void*) { pc_camera_invert_x_set(strcmp(v, "1") == 0); }
+void applyCameraInvertY(const char*, const char* v, void*) { pc_camera_invert_y_set(strcmp(v, "1") == 0); }
 void applyShadow(const char*, const char* v, void*) {
     pc_shadow_offscreen_set(strcmp(v, "1") == 0    ? PC_SHADOW_OFFSCREEN_SAME
                             : strcmp(v, "gc") == 0 ? PC_SHADOW_OFFSCREEN_GC
@@ -464,6 +468,12 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kSkyLowres), "0", applySky, nullptr, 40},
     {"COS_DOF", "Profundidad de campo", "Desenfoque del paisaje lejano, como en la GameCube.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "1", applyDof, nullptr, 50},
+    {"COS_CAMERA_INVERT_X", "Invertir cámara horizontal",
+     "El stick C gira la cámara al revés en horizontal.",
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertX, nullptr, 90},
+    {"COS_CAMERA_INVERT_Y", "Invertir cámara vertical",
+     "El stick C inclina la cámara al revés en vertical.",
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertY, nullptr, 91},
     {"COS_SHADOW_OFFSCREEN", "Sombras en tiempo real",
      "Dónde se dibujan las sombras de los personajes: fuera del EFB evita cortar la pasada principal.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kShadow), "0", applyShadow, nullptr, 60},

@@ -337,6 +337,7 @@ const Smoke kSmokes[] = {
     {"wind-screen", kInGame},
     {"ky-procs", kInGame},
     {"chest", kInGame},
+    {"camera-invert", kInGame},
 };
 
 const Smoke* findSmoke(const char* name) {
