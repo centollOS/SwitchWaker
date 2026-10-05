@@ -211,6 +211,10 @@ public:
     /* 0xAE4 */ u8 field_0xAE4;
     /* 0xAE5 */ u8 field_0xAE5;
     /* 0xAE8 */ enemyice mEnemyIce;
+#if TARGET_PC
+    // The process ID of mBaseTarget, to tell when that actor is gone (setBaseTarget).
+    fpc_ProcID mBaseTargetId;
+#endif
 };  // Size: 0xEA0
 
 #endif /* D_A_FM_H */
