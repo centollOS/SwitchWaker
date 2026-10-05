@@ -151,11 +151,17 @@ if [[ $what == linux || $what == all ]]; then
 
     if [[ $do_test == 1 ]]; then
         targets=${COS_TEST_TARGETS:-static-init disc-ls title}
+        # Xvfb started directly, not through xvfb-run: xvfb-run waits for Xvfb's ready signal
+        # (SIGUSR1) before running the command and can miss it when Xvfb starts fast, then waits
+        # forever (a --regress run sat 2 h before regress.sh even started). Wait for the socket.
         run_linux -e COS_BUILD_DIR="$bdir" -e COS_ALLOW_CPU_ADAPTER=1 -- "set -e
+            Xvfb :99 -screen 0 1280x800x24 -nolisten tcp >/dev/null 2>&1 &
+            for i in \$(seq 1 50); do [ -S /tmp/.X11-unix/X99 ] && break; sleep 0.1; done
+            export DISPLAY=:99
             $bdir/cos_sdk_smoke >/dev/null 2>&1 && echo 'ok   cos_sdk_smoke' || { echo 'FAIL cos_sdk_smoke'; exit 1; }
             $bdir/cos_pc_tests >/dev/null && echo 'ok   cos_pc_tests' || { echo 'FAIL cos_pc_tests'; exit 1; }
             for t in $targets; do
-                if xvfb-run -a -s '-screen 0 1280x800x24' native/tools/run.sh \$t --quiet >/dev/null 2>&1; then
+                if native/tools/run.sh \$t --quiet >/dev/null 2>&1; then
                     echo \"ok   run \$t\"
                 else
                     echo \"FAIL run \$t (see $bdir/runs/)\"; exit 1
@@ -164,7 +170,10 @@ if [[ $what == linux || $what == all ]]; then
     fi
     if [[ $do_regress == 1 ]]; then
         run_linux -e COS_BUILD_DIR="$bdir" -e COS_ALLOW_CPU_ADAPTER=1 -- \
-            "xvfb-run -a -s '-screen 0 1280x800x24' native/tools/regress.sh -j 4"
+            "Xvfb :99 -screen 0 1280x800x24 -nolisten tcp >/dev/null 2>&1 &
+            for i in \$(seq 1 50); do [ -S /tmp/.X11-unix/X99 ] && break; sleep 0.1; done
+            export DISPLAY=:99
+            native/tools/regress.sh -j 4"
     fi
 fi
 

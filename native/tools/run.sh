@@ -18,7 +18,9 @@
 # names. native/tools/actor_sweep.py runs it again after each fault and lists the faults.
 #
 # Options:
-#   --timeout S      in-process watchdog timeout (COS_TIMEOUT_S), default 180
+#   --timeout S      in-process watchdog timeout (COS_TIMEOUT_S), default 180 (720 with
+#                    COS_ALLOW_CPU_ADAPTER=1: software rendering, e.g. lavapipe in a container, runs
+#                    the input scripts several times slower)
 #   --stall S        frame-counter stall limit (COS_STALL_S), default 30
 #   --frames N       exit 0 after N game frames (COS_FRAMES)
 #   --trace LIST     trace channels (COS_TRACE), e.g. res,scene
@@ -138,7 +140,7 @@ run_dir_opt=""
 extra=()
 while [ $# -gt 0 ]; do
     case "$1" in
-        --timeout) timeout_s="$2"; shift 2 ;;
+        --timeout) timeout_s="$2"; timeout_given=1; shift 2 ;;
         --stall) stall_s="$2"; shift 2 ;;
         --frames) frames="$2"; shift 2 ;;
         --trace) trace="$2"; shift 2 ;;
@@ -164,6 +166,9 @@ while [ $# -gt 0 ]; do
     esac
 done
 case "$timeout_s" in ''|*[!0-9.]*) echo "run: --timeout needs seconds" >&2; exit 2 ;; esac
+if [ "${COS_ALLOW_CPU_ADAPTER:-0}" = 1 ] && [ -z "${timeout_given:-}" ]; then
+    timeout_s=$((timeout_s * 4))
+fi
 case "$stall_s" in ''|*[!0-9.]*) echo "run: --stall needs seconds" >&2; exit 2 ;; esac
 
 needs_disc=1
