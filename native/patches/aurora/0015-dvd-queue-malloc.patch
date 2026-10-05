@@ -1,0 +1,44 @@
+diff --git a/lib/dolphin/dvd/dvd.cpp b/lib/dolphin/dvd/dvd.cpp
+--- a/lib/dolphin/dvd/dvd.cpp
++++ b/lib/dolphin/dvd/dvd.cpp
+@@ -10,6 +10,7 @@
+ #include <atomic>
+ #include <condition_variable>
+ #include <cstddef>
++#include <cstdlib>
+ #include <cstdint>
+ #include <cstring>
+ #include <deque>
+@@ -601,7 +602,31 @@
+   std::mutex m_mutex;
+   std::condition_variable m_cv;
+   std::condition_variable m_doneCv;
+-  std::deque<DVDCommandBlock*> m_queue;
++  // centollOS patch 0015: the queue's storage comes from malloc. Through the global operator new
++  // it went into whichever game heap was current on the calling thread (the game replaces
++  // operator new with its JKR heaps): a 512-byte libstdc++ node landed in the system heap when
++  // JKRAramStream read the disc and was freed only by a later read, and in a heap that a scene
++  // change destroys it would be used after being freed.
++  template <typename T>
++  struct MallocAllocator {
++    using value_type = T;
++    MallocAllocator() noexcept = default;
++    template <typename U>
++    MallocAllocator(const MallocAllocator<U>&) noexcept {}
++    T* allocate(std::size_t n) {
++      void* p = std::malloc(n * sizeof(T));
++      if (p == nullptr) {
++        std::abort();
++      }
++      return static_cast<T*>(p);
++    }
++    void deallocate(T* p, std::size_t) noexcept { std::free(p); }
++    template <typename U>
++    bool operator==(const MallocAllocator<U>&) const noexcept { return true; }
++    template <typename U>
++    bool operator!=(const MallocAllocator<U>&) const noexcept { return false; }
++  };
++  std::deque<DVDCommandBlock*, MallocAllocator<DVDCommandBlock*>> m_queue;
+   DVDCommandBlock* m_activeBlock = nullptr;
+   DVDCommandBlock* m_cancelActiveBlock = nullptr;
+   bool m_running = false;
