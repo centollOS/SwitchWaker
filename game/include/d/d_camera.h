@@ -40,7 +40,13 @@ inline u32 dCamera_strTag(const char* str) {
 #endif
 struct dCamera__EventParam {
     /* 0x00 */ char mName[16];
+#if TARGET_PC
+    // A pointer the caller passes to dCamera_c::StartEventCamera ("Type", &mProcVar6.m3570; Bo's
+    // "@STARTER" and cXyz pointers): a 32-bit int cut it on PC (bug B20).
+    /* 0x10 */ intptr_t mValue;
+#else
     /* 0x10 */ int mValue;
+#endif
 };
 
 struct dCamera__Type {

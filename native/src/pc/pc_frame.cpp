@@ -1088,6 +1088,7 @@ void pc_frame_end(void) {
     npcVariantsFrame(frames);
     sailingFrame(frames);
     ropeFrame(frames);
+    evcamFrame(frames);
     fileSelectFrame(frames);
     newGameFrame(frames);
     precompileFrame(frames);

@@ -382,7 +382,12 @@ BOOL dCamera_c::StartEventCamera(int param_0, int param_1, ...) {
         char* name = va_arg(args, char*);
         if (name) {
             strcpy(mEventData.mEventParams[i].mName, name);
+#if TARGET_PC
+            // Every value is a pointer the camera reads through (getEvIntData *(int*), ...).
+            mEventData.mEventParams[i].mValue = (intptr_t)va_arg(args, void*);
+#else
             mEventData.mEventParams[i].mValue = va_arg(args, int);
+#endif
         } else {
             mEventData.mEventParams[i].mName[0] = 0;
             break;

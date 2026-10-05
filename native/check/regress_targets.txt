@@ -133,3 +133,6 @@ sailing 0 --preset sailing
 # COS_SMOKE=rope (bug B19): Niko's rope lesson on Tetra's ship (Asoko layer 2): the player hangs where
 # they grab the rope (not at its top) and R + stick back slides them down it
 rope 0 --stage Asoko:0:0:2
+# COS_SMOKE=evcam (bug B20): the event camera's pointer arguments ("Type", &value as the bottle, food
+# and item cameras pass them) read back through getEvIntData; a 32-bit mValue crashed
+evcam 0 --stage sea:44:206

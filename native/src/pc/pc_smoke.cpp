@@ -333,6 +333,7 @@ const Smoke kSmokes[] = {
     {"sailing", kInGame},
     {"options-menu", kInGame},
     {"rope", kInGame},
+    {"evcam", kInGame},
 };
 
 const Smoke* findSmoke(const char* name) {
