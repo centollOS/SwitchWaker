@@ -55,6 +55,8 @@
 //   item-get demo; each event must end within a wall-time limit.
 // - save-sweep / save-load (pc_save_sweep.cpp): a save through the save screen's steps, then loaded
 //   back through the title and file select in a second run and compared with the card.
+// - event-sweep (pc_event_sweep.cpp): with COS_BOOT_STAGE, every event of the stage's event list
+//   ordered and run to its end or a timeout; native/tools/event_sweep.py restarts it after faults.
 // The format sweeps and the other smoke tests of phases 4-6 add their names to kSmokes; one that
 // runs after some of the boot is started by the boot code at that point, not by runEarlySmoke.
 #include "pc_internal.h"
@@ -349,6 +351,7 @@ const Smoke kSmokes[] = {
     {"save-load", kInGame},
     {"camera-invert", kInGame},
     {"stage-hop", kInGame},
+    {"event-sweep", kInGame},
 };
 
 const Smoke* findSmoke(const char* name) {
