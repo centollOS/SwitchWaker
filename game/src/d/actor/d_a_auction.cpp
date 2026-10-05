@@ -278,6 +278,14 @@ cPhs_State daAuction_c::createInit() {
     mNpcEvtInfo.setActorInfo("Auction", this);
     m824 = 0;
     m826 = 0xFF;
+#if TARGET_PC
+    // The bidders register their models (setAucMdlNo) only once this actor has finished creating
+    // (daNpcAuction_c's phase_1 waits for it), so here mAucMdlNo[m824] is still the constructor's
+    // 0xFF and the GameCube read l_npc_msg_dat[255], past the 12 entries (in Orichh, every
+    // auction): the name ID it set was whatever followed the table. _execute sets it again from
+    // the registered model. Skip it here (ASan, global-buffer-overflow).
+    if (getAucMdlNo(m824) < ARRAY_SIZE(l_npc_msg_dat))
+#endif
     dComIfGp_setNpcNameMessageID(l_npc_msg_dat[getAucMdlNo(m824)].field_0x00);
 
     mCurrAuctionItemIndex = 0;
