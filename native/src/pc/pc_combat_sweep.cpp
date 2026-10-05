@@ -15,7 +15,9 @@
 //   COS_COMBAT_SWEEP=<first>[-<last>] limits the cases (list lines from 0, or process names).
 // - room: nothing is spawned; the player fights whatever the room holds (a boss room, a
 //   minigame) for COS_COMBAT_FRAMES frames (default 6000), walking towards the nearest enemy
-//   actor (horizontal distance), or wandering when there is none, then the run exits 0.
+//   actor (horizontal distance), or wandering when there is none, then the run exits 0. A reload
+//   of the boot stage (a boss event restarting it, a void-out) is waited through (kMaxReloads);
+//   leaving for another stage ends the run (exit 1, the next stage logged).
 // The cycle (kCycle frames): first kIdleFrames frames standing still with L released, so the
 // enemy comes and hits the player; then, L held to lock on: sword slashes (B) while
 // walking towards the target, a spin attack (B held, the stick around), A (jump attack locked on,
@@ -125,6 +127,11 @@ const char* sGoneResult = nullptr;
 // Totals.
 unsigned int sDied = 0, sTimeout = 0, sRefused = 0, sSelfDeleted = 0, sLeft = 0, sStuck = 0;
 s16 sWanderYaw = 0;
+// Room mode: reloads of the boot stage waited through.
+constexpr unsigned int kMaxReloads = 5;
+constexpr unsigned int kReloadMaxFrames = 1800;
+bool sReloading = false;
+unsigned int sReloads = 0, sReloadWait = 0;
 
 void* isPlayScene(void* proc, void*) {
     return fpcM_GetName(proc) == fpcNm_PLAY_SCENE_e ? proc : nullptr;
@@ -557,9 +564,9 @@ void writeResult(const char* result) {
         return;
     }
     if (sMode == kRoomMode) {
-        writef(sFd, "room - - - %s frames=%u hits=%u refills=%u locked=%u dist=%d deaths=%u\n",
+        writef(sFd, "room - - - %s frames=%u hits=%u refills=%u locked=%u dist=%d deaths=%u reloads=%u\n",
                result, sAlive, sHits, sRefills, sLocked, sMinDist < 1e8f ? (int)sMinDist : -1,
-               sDeaths);
+               sDeaths, sReloads);
         return;
     }
     writef(sFd, "%d %s %d %08x %s frames=%u hp=%d->%d hits=%u refills=%u locked=%u dist=%d\n", sCase,
@@ -712,9 +719,41 @@ void combatSweepFrame(unsigned int frames) {
         sState = kNext;
     }
 
+    // Room mode across a reload of the same stage (a boss event restarting it, a void-out): wait
+    // until the PLAY scene and the player are back, then go on (counted in reloads=).
+    if (sReloading) {
+        if (fpcM_Search(isPlayScene, nullptr) == nullptr || dComIfGp_getPlayer(0) == nullptr ||
+            fopAcM_GetName(dComIfGp_getPlayer(0)) != fpcNm_PLAYER_e) {
+            if (++sReloadWait > kReloadMaxFrames) {
+                writef(STDERR_FILENO, "[cos] combat-sweep: the stage did not come back; stopping\n");
+                writeResult("reload-stuck");
+                writePacing(STDERR_FILENO);
+                pc_exit(PC_EXIT_CHECK_FAILED);
+            }
+            setDrivenPad(true, 0, 0, 0);
+            return;
+        }
+        sReloading = false;
+        sLastLife = dComIfGs_getLife();
+        writef(STDERR_FILENO, "[cos] combat-sweep: stage back after %u frames (reload %u)\n",
+               sReloadWait, sReloads);
+    }
+
     // The stage left (game over, a floor master, a void-out restart to another stage).
     if (sState != kNext && sState != kGap) {
         if (const char* lost = sceneLost()) {
+            const char* nextStage = dComIfGp_getNextStageName();
+            const PcBootStage* boot = pc_boot_stage();
+            if (sMode == kRoomMode && !sDeathMode && nextStage != nullptr && boot != nullptr &&
+                strcmp(nextStage, boot->stage) == 0 && sReloads < kMaxReloads) {
+                sReloads++;
+                sReloading = true;
+                sReloadWait = 0;
+                writef(STDERR_FILENO, "[cos] combat-sweep: %s, reloading %s room %d point %d; waiting\n",
+                       lost, nextStage, dComIfGp_getNextStageRoomNo(), dComIfGp_getNextStagePoint());
+                setDrivenPad(true, 0, 0, 0);
+                return;
+            }
             if (sDeathMode && sDeaths > 0) {
                 writef(STDERR_FILENO, "[cos] combat-sweep: %s after %u death(s) (death mode)\n", lost, sDeaths);
                 writeResult("game-over");
