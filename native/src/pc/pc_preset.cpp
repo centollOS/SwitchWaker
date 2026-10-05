@@ -19,6 +19,10 @@
 //           and without it the boat forces message 0x5E0; d_meter: the chart on Up)
 //   0x0902  Dragon Roost arrival seen (d_a_tag_island type 1: otherwise the arrival event plays
 //           when the boat comes near; dComIfGs_checkSeaLandingEvent)
+//   0x0A80  the boat's talk about the wind done (message 0x5ED, d_a_ship setNextMessage)
+//   0x1980  the boat boarded after that talk (d_a_ship procPaddleMove_init); with 0x0902 and
+//           without it the boat offers "get in" (fopAc_Attn_ACTION_SHIP_e) only while the wind
+//           blows north, so once off the boat the player could not get back on
 //   0x0A20  the forest island's arrival seen (d_a_tag_island type 2)
 //   0x0A08  the boat's talk about that pearl done (d_a_ship checkForceMessage: with the pearl and
 //           without it the boat stops the player for message 0x5F6 as soon as no event runs)
@@ -48,7 +52,8 @@ namespace pc {
 
 namespace {
 
-const unsigned short kSailingEvents[] = {0x0F80, 0x2A08, 0x0908, 0x0902, 0x0A20, 0x0A08, 0x2A80};
+const unsigned short kSailingEvents[] = {0x0F80, 0x2A08, 0x0908, 0x0902, 0x0A80, 0x1980,
+                                         0x0A20, 0x0A08, 0x2A80};
 
 struct PresetItem {
     unsigned char item;

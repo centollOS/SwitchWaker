@@ -124,7 +124,8 @@ options-menu 0 --stage sea:44:206 --input native/check/input/menu-travel-save.tx
 # takes the player to Windfall's sea room on the boat; an unknown COS_BOOT_PRESET is a usage error
 options-menu 0 --stage sea:44:206 --input native/check/input/menu-sailing.txt
 static-init 2 --preset bogus
-# COS_SMOKE=sailing (lane sailing): the sailing preset's boot on the boat, the wind turned north (the wind
+# COS_SMOKE=sailing (lane sailing): the sailing preset's boot on the boat, off it with A and back on
+# with A after swimming to it (bug B17: the preset lacked event bits 0x0A80/0x1980), the wind turned north (the wind
 # song's dKyw_tact_wind_set), the sail up with X, 60 s of sailing north steered by the stick, across the
 # sea room boundary (11 -> 18) and at least 20000 units; perf summary and four shots in the run directory
 sailing 0 --preset sailing

@@ -7,15 +7,19 @@
 // how many frames the boot takes:
 //   1. wait for the player in sea room 11, then kSettleFrames; the player must ride the boat
 //      (daPyStts0_SHIP_RIDE_e) and the boat actor must exist (dComIfGp_getShipActor);
-//   2. the wind: dKyw_tact_wind_set(0, 0x4000), what the wind song's bird (d_a_wbird, through
+//   2. off and on again: A with the sail down gets the player off into the sea (the riding status
+//      must end within kGetOffFrames, up to three presses); swimming next to the boat, A must get
+//      them back on (daShip_c sets fopAc_Attn_ACTION_SHIP_e, "Subir") within kReboardFrames, A
+//      pressed every kReboardPressFrames; then kSettleFrames again;
+//   3. the wind: dKyw_tact_wind_set(0, 0x4000), what the wind song's bird (d_a_wbird, through
 //      d_operate_wind's windSet) calls for "north"; the wind vector must turn to +z within
 //      kWindFrames (the game turns it smoothly);
-//   3. X (the sail is on X): the sail must be up (daShip_c::getSailOn) within kSailUpFrames, else X
+//   4. X (the sail is on X): the sail must be up (daShip_c::getSailOn) within kSailUpFrames, else X
 //      again, up to three times;
-//   4. sail: the main stick steers the tiller (left/right) toward heading 0 (+z, north, downwind);
+//   5. sail: the main stick steers the tiller (left/right) toward heading 0 (+z, north, downwind);
 //      every frame's wall time is kept for the perf summary; the stay room must change from 11
 //      (a sea room boundary crossed) and the boat must cover at least kMinDistance;
-//   5. exit 0 when every check held, else 1. Shots (shot-<frame>.png in the run directory): on the
+//   6. exit 0 when every check held, else 1. Shots (shot-<frame>.png in the run directory): on the
 //      boat, the sail up at speed, just after the room boundary, and the last frame.
 // The perf summary line: "[cos] sailing: perf ..." with the mean, median, p95 and worst frame wall
 // time over the sailing part, the frames over 36.7 ms (a 30 fps frame plus 10 %) and the three
@@ -25,6 +29,7 @@
 
 #include "d/actor/d_a_player.h"
 #include "d/actor/d_a_ship.h"
+#include "d/d_camera.h"
 #include "d/d_com_inf_game.h"
 #include "d/d_event_data.h"
 #include "d/d_event_manager.h"
@@ -46,6 +51,9 @@ namespace pc {
 namespace {
 
 constexpr unsigned int kSettleFrames = 90;   // after the player is in the room
+constexpr unsigned int kGetOffFrames = 60;   // after A, the player must be off the boat
+constexpr unsigned int kReboardFrames = 450; // off the boat, A must get the player back on by then
+constexpr unsigned int kReboardPressFrames = 30;
 constexpr unsigned int kWindFrames = 150;    // the wind must have turned by then
 constexpr unsigned int kSailUpFrames = 45;   // after X, the sail must be up
 constexpr unsigned int kSailFrames = 1800;   // 60 s at 30 fps
@@ -53,12 +61,13 @@ constexpr float kMinDistance = 20000.0f;     // units the boat must cover (the b
 constexpr s16 kHeading = 0;                  // +z: north from Windfall's corner to room 18
 constexpr s16 kWindNorth = 0x4000;           // dKyw_wind_set: (cos y, 0, sin y) = +z
 
-enum State { kOff, kWaitPlayer, kSettle, kWind, kSailUp, kSail, kDone };
+enum State { kOff, kWaitPlayer, kSettle, kGetOff, kReboard, kResettle, kWind, kSailUp, kSail, kDone };
 State sState = kOff;
 bool sChecked = false;
 unsigned int sSince = 0;
 unsigned int sErrors = 0;
 int sSailTries = 0;
+int sGetOffTries = 0;
 int sStartRoom = -1;
 int sLastRoom = -1;
 bool sCrossed = false;
@@ -211,6 +220,80 @@ void sailingFrame(unsigned int frames) {
         }
         return;
     case kSettle: {
+        if (++sSince < kSettleFrames) {
+            return;
+        }
+        const bool riding0 = dComIfGp_checkPlayerStatus0(0, daPyStts0_SHIP_RIDE_e) != 0;
+        if (ship == nullptr || !riding0) {
+            fail("the player is not on the boat");
+            finish(frames);
+            return;
+        }
+        writef(STDERR_FILENO, "[cos] sailing: frame %u: on the boat; A to get off\n", frames);
+        pad(PAD_BUTTON_A, 0, 0);
+        sState = kGetOff;
+        sSince = 0;
+        sGetOffTries = 1;
+        return;
+    }
+    case kGetOff:
+        if (++sSince == 3) {
+            pad(0, 0, 0);
+        }
+        if (dComIfGp_checkPlayerStatus0(0, daPyStts0_SHIP_RIDE_e) == 0) {
+            writef(STDERR_FILENO, "[cos] sailing: frame %u: off the boat (A pressed %d time(s))\n", frames,
+                   sGetOffTries);
+            shot(frames, "off the boat");
+            sState = kReboard;
+            sSince = 0;
+            return;
+        }
+        if (sSince >= kGetOffFrames) {
+            if (sGetOffTries >= 3) {
+                fail("A did not get the player off the boat");
+                finish(frames);
+                return;
+            }
+            sGetOffTries++;
+            pad(PAD_BUTTON_A, 0, 0);
+            sSince = 0;
+        }
+        return;
+    case kReboard:
+        ++sSince;
+        if (dComIfGp_checkPlayerStatus0(0, daPyStts0_SHIP_RIDE_e) != 0) {
+            writef(STDERR_FILENO, "[cos] sailing: frame %u: back on the boat %u frames after getting off\n", frames,
+                   sSince);
+            pad(0, 0, 0);
+            sState = kResettle;
+            sSince = 0;
+            return;
+        }
+        {
+            // Swim to the boat: the stick is camera-relative (daPy_lk_c::setStickData: stick angle
+            // + 0x8000 + the camera's yaw), the stick angle being atan2(x, -y) (JUTGamePad).
+            fopAc_ac_c* player = dComIfGp_getPlayer(0);
+            const cXyz d = ship->current.pos - player->current.pos;
+            const float dist = d.absXZ();
+            int stickX = 0, stickY = 0;
+            if (dist > 150.0f) {
+                const s16 a = (s16)(cM_atan2s(d.x, d.z) - 0x8000 - dCam_getControledAngleY((camera_class*)dComIfGp_getCamera(0)));
+                stickX = (int)(cM_ssin(a) * 100.0f);
+                stickY = (int)(-cM_scos(a) * 100.0f);
+            }
+            pad(sSince % kReboardPressFrames < 3 ? PAD_BUTTON_A : 0, stickX, stickY);
+            if (sSince % 90 == 0) {
+                writef(STDERR_FILENO, "[cos] sailing: frame %u: off the boat %.0f units from it, boat attention flags "
+                                      "0x%08X, do status %d\n",
+                       frames, dist, (unsigned int)ship->attention_info.flags, (int)dComIfGp_getDoStatus());
+            }
+        }
+        if (sSince >= kReboardFrames) {
+            fail("A did not get the player back on the boat (no \"Subir\")");
+            finish(frames);
+        }
+        return;
+    case kResettle: {
         if (++sSince < kSettleFrames) {
             return;
         }
