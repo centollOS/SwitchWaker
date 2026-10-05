@@ -39,6 +39,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -460,10 +461,17 @@ void prepareRunCard(const char* who) {
         pc_exit(PC_EXIT_USAGE);
     }
     // A trailing slash: CARDSetBasePath keeps a path with no file name as the base directory.
-    snprintf(sCardBase, sizeof(sCardBase), "%s/card/", gConfig.runDir);
+    // COS_CARD_DIR: another card folder (the save/load sweep loads the card a save-sweep run wrote).
+    const char* cardDir = getenv("COS_CARD_DIR");
+    if (cardDir != nullptr && cardDir[0] != '\0') {
+        snprintf(sCardBase, sizeof(sCardBase), "%s/", cardDir);
+    } else {
+        snprintf(sCardBase, sizeof(sCardBase), "%s/card/", gConfig.runDir);
+    }
     snprintf(sGciPath, sizeof(sGciPath), "%sUSA/Card A/01-GZLE-%s.gci", sCardBase, kSaveFile);
     CARDSetBasePath(sCardBase, 0);
-    writef(STDERR_FILENO, "[cos] %s: memory card A is the empty folder %s\n", who, sCardBase);
+    writef(STDERR_FILENO, "[cos] %s: memory card A is the folder %s%s\n", who, sCardBase,
+           cardDir != nullptr && cardDir[0] != '\0' ? " (COS_CARD_DIR)" : " (empty at start)");
 }
 
 const char* runCardGciPath() {

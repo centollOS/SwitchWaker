@@ -51,6 +51,10 @@
 //   spawned next to the player, run 30 frames and deleted; pass = no fault.
 // - combat-sweep (pc_combat_sweep.cpp): with COS_BOOT_STAGE, enemies spawned in front of the player
 //   (or a room's own, COS_COMBAT_MODE=room) fought with a driven pad; pass = no fault.
+// - item-sweep (pc_item_sweep.cpp): with COS_BOOT_STAGE, every item number through a chest's
+//   item-get demo; each event must end within a wall-time limit.
+// - save-sweep / save-load (pc_save_sweep.cpp): a save through the save screen's steps, then loaded
+//   back through the title and file select in a second run and compared with the card.
 // The format sweeps and the other smoke tests of phases 4-6 add their names to kSmokes; one that
 // runs after some of the boot is started by the boot code at that point, not by runEarlySmoke.
 #include "pc_internal.h"
@@ -340,6 +344,9 @@ const Smoke kSmokes[] = {
     {"wind-screen", kInGame},
     {"ky-procs", kInGame},
     {"chest", kInGame},
+    {"item-sweep", kInGame},
+    {"save-sweep", kInGame},
+    {"save-load", kInGame},
     {"camera-invert", kInGame},
     {"stage-hop", kInGame},
 };

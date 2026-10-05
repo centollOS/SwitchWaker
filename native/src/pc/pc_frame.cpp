@@ -1101,6 +1101,8 @@ void pc_frame_end(void) {
     windScreenFrame(frames);
     kyProcsFrame(frames);
     chestFrame(frames);
+    itemSweepFrame(frames);
+    saveSweepFrame(frames);
     eventWatchFrame(frames);
     stageHopFrame(frames);
     cameraInvertFrame(frames);

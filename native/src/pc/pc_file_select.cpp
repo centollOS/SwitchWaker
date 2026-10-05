@@ -73,4 +73,5 @@ extern "C" void pc_name_scene_drawn(int mainProc, int memCardCheckProc, int draw
     pc::sDrawProc = drawProc;
     pc::sDraws++;
     pc::newGameNameScene(mainProc, memCardCheckProc, drawProc);
+    pc::saveLoadNameScene(mainProc, memCardCheckProc, drawProc);
 }

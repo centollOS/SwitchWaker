@@ -27,7 +27,9 @@ unsigned int sRunning = 0;
 s16 sEventId = -1;
 unsigned int sReports = 0;
 
-void report(unsigned int frames) {
+} // namespace
+
+void eventWatchReport(unsigned int frames) {
     dEvt_control_c* ev = g_dComIfG_gameInfo.play.getEvent();
     dEvent_manager_c* mng = dComIfGp_getPEvtManager();
     dEvDtEvent_c* data = mng->getEventData(ev->mEventId);
@@ -57,8 +59,6 @@ void report(unsigned int frames) {
     }
 }
 
-} // namespace
-
 void eventWatchFrame(unsigned int frames) {
     if (!dComIfGp_event_runCheck()) {
         sRunning = 0;
@@ -73,7 +73,7 @@ void eventWatchFrame(unsigned int frames) {
     ++sRunning;
     if (sReports < kMaxReports && sRunning >= kStuckFrames && (sRunning - kStuckFrames) % kRepeatFrames == 0) {
         sReports++;
-        report(frames);
+        eventWatchReport(frames);
     }
 }
 
