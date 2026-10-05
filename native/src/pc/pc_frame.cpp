@@ -1090,6 +1090,7 @@ void pc_frame_end(void) {
     ropeFrame(frames);
     evcamFrame(frames);
     windScreenFrame(frames);
+    kyProcsFrame(frames);
     fileSelectFrame(frames);
     newGameFrame(frames);
     precompileFrame(frames);

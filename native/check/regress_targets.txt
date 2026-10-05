@@ -139,3 +139,6 @@ evcam 0 --stage sea:44:206
 # COS_SMOKE=wind-screen (bug B21): the wind song's wind-direction screen (d_operate_wind) opens with no
 # failed allocation; its GameCube-sized 20000-byte heap ran out and panicked
 wind-screen 0 --preset sailing
+# COS_SMOKE=ky-procs (bug B22): the storm's lightning, a water mark and a water pillar created as the
+# game creates them; the lightning's GameCube-sized heap failed, so no lightning appeared in storms
+ky-procs 0 --preset sailing

@@ -55,7 +55,15 @@ BOOL dThunder_c::draw() {
 /* 80198810-8019886C       .text createHeap__10dThunder_cFv */
 BOOL dThunder_c::createHeap() {
     if (solid_heap == NULL) {
+#if TARGET_PC
+        // Bug B22: the lightning's J3DModel and its display lists are bigger on the host; the
+        // GameCube's 0x4A0 bytes ran out in J3DModel::newDifferedDisplayList (0x100 bytes), so no
+        // lightning was ever drawn in a storm (the console log's repeated 0x100-byte failures in a
+        // 0x4B0 solid heap while sailing). Doubled.
+        solid_heap = mDoExt_createSolidHeapFromGameToCurrent(0x4a0 * 2, 0x20);
+#else
         solid_heap = mDoExt_createSolidHeapFromGameToCurrent(0x4a0, 0x20);
+#endif
         if (solid_heap == NULL)
             return FALSE;
     }
