@@ -11,6 +11,7 @@
 #include "d/d_event_data.h"
 #include "d/d_event_manager.h"
 #include "f_op/f_op_actor_mng.h"
+#include "m_Do/m_Do_audio.h"
 
 #include <unistd.h>
 
@@ -35,6 +36,12 @@ void report(unsigned int frames) {
     writef(STDERR_FILENO, "[cos] event-watch: frame %u: event %d \"%s\" running for %u frames, mode %u, actors %d / %d\n",
            frames, ev->mEventId, data != nullptr ? data->getName() : "(no data)", sRunning, ev->getMode(),
            pt1 != nullptr ? fopAcM_GetName(pt1) : -1, pt2 != nullptr ? fopAcM_GetName(pt2) : -1);
+    // The item get's message cannot be closed while the item fanfare (a sub BGM) still plays
+    // (d_msg.cpp: checkMesgBgm and mDoAud_checkPlayingSubBgmFlag): a fanfare that never ends
+    // leaves the event waiting with the game running.
+    writef(STDERR_FILENO, "[cos] event-watch:   audio: sub BGM playing 0x%x, message waits for music %d, "
+                          "message status %d\n", (unsigned)mDoAud_checkPlayingSubBgmFlag(),
+           (int)dComIfGp_checkMesgBgm(), (int)dComIfGp_getMesgStatus());
     if (data == nullptr) {
         return;
     }

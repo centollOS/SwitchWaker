@@ -7,8 +7,9 @@
 //   2. the same chest is created kSpawn in front of the player, facing them, inside the play scene's
 //      layer (the real one is behind the lesson's shutter, out of reach from the start);
 //   3. the player walks at it until the A button says "Open" (dActStts_OPEN_e) and presses A; its
-//      event (DEFAULT_TREASURE) must start within kStartFrames and end within kEventFrames, A every
-//      kTalkFrames for the item's message. Shots every kShotEvery frames while it runs.
+//      event (DEFAULT_TREASURE) must start within kStartFrames and end within kEventSeconds of wall
+//      time (the item's message waits for the fanfare, which plays in real time: uncapped runs go
+//      through many more frames), A every kTalkFrames for the item's message. Shots every kShotEvery frames while it runs.
 // Exit 0 when the chest's event ends, else 1.
 #include "pc_internal.h"
 
@@ -33,7 +34,7 @@ namespace {
 
 constexpr unsigned int kSettleFrames = 60;
 constexpr unsigned int kStartFrames = 240;
-constexpr unsigned int kEventFrames = 900;
+constexpr double kEventSeconds = 90.0; // wall time: the item fanfare plays in real time
 constexpr unsigned int kTalkFrames = 45;
 constexpr unsigned int kShotEvery = 30;
 constexpr float kSpawn = 200.0f;
@@ -44,6 +45,7 @@ State sState = kOff;
 bool sChecked = false;
 unsigned int sSince = 0;
 unsigned int sEventFrames = 0;
+uint64_t sEventStartNs = 0;
 
 void* isPlayScene(void* proc, void*) {
     return fpcM_GetName(proc) == fpcNm_PLAY_SCENE_e ? proc : nullptr;
@@ -157,6 +159,7 @@ void chestFrame(unsigned int frames) {
             logEvent(frames);
             sState = kEvent;
             sSince = 0;
+            sEventStartNs = monotonicNs();
         } else if (sSince >= kStartFrames) {
             logEvent(frames);
             writef(STDERR_FILENO, "[cos] chest: FAIL A did not open the chest\n");
@@ -173,9 +176,9 @@ void chestFrame(unsigned int frames) {
         if (!dComIfGp_event_runCheck()) {
             writef(STDERR_FILENO, "[cos] chest: frame %u: the chest's event ended after %u frames\n", frames, sSince);
             finish(frames, true);
-        } else if (sSince >= kEventFrames) {
+        } else if ((monotonicNs() - sEventStartNs) / 1e9 >= kEventSeconds) {
             logEvent(frames);
-            writef(STDERR_FILENO, "[cos] chest: FAIL the chest's event did not end in %u frames\n", kEventFrames);
+            writef(STDERR_FILENO, "[cos] chest: FAIL the chest's event did not end in %.0f s\n", kEventSeconds);
             finish(frames, false);
         }
         return;
