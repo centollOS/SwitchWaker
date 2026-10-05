@@ -142,3 +142,6 @@ wind-screen 0 --preset sailing
 # COS_SMOKE=ky-procs (bug B22): the storm's lightning, a water mark and a water pillar created as the
 # game creates them; the lightning's GameCube-sized heap failed, so no lightning appeared in storms
 ky-procs 0 --preset sailing
+# COS_SMOKE=chest: the chest of Niko's rope lesson (takara3, the Spoils Bag) created in front of the player on
+# Tetra's ship and opened end to end (DEFAULT_TREASURE starts and ends); the stuck-event watch logs it
+chest 0 --stage Asoko:0:0:2

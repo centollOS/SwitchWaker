@@ -1091,6 +1091,8 @@ void pc_frame_end(void) {
     evcamFrame(frames);
     windScreenFrame(frames);
     kyProcsFrame(frames);
+    chestFrame(frames);
+    eventWatchFrame(frames);
     fileSelectFrame(frames);
     newGameFrame(frames);
     precompileFrame(frames);

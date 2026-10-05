@@ -292,6 +292,10 @@ void evcamFrame(unsigned int frames);
 void windScreenFrame(unsigned int frames);
 // COS_SMOKE=ky-procs (pc_ky_procs.cpp): effect processes with fixed-size heaps.
 void kyProcsFrame(unsigned int frames);
+// COS_SMOKE=chest (pc_chest.cpp): the chest after Niko's rope lesson.
+void chestFrame(unsigned int frames);
+// Stuck-event watch (pc_event_watch.cpp): logs an event that runs for more than 20 s.
+void eventWatchFrame(unsigned int frames);
 
 // pc_shot.cpp: parses COS_SHOT / COS_SHOT_EVERY (exit PC_EXIT_USAGE if malformed); without
 // them the screenshots stay off. Returns whether any frame will be captured.
