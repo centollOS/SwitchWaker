@@ -37,6 +37,31 @@
 #include "d/actor/d_a_canon.h"
 #include "d/actor/d_a_hookshot.h"
 #include "d/actor/d_a_ship.h"
+#if TARGET_PC
+#include "pc/pc_controls.h"
+#endif
+
+// The C stick as the camera reads it (mStickCPos*Last; nothing else in the camera reads the C
+// stick's position). On PC the options can invert either axis (pc_controls.h); only the camera:
+// the wind baton's left hand (mDoAud_getTactDirection), the item menu's songs, the grappling hook
+// and the figure viewer read the C stick themselves and keep its real directions.
+static inline f32 dCamera_cStickX(int padId) {
+#if TARGET_PC
+    if (pc_camera_invert_x()) {
+        return -CPad_GET_SUBSTICK_POS_X(padId);
+    }
+#endif
+    return CPad_GET_SUBSTICK_POS_X(padId);
+}
+
+static inline f32 dCamera_cStickY(int padId) {
+#if TARGET_PC
+    if (pc_camera_invert_y()) {
+        return -CPad_GET_SUBSTICK_POS_Y(padId);
+    }
+#endif
+    return CPad_GET_SUBSTICK_POS_Y(padId);
+}
 
 namespace {  
     static f32 limitf(f32 value, f32 min, f32 max) {
@@ -609,8 +634,8 @@ void dCamera_c::initPad() {
     mStickMainPosYDelta = 0.0f;
     mStickMainValueDelta = 0.0f;
 
-    mStickCPosXLast = CPad_GET_SUBSTICK_POS_X(mPadId);
-    mStickCPosYLast = CPad_GET_SUBSTICK_POS_Y(mPadId);
+    mStickCPosXLast = dCamera_cStickX(mPadId);
+    mStickCPosYLast = dCamera_cStickY(mPadId);
     mStickCValueLast = CPad_GET_SUBSTICK_VALUE(mPadId);
 
     mStickCPosXDelta = 0.0f;
@@ -685,8 +710,8 @@ void dCamera_c::updatePad() {
         fVar3 = 0.0f;
     }
     else {
-        fVar1 = CPad_GET_SUBSTICK_POS_X(mPadId);
-        fVar2 = CPad_GET_SUBSTICK_POS_Y(mPadId);
+        fVar1 = dCamera_cStickX(mPadId);
+        fVar2 = dCamera_cStickY(mPadId);
         fVar3 = CPad_GET_SUBSTICK_VALUE(mPadId);
     }
 

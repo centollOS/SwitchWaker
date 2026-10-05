@@ -5,10 +5,6 @@
 
 #include "m_Do/machine.h" // IWYU pragma: keep
 #include "m_Do/m_Do_controller_pad.h"
-#if TARGET_PC
-#include "pc/pc_controls.h"
-#include <cmath>
-#endif
 #include "JSystem/JUtility/JUTGba.h"
 #include "SSystem/SComponent/c_lib.h"
 #include "f_ap/f_ap_game.h"
@@ -59,22 +55,6 @@ static s32 mDoCPd_Convert(interface_of_controller_pad* pInterface, JUTGamePad* p
     pInterface->mCStickPosY = pPad->getSubStickY();
     pInterface->mCStickValue = pPad->getSubStickValue();
     pInterface->mCStickAngle = pPad->getSubStickAngle();
-#if TARGET_PC
-    // The options' inverted camera axes (pc_controls.h): the C stick only moves the camera. The
-    // angle is recomputed as JUTGamePad::CStick does it, atan2(x, -y) in s16 units.
-    if (pc_camera_invert_x() || pc_camera_invert_y()) {
-        if (pc_camera_invert_x()) {
-            pInterface->mCStickPosX = -pInterface->mCStickPosX;
-        }
-        if (pc_camera_invert_y()) {
-            pInterface->mCStickPosY = -pInterface->mCStickPosY;
-        }
-        if (pInterface->mCStickValue > 0.0f) {
-            pInterface->mCStickAngle =
-                (s16)(10430.379f * std::atan2f(pInterface->mCStickPosX, -pInterface->mCStickPosY));
-        }
-    }
-#endif
 
     mDoCPd_ANALOG_CONV(pPad->getAnalogA(), pInterface->mAnalogA);
     mDoCPd_ANALOG_CONV(pPad->getAnalogB(), pInterface->mAnalogB);

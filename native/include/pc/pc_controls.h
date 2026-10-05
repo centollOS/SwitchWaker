@@ -4,9 +4,10 @@
  * COS_CAMERA_INVERT_X=1   the C stick's horizontal axis turns the camera the other way
  * COS_CAMERA_INVERT_Y=1   the C stick's vertical axis tilts the camera the other way
  *
- * Applied where the game reads the pad (m_Do_controller_pad.cpp, mDoCPd_c::convert): the C stick
- * only moves the camera in this game. Options menu: Gráficos > "Invertir cámara horizontal" and
- * "Invertir cámara vertical", live. The game thread calls all of them.
+ * Applied only where the camera reads the C stick (d_camera.cpp, dCamera_cStickX/Y): the wind
+ * baton's left hand, the item menu's songs, the grappling hook and the figure viewer keep the C
+ * stick's real directions. Options menu: Gráficos > "Invertir cámara horizontal" and "Invertir
+ * cámara vertical", live. The game thread calls all of them.
  */
 #ifndef PC_CONTROLS_H
 #define PC_CONTROLS_H

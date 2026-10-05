@@ -2,14 +2,17 @@
 // COS_BOOT_STAGE=sea:11:9, Windfall's town square), for each axis: the C stick held kHoldFrames
 // one way with the axis normal, then (after kRestFrames) the same with the axis inverted; the
 // camera's yaw (dCam_getControledAngleY) for the horizontal axis, its pitch (dCam_getAngleX) for the
-// vertical one, must move at least kMinTurn and the opposite way the second time. Exit 0 when both
-// axes do, else 1.
+// vertical one, must move at least kMinTurn and the opposite way the second time. Then, with both
+// axes inverted, the C stick held left must still read as left for the wind baton's left hand
+// (mDoAud_getTactDirection(0, 0) == 4): the inversion is the camera's only. Exit 0 when all held,
+// else 1.
 #include "pc_internal.h"
 
 #include "pc/pc_controls.h"
 
 #include "d/d_camera.h"
 #include "d/d_com_inf_game.h"
+#include "m_Do/m_Do_audio.h"
 #include "f_pc/f_pc_manager.h"
 #include "f_pc/f_pc_name.h"
 
@@ -76,7 +79,21 @@ void cameraInvertFrame(unsigned int frames) {
     // 2 hold inverted, 3 rest.
     const int axis = (sStep - 1) / 4;
     const int phase = (sStep - 1) % 4;
+    if (axis >= 2 && sSince < kHoldFrames) {
+        // The baton's left hand with both axes inverted: C stick left must stay left (4).
+        pc_camera_invert_x_set(1);
+        pc_camera_invert_y_set(1);
+        setDrivenPad(true, 0, 0, 0, -100, 0);
+        return;
+    }
     if (axis >= 2) {
+        const int dir = mDoAud_getTactDirection(0, 0);
+        writef(STDERR_FILENO, "[cos] camera-invert: frame %u: both axes inverted, C stick left: baton direction %d "
+                              "(4 = left)\n", frames, dir);
+        if (dir != 4) {
+            sErrors++;
+            writef(STDERR_FILENO, "[cos] camera-invert: FAIL the inversion reached the baton\n");
+        }
         setDrivenPad(true, 0, 0, 0);
         pc_camera_invert_x_set(0);
         pc_camera_invert_y_set(0);
