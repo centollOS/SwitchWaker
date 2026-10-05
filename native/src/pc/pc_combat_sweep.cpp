@@ -719,7 +719,12 @@ void combatSweepFrame(unsigned int frames) {
                 writeResult("game-over");
                 endSweep();
             }
-            writef(STDERR_FILENO, "[cos] combat-sweep: case %d: %s; stopping\n", sCase, lost);
+            // Where the game is going (a door, a void-out restart, a floor master, an event's
+            // stage change).
+            const char* next = dComIfGp_getNextStageName();
+            writef(STDERR_FILENO, "[cos] combat-sweep: case %d: %s (next stage %s room %d point %d); "
+                                  "stopping\n", sCase, lost, next != nullptr ? next : "-",
+                   dComIfGp_getNextStageRoomNo(), dComIfGp_getNextStagePoint());
             sLeft++;
             writeResult(lost);
             pc_exit(PC_EXIT_CHECK_FAILED);
@@ -770,6 +775,17 @@ void combatSweepFrame(unsigned int frames) {
     }
 
     if (sState == kNext) {
+        if (const char* lost = sceneLost()) {
+            // Gone before the first spawn (a volcano island's timer tag sends the player to sea).
+            const char* next = dComIfGp_getNextStageName();
+            writef(STDERR_FILENO, "[cos] combat-sweep: before case %d: %s (next stage %s); stopping\n",
+                   sCase + 1, lost, next != nullptr ? next : "-");
+            if (sFd >= 0) {
+                writef(sFd, "%d %s %d %08x %s frames=0\n", sCase + 1, caseName(sCase + 1),
+                       sCases[sCase + 1].proc, sCases[sCase + 1].params, lost);
+            }
+            pc_exit(PC_EXIT_CHECK_FAILED);
+        }
         sCase++;
         if (sCase > sLast) {
             endSweep();

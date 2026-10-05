@@ -25,7 +25,8 @@ directions with floor at the player's height; the Outset pier, sea:44:0, drowns 
 (Y), hookshot (Z), an empty bottle (the smoke puts a fairy in it). --death adds one case at the end (the first mo2 variant, a moblin)
 with COS_COMBAT_DEATH=1: the player is left to die (fairy revival, then game over).
 --home boots each case in the room of the disc placement its parameters came from instead (at
-that room's spawn point, as room_sweep.py picks it; --stage for an unplaced name or a room without
+that room's spawn point, as room_sweep.py picks it, or for a placement on one layer that layer
+at the spawn point nearest to it; with ROOM_SETUP's event bits for the stage; --stage for an unplaced name or a room without
 a spawn point), so the enemy is fought under its own stage's lights and fog.
 
 rooms: the rooms come from the disc's stage list and the code: (1) every room of the stages whose
@@ -35,7 +36,9 @@ does); (2) every room
 that places an actor whose code runs a minigame (dComIfGp_startMiniGame, MiniGameRupee,
 dMinigame_Starter_c, dTimer_create*, MiniGameInit, TYPE_MINIGAME); (3) EXTRA_ROOMS (Mrs. Marie's
 school, asked for, found by no rule). Spawn point: as room_sweep.py
-picks it (an SCLS entry when there is one). Each room is run with COS_COMBAT_MODE=room for
+picks it (an SCLS entry when there is one), except where a boss (an actor whose code calls
+onStageBossEnemy/onStageBossDemo) is placed on one layer only: that layer, at the spawn point
+nearest to it (Helmaroc on M2tower's layer 3). Each room is run with COS_COMBAT_MODE=room for
 --frames frames (default 6000) of the combat cycle against the nearest enemy, a screenshot every
 --shot-every frames (default 1000). ROOM_SETUP below adds story event bits (COS_BOOT_EVENTS)
 where a boss needs them to appear.
@@ -133,7 +136,8 @@ def object_names():
 
 
 def placements(manifest):
-    """{dStage name: [(params, angle x, angle z, stage, room)]} over every stage and room file."""
+    """{dStage name: [(params, angle x, angle z, stage, room, layer or None, pos)]} over every stage
+    and room file (layer: the record's ACTn/SCOn/TGOn/... tag)."""
     out = collections.defaultdict(list)
     for r in manifest["files"]:
         m = boot_sweep.ROOM_ARC.match(r["path"]) or boot_sweep.STAGE_ARC.match(r["path"])
@@ -144,9 +148,12 @@ def placements(manifest):
             continue
         room = int(m.group(2)) if m.re is boot_sweep.ROOM_ARC else -1
         for tag, lst in dz.get("actors", {}).items():
+            lm = re.fullmatch(r"(?:ACT|SCO|TGO|TRE|DOO)([0-9a-b])", tag)
+            layer = int(lm.group(1), 16) if lm else None
             for a in lst:
                 ang = a.get("angle") or [0, 0, 0]
-                out[a["name"]].append((a["params"] & 0xFFFFFFFF, ang[0], ang[2], m.group(1), room))
+                out[a["name"]].append((a["params"] & 0xFFFFFFFF, ang[0], ang[2], m.group(1), room,
+                                       layer, a.get("pos")))
     return out
 
 
@@ -176,7 +183,7 @@ def enemy_cases(manifest, variants):
             if not pl:
                 cases.append((name, 0, 0, 0, why + ",unplaced", []))
                 continue
-            count = collections.Counter((p, ax, az) for p, ax, az, _, _ in pl)
+            count = collections.Counter((p, ax, az) for p, ax, az, *_ in pl)
             chosen, lows = [], set()
             for (p, ax, az), _ in count.most_common():
                 if len(chosen) >= variants:
@@ -186,7 +193,7 @@ def enemy_cases(manifest, variants):
                 chosen.append((p, ax, az))
                 lows.add(p & 0xFF)
             for p, ax, az in chosen:
-                homes = [(st, rm) for pp, x, z, st, rm in pl if (pp, x, z) == (p, ax, az)]
+                homes = [(st, rm, ly, pos) for pp, x, z, st, rm, ly, pos in pl if (pp, x, z) == (p, ax, az)]
                 cases.append((name, p, ax, az, why, homes))
         if not names.get(enum):
             print("combat_sweep: %s has no dStage name; skipped" % enum, file=sys.stderr)
@@ -194,15 +201,18 @@ def enemy_cases(manifest, variants):
 
 
 def room_cases(manifest):
-    """[(stage, room, point, why)] for the boss, mini-boss and minigame rooms."""
+    """[(stage, room, point, layer or None, why)] for the boss, mini-boss and minigame rooms."""
     profs = actor_profiles()
     names = object_names()
-    enemy_names, minigame_names = set(), {}
+    enemy_names, minigame_names, boss_names = set(), {}, set()
     for f, lst in profs.items():
         text = boot_sweep.read(os.path.join(ACTOR_DIR, f))
         ice = re.search(r"\benemy_(?:ice|fire)\(", text)
         mg = f not in MINIGAME_EXCLUDE and MINIGAME_CODE.search(text)
+        boss_code = re.search(r"onStageBoss(?:Enemy|Demo)\(", text)
         for prof, enum, group in lst:
+            if boss_code:
+                boss_names.update(names.get(enum, []))
             if group == "fopAc_ENEMY_e" or ice:
                 enemy_names.update(names.get(enum, []))
             if mg:
@@ -211,10 +221,16 @@ def room_cases(manifest):
     stages, rooms, points, exits = room_sweep.spawn_points(manifest)
     by_path = {r["path"]: r for r in manifest["files"]}
     room_actors = {}
+    boss_layer = {}  # (stage, room) -> (layer, boss position): a boss placed on one layer only
     for stage in stages:
         for n in rooms.get(stage, []):
             dz = boot_sweep.stage_file(by_path["/res/Stage/%s/Room%d.arc" % (stage, n)]) or {}
             room_actors[(stage, n)] = {a["name"] for lst in dz.get("actors", {}).values() for a in lst}
+            for tag, lst in dz.get("actors", {}).items():
+                lm = re.fullmatch(r"(?:ACT|SCO|TGO|TRE|DOO)([0-9a-b])", tag)
+                for a in lst:
+                    if lm and a["name"] in boss_names:
+                        boss_layer[(stage, n)] = (int(lm.group(1), 16), a.get("pos"))
     out = []
     for stage in stages:
         boss = bool(BOSS_STAGE.match(stage))
@@ -237,7 +253,18 @@ def room_cases(manifest):
             if not pts:
                 continue
             entries = [p for p in pts if (stage, n, p) in exits]
-            out.append((stage, n, (entries or pts)[0], why))
+            point, layer = (entries or pts)[0], None
+            if (stage, n) in boss_layer:
+                # The boss is placed on one layer only (Helmaroc: M2tower's layer 3): boot that
+                # layer at the spawn point nearest to it.
+                layer, bpos = boss_layer[(stage, n)]
+                near = [(sum((a - b) ** 2 for a, b in zip(room_sweep.SPAWN_POS[(stage, n, p)],
+                                                           bpos)), p)
+                        for p in pts if room_sweep.SPAWN_POS.get((stage, n, p)) and bpos]
+                if near:
+                    point = min(near)[1]
+                why += ";layer%d" % layer
+            out.append((stage, n, point, layer, why))
     return out
 
 
@@ -295,6 +322,8 @@ def sweep(args, mode):
     jobs = []  # (key, label, stage, env)
     if mode == "enemies":
         cases = enemy_cases(manifest, args.variants)
+        if args.home:
+            room_sweep.spawn_points(manifest)  # fills SPAWN_POS
         listfile = os.path.join(args.out, "cases.txt")
         with open(listfile, "w") as f:
             f.write("# <dStage name> <params hex> <angle x> <angle z>   (why)\n")
@@ -307,19 +336,28 @@ def sweep(args, mode):
             if args.only and name not in args.only.split(","):
                 continue
             stage = args.stage
+            env_home = {}
             if args.home:
-                # The first placement whose room has a spawn point (an SCLS entry preferred).
-                for st, rm in homes:
-                    pts = points.get(st, {}).get(rm if rm >= 0 else 0, [])
+                # The first placement whose room has a spawn point (an SCLS entry preferred; for a
+                # placement on one layer, that layer at the spawn point nearest to it).
+                for st, rm, ly, pos in homes:
+                    rm = rm if rm >= 0 else 0
+                    pts = points.get(st, {}).get(rm, [])
                     if pts:
                         entries = [q for q in pts if (st, rm, q) in exits]
-                        stage = "%s:%d:%d" % (st, rm if rm >= 0 else 0, (entries or pts)[0])
+                        pt = (entries or pts)[0]
+                        if ly is not None and pos:
+                            near = [(sum((a - b) ** 2 for a, b in zip(room_sweep.SPAWN_POS[(st, rm, q)], pos)), q)
+                                    for q in pts if room_sweep.SPAWN_POS.get((st, rm, q))]
+                            pt = min(near)[1] if near else pt
+                        stage = "%s:%d:%d" % (st, rm, pt) + ("" if ly is None else ":%d" % ly)
                         break
+                env_home = ROOM_SETUP.get(stage.split(":")[0], {})
                 why += ",home=" + stage
             jobs.append(("%03d_%s_%08x" % (i, safe(name), p), "%s %08x" % (name, p), stage,
                          {"COS_COMBAT_SWEEP_LIST": listfile, "COS_COMBAT_SWEEP": str(i),
                           "COS_COMBAT_FRAMES": str(args.frames),
-                          "COS_COMBAT_SHOT_EVERY": str(args.shot_every)}, why))
+                          "COS_COMBAT_SHOT_EVERY": str(args.shot_every), **env_home}, why))
         if args.death:
             first = next((i for i, c in enumerate(cases) if c[0] == "mo2"),
                          next((i for i, c in enumerate(cases) if c[0] == "Bk"), 0))
@@ -328,7 +366,7 @@ def sweep(args, mode):
                           "COS_COMBAT_FRAMES": str(max(args.frames, 2400)), "COS_COMBAT_DEATH": "1",
                           "COS_COMBAT_SHOT_EVERY": "200"}, "death"))
     else:
-        for stage, room, point, why in room_cases(manifest):
+        for stage, room, point, layer, why in room_cases(manifest):
             if args.only and stage not in args.only.split(",") and \
                     "%s:%d" % (stage, room) not in args.only.split(","):
                 continue
@@ -336,8 +374,8 @@ def sweep(args, mode):
                    "COS_COMBAT_SHOT_EVERY": str(args.shot_every)}
             env.update(ROOM_SETUP.get(stage, {}))
             env.update(ROOM_SETUP.get((stage, room), {}))
-            jobs.append(("%s_%d_%d" % (stage, room, point), "%s:%d:%d" % (stage, room, point),
-                         "%s:%d:%d" % (stage, room, point), env, why))
+            spec = "%s:%d:%d" % (stage, room, point) + ("" if layer is None else ":%d" % layer)
+            jobs.append((spec.replace(":", "_"), spec, spec, env, why))
     print("combat_sweep %s: %d runs, %d at a time; %s" % (mode, len(jobs), args.jobs,
                                                         os.path.relpath(args.out, REPO)), flush=True)
     results = {}
@@ -401,6 +439,18 @@ def pipelines(args):
         f.write("new\tonly_here\tsweep\trun\n")
         for n, only, sw, run in rows:
             f.write("%d\t%d\t%s\t%s\n" % (n, only, sw, run))
+    # By enemy (the variants of one dStage name together) or room: their union.
+    groups = collections.defaultdict(set)
+    for (sw, run), keys in per_run.items():
+        m = re.fullmatch(r"\d{3}_(.+)_[0-9a-f]{8}", run)
+        groups[m.group(1) if m else run] |= keys
+    gowners = collections.Counter(k for s in groups.values() for k in s)
+    with open(out, "a") as f:
+        f.write("# by enemy name / room (union of its runs)\nnew\tonly_here\tname\n")
+        for n, only, name in sorted(((len(s), sum(1 for k in s if gowners[k] == 1), g)
+                                     for g, s in groups.items()), reverse=True):
+            if n:
+                f.write("%d\t%d\t%s\n" % (n, only, name))
     print(open(out).read(), end="")
     return 0
 
@@ -435,11 +485,11 @@ def main():
     args.disc = os.path.abspath(args.disc)
     if args.mode == "list-enemies":
         for c in enemy_cases(boot_sweep.load_manifest(args.disc), args.variants):
-            print("%s\t%08x\t%d\t%d\t%s\t%s" % (c[:5] + (" ".join("%s:%d" % h for h in c[5][:4]),)))
+            print("%s\t%08x\t%d\t%d\t%s\t%s" % (c[:5] + (" ".join("%s:%d" % h[:2] for h in c[5][:4]),)))
         return 0
     if args.mode == "list-rooms":
         for c in room_cases(boot_sweep.load_manifest(args.disc)):
-            print("%s\t%d\t%d\t%s" % c)
+            print("%s\t%d\t%d\t%s\t%s" % c)
         return 0
     if args.frames is None:
         args.frames = 1200 if args.mode == "enemies" else 6000
