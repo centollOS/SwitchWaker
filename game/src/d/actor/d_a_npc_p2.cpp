@@ -338,7 +338,14 @@ void daNpc_P2_c::setTexAnm() {
         {-1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     };
 
+#if TARGET_PC
+    // The table has rows for types 0 and 1 only: for type 2 (P2c) the GameCube read
+    // a_tex_pattern_num_tbl[2][m7D1], past the table, before mType != 2 rejected it. Same result
+    // with mType checked first, without the out-of-bounds read (ASan, global-buffer-overflow).
+    if (mType != 2 && m7D0 != a_tex_pattern_num_tbl[mType][m7D1] && a_tex_pattern_num_tbl[mType][m7D1] != -1) {
+#else
     if (m7D0 != a_tex_pattern_num_tbl[mType][m7D1] && a_tex_pattern_num_tbl[mType][m7D1] != -1 && mType != 2) {
+#endif
         m7D0 = a_tex_pattern_num_tbl[mType][m7D1];
         initTexPatternAnm(true);
     }
