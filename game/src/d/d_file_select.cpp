@@ -3452,31 +3452,22 @@ void dFile_select_c::setSaveData() {
             }
             else {
                 strcpy(field_0x38f4[i], (char*)(&data[0x157]));
+#if TARGET_PC
+                PcCalendarTime time; // the decomp's field names (native/include/sdk/dolphin/os/OS.h)
+#else
                 OSCalendarTime time;
+#endif
                 OSTicksToCalendarTime(*(BE(u64)*)(data + 0x18), &time); // big-endian card data (step 4.15)
                 sprintf(
                     field_0x3900[i],
 #if VERSION <= VERSION_JPN
                     "%d.%02d.%02d %02d:%02d:%02d",
-#if TARGET_PC
-                    // Aurora's OSCalendarTime names the fields mon, mday, hour, min and sec (same layout).
-                    time.year, time.mon + 1, time.mday,
-#else
                     time.year, time.month + 1, time.day_of_month,
-#endif
 #else
                     "%02d/%02d/%d %02d:%02d:%02d",
-#if TARGET_PC
-                    time.mon + 1, time.mday, time.year,
-#else
                     time.month + 1, time.day_of_month, time.year,
 #endif
-#endif
-#if TARGET_PC
-                    time.hour, time.min, time.sec
-#else
                     time.hours, time.minutes, time.seconds
-#endif
                 );
                 dataNew[i] = 0;
             }
@@ -3601,32 +3592,26 @@ void dFile_select_c::setSaveData() {
             }
             else {
                 strcpy(field_0x38f4[i], (char*)(&data[0x157]));
+#if TARGET_PC
+                PcCalendarTime time; // the decomp's field names (native/include/sdk/dolphin/os/OS.h)
+#else
                 OSCalendarTime time;
+#endif
                 OSTicksToCalendarTime(*(BE(u64)*)(data + 0x18), &time); // big-endian card data (step 4.15)
 #if VERSION == VERSION_PAL
                 if(dComIfGs_getPalLanguage() == 0) {
                     sprintf(
                         field_0x3900[i],
                         "%02d/%02d/%d %02d:%02d:%02d",
-#if TARGET_PC
-                        time.mon + 1, time.mday, time.year,
-                        time.hour, time.min, time.sec
-#else
                         time.month + 1, time.day_of_month, time.year,
                         time.hours, time.minutes, time.seconds
-#endif
                     );
                 } else {
                     sprintf(
                         field_0x3900[i],
                         "%02d/%02d/%d %02d:%02d:%02d",
-#if TARGET_PC
-                        time.mday, time.mon + 1, time.year,
-                        time.hour, time.min, time.sec
-#else
                         time.day_of_month, time.month + 1, time.year,
                         time.hours, time.minutes, time.seconds
-#endif
                     );
                 }
 #else
@@ -3634,24 +3619,12 @@ void dFile_select_c::setSaveData() {
                     field_0x3900[i],
 #if VERSION <= VERSION_JPN
                     "%d.%02d.%02d %02d:%02d:%02d",
-#if TARGET_PC
-                    time.year, time.mon + 1, time.mday,
-#else
                     time.year, time.month + 1, time.day_of_month,
-#endif
 #else
                     "%02d/%02d/%d %02d:%02d:%02d",
-#if TARGET_PC
-                    time.mon + 1, time.mday, time.year,
-#else
                     time.month + 1, time.day_of_month, time.year,
 #endif
-#endif
-#if TARGET_PC
-                    time.hour, time.min, time.sec
-#else
                     time.hours, time.minutes, time.seconds
-#endif
                 );
 #endif
                 dataNew[i] = 0;

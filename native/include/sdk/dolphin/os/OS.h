@@ -125,4 +125,38 @@ static inline OSContextPPC* OSContextPPCOf(OSContext* context) {
 }
 #endif
 
+#ifdef __cplusplus
+// Added in step G3 (docs/GAME_CODE_ORGANIZATION.md): the decomp's OSCalendarTime (OSTime.h) under
+// its own field names. Aurora's has the same layout with the SDK's names (sec, min, hour, mday,
+// mon, year, wday, yday, msec, usec); the game declares its calendar variables PcCalendarTime under
+// TARGET_PC and keeps its field accesses as they are. Converted field by field.
+typedef struct PcCalendarTime {
+    /* 0x00 */ s32 seconds;
+    /* 0x04 */ s32 minutes;
+    /* 0x08 */ s32 hours;
+    /* 0x0C */ s32 day_of_month;
+    /* 0x10 */ s32 month;
+    /* 0x14 */ s32 year;
+    /* 0x18 */ s32 week_day;
+    /* 0x1C */ s32 year_day;
+    /* 0x20 */ s32 milliseconds;
+    /* 0x24 */ s32 microseconds;
+} PcCalendarTime;
+
+static inline void OSTicksToCalendarTime(OSTime ticks, PcCalendarTime* td) {
+    OSCalendarTime t;
+    OSTicksToCalendarTime(ticks, &t);
+    td->seconds = t.sec;
+    td->minutes = t.min;
+    td->hours = t.hour;
+    td->day_of_month = t.mday;
+    td->month = t.mon;
+    td->year = t.year;
+    td->week_day = t.wday;
+    td->year_day = t.yday;
+    td->milliseconds = t.msec;
+    td->microseconds = t.usec;
+}
+#endif
+
 #endif

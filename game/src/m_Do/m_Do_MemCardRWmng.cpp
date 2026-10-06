@@ -211,32 +211,12 @@ s32 mDoMemCdRWm_Restore2(CARDFileInfo* card) {
 void mDoMemCdRWm_BuildHeader(mDoMemCdRWm_HeaderData* header) {
     snprintf(header->comment, sizeof(header->comment), HEADER_TITLE);
     OSTime time = OSGetTime();
-    OSCalendarTime cal;
-    OSTicksToCalendarTime(time, &cal);
 #if TARGET_PC
-    // Aurora's OSCalendarTime names the fields mday and mon (same layout as the decomp's).
-#if VERSION == VERSION_PAL
-    switch (dComIfGs_getPalLanguage()) {
-    case 0:
-        snprintf(header->info, sizeof(header->info), "%d/%d Save Data", cal.mon + 1, cal.mday);
-        break;
-    case 1:
-        snprintf(header->info, sizeof(header->info), "%d/%d Spielstand", cal.mday, cal.mon + 1);
-        break;
-    case 2:
-        snprintf(header->info, sizeof(header->info), "Donn%ces de jeu %d/%d", 0xE9, cal.mday, cal.mon + 1);
-        break;
-    case 3:
-        snprintf(header->info, sizeof(header->info), "Datos guardados el %d/%d", cal.mday, cal.mon + 1);
-        break;
-    case 4:
-        snprintf(header->info, sizeof(header->info), "Dati salvati: %d/%d", cal.mday, cal.mon + 1);
-        break;
-    }
+    PcCalendarTime cal; // the decomp's field names (native/include/sdk/dolphin/os/OS.h)
 #else
-    snprintf(header->info, sizeof(header->info), HEADER_COMMENT, cal.mon + 1, cal.mday);
+    OSCalendarTime cal;
 #endif
-#else
+    OSTicksToCalendarTime(time, &cal);
 #if VERSION == VERSION_PAL
     switch (dComIfGs_getPalLanguage()) {
     case 0:
@@ -257,7 +237,6 @@ void mDoMemCdRWm_BuildHeader(mDoMemCdRWm_HeaderData* header) {
     }
 #else
     snprintf(header->info, sizeof(header->info), HEADER_COMMENT, cal.month + 1, cal.day_of_month);
-#endif
 #endif
     mDoDvdThd_mountArchive_c* cmd = mDoDvdThd_mountArchive_c::create("/res/CardIcon/cardicon.arc", 0, NULL);
     while (!cmd->sync()) ;
