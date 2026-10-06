@@ -129,6 +129,32 @@ def event_lists(disc):
     return out
 
 
+# Events the game never plays the way the sweep orders them (triaged 2026-10-06): event name ->
+# (signature regex, why). A matching fault is listed as "xfail" and does not fail the sweep. Each was
+# run alone from a fresh boot without flag 0x2D01 and faults the same way; the asserts named here are
+# compiled into the GameCube retail build too, so the original would halt the same way.
+EVENT_EXPECTED_FAIL = {
+    "ANGRY": (r"d_a_player_main\.cpp:9342",
+              "the player's cut is not named by a demo-mode number (cut name -> mode 0x95F); "
+              "daPy_lk_c::changeDemoProc's assert, also in the retail build: unused event"),
+    "YUUKAIGO": (r"d_a_player_main\.cpp:9342", "as ANGRY (DmSpot0, a demo stage)"),
+    "DAI_ITEM": (r"d_com_inf_game\.cpp:1048",
+                 "a shop's item stand shown with no item chosen: the stand item is deleted while its "
+                 "archive still loads (dComIfG_resDelete's assert)"),
+    "SA3_GET_ITEM": (r"eventMesSetInit", "needs the talk that sets its message first (test stage K_Testb)"),
+    "SA5_TALK_XY": (r"eventMesSetInit", "as SA3_GET_ITEM"),
+    "SA5_GET_ITEM": (r"eventMesSetInit", "as SA3_GET_ITEM"),
+    "PHOTO_GET_ITEM2": (r"eventMesSetInit", "Lenzo's reward, needs his talk's message first"),
+    "PHOTO_GET_PHOTO": (r"eventMesSetInit", "as PHOTO_GET_ITEM2"),
+    "Use_Fairy": (r"stringLength", "the fairy-revive event needs a bottled fairy and a death (the combat "
+                                   "sweep's death mode plays it the real way)"),
+    "MAKE_TAG": (r"d_a_sbox\.cpp:220", "needs the ship (the actor sweep's known SBOX fault)"),
+    "master_sword": (r"searchUpdateMaterialID|setAnmTextureSRT",
+                     "only after other events of the same visit (from a fresh boot it plays to its end) "
+                     "or with flag 0x2D01 forced (LkD01's file IDs)"),
+}
+
+
 def demo_banks(manifest):
     """"<file>:<bank>,..." for every STB of the demo banks (/res/Object/DemoNN.arc), the lowest bank
     for a file in several, as the smoke's COS_EVENT_SWEEP_DEMOS."""
@@ -421,8 +447,13 @@ def main():
         exp = boot_sweep.EXPECTED_FAIL.get(b["stage"])
         b["xfail"] = bool(exp and re.search(exp[0], b["signature"]))
     sigs = collections.defaultdict(list)
+    xfails = []
     for r in rows:
         if r["cls"] in FAULTS:
+            exp = EVENT_EXPECTED_FAIL.get(r["name"])
+            if exp and re.search(exp[0], r["signature"] or ""):
+                xfails.append((r, exp[1]))
+                continue
             sigs[r["signature"]].append(r)
     total_events = sum(s["num"] or 0 for s in stages)
     with open(os.path.join(out, "event_sweep.md"), "w") as f:
@@ -440,6 +471,11 @@ def main():
             f.write("- `%s` (%d): %s\n" % (sig, len(rs), ", ".join(
                 "%s#%d %s%s (%s)" % (r["stage"], r["idx"], r["name"], " after" if r["cls"] == "FAULT-after" else "",
                                      r["run"]) for r in rs)))
+        f.write("\n## Expected faults (EVENT_EXPECTED_FAIL)\n\n")
+        if not xfails:
+            f.write("None.\n")
+        for r, why in xfails:
+            f.write("- %s#%d %s: `%s` [xfail: %s]\n" % (r["stage"], r["idx"], r["name"], r["signature"], why))
         f.write("\n## Faults gone on a file with event flag 0x2D01 (the later player demo animations)\n\n")
         fixed = [r for r in rows if r.get("retry") == "2D01" and r.get("first") and r["cls"] not in FAULTS]
         if not fixed:
