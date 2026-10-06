@@ -39,55 +39,7 @@ static int is_utf8_complete(const char* s, size_t n)
 }
 
 int utf8_to_unicode(wchar_t* pwc, const char* s, size_t n) {
-	int number_of_bytes;
-	int check_byte_count;
-	const char* source_ptr;
-	wchar_t result_chr = 0;
-
-	if (!s) {
-		return 0;
-	}
-
-	if (n == 0) {
-		return -1;
-	}
-
-	number_of_bytes = is_utf8_complete(s, n);
-	if (number_of_bytes < 0) {
-		return -1;
-	}
-
-	source_ptr = s;
-	switch (number_of_bytes) {
-	case 3:
-		result_chr |= (*source_ptr++ & 0x0f);
-		result_chr <<= 6;
-	case 2:
-		result_chr |= (*source_ptr++ & 0x3f);
-		result_chr <<= 6;
-	case 1:
-		result_chr |= (*source_ptr++ & 0x7f);
-	}
-
-	if (result_chr == 0) {
-		check_byte_count = 0;
-	} else if (result_chr < 0x0080) {
-		check_byte_count = 1;
-	} else if (result_chr < 0x0800) {
-		check_byte_count = 2;
-	} else {
-		check_byte_count = 3;
-	}
-
-	if (check_byte_count != number_of_bytes) {
-		return -1;
-	}
-
-	if (pwc) {
-		*pwc = result_chr;
-	}
-
-	return number_of_bytes;
+	/* Nonmatching */
 }
 
 int mbtowc(wchar_t* pwc, const char* s, size_t n) {

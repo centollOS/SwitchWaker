@@ -2,14 +2,6 @@
 #include "ansi_fp.h"
 #include "limits.h"
 #include "float.h"
-#include "math.h"
-#include "ctype.h"
-
-#if VERSION == VERSION_DEMO
-#define DEC_INLINE
-#else
-#define DEC_INLINE inline
-#endif
 
 static int __count_trailing_zerol(unsigned long x) {
     int result = 0;
@@ -329,7 +321,7 @@ static void dummy(decimal* result, short exp) {
     __str2dec(result, "179769313486231580793729011405303420", 308);
 }
 
-int DEC_INLINE __equals_dec(const decimal* x, const decimal* y) {
+int inline __equals_dec(const decimal* x, const decimal* y) {
     if (x->sig.text[0] == 0) {
         if (y->sig.text[0] == 0)
             return 1;
@@ -374,7 +366,7 @@ int DEC_INLINE __equals_dec(const decimal* x, const decimal* y) {
     return 0;
 }
 
-int DEC_INLINE __less_dec(const decimal* x, const decimal* y) {
+int inline __less_dec(const decimal* x, const decimal* y) {
     if (x->sig.text[0] == 0) {
         if (y->sig.text[0] != 0)
             return 1;
@@ -414,7 +406,7 @@ int DEC_INLINE __less_dec(const decimal* x, const decimal* y) {
     return x->exp < y->exp;
 }
 
-void DEC_INLINE __minus_dec(decimal* z, const decimal* x, const decimal* y) {
+void inline __minus_dec(decimal* z, const decimal* x, const decimal* y) {
     int zlen, dexp;
     unsigned char *ib, *i, *ie;
     unsigned char const *jb, *j, *jn;
@@ -577,190 +569,3 @@ void __num2dec(const decform* form, double x, decimal* d) {
         d->sig.text[i] += '0';
     }
 }
-
-#if VERSION == VERSION_DEMO
-extern unsigned long __double_max[];
-
-inline int __tolower(int c) { return (c == -1 ? -1 : (int)__lower_map[(unsigned char)c]); }
-
-double __dec2num(const decimal* d) {
-    if (d->sig.length <= 0) {
-        return copysign(0.0, d->sign == 0 ? 1.0 : -1.0);
-    }
-
-    switch (d->sig.text[0]) {
-    case '0':
-        return copysign(0.0, d->sign == 0 ? 1.0 : -1.0);
-    case 'I':
-        return copysign(HUGE_VALF, d->sign == 0 ? 1.0 : -1.0);
-    case 'N': {
-        double result;
-        unsigned long long* ll = (unsigned long long*)&result;
-
-        *ll = 0x7FF0000000000000;
-        if (d->sign)
-            *ll |= 0x8000000000000000;
-
-        if (d->sig.length == 1) {
-            *ll |= 0x8000000000000;
-        } else {
-            unsigned char* p = (unsigned char*)&result + 1;
-            int placed_non_zero = 0;
-            int low = 1;
-            int i;
-            int e = d->sig.length;
-            if (e > 14)
-                e = 14;
-
-            for (i = 1; i < e; ++i) {
-                unsigned char c = d->sig.text[i];
-
-                if (isdigit(c))
-                    c -= '0';
-                else
-                    c = (unsigned char)(__tolower(c) - 'a' + 10);
-
-                if (c != 0)
-                    placed_non_zero = 1;
-
-                if (low)
-                    *p++ |= c;
-                else
-                    *p = (unsigned char)(c << 4);
-
-                low = !low;
-            }
-
-            if (!placed_non_zero)
-                *ll |= 0x0008000000000000;
-        }
-
-        return result;
-    }
-    }
-
-    {
-        static double pow_10[8] = {1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8};
-
-        decimal dec = *d;
-        unsigned char* i = dec.sig.text;
-        unsigned char* e = i + dec.sig.length;
-        double first_guess;
-        int exponent;
-
-        for (; i < e; ++i)
-            *i -= '0';
-
-        dec.exp += dec.sig.length - 1;
-        exponent = dec.exp;
-
-        i = dec.sig.text;
-        first_guess = *i++;
-
-        while (i < e) {
-            unsigned long ival = 0;
-            int j;
-            double temp1, temp2;
-            int ndig = (int)(e - i) % 8;
-
-            if (ndig == 0)
-                ndig = 8;
-
-            for (j = 0; j < ndig; ++j, ++i) {
-                ival = ival * 10 + *i;
-            }
-
-            temp1 = first_guess * pow_10[ndig - 1];
-            temp2 = temp1 + ival;
-
-            if (ival != 0 && temp1 == temp2)
-                break;
-
-            first_guess = temp2;
-            exponent -= ndig;
-        }
-
-        if (exponent < 0) {
-            first_guess /= pow(5.0, -exponent);
-        } else {
-            first_guess *= pow(5.0, exponent);
-        }
-
-        first_guess = ldexp(first_guess, exponent);
-
-        if (isinf(first_guess)) {
-            decimal max;
-            __str2dec(&max, "179769313486231580793729011405303420", 308);
-            if (__less_dec(&max, &dec))
-                goto done;
-            first_guess = *(double*)__double_max;
-        }
-
-        {
-            decimal feedback1;
-
-            __num2dec_internal(&feedback1, first_guess);
-
-            if (__equals_dec(&feedback1, &dec))
-                goto done;
-
-            if (__less_dec(&feedback1, &dec)) {
-                decimal feedback2, difflow, diffhigh;
-                double next_guess = nextafter(first_guess, HUGE_VALF);
-                if (isinf(next_guess)) {
-                    first_guess = next_guess;
-                    goto done;
-                }
-                __num2dec_internal(&feedback2, next_guess);
-
-                while (__less_dec(&feedback2, &dec)) {
-                    feedback1 = feedback2;
-                    first_guess = next_guess;
-                    next_guess = nextafter(first_guess, HUGE_VALF);
-                    if (isinf(next_guess)) {
-                        first_guess = next_guess;
-                        goto done;
-                    }
-                    __num2dec_internal(&feedback2, next_guess);
-                }
-
-                __minus_dec(&difflow, &dec, &feedback1);
-                __minus_dec(&diffhigh, &feedback2, &dec);
-
-                if (__equals_dec(&difflow, &diffhigh)) {
-                    if (*(unsigned long long*)&first_guess & 1)
-                        first_guess = next_guess;
-                } else if (!__less_dec(&difflow, &diffhigh)) {
-                    first_guess = next_guess;
-                }
-            } else {
-                decimal feedback2, difflow, diffhigh;
-                double next_guess = nextafter(first_guess, -HUGE_VALF);
-                __num2dec_internal(&feedback2, next_guess);
-
-                while (__less_dec(&dec, &feedback2)) {
-                    feedback1 = feedback2;
-                    first_guess = next_guess;
-                    next_guess = nextafter(first_guess, -HUGE_VALF);
-                    __num2dec_internal(&feedback2, next_guess);
-                }
-
-                __minus_dec(&difflow, &dec, &feedback2);
-                __minus_dec(&diffhigh, &feedback1, &dec);
-
-                if (__equals_dec(&difflow, &diffhigh)) {
-                    if (*(unsigned long long*)&first_guess & 1)
-                        first_guess = next_guess;
-                } else if (__less_dec(&difflow, &diffhigh)) {
-                    first_guess = next_guess;
-                }
-            }
-        }
-
-    done:
-        if (dec.sign)
-            first_guess = -first_guess;
-        return first_guess;
-    }
-}
-#endif
