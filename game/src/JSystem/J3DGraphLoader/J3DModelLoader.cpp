@@ -15,30 +15,7 @@
 #include "JSystem/JKernel/JKRHeap.h"
 #include "dolphin/os/OS.h"
 #if TARGET_PC
-#include "helpers/endian_gx.hpp"
-
-// The material IDs (mDiffFlag) are built from addresses: (u32)ptr, or (u32)ptr >> 4. On the
-// GameCube every heap address is in MEM1 (0x80000000-0x817FFFFF), so (u32)ptr has bit 31 set and
-// bit 30 clear, and ptr >> 4 has both clear; J3DMatPacket::isSame and isChanged read bit 31 as
-// "changed". Every JKR heap lives in Aurora's MEM1 block (256 MiB, decision H5), so the low 30 bits
-// of a host address are unique among materials: this gives them the GameCube's upper two bits.
-static inline u32 J3DGCAddressBits(const void* p) {
-    return 0x80000000 | ((u32)(uintptr_t)p & 0x3FFFFFFF);
-}
-
-// The end of the EVP1 table at `offset`: the next table of the block or the block's end (the
-// tables are back to back; the block size is 32-byte aligned).
-static u32 J3DTableEnd(const JUTDataBlockHeader* i_block, u32 offset, const BE(u32)* offsets,
-                       int count) {
-    u32 end = i_block->mSize;
-    for (int i = 0; i < count; i++) {
-        u32 other = offsets[i];
-        if (other > offset && other < end) {
-            end = other;
-        }
-    }
-    return end;
-}
+#include "pc/game_hooks/j3d.h" // J3DPcCopy*, J3DGCAddressBits
 #endif
 
 /* 802FB758-802FB8A4       .text load__22J3DModelLoaderDataBaseFPCvUl */
@@ -250,11 +227,7 @@ void J3DModelLoader::setupBBoardInfo() {
             u16* index_table = JSUConvertOffsetToPtr<u16>(mpShapeBlock, (u32)mpShapeBlock->mpIndexTable);
 #endif
             J3DShapeInitData* shape_init_data =
-#if TARGET_PC
                 JSUConvertOffsetToPtr<J3DShapeInitData>(mpShapeBlock, (u32)mpShapeBlock->mpShapeInitData);
-#else
-                JSUConvertOffsetToPtr<J3DShapeInitData>(mpShapeBlock, (u32)mpShapeBlock->mpShapeInitData);
-#endif
             J3DJoint* joint;
             switch (shape_init_data[index_table[shape_index]].mShapeMtxType) {
                 case 0:
@@ -319,26 +292,9 @@ static GXCompType getFmtType(GXVtxAttrFmtList* i_fmtList, GXAttr i_attr) {
 void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
     J3DVertexData& vertex_data = mpModelData->getVertexData();
 #if TARGET_PC
-    // The file's attribute format list is big-endian ({GXAttr, GXCompCnt, GXCompType, frac}, ended
-    // by GX_VA_NULL); the model keeps a host-order copy for GX (no swap in place, so a resource can
-    // be loaded again). The vertex arrays themselves stay big-endian.
-    {
-        const BE(GXVtxAttrFmtList)* src =
-            JSUConvertOffsetToPtr<BE(GXVtxAttrFmtList)>(i_block, i_block->mpVtxAttrFmtList);
-        u32 count = 0;
-        while (src[count].attr != GX_VA_NULL) {
-            count++;
-        }
-        count++;
-        GXVtxAttrFmtList* list = new GXVtxAttrFmtList[count];
-        for (u32 i = 0; i < count; i++) {
-            list[i].attr = src[i].attr;
-            list[i].cnt = src[i].cnt;
-            list[i].type = src[i].type;
-            list[i].frac = src[i].frac;
-        }
-        vertex_data.mVtxAttrFmtList = list;
-    }
+    // The file's attribute format list is big-endian: the model keeps a host-order copy for GX.
+    vertex_data.mVtxAttrFmtList = J3DPcCopyVtxAttrFmtList(
+        JSUConvertOffsetToPtr<BE(GXVtxAttrFmtList)>(i_block, i_block->mpVtxAttrFmtList));
     vertex_data.mVtxBlockEnd = (const u8*)i_block + i_block->mSize;
 #else
     vertex_data.mVtxAttrFmtList =
@@ -378,12 +334,8 @@ void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
         vertex_data.mNrmNum = ((u32)nrm_end - (u32)vertex_data.mVtxNrmArray) / nrm_size + 1;
 #endif
     } else {
-#if TARGET_PC
         // mpVtxNrmArray is the 32-bit big-endian file offset (OFFSET_PTR_V0).
         vertex_data.mNrmNum = (i_block->mSize - (u32)i_block->mpVtxNrmArray) / nrm_size + 1;
-#else
-        vertex_data.mNrmNum = (i_block->mSize - (u32)i_block->mpVtxNrmArray) / nrm_size + 1;
-#endif
     }
 
     void* color0_end = NULL;
@@ -403,23 +355,15 @@ void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
         vertex_data.mColNum = ((u32)color0_end - (u32)vertex_data.mVtxColorArray[0]) / 4 + 1;
 #endif
     } else {
-#if TARGET_PC
         // mpVtxColorArray[0] is the 32-bit big-endian file offset (OFFSET_PTR_V0).
         vertex_data.mColNum = (i_block->mSize - (u32)i_block->mpVtxColorArray[0]) / 4 + 1;
-#else
-        vertex_data.mColNum = (i_block->mSize - (u32)i_block->mpVtxColorArray[0]) / 4 + 1;
-#endif
     }
 
     if (vertex_data.mVtxTexCoordArray[0] == NULL) {
         vertex_data.mTexCoordNum = 0;
     } else {
-#if TARGET_PC
         // mpVtxTexCoordArray[0] is the 32-bit big-endian file offset (OFFSET_PTR_V0).
         vertex_data.mTexCoordNum = (i_block->mSize - (u32)i_block->mpVtxTexCoordArray[0]) / 8 + 1;
-#else
-        vertex_data.mTexCoordNum = (i_block->mSize - (u32)i_block->mpVtxTexCoordArray[0]) / 8 + 1;
-#endif
     }
 }
 
@@ -437,39 +381,11 @@ void J3DModelLoader::readEnvelop(const J3DEnvelopBlock* i_block) {
     for (u16 i = 0; i < tree.mWEvlpMtxNum; i++) {
         mixNum += tree.mWEvlpMixMtxNum[i];
     }
-    const BE(u16)* index = JSUConvertOffsetToPtr<BE(u16)>(i_block, i_block->mpWEvlpMixMtxIndex);
-    const BE(f32)* weight = JSUConvertOffsetToPtr<BE(f32)>(i_block, i_block->mpWEvlpMixWeight);
-    tree.mWEvlpMixMtxIndex = NULL;
-    tree.mWEvlpMixWeight = NULL;
-    if (index != NULL) {
-        tree.mWEvlpMixMtxIndex = new u16[mixNum];
-        for (u32 i = 0; i < mixNum; i++) {
-            tree.mWEvlpMixMtxIndex[i] = index[i];
-        }
-    }
-    if (weight != NULL) {
-        tree.mWEvlpMixWeight = new f32[mixNum];
-        for (u32 i = 0; i < mixNum; i++) {
-            tree.mWEvlpMixWeight[i] = weight[i];
-        }
-    }
-    // One inverse matrix per joint; the table ends at the next table or at the block's end.
-    tree.mInvJointMtx = NULL;
-    if (i_block->mpInvJointMtx != 0) {
-        const BE(u32) offsets[] = {i_block->mpWEvlpMixMtxNum, i_block->mpWEvlpMixMtxIndex,
-                                   i_block->mpWEvlpMixWeight};
-        u32 start = i_block->mpInvJointMtx;
-        u32 num = (J3DTableEnd(i_block, start, offsets, 3) - start) / sizeof(Mtx);
-        const BE(f32)* src = JSUConvertOffsetToPtr<BE(f32)>(i_block, i_block->mpInvJointMtx);
-        tree.mInvJointMtx = new Mtx[num];
-        for (u32 i = 0; i < num; i++) {
-            for (int r = 0; r < 3; r++) {
-                for (int c = 0; c < 4; c++) {
-                    tree.mInvJointMtx[i][r][c] = src[i * 12 + r * 4 + c];
-                }
-            }
-        }
-    }
+    tree.mWEvlpMixMtxIndex =
+        J3DPcCopyU16Array(JSUConvertOffsetToPtr<BE(u16)>(i_block, i_block->mpWEvlpMixMtxIndex), mixNum);
+    tree.mWEvlpMixWeight =
+        J3DPcCopyF32Array(JSUConvertOffsetToPtr<BE(f32)>(i_block, i_block->mpWEvlpMixWeight), mixNum);
+    tree.mInvJointMtx = J3DPcLoadInvJointMtx(i_block);
 #else
     mpModelData->getJointTree().mWEvlpMixMtxIndex =
         JSUConvertOffsetToPtr<u16>(i_block, i_block->mpWEvlpMixMtxIndex);
@@ -488,17 +404,8 @@ void J3DModelLoader::readDraw(const J3DDrawBlock* i_block) {
 #if TARGET_PC
     // The draw matrix indices are big-endian in the file; J3DModel, J3DShapeMtx and the skin
     // deformer read them every frame: the model keeps a host-order copy on its heap.
-    {
-        const BE(u16)* index = JSUConvertOffsetToPtr<BE(u16)>(i_block, i_block->mpDrawMtxIndex);
-        joint_tree.mDrawMtxData.mDrawMtxIndex = NULL;
-        if (index != NULL) {
-            u16* copy = new u16[joint_tree.mDrawMtxData.mEntryNum];
-            for (u16 j = 0; j < joint_tree.mDrawMtxData.mEntryNum; j++) {
-                copy[j] = index[j];
-            }
-            joint_tree.mDrawMtxData.mDrawMtxIndex = copy;
-        }
-    }
+    joint_tree.mDrawMtxData.mDrawMtxIndex = J3DPcCopyU16Array(
+        JSUConvertOffsetToPtr<BE(u16)>(i_block, i_block->mpDrawMtxIndex), joint_tree.mDrawMtxData.mEntryNum);
 #else
     joint_tree.mDrawMtxData.mDrawMtxIndex = JSUConvertOffsetToPtr<u16>(i_block, i_block->mpDrawMtxIndex);
 #endif

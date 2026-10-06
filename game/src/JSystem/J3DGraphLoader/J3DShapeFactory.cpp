@@ -14,40 +14,9 @@
 #include "dolphin/gx/GXAttr.h"
 #include "dolphin/os/OS.h"
 #if TARGET_PC
-#include "helpers/endian_gx.hpp"
+#include "pc/game_hooks/j3d.h"
 #endif
 
-#if TARGET_PC
-// The SHP1 vertex descriptor lists are big-endian {GXAttr, GXAttrType} pairs, each list ended by
-// GX_VA_NULL; shapes address them by byte offset (mVtxDescListIndex). This returns a host-order
-// copy of the whole table, up to the end of the last list a shape uses, allocated on the current
-// heap like the rest of the model data. The file data is left as it is, so a resource can be
-// loaded again (no swap in place).
-static GXVtxDescList* copyVtxDescList(const BE(GXVtxDescList)* src, const J3DShapeInitData* initData,
-                                      const BE(u16)* indexTable, u16 shapeNum) {
-    if (src == NULL) {
-        return NULL;
-    }
-    u32 lastStart = 0;
-    for (u16 i = 0; i < shapeNum; i++) {
-        u32 start = initData[indexTable[i]].mVtxDescListIndex / sizeof(GXVtxDescList);
-        if (start > lastStart) {
-            lastStart = start;
-        }
-    }
-    u32 count = lastStart;
-    while (src[count].attr != GX_VA_NULL) {
-        count++;
-    }
-    count++;
-    GXVtxDescList* dst = new GXVtxDescList[count];
-    for (u32 i = 0; i < count; i++) {
-        dst[i].attr = src[i].attr;
-        dst[i].type = src[i].type;
-    }
-    return dst;
-}
-#endif
 
 /* 802FE3A8-802FE458       .text __ct__15J3DShapeFactoryFRC13J3DShapeBlock */
 J3DShapeFactory::J3DShapeFactory(const J3DShapeBlock& block) {
@@ -55,7 +24,7 @@ J3DShapeFactory::J3DShapeFactory(const J3DShapeBlock& block) {
     // The block holds 32-bit big-endian offsets (J3DShapeFactory.h).
     mpShapeInitData = JSUConvertOffsetToPtr<J3DShapeInitData>(&block, (u32)block.mpShapeInitData);
     mpIndexTable = JSUConvertOffsetToPtr<BE(u16)>(&block, (u32)block.mpIndexTable);
-    mpVtxDescList = copyVtxDescList(JSUConvertOffsetToPtr<BE(GXVtxDescList)>(&block, (u32)block.mpVtxDescList),
+    mpVtxDescList = J3DPcCopyVtxDescList(JSUConvertOffsetToPtr<BE(GXVtxDescList)>(&block, (u32)block.mpVtxDescList),
                                     mpShapeInitData, mpIndexTable, block.mShapeNum);
     mpMtxTable = JSUConvertOffsetToPtr<BE(u16)>(&block, (u32)block.mpMtxTable);
     mpDisplayListData = JSUConvertOffsetToPtr<u8>(&block, (u32)block.mpDisplayListData);

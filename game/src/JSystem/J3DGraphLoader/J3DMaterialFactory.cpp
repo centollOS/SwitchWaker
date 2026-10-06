@@ -14,52 +14,8 @@
 #endif
 
 #if TARGET_PC
-// The material tables hold J3DStruct.h infos, which are host objects as well (J3DTexMtx, J3DFog,
-// J3DNBTScale and J3DIndTexMtx keep and animate them). In the file their multi-byte members are
-// big-endian: these return a host-order copy, leaving the file data as it is. The first three are
-// shared with J3DMaterialFactory_v21 (declared in J3DMaterialFactory.h).
-J3DTexMtxInfo J3DHostTexMtxInfo(const J3DTexMtxInfo& src) {
-    J3DTexMtxInfo info;
-    memcpy(&info, &src, sizeof(info));
-    be_swap(info.mCenter);
-    be_swap(info.mSRT.mScaleX);
-    be_swap(info.mSRT.mScaleY);
-    be_swap(info.mSRT.mRotation);
-    be_swap(info.mSRT.mTranslationX);
-    be_swap(info.mSRT.mTranslationY);
-    be_swap(info.mEffectMtx);
-    return info;
-}
-
-J3DFogInfo J3DHostFogInfo(const J3DFogInfo& src) {
-    J3DFogInfo info;
-    memcpy(&info, &src, sizeof(info));
-    be_swap(info.mCenter);
-    be_swap(info.mStartZ);
-    be_swap(info.mEndZ);
-    be_swap(info.mNearZ);
-    be_swap(info.mFarZ);
-    be_swap(info.mFogAdjTable);
-    return info;
-}
-
-J3DNBTScaleInfo J3DHostNBTScaleInfo(const J3DNBTScaleInfo& src) {
-    J3DNBTScaleInfo info;
-    memcpy(&info, &src, sizeof(info));
-    be_swap(info.mScale);
-    return info;
-}
-
-static J3DIndTexMtxInfo hostIndTexMtxInfo(const J3DIndTexMtxInfo& src) {
-    J3DIndTexMtxInfo info;
-    memcpy(&info, &src, sizeof(info));
-    for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 3; j++) {
-            be_swap(info.mOffsetMtx[i][j]);
-        }
-    }
-    return info;
-}
+// J3DHostTexMtxInfo, J3DHostFogInfo, J3DHostNBTScaleInfo and J3DHostIndTexMtxInfo (host-order copies
+// of the file's infos): native/src/pc/game_hooks/pc_j3d_hooks.cpp.
 #endif
 
 /* 802F68F0-802F6B38       .text __ct__18J3DMaterialFactoryFRC16J3DMaterialBlock */
@@ -679,7 +635,7 @@ J3DIndTexMtx J3DMaterialFactory::newIndTexMtx(int idx, int stage) const {
     J3DIndTexMtx ret;
     if (mpIndInitData[idx].mEnabled == true)
 #if TARGET_PC
-        return J3DIndTexMtx(hostIndTexMtxInfo(mpIndInitData[idx].mIndTexMtxInfo[stage]));
+        return J3DIndTexMtx(J3DHostIndTexMtxInfo(mpIndInitData[idx].mIndTexMtxInfo[stage]));
 #else
         return J3DIndTexMtx(mpIndInitData[idx].mIndTexMtxInfo[stage]);
 #endif

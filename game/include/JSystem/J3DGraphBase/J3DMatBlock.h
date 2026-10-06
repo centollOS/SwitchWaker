@@ -186,7 +186,8 @@ public:
 };
 
 #if TARGET_PC
-// Loads texture map i with j3dSys's texture texNo[i] (0xFFFF: none), as loadTexNo does.
+// Loads texture map i with j3dSys's texture texNo[i] (0xFFFF: none), as loadTexNo does. This and
+// the J3DTevBlock*::loadTexture/getTexNoArray overrides: native/src/pc/game_hooks/pc_j3d_hooks.cpp.
 void J3DLoadTexNoArray(const u16* texNo, u32 num);
 #endif
 

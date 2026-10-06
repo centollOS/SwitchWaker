@@ -179,53 +179,6 @@ void loadTexNo(u32 param_0, const u16& param_1) {
     }
 }
 
-#if TARGET_PC
-// The texture objects of J3DTexture (see J3DTexture.h): the material display lists still carry
-// loadTexNo's BP writes, but Aurora takes the image and TLUT from these objects. Adapted from
-// Dusklight (ref/dusklight/libs/JSystem/src/J3DGraphBase/J3DTexture.cpp, loadGX and
-// loadGXTexObj, CC0), with the sign-extended offsets of loadTexNo.
-J3DTexture::J3DTexture(u16 num, ResTIMG* res) : mNum(num), mpRes(res) {
-    mpTexObj = new GXTexObj[num];
-    mpTlutObj = new GXTlutObj[num];
-    for (u16 i = 0; i < num; i++) {
-        initTexObj(i);
-    }
-}
-
-J3DTexture::~J3DTexture() {
-    delete[] mpTexObj;
-    delete[] mpTlutObj;
-}
-
-void J3DTexture::initTexObj(u16 index) {
-    ResTIMG* timg = getResTIMG(index);
-    u8* image = (u8*)timg + (s32)(u32)timg->imageOffset;
-    GXBool mipmap = timg->mipmapEnabled != 0 ? GX_TRUE : GX_FALSE;
-    if (!timg->indexTexture) {
-        GXInitTexObj(&mpTexObj[index], image, timg->width, timg->height, (GXTexFmt)timg->format,
-                     (GXTexWrapMode)timg->wrapS, (GXTexWrapMode)timg->wrapT, mipmap);
-    } else {
-        GXInitTexObjCI(&mpTexObj[index], image, timg->width, timg->height, (GXCITexFmt)timg->format,
-                       (GXTexWrapMode)timg->wrapS, (GXTexWrapMode)timg->wrapT, mipmap, GX_TLUT0);
-        GXInitTlutObj(&mpTlutObj[index], (u8*)timg + (s32)(u32)timg->paletteOffset,
-                      (GXTlutFmt)timg->colorFormat, timg->numColors);
-    }
-    // The values loadTexNo writes with J3DGDSetTexLookupMode.
-    GXInitTexObjLOD(&mpTexObj[index], (GXTexFilter)timg->minFilter, (GXTexFilter)timg->magFilter,
-                    timg->minLOD * 0.125f, timg->maxLOD * 0.125f, timg->LODBias * 0.01f,
-                    timg->biasClamp, timg->doEdgeLOD, (GXAnisotropy)timg->maxAnisotropy);
-}
-
-void J3DTexture::loadGX(u16 index, GXTexMapID texMapID) const {
-    ResTIMG* timg = getResTIMG(index);
-    if (timg->indexTexture) {
-        // loadTexNo gives texture map n the TLUT at TMEM (n << 13) + 0xF0000: one TLUT per map.
-        GXLoadTlut(&mpTlutObj[index], (GXTlut)texMapID);
-        GXInitTexObjTlut(&mpTexObj[index], (GXTlut)texMapID);
-    }
-    GXLoadTexObj(&mpTexObj[index], texMapID);
-}
-#endif
 
 /* 802EC530-802EC554       .text patchTexNo_PtrToIdx__FUlRCUs */
 void patchTexNo_PtrToIdx(u32 texID, const u16& idx) {

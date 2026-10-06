@@ -40,7 +40,8 @@ private:
     // J3DTevBlock::loadTexture loads when the material is drawn: those of the table the packet's
     // display list was built with (J3DMaterial::makeDisplayList/diff record it, bug B9: a model
     // drawn with another material table's textures, mDoExt_McaMorf::updateDL). Pattern of Dusklight
-    // (ref/dusklight/libs/JSystem/include/JSystem/J3DGraphBase/J3DTexture.h, CC0).
+    // (ref/dusklight/libs/JSystem/include/JSystem/J3DGraphBase/J3DTexture.h, CC0). The host members
+    // are defined in native/src/pc/game_hooks/pc_j3d_hooks.cpp.
     GXTexObj* mpTexObj;
     GXTlutObj* mpTlutObj;
 

@@ -113,11 +113,12 @@ struct J3DDisplayListInit {
 };
 
 #if TARGET_PC
-// Host-order copies of the file's big-endian tex-matrix, fog and NBT-scale infos (defined in
-// J3DMaterialFactory.cpp; used by both material factories).
+// Host-order copies of the file's big-endian tex-matrix, fog, NBT-scale and indirect matrix infos
+// (native/src/pc/game_hooks/pc_j3d_hooks.cpp; used by both material factories).
 J3DTexMtxInfo J3DHostTexMtxInfo(const J3DTexMtxInfo& src);
 J3DFogInfo J3DHostFogInfo(const J3DFogInfo& src);
 J3DNBTScaleInfo J3DHostNBTScaleInfo(const J3DNBTScaleInfo& src);
+J3DIndTexMtxInfo J3DHostIndTexMtxInfo(const J3DIndTexMtxInfo& src);
 #endif
 
 class J3DMaterialFactory {
