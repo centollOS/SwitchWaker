@@ -83,9 +83,9 @@ scripts/switch/build_native.sh       # build/switch-native/centollos.nro and cen
 
 ```sh
 scripts/switch/push.sh --disc /path/to/GZLE01.iso   # once: the disc image (skipped if already there)
-scripts/switch/push.sh native                       # the NRO, read back and checked by SHA-256
+scripts/switch/push.sh native                       # the NRO and the bundled pipeline cache, read back and checked by SHA-256
 scripts/switch/push.sh --native-env my-env.txt      # optional: run options (see below)
-scripts/switch/push.sh --pipeline-cache             # optional: the bundled pipeline cache (see "Pipeline precompile")
+scripts/switch/push.sh --pipeline-cache             # only the bundled pipeline cache (see "Pipeline precompile")
 ```
 
 SD card layout:
@@ -94,7 +94,7 @@ SD card layout:
 |---|---|
 | `switch/centollos/centollos.nro` | the app: "centollOS" in the Homebrew Menu |
 | `switch/centollos/GZLE01.iso` | your disc image |
-| `switch/centollos/initial_pipeline_cache.db` | optional: pipelines to precompile at boot, made on the Mac from your disc (never committed) |
+| `switch/centollos/initial_pipeline_cache.db` | the pipelines to precompile at boot (`native/data/`, committed; `build_native.sh` puts a copy next to the NRO). Without it there is no warm-up and no "Preparing shaders" screen: the opening cutscene starts at once and every pipeline is built when first drawn |
 | `switch/centollos/native/env.txt` | optional run options |
 | `switch/centollos/native/centollos.log`, `centollos.prev.log` | this run's log and the previous one's |
 | `switch/centollos/native/user/` | memory card (`USA/Card A`), Aurora's caches |
@@ -413,11 +413,14 @@ Besides that, the port compiles fewer programs and compiles them before they are
   pipeline used in play (see "Growing the list from the console" below), or any Mac run's; rows
   already present keep their tier, rows of another config version than this build's Aurora writes
   are skipped and counted. `--merge-only` merges into the existing bundled file without the Mac runs.
-  `scripts/switch/push.sh --pipeline-cache` copies it next to the NRO, where Aurora
-  merges it into the player's cache at every start (`Seeded pipeline cache from ...`). It holds
-  Aurora's pipeline keys (GX TEV stage and combiner selectors, vertex formats, blend, depth and cull
-  state) recorded from the game's materials: no textures, models, text, audio or code, but it is
-  derived from the disc, so it stays out of git like the disc itself.
+  With the default output directory the result is copied to `native/data/initial_pipeline_cache.db`,
+  the committed bundled file (commit it after a merge). `scripts/switch/build_native.sh` puts it
+  next to the NRO and `scripts/switch/push.sh` pushes it with the NRO (`--pipeline-cache` alone
+  pushes only it), where Aurora merges it into the player's cache at every start (`Seeded pipeline
+  cache from ...`). It holds Aurora's pipeline keys (GX TEV stage and combiner selectors, vertex
+  formats, blend, depth and cull state) recorded from the game's materials: no textures, models,
+  text, audio or code. It is committed since 2026-10-06: a build made from a clean clone, without
+  it, had no warm-up and no loading screen.
 - Aurora Switch patch 0008 queues the priority-0 pipelines first (the player's own cache records
   each run's frames, so by first use alone pipelines seen anywhere in the game would come first
   after a few sessions) and counts them for the harness.
@@ -554,6 +557,7 @@ after playing, with USB file transfer on and the app closed:
 ```sh
 scripts/switch/pull_pipeline_cache.sh            # -> build/pipeline-cache/console/<timestamp>.db
 native/tools/gen_pipeline_cache.sh --merge-only --merge-from build/pipeline-cache/console/<timestamp>.db
+git add native/data/initial_pipeline_cache.db   # the merged file is copied there; commit it
 scripts/switch/push.sh --pipeline-cache
 ```
 

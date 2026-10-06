@@ -54,7 +54,7 @@ the number of pipelines in its cache and the high-water marks of Aurora's fixed 
 
 pipelines: for each run directory under the given sweep directories, the pipelines of its
 cache/pipeline_cache.db that the bundled file (--bundled, default
-build/pipeline-cache/initial_pipeline_cache.db) lacks, keyed (type, hash); also how many of them
+native/data/initial_pipeline_cache.db) lacks, keyed (type, hash); also how many of them
 no other run of the sweeps had. Written to <first sweep dir>/new_pipelines.tsv and printed, top
 contributors first.
 Nothing here is meant for git.
@@ -500,7 +500,7 @@ def main():
     ap.add_argument("--disc", default=os.environ.get("COS_DISC", ""))
     ap.add_argument("--exe", default="")
     ap.add_argument("--out", default="")
-    ap.add_argument("--bundled", default=os.path.join(REPO, "build", "pipeline-cache",
+    ap.add_argument("--bundled", default=os.path.join(REPO, "native", "data",
                                                       "initial_pipeline_cache.db"))
     args = ap.parse_args()
     if args.mode == "pipelines":

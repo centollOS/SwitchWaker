@@ -69,9 +69,9 @@ contents, and fill the arrays from the player's disc when the program starts.
 
 - The disc itself is still required at run time (all models, stages, audio and messages already
   come from it through DVD reads; nothing changes there).
-- The pipeline cache (`initial_pipeline_cache.db`) is generated from runs of the game; a release
-  would either ship without it (pipelines compile on first use, as on a fresh install today) or
-  generate it on the player's machine with `native/tools/gen_pipeline_cache.sh`.
+- The pipeline cache (`initial_pipeline_cache.db`) is generated from runs of the game and holds
+  only pipeline keys (GX state), no game data; it is committed in `native/data/` (2026-10-06) and
+  ships next to the executable.
 
 ## Estimate
 

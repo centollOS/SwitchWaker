@@ -1,5 +1,6 @@
 # Inputs and outputs outside git: fetched sources (ref/), every build directory (build/).
-# Nothing derived from the player's disc is ever committed.
+# Nothing derived from the player's disc is ever committed, except native/data/initial_pipeline_cache.db:
+# pipeline keys (GX state) recorded from runs of the game, no game data (docs/SWITCH_BUILD.md).
 ref/
 /build*/
 cmake-build-*/

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copy the native port's NRO and its inputs to the console over USB (MTP) and pull back its logs.
 #
-#   scripts/switch/push.sh [--build] [native|FILE.nro]...   (default: native)
+#   scripts/switch/push.sh [--build] [--no-pipeline-cache] [native|FILE.nro]...   (default: native)
 #   scripts/switch/push.sh --logs
 #   scripts/switch/push.sh --disc DISC.iso
 #   scripts/switch/push.sh --native-env ENV.txt
@@ -15,10 +15,11 @@
 # already on the console with the same size). `native` is the native port's NRO
 # (scripts/switch/build_native.sh), centollos.nro;
 # --native-env copies a run options file as its native/env.txt. --pipeline-cache copies the
-# bundled pipeline cache that native/tools/gen_pipeline_cache.sh made (default
-# build/pipeline-cache/initial_pipeline_cache.db; it is derived from the player's disc and never
-# committed) as initial_pipeline_cache.db next to the NRO, where Aurora seeds its pipeline cache
-# from at every start, and checks the read-back. Needs libmtp
+# bundled pipeline cache (default native/data/initial_pipeline_cache.db, the committed one that
+# native/tools/gen_pipeline_cache.sh updates) as initial_pipeline_cache.db next to the NRO, where
+# Aurora seeds its pipeline cache from at every start, and checks the read-back. Pushing an NRO
+# pushes that file as well (unless --no-pipeline-cache): without it the console has no warm-up
+# and no "Preparing shaders" screen, and every pipeline is built when first drawn. Needs libmtp
 # (macOS: brew install libmtp); runs on the host, not in a container.
 set -euo pipefail
 
@@ -57,24 +58,29 @@ if [[ ${1:-} == --native-env ]]; then
     exit 0
 fi
 
-if [[ ${1:-} == --pipeline-cache ]]; then
-    db=${2:-$root/build/pipeline-cache/initial_pipeline_cache.db}
+bundled_db="$root/native/data/initial_pipeline_cache.db"
+push_pipeline_cache() { # FILE.db
+    local db=$1 staging want got
     if [[ ! -s $db ]]; then
-        echo "push: $db is missing; run native/tools/gen_pipeline_cache.sh first" >&2
+        echo "push: $db is missing" >&2
         exit 1
     fi
     staging=$(mktemp -d)
-    trap 'rm -rf "$staging"' EXIT
     # Aurora looks for this exact name in its resources path (the NRO's directory).
     cp "$db" "$staging/initial_pipeline_cache.db"
     "$tool" push "$staging/initial_pipeline_cache.db" "$remote_dir" "$staging/readback.db"
     want=$(shasum -a 256 "$db" | cut -d' ' -f1)
     got=$(shasum -a 256 "$staging/readback.db" | cut -d' ' -f1)
+    rm -rf "$staging"
     if [[ $want != "$got" ]]; then
         echo "push: read-back of initial_pipeline_cache.db does not match ($got != $want)" >&2
         exit 1
     fi
     echo "verified initial_pipeline_cache.db $want"
+}
+
+if [[ ${1:-} == --pipeline-cache ]]; then
+    push_pipeline_cache "${2:-$bundled_db}"
     exit 0
 fi
 
@@ -90,10 +96,12 @@ if [[ ${1:-} == --logs ]]; then
 fi
 
 build=0
-if [[ ${1:-} == --build ]]; then
-    build=1
+with_db=1
+while [[ ${1:-} == --build || ${1:-} == --no-pipeline-cache ]]; do
+    [[ $1 == --build ]] && build=1
+    [[ $1 == --no-pipeline-cache ]] && with_db=0
     shift
-fi
+done
 [[ $# -gt 0 ]] || set -- native
 
 for target in "$@"; do
@@ -123,3 +131,4 @@ for target in "$@"; do
     fi
     echo "verified $(basename "$nro") $want"
 done
+[[ $with_db -eq 0 ]] || push_pipeline_cache "$bundled_db"

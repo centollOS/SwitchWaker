@@ -5,7 +5,9 @@
 #                                  [--dawn-src DIR] [--mesa DIR | --stock-mesa] [--jobs N]
 #                                  [--target TARGET]
 #
-# Output: build/switch-native/centollos.nro and, for addr2line, build/switch-native/centollos.elf.
+# Output: build/switch-native/centollos.nro, next to it the bundled pipeline cache
+# initial_pipeline_cache.db (a copy of native/data/'s), and, for addr2line,
+# build/switch-native/centollos.elf.
 # Everything is compiled in a container (Podman or Docker, see container.sh) from the pinned
 # devkitPro image plus clang 19 (Containerfile.native): devkitA64's GCC for Aurora, Dawn, the SDK
 # and libnx, clang for the game units (switch/native/clang-launcher.sh).
@@ -147,5 +149,8 @@ if [[ ! -s $nro ]] || [[ $(od -An -tc -j 16 -N4 "$nro" | tr -d ' \n') != NRO0 ]]
     exit 1
 fi
 shasum -a 256 "$nro" 2>/dev/null || sha256sum "$nro"
+# The bundled pipeline cache goes next to the NRO (sdmc:/switch/centollos/ on the console): without
+# it there is no warm-up and no "Preparing shaders" screen (docs/SWITCH_BUILD.md).
+cp -f "$root/native/data/initial_pipeline_cache.db" "$root/build/switch-native/initial_pipeline_cache.db"
 printf 'Built %s (%s bytes); symbols: %s\n' "$nro" "$(wc -c <"$nro" | tr -d ' ')" \
     "$root/build/switch-native/centollos.elf"

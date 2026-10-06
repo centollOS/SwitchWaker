@@ -76,13 +76,16 @@
 # (<out>/initial_pipeline_cache.db; its tiers and rows are kept), default tiers after its highest.
 #
 # Output (default build/pipeline-cache/, gitignored): initial_pipeline_cache.db, report.txt and the
-# runs. The file is derived from running the game with the player's own disc, so it is never
-# committed or published: it holds no textures, geometry, text, audio or code, only Aurora's
-# pipeline keys (per-material TEV stage/combiner selectors, vertex attribute formats, blend, depth
-# and cull state as raw config structs), but they are recorded from the game's own materials.
-# Copy it to the console with scripts/switch/push.sh --pipeline-cache (next to the NRO, where Aurora
-# looks for it: sdmc:/switch/centollos/initial_pipeline_cache.db). On the Mac nothing reads
-# it unless it is copied next to build/native-mac/centollos (Aurora's resources path).
+# runs. With the default output directory the result is also copied to
+# native/data/initial_pipeline_cache.db, the committed bundled file (commit it): it holds no
+# textures, geometry, text, audio or code, only Aurora's pipeline keys (per-material TEV
+# stage/combiner selectors, vertex attribute formats, blend, depth and cull state as raw config
+# structs), so it is kept in the repository and every build gets the warm-up (decided 2026-10-06:
+# a build without it had no "Preparing shaders" screen). --merge-only on a fresh clone starts
+# from that committed file. scripts/switch/build_native.sh puts it next to the NRO and
+# scripts/switch/push.sh pushes it with the NRO (where Aurora looks for it:
+# sdmc:/switch/centollos/initial_pipeline_cache.db). On the Mac nothing reads it unless it is
+# copied next to build/native-mac/centollos (Aurora's resources path).
 set -u
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -204,6 +207,12 @@ if [ -n "$versions" ] && [ -n "$switch_versions" ] && [ "$versions" != "$switch_
     echo "gen_pipeline_cache: warning: the Mac build's Aurora writes config versions $versions, the Switch build's $switch_versions; rebuild both" >&2
 fi
 
+committed="$repo/native/data/initial_pipeline_cache.db"
+default_out=0
+[ "$out" = "$(cd "$repo/build" 2>/dev/null && pwd)/pipeline-cache" ] && default_out=1
+if [ "$merge_only" = 1 ] && [ ! -s "$db" ] && [ "$default_out" = 1 ] && [ -s "$committed" ]; then
+    cp "$committed" "$db"
+fi
 if [ "$merge_only" = 1 ]; then
     [ -s "$db" ] || { echo "gen_pipeline_cache: --merge-only: no $db to merge into" >&2; exit 2; }
     rm -f "$tmp"
@@ -478,4 +487,8 @@ mv -f "$tmp" "$db"
     sqlite3 "$db" 'SELECT type, config_version, COUNT(*), config_size FROM pipeline_cache GROUP BY 1, 2, 4;'
     echo "total $(sqlite3 "$db" 'SELECT COUNT(*) FROM pipeline_cache') rows, $(wc -c < "$db" | tr -d ' ') bytes: $db"
 } >> "$report"
+if [ "$default_out" = 1 ]; then
+    cp -f "$db" "$committed"
+    echo "copied to $committed (commit it)" >> "$report"
+fi
 cat "$report"
