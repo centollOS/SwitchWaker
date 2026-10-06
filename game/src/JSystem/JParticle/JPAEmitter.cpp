@@ -109,7 +109,10 @@ void JPABaseEmitter::calcVolumeCylinder() {
     if (checkEmDataFlag(JPADynFlag_FixedDensity)) {
         rad = 1.0f - rad * rad;
         // FAKEMATCH: zero-code memory kill; stops MWCC's IRO CSE from reusing mRandomSeed.value across the if
+#ifdef __MWERKS__
+        // Other compilers treat the null store as unreachable and delete the whole branch.
         *(f32*)NULL = *(f32*)NULL;
+#endif
     }
     rad = emtrInfo.mVolumeSize * (mVolumeMinRad + rad * (1.0f - mVolumeMinRad));
 

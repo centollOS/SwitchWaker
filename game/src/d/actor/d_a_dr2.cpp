@@ -48,8 +48,10 @@ static BOOL daDr2_ToBack(dr2_class*) {
 }
 
 static void anm_init(dr2_class*, int, float, unsigned char, float, int) {
+#ifdef __MWERKS__
     *(f32*)NULL = 0.0f;
     *(f32*)NULL = -1.0f;
+#endif
 }
 
 /* 00000110-00000380       .text nodeCallBack__FP7J3DNodei */

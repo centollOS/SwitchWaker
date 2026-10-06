@@ -32,12 +32,24 @@ void JUTFader::control() {
         mColor.a = 0xFF;
         break;
     case FadeIn:
+        #if TARGET_PC
+        // startFadeIn(0) / startFadeOut(0): the PowerPC divide by zero does not trap,
+        // the host's may. A zero quotient is what the ARM64 builds already gave.
+        ++mTimer;
+        mColor.a = 0xFF - (mFadeTime != 0 ? (mTimer * 0xFF) / mFadeTime : 0);
+#else
         mColor.a = 0xFF - ((++mTimer * 0xFF) / mFadeTime);
+#endif
         if (mTimer >= mFadeTime)
             mStatus = WaitIn;
         break;
     case FadeOut:
+        #if TARGET_PC
+        ++mTimer;
+        mColor.a = mFadeTime != 0 ? (mTimer * 0xFF) / mFadeTime : 0;
+#else
         mColor.a = ((++mTimer * 0xFF) / mFadeTime);
+#endif
         if (mTimer >= mFadeTime)
             mStatus = WaitOut;
         break;
