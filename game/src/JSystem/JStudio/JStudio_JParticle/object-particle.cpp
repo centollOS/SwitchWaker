@@ -228,12 +228,19 @@ void TAdaptor_particle::TJPACallback_::execute(JPABaseEmitter* emitter) {
     mAdaptor->adaptor_getVariableValue_Vec(&sp0C, sauVariableValue_3_SCALING_XYZ);
 
     Vec* pos; // r29
+#if TARGET_PC
+    // Out here on PC: pos keeps pointing at outVec after the block below, and clang may reuse a
+    // block-scoped array's stack slot (ASan, stack-use-after-scope).
+    Vec outVec[2];
+#endif
 
     if (!mAdaptor->field_0x1CC) {
         if (!ctrl->transformOnSet_isEnabled()) {
             pos = srts;
         } else {
+#if !TARGET_PC
             Vec outVec[2];
+#endif
             MTXMultVec(ctrl->transformOnSet_getMatrix(), &srts[0], &outVec[0]);
             outVec[1].x = srts[1].x;
             outVec[1].y = ctrl->transformOnSet_getRotationY() + srts[1].y;
