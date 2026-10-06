@@ -23,7 +23,7 @@
 #include "JSystem/JMessage/data.h"
 #include "JSystem/JUtility/TColor.h"
 #include "f_op/f_op_msg_mng.h"
-#include "../src/pc/pc_precompile_gate.h"
+#include "../src/pc/features/pc_precompile_gate.h"
 
 #include <cmath>
 #include <cstdint>

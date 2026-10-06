@@ -15,15 +15,16 @@
 # - Needs Aurora (cos_sdk) and every module; skipped otherwise. Not part of `all`.
 include_guard(GLOBAL)
 
-# The run harness (docs/NATIVE_PORT_PHASE4_6.md, step 6.0): native/src/pc/pc_*.cpp, globbed into
-# the static library cos_pc (API: native/include/pc/pc_harness.h). Compiled like the game units
+# The run harness (docs/NATIVE_PORT_PHASE4_6.md, step 6.0): native/src/pc/**/pc_*.cpp (runtime/,
+# features/, harness/...; native/src/pc/README.md), globbed recursively into the static library
+# cos_pc (API: native/include/pc/pc_harness.h). Compiled like the game units
 # (cos_game_headers), since pc_smoke.cpp reads game state. Game units call into it under TARGET_PC,
 # so the link census bundle links it too: its symbols must not show up as unresolved.
 # The port helpers' sources (native/src/helpers/*.cpp, step 4.0b: OffsetPtr; headers in
 # native/include/helpers) go into the same library, so the game and cos_pc_tests link one copy.
-file(GLOB _pc_sources CONFIGURE_DEPENDS
-        "${COS_NATIVE_ROOT}/src/pc/pc_*.cpp"
-        "${COS_NATIVE_ROOT}/src/helpers/*.cpp")
+file(GLOB_RECURSE _pc_sources CONFIGURE_DEPENDS "${COS_NATIVE_ROOT}/src/pc/pc_*.cpp")
+file(GLOB _helper_sources CONFIGURE_DEPENDS "${COS_NATIVE_ROOT}/src/helpers/*.cpp")
+list(APPEND _pc_sources ${_helper_sources})
 list(SORT _pc_sources)
 add_library(cos_pc STATIC ${_pc_sources})
 target_link_libraries(cos_pc PRIVATE cos_game_headers)
@@ -39,21 +40,21 @@ endif ()
 # pc_shot.cpp (COS_SHOT) reads the presented frame back through Aurora's internal WebGPU state
 # (lib/webgpu/gpu.hpp, lib/gfx/render_worker.hpp) and Dawn's C++ headers. Headers only: the symbols
 # are in aurora_core and Dawn, which centollos and the link census bundle already link through cos_sdk.
-set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_shot.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
+set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/harness/pc_shot.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
         "${aurora_SOURCE_DIR}"
         "$<TARGET_PROPERTY:dawn::webgpu_dawn,INTERFACE_INCLUDE_DIRECTORIES>")
 # pc_main.cpp names Aurora's render worker for the Switch's per-thread CPU times
 # (render_worker::enqueue_work; lib/gfx/render_worker.hpp includes only standard headers).
 # pc_gpu_opts.cpp (COS_SHADOW_OFFSCREEN) reads the EFB's pixel size (lib/window.hpp, whose SDL
 # headers cos_pc already has, and lib/dolphin/vi/vi_internal.hpp); the symbols are aurora_core's.
-set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_main.cpp" "${COS_NATIVE_ROOT}/src/pc/pc_gpu_opts.cpp"
+set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/runtime/pc_main.cpp" "${COS_NATIVE_ROOT}/src/pc/features/pc_gpu_opts.cpp"
         APPEND PROPERTY INCLUDE_DIRECTORIES "${aurora_SOURCE_DIR}")
 # pc_overlay.cpp (COS_FPS_OVERLAY), pc_precompile.cpp (the shader loading screen and indicator) and
 # pc_menu.cpp (the options menu) draw with Aurora's ImGui; pc_shot.cpp composites ImGui's draw data
 # into COS_SHOT images with COS_SHOT_IMGUI=1. Headers only: aurora_core links imgui.
 if (TARGET imgui)
-    set(_pc_imgui_sources "${COS_NATIVE_ROOT}/src/pc/pc_overlay.cpp" "${COS_NATIVE_ROOT}/src/pc/pc_precompile.cpp"
-            "${COS_NATIVE_ROOT}/src/pc/pc_menu.cpp" "${COS_NATIVE_ROOT}/src/pc/pc_shot.cpp")
+    set(_pc_imgui_sources "${COS_NATIVE_ROOT}/src/pc/features/pc_overlay.cpp" "${COS_NATIVE_ROOT}/src/pc/features/pc_precompile.cpp"
+            "${COS_NATIVE_ROOT}/src/pc/features/pc_menu.cpp" "${COS_NATIVE_ROOT}/src/pc/harness/pc_shot.cpp")
     set_property(SOURCE ${_pc_imgui_sources}
             APPEND PROPERTY INCLUDE_DIRECTORIES "$<TARGET_PROPERTY:imgui,INTERFACE_INCLUDE_DIRECTORIES>")
     set_property(SOURCE ${_pc_imgui_sources}
@@ -62,7 +63,7 @@ endif ()
 # pc_precompile.cpp reads the bundled pipeline cache's priority count on the desktop hosts
 # (COS_PRECOMPILE=boot there). Headers only: aurora_core links sqlite3.
 if (TARGET sqlite3)
-    set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/pc_precompile.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
+    set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/features/pc_precompile.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
             "$<TARGET_PROPERTY:sqlite3,INTERFACE_INCLUDE_DIRECTORIES>")
 endif ()
 if (TARGET cos_link_census)
