@@ -148,6 +148,10 @@ the `audio` module since step 3.7.
   `functional.h`, `new.h`) that include the host's standard headers.
 - Changes to `game` that differ for the original target are under `#if TARGET_PC` with the
   original code kept in the other branch, as in Dusklight.
+- `python3 -I native/tools/divergence_census.py` regenerates `docs/GAME_DIVERGENCE.md`: every
+  file of `game` that differs from the import, its guarded blocks, the changes outside any guard,
+  the commits behind them, and the state of each unit in zeldaret/tww (cached in
+  `build/upstream-tww.git`; `--fetch` updates it).
 
 ### Asset headers
 
