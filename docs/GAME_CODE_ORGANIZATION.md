@@ -41,3 +41,43 @@ hooks under `TARGET_PC`. Compiling it out of a release would need a stub for eac
 the runtime pieces that live in harness files today (the game frame counter in `pc_milestone.cpp`,
 the allocation-failure reporter installed by `pc_heaps_created` in `pc_heap.cpp`, the debug stage
 boot the logo scene asks for). Not planned; noted here in case binary size or start-up ever needs it.
+
+## G3 notes (2026-10-06)
+
+The largest host-only blocks of `game/` moved to `native/src/pc/game_hooks/` (functions, declared
+in `native/include/pc/game_hooks.h`) and `native/include/pc/game_hooks/` (headers `game/`
+includes in place of a block: declarations, the PC profile list, per-vertex code that must stay
+inline). `native/src/pc/README.md` lists what went where. Census (`docs/GAME_DIVERGENCE.md`) before
+and after:
+
+| | Before | After |
+|---|---|---|
+| `game/` lines since the import | +10898 / -1201 | +8327 / -1191 |
+| Guarded blocks (outermost) | 1226 (1220) | 1202 (1198) |
+| Lines inside the outermost guarded blocks (the `#else` originals included) | 13750 | 11089 |
+| Unguarded code divergence | 208 added, 148 removed, 51 files | 190 added, 138 removed, 50 files |
+
+Left in `game/` on purpose:
+- blocks that are mostly the original code in an `#else` or an `#if !TARGET_PC` (c_dylink's REL
+  name table, DynamicLink's REL loading, m_Do_ext's debug-draw packets enabled for PC with
+  `#if DEBUG || TARGET_PC`): the PC side of each is a few lines already;
+- line-for-line parallel versions where the host type or call differs on each line (JSupport.h's
+  offset templates, c_lib.h's bit templates, JAIAnimation.h's BAS structs, binary.cpp's parser,
+  JKRExpHeap's `uintptr_t` arithmetic, J3DShape.h/J3DGD.h's FIFO writes, J3DSys.h's matrix arrays):
+  moving them would hide the data layout or the call from the code that uses it;
+- `J3DHermiteInterpolationS` (J3DAnimation.cpp): per key frame and called from its own unit, where
+  it is inlined;
+- `__MTGQR7` (J3DTransform.cpp): J3DGQRSetup7 calls it in the same unit;
+- code that would need friend declarations or other exposure of private members: the joint tree and
+  shadow-control members stay assigned in `game/` (the loaders' and `imageDraw`'s own code), only
+  the conversions and target set-up moved;
+- GFGeometry.cpp's `GFSetArraySized`: SDK code compiled into `cos_sdk_gf`, not a game unit;
+- dsptask.c's MEM1 copies (a C unit) and JASDSPInterface's (about 20 lines): small, audio start-up.
+
+Unguarded changes kept as they are (no code change on the GameCube): identity macros
+(`JKAR_DATA`, `JUT_CONTEXT`, `DEMO_PRM`, `COS_SCALE_FLAG`, `mDoMemCd_tryLockForSync`,
+`PC_GPU_GROUP`, `fopAcM_ct_placement`), big-endian reads through `BE(T)` with an explicit cast
+(JStudio, JASDSPInterface), `u32` for `unsigned long` in signatures (the same type on the
+GameCube), `this->` and `public:` for two-phase lookup and the node offsets, scope braces around
+blocks a `TARGET_PC` condition skips (m_Do_graphic, d_drawlist, d_event_manager), and the fixes
+zeldaret/tww made too (fopScnRq_Execute's result, camera_delete's int, d_menu_cloth's GXEnd).
