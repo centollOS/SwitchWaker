@@ -21,31 +21,8 @@
 #include "string.h"
 
 #if TARGET_PC
+#include "pc/game_hooks.h" // JAIPcMakeInitOnCodeTable: the bank and wave-system lists as host tables
 BE(u32)* JAInter::InitData::aafPointer;
-
-// Sections 2 (banks) and 3 (wave systems) of JaiInit.aaf list {offset, size, flags} as three
-// big-endian words per entry, ending with a 0 word. The GameCube copies the list and relocates each
-// offset in place into a pointer; initOnCode_s has a host pointer (8 bytes) and host-order fields,
-// so the host table is built from the words instead, with the same zero terminator. Returns the
-// table; *words is the number of list words before the terminator.
-static JAInter::BankWave::initOnCode_s* makeInitOnCodeTable(BE(u32)* list, int* words) {
-    int n;
-    for (n = 0; list[n * 3] != 0; n++) {}
-    *words = n * 3;
-    JAInter::BankWave::initOnCode_s* table = new (JAIBasic::getCurrentJAIHeap(), 0x20) JAInter::BankWave::initOnCode_s[n + 1];
-    if (table == NULL) {
-        return NULL;
-    }
-    for (int i = 0; i < n; i++) {
-        table[i].field_0x0 = (u8*)JAInter::InitData::aafPointer + list[i * 3];
-        table[i].field_0x4 = list[i * 3 + 1];
-        table[i].field_0x8 = list[i * 3 + 2];
-    }
-    table[n].field_0x0 = NULL;
-    table[n].field_0x4 = 0;
-    table[n].field_0x8 = 0;
-    return table;
-}
 #else
 u32* JAInter::InitData::aafPointer;
 #endif
@@ -90,13 +67,13 @@ void JAInter::InitData::checkInitDataOnMemory() {
 #if TARGET_PC
         case 2: {
             int words;
-            BankWave::initOnCodeBnk = makeInitOnCodeTable(aafPointer + r30, &words);
+            BankWave::initOnCodeBnk = JAIPcMakeInitOnCodeTable(aafPointer + r30, &words);
             r30 += words + 1;
             break;
         }
         case 3: {
             int words;
-            BankWave::initOnCodeWs = makeInitOnCodeTable(aafPointer + r30, &words);
+            BankWave::initOnCodeWs = JAIPcMakeInitOnCodeTable(aafPointer + r30, &words);
             BankWave::wsMax += words / 3;
             r30 += words + 1;
             break;

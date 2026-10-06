@@ -11,6 +11,8 @@
 #ifndef PC_GAME_HOOKS_H
 #define PC_GAME_HOOKS_H
 
+#include "helpers/endian.h"
+
 /*
  * A callable handed to a hook, which calls it back: e.g. a lambda that draws with the game
  * function's locals. Holds a reference: the callable must outlive the hook call.
@@ -63,5 +65,38 @@ bool pc_logo_dvd_synced(dScnLogo_c* i_this);
 /* phase_2, the logo scene created: milestone M5 logo-scene; the debug stage boot's request is
    not made yet. */
 void pc_logo_scene_created_hook();
+
+/* ---- Frame pacing (JFWDisplay.cpp), native/src/pc/game_hooks/pc_jfw_display.cpp -------------- */
+
+/* waitForTick: waits out p1 ticks (or p2 retraces when p1 is 0) with pc_frame_pace and makes the
+   retraces the console's VI interrupt would have counted meanwhile (step 6.2). */
+void pc_wait_for_tick(unsigned int p1, unsigned short p2);
+
+/* ---- Collision data (c_bg_s.cpp), native/src/pc/game_hooks/pc_c_bg_s.cpp --------------------- */
+
+class cBgD_t;
+
+/* cBgS::ConvDzb, the first time a DZB is seen: its table offsets become pointers (OFFSET_PTR), its
+   vertex table host-order (step 4.10). */
+void cBgS_PcConvDzbTables(cBgD_t* pbgd);
+
+/* ---- Widescreen HUD (d_meter.cpp, pc_aspect.h), native/src/pc/game_hooks/pc_meter_hooks.cpp --- */
+
+struct fopMsgM_pane_class;
+
+/* A 16:9 Gecko code value interpolated for COS_ASPECT and rounded. */
+short dMeter_pcLerpS16(float v43, float v169);
+/* dMeter_Create: the HUD tuning values the 16:9 code writes into g_meter_mapHIO and g_meterHIO. */
+void dMeter_pcAspectHIO();
+/* dMeter_Draw's fopMsgM_setAlpha for five panes: the pane shifted with the HUD first. */
+void dMeter_pcSetAlphaShifted(fopMsgM_pane_class* i_pane);
+
+/* ---- Audio init data (JAIInitData.cpp), native/src/pc/game_hooks/pc_audio_hooks.cpp ---------- */
+
+namespace JAInter { namespace BankWave { struct initOnCode_s; } }
+
+/* JaiInit.aaf's bank or wave-system list at `list` as a host table with a zero terminator; *words is
+   the number of list words before the list's own terminator. */
+JAInter::BankWave::initOnCode_s* JAIPcMakeInitOnCodeTable(BE(u32)* list, int* words);
 
 #endif /* PC_GAME_HOOKS_H */
