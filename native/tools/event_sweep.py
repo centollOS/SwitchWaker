@@ -19,7 +19,8 @@ Each run lands in <sweep dir>/<stage>/from-<n>/ (the usual run.sh run directory)
                                signature, run directory;
   <sweep dir>/event_sweep.md   counts, the distinct fault signatures with their events, the events
                                stuck on an engine staff, the stages that did not boot.
-Results: end, end-other (another event followed), not-started, no-demo (a PACKAGE staff's STB is
+Results: end, end-other (another event followed), not-started, played-at-boot (the stage played it
+on entry, which the boot waits through; not played again in the same visit), no-demo (a PACKAGE staff's STB is
 in no demo bank of the disc; a demo in a bank the boot layer did not mount is mounted first), stage-change (the event asked for
 another stage: the run ends there), scene-lost, and for an event that made no progress or timed
 out (the staff still waiting are listed as <name>:<cut>:<staff type>):
@@ -31,8 +32,8 @@ out (the staff still waiting are listed as <name>:<cut>:<staff type>):
   stuck               only engine staff (camera, message, demo package, timekeeper, ...) wait;
 the first two are harness artifacts. FAULT: the run ended on the event (exit code and signature as
 boot_sweep.py writes them); FAULT-after: the fault came after the event had ended, before the next
-one (an event that faults with boot_sweep.py's LkD01 signature runs again on a file with event
-flag 0x2D01, the player's later demo animations; its row then says retry=2D01); boot-fail: the stage did not reach its first event (xfail when boot_sweep.py lists the stage
+one (a faulting event runs again on a file with event flag 0x2D01, the player's later demo
+animations; its row then says retry=2D01 and first=<the first signature>); boot-fail: the stage did not reach its first event (xfail when boot_sweep.py lists the stage
 as an expected fail with that signature).
 Exit 0 when no event faulted (FAULT/FAULT-after) and every stage booted or is an xfail; 1 otherwise.
 
@@ -238,9 +239,12 @@ def classify(r):
 def sweep_stage(args, out, stage, room, point, todo, names):
     spec = "%s:%d:%d" % (stage, room, point)
     rows, runs, boot = run_events(args, out, stage, spec, todo, names, {}, "")
-    if boot is not None and re.search(boot_sweep._LKD01_SIG, boot["signature"]):
-        # The stage's own start demo needs the later player animations too (boot_sweep.py's
-        # GTower, GanonK, M2ganon): boot again with the flag for the rest.
+    # The player's later demo animations (LkD01.arc instead of LkD00.arc) are mounted only with
+    # event flag 0x2D01 (boot_sweep.py's LkD01 expected fail), and many cutscenes of the second half
+    # need them (a demo animation id missing from LkD00: NULL animations, garbage texture
+    # animations). A faulting boot or event runs again once on a file with the flag
+    # (COS_BOOT_EVENTS=2D01); the row then says retry=2D01 and keeps the first signature.
+    if boot is not None and "not in the start room" not in boot["signature"]:
         done = {r["idx"] for r in rows}
         rows2, runs2, boot2 = run_events(args, out, stage, spec, [i for i in todo if i not in done], names,
                                          {"COS_BOOT_EVENTS": "2D01"}, "-2D01")
@@ -248,18 +252,18 @@ def sweep_stage(args, out, stage, room, point, todo, names):
             r["retry"] = "2D01"
         rows += rows2
         runs += runs2
+        if boot2 is not None:
+            boot2["first"] = boot["signature"]
         boot = boot2
-    # The player's later demo animations (LkD01.arc) are mounted only with event flag 0x2D01
-    # (boot_sweep.py's LkD01 expected fail): an event that faults with that signature runs again
-    # on a file with the flag (COS_BOOT_EVENTS=2D01).
-    lk = sorted(r["idx"] for r in rows if r["cls"] == "FAULT" and re.search(boot_sweep._LKD01_SIG, r["signature"])
-                and r.get("retry") != "2D01")
+    lk = sorted(r["idx"] for r in rows if r["cls"] == "FAULT" and r.get("retry") != "2D01")
     if lk and boot is None:
+        first = {r["idx"]: r["signature"] for r in rows if r["cls"] == "FAULT"}
         rows2, runs2, _ = run_events(args, out, stage, spec, lk, names, {"COS_BOOT_EVENTS": "2D01"}, "-2D01")
         runs += runs2
         again = {r["idx"]: r for r in rows2 if r["idx"] in lk}
         for r in again.values():
             r["retry"] = "2D01"
+            r["first"] = first.get(r["idx"], "")
         rows = [r for r in rows if not (r["idx"] in again and r["cls"] == "FAULT")] + list(again.values())
     return {"stage": stage, "spec": spec, "num": len(names), "rows": rows, "boot": boot, "runs": runs}
 
@@ -405,7 +409,7 @@ def main():
     with open(os.path.join(out, "event_sweep.tsv"), "w") as f:
         f.write("stage\tidx\tname\tresult\tframes\tseconds\tmissing\tdetails\texit\tsignature\trun\n")
         for r in rows:
-            det = " ".join("%s=%s" % (k, r[k]) for k in ("waiting", "why", "next", "running", "demo", "demo-frame", "retry")
+            det = " ".join("%s=%s" % (k, r[k]) for k in ("waiting", "why", "next", "running", "demo", "demo-frame", "retry", "first")
                            if r.get(k))
             f.write("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
                 r["stage"], r["idx"], r["name"], r["cls"], r["frames"], r["seconds"], r.get("missing", "-"),
@@ -436,6 +440,13 @@ def main():
             f.write("- `%s` (%d): %s\n" % (sig, len(rs), ", ".join(
                 "%s#%d %s%s (%s)" % (r["stage"], r["idx"], r["name"], " after" if r["cls"] == "FAULT-after" else "",
                                      r["run"]) for r in rs)))
+        f.write("\n## Faults gone on a file with event flag 0x2D01 (the later player demo animations)\n\n")
+        fixed = [r for r in rows if r.get("retry") == "2D01" and r.get("first") and r["cls"] not in FAULTS]
+        if not fixed:
+            f.write("None.\n")
+        for r in fixed:
+            f.write("- %s#%d %s: %s with the flag; first `%s`\n" % (r["stage"], r["idx"], r["name"], r["cls"],
+                                                                    r["first"]))
         f.write("\n## Stages that did not boot to their first event\n\n")
         if not boots:
             f.write("None.\n")

@@ -62,7 +62,7 @@ namespace pc {
 namespace {
 
 constexpr unsigned int kSettleFrames = 60;     // after the player is in the room
-constexpr unsigned int kStartEventFrames = 3600; // the stage's own start event, before the first order
+constexpr unsigned int kStartEventFrames = 30000; // the stage's own start event, before the first order
 constexpr unsigned int kStartFrames = 240;     // order -> the manager starts the event
 constexpr unsigned int kOtherResetFrames = 60;  // another event running meanwhile: reset after
 constexpr double kBootSeconds = 240.0;          // the player in the start room, from the first frame
@@ -100,6 +100,8 @@ char sDetail[1024];
 unsigned int sRunFrames = 0;
 unsigned int sCount = 0;
 unsigned int sEnded = 0, sNotStarted = 0, sStuck = 0;
+constexpr int kMaxBootEvents = 1024;
+bool sBootPlayed[kMaxBootEvents]; // the events the stage played on entry, before the sweep
 char sMissing[512];       // the current event's NORMAL staff without an actor, "|"-separated
 cXyz sHomePos;            // the player when the sweep started
 s16 sHomeAngle = 0;
@@ -550,6 +552,11 @@ void eventSweepFrame(unsigned int frames) {
         static unsigned int sStartEvent = 0;
         if (dComIfGp_event_runCheck() && sStartEvent < kStartEventFrames) {
             sStartEvent++;
+            const s16 id = control()->mEventId;
+            if (id >= 0 && id < kMaxBootEvents && !sBootPlayed[id]) {
+                sBootPlayed[id] = true;
+                writef(STDERR_FILENO, "[cos] event-sweep: the boot plays event %d \"%s\"\n", id, eventName(id));
+            }
             setDrivenPad(true, sStartEvent % kTalkFrames < 2 ? PAD_BUTTON_A : 0, 0, 0);
             sSince = 0;
             return;
@@ -635,6 +642,21 @@ void eventSweepFrame(unsigned int frames) {
             pc_exit(PC_EXIT_REACHED);
         }
         sPutBacks = 0;
+        if (sIdx < kMaxBootEvents && sBootPlayed[sIdx]) {
+            // The stage played it on entry, to its end (or kStartEventFrames). A demo played again
+            // in the same stage visit meets the model data its first play left behind: an actor's
+            // mDoExt_McaMorf sets itself as the joint calc of the demo bank's shared model data
+            // and is freed with the actor, and the next model made from that data without a morph
+            // calculates through the freed one (Atorizk demo10, daDemo00_c::createHeap). The game
+            // plays such demos once per visit, so the replay is not swept.
+            sStartNs = monotonicNs();
+            sRunFrames = 0;
+            sDetail[0] = '\0';
+            result("played-at-boot");
+            sState = kGap;
+            sSince = 0;
+            return;
+        }
         char* missing = sMissing;
         missingCast(sIdx, sMissing, sizeof(sMissing));
         dEvDtEvent_c* ev = manager()->getEventData((s16)sIdx);
