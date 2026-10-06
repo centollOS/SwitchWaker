@@ -12,15 +12,7 @@
 #include "d/d_menu_base.h"
 #include "f_op/f_op_msg_mng.h"
 #include "d/d_lib.h"
-#include "JSystem/J2DGraph/J2DOrthoGraph.h"
-
-#if TARGET_PC
-// Native port step 3.3 (ODR): d_menu_collect.cpp's MyScreen is not d_file_error.h's MyScreen; on
-// PC it lives in its own namespace so the two classes do not share a vtable.
-namespace dMenu_Collect { class MyScreen; }
-#else
-class MyScreen;
-#endif
+#include "d/d_file_error.h"
 
 struct fopMsgM_pane_class;
 class JKRArchive;
@@ -28,10 +20,10 @@ class JUTFont;
 
 class dMenu_Collect_c : public dMenu_base_c {
 public:
-    ~dMenu_Collect_c() {}
+    virtual ~dMenu_Collect_c() {}
     virtual void draw() { _draw(); }
 
-    void alphaChange(fopMsgM_pane_class* pane, float alpha) { pane->mInitAlpha *= alpha; }
+    void alphaChange(fopMsgM_pane_class* pane, f32 alpha) { pane->mInitAlpha *= alpha; }
     u8 getCollectMode() { return mCollectMode; }
     u8 getNowItem() { return mNowItem; }
     void setNowItem(u8 val) { mNowItem = val; }
@@ -50,11 +42,6 @@ public:
     void setTriforceTexBuffer(int idx, void* ptr) { mTriforceTexBuffer[idx] = (ResTIMG*)ptr; }
     void setSymbolTexBuffer(int idx, void* ptr) { mSymbolTexBuffer[idx] = (ResTIMG*)ptr; }
     void setItemTexBuffer(int idx, void* ptr) { mItemTexBuffer[idx] = (ResTIMG*)ptr; }
-#if VERSION == VERSION_PAL
-    void setWordSaveTexBuffer(void* ptr) { mWordSaveTexBuffer = (ResTIMG*)ptr; }
-    void setWordOptionTexBuffer(void* ptr) { mWordOptionTexBuffer = (ResTIMG*)ptr; }
-    void setTitleCollectTexBuffer(void* ptr) { mTitleCollectTexBuffer = (ResTIMG*)ptr; }
-#endif
 
     void setTextArea(char* name0, char* name1, char* note0, char* note1, char* dummy0, char* dummy1) {
         name[0] = name0;
@@ -71,34 +58,34 @@ public:
     void screenSet();
     void initialize();
     void cursorAnime();
-    int stickDirection(unsigned char);
+    u8 stickDirection(u8);
     u8 cursorMainMove();
     u8 noteCheck();
     void noteInit();
     void noteAppear();
     void noteOpen();
     void noteClose();
-    void mainTrans(float, float);
-    void subTrans(float, float);
-    void titleTrans(float, float);
-    void noteRotate(float, float);
-    void nameTrans(float, float);
-    void mainOpenProc(short, short, short);
-    void subOpenProc(short, short, short);
-    void titleOpenProc(short, short);
-    void noteOpenProc(short, short);
-    void nameOpenProc(short, short);
+    void mainTrans(f32, f32);
+    void subTrans(f32, f32);
+    void titleTrans(f32, f32);
+    void noteRotate(f32, f32);
+    void nameTrans(f32, f32);
+    void mainOpenProc(s16, s16, s16);
+    void subOpenProc(s16, s16, s16);
+    void titleOpenProc(s16, s16);
+    void noteOpenProc(s16, s16);
+    void nameOpenProc(s16, s16);
     void itemBitCheck();
     void itemScale();
     void collectPriority();
     void weponPriority();
-    void tactGuideShow(unsigned char, bool);
-    void tactDemoMode(unsigned char);
-    void tactPlayMode(unsigned char);
-    void tactTrans(unsigned char, float, float);
+    void tactGuideShow(u8, bool);
+    void tactDemoMode(u8);
+    void tactPlayMode(u8);
+    void tactTrans(u8, f32, f32);
     void tactBaseShow();
     void cornerMove();
-    void triforceAnime(unsigned char);
+    void triforceAnime(u8);
     void tactGuideHide();
     void itemnameMove();
     void itemnameSet();
@@ -107,31 +94,27 @@ public:
     void outFontInit();
     void outFontMove();
     void outFontDraw();
-    bool collectItemGetCheck(unsigned char);
+    bool collectItemGetCheck(u8);
     virtual void _create();
     void _create3();
     virtual void _delete();
     virtual void _move();
     void _move3();
     virtual void _draw();
-    bool _open();
+    virtual bool _open();
     bool _open3();
-    bool _close();
+    virtual bool _close();
     bool _close3();
-    void animeStep1(short, short);
-    void animeStep2(short, short);
-    void animeStep3(short, short);
-    void animeStep4(short, short);
+    void animeStep1(s16, s16);
+    void animeStep2(s16, s16);
+    void animeStep3(s16, s16);
+    void animeStep4(s16, s16);
     bool _open2();
     bool _close2();
 
 private:
     /* 0x0000 */ // vtable
-#if TARGET_PC
-    /* 0x0004 */ dMenu_Collect::MyScreen* scrn;
-#else
     /* 0x0004 */ MyScreen* scrn;
-#endif
     /* 0x0008 */ fopMsgM_pane_class m008;
     /* 0x0040 */ fopMsgM_pane_class m040;
     /* 0x0078 */ fopMsgM_pane_class m078;

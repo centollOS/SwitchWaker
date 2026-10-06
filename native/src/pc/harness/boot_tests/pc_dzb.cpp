@@ -275,11 +275,11 @@ void checkConverted(cBgD_t* bgd, const RawDzb& raw) {
     const cBgD_Ti_t* ti = bgd->m_ti_tbl;
     for (int i = 0; i < raw.num[kI]; i++) {
         const uint8_t* r = raw.at(kI, i);
-        if (ti[i].mPolyInf0 != rd32(r) || ti[i].mPolyInf1 != rd32(r + 4) ||
-            ti[i].mPolyInf2 != rd32(r + 8) || ti[i].mPolyInf3 != rd32(r + 12)) {
+        if (ti[i].m_info0 != rd32(r) || ti[i].m_info1 != rd32(r + 4) ||
+            ti[i].m_info2 != rd32(r + 8) || ti[i].m_info3 != rd32(r + 12)) {
             fail("poly info %d: %08x %08x %08x %08x; the file has %08x %08x %08x %08x", i,
-                 (u32)ti[i].mPolyInf0, (u32)ti[i].mPolyInf1, (u32)ti[i].mPolyInf2,
-                 (u32)ti[i].mPolyInf3, rd32(r), rd32(r + 4), rd32(r + 8), rd32(r + 12));
+                 (u32)ti[i].m_info0, (u32)ti[i].m_info1, (u32)ti[i].m_info2,
+                 (u32)ti[i].m_info3, rd32(r), rd32(r + 4), rd32(r + 8), rd32(r + 12));
             break;
         }
     }

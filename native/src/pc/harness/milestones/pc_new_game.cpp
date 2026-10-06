@@ -198,7 +198,7 @@ void openFrame(unsigned int frames) {
         sLastReason = nullptr;
         return;
     }
-    dScnOpen_proc_c* openProc = ((dScnOpen_c*)proc)->mpProc;
+    dScnOpen_proc_c* openProc = ((dScnOpen_c*)proc)->pcProc();
     const int state = openProc != nullptr ? (int)openProc->mState : -1;
     if (state != sOpenState) {
         writef(STDERR_FILENO, "[cos] new-game: frame %u: prologue state %d\n", frames, state);

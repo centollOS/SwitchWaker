@@ -725,11 +725,7 @@ void dMenu_Dmap_c::treasureDraw() {
                     door_p[i].width / 2.0f,
                     door_p[i].height / 2.0f,
                     ROTATE_Z,
-#if VERSION == VERSION_DEMO
-                    cM_sht2d(door_p[i].angle));
-#else
                     S2DEG(door_p[i].angle));
-#endif
                 door_p[i].ppane->setAlpha(mCc05Pane.mNowAlpha);
             }
         }
@@ -1613,7 +1609,7 @@ void dMenu_Dmap_c::itemnoteSet() {
 #if VERSION > VERSION_DEMO
         u32 color = mMsgProc.getIconColor(i);
         if (color == 0xFFFFFFFF) {
-            color = 0xFF;
+            color = 0x000000FF;
         }
 #endif
         if (iconNo == 0xFF) {

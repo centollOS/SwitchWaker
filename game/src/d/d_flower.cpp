@@ -62,7 +62,7 @@ void dFlower_data_c::WorkCo(fopAc_ac_c* param_1, u32 param_2, int param_3) {
     temp1.z = field_0x04.z - param_1->current.pos.z;
     f32 val = temp1.abs2XZ();
 
-    if(val > 900.0f) {
+    if(val > SQUARE(30.0f)) {
         return;
     }
 
@@ -330,14 +330,14 @@ void dFlower_packet_c::draw() {
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0);
 #if TARGET_PC
     // Aurora's GXSetArray also takes the array's byte size and byte order
-    // (the static asset arrays, host-endian; field_0x4608.. point at the *2 or *3 set).
+    // (the static asset arrays, host-endian; mPosArray.. point at the *2 or *3 set).
     GXSETARRAY(GX_VA_POS, l_pos, sizeof(l_pos), 0xC, true);
     GXSETARRAY(GX_VA_CLR0, l_color, sizeof(l_color), 0x4, true);
     GXSETARRAY(GX_VA_TEX0, l_texCoord, sizeof(l_texCoord), 0x8, true);
 #else
-    GXSetArray(GX_VA_POS, l_pos, 0xC);
-    GXSetArray(GX_VA_CLR0, l_color, 0x4);
-    GXSetArray(GX_VA_TEX0, l_texCoord, 0x8);
+    GXSetArray(GX_VA_POS, l_pos, sizeof(l_pos[0]));
+    GXSetArray(GX_VA_CLR0, l_color, sizeof(l_color[0]));
+    GXSetArray(GX_VA_TEX0, l_texCoord, sizeof(l_texCoord[0]));
 #endif
 #if TARGET_PC
     // The material list names its texture by physical address (see mDoLib_loadDLTexImage).
@@ -346,19 +346,18 @@ void dFlower_packet_c::draw() {
     GXCallDisplayList(l_matDL, 0xA0);
 
     dFlower_room_c* pRoom = &mRoom[0];
-    for(int i = 0; i < (s32)ARRAY_SIZE(mRoom); pRoom++, i++) {
+    for(int i = 0; i < ARRAY_SSIZE(mRoom); pRoom++, i++) {
         dKy_tevstr_c* tevstr = dComIfGp_roomControl_getTevStr(i);
         GXSetTevColorS10(GX_TEVREG0, tevstr->mColorC0);
         GXSetTevColor(GX_TEVREG1, tevstr->mColorK0);
         dKy_GxFog_tevstr_set(tevstr);
 
-        dFlower_data_c* pNext = pRoom->getData();
+        dFlower_data_c* pNext = pRoom->field_0x0;
         while(pNext) {
-            // fakematch: the (u8) conversions (no-ops on a u8 field) change the demo register colouring of this loop
-            if(!cLib_checkBit<u8>((u8)pNext->field_0x00, 0x4) && !cLib_checkBit<u8>((u8)pNext->field_0x00, 0x20)) {
+            if(!cLib_checkBit<u8>(pNext->field_0x00, 0x4) && !cLib_checkBit<u8>(pNext->field_0x00, 0x20)) {
                 GXLoadPosMtxImm(pNext->field_0x10, 0);
 
-                if(!cLib_checkBit<u8>((u8)pNext->field_0x00, 0x8)) {
+                if(!cLib_checkBit<u8>(pNext->field_0x00, 0x8)) {
                     GXCallDisplayList(l_OhanaDL, 0x100);
                 }
                 else {
@@ -371,40 +370,40 @@ void dFlower_packet_c::draw() {
     }
 
 #if TARGET_PC
-    GXSETARRAY(GX_VA_POS, field_0x4608,
-               field_0x4608 == l_pos3 ? sizeof(l_pos3) : field_0x4608 == l_pos2 ? sizeof(l_pos2) : 0, 0xC, true);
-    GXSETARRAY(GX_VA_CLR0, field_0x460c,
-               field_0x460c == l_color3 ? sizeof(l_color3) : field_0x460c == l_color2 ? sizeof(l_color2) : 0, 0x4, true);
-    GXSETARRAY(GX_VA_TEX0, field_0x4610,
-               field_0x4610 == l_texCoord3 ? sizeof(l_texCoord3) : field_0x4610 == l_texCoord2 ? sizeof(l_texCoord2) : 0, 0x8, true);
+    GXSETARRAY(GX_VA_POS, mPosArray,
+               mPosArray == l_pos3 ? sizeof(l_pos3) : mPosArray == l_pos2 ? sizeof(l_pos2) : 0, 0xC, true);
+    GXSETARRAY(GX_VA_CLR0, mColorArray,
+               mColorArray == l_color3 ? sizeof(l_color3) : mColorArray == l_color2 ? sizeof(l_color2) : 0, 0x4, true);
+    GXSETARRAY(GX_VA_TEX0, mTexCoordArray,
+               mTexCoordArray == l_texCoord3 ? sizeof(l_texCoord3) : mTexCoordArray == l_texCoord2 ? sizeof(l_texCoord2) : 0, 0x8, true);
 #else
-    GXSetArray(GX_VA_POS, field_0x4608, 0xC);
-    GXSetArray(GX_VA_CLR0, field_0x460c, 0x4);
-    GXSetArray(GX_VA_TEX0, field_0x4610, 0x8);
+    GXSetArray(GX_VA_POS, mPosArray, sizeof(*mPosArray));
+    GXSetArray(GX_VA_CLR0, mColorArray, sizeof(*mColorArray));
+    GXSetArray(GX_VA_TEX0, mTexCoordArray, sizeof(*mTexCoordArray));
 #endif
 #if TARGET_PC
     // The material list names its texture by physical address (see mDoLib_loadDLTexImage).
-    mDoLib_loadDLTexImage(field_0x4614, field_0x4618,
-                          field_0x4614 == l_matDL3 ? l_Txq_bessou_hanaTEX : l_Txo_ob_flower_pink_64x64TEX);
+    mDoLib_loadDLTexImage(mDL1, mDL1Size,
+                          mDL1 == l_matDL3 ? l_Txq_bessou_hanaTEX : l_Txo_ob_flower_pink_64x64TEX);
 #endif
-    GXCallDisplayList(field_0x4614, field_0x4618);
+    GXCallDisplayList(mDL1, mDL1Size);
 
     pRoom = &mRoom[0];
-    for(int i = 0; i < (s32)ARRAY_SIZE(mRoom); pRoom++, i++) {
+    for(int i = 0; i < ARRAY_SSIZE(mRoom); pRoom++, i++) {
         dKy_tevstr_c* tevstr = dComIfGp_roomControl_getTevStr(i);
         GXSetTevColorS10(GX_TEVREG0, tevstr->mColorC0);
         GXSetTevColor(GX_TEVREG1, tevstr->mColorK0);
 
-        dFlower_data_c* pNext = pRoom->getData();
+        dFlower_data_c* pNext = pRoom->field_0x0;
         while(pNext) {
             if(!cLib_checkBit<u8>(pNext->field_0x00, 0x4) && cLib_checkBit<u8>(pNext->field_0x00, 0x20)) {
                 GXLoadPosMtxImm(pNext->field_0x10, 0);
 
                 if(!cLib_checkBit<u8>(pNext->field_0x00, 0x8)) {
-                    GXCallDisplayList(field_0x461c, field_0x4620);
+                    GXCallDisplayList(mDL2, mDL2Size);
                 }
                 else {
-                    GXCallDisplayList(field_0x4624, field_0x4628);
+                    GXCallDisplayList(mDL3, mDL3Size);
                 }
             }
 
@@ -469,7 +468,7 @@ static f32 checkGroundY(cXyz& pos) {
 /* 800C0D38-800C0EF4       .text update__16dFlower_packet_cFv */
 void dFlower_packet_c::update() {
     dFlower_anm_c* pAnm = getAnm();
-    for(int i = 0; i < (s32)ARRAY_SIZE(mAnm); pAnm++, i++) {
+    for(int i = 0; i < ARRAY_SSIZE(mAnm); pAnm++, i++) {
         mDoMtx_stack_c::YrotS(pAnm->field_0x02);
         mDoMtx_stack_c::XrotM(pAnm->field_0x04);
         mDoMtx_stack_c::YrotM(-pAnm->field_0x02);
@@ -479,7 +478,7 @@ void dFlower_packet_c::update() {
     dFlower_data_c* pData = getData();
     pAnm = getAnm();
     int j = 0;
-    for(int i = 0; i < (s32)ARRAY_SIZE(mData); i++, pData++) {
+    for(int i = 0; i < ARRAY_SSIZE(mData); i++, pData++) {
         if(cLib_checkBit<u8>(pData->field_0x00, 0x2)) {
             cLib_calcTimer(&pData->field_0x03);
 
@@ -504,11 +503,11 @@ void dFlower_packet_c::update() {
         }
     }
 
-    j3dSys.getDrawBuffer(0)->entryImm(this, 0);
+    j3dSys.getDrawBuffer(J3DSysDrawBuf_Opa)->entryImm(this, 0);
 }
 
 /* 800C0EF4-800C10D4       .text setData__16dFlower_packet_cFP14dFlower_data_ciScR4cXyziSc */
-void dFlower_packet_c::setData(dFlower_data_c* param_1, int param_2, s8 param_3, cXyz& param_4, int param_5, s8 param_6) {
+void dFlower_packet_c::setData(dFlower_data_c* param_1, int param_2, s8 param_3, cXyz& param_4, int roomNo, s8 param_6) {
     f32 temp;
     if(fopOvlpM_IsPeek()) {
         temp = checkGroundY(param_4);
@@ -529,36 +528,36 @@ void dFlower_packet_c::setData(dFlower_data_c* param_1, int param_2, s8 param_3,
     param_1->field_0x02 = param_6;
     param_1->field_0x03 = 0;
 
-    if(mRoom[param_5].field_0x0 == NULL) {
-        if(strcmp(dComIfGp_getStartStageName(), "sea") == 0 && param_5 == 0x21) {
-            field_0x4608 = l_pos3;
-            field_0x460c = l_color3;
-            field_0x4610 = l_texCoord3;
-            field_0x4614 = l_matDL3;
-            field_0x4618 = 0xA0;
-            field_0x461c = l_QbsfwDL;
-            field_0x4620 = 0x660;
-            field_0x4624 = l_QbsafDL;
-            field_0x4628 = 0x80;
+    if(mRoom[roomNo].field_0x0 == NULL) {
+        if(strcmp(dComIfGp_getStartStageName(), "sea") == 0 && roomNo == dIsleRoom_PrivateOasis_e) {
+            mPosArray = l_pos3;
+            mColorArray = l_color3;
+            mTexCoordArray = l_texCoord3;
+            mDL1 = l_matDL3;
+            mDL1Size = 0xA0;
+            mDL2 = l_QbsfwDL;
+            mDL2Size = 0x660;
+            mDL3 = l_QbsafDL;
+            mDL3Size = 0x80;
         }
         else {
-            field_0x4608 = l_pos2;
-            field_0x460c = l_color2;
-            field_0x4610 = l_texCoord2;
-            field_0x4614 = l_matDL2;
-            field_0x4618 = 0xA0;
-            field_0x461c = l_Ohana_highDL;
-            field_0x4620 = 0x120;
-            field_0x4624 = l_Ohana_high_gutDL;
-            field_0x4628 = 0x80;
+            mPosArray = l_pos2;
+            mColorArray = l_color2;
+            mTexCoordArray = l_texCoord2;
+            mDL1 = l_matDL2;
+            mDL1Size = 0xA0;
+            mDL2 = l_Ohana_highDL;
+            mDL2Size = 0x120;
+            mDL3 = l_Ohana_high_gutDL;
+            mDL3Size = 0x80;
         }
     }
 
-    if(field_0x461c == l_QbsfwDL) {
+    if(mDL2 == l_QbsfwDL) {
         cLib_onBit<u8>(param_1->field_0x00, 0x40);
     }
 
-    mRoom[param_5].newData(param_1);
+    mRoom[roomNo].newData(param_1);
 
     field_0x0010 = param_2;
 }
@@ -568,7 +567,7 @@ dFlower_data_c* dFlower_packet_c::newData(s8 param_1, cXyz& param_2, int i_roomN
     JUT_ASSERT(VERSION_SELECT(2927, 2928, 2934, 2934), 0 <= i_roomNo && i_roomNo < 64);
 
     dFlower_data_c* pData = &mData[field_0x0010];
-    for(int i = field_0x0010; i < (s32)ARRAY_SIZE(mData); pData++, i++) {
+    for(int i = field_0x0010; i < ARRAY_SSIZE(mData); pData++, i++) {
         if(!cLib_checkBit<u8>(pData->field_0x00, 0x2)) {
             setData(pData, i, param_1, param_2, i_roomNo, param_4);
             return pData;

@@ -85,11 +85,21 @@ constexpr uint32_t kPriest = 0x1A4;       // dSv_player_priest_c, 0x10
 constexpr uint32_t kMemory = 0x374;       // dSv_memory_c[16], 0x24 each
 constexpr uint32_t kOcean = 0x5B4;        // dSv_ocean_c, 0x64
 constexpr uint32_t kEvent = 0x618;        // dSv_event_c, 0x100
-constexpr uint32_t kPacked = 0x768;       // dSv_save_c::PACKED_STRUCT_SIZE
+constexpr uint32_t kPacked = 0x768;       // sizeof(dSv_save_c_PACKED)
 
 static_assert(sizeof(card_gamedata) == kGameDataSize, "card_gamedata");
 static_assert(sizeof(card_savedata) == kBlockSize, "card_savedata");
-static_assert(dSv_save_c::PACKED_STRUCT_SIZE == kPacked, "the packed save");
+static_assert(sizeof(dSv_save_c_PACKED) == kPacked, "the packed save");
+// The card layout through zeldaret's packed structs (d_save.h; STATIC_ASSERT is empty off MWCC).
+static_assert(sizeof(dSv_player_c_PACKED) == kMemory, "the packed player");
+static_assert(offsetof(dSv_player_c_PACKED, mGetBagItem) == kGetBagItem, "mGetBagItem");
+static_assert(offsetof(dSv_player_c_PACKED, mCollect) == kCollect, "mCollect");
+static_assert(offsetof(dSv_player_c_PACKED, mMap) == kMap, "mMap");
+static_assert(offsetof(dSv_player_c_PACKED, mInfo) == kInfo, "mInfo");
+static_assert(offsetof(dSv_player_c_PACKED, mPriest) == kPriest, "mPriest");
+static_assert(offsetof(dSv_save_c_PACKED, mMemory) == kMemory, "mMemory");
+static_assert(offsetof(dSv_save_c_PACKED, mOcean) == kOcean, "mOcean");
+static_assert(offsetof(dSv_save_c_PACKED, mEvent) == kEvent, "mEvent");
 
 // The values the test saves.
 constexpr u16 kMaxLife = 0x28;

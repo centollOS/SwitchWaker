@@ -87,7 +87,7 @@ public:
     void buttonIconCreate();
 #if VERSION == VERSION_PAL
     void buttonIconTexChange(u8, u8);
-    BOOL PaneAlphaLangTxt(s16, u8);
+    int PaneAlphaLangTxt(s16, u8);
     void languageTexChange();
     void langTexChg();
     void langTexChgFast();
@@ -143,8 +143,8 @@ public:
     void changeGameScene();
 
 #if VERSION == VERSION_PAL
-    /* 0x01C4 */ mDoDvdThd_mountXArchive_c* mBmgData[5];
-    /* 0x01D8 */ JKRArchive* mBmgArchive[5];
+    /* 0x01C4 */ mDoDvdThd_mountXArchive_c* field_0x1c4[5];
+    /* 0x01D8 */ JKRArchive* field_0x1d8[5];
 #endif
     /* 0x01C4 */ request_of_phase_process_class mPhs;
 #if VERSION == VERSION_DEMO
@@ -166,12 +166,9 @@ public:
     /* 0x043C */ fopMsgM_pane_class field_0x43c;
     /* 0x0474 */ fopMsgM_pane_class field_0x474;
     /* 0x04AC */ fopMsgM_pane_class field_0x4ac;
-#if VERSION == VERSION_PAL
     /* 0x04E4 */ fopMsgM_pane_class field_0x4e4[2];
-    /* 0x0554 */ fopMsgM_pane_class field_0x51c[2];
-#else
-    /* 0x04E4 */ fopMsgM_pane_class field_0x4e4;
-    /* 0x051C */ fopMsgM_pane_class field_0x51c;
+#if VERSION == VERSION_PAL
+    /* 0x0554 */ fopMsgM_pane_class field_0x554[2];
 #endif
     /* 0x0554 */ u8 mMainProc;
     /* 0x0555 */ u8 mOpenProc;

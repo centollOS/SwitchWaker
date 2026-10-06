@@ -571,9 +571,23 @@ def main():
             keep = [n for n in r["unguarded_added"] if norm(r["lines"][n - 1]) not in new_up]
             r["up_added"] = len(r["unguarded_added"]) - len(keep)
             r["unguarded_added"] = keep
-            keep = [x for x in r["unguarded_deleted"] if norm(x) in up_norm]
+            # A removed line is ours when zeldaret keeps more copies of it than HEAD has (a line
+            # text such as `}` or `break;` is present many times; a set would count every removed
+            # copy as ours).
+            up_cnt = collections.Counter(norm(x) for x in up_texts[p].split("\n"))
+            head_cnt = collections.Counter(norm(x) for x in texts[f"HEAD:{p}"].split("\n"))
+            keep, used = [], collections.Counter()
+            for x in r["unguarded_deleted"]:
+                n = norm(x)
+                if up_cnt[n] - head_cnt[n] - used[n] > 0:
+                    keep.append(x)
+                    used[n] += 1
             r["up_deleted"] = len(r["unguarded_deleted"]) - len(keep)
             r["unguarded_deleted"] = keep
+            if p in hosted:  # zeldaret's code under guards: what is left unguarded is zeldaret's
+                r["up_added"] += len(r["unguarded_added"])
+                r["up_deleted"] += len(r["unguarded_deleted"])
+                r["unguarded_added"], r["unguarded_deleted"] = [], []
         r.update(path=p, ins=stat[p][0], dels=stat[p][1])
         rows.append(r)
     rows.sort(key=lambda r: (-(r["ins"] + r["dels"]), r["path"]))

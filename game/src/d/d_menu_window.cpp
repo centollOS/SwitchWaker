@@ -7,6 +7,7 @@
 #include "d/d_menu_window.h"
 
 #include "JSystem/JKernel/JKRExpHeap.h"
+#include "d/d_scope.h"
 #include "f_op/f_op_msg.h"
 #include "d/d_menu_cloth.h"
 #include "d/d_menu_capture.h"
@@ -24,8 +25,7 @@
 
 #include "d/d_menu_capture.inc"
 
-// TODO: Remove me when all the JUT asserts and other strings are filled out.
-// This is temporary, just to make the strings match.
+// A bunch of unused strings, might match the unused data from d_meter.cpp (header include?)
 static void dummy0() {
     DEAD_STRING("cmap_tri.bti");
     DEAD_STRING("cmap_treasure.bti");
@@ -33,41 +33,10 @@ static void dummy0() {
     DEAD_STRING("cmap_phantomship.bti");
     DEAD_STRING("cmap_hint.bti");
     DEAD_STRING("f_item_tri.bti");
-#if VERSION == VERSION_DEMO
-    DEAD_STRING("get_rupy.bti");
-    DEAD_STRING("heart_up_02.bti");
-#else
     DEAD_STRING("f_get_rupy.bti");
     DEAD_STRING("f_heart_up_02.bti");
-#endif
     DEAD_STRING("f_korog_kare.bti");
     DEAD_STRING("f_korog_saki.bti");
-    DEAD_STRING("d_menu_window.cpp");
-    DEAD_STRING("i_Ms->name[i] != 0");
-    DEAD_STRING("Halt");
-    DEAD_STRING("");
-    DEAD_STRING("i_Ms->note[i] != 0");
-    DEAD_STRING("i_Ms->dummy[i] != 0");
-    DEAD_STRING("i_Ms->buffer_p[i] != 0");
-#if VERSION == VERSION_PAL
-    DEAD_STRING("i_Ms->title_p != 0");
-#endif
-    DEAD_STRING("dMi_c != 0");
-    DEAD_STRING("dMc_c != 0");
-    DEAD_STRING("dMf_c != 0");
-    DEAD_STRING("dMs_capture_c != 0");
-    DEAD_STRING("dMd_c != 0");
-    DEAD_STRING("dNm_c != 0");
-    DEAD_STRING("dMs_c != 0");
-    DEAD_STRING("cloth_c != 0");
-    DEAD_STRING("dMs_cloth_c != 0");
-    DEAD_STRING("i_Ms->childHeap != 0");
-    DEAD_STRING("awake");
-    DEAD_STRING("majyuu_shinnyuu");
-    DEAD_STRING("アイテムビット");
-    DEAD_STRING("ダンジョンビット");
-    DEAD_STRING("fonttype != 0");
-    DEAD_STRING("rfonttype != 0");
 }
 
 dMenu_FmapSv_c dMv_CIO_c;
@@ -88,9 +57,7 @@ static dMenu_Fmap_c* dMf_c;
 static dName_c* dNm_c;
 static dMenu_save_c* dMs_c;
 
-#if VERSION > VERSION_JPN
 static s8 event_wait_frame;
-#endif
 
 static void dMs_onButtonBit(sub_ms_screen_class* i_Ms, u8 i_Bit);
 static void dMs_offButtonBit(sub_ms_screen_class* i_Ms, u8 i_Bit);
@@ -166,405 +133,6 @@ dMw_HIO_c::dMw_HIO_c() {
     }
 }
 
-#if VERSION == VERSION_DEMO
-/* 801D4FFC-801D5254       .text playerStatusHIO__9dMw_HIO_cFv */
-void dMw_HIO_c::playerStatusHIO() {
-    if (field_0x06 != field_0x12) {
-        s16 diff = field_0x06 - dComIfGs_getLife();
-        dComIfGp_clearItemLifeCount();
-        dComIfGp_setItemLifeCount(diff);
-        field_0x12 = field_0x06;
-    } else if (field_0x12 != dComIfGs_getLife()) {
-        field_0x06 = field_0x12 = dComIfGs_getLife();
-    }
-
-    if (field_0x14 != field_0x08) {
-        s16 diff = field_0x08 - dComIfGs_getMaxLife();
-        dComIfGp_clearItemMaxLifeCount();
-        dComIfGp_setItemMaxLifeCount(diff);
-        field_0x14 = field_0x08;
-    } else if (field_0x14 != dComIfGs_getMaxLife()) {
-        field_0x08 = field_0x14 = dComIfGs_getMaxLife();
-    }
-
-    if (field_0x16 != field_0x0A) {
-        s16 diff = field_0x0A - dComIfGs_getMagic();
-        dComIfGp_setItemMagicCount(diff);
-        field_0x16 = field_0x0A;
-    } else if (field_0x16 != dComIfGs_getMagic()) {
-        field_0x0A = field_0x16 = dComIfGs_getMagic();
-    }
-
-    if (field_0x17 != field_0x0B) {
-        s16 diff = field_0x0B - dComIfGs_getMaxMagic();
-        dComIfGp_setItemMaxMagicCount(diff);
-        field_0x17 = field_0x0B;
-    } else if (field_0x17 != dComIfGs_getMaxMagic()) {
-        field_0x0B = field_0x17 = dComIfGs_getMaxMagic();
-    }
-
-    if (field_0x18 != field_0x0C) {
-        s32 diff = field_0x0C - dComIfGs_getRupee();
-        dComIfGp_clearItemRupeeCount();
-        dComIfGp_setItemRupeeCount(diff);
-        field_0x18 = field_0x0C;
-    } else if (field_0x18 != dComIfGs_getRupee()) {
-        field_0x0C = field_0x18 = dComIfGs_getRupee();
-    }
-
-    if (field_0x1A != field_0x0E) {
-        field_0x1A = field_0x0E;
-        dComIfGs_setWalletSize(field_0x0E);
-    } else if (field_0x1A != dComIfGs_getWalletSize()) {
-        field_0x0E = field_0x1A = dComIfGs_getWalletSize();
-    }
-
-    if (field_0x1C != field_0x10) {
-        s16 diff = field_0x10 - dComIfGs_getKeyNum();
-        dComIfGp_clearItemKeyNumCount();
-        dComIfGp_setItemKeyNumCount(diff);
-        field_0x1C = field_0x10;
-    } else if (field_0x1C != dComIfGs_getKeyNum()) {
-        field_0x10 = field_0x1C = dComIfGs_getKeyNum();
-    }
-}
-
-/* 801D5254-801D5848       .text itemBitCheck__9dMw_HIO_cFv */
-void dMw_HIO_c::itemBitCheck() {
-    if (field_0x1F != dComIfGs_getRandomSalvagePoint()) {
-        field_0x1F = field_0x1E;
-        field_0x1E = dComIfGs_getRandomSalvagePoint();
-    }
-
-    for (int i = 0; i < 21; i++) {
-        if (arr_0x38[i] != dComIfGs_getItem((u8)i)) {
-            arr_0x38[i] = arr_0x20[i];
-            arr_0x20[i] = dComIfGs_getItem((u8)i);
-        }
-    }
-
-    for (int i = 0; i < 8; i++) {
-        if (arr_0x58[i] != dComIfGs_getItemBeast((u8)i)) {
-            arr_0x58[i] = arr_0x50[i];
-            arr_0x50[i] = dComIfGs_getItemBeast((u8)i);
-        }
-    }
-
-    for (int i = 0; i < 8; i++) {
-        if (arr_0x68[i] != dComIfGs_getItemBait((u8)i)) {
-            arr_0x68[i] = arr_0x60[i];
-            arr_0x60[i] = dComIfGs_getItemBait((u8)i);
-        }
-    }
-
-    for (int i = 0; i < 8; i++) {
-        if (arr_0x78[i] != dComIfGs_getItemReserve((u8)i)) {
-            arr_0x78[i] = arr_0x70[i];
-            arr_0x70[i] = dComIfGs_getItemReserve((u8)i);
-        }
-    }
-
-    for (int i = 0; i < 6; i++) {
-        bool bit = dComIfGs_isTact(i) != FALSE;
-        if (arr_0xBC[i] != bit) {
-            arr_0xBC[i] = arr_0xB6[i];
-            arr_0xB6[i] = bit;
-        }
-    }
-
-    for (int i = 0; i < 8; i++) {
-        bool bit = dComIfGs_isTriforce(i) != FALSE;
-        if (arr_0xCA[i] != bit) {
-            arr_0xCA[i] = arr_0xC2[i];
-            arr_0xC2[i] = bit;
-        }
-    }
-
-    for (int i = 0; i < 3; i++) {
-        bool bit = dComIfGs_isSymbol(i) != FALSE;
-        if (arr_0xD5[i] != bit) {
-            arr_0xD5[i] = arr_0xD2[i];
-            arr_0xD2[i] = bit;
-        }
-    }
-
-    u8 level = arr_0xE0[0];
-    for (int i = 7; i >= 0; i--) {
-        if (dComIfGs_isCollect(0, i)) {
-            if (i == 3) {
-                level = 4;
-                break;
-            } else if (i == 2) {
-                level = 3;
-                break;
-            } else if (i == 1) {
-                level = 2;
-                break;
-            } else if (i == 0) {
-                level = 1;
-                break;
-            } else {
-                level = 0;
-            }
-        }
-    }
-    if (arr_0xE0[0] != level) {
-        arr_0xE0[0] = arr_0xD8[0];
-        arr_0xD8[0] = level;
-    }
-
-    level = arr_0xE0[1];
-    for (int i = 7; i >= 0; i--) {
-        if (dComIfGs_isCollect(1, i)) {
-            if (i == 1) {
-                level = 2;
-                break;
-            } else if (i == 0) {
-                level = 1;
-                break;
-            } else {
-                level = 0;
-            }
-        }
-    }
-    if (arr_0xE0[1] != level) {
-        arr_0xE0[1] = arr_0xD8[1];
-        arr_0xD8[1] = level;
-    }
-
-    level = arr_0xE0[2];
-    for (int i = 7; i >= 0; i--) {
-        if (dComIfGs_isCollect(2, i)) {
-            if (i == 0) {
-                level = 1;
-                break;
-            } else {
-                level = 0;
-            }
-        }
-    }
-    if (arr_0xE0[2] != level) {
-        arr_0xE0[2] = arr_0xD8[2];
-        arr_0xD8[2] = level;
-    }
-
-    level = arr_0xE0[3];
-    for (int i = 7; i >= 0; i--) {
-        if (dComIfGs_isCollect(3, i)) {
-            if (i == 0) {
-                level = 1;
-                break;
-            } else {
-                level = 0;
-            }
-        }
-    }
-    if (arr_0xE0[3] != level) {
-        arr_0xE0[3] = arr_0xD8[3];
-        arr_0xD8[3] = level;
-    }
-
-    level = arr_0xE0[4];
-    for (int i = 7; i >= 0; i--) {
-        if (dComIfGs_isCollect(4, i)) {
-            if (i == 0) {
-                level = 1;
-                break;
-            } else {
-                level = 0;
-            }
-        }
-    }
-    if (arr_0xE0[4] != level) {
-        arr_0xE0[4] = arr_0xD8[4];
-        arr_0xD8[4] = level;
-    }
-}
-
-/* 801D5848-801D5A28       .text itemNumHIO__9dMw_HIO_cFv */
-void dMw_HIO_c::itemNumHIO() {
-    if (field_0x9B != field_0x80) {
-        s16 diff = field_0x80 - dComIfGs_getPictureNum();
-        dComIfGp_setItemPictureNumCount(diff);
-        field_0x9B = field_0x80;
-    } else if (field_0x80 != dComIfGs_getPictureNum()) {
-        field_0x80 = field_0x9B = dComIfGs_getPictureNum();
-    }
-
-    if (field_0x9C != field_0x81) {
-        s16 diff = field_0x81 - dComIfGs_getArrowNum();
-        dComIfGp_setItemArrowNumCount(diff);
-        field_0x9C = field_0x81;
-    } else if (field_0x9C != dComIfGs_getArrowNum()) {
-        field_0x81 = field_0x9C = dComIfGs_getArrowNum();
-    }
-
-    if (field_0x9D != field_0x82) {
-        s16 diff = field_0x82 - dComIfGs_getBombNum();
-        dComIfGp_setItemBombNumCount(diff);
-        field_0x9D = field_0x82;
-    } else if (field_0x9D != dComIfGs_getBombNum()) {
-        field_0x82 = field_0x9D = dComIfGs_getBombNum();
-    }
-
-    for (int i = 0; i < 8; i++) {
-        if (arr_0x9E[i] != arr_0x83[i]) {
-            dComIfGp_setItemBeastNumCount(i, arr_0x83[i] - dComIfGs_getBeastNum(i));
-        } else if (arr_0x9E[i] != dComIfGs_getBeastNum(i)) {
-            arr_0x83[i] = arr_0x9E[i] = dComIfGs_getBeastNum(i);
-        }
-
-        if (arr_0xA6[i] != arr_0x8B[i]) {
-            dComIfGp_setItemBaitNumCount(i, arr_0x8B[i] - dComIfGs_getBaitNum(i));
-        } else if (arr_0xA6[i] != dComIfGs_getBaitNum(i)) {
-            arr_0x8B[i] = arr_0xA6[i] = dComIfGs_getBaitNum(i);
-        }
-    }
-}
-
-/* 801D5A28-801D629C       .text itemHIO__9dMw_HIO_cFv */
-void dMw_HIO_c::itemHIO() {
-    playerStatusHIO();
-    itemNumHIO();
-    itemBitCheck();
-
-    if (field_0x1E != field_0x1F) {
-        dComIfGs_setRandomSalvagePoint(field_0x1E);
-        field_0x1F = field_0x1E;
-    }
-
-    for (int i = 0; i < 21; i++) {
-        if (arr_0x20[i] != arr_0x38[i]) {
-            dComIfGs_setItem((u8)i, arr_0x20[i]);
-            arr_0x38[i] = arr_0x20[i];
-            if (dComIfGs_getItem((u8)i) == dItemNo_NONE_e) {
-                g_dComIfG_gameInfo.save.getPlayer().getGetItem().offItem(i, 0);
-            } else if (dComIfGs_getItem((u8)i) == dItemNo_DELUXE_PICTO_BOX_e) {
-                g_dComIfG_gameInfo.save.getPlayer().getGetItem().offItem(i, 1);
-            } else if (dComIfGs_getItem((u8)i) == dItemNo_MAGIC_ARROW_e) {
-                g_dComIfG_gameInfo.save.getPlayer().getGetItem().offItem(i, 1);
-            } else if (dComIfGs_getItem((u8)i) == dItemNo_LIGHT_ARROW_e) {
-                g_dComIfG_gameInfo.save.getPlayer().getGetItem().offItem(i, 2);
-            } else {
-                g_dComIfG_gameInfo.save.getPlayer().getGetItem().onItem(i, 0);
-            }
-        }
-    }
-
-    for (int i = 0; i < 8; i++) {
-        if (arr_0x50[i] != arr_0x58[i]) {
-            if (arr_0x50[i] != dItemNo_NONE_e) {
-                dComIfGs_setItemBeast(i, arr_0x50[i]);
-            } else {
-                dComIfGs_setItemBeast(i, dItemNo_NONE_e);
-            }
-            arr_0x58[i] = arr_0x50[i];
-        }
-    }
-
-    for (int i = 0; i < 8; i++) {
-        if (arr_0x60[i] != arr_0x68[i]) {
-            if (arr_0x60[i] != dItemNo_NONE_e) {
-                dComIfGs_setItemBait(i, arr_0x60[i]);
-            } else {
-                dComIfGs_setItemBait(i, dItemNo_NONE_e);
-            }
-            arr_0x68[i] = arr_0x60[i];
-        }
-    }
-
-    for (int i = 0; i < 8; i++) {
-        if (arr_0x70[i] != arr_0x78[i]) {
-            if (arr_0x70[i] != dItemNo_NONE_e) {
-                dComIfGs_setItemReserve(i, arr_0x70[i]);
-            } else {
-                dComIfGs_setItemReserve(i, dItemNo_NONE_e);
-            }
-            arr_0x78[i] = arr_0x70[i];
-        }
-    }
-
-    for (int i = 0; i < 6; i++) {
-        if (arr_0xB6[i] != arr_0xBC[i]) {
-            if (arr_0xB6[i]) {
-                dComIfGs_onTact(i);
-            } else {
-                g_dComIfG_gameInfo.save.getPlayer().getCollect().offTact(i);
-            }
-            arr_0xBC[i] = arr_0xB6[i];
-        }
-    }
-
-    for (int i = 0; i < 8; i++) {
-        if (arr_0xC2[i] != arr_0xCA[i]) {
-            if (arr_0xC2[i]) {
-                dComIfGs_onTriforce(i);
-            } else {
-                g_dComIfG_gameInfo.save.getPlayer().getCollect().offTriforce(i);
-            }
-            arr_0xCA[i] = arr_0xC2[i];
-        }
-    }
-
-    for (int i = 0; i < 3; i++) {
-        if (arr_0xD2[i] != arr_0xD5[i]) {
-            if (arr_0xD2[i]) {
-                dComIfGs_onSymbol(i);
-            } else {
-                g_dComIfG_gameInfo.save.getPlayer().getCollect().offSymbol(i);
-            }
-            arr_0xD5[i] = arr_0xD2[i];
-        }
-    }
-
-    for (int i = 0; i < 5; i++) {
-        if (arr_0xD8[i] != arr_0xE0[i]) {
-            for (int j = 0; j < 8; j++) {
-                dComIfGs_offCollect(i, j);
-            }
-            if (arr_0xD8[i] != 0) {
-                dComIfGs_onCollect(i, arr_0xD8[i] - 1);
-                if (i < 4) {
-                    switch (i) {
-                    case 0:
-                        if (arr_0xD8[i] - 1 == 0) {
-                            dComIfGs_setSelectEquip(0, dItemNo_SWORD_e);
-                        } else if (arr_0xD8[i] - 1 == 1) {
-                            dComIfGs_setSelectEquip(0, dItemNo_MASTER_SWORD_1_e);
-                        } else if (arr_0xD8[i] - 1 == 2) {
-                            dComIfGs_setSelectEquip(0, dItemNo_MASTER_SWORD_2_e);
-                        } else if (arr_0xD8[i] - 1 == 3) {
-                            dComIfGs_setSelectEquip(0, dItemNo_MASTER_SWORD_3_e);
-                        }
-                        break;
-                    case 1:
-                        if (arr_0xD8[i] - 1 == 0) {
-                            dComIfGs_setSelectEquip(1, dItemNo_SHIELD_e);
-                        } else if (arr_0xD8[i] - 1 == 1) {
-                            dComIfGs_setSelectEquip(1, dItemNo_MIRROR_SHIELD_e);
-                        }
-                        break;
-                    case 2:
-                        if (arr_0xD8[i] - 1 == 0) {
-                            dComIfGs_setSelectEquip(2, dItemNo_POWER_BRACELETS_e);
-                        }
-                        break;
-                    case 3:
-                        if (arr_0xD8[i] - 1 == 0) {
-                            dComIfGs_onCollect(3, 1);
-                        }
-                        break;
-                    }
-                }
-            } else if (i < 3) {
-                dComIfGs_setSelectEquip(i, dItemNo_NONE_e);
-            }
-            arr_0xE0[i] = arr_0xD8[i];
-        }
-    }
-}
-#endif
-
 /* 801DB50C-801DB568       .text __ct__10dMw_DHIO_cFv */
 dMw_DHIO_c::dMw_DHIO_c() {
     for (int i = 0; i < 0x10; i++) {
@@ -583,97 +151,6 @@ dMw_DHIO_c::dMw_DHIO_c() {
     }
 }
 
-#if VERSION == VERSION_DEMO
-/* 801D62F8-801D657C       .text bitCheck__10dMw_DHIO_cFv */
-void dMw_DHIO_c::bitCheck() {
-    for (int i = 0; i < 0x10; i++) {
-        bool bit0 = dComIfGs_isDungeonItemMap(i) != FALSE;
-        if (arr_0x05[6][i] != bit0) {
-            arr_0x05[6][i] = arr_0x05[0][i];
-            arr_0x05[0][i] = bit0;
-        }
-        if (arr_0x05[0][i] != arr_0x05[6][i]) {
-            if (arr_0x05[0][i]) {
-                dComIfGs_onDungeonItemMap(i);
-            } else {
-                dComIfGs_offDungeonItemMap(i);
-            }
-            arr_0x05[6][i] = arr_0x05[0][i];
-        }
-
-        bool bit1 = dComIfGs_isDungeonItemCompass(i) != FALSE;
-        if (arr_0x05[7][i] != bit1) {
-            arr_0x05[7][i] = arr_0x05[1][i];
-            arr_0x05[1][i] = bit1;
-        }
-        if (arr_0x05[1][i] != arr_0x05[7][i]) {
-            if (arr_0x05[1][i]) {
-                dComIfGs_onDungeonItemCompass(i);
-            } else {
-                dComIfGs_offDungeonItemCompass(i);
-            }
-            arr_0x05[7][i] = arr_0x05[1][i];
-        }
-
-        bool bit2 = dComIfGs_isDungeonItemBossKey(i) != FALSE;
-        if (arr_0x05[8][i] != bit2) {
-            arr_0x05[8][i] = arr_0x05[2][i];
-            arr_0x05[2][i] = bit2;
-        }
-        if (arr_0x05[2][i] != arr_0x05[8][i]) {
-            if (arr_0x05[2][i]) {
-                dComIfGs_onDungeonItemBossKey(i);
-            } else {
-                dComIfGs_offDungeonItemBossKey(i);
-            }
-            arr_0x05[8][i] = arr_0x05[2][i];
-        }
-
-        bool bit3 = dComIfGs_isStageBossEnemy(i) != FALSE;
-        if (arr_0x05[9][i] != bit3) {
-            arr_0x05[9][i] = arr_0x05[3][i];
-            arr_0x05[3][i] = bit3;
-        }
-        if (arr_0x05[3][i] != arr_0x05[9][i]) {
-            if (arr_0x05[3][i]) {
-                dComIfGs_onStageBossEnemy(i);
-            } else {
-                dComIfGs_offStageBossEnemy(i);
-            }
-            arr_0x05[9][i] = arr_0x05[3][i];
-        }
-
-        bool bit4 = dComIfGs_isStageLife(i) != FALSE;
-        if (arr_0x05[10][i] != bit4) {
-            arr_0x05[10][i] = arr_0x05[4][i];
-            arr_0x05[4][i] = bit4;
-        }
-        if (arr_0x05[4][i] != arr_0x05[10][i]) {
-            if (arr_0x05[4][i]) {
-                dComIfGs_onStageLife(i);
-            } else {
-                dComIfGs_offStageLife(i);
-            }
-            arr_0x05[10][i] = arr_0x05[4][i];
-        }
-
-        bool bit5 = dComIfGs_isStageBossDemo(i) != FALSE;
-        if (arr_0x05[11][i] != bit5) {
-            arr_0x05[11][i] = arr_0x05[5][i];
-            arr_0x05[5][i] = bit5;
-        }
-        if (arr_0x05[5][i] != arr_0x05[11][i]) {
-            if (arr_0x05[5][i]) {
-                dComIfGs_onStageBossDemo(i);
-            } else {
-                dComIfGs_offStageBossDemo(i);
-            }
-            arr_0x05[11][i] = arr_0x05[5][i];
-        }
-    }
-}
-#endif
-
 static u8 lockFlag = 1;
 
 /* 801DB568-801DB91C       .text dMs_item_create__FP19sub_ms_screen_class */
@@ -682,15 +159,15 @@ void dMs_item_create(sub_ms_screen_class* i_Ms) {
 
     for (int i = 0; i < 2; i++) {
         i_Ms->name[i] = (char*)i_Ms->childHeap->alloc(0x20, 4);
-        JUT_ASSERT(VERSION_SELECT(1984, 1870, 1936, 1936), i_Ms->name[i] != NULL);
+        JUT_ASSERT(1936, i_Ms->name[i] != NULL);
         strcpy(i_Ms->name[i], "");
 
         i_Ms->note[i] = (char*)i_Ms->childHeap->alloc(0x200, 4);
-        JUT_ASSERT(VERSION_SELECT(1987, 1873, 1939, 1939), i_Ms->note[i] != NULL);
+        JUT_ASSERT(1939, i_Ms->note[i] != NULL);
         strcpy(i_Ms->note[i], "");
 
         i_Ms->dummy[i] = (char*)i_Ms->childHeap->alloc(0x200, 4);
-        JUT_ASSERT(VERSION_SELECT(1990, 1876, 1942, 1942), i_Ms->dummy[i] != NULL);
+        JUT_ASSERT(1942, i_Ms->dummy[i] != NULL);
         strcpy(i_Ms->dummy[i], "");
     }
 
@@ -698,7 +175,7 @@ void dMs_item_create(sub_ms_screen_class* i_Ms) {
 
     for (int i = 0; i < 33; i++) {
         i_Ms->buffer_p[i] = i_Ms->childHeap->alloc(0xC00, 0x20);
-        JUT_ASSERT(VERSION_SELECT(1998, 1884, 1951, 1951), i_Ms->buffer_p[i] != NULL);
+        JUT_ASSERT(1951, i_Ms->buffer_p[i] != NULL);
         i_Ms->field_0x1B2++;
     }
 
@@ -708,7 +185,7 @@ void dMs_item_create(sub_ms_screen_class* i_Ms) {
 #endif
 
     dMi_c = new dMenu_Item_c();
-    JUT_ASSERT(VERSION_SELECT(2004, 1890, 1962, 1962), dMi_c != NULL);
+    JUT_ASSERT(1962, dMi_c != NULL);
 
     for (int i = 0; i < 21; i++) {
         dMi_c->setItemTexBuffer(i, i_Ms->buffer_p[i]);
@@ -717,11 +194,6 @@ void dMs_item_create(sub_ms_screen_class* i_Ms) {
     for (int i = 0; i < 9; i++) {
         dMi_c->setSubItemTexBuffer(i, i_Ms->buffer_p[i + 24]);
     }
-
-#if VERSION == VERSION_PAL
-    dMi_c->setWordSaveTexBuffer(i_Ms->buffer_p[21]);
-    dMi_c->setTitleTexBuffer(i_Ms->title_p);
-#endif
 
     dMi_c->setArchive(i_Ms->arc);
     dMi_c->setFont(fonttype, rfonttype);
@@ -764,13 +236,6 @@ void dMs_item_delete(sub_ms_screen_class* i_Ms) {
         }
     }
 
-#if VERSION == VERSION_PAL
-    if (i_Ms->title_p != NULL) {
-        i_Ms->childHeap->free(i_Ms->title_p);
-        i_Ms->title_p = NULL;
-    }
-#endif
-
     if (dMi_c != NULL) {
         dComIfGp_setButtonInfo(0, dMi_c->getNowItem());
 
@@ -788,30 +253,25 @@ void dMs_collect_create(sub_ms_screen_class* i_Ms) {
 
     for (int i = 0; i < 2; i++) {
         i_Ms->name[i] = (char*)i_Ms->childHeap->alloc(0x20, 4);
-        JUT_ASSERT(VERSION_SELECT(2119, 2005, 2089, 2089), i_Ms->name[i] != NULL);
+        JUT_ASSERT(2089, i_Ms->name[i] != NULL);
 
         i_Ms->note[i] = (char*)i_Ms->childHeap->alloc(0x200, 4);
-        JUT_ASSERT(VERSION_SELECT(2121, 2007, 2091, 2091), i_Ms->note[i] != NULL);
+        JUT_ASSERT(2091, i_Ms->note[i] != NULL);
 
         i_Ms->dummy[i] = (char*)i_Ms->childHeap->alloc(0x200, 4);
-        JUT_ASSERT(VERSION_SELECT(2123, 2009, 2093, 2093), i_Ms->dummy[i] != NULL);
+        JUT_ASSERT(2093, i_Ms->dummy[i] != NULL);
     }
 
     i_Ms->field_0x1B2 = 0;
 
-    for (int i = 0; i < VERSION_SELECT(18, 18, 21, 21); i++) {
+    for (int i = 0; i < 21; i++) {
         i_Ms->buffer_p[i] = i_Ms->childHeap->alloc(0xC00, 0x20);
-        JUT_ASSERT(VERSION_SELECT(2130, 2016, 2101, 2101), i_Ms->buffer_p[i] != NULL);
+        JUT_ASSERT(2101, i_Ms->buffer_p[i] != NULL);
         i_Ms->field_0x1B2++;
     }
 
-#if VERSION == VERSION_PAL
-    i_Ms->title_p = (char*)i_Ms->childHeap->alloc(0x1000, 0x20);
-    JUT_ASSERT(2107, i_Ms->title_p != NULL);
-#endif
-
     dMc_c = new dMenu_Collect_c();
-    JUT_ASSERT(VERSION_SELECT(2136, 2022, 2112, 2112), dMc_c != NULL);
+    JUT_ASSERT(2112, dMc_c != NULL);
 
     dMc_c->setTactTexBuffer(i_Ms->buffer_p[0]);
 
@@ -828,11 +288,6 @@ void dMs_collect_create(sub_ms_screen_class* i_Ms) {
     }
 
     dMc_c->setMapTexBuffer(i_Ms->buffer_p[17]);
-#if VERSION == VERSION_PAL
-    dMc_c->setWordSaveTexBuffer(i_Ms->buffer_p[18]);
-    dMc_c->setWordOptionTexBuffer(i_Ms->buffer_p[19]);
-    dMc_c->setTitleCollectTexBuffer(i_Ms->title_p);
-#endif
 
     dMc_c->setArchive(dComIfGp_getCollectResArchive());
     dMc_c->setOptionArchive(dComIfGp_getOptionResArchive());
@@ -861,30 +316,25 @@ void dMs_collect_create2(sub_ms_screen_class* i_Ms) {
 
     for (int i = 0; i < 2; i++) {
         i_Ms->name[i] = (char*)i_Ms->childHeap->alloc(0x20, 4);
-        JUT_ASSERT(VERSION_SELECT(2201, 2087, 2183, 2183), i_Ms->name[i] != NULL);
+        JUT_ASSERT(2183, i_Ms->name[i] != NULL);
 
         i_Ms->note[i] = (char*)i_Ms->childHeap->alloc(0x200, 4);
-        JUT_ASSERT(VERSION_SELECT(2203, 2089, 2185, 2185), i_Ms->note[i] != NULL);
+        JUT_ASSERT(2185, i_Ms->note[i] != NULL);
 
         i_Ms->dummy[i] = (char*)i_Ms->childHeap->alloc(0x200, 4);
-        JUT_ASSERT(VERSION_SELECT(2205, 2091, 2187, 2187), i_Ms->dummy[i] != NULL);
+        JUT_ASSERT(2187, i_Ms->dummy[i] != NULL);
     }
 
     i_Ms->field_0x1B2 = 0;
 
-    for (int i = 0; i < VERSION_SELECT(18, 18, 21, 21); i++) {
+    for (int i = 0; i < 21; i++) {
         i_Ms->buffer_p[i] = i_Ms->childHeap->alloc(0xC00, 0x20);
-        JUT_ASSERT(VERSION_SELECT(2212, 2098, 2195, 2195), i_Ms->buffer_p[i] != NULL);
+        JUT_ASSERT(2195, i_Ms->buffer_p[i] != NULL);
         i_Ms->field_0x1B2++;
     }
 
-#if VERSION == VERSION_PAL
-    i_Ms->title_p = (char*)i_Ms->childHeap->alloc(0x1000, 0x20);
-    JUT_ASSERT(2200, i_Ms->title_p != NULL);
-#endif
-
     dMc_c = new dMenu_Collect_c();
-    JUT_ASSERT(VERSION_SELECT(2218, 2104, 2205, 2205), dMc_c != NULL);
+    JUT_ASSERT(2205, dMc_c != NULL);
 
     dMc_c->setTactTexBuffer(i_Ms->buffer_p[0]);
 
@@ -901,11 +351,6 @@ void dMs_collect_create2(sub_ms_screen_class* i_Ms) {
     }
 
     dMc_c->setMapTexBuffer(i_Ms->buffer_p[17]);
-#if VERSION == VERSION_PAL
-    dMc_c->setWordSaveTexBuffer(i_Ms->buffer_p[18]);
-    dMc_c->setWordOptionTexBuffer(i_Ms->buffer_p[19]);
-    dMc_c->setTitleCollectTexBuffer(i_Ms->title_p);
-#endif
 
     dMc_c->setArchive(dComIfGp_getCollectResArchive());
     dMc_c->setOptionArchive(dComIfGp_getOptionResArchive());
@@ -952,13 +397,6 @@ void dMs_collect_delete(sub_ms_screen_class* i_Ms) {
         }
     }
 
-#if VERSION == VERSION_PAL
-    if (i_Ms->title_p != NULL) {
-        i_Ms->childHeap->free(i_Ms->title_p);
-        i_Ms->title_p = NULL;
-    }
-#endif
-
     if (dMc_c != NULL) {
         dComIfGp_setButtonInfo(1, dMc_c->getNowItem());
 
@@ -976,17 +414,17 @@ void dMs_fmap_create(sub_ms_screen_class* i_Ms) {
 
     for (int i = 0; i < 2; i++) {
         i_Ms->name[i] = (char*)i_Ms->parentHeap_0xfc->alloc(0x40, 4);
-        JUT_ASSERT(VERSION_SELECT(2342, 2228, 2343, 2343), i_Ms->name[i] != NULL);
+        JUT_ASSERT(2343, i_Ms->name[i] != NULL);
 
         i_Ms->note[i] = (char*)i_Ms->parentHeap_0xfc->alloc(0x200, 4);
-        JUT_ASSERT(VERSION_SELECT(2344, 2230, 2345, 2345), i_Ms->note[i] != NULL);
+        JUT_ASSERT(2345, i_Ms->note[i] != NULL);
 
         i_Ms->dummy[i] = (char*)i_Ms->parentHeap_0xfc->alloc(0x200, 4);
-        JUT_ASSERT(VERSION_SELECT(2346, 2232, 2347, 2347), i_Ms->dummy[i] != NULL);
+        JUT_ASSERT(2347, i_Ms->dummy[i] != NULL);
     }
 
     dMf_c = new dMenu_Fmap_c();
-    JUT_ASSERT(VERSION_SELECT(2351, 2237, 2352, 2352), dMf_c != NULL);
+    JUT_ASSERT(2352, dMf_c != NULL);
 
     dMf_c->setSvPtr(&dMv_CIO_c);
     dMf_c->setFont(fonttype, rfonttype);
@@ -996,7 +434,7 @@ void dMs_fmap_create(sub_ms_screen_class* i_Ms) {
     dMf_c->_create();
 
     dMs_capture_c = new dDlst_MENU_CAPTURE_c();
-    JUT_ASSERT(VERSION_SELECT(2361, 2247, 2362, 2362), dMs_capture_c != NULL);
+    JUT_ASSERT(2362, dMs_capture_c != NULL);
 
     if (i_Ms->mMenuProc == MENU_STATE_FMAP_OPEN_WALLPAPER) {
         dMs_capture_c->setDrawFlagOn();
@@ -1044,25 +482,25 @@ void dMs_dmap_create(sub_ms_screen_class* i_Ms) {
 
     for (int i = 0; i < 2; i++) {
         i_Ms->name[i] = (char*)i_Ms->parentHeap_0xfc->alloc(0x20, 4);
-        JUT_ASSERT(VERSION_SELECT(2463, 2349, 2464, 2464), i_Ms->name[i] != NULL);
+        JUT_ASSERT(2464, i_Ms->name[i] != NULL);
 
         i_Ms->note[i] = (char*)i_Ms->parentHeap_0xfc->alloc(0x200, 4);
-        JUT_ASSERT(VERSION_SELECT(2465, 2351, 2466, 2466), i_Ms->note[i] != NULL);
+        JUT_ASSERT(2466, i_Ms->note[i] != NULL);
 
         i_Ms->dummy[i] = (char*)i_Ms->parentHeap_0xfc->alloc(0x200, 4);
-        JUT_ASSERT(VERSION_SELECT(2467, 2353, 2468, 2468), i_Ms->dummy[i] != NULL);
+        JUT_ASSERT(2468, i_Ms->dummy[i] != NULL);
     }
 
     i_Ms->field_0x1B2 = 0;
 
     for (int i = 0; i < 3; i++) {
         i_Ms->buffer_p[i] = i_Ms->parentHeap_0xfc->alloc(0xC00, 0x20);
-        JUT_ASSERT(VERSION_SELECT(2474, 2360, 2475, 2475), i_Ms->buffer_p[i] != NULL);
+        JUT_ASSERT(2475, i_Ms->buffer_p[i] != NULL);
         i_Ms->field_0x1B2++;
     }
 
     dMd_c = new dMenu_Dmap_c();
-    JUT_ASSERT(VERSION_SELECT(2479, 2365, 2480, 2480), dMd_c != NULL);
+    JUT_ASSERT(2480, dMd_c != NULL);
 
     for (int i = 0; i < 3; i++) {
         dMd_c->mpTIMG[i] = (ResTIMG*)i_Ms->buffer_p[i];
@@ -1076,7 +514,7 @@ void dMs_dmap_create(sub_ms_screen_class* i_Ms) {
     dMd_c->_create();
 
     dMs_capture_c = new dDlst_MENU_CAPTURE_c();
-    JUT_ASSERT(VERSION_SELECT(2490, 2376, 2491, 2491), dMs_capture_c != NULL);
+    JUT_ASSERT(2491, dMs_capture_c != NULL);
 }
 
 /* 801DCB30-801DCC80       .text dMs_dmap_delete__FP19sub_ms_screen_class */
@@ -1120,12 +558,12 @@ void dMs_name_create(sub_ms_screen_class*) {
     dComIfGp_setHeapLockFlag(10);
 
     dNm_c = new dName_c();
-    JUT_ASSERT(VERSION_SELECT(2568, 2454, 2569, 2569), dNm_c != NULL);
+    JUT_ASSERT(2569, dNm_c != NULL);
 
     dNm_c->_create();
 
     dMs_capture_c = new dDlst_MENU_CAPTURE_c();
-    JUT_ASSERT(VERSION_SELECT(2572, 2458, 2573, 2573), dMs_capture_c != NULL);
+    JUT_ASSERT(2573, dMs_capture_c != NULL);
 }
 
 /* 801DCDA0-801DCE20       .text dMs_name_delete__FP19sub_ms_screen_class */
@@ -1140,6 +578,11 @@ void dMs_name_delete(sub_ms_screen_class*) {
         delete dMs_capture_c;
         dMs_capture_c = NULL;
     }
+}
+
+// Another unused string, probably a stripped void dMs_save_create(sub_ms_screen_class*)?
+static void dummy1() {
+    DEAD_STRING("dMs_c != 0");
 }
 
 /* 801DCE20-801DCEA0       .text dMs_save_delete__FP19sub_ms_screen_class */
@@ -1162,18 +605,17 @@ void dMs_cloth_create(sub_ms_screen_class* i_Ms) {
     JKRArchive* arc = dComIfGp_getClothResArchive();
 
     cloth_c = new dMCloth_c();
-    JUT_ASSERT(VERSION_SELECT(2673, 2559, 2674, 2674), cloth_c != NULL);
+    JUT_ASSERT(2674, cloth_c != NULL);
 
     cloth_c->setArchive(arc);
     cloth_c->init();
 
     dMs_cloth_c = new dDlst_MENU_CLOTH_c();
-    JUT_ASSERT(VERSION_SELECT(2679, 2565, 2680, 2680), dMs_cloth_c != NULL);
+    JUT_ASSERT(2680, dMs_cloth_c != NULL);
 
     dMs_capture_c = new dDlst_MENU_CAPTURE_c();
-    JUT_ASSERT(VERSION_SELECT(2682, 2568, 2683, 2683), dMs_capture_c != NULL);
+    JUT_ASSERT(2683, dMs_capture_c != NULL);
 
-    JKRHeap* parent = i_Ms->parentHeap_0xfc;
 #if TARGET_PC
     // Bug B8 (decision H5): the GameCube's 0x506A1 holds the item, collection, map and save
     // screens, whose J2D panes, textures and dFile_error_c hold 64-bit pointers on the host. With
@@ -1181,11 +623,11 @@ void dMs_cloth_create(sub_ms_screen_class* i_Ms) {
     // the heap ran out (new dFile_error_c -> NULL, d_menu_save.cpp:184 on the Switch; a NULL
     // JUTTexture in J2DPicture::drawTexCoord on the Mac). Three times the size, from the 2D heap
     // (tripled in phase_4 of d_s_play.cpp and in d_message_paper.cpp).
-    i_Ms->childHeap = JKRExpHeap::create(0x506A1 * 3, parent, false);
+    i_Ms->childHeap = JKRExpHeap::create(0x506A1 * 3, i_Ms->parentHeap_0xfc, false);
 #else
-    i_Ms->childHeap = JKRExpHeap::create(0x506A1, parent, false);
+    i_Ms->childHeap = JKRExpHeap::create(0x506A1, i_Ms->parentHeap_0xfc, false);
 #endif
-    JUT_ASSERT(VERSION_SELECT(2685, 2571, 2686, 2686), i_Ms->childHeap != NULL);
+    JUT_ASSERT(2686, i_Ms->childHeap != NULL);
 }
 
 /* 801DD090-801DD154       .text dMs_cloth_delete__FP19sub_ms_screen_class */
@@ -1213,14 +655,14 @@ void dMs_clothOnly_create(sub_ms_screen_class*) {
     JKRArchive* arc = dComIfGp_getClothResArchive();
 
     cloth_c = new dMCloth_c();
-    JUT_ASSERT(VERSION_SELECT(2743, 2629, 2744, 2744), cloth_c != NULL);
+    JUT_ASSERT(2744, cloth_c != NULL);
 
     cloth_c->setArchive(arc);
     cloth_c->setClothType(MENU_CLOTH_TYPE_CLOTH_ONLY);
     cloth_c->init();
 
     dMs_cloth_c = new dDlst_MENU_CLOTH_c();
-    JUT_ASSERT(VERSION_SELECT(2750, 2636, 2751, 2751), dMs_cloth_c != NULL);
+    JUT_ASSERT(2751, dMs_cloth_c != NULL);
 }
 
 /* 801DD270-801DD308       .text dMs_clothOnly_delete__FP19sub_ms_screen_class */
@@ -1230,9 +672,7 @@ void dMs_clothOnly_delete(sub_ms_screen_class*) {
         dMs_cloth_c = NULL;
     }
     if (cloth_c) {
-#if VERSION > VERSION_DEMO
         dComIfGp_getClothResArchive()->removeResourceAll();
-#endif
         delete cloth_c;
         cloth_c = NULL;
     }
@@ -1288,7 +728,7 @@ void dMs_telescopeMove(sub_ms_screen_class* i_Ms) {
             i_Ms->field_0x1B0 = 99;
         } else if (dComIfGp_checkCameraAttentionStatus(0, dCamAttnStts_PICTO_BOX_AIM_e)) {
             i_Ms->field_0x1B0 = 89;
-        } else if (dComIfGp_getScopeType() == 2) {
+        } else if (dComIfGp_getScopeType() == dScpTyp_UNK2_e) {
             i_Ms->field_0x1B0 = 98;
         } else if (dComIfGp_getPictureStatus() == 2 || dComIfGp_getPictureStatus() == 3) {
             i_Ms->field_0x1B0 = 89;
@@ -1423,12 +863,6 @@ static BOOL dMs_Execute(sub_ms_screen_class* i_Ms) {
 
     JKRHeap* heap = mDoExt_setCurrentHeap(i_Ms->parentHeap_0xfc);
 
-#if VERSION == VERSION_DEMO
-    g_mwHIO.itemHIO();
-    g_mwDHIO.bitCheck();
-#endif
-
-#if VERSION > VERSION_JPN
     if (dComIfGp_event_runCheck()) {
         event_wait_frame = 5;
     } else if (event_wait_frame > 0) {
@@ -1436,149 +870,134 @@ static BOOL dMs_Execute(sub_ms_screen_class* i_Ms) {
     } else {
         event_wait_frame = 0;
     }
-#endif
 
-#if VERSION == VERSION_DEMO
-#define CAN_PROCEED() (dMenu_flag() == 0)
-#else
 #define CAN_PROCEED() (dMenu_flag() == 0 && dComIfGp_isEnableNextStage() == 0 && !fopOvlpM_IsDoingReq())
-#endif
 
     if (i_Ms->mMenuProc == MENU_STATE_NO_MENU && !dComIfGp_isHeapLockFlag() && dComIfGp_getMesgStatus() == 0) {
-        {
-            if (CAN_PROCEED() && dComIfGp_fmapOpenCheck() == 1) {
-                timer = 0;
-                i_Ms->mMenuProc = MENU_STATE_FMAP_OPEN_WARP_MODE;
-                dMs_fmap_create(i_Ms);
-                dMenu_flagSet(1);
-                dMenu_setMenuStatusOld(dMenu_getMenuStatus());
-                dMenu_setMenuStatus(MENU_STATUS_MAP);
-                dComIfGp_fmapOpenOff();
-                mDoAud_seStart(JA_SE_SHIPPU_CHART_OPEN);
+        if (CAN_PROCEED() && dComIfGp_fmapOpenCheck() == 1) {
+            timer = 0;
+            i_Ms->mMenuProc = MENU_STATE_FMAP_OPEN_WARP_MODE;
+            dMs_fmap_create(i_Ms);
+            dMenu_flagSet(1);
+            dMenu_setMenuStatusOld(dMenu_getMenuStatus());
+            dMenu_setMenuStatus(MENU_STATUS_MAP);
+            dComIfGp_fmapOpenOff();
+            mDoAud_seStart(JA_SE_SHIPPU_CHART_OPEN);
 
-            } else if (CAN_PROCEED() && dComIfGp_InputPasswordOpenCheck() == 2) {
-                timer = 0;
-                i_Ms->mMenuProc = MENU_STATE_NAME_OPEN;
-                dMs_name_create(i_Ms);
-                dMenu_flagSet(1);
-                dMenu_setMenuStatusOld(dMenu_getMenuStatus());
-                dMenu_setMenuStatus(MENU_STATUS_NAME);
+        } else if (CAN_PROCEED() && dComIfGp_InputPasswordOpenCheck() == 2) {
+            timer = 0;
+            i_Ms->mMenuProc = MENU_STATE_NAME_OPEN;
+            dMs_name_create(i_Ms);
+            dMenu_flagSet(1);
+            dMenu_setMenuStatusOld(dMenu_getMenuStatus());
+            dMenu_setMenuStatus(MENU_STATUS_NAME);
 
-            } else if (CAN_PROCEED() && dComIfGp_isMenuCollect()) {
-                dMs_cloth_create(i_Ms);
-                timer = 0;
-                dMenu_flagSet(1);
-                i_Ms->mMenuProc = MENU_STATE_COLLECT_OPEN_ALT;
-                mDoExt_setCurrentHeap(i_Ms->childHeap);
-                dMs_collect_create2(i_Ms);
-                dMenu_setMenuStatusOld(dMenu_getMenuStatus());
-                dMenu_setMenuStatus(MENU_STATUS_COLLECT);
-                mDoAud_seStart(JA_SE_ITM_MENU_IN);
-                mDoAud_seStart(JA_SE_ITM_MENU_PAGE);
-                dComIfGp_offMenuCollect();
+        } else if (CAN_PROCEED() && dComIfGp_isMenuCollect()) {
+            dMs_cloth_create(i_Ms);
+            timer = 0;
+            dMenu_flagSet(1);
+            i_Ms->mMenuProc = MENU_STATE_COLLECT_OPEN_ALT;
+            mDoExt_setCurrentHeap(i_Ms->childHeap);
+            dMs_collect_create2(i_Ms);
+            dMenu_setMenuStatusOld(dMenu_getMenuStatus());
+            dMenu_setMenuStatus(MENU_STATUS_COLLECT);
+            mDoAud_seStart(JA_SE_ITM_MENU_IN);
+            mDoAud_seStart(JA_SE_ITM_MENU_PAGE);
+            dComIfGp_offMenuCollect();
 
-            } else if (CAN_PROCEED() && dComIfGp_fmapOpenCheck() == 2) {
-                timer = 0;
-                i_Ms->mMenuProc = MENU_STATE_FMAP_OPEN_FISHMAN_MODE;
-                dMs_fmap_create(i_Ms);
-                dMenu_flagSet(1);
-                dMenu_setMenuStatusOld(dMenu_getMenuStatus());
-                dMenu_setMenuStatus(MENU_STATUS_MAP);
-                dComIfGp_fmapOpenOff();
-                mDoAud_seStart(JA_SE_ITM_MENU_IN);
-                mDoAud_seStart(JA_SE_ITM_MENU_MAP_IN);
+        } else if (CAN_PROCEED() && dComIfGp_fmapOpenCheck() == 2) {
+            timer = 0;
+            i_Ms->mMenuProc = MENU_STATE_FMAP_OPEN_FISHMAN_MODE;
+            dMs_fmap_create(i_Ms);
+            dMenu_flagSet(1);
+            dMenu_setMenuStatusOld(dMenu_getMenuStatus());
+            dMenu_setMenuStatus(MENU_STATUS_MAP);
+            dComIfGp_fmapOpenOff();
+            mDoAud_seStart(JA_SE_ITM_MENU_IN);
+            mDoAud_seStart(JA_SE_ITM_MENU_MAP_IN);
 
-            } else if (dMenu_flag() == 0 && DEMO_SELECT(TRUE, !fopOvlpM_IsDoingReq()) && !(CPad_CHECK_TRIG_A(0) || CPad_CHECK_TRIG_B(0) || CPad_CHECK_TRIG_Z(0))) {
+        } else if (dMenu_flag() == 0 && !fopOvlpM_IsDoingReq() && !(CPad_CHECK_TRIG_A(0) || CPad_CHECK_TRIG_B(0) || CPad_CHECK_TRIG_Z(0))) {
 
-                if (VERSION_SELECT(!dComIfGp_event_runCheck(), !dComIfGp_event_runCheck(), event_wait_frame == 0, event_wait_frame == 0) || (daPy_getPlayerLinkActorClass()->getTactNormalWait() && CPad_CHECK_TRIG_START(0)) ||
-                    (dComIfGp_getOperateWind() == 2 && CPad_CHECK_TRIG_UP(0) && dStage_stagInfo_GetUpButton(dComIfGp_getStageStagInfo()) == 0 &&
-                        dComIfGs_isEventBit(dSv_event_flag_c::UNK_0908)))
-                {
+            if (event_wait_frame == 0 || (daPy_getPlayerLinkActorClass()->getTactNormalWait() && CPad_CHECK_TRIG_START(0)) ||
+                (dComIfGp_getOperateWind() == 2 && CPad_CHECK_TRIG_UP(0) && dStage_stagInfo_GetUpButton(dComIfGp_getStageStagInfo()) == 0 &&
+                    dComIfGs_isEventBit(dSv_event_flag_c::UNK_0908)))
+            {
 
-                    if (dComIfGp_getMesgStatus() == 0 && dComIfGp_getScopeMesgStatus() == 0) {
-                        if (!dComIfGp_checkCameraAttentionStatus(0, dCamAttnStts_TELESCOPE_LOOK_e) && !dComIfGp_checkCameraAttentionStatus(0, dCamAttnStts_PICTO_BOX_AIM_e) &&
-                            !dComIfGp_checkPlayerStatus0(0, daPyStts0_UNK800000_e))
+                if (dComIfGp_getMesgStatus() == 0 && dComIfGp_getScopeMesgStatus() == 0) {
+                    if (!dComIfGp_checkCameraAttentionStatus(0, dCamAttnStts_TELESCOPE_LOOK_e) && !dComIfGp_checkCameraAttentionStatus(0, dCamAttnStts_PICTO_BOX_AIM_e) &&
+                        !dComIfGp_checkPlayerStatus0(0, daPyStts0_UNK800000_e))
+                    {
+                        if (dComIfGp_getOperateWind() != 2 ||
+                            (dComIfGp_getOperateWind() == 2 && CPad_CHECK_TRIG_UP(0) && dStage_stagInfo_GetUpButton(dComIfGp_getStageStagInfo()) == 0 &&
+                                dComIfGs_isEventBit(dSv_event_flag_c::UNK_0908)))
                         {
 
+                            if (CPad_CHECK_TRIG_START(0) && dComIfGp_isEnableNextStage() == 0 &&
+                                daPy_getPlayerActorClass() == daPy_getPlayerLinkActorClass())
                             {
-                                if (dComIfGp_getOperateWind() != 2 ||
-                                    (dComIfGp_getOperateWind() == 2 && CPad_CHECK_TRIG_UP(0) && dStage_stagInfo_GetUpButton(dComIfGp_getStageStagInfo()) == 0 &&
-                                     dComIfGs_isEventBit(dSv_event_flag_c::UNK_0908)))
+                                dMs_cloth_create(i_Ms);
+                                timer = 0;
+                                dMenu_flagSet(1);
+
+                                if (dMenu_getMenuStatus() == MENU_STATUS_COLLECT || daPy_getPlayerLinkActorClass()->getTactNormalWait()) {
+
+                                    mDoExt_setCurrentHeap(i_Ms->childHeap);
+                                    dMs_collect_create(i_Ms);
+                                    dMc_c->setTriggerInfo(2);
+
+                                    if (daPy_getPlayerLinkActorClass()->getTactNormalWait()) {
+                                        i_Ms->mMenuProc = MENU_STATE_COLLECT_OPEN_TACT;
+                                    } else {
+                                        i_Ms->mMenuProc = MENU_STATE_COLLECT_OPEN;
+                                    }
+
+                                    dMenu_setMenuStatusOld(dMenu_getMenuStatus());
+                                    dMenu_setMenuStatus(MENU_STATUS_COLLECT);
+                                    dMenu_setPushMenuButton(2);
+                                    mDoAud_seStart(JA_SE_ITM_MENU_IN);
+                                    mDoAud_seStart(JA_SE_ITM_MENU_PAGE);
+
+                                } else {
+                                    mDoExt_setCurrentHeap(i_Ms->childHeap);
+                                    dMs_item_create(i_Ms);
+                                    dMi_c->setTriggerInfo(2);
+                                    i_Ms->mMenuProc = MENU_STATE_ITEM_OPEN;
+                                    dMenu_setMenuStatusOld(dMenu_getMenuStatus());
+                                    dMenu_setMenuStatus(MENU_STATUS_ITEM);
+                                    dMenu_setPushMenuButton(1);
+                                    mDoAud_seStart(JA_SE_ITM_MENU_IN);
+                                    mDoAud_seStart(JA_SE_ITM_MENU_PAGE);
+                                }
+                            } else if (CAN_PROCEED() && CPad_CHECK_TRIG_UP(0)) {
+                                timer = 0;
+
+                                if (dStage_stagInfo_GetUpButton(dComIfGp_getStageStagInfo()) == 1) {
+                                    i_Ms->mMenuProc = MENU_STATE_DMAP_OPEN;
+                                    dMs_dmap_create(i_Ms);
+                                    dMenu_flagSet(1);
+                                    dMenu_setMenuStatusOld(dMenu_getMenuStatus());
+                                    dMenu_setMenuStatus(MENU_STATUS_MAP);
+                                    mDoAud_seStart(JA_SE_ITM_MENU_IN);
+                                    mDoAud_seStart(JA_SE_ITM_MENU_MAP_IN);
+
+                                } else if (dStage_stagInfo_GetUpButton(dComIfGp_getStageStagInfo()) == 0 &&
+                                            dComIfGs_isEventBit(dSv_event_flag_c::UNK_0908) && dComIfGp_getMiniGameType() != 1 &&
+                                            dComIfGp_getMiniGameType() != 6)
                                 {
 
-                                    if (CPad_CHECK_TRIG_START(0) && DEMO_SELECT(TRUE, dComIfGp_isEnableNextStage() == 0) &&
-                                        daPy_getPlayerActorClass() == daPy_getPlayerLinkActorClass())
-                                    {
-
-                                        dMs_cloth_create(i_Ms);
-                                        timer = 0;
+                                    if (dComIfGp_getOperateWind() == 2) {
+                                        i_Ms->mMenuProc = MENU_STATE_FMAP_OPEN_WALLPAPER;
+                                    } else {
+                                        i_Ms->mMenuProc = MENU_STATE_FMAP_OPEN;
+                                        dMs_clothOnly_create(i_Ms);
                                         dMenu_flagSet(1);
-
-                                        if (dMenu_getMenuStatus() == 2 || daPy_getPlayerLinkActorClass()->getTactNormalWait()) {
-
-                                            mDoExt_setCurrentHeap(i_Ms->childHeap);
-                                            dMs_collect_create(i_Ms);
-                                            dMc_c->setTriggerInfo(2);
-
-                                            if (daPy_getPlayerLinkActorClass()->getTactNormalWait()) {
-                                                i_Ms->mMenuProc = MENU_STATE_COLLECT_OPEN_TACT;
-                                            } else {
-                                                i_Ms->mMenuProc = MENU_STATE_COLLECT_OPEN;
-                                            }
-
-                                            dMenu_setMenuStatusOld(dMenu_getMenuStatus());
-                                            dMenu_setMenuStatus(MENU_STATUS_COLLECT);
-                                            dMenu_setPushMenuButton(2);
-                                            mDoAud_seStart(JA_SE_ITM_MENU_IN);
-                                            mDoAud_seStart(JA_SE_ITM_MENU_PAGE);
-
-                                        } else {
-                                            mDoExt_setCurrentHeap(i_Ms->childHeap);
-                                            dMs_item_create(i_Ms);
-                                            dMi_c->setTriggerInfo(2);
-                                            i_Ms->mMenuProc = MENU_STATE_ITEM_OPEN;
-                                            dMenu_setMenuStatusOld(dMenu_getMenuStatus());
-                                            dMenu_setMenuStatus(MENU_STATUS_ITEM);
-                                            dMenu_setPushMenuButton(1);
-                                            mDoAud_seStart(JA_SE_ITM_MENU_IN);
-                                            mDoAud_seStart(JA_SE_ITM_MENU_PAGE);
-                                        }
-
-                                    } else if (CAN_PROCEED() && CPad_CHECK_TRIG_UP(0)) {
-
-                                        timer = 0;
-
-                                        if (dStage_stagInfo_GetUpButton(dComIfGp_getStageStagInfo()) == 1) {
-                                            i_Ms->mMenuProc = MENU_STATE_DMAP_OPEN;
-                                            dMs_dmap_create(i_Ms);
-                                            dMenu_flagSet(1);
-                                            dMenu_setMenuStatusOld(dMenu_getMenuStatus());
-                                            dMenu_setMenuStatus(MENU_STATUS_MAP);
-                                            mDoAud_seStart(JA_SE_ITM_MENU_IN);
-                                            mDoAud_seStart(JA_SE_ITM_MENU_MAP_IN);
-
-                                        } else {
-                                            if (dStage_stagInfo_GetUpButton(dComIfGp_getStageStagInfo()) == 0 &&
-                                                dComIfGs_isEventBit(dSv_event_flag_c::UNK_0908) && dComIfGp_getMiniGameType() != 1 &&
-                                                dComIfGp_getMiniGameType() != 6)
-                                            {
-
-                                                if (dComIfGp_getOperateWind() == 2) {
-                                                    i_Ms->mMenuProc = MENU_STATE_FMAP_OPEN_WALLPAPER;
-                                                } else {
-                                                    i_Ms->mMenuProc = MENU_STATE_FMAP_OPEN;
-                                                    dMs_clothOnly_create(i_Ms);
-                                                    dMenu_flagSet(1);
-                                                }
-
-                                                dMs_fmap_create(i_Ms);
-                                                dMenu_setMenuStatusOld(dMenu_getMenuStatus());
-                                                dMenu_setMenuStatus(MENU_STATUS_MAP);
-                                                mDoAud_seStart(JA_SE_ITM_MENU_IN);
-                                                mDoAud_seStart(JA_SE_ITM_MENU_MAP_IN);
-                                            }
-                                        }
                                     }
+
+                                    dMs_fmap_create(i_Ms);
+                                    dMenu_setMenuStatusOld(dMenu_getMenuStatus());
+                                    dMenu_setMenuStatus(MENU_STATUS_MAP);
+                                    mDoAud_seStart(JA_SE_ITM_MENU_IN);
+                                    mDoAud_seStart(JA_SE_ITM_MENU_MAP_IN);
                                 }
                             }
                         }
@@ -1586,7 +1005,6 @@ static BOOL dMs_Execute(sub_ms_screen_class* i_Ms) {
                 }
             }
         }
-
     } else if (i_Ms->mMenuProc == MENU_STATE_ITEM_OPEN) {
         timer++;
         cloth_c->cloth_move();
@@ -2031,9 +1449,7 @@ static BOOL dMs_IsDelete(sub_ms_screen_class*) {
 /* 801DF368-801DF4C4       .text dMs_Delete__FP19sub_ms_screen_class */
 static BOOL dMs_Delete(sub_ms_screen_class* i_Ms) {
     dMenu_setPushMenuButton(0);
-#if VERSION > VERSION_DEMO
     dComIfGp_setPictureStatus(0);
-#endif
 
     JKRHeap* heap = mDoExt_getCurrentHeap();
 
@@ -2082,18 +1498,14 @@ static cPhs_State dMs_Create(msg_class* i_this) {
     i_Ms->parentHeap_0xfc = dComIfGp_getExpHeap2D();
 
     fonttype = mDoExt_getMesgFont();
-    JUT_ASSERT(VERSION_SELECT(4054, 3966, 4097, 4098), fonttype != NULL);
+    JUT_ASSERT(4097, fonttype != NULL);
 
     rfonttype = mDoExt_getRubyFont();
-    JUT_ASSERT(VERSION_SELECT(4056, 3968, 4100, 4101), rfonttype != NULL);
+    JUT_ASSERT(4100, rfonttype != NULL);
 
-#if VERSION > VERSION_JPN
     event_wait_frame = 0;
-#endif
 
-#if VERSION > VERSION_DEMO
     dComIfGp_InputPasswordOpenCancelOff();
-#endif
 
     i_Ms->mButtonsPressed = 0;
     i_Ms->mMsgID = fpcM_ERROR_PROCESS_ID_e;
@@ -2107,7 +1519,6 @@ static cPhs_State dMs_Create(msg_class* i_this) {
 
     dMenu_setMenuStatus(MENU_STATUS_ITEM);
 
-#if VERSION > VERSION_DEMO
     dMv_CIO_c.setDispMode(0);
     dMv_CIO_c.setFmapZoom(0);
     dMv_CIO_c.setZoomGridX(-10);
@@ -2120,7 +1531,6 @@ static cPhs_State dMs_Create(msg_class* i_this) {
     dMv_CIO_c.setCmapSelNo(-1);
     dMv_CIO_c.setCurHX(-10);
     dMv_CIO_c.setCurHY(-10);
-#endif
 
     fopMsgM_setStageLayer(i_Ms);
 

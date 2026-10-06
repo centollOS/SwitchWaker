@@ -529,8 +529,7 @@ f32 checkGroundY(dTree_data_c* i_data, cXyz& i_pos) {
         y = i_pos.y;
         norm.set(0.0f, 1.0f, 0.0f);
     } else {
-        cM3dGPla* pla = dComIfG_Bgsp()->GetTriPla(chk);
-        norm = *pla->GetNP();
+        norm = *dComIfG_Bgsp()->GetTriPla(chk)->GetNP();
     }
 
     f32 var_f4 = std::sqrtf(1.0f - (norm.x * norm.x));
@@ -621,7 +620,7 @@ void dTree_packet_c::update() {
 
     mDoLib_clipper::resetFar();
     dComIfGd_setXluListBG();
-    j3dSys.getDrawBuffer(1)->entryImm(this, 0);
+    j3dSys.getDrawBuffer(J3DSysDrawBuf_Xlu)->entryImm(this, 0);
     dComIfGd_setXluList();
 }
 

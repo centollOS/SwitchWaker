@@ -71,9 +71,9 @@ void dDlst_2DTri_c::draw() {
     GXSetTevOp(GX_TEVSTAGE0, GX_PASSCLR);
     GXSetBlendMode(GX_BM_BLEND, GX_BL_SRC_ALPHA, GX_BL_INV_SRC_ALPHA, GX_LO_SET);
     GXBegin(GX_TRIANGLES, GX_VTXFMT0, 3);
-    GXPosition3s16((s16)px[0], (s16)py[0], 0);
-    GXPosition3s16((s16)px[1], (s16)py[1], 0);
-    GXPosition3s16((s16)px[2], (s16)py[2], 0);
+    GXPosition3s16(px[0], py[0], 0);
+    GXPosition3s16(px[1], py[1], 0);
+    GXPosition3s16(px[2], py[2], 0);
     GXEnd();
 }
 
@@ -606,7 +606,7 @@ void dDlst_2DMt_c::draw() {
         GXLoadTexObj(pTex->getTexObj(), (GXTexMapID)texIdx);
         GXSetVtxAttrFmt(GX_VTXFMT0, (GXAttr)((u32)GX_VA_TEX0 + texIdx), GX_TEX_ST, GX_F32, 0);
         GXSetVtxDesc((GXAttr)((u32)GX_VA_TEX0 + texIdx), GX_DIRECT);
-        GXSetTevColor((GXTevRegID)((u32)GX_TEVREG0 + texIdx), DEMO_SELECT(pTex->mColor, pTex->getColor()));
+        GXSetTevColor((GXTevRegID)((u32)GX_TEVREG0 + texIdx), pTex->getColor());
         GXSetTexCoordGen((GXTexCoordID)texIdx, GX_TG_MTX2x4, (GXTexGenSrc)((u32)GX_TG_TEX0 + texIdx), GX_IDENTITY);
         GXSetTevOrder((GXTevStageID)texIdx, (GXTexCoordID)texIdx, (GXTexMapID)texIdx, GX_COLOR_NULL);
         GXSetTevColorIn((GXTevStageID)texIdx, GX_CC_ZERO, (GXTevColorArg)((u32)GX_CC_C0 + texIdx * 2), GX_CC_TEXC, (texIdx != 0) ? GX_CC_CPREV : GX_CC_ZERO);
@@ -724,18 +724,18 @@ void dDlst_effectLine_c::draw() {
     GXLoadPosMtxImm(j3dSys.getViewMtx(), GX_PNMTX0);
     GXSetCurrentMtx(GX_PNMTX0);
 
-    s32 numSegments = (s32)DEMO_SELECT(getRndValue(field_0x20, field_0x22), mRnd.getValue(field_0x20, field_0x22));
+    s32 numSegments = (s32)mRnd.getValue(field_0x20, field_0x22);
     for (s32 i = 0; i < numSegments; i++) {
         cXyz pt0, pt1;
 
         s16 angle = mRnd.getFX(0x7FFF);
 
-        f32 rad0 = DEMO_SELECT(getRndValue(field_0x28, field_0x2C), mRnd.getValue(field_0x28, field_0x2C));
+        f32 rad0 = mRnd.getValue(field_0x28, field_0x2C);
         pt0.x = mPos.x + rad0 * cM_ssin(angle);
         pt0.y = mPos.y + rad0 * cM_scos(angle);
         pt0.z = mPos.z;
 
-        f32 rad1 = DEMO_SELECT(getRndValue(field_0x30, field_0x34), mRnd.getValue(field_0x30, field_0x34));
+        f32 rad1 = mRnd.getValue(field_0x30, field_0x34);
         pt1.x = pt0.x + rad1 * cM_ssin(angle);
         pt1.y = pt0.y + rad1 * cM_scos(angle);
         pt1.z = mPos.z;
@@ -743,7 +743,7 @@ void dDlst_effectLine_c::draw() {
         mDoMtx_multVec(dComIfGd_getInvViewMtx(), &pt0, &pt0);
         mDoMtx_multVec(dComIfGd_getInvViewMtx(), &pt1, &pt1);
 
-        f32 lineWidth = DEMO_SELECT(getRndValue(field_0x24, field_0x26), mRnd.getValue(field_0x24, field_0x26));
+        f32 lineWidth = mRnd.getValue(field_0x24, field_0x26);
         GXSetLineWidth(lineWidth, GX_TO_ZERO);
 
         GXBegin(GX_LINES, GX_VTXFMT0, 2);
@@ -798,11 +798,7 @@ void dDlst_alphaModelData_c::set(u8 type, Mtx mtx, u8 alpha) {
 /* 80082838-80082E44       .text draw__22dDlst_alphaModelData_cFPA4_f */
 void dDlst_alphaModelData_c::draw(Mtx viewMtx) {
     Mtx mtx;
-#if VERSION == VERSION_DEMO
-    mDoMtx_concat(viewMtx, mpMtx, mtx);
-#else
     MTXConcat(viewMtx, mpMtx, mtx);
-#endif
     GFLoadPosMtxImm(mtx, GX_PNMTX0);
     GFSetCurrentMtx(GX_PNMTX0, GX_IDENTITY, GX_IDENTITY, GX_IDENTITY, GX_IDENTITY, GX_IDENTITY, GX_IDENTITY, GX_IDENTITY, GX_IDENTITY);
 
@@ -915,18 +911,9 @@ void dDlst_alphaModelData_c::draw(Mtx viewMtx) {
 #else
         GFSetArray(GX_VA_POS, l_cubePos, sizeof(*l_cubePos));
 #endif
-#if VERSION == VERSION_DEMO
-        GXCallDisplayList(l_backRevZMat, 0x40);
-        GXCallDisplayList(l_cubeDL, 0x40);
-        GXCallDisplayList(l_frontZMat, 0x20);
-        GXCallDisplayList(l_cubeDL, 0x40);
-        GXCallDisplayList(l_frontNoZSubMat, 0x20);
-        GXCallDisplayList(l_cubeDL, 0x40);
-#else
         GXCallDisplayList(l_backRevZMat, 0x40);
         GXCallDisplayList(l_frontZMat, 0x20);
         GXCallDisplayList(l_cubeDL, 0x40);
-#endif
     } else if (mType == 4) {
         /* Bonbori2 */
 #if TARGET_PC
@@ -953,17 +940,16 @@ dDlst_alphaModel_c::dDlst_alphaModel_c() {
 
 /* 80082E58-80082EFC       .text create__18dDlst_alphaModel_cFi */
 dDlst_alphaModel_c * dDlst_alphaModel_c::create(int num) {
-    dDlst_alphaModel_c * i_this = new dDlst_alphaModel_c();
-    if (i_this != NULL) {
+    dDlst_alphaModel_c * alphaModel = new dDlst_alphaModel_c();
+    if (alphaModel != NULL) {
         dDlst_alphaModelData_c * pData = new dDlst_alphaModelData_c[num];
         if (pData != NULL) {
-            i_this->mpData = pData;
-            i_this->mCapacity = num;
-            return i_this;
+            alphaModel->mpData = pData;
+            alphaModel->mCapacity = num;
+            return alphaModel;
         }
 
-        if (i_this != NULL)
-            delete i_this;
+        delete alphaModel;
     }
     return NULL;
 }
@@ -1051,11 +1037,7 @@ void dDlst_alphaModelPacket::draw() {
     GXSetVtxDesc(GX_VA_POS, GX_INDEX8);
     GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
     Mtx mtx;
-#if VERSION == VERSION_DEMO
-    mDoMtx_concat(j3dSys.getViewMtx(), *mMtxP, mtx);
-#else
     MTXConcat(j3dSys.getViewMtx(), *mMtxP, mtx);
-#endif
     GXLoadPosMtxImm(mtx, GX_PNMTX0);
     GXSetCurrentMtx(GX_PNMTX0);
 
@@ -1131,9 +1113,12 @@ void dDlst_shadowPoly_c::draw() {
     GXEnd();
 }
 
-dDlst_shadowReal_c::~dDlst_shadowReal_c() {
-    delete mpTexData;
-    delete mpDrawBuffer;
+static void dummy() {
+    // Fakematch to fix the vtable order and weak destructor order of dDlst_shadowReal_c and dDlst_shadowTri_c.
+    struct {
+        dDlst_shadowReal_c temp[1];
+    }* temp = NULL;
+    delete temp;
 }
 
 /* 80083668-800836E0       .text J3DDrawBuffer__create__FUl */
@@ -1256,9 +1241,8 @@ void dDlst_shadowReal_c::draw() {
 /* 80083B8C-80083DA0       .text psdRealCallBack__FP13cBgS_ShdwDrawP10cBgD_Vtx_tiiiP8cM3dGPla */
 int psdRealCallBack(cBgS_ShdwDraw* shdw, cBgD_Vtx_t* pVtx, int v0, int v1, int v2, cM3dGPla* tri) {
     ShdwDrawPoly_c* shdwDrawPoly = (ShdwDrawPoly_c*)shdw;
-    cXyz* lightVec = shdwDrawPoly->getLightVec();
     const cXyz* normal = tri->GetNP();
-    if (lightVec->inprod(*normal) < -0.2f) {
+    if (shdwDrawPoly->getLightVec()->inprod(*normal) < -0.2f) {
         cXyz* center = shdwDrawPoly->getCenter();
         if (normal->x * center->x + normal->y * center->y + normal->z * center->z + tri->GetD() > -50.f) {
             const cXyz* min = shdwDrawPoly->GetBndP()->GetMinP();
@@ -1306,7 +1290,7 @@ BOOL realPolygonCheck(cXyz* param_0, f32 casterRadius, f32 heightAgl, cXyz* ligh
     f32 tmp2 = cLib_maxLimit(tmp1, 120.0f);
     f32 var1 = casterRadius + heightAgl - tmp2;
     bbMin.y = param_0->y - var1;
-    bbMax.y = param_0->y + DEMO_SELECT(casterRadius, casterRadius * 0.4f);
+    bbMax.y = param_0->y + casterRadius * 0.4f;
     bbMax.x = param_0->x + lightDir->x * var1;
     if (bbMax.x < param_0->x) {
         bbMin.x = bbMax.x;
@@ -1372,13 +1356,12 @@ u8 setShadowRealMtx(Mtx viewMtx, Mtx renderProjMtx, Mtx receiverProjMtx, cXyz* l
         lightVec.z *= tmp;
     }
 
-    f32 lightDist = std::sqrtf(lightVec.abs2());
+    f32 lightDist = lightVec.abs();
     if (lightDist != 0.0f) {
         f32 tmp3 = (lightVec.y / lightDist);
         if (tmp3 < 1.5f) {
             lightVec.y = 1.5f * lightDist;
-            lightDist = lightVec.abs2();
-            lightDist = std::sqrtf(lightDist);
+            lightDist = lightVec.abs();
         }
         lightDist = (casterSize * 0.5f) / lightDist;
     }
@@ -1425,17 +1408,17 @@ u32 dDlst_shadowReal_c::set(u32 key, s8 shouldFade, J3DModel* model, cXyz* pos, 
         mModelNum = 0;
     }
 
-    J3DDrawBuffer* buffer0 = j3dSys.getDrawBuffer(0);
-    J3DDrawBuffer* buffer1 = j3dSys.getDrawBuffer(1);
+    J3DDrawBuffer* buffer0 = j3dSys.getDrawBuffer(J3DSysDrawBuf_Opa);
+    J3DDrawBuffer* buffer1 = j3dSys.getDrawBuffer(J3DSysDrawBuf_Xlu);
     j3dSys.setViewMtx(mViewMtx);
-    j3dSys.setDrawBuffer(mpDrawBuffer, 0);
-    j3dSys.setDrawBuffer(mpDrawBuffer, 1);
+    j3dSys.setDrawBuffer(mpDrawBuffer, J3DSysDrawBuf_Opa);
+    j3dSys.setDrawBuffer(mpDrawBuffer, J3DSysDrawBuf_Xlu);
     model->entry();
     model->lock();
     model->viewCalc();
     j3dSys.setViewMtx(dComIfGd_getView()->mViewMtx);
-    j3dSys.setDrawBuffer(buffer0, 0);
-    j3dSys.setDrawBuffer(buffer1, 1);
+    j3dSys.setDrawBuffer(buffer0, J3DSysDrawBuf_Opa);
+    j3dSys.setDrawBuffer(buffer1, J3DSysDrawBuf_Xlu);
     return mKey;
 }
 
@@ -1459,7 +1442,7 @@ u32 dDlst_shadowReal_c::set2(u32 key, s8 shouldFade, J3DModel* model, cXyz* pos,
         mModelNum = 0;
     }
 
-    JUT_ASSERT(DEMO_SELECT(3994, 3999), mModelNum < MODEL_MAX);
+    JUT_ASSERT(3999, mModelNum < MODEL_MAX);
 
     mpModels[mModelNum++] = model;
     return mKey;
@@ -1470,7 +1453,7 @@ bool dDlst_shadowReal_c::add(J3DModel* model) {
     if (mModelNum == 0 || model == NULL)
         return false;
 
-    JUT_ASSERT(DEMO_SELECT(4059, 4064), mModelNum < MODEL_MAX);
+    JUT_ASSERT(0xfe0, mModelNum < MODEL_MAX);
     mpModels[mModelNum++] = model;
     return true;
 }
@@ -1641,7 +1624,7 @@ void dDlst_shadowControl_c::draw(Mtx drawMtx) {
 #endif
     dKy_GxFog_set();
     GXSetChanCtrl(GX_ALPHA0, GX_FALSE, GX_SRC_REG, GX_SRC_REG, 0, GX_DF_NONE, GX_AF_NONE);
-    GXSetChanMatColor(GX_ALPHA0, (GXColor){ 0x00, 0x00, 0x00, 0x20 });
+    GXSetChanMatColor(GX_ALPHA0, COMPOUND_LITERAL(GXColor){ 0x00, 0x00, 0x00, 0x20 });
 #if TARGET_PC
     GXSETARRAY(GX_VA_POS, l_shadowVolPos, sizeof(l_shadowVolPos), sizeof(*l_shadowVolPos), true);
 #else
@@ -2065,10 +2048,8 @@ dDlst_list_c::~dDlst_list_c() {
     delete mpOpaListInvisible;
     delete mpXluListInvisible;
     delete mpOpaList2D;
-    if (mpAlphaModel != NULL)
-        delete mpAlphaModel;
-    if (mpSpotModel != NULL)
-        delete mpSpotModel;
+    delete mpAlphaModel;
+    delete mpSpotModel;
 }
 
 /* 80086368-80086490       .text reset__12dDlst_list_cFv */
@@ -2156,7 +2137,7 @@ void dDlst_list_c::wipeIn(f32 speed, GXColor& color) {
         mWipeRate = 1.0f;
     }
     ResTIMG* texture = (ResTIMG*)JKRGetResource('TIMG', "wipe_00.bti", dComIfGp_getMenuArchive());
-    JUT_ASSERT(VERSION_SELECT(5673, 5679, 5687, 5687), texture != NULL);
+    JUT_ASSERT(VERSION_SELECT(5679, 5679, 5687, 5687), texture != NULL);
 #if TARGET_PC
     // Widescreen (pc_aspect.h): the wipe covers the wider 2D screen (.sdata2 0x803F89B8..C4).
     mWipeDlst.init(texture, pc_aspect_lerp(-9.0f, -123.0f), pc_aspect_lerp(-21.0f, -118.0f),

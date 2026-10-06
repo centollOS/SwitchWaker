@@ -25,7 +25,6 @@
 #include "pc/pc_harness.h"
 #endif
 
-#if VERSION > VERSION_DEMO
 /* 80040900-80040938       .text set__18dStage_nextStage_cFPCcScsScSc */
 void dStage_nextStage_c::set(const char* i_stage, s8 i_roomId, s16 i_point, s8 i_layer, s8 i_wipe) {
     if (!mEnable) {
@@ -34,7 +33,6 @@ void dStage_nextStage_c::set(const char* i_stage, s8 i_roomId, s16 i_point, s8 i
         dStage_startStage_c::set(i_stage, i_roomId, i_point, i_layer);
     }
 }
-#endif
 
 /* 80040938-8004093C       .text dStage_SetErrorRoom__Fv */
 void dStage_SetErrorRoom() {}
@@ -69,7 +67,7 @@ void dStage_KeepTresureInfoProc(dStage_dt_c* i_stage, stage_tresure_class* i_tre
         TresureInfo.num = 0;
         return;
     }
-    if (i_tresure->num >= (int)ARRAY_SIZE(TresureInfo.mTresureData) || i_tresure->num < 0) {
+    if (i_tresure->num >= ARRAY_SSIZE(TresureInfo.mTresureData) || i_tresure->num < 0) {
         TresureInfo.num = 0;
         return;
     }
@@ -98,7 +96,7 @@ void dStage_KeepDoorInfoProc(dStage_dt_c* i_stage, stage_tgsc_class* i_drtg) {
         DoorInfo.num = 0;
         return;
     }
-    if (i_drtg->num >= (int)ARRAY_SIZE(DoorInfo.mDrTgData) || i_drtg->num < 0) {
+    if (i_drtg->num >= ARRAY_SSIZE(DoorInfo.mDrTgData) || i_drtg->num < 0) {
         DoorInfo.num = 0;
         return;
     }
@@ -203,12 +201,7 @@ int createRoomScene(int param_0) {
     }
 
     *ptr = param_0;
-#if TARGET_PC
-    // fopScnM_CreateReq takes the pointer whole on PC (a host pointer does not fit a u32).
     return fopScnM_CreateReq(fpcNm_ROOM_SCENE_e, fpcNm_INVALID_e, 0, (uintptr_t)ptr);
-#else
-    return fopScnM_CreateReq(fpcNm_ROOM_SCENE_e, fpcNm_INVALID_e, 0, (u32)ptr);
-#endif
 }
 
 /* 80040E38-80040E6C       .text checkRoomDisp__20dStage_roomControl_cCFi */
@@ -229,7 +222,7 @@ int dStage_roomControl_c::loadRoom(int roomCount, u8* rooms) {
     }
     
     BOOL r26 = TRUE;
-    for (int roomNo = 0; roomNo < (int)ARRAY_SIZE(mStatus); roomNo++) {
+    for (int roomNo = 0; roomNo < ARRAY_SSIZE(mStatus); roomNo++) {
         if (dStage_roomControl_c::checkStatusFlag(roomNo, 0x01)) {
             if (!stayRoomCheck(roomCount, rooms, roomNo)) {
                 onStatusFlag(roomNo, 0x04);
@@ -1762,8 +1755,8 @@ int dStage_roomReadInit(dStage_dt_c* i_stage, void* i_data, int i_num, void* i_f
         rtbl_entries[i].setBase(i_file);
         rtbl_entries[i]->m_rooms.setBase(i_file);
 #else
-        rtbl_entries[i] = (roomRead_data_class*)((u32)i_file + (u32)rtbl_entries[i]);
-        rtbl_entries[i]->m_rooms = (u8*)((u32)i_file + (u32)rtbl_entries[i]->m_rooms);
+        rtbl_entries[i] = (roomRead_data_class*)((uintptr_t)i_file + (uintptr_t)rtbl_entries[i]);
+        rtbl_entries[i]->m_rooms = (u8*)((uintptr_t)i_file + (uintptr_t)rtbl_entries[i]->m_rooms);
 #endif
     }
 
@@ -1798,7 +1791,7 @@ int dStage_pathInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void*) {
         // relocated in place into a self-relative OFFSET_PTR.
         pPath->m_points.setBaseAllowZero((void*)i_stage->getPntInf()->m_pnt_offset);
 #else
-        pPath->m_points = (dPnt*)((u32)pPath->m_points + i_stage->getPntInf()->m_pnt_offset);
+        pPath->m_points = (dPnt*)((uintptr_t)pPath->m_points + i_stage->getPntInf()->m_pnt_offset);
 #endif
     return 1;
 }
@@ -1821,7 +1814,7 @@ int dStage_rpatInfoInit(dStage_dt_c* i_stage, void* i_data, int i_num, void*) {
         // As dStage_pathInfoInit, from the RPPN entries.
         pPath->m_points.setBaseAllowZero((void*)i_stage->getPnt2Inf()->m_pnt_offset);
 #else
-        pPath->m_points = (dPnt*)((u32)pPath->m_points + i_stage->getPnt2Inf()->m_pnt_offset);
+        pPath->m_points = (dPnt*)((uintptr_t)pPath->m_points + i_stage->getPnt2Inf()->m_pnt_offset);
 #endif
     return 1;
 }
@@ -2106,7 +2099,7 @@ void dStage_dt_c_offsetToPtr(void* i_data) {
         }
 #else
         if (p_tno->m_offset != 0) {
-            p_tno->m_offset += (u32)i_data;
+            p_tno->m_offset += (uintptr_t)i_data;
         }
 #endif
         p_tno++;
@@ -2311,7 +2304,7 @@ void dStage_Create() {
 
 /* 80043464-80043514       .text dStage_Delete__Fv */
 void dStage_Delete() {
-    char* demoArcName = dStage_roomControl_c::getDemoArcName();
+    const char* demoArcName = dStage_roomControl_c::getDemoArcName();
     if (*demoArcName != 0) {
         dComIfG_deleteObjectRes(demoArcName);
     }

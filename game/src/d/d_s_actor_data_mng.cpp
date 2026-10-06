@@ -147,7 +147,7 @@ void dADM::SetData(void* pData) {
 
     u32 *pHeader = (u32*)mpData;
     for (s32 i = 0; i < mBlockCount; i++) {
-        pHeader[2] = pHeader[2] + (u32)pData;
+        pHeader[2] = pHeader[2] + (uintptr_t)pData;
         pHeader += 3;
     }
 #endif
@@ -170,6 +170,6 @@ void dADM::SetData(void* pData) {
 #if TARGET_PC
     mCharTbl.SetData(pData, row, rowOffs, name, nameOffs, dat_size, dataOffs);
 #else
-    mCharTbl.SetData((u32)pData, row, rowOffs, name, nameOffs, dat_size, dataOffs);
+    mCharTbl.SetData((uintptr_t)pData, row, rowOffs, name, nameOffs, dat_size, dataOffs);
 #endif
 }

@@ -104,23 +104,9 @@ static BOOL dScnMenu_Draw(menu_of_scene_class* i_this) {
     for (s32 id = l_startID, i = 0; i < lineNum; id++, y += 16, i++) {
         JUTReport(20, y, "%c %2d %s　＜%s＞", l_cursolID == id ? (s8)79 : (s8)32, id, info->stage[id].name, info->stage[id].roomPtr[l_groupPoint[id]].name);
     }
-#if VERSION == VERSION_DEMO
-    JUTReport(400, 400, "Ｘ：進む　Ｙ：戻る");
-#else
     JUTReport(280,400,"Ｘ：進む　Ｙ：戻る");
-#endif
     char* timepat_str[] = {"通常", "高速経過", "朝（あさ）に固定", "昼（ひる）に固定", "夕方（ゆうがた）に固定", "夜（よる）に固定", "時に固定"};
     char* weekpat_str[] = {"日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"};
-#if VERSION == VERSION_DEMO
-    if (l_timepat >= 6) {
-        int hour = l_timepat - 6;
-        JUTReport(400, 420, "じこく：%d%s", hour, timepat_str[6]);
-    } else {
-        JUTReport(400, 420, "じこく：%s", timepat_str[l_timepat]);
-    }
-    JUTReport(150, 400, "十字右：進む　十字左：戻る");
-    JUTReport(150, 420, "曜日：%s", weekpat_str[l_weekpat]);
-#else
     if (l_timepat >= 6) {
         JUTReport(280, 420, "時刻：%d%s", l_timepat - 6, timepat_str[6]);
     } else {
@@ -128,15 +114,14 @@ static BOOL dScnMenu_Draw(menu_of_scene_class* i_this) {
     }
     JUTReport(40, 420, "十字右：進む　十字左：戻る");
     JUTReport(200, 400, "曜日：%s", weekpat_str[l_weekpat]);
-#endif
 #if VERSION > VERSION_JPN
     static const char* language[] = {"ENGLISH", "GERMAN", "FRENCH", "SPANISH", "ITALIAN"};
     JUTReport(40, 440, "%s", language[dComIfGs_getPalLanguage()]);
 #endif
     if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_2D01)) {
-        JUTReport(400, DEMO_SELECT(360, 420), "３コン（Ａ）:デモ２３　ＯＮ");
+        JUTReport(400, 420, "３コン（Ａ）:デモ２３　ＯＮ");
     } else {
-        JUTReport(400, DEMO_SELECT(360, 420), "３コン（Ａ）:デモ２３　ＯＦＦ");
+        JUTReport(400, 420, "３コン（Ａ）:デモ２３　ＯＦＦ");
     }
     JUTReport(36, 40, "NDEBUG %s %s", mDoMain::COPYDATE_STRING, "FINAL");
     return true;
@@ -314,11 +299,7 @@ static BOOL dScnMenu_Delete(menu_of_scene_class* i_this) {
     }
     mBmgStatus2 = 0;
 #endif
-#if VERSION == VERSION_DEMO
-    JUTDbPrint::getManager()->changeFont(JFWSystem::getSystemFont());
-#else
     JUTDbPrint::getManager()->changeFont(JFWSystem::systemFont);
-#endif
     delete i_this->font;
     JKRFree(i_this->info);
     JKRFree(i_this->fontRes);
@@ -331,9 +312,9 @@ static BOOL dScnMenu_Delete(menu_of_scene_class* i_this) {
 /* 8022F3C4-8022F4B0       .text phase_1__FP19menu_of_scene_class */
 cPhs_State phase_1(menu_of_scene_class* i_this) {
     i_this->command = mDoDvdThd_toMainRam_c::create("/res/Menu/Menu1.dat", JKRArchive::DEFAULT_MOUNT_DIRECTION, NULL);
-    JUT_ASSERT(VERSION_SELECT(605, 616, 732, 732), i_this->command != NULL);
+    JUT_ASSERT(VERSION_SELECT(616, 616, 732, 732), i_this->command != NULL);
     i_this->fontCommand = mDoDvdThd_toMainRam_c::create("/res/Menu/kanfont_fix16.bfn", JKRArchive::DEFAULT_MOUNT_DIRECTION, NULL);
-    JUT_ASSERT(VERSION_SELECT(608, 619, 735, 735), i_this->fontCommand != NULL);
+    JUT_ASSERT(VERSION_SELECT(619, 619, 735, 735), i_this->fontCommand != NULL);
     return cPhs_NEXT_e;
 }
 
@@ -343,7 +324,7 @@ cPhs_State phase_2(menu_of_scene_class* i_this) {
         return cPhs_INIT_e;
     }
     i_this->info = (menu_of_scene_class::menu_inf*)i_this->command->getMemAddress();
-    JUT_ASSERT(VERSION_SELECT(652, 663, 779, 779), i_this->info != NULL);
+    JUT_ASSERT(VERSION_SELECT(663, 663, 779, 779), i_this->info != NULL);
     delete i_this->command;
     menu_of_scene_class::menu_inf* info = i_this->info;
 #if TARGET_PC
@@ -361,7 +342,7 @@ cPhs_State phase_2(menu_of_scene_class* i_this) {
     }
     if (!l_groupPoint) {
         l_groupPoint = new s8[info->num];
-        JUT_ASSERT(VERSION_SELECT(665, 676, 792, 792), l_groupPoint != NULL);
+        JUT_ASSERT(VERSION_SELECT(676, 676, 792, 792), l_groupPoint != NULL);
         for (int i = 0; i < info->num; i++) {
             l_groupPoint[i] = 0;
         }

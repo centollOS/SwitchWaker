@@ -69,20 +69,20 @@ public:
     fopAc_ac_c* GetActorPointer(cBgS_PolyInfo& i_poly) const {
         return cBgS::GetActorPointer(i_poly);
     }
-
-    // void CaptPoly(dBgS_CaptPoly&) {}
-    // void ChkDeleteActorRegist(fopAc_ac_c*) {}
-    // void DebugDrawPoly(dBgW&) {}
-    // void Draw() {}
-    // void DrawPoly(cBgS_PolyInfo&, _GXColor&) {}
     dBgW* GetBgWPointer(cBgS_PolyInfo& i_poly) { return (dBgW*)cBgS::GetBgWPointer(i_poly); }
-    // void GetPolyCamId(cBgS_PolyInfo&) {}
-#ifdef DEBUG
-    // Out-of-line in the demo debug build (frameworkD.map, d_bg_s.o); retail calls cBgS's directly.
-    f32 GroundCross(cBgS_GndChk*);
-    bool LineCross(cBgS_LinChk*);
-#endif
+    int GetPolyCamId(cBgS_PolyInfo& i_poly) { return GetPolyCamId(i_poly.GetBgIndex(), i_poly.GetPolyIndex()); }
+
+#if DEBUG
+    // TODO
+    void DebugDrawPoly(dBgW&);
+    void DrawPoly(cBgS_PolyInfo&, GXColor&);
+    void Draw() {}
+    void CaptPoly(dBgS_CaptPoly&) {}
+    // void GroundCross(cBgS_GndChk*) {}
+    // void LineCross(cBgS_LinChk*) {}
     // void ShdwDraw(cBgS_ShdwDraw*) {}
+    void ChkDeleteActorRegist(fopAc_ac_c*) {}
+#endif
 
     virtual void Ct();
     virtual void Dt();
@@ -125,6 +125,11 @@ public:
     void MoveBgMatrixCrrPos(cBgS_PolyInfo&, bool, cXyz*, csXyz*, csXyz*);
     void RideCallBack(cBgS_PolyInfo&, fopAc_ac_c*);
     fopAc_ac_c* PushPullCallBack(cBgS_PolyInfo&, fopAc_ac_c*, short, dBgW::PushPullLabel);
+
+#if DEBUG
+    /* 0x1404 */ u8 field_0x1404[0x1408 - 0x1404];
+    // /* 0x1408 */ dBgS_HIO m_hio;
+#endif
 };  // Size: 0x1404
 
 class dBgS_CrrPos : public cBgS_PolyInfo, public dBgS_Chk, public cBgS_Chk {
@@ -164,10 +169,10 @@ public:
     void ClrWallHit() { mFlag &= ~0x10; }
     void SetXCrr() { mFlag |= 0x20; }
     void ClrXCrr() { mFlag &= ~0x20; }
-    u32 ChkXCrr() { return mFlag & 0x20; }
+    bool ChkXCrr() { return mFlag & 0x20; }
     void SetZCrr() { mFlag |= 0x40; }
     void ClrZCrr() { mFlag &= ~0x40; }
-    u32 ChkZCrr() { return mFlag & 0x40; }
+    bool ChkZCrr() { return mFlag & 0x40; }
 
     void SetGndUpY(f32 y) { mGndUpY = y; }
     void ClrPosVec() { m_pos_vec.x = m_pos_vec.y = m_pos_vec.z = 0.0f; }
@@ -225,7 +230,7 @@ public:
 };
 
 u32 dBgS_GetRoomPathPntNo(u32 polyinfo2);
-// dst is a dzb poly-info word (cBgD_Ti_t::mPolyInf1), big-endian on TARGET_PC (step 4.10).
+// dst is a dzb poly-info word (cBgD_Ti_t::m_info1), big-endian on TARGET_PC (step 4.10).
 void dBgS_ChangeAttributeCode(u32 code, BE(u32)* dst);
 
 #endif /* D_BG_D_BG_S_H */

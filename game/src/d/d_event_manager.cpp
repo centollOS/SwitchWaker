@@ -242,9 +242,7 @@ static void* extraOffObjectCallBack(fopAc_ac_c* actor, void* work) {
     const char* name = (const char*)work;
     if (strcmp(name, "ALL") == 0) {
         fopAcM_OffStatus(actor, fopAcStts_UNK800_e);
-#if VERSION > VERSION_DEMO
         fopAcM_OffStatus(actor, fopAcStts_FORCEMOVE_e);
-#endif
         return NULL;
     } else {
         dStage_objectNameInf* inf = dStage_searchName(name);
@@ -266,12 +264,9 @@ static void* allOffObjectCallBack(fopAc_ac_c* actor, void*) {
 /* 80073FF0-80074108       .text startProc__16dEvent_manager_cFP12dEvDtEvent_c */
 void dEvent_manager_c::startProc(dEvDtEvent_c* event) {
     dEv_seach_prm prm(NULL, 0, 0);
-    s32 i;
-    dEvDtStaff_c* staff;
-    int staffIdx;
-    for (i = 0; i < event->getNStaff(); i++) {
-        staffIdx = event->getStaff(i);
-        staff = mList.getStaffP(staffIdx);
+    for (s32 i = 0; i < event->getNStaff(); i++) {
+        int staffIdx = event->getStaff(i);
+        dEvDtStaff_c* staff = mList.getStaffP(staffIdx);
         if (staff->getType() == dEvDtStaff_c::NORMAL_e) {
             fopAc_ac_c* actor = specialCast(staff->getName(), 1);
             if (actor == NULL) {
@@ -302,7 +297,7 @@ void dEvent_manager_c::closeProc(dEvDtEvent_c* event) {
 void dEvent_manager_c::endProc(s16 eventIdx, int act) {
     dEvDtEvent_c* event = getEventData(eventIdx);
     if (event == NULL) {
-        JUT_ASSERT(DEMO_SELECT(0x2d5, 0x2ec), FALSE);
+        JUT_ASSERT(0x2ec, FALSE);
         return;
     }
 
@@ -320,29 +315,29 @@ void dEvent_manager_c::endProc(s16 eventIdx, int act) {
 /* 800741D4-80074324       .text mainProc__16dEvent_manager_cFv */
 void dEvent_manager_c::mainProc() {
     if (mList.mHeaderP != NULL) {
-        s32 i;
         dEvDtEvent_c* event;
+        s32 i;
 
         for (i = 0; i < mList.mHeaderP->eventNum; i++) {
-            event = mList.getEventP(i);
+            event = &mList.mEventP[i];
             if (event->mEventState == dEvDtEvent_c::PLAY_e && event->finish_check())
                 closeProc(event);
         }
 
         for (i = 0; i < mList.mHeaderP->eventNum; i++) {
-            event = mList.getEventP(i);
+            event = &mList.mEventP[i];
             if (event->mEventState == dEvDtEvent_c::ORDER_e)
                 startProc(event);
         }
 
         for (i = 0; i < mList.mHeaderP->eventNum; i++) {
-            event = mList.getEventP(i);
+            event = &mList.mEventP[i];
             if (event->mEventState == dEvDtEvent_c::PLAY_e)
                 mList.advanceCut(event);
         }
 
         for (i = 0; i < mList.mHeaderP->eventNum; i++) {
-            event = mList.getEventP(i);
+            event = &mList.mEventP[i];
             if (event->mEventState == dEvDtEvent_c::PLAY_e)
                 event->specialStaffProc(mList.mStaffP);
         }
@@ -359,9 +354,9 @@ void dEvent_manager_c::runProc() {
 
 /* 80074370-800743AC       .text getEventData__16dEvent_manager_cFs */
 dEvDtEvent_c* dEvent_manager_c::getEventData(s16 eventIdx) {
-    if (mList.mHeaderP == NULL || eventIdx < 0 || eventIdx >= mList.getEventNum())
+    if (mList.mHeaderP == NULL || eventIdx < 0 || eventIdx >= mList.mHeaderP->eventNum)
         return NULL;
-    return mList.getEventP(eventIdx);
+    return &mList.mEventP[eventIdx];
 }
 
 /* 800743AC-800744AC       .text getEventIdx__16dEvent_manager_cFPCcUc */
@@ -463,7 +458,7 @@ int dEvmng_strcmp(const char* s1, char* s2) {
     u32 len2 = strlen(s2);
 
     if (len1 >= 100 || len2 >= 100) {
-        JUT_ASSERT(DEMO_SELECT(0x433, 0x44a), FALSE);
+        JUT_ASSERT(0x44a, FALSE);
         return -1;
     }
 
@@ -494,7 +489,7 @@ int dEvent_manager_c::getMyActIdx(int staffIdx, const char* const* action, int a
 
     staff->mbHasAction = true;
     for (i = 0; i < actionNum; i++) {
-        JUT_ASSERT(DEMO_SELECT(0x453, 0x46a), action[i]);
+        JUT_ASSERT(0x46a, action[i]);
 
         if (nameType != 0) {
             if (dEvmng_strcmp(action[i], name) == 0) {
@@ -514,11 +509,11 @@ int dEvent_manager_c::getMyActIdx(int staffIdx, const char* const* action, int a
 }
 
 /* 80074964-800749A0       .text getMyActName__16dEvent_manager_cFi */
-char* dEvent_manager_c::getMyActName(int staffIdx) {
+const char* dEvent_manager_c::getMyActName(int staffIdx) {
     if (staffIdx == -1)
         return NULL;
 
-    char* cutName = getMyNowCutName(staffIdx);
+    const char* cutName = getMyNowCutName(staffIdx);
     if (cutName == NULL)
         return NULL;
 
@@ -690,7 +685,7 @@ fopAc_ac_c* dEvent_manager_c::specialCast_Shutter(s16 profName, int flag) {
     param.actor = dComIfGp_getPlayer(0);
 
     if (dComIfGp_getPlayer(0) == NULL)
-        JUT_ASSERT(DEMO_SELECT(0x60c, 0x623), FALSE);
+        JUT_ASSERT(0x623, FALSE);
 
     fopAc_ac_c* shutter = (fopAc_ac_c*)fopAcIt_Judge((fopAcIt_JudgeFunc)findShutterCallBack, &param);
     if (shutter != NULL && flag) {
@@ -738,8 +733,8 @@ fopAc_ac_c* dEvent_manager_c::specialCast(const char* name, int flag) {
 void dEvent_manager_c::setPrmStaff(void* work, int staffIdx) {
     dEv_seach_prm* prm = (dEv_seach_prm*)work;
     dEvDtStaff_c* staff_data = mList.getStaffP(staffIdx);
-    JUT_ASSERT(DEMO_SELECT(0x654, 0x66b), staff_data);
-    JUT_ASSERT(DEMO_SELECT(0x655, 0x66c), prm);
+    JUT_ASSERT(0x66b, staff_data);
+    JUT_ASSERT(0x66c, prm);
     prm->mName = staff_data->getName();
 
     dEvDtData_c* dev_prm_data = getMyDataP(staffIdx, "DEV_PRM_MASK", 1);
@@ -748,7 +743,7 @@ void dEvent_manager_c::setPrmStaff(void* work, int staffIdx) {
         prm->mValue = 0;
     } else {
         int* i_data = (int*)getSubstance(dev_prm_data, dEvtSub_INT_e);
-        JUT_ASSERT(DEMO_SELECT(0x661, 0x678), i_data);
+        JUT_ASSERT(0x678, i_data);
         prm->mMask = i_data[0];
         prm->mValue = i_data[1];
     }
@@ -793,9 +788,7 @@ dEv_seach_prm::dEv_seach_prm(const char* name, u32 mask, u32 value) {
     mName = name;
     mMask = mask;
     mValue = value;
-#if VERSION > VERSION_DEMO
     mCastInFlag = 0;
-#endif
 }
 
 /* 80075394-800753A8       .text dEv_extra_createCB__FPv */
@@ -859,7 +852,7 @@ static u8 daNpc_Tt_tact_table[] = {
 /* 800754EC-80075590       .text dEvmng_daNpc_Tt_Conv__FUc */
 u8 dEvmng_daNpc_Tt_Conv(u8 param_0) {
     if (param_0 >= ARRAY_SIZE(daNpc_Tt_tact_table)) {
-        JUT_ASSERT(DEMO_SELECT(0x6fe, 1814), FALSE);
+        JUT_ASSERT(1814, FALSE);
     }
     for (u8 i = 0; i < ARRAY_SIZE(daNpc_Tt_tact_table); i++) {
         if (daNpc_Tt_tact_table[i] == param_0) {

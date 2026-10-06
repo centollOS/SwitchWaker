@@ -364,13 +364,12 @@ void dWood::Anm_c::mode_push_back(dWood::Packet_c *packet) {
         f32 rotY = 0.0;
         f32 rotX = rotY;
         for (s32 i = 0; i < 2; i++) {
-            s32 phaseVelY = attr_sway(SWAY_PUSH, i).phaseVelY;
             s32 phaseVelX = attr_sway(SWAY_PUSH, i).phaseVelX;
             s16 ampY = t * attr_sway(SWAY_PUSH, i).ampY;
             s16 ampX = t * attr_sway(SWAY_PUSH, i).ampX;
             f32 phaseBiasX = attr_sway(SWAY_PUSH, i).phaseBiasX;
 
-            mPhaseY[i] += phaseVelY;
+            mPhaseY[i] += attr_sway(SWAY_PUSH, i).phaseVelY;
             mPhaseX[i] += phaseVelX;
             cLib_chaseS(&mAmpY[i], (s32)ampY, 0x14);
             cLib_chaseS(&mAmpX[i], (s32)ampX, 0x14);
@@ -478,10 +477,10 @@ void dWood::Anm_c::mode_to_norm(dWood::Packet_c *packet) {
     f32 rotX = rotY;
     for (s32 i = 0; i < 2; i++) {
         f32 phaseBiasX = attr_sway(swayID, i).phaseBiasX;
-        s16 rotYStep = attr_sway(swayID, i).phaseVelY + 3000;
-        s16 rotXStep = attr_sway(swayID, i).phaseVelX + 3000;
+        s32 phaseVelX = attr_sway(swayID, i).phaseVelX;
+        s16 rotXStep = phaseVelX + 3000;
 
-        cLib_chaseS(&mPhaseY[i], normAnim->mPhaseY[i], rotYStep);
+        cLib_chaseS(&mPhaseY[i], normAnim->mPhaseY[i], attr_sway(swayID, i).phaseVelY + 3000);
         cLib_chaseS(&mPhaseX[i], normAnim->mPhaseX[i], rotXStep);
         cLib_chaseS(&mAmpY[i], normAnim->mAmpY[i], 0xf);
         cLib_chaseS(&mAmpX[i], normAnim->mAmpX[i], 0xf);
@@ -595,7 +594,7 @@ void dWood::Unit_c::cc_hit_before_cut(dWood::Packet_c *packet) {
     }
 
     // Evaluate for attacks that will not cut us down
-    if (cLib_checkBit(ret, 0x01UL)) {
+    if (cLib_checkBit<u32>(ret, 0x01UL)) {
         cCcD_Obj *atHitObj = inf.GetAtHitObj();
         if (atHitObj != NULL && (atHitObj->ChkAtType(AT_TYPE_WIND) ||
                                  atHitObj->ChkAtType(AT_TYPE_BOMB) ||
@@ -628,14 +627,15 @@ void dWood::Unit_c::cc_hit_before_cut(dWood::Packet_c *packet) {
                 if ((mAnmIdx >= 8) && packet->get_anm_p(mAnmIdx)->get_mode() >=
                                           Anm_c::Mode_PushInto) {
                     targetAngle = cLib_targetAngleY(&actor->current.pos, &mPos);
-                    packet->get_anm_p(mAnmIdx)->mode_push_into_init(packet->get_anm_p(oldAnimIdx), (s32)targetAngle);
+                    packet->get_anm_p(mAnmIdx)->mode_push_into_init(
+                        packet->mAnm + oldAnimIdx, (s32)targetAngle);
                 }
             }
         }
     }
 
     // Check for collisions that are not attacks
-    if (cLib_checkBit(ret, 0x02UL) && actor && inf.GetCoHitObj() &&
+    if (cLib_checkBit<u32>(ret, 0x02UL) && actor && inf.GetCoHitObj() &&
         inf.GetCoHitObj()->GetStts()) {
         animIdx = packet->search_anm(Anm_c::Mode_PushInto);
 
@@ -657,13 +657,14 @@ void dWood::Unit_c::cc_hit_before_cut(dWood::Packet_c *packet) {
             if ((mAnmIdx >= 8) && (packet->get_anm_p(mAnmIdx)->get_mode() >=
                                    Anm_c::Mode_PushInto)) {
                 targetAngle = cLib_targetAngleY(&actor->current.pos, &mPos);
-                packet->get_anm_p(mAnmIdx)->mode_push_into_init(packet->get_anm_p(oldAnimIdx), (s32)targetAngle);
+                packet->get_anm_p(mAnmIdx)->mode_push_into_init(
+                    packet->mAnm + oldAnimIdx, (s32)targetAngle);
             }
         }
     }
 
     // Check for attacks that WILL cut us down
-    if (cLib_checkBit(ret, 0x01UL)) {
+    if (cLib_checkBit<u32>(ret, 0x01UL)) {
         AnmID_e oldAnimIdx = mAnmIdx;
 
         if ((mAnmIdx < 8)) {
@@ -691,7 +692,7 @@ void dWood::Unit_c::cc_hit_before_cut(dWood::Packet_c *packet) {
 
                 f32 newShadowScale = L_attr.kCutShadowScale / L_attr.kUncutShadowScale;
 
-                mDoMtx_stack_c::copy(mShadowModelMtx);
+                cMtx_copy(mShadowModelMtx, mDoMtx_stack_c::get());
                 mDoMtx_stack_c::scaleM(newShadowScale, 1.0f, newShadowScale);
                 cMtx_copy(mDoMtx_stack_c::get(), mShadowModelMtx);
             }
@@ -860,7 +861,7 @@ void dWood::Packet_c::update() {
     }
 
     dComIfGd_setXluListBG();
-    j3dSys.getDrawBuffer(0)->entryImm(this, 0);
+    j3dSys.getDrawBuffer(J3DSysDrawBuf_Opa)->entryImm(this, 0);
     dComIfGd_setXluList();
 }
 

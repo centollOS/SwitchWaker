@@ -7,7 +7,6 @@
 #include "d/d_menu_cloth.h"
 
 #include "assets/l_matDL__d_menu_cloth.h"
-#include "d/d_s_play.h"
 
 static daCLOTH_HIO_c l_HIO;
 
@@ -147,7 +146,7 @@ void dMCloth_c::lightSet1(cXyz) {
         -lightDistance * cM_ssin(HIO_CHILD.lightPitch),
         -lightDistance * cM_scos(HIO_CHILD.lightYaw) * cM_scos(HIO_CHILD.lightPitch)
     );
-    GXInitLightColor(&light, (GXColor){0xFF, 0xFF, 0xFF, 0x00});
+    GXInitLightColor(&light, COMPOUND_LITERAL(GXColor){0xFF, 0xFF, 0xFF, 0x00});
     GXLoadLightObjImm(&light, GX_LIGHT0);
 }
 
@@ -168,19 +167,11 @@ void dMCloth_c::cloth_init() {
         int x = 0;
         s16 yAngle = -y * 3500;
         for (; x < INNER_SIZE; x++) {
-#if VERSION == VERSION_DEMO
-            pPosArr[x + y * INNER_SIZE].x = -1500.0f + 954.9299f * (1.0f + REG10_F(3)) * cM_ssin(x * 3276.8f) + x * (10.0f + REG10_F(8)) * cM_ssin(yAngle);
-            pPosArr[x + y * INNER_SIZE].y = -1500.0f + 300.0f * y;
-            pPosArr[x + y * INNER_SIZE].z = -3400.0f + 954.9299f * (0.75f + REG10_F(4)) * (1.0f - cM_scos(x * 3276.8f)) + x * (-5.0f + REG10_F(9)) * cM_scos(yAngle);
-
-            pOffArr[x + y * INNER_SIZE].set(-(320.0f + 1000.0f * REG10_F(20)) * cM_scos(x * 3276.8f + REG10_S(8) - 1000.0f), 0.0f, -(270.0f + 1000.0f * REG10_F(21)) * cM_ssin(x * 3276.8f + REG10_S(8) - 1000.0f));
-#else
             pPosArr[x + y * INNER_SIZE].x = cM_ssin(x * 3276.8f) * 954.9299f + -1500.0f + x * 10.0f * cM_ssin(yAngle);
             pPosArr[x + y * INNER_SIZE].y = y * 300.0f + -1500.0f;
             pPosArr[x + y * INNER_SIZE].z = (1.0f - cM_scos(x * 3276.8f)) * 716.1974f + -3400.0f + x * -5.0f * cM_scos(yAngle);
 
             pOffArr[x + y * INNER_SIZE].set(cM_scos(x * 3276.8f - 1000.0f) * -320.0f, 0.0f, cM_ssin(x * 3276.8f - 1000.0f) * -270.0f);
-#endif
         }
     }
 
@@ -241,7 +232,7 @@ void dMCloth_c::cloth_init() {
     case MENU_CLOTH_TYPE_CLOTH_ONLY: {
         mScale = HIO_CHILD.scale;
         mRot = HIO_CHILD.rot;
-        mRot.z += cM_deg2s(cM_rndFX(20.0f + DEMO_SELECT(REG10_F(10), 0.0f)));
+        mRot.z += cM_deg2s(cM_rndFX(20.0f));
         s32 n = HIO_CHILD.wavePreSteps;
         while (n--) {
             cloth_move_sin();
@@ -267,7 +258,7 @@ void dMCloth_c::init() {
 #endif
 
     GXInitTexObj(
-        getTexObj(),
+        &mTexObj,
         (u8*)image + image->imageOffset,
         image->width,
         image->height,
@@ -282,7 +273,7 @@ void dMCloth_c::init() {
     );
 
     GXInitTexObjLOD(
-        getTexObj(),
+        &mTexObj,
         GXTexFilter(image->minFilter),
         GXTexFilter(image->magFilter),
         image->minLOD * 0.125f,
@@ -317,7 +308,7 @@ dMCloth_c::~dMCloth_c() {
 /* 8019A058-8019A0AC       .text setBackNrm__9dMCloth_cFv */
 void dMCloth_c::setBackNrm() {
     cXyz* pNrm = getNrm();
-    cXyz* pBackNrm = mBackNrmArr;
+    cXyz* pBackNrm = getBackNrm();
 
     for (int i = 0; i < ARR_SIZE; i++) {
         pBackNrm->set(-pNrm->x, -pNrm->y, -pNrm->z);
@@ -371,12 +362,7 @@ void dMCloth_c::setNrmVtx(cXyz* pDst, int x, int y) {
 
     MtxPush();
 
-#if VERSION == VERSION_DEMO
-    s16 ang = cM_ssin(x * (REG10_S(3) - 800)) * (REG10_S(2) + 900);
-    mDoMtx_YrotM(*calc_mtx, ang);
-#else
     mDoMtx_YrotM(*calc_mtx, cM_ssin(x * -800) * 900.0f);
-#endif
     MtxPosition(&total, pDst);
     if (!pDst->normalizeRS()) {
         pDst->set(0.0f, 0.0f, 1.0f);
@@ -466,8 +452,6 @@ void dMCloth_c::plot(float xMin, float yMin, float xMax, float yMax) {
 
             yPos -= yStep;
         }
-        // Each column's GXBegin needs its GXEnd: a no-op on the GameCube, but Aurora finishes the
-        // draw there (zeldaret/tww 3a091431, "add missing GXEnd").
         GXEnd();
 
         xPos += xStep;
@@ -555,8 +539,6 @@ void dMCloth_c::plot_shadow(float xMin, float yMin, float xMax, float yMax) {
 
             yPos -= yStep;
         }
-        // Each column's GXBegin needs its GXEnd: a no-op on the GameCube, but Aurora finishes the
-        // draw there (zeldaret/tww 3a091431, "add missing GXEnd").
         GXEnd();
 
         xPos += xStep;
@@ -665,7 +647,7 @@ void dMCloth_c::ShadowTevSetting() {
 /* 8019ADD4-8019B670       .text draw__9dMCloth_cFf8_GXColor8_GXColorUc */
 void dMCloth_c::draw(float, GXColor clothColor, GXColor shadowColor, unsigned char) {
     cXyz* pPos = getPos();
-    cXyz* pPos2 = getShadowPos();
+    cXyz* pPos2 = mShadowPosArr;
     for (int y = 0; y < INNER_SIZE; y++) {
         for (int x = 0; x < INNER_SIZE; x++) {
             *pPos2 = *pPos;
@@ -720,8 +702,8 @@ void dMCloth_c::draw(float, GXColor clothColor, GXColor shadowColor, unsigned ch
         GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
         GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_NRM, GX_NRM_XYZ, GX_F32, 0);
         GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0);
-        GXSetChanAmbColor(GX_COLOR0, (GXColor){0x00, 0x00, 0x00, 0x00});
-        GXSetChanMatColor(GX_COLOR0, (GXColor){0xFF, 0xFF, 0xFF, 0xFF});
+        GXSetChanAmbColor(GX_COLOR0, COMPOUND_LITERAL(GXColor){0x00, 0x00, 0x00, 0x00});
+        GXSetChanMatColor(GX_COLOR0, COMPOUND_LITERAL(GXColor){0xFF, 0xFF, 0xFF, 0xFF});
     } break;
     case MENU_CLOTH_TYPE_FILE_SELECT: {
         GXClearVtxDesc();
@@ -733,8 +715,8 @@ void dMCloth_c::draw(float, GXColor clothColor, GXColor shadowColor, unsigned ch
         GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_NRM, GX_NRM_XYZ, GX_F32, 0);
         GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_CLR0, GX_CLR_RGBA, GX_RGBA8, 0);
         GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0);
-        GXSetChanAmbColor(GX_COLOR0, (GXColor){0x00, 0x00, 0x00, 0xFF});
-        GXSetChanMatColor(GX_COLOR0, (GXColor){0xFF, 0xFF, 0xFF, 0xFF});
+        GXSetChanAmbColor(GX_COLOR0, COMPOUND_LITERAL(GXColor){0x00, 0x00, 0x00, 0xFF});
+        GXSetChanMatColor(GX_COLOR0, COMPOUND_LITERAL(GXColor){0xFF, 0xFF, 0xFF, 0xFF});
     } break;
     }
 
@@ -779,11 +761,7 @@ void dMCloth_c::draw(float, GXColor clothColor, GXColor shadowColor, unsigned ch
     switch (mClothType) {
     case MENU_CLOTH_TYPE_FILE_SELECT:
     case MENU_CLOTH_TYPE_CLOTH_ONLY: {
-#if VERSION == VERSION_DEMO
-        mDoMtx_stack_c::transS(HIO_CHILD.pos.x + -275.0f + REG10_F(1), HIO_CHILD.pos.y - 75.0f + REG10_F(0), HIO_CHILD.pos.z + -3800.0f);
-#else
         mDoMtx_stack_c::transS(HIO_CHILD.pos.x + -275.0f, HIO_CHILD.pos.y - 75.0f, HIO_CHILD.pos.z + -3800.0f);
-#endif
         mDoMtx_stack_c::XrotM(mRot.x);
         mDoMtx_stack_c::YrotM(mRot.y);
         mDoMtx_stack_c::ZrotM(mRot.z);
@@ -832,7 +810,7 @@ void dMCloth_c::draw(float, GXColor clothColor, GXColor shadowColor, unsigned ch
 #if TARGET_PC
     GXSETARRAY(GX_VA_POS, getShadowPos(), ARR_SIZE * sizeof(cXyz), sizeof(cXyz), true);
 #else
-    GXSetArray(GX_VA_POS, getShadowPos(), sizeof(cXyz));
+    GXSetArray(GX_VA_POS, mShadowPosArr, sizeof(cXyz));
 #endif
     plot_shadow(0.0f, 0.0f, 1.0f, 1.0f);
 

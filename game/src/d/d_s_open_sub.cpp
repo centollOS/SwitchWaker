@@ -44,7 +44,7 @@ void dScnOpen_message_c::set_message(u32 i_msgNo, int param_1) {
     alpha = 0.0f;
     mTimer = 0;
     mTimerMax = dScnOpen_message_timer_table[msgNo - 0x579] * 30;
-    field_0x22e8 = 0;
+    mbIsNext = false;
 
     strcpy(msg1, "");
     strcpy(msg2, "");
@@ -146,7 +146,7 @@ void dScnOpen_message_c::exec() {
             alpha = 0.0f;
 
             if (field_0x22ec == 0) {
-                field_0x22e8 = 1;
+                mbIsNext = true;
                 mProc = 4;
             } else {
                 mProc = 3;
@@ -194,14 +194,6 @@ dScnOpen_message_c::~dScnOpen_message_c() {
     mDoExt_setCurrentHeap(old_heap);
 }
 
-void dScnOpen_message_c::set_pane_pointer(J2DPane* tx1, J2DPane* tx2) {
-    tTextBox = (J2DTextBox*)tx1;
-    rTextBox = (J2DTextBox*)tx2;
-    tTextBox->setFont(tFont);
-    rTextBox->setFont(rFont);
-    rTextBox->setLineSpace(tTextBox->getLineSpace());
-}
-
 enum {
     PANE_d1,
     PANE_d2,
@@ -233,17 +225,17 @@ dScnOpen_proc_c::dScnOpen_proc_c() {
     JUT_ASSERT(VERSION_SELECT(215, 216, 235, 235), resInfo != NULL);
 
     m_Screen->set("Opening.blo", resInfo->getArchive());
-    pane2d[PANE_d1] = m_Screen->search('\0\0d1');
-    pane2d[PANE_d2] = m_Screen->search('\0\0d2');
-    pane2d[PANE_d3] = m_Screen->search('\0\0d3');
-    pane2d[PANE_d4] = m_Screen->search('\0\0d4');
-    pane2d[PANE_d42] = m_Screen->search('\0d42');
-    pane2d[PANE_d5] = m_Screen->search('\0\0d5');
-    pane2d[PANE_d6] = m_Screen->search('\0\0d6');
+    pane2d[PANE_d1] = m_Screen->search('d1');
+    pane2d[PANE_d2] = m_Screen->search('d2');
+    pane2d[PANE_d3] = m_Screen->search('d3');
+    pane2d[PANE_d4] = m_Screen->search('d4');
+    pane2d[PANE_d42] = m_Screen->search('d42');
+    pane2d[PANE_d5] = m_Screen->search('d5');
+    pane2d[PANE_d6] = m_Screen->search('d6');
     pane2d[PANE_mak1] = m_Screen->search('mak1');
     pane2d[PANE_mak2] = m_Screen->search('mak2');
-    pane2d[PANE_tx1] = m_Screen->search('\0tx1');
-    pane2d[PANE_tx2] = m_Screen->search('\0tx2');
+    pane2d[PANE_tx1] = m_Screen->search('tx1');
+    pane2d[PANE_tx2] = m_Screen->search('tx2');
 
     #if VERSION >= VERSION_USA
     pane2d[PANE_tx1]->move(pane2d[PANE_tx1]->getBounds().i.x, 376.0f);
@@ -570,9 +562,4 @@ void dScnOpen_proc_c::proc_draw() {
     m_Screen->draw(0.0f, 0.0f, graf);
 #endif
     mDoExt_setCurrentHeap(old_heap);
-}
-
-/* 80234550-80234570       .text draw__15dScnOpen_proc_cFv */
-void dScnOpen_proc_c::draw() {
-    proc_draw();
 }

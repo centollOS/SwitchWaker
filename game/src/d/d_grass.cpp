@@ -65,7 +65,7 @@ void dGrass_data_c::WorkCo(fopAc_ac_c* other, u32, int roomNo) {
     delta.z = mPos.z - other->current.pos.z;
 
     f32 distSq = delta.abs2XZ();
-    if (distSq > 1600.0f)
+    if (distSq > SQUARE(40.0f))
         return;
 
     delta.y = mPos.y - other->current.pos.y;
@@ -299,9 +299,9 @@ void dGrass_packet_c::draw() {
     GFSetArraySized(GX_VA_CLR0, mpColorArr, vmori ? sizeof(l_Vmori_color) : sizeof(l_color), sizeof(*mpColorArr), true);
     GFSetArraySized(GX_VA_TEX0, mpTexCoordArr, vmori ? sizeof(l_Vmori_texCoord) : sizeof(l_texCoord), sizeof(cXy), true);
 #else
-    GFSetArray(GX_VA_POS, mpPosArr, sizeof(cXyz));
+    GFSetArray(GX_VA_POS, mpPosArr, sizeof(*mpPosArr));
     GFSetArray(GX_VA_CLR0, mpColorArr, sizeof(*mpColorArr));
-    GFSetArray(GX_VA_TEX0, mpTexCoordArr, sizeof(cXy));
+    GFSetArray(GX_VA_TEX0, mpTexCoordArr, sizeof(*mpTexCoordArr));
 #endif
 #if TARGET_PC
     // The material list names its texture by physical address (see mDoLib_loadDLTexImage).
@@ -424,7 +424,7 @@ void dGrass_packet_c::update() {
         data++;
     }
     mDoLib_clipper::resetFar();
-    j3dSys.getDrawBuffer(0)->entryImm(this, 0);
+    j3dSys.getDrawBuffer(J3DSysDrawBuf_Opa)->entryImm(this, 0);
 }
 
 /* 800784E8-800785C0       .text setData__15dGrass_packet_cFP13dGrass_data_ciR4cXyziSc */

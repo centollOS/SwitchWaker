@@ -146,7 +146,7 @@ void dComIfG_play_c::itemInit() {
     }
 
     mMelodyNum = 0;
-    mFmapOpen = false;
+    mFmapOpen = 0;
     mNameOpen = 0;
     field_0x4953 = 0;
     field_0x4954 = 0;
@@ -519,16 +519,11 @@ BOOL dComIfG_resetToOpening(scene_class* i_scene) {
         return FALSE;
     }
 
-#if VERSION == VERSION_DEMO
-    if (dComIfG_changeOpeningScene(i_scene, 8)) {
-        mDoAud_zelAudio_c::getInterface()->resetProcess();
-        mDoAud_zelAudio_c::onResetFlag();
-    }
-#else
     dComIfG_changeOpeningScene(i_scene, 8);
+#if VERSION > VERSION_DEMO
     mDoAud_bgmStop(30);
-    mDoAud_resetProcess();
 #endif
+    mDoAud_resetProcess();
     return TRUE;
 }
 
@@ -920,32 +915,32 @@ u8 dComIfGs_checkGetItem(u8 i_itemNo) {
 
     switch (i_itemNo) {
     case dItemNo_WINDS_REQUIEM_e:
-        if (dComIfGs_isTact(0)) {
+        if (dComIfGs_isTact(mDoAud_MELODY_WINDS_REQUIEM_e)) {
             get_item = 1;
         }
         break;
     case dItemNo_BALLAD_OF_GALES_e:
-        if (dComIfGs_isTact(1)) {
+        if (dComIfGs_isTact(mDoAud_MELODY_BALLAD_OF_GALES_e)) {
             get_item = 1;
         }
         break;
     case dItemNo_COMMAND_MELODY_e:
-        if (dComIfGs_isTact(2)) {
+        if (dComIfGs_isTact(mDoAud_MELODY_COMMAND_MELODY_e)) {
             get_item = 1;
         }
         break;
     case dItemNo_EARTH_GODS_LYRIC_e:
-        if (dComIfGs_isTact(3)) {
+        if (dComIfGs_isTact(mDoAud_MELODY_EARTH_GODS_LYRIC_e)) {
             get_item = 1;
         }
         break;
     case dItemNo_WIND_GODS_ARIA_e:
-        if (dComIfGs_isTact(4)) {
+        if (dComIfGs_isTact(mDoAud_MELODY_WIND_GODS_ARIA_e)) {
             get_item = 1;
         }
         break;
     case dItemNo_SONG_OF_PASSING_e:
-        if (dComIfGs_isTact(5)) {
+        if (dComIfGs_isTact(mDoAud_MELODY_SONG_OF_PASSING_e)) {
             get_item = 1;
         }
         break;
@@ -1044,32 +1039,32 @@ u8 dComIfGs_checkGetItemNum(u8 i_itemNo) {
 
     switch (i_itemNo) {
     case dItemNo_WINDS_REQUIEM_e:
-        if (dComIfGs_isTact(0)) {
+        if (dComIfGs_isTact(mDoAud_MELODY_WINDS_REQUIEM_e)) {
             get_item = 1;
         }
         break;
     case dItemNo_BALLAD_OF_GALES_e:
-        if (dComIfGs_isTact(1)) {
+        if (dComIfGs_isTact(mDoAud_MELODY_BALLAD_OF_GALES_e)) {
             get_item = 1;
         }
         break;
     case dItemNo_COMMAND_MELODY_e:
-        if (dComIfGs_isTact(2)) {
+        if (dComIfGs_isTact(mDoAud_MELODY_COMMAND_MELODY_e)) {
             get_item = 1;
         }
         break;
     case dItemNo_EARTH_GODS_LYRIC_e:
-        if (dComIfGs_isTact(3)) {
+        if (dComIfGs_isTact(mDoAud_MELODY_EARTH_GODS_LYRIC_e)) {
             get_item = 1;
         }
         break;
     case dItemNo_WIND_GODS_ARIA_e:
-        if (dComIfGs_isTact(4)) {
+        if (dComIfGs_isTact(mDoAud_MELODY_WIND_GODS_ARIA_e)) {
             get_item = 1;
         }
         break;
     case dItemNo_SONG_OF_PASSING_e:
-        if (dComIfGs_isTact(5)) {
+        if (dComIfGs_isTact(mDoAud_MELODY_SONG_OF_PASSING_e)) {
             get_item = 1;
         }
         break;
@@ -1236,21 +1231,12 @@ int dComIfGd_setShadow(u32 id, s8 shouldFade, J3DModel* pModel, cXyz* pPos, f32 
         return 0;
     }
 
-#if VERSION == VERSION_DEMO
-    id = dComIfGd_setRealShadow2(id, shouldFade, pModel, pPos, casterSize, y - groundY, pTevStr);
-    if (id == 0) {
-        cXyz pos(pPos->x, y, pPos->z);
-        dComIfGd_setSimpleShadow2(&pos, groundY, scaleXZ, pFloorPoly, rotY, scaleZ, pTexObj);
-    }
-    return id;
-#else
     int sid = dComIfGd_setRealShadow2(id, shouldFade, pModel, pPos, casterSize, y - groundY, pTevStr);
     if (sid == 0) {
         cXyz pos(pPos->x, y, pPos->z);
         dComIfGd_setSimpleShadow2(&pos, groundY, scaleXZ, pFloorPoly, rotY, scaleZ, pTexObj);
     }
     return sid;
-#endif
 }
 
 static void dummy() {
@@ -1375,9 +1361,8 @@ void dComIfGs_setGameStartStage() {
                 strcpy(stage_name, dComIfGp_getStartStageName());
             } else {
                 stage_scls_info_class* scls_p;
-                daShip_c* ship = dComIfGp_getShipActor();
-                if (ship != NULL) {
-                    scls_p = dComIfGd_getMeshSceneList(ship->current.pos);
+                if (dComIfGp_getShipActor() != NULL) {
+                    scls_p = dComIfGd_getMeshSceneList(dComIfGp_getShipActor()->current.pos);
                 } else {
                     scls_p = dComIfGd_getMeshSceneList(player_p->current.pos);
                 }
@@ -1454,24 +1439,6 @@ void dComIfGs_copyPlayerRecollectionData() {
         return;
     }
 
-#if VERSION == VERSION_DEMO
-    u8* buffer = (u8*)&stts;
-    u8* start = buffer;
-    memcpy(buffer, dComIfGs_getpPlayerStatusA(), sizeof(stts.mRecollectStatusA));
-    buffer += sizeof(stts.mRecollectStatusA);
-    memcpy(buffer, dComIfGs_getpItem(), sizeof(stts.mRecollectItem));
-    buffer += sizeof(stts.mRecollectItem);
-    memcpy(buffer, &dComIfGs_getpItemRecord()->mItemRecord2, sizeof(stts.mRecollectItemRecord));
-    buffer += sizeof(stts.mRecollectItemRecord);
-    memcpy(buffer, &dComIfGs_getpItemMax()->mItemMax2, sizeof(stts.mRecollectItemMax));
-    buffer += sizeof(stts.mRecollectItemMax);
-    memcpy(buffer, dComIfGs_getpBagItem(), sizeof(stts.mRecollectBagItem));
-    buffer += sizeof(stts.mRecollectBagItem);
-    memcpy(buffer, dComIfGs_getpBagItemRecord(), sizeof(stts.mRecollectBagItemRecord));
-    buffer += sizeof(stts.mRecollectBagItemRecord);
-    memcpy(buffer, dComIfGs_getpCollect(), sizeof(stts.mRecollectCollect));
-    memcpy(dComIfGs_getpPlayerStatusC(tbl), start, sizeof(stts));
-#else
     u8* buffer = (u8*)&stts;
     memcpy(buffer + offsetof(dSv_player_status_c_c, mRecollectStatusA),       dComIfGs_getpPlayerStatusA(),             sizeof(stts.mRecollectStatusA));
     memcpy(buffer + offsetof(dSv_player_status_c_c, mRecollectItem),          dComIfGs_getpItem(),                      sizeof(stts.mRecollectItem));
@@ -1481,7 +1448,6 @@ void dComIfGs_copyPlayerRecollectionData() {
     memcpy(buffer + offsetof(dSv_player_status_c_c, mRecollectBagItemRecord), dComIfGs_getpBagItemRecord(),             sizeof(stts.mRecollectBagItemRecord));
     memcpy(buffer + offsetof(dSv_player_status_c_c, mRecollectCollect),       dComIfGs_getpCollect(),                   sizeof(stts.mRecollectCollect));
     memcpy(dComIfGs_getpPlayerStatusC(tbl), &stts, sizeof(stts));
-#endif
 }
 
 /* 80054E9C-80055318       .text dComIfGs_setPlayerRecollectionData__Fv */
@@ -1544,11 +1510,11 @@ void dComIfGs_setPlayerRecollectionData() {
     tmp_collect.mCollect[3] = dComIfGs_checkCollect(3);
     tmp_collect.mCollect[4] = dComIfGs_checkCollect(4);
 
-    u8 selectEquip0 = dComIfGs_getSelectEquip(0);
-    u8 selectEquip1 = dComIfGs_getSelectEquip(1);
-    u8 selectEquip2 = dComIfGs_getSelectEquip(2);
-    u8 selectEquip3 = dComIfGs_getSelectEquip(3);
-    u8 selectEquip4 = dComIfGs_getSelectEquip(4);
+    tmp_sttsA.mSelectEquip[0] = dComIfGs_getSelectEquip(0);
+    tmp_sttsA.mSelectEquip[1] = dComIfGs_getSelectEquip(1);
+    tmp_sttsA.mSelectEquip[2] = dComIfGs_getSelectEquip(2);
+    tmp_sttsA.mSelectEquip[3] = dComIfGs_getSelectEquip(3);
+    tmp_sttsA.mSelectEquip[4] = dComIfGs_getSelectEquip(4);
 
     tmp_item.mItems[dInvSlot_BOTTLE0_e] = dComIfGs_getItem(dInvSlot_BOTTLE0_e);
     tmp_item.mItems[dInvSlot_BOTTLE1_e] = dComIfGs_getItem(dInvSlot_BOTTLE1_e);
@@ -1556,45 +1522,9 @@ void dComIfGs_setPlayerRecollectionData() {
     tmp_item.mItems[dInvSlot_BOTTLE3_e] = dComIfGs_getItem(dInvSlot_BOTTLE3_e);
     tmp_item.mItems[dInvSlot_CAMERA_e]  = dComIfGs_getItem(dInvSlot_CAMERA_e);
 
-#if VERSION == VERSION_DEMO
-    u8* buffer = (u8*)dComIfGp_getPlayerInfoBuffer();
-    memcpy(buffer, dComIfGs_getpPlayerStatusA(), sizeof(dSv_player_status_a_c));
-    buffer += sizeof(dSv_player_status_a_c);
-    memcpy(buffer, dComIfGs_getpItem(), sizeof(dSv_player_item_c));
-    buffer += sizeof(dSv_player_item_c);
-    memcpy(buffer, &dComIfGs_getpItemRecord()->mItemRecord2, sizeof(dSv_player_item_record2_c));
-    buffer += sizeof(dSv_player_item_record2_c);
-    memcpy(buffer, &dComIfGs_getpItemMax()->mItemMax2, sizeof(dSv_player_item_max2_c));
-    buffer += sizeof(dSv_player_item_max2_c);
-    memcpy(buffer, dComIfGs_getpBagItem(), sizeof(dSv_player_bag_item_c));
-    buffer += sizeof(dSv_player_bag_item_c);
-    memcpy(buffer, dComIfGs_getpBagItemRecord(), sizeof(dSv_player_bag_item_record_c));
-    buffer += sizeof(dSv_player_bag_item_record_c);
-    memcpy(buffer, dComIfGs_getpCollect(), sizeof(dSv_player_collect_c));
-
-    u8* stts = (u8*)dComIfGs_getpPlayerStatusC(tbl);
-    memcpy(dComIfGs_getpPlayerStatusA(), stts, sizeof(dSv_player_status_a_c));
-    stts += sizeof(dSv_player_status_a_c);
-    memcpy(dComIfGs_getpItem(), stts, sizeof(dSv_player_item_c));
-    stts += sizeof(dSv_player_item_c);
-    memcpy(&dComIfGs_getpItemRecord()->mItemRecord2, stts, sizeof(dSv_player_item_record2_c));
-    stts += sizeof(dSv_player_item_record2_c);
-    memcpy(&dComIfGs_getpItemMax()->mItemMax2, stts, sizeof(dSv_player_item_max2_c));
-    stts += sizeof(dSv_player_item_max2_c);
-    memcpy(dComIfGs_getpBagItem(), stts, sizeof(dSv_player_bag_item_c));
-    stts += sizeof(dSv_player_bag_item_c);
-    memcpy(dComIfGs_getpBagItemRecord(), stts, sizeof(dSv_player_bag_item_record_c));
-    stts += sizeof(dSv_player_bag_item_record_c);
-    memcpy(dComIfGs_getpCollect(), stts, sizeof(dSv_player_collect_c));
-#else
     // TODO: This matches but could probably be cleaned up somehow.
     dSv_player_status_c_c* stts = dComIfGs_getpPlayerStatusC(tbl);
-#if TARGET_PC
-    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
     uintptr_t buffer = (uintptr_t)dComIfGp_getPlayerInfoBuffer();
-#else
-    u32 buffer = (u32)dComIfGp_getPlayerInfoBuffer();
-#endif
     memcpy((void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectStatusA)),       dComIfGs_getpPlayerStatusA(),             sizeof(stts->mRecollectStatusA));
     memcpy((void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectItem)),          dComIfGs_getpItem(),                      sizeof(stts->mRecollectItem));
     memcpy((void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectItemRecord)),    &dComIfGs_getpItemRecord()->mItemRecord2, sizeof(stts->mRecollectItemRecord));
@@ -1610,7 +1540,6 @@ void dComIfGs_setPlayerRecollectionData() {
     memcpy(dComIfGs_getpBagItem(),                   &stts->mRecollectBagItem,       sizeof(stts->mRecollectBagItem));
     memcpy(dComIfGs_getpBagItemRecord(),             &stts->mRecollectBagItemRecord, sizeof(stts->mRecollectBagItemRecord));
     memcpy(dComIfGs_getpCollect(),                   &stts->mRecollectCollect,       sizeof(stts->mRecollectCollect));
-#endif
 
     dComIfGs_setMaxLife(tmp_sttsA.mMaxLife);
     dComIfGs_setLife(tmp_sttsA.mLife);
@@ -1629,14 +1558,14 @@ void dComIfGs_setPlayerRecollectionData() {
     dComIfGs_setCollect(3, tmp_collect.mCollect[3]);
     dComIfGs_setCollect(4, tmp_collect.mCollect[4]);
 
-    dComIfGs_setSelectEquip(0, selectEquip0);
-    dComIfGs_setSelectEquip(1, selectEquip1);
-    dComIfGs_setSelectEquip(2, selectEquip2);
-    dComIfGs_setSelectEquip(3, selectEquip3);
+    dComIfGs_setSelectEquip(0, tmp_sttsA.mSelectEquip[0]);
+    dComIfGs_setSelectEquip(1, tmp_sttsA.mSelectEquip[1]);
+    dComIfGs_setSelectEquip(2, tmp_sttsA.mSelectEquip[2]);
+    dComIfGs_setSelectEquip(3, tmp_sttsA.mSelectEquip[3]);
     // Potential bug: This array is only length 4, so it's reading and writing the wallet size in a non-standard way.
     // Usually the wallet size would be set via dComIfGs_setWalletSize instead.
     // TODO: Investigate this more.
-    dComIfGs_setSelectEquip(4, selectEquip4);
+    dComIfGs_setSelectEquip(4, tmp_sttsA.mSelectEquip[4]);
 
     dComIfGp_setSelectEquip(0, dComIfGs_getSelectEquip(0));
     dComIfGp_setSelectEquip(1, dComIfGs_getSelectEquip(1));
@@ -1703,29 +1632,8 @@ void dComIfGs_revPlayerRecollectionData() {
     tmp_item.mItems[dInvSlot_BOTTLE3_e] = dComIfGs_getItem(dInvSlot_BOTTLE3_e);
     tmp_item.mItems[dInvSlot_CAMERA_e]  = dComIfGs_getItem(dInvSlot_CAMERA_e);
 
-#if VERSION == VERSION_DEMO
-    u8* buffer = (u8*)dComIfGp_getPlayerInfoBuffer();
-    memcpy(dComIfGs_getpPlayerStatusA(), buffer, sizeof(dSv_player_status_a_c));
-    buffer += sizeof(dSv_player_status_a_c);
-    memcpy(dComIfGs_getpItem(), buffer, sizeof(dSv_player_item_c));
-    buffer += sizeof(dSv_player_item_c);
-    memcpy(&dComIfGs_getpItemRecord()->mItemRecord2, buffer, sizeof(dSv_player_item_record2_c));
-    buffer += sizeof(dSv_player_item_record2_c);
-    memcpy(&dComIfGs_getpItemMax()->mItemMax2, buffer, sizeof(dSv_player_item_max2_c));
-    buffer += sizeof(dSv_player_item_max2_c);
-    memcpy(dComIfGs_getpBagItem(), buffer, sizeof(dSv_player_bag_item_c));
-    buffer += sizeof(dSv_player_bag_item_c);
-    memcpy(dComIfGs_getpBagItemRecord(), buffer, sizeof(dSv_player_bag_item_record_c));
-    buffer += sizeof(dSv_player_bag_item_record_c);
-    memcpy(dComIfGs_getpCollect(), buffer, sizeof(dSv_player_collect_c));
-#else
     // TODO: This matches but could probably be cleaned up somehow.
-#if TARGET_PC
-    // TODO(native phase 4): pointers are 64-bit on the host; this assumes 32-bit addresses.
     uintptr_t buffer = (uintptr_t)dComIfGp_getPlayerInfoBuffer();
-#else
-    u32 buffer = (u32)dComIfGp_getPlayerInfoBuffer();
-#endif
     memcpy(dComIfGs_getpPlayerStatusA(),             (void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectStatusA)),       sizeof(dSv_player_status_c_c().mRecollectStatusA));
     memcpy(dComIfGs_getpItem(),                      (void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectItem)),          sizeof(dSv_player_status_c_c().mRecollectItem));
     memcpy(&dComIfGs_getpItemRecord()->mItemRecord2, (void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectItemRecord)),    sizeof(dSv_player_status_c_c().mRecollectItemRecord));
@@ -1733,7 +1641,6 @@ void dComIfGs_revPlayerRecollectionData() {
     memcpy(dComIfGs_getpBagItem(),                   (void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectBagItem)),       sizeof(dSv_player_status_c_c().mRecollectBagItem));
     memcpy(dComIfGs_getpBagItemRecord(),             (void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectBagItemRecord)), sizeof(dSv_player_status_c_c().mRecollectBagItemRecord));
     memcpy(dComIfGs_getpCollect(),                   (void*)(buffer + offsetof(dSv_player_status_c_c, mRecollectCollect)),       sizeof(dSv_player_status_c_c().mRecollectCollect));
-#endif
 
     dComIfGs_setMaxLife(tmp_sttsA.mMaxLife);
     dComIfGs_setLife(tmp_sttsA.mLife);
@@ -1812,11 +1719,11 @@ void dComIfGs_exchangePlayerRecollectionData() {
     tmp_collect.mCollect[3] = dComIfGs_checkCollect(3);
     tmp_collect.mCollect[4] = dComIfGs_checkCollect(4);
 
-    u8 selectEquip0 = dComIfGs_getSelectEquip(0);
-    u8 selectEquip1 = dComIfGs_getSelectEquip(1);
-    u8 selectEquip2 = dComIfGs_getSelectEquip(2);
-    u8 selectEquip3 = dComIfGs_getSelectEquip(3);
-    u8 selectEquip4 = dComIfGs_getSelectEquip(4);
+    tmp_sttsA.mSelectEquip[0] = dComIfGs_getSelectEquip(0);
+    tmp_sttsA.mSelectEquip[1] = dComIfGs_getSelectEquip(1);
+    tmp_sttsA.mSelectEquip[2] = dComIfGs_getSelectEquip(2);
+    tmp_sttsA.mSelectEquip[3] = dComIfGs_getSelectEquip(3);
+    tmp_sttsA.mSelectEquip[4] = dComIfGs_getSelectEquip(4);
 
     tmp_item.mItems[dInvSlot_BOTTLE0_e] = dComIfGs_getItem(dInvSlot_BOTTLE0_e);
     tmp_item.mItems[dInvSlot_BOTTLE1_e] = dComIfGs_getItem(dInvSlot_BOTTLE1_e);
@@ -1824,41 +1731,6 @@ void dComIfGs_exchangePlayerRecollectionData() {
     tmp_item.mItems[dInvSlot_BOTTLE3_e] = dComIfGs_getItem(dInvSlot_BOTTLE3_e);
     tmp_item.mItems[dInvSlot_CAMERA_e]  = dComIfGs_getItem(dInvSlot_CAMERA_e);
 
-#if VERSION == VERSION_DEMO
-    dSv_player_status_c_c stts;
-    // fakematch: calling the play accessor directly (not the dComIfGp_ wrapper) keeps the two buffer expressions from being
-    // merged before the call, so &stts is evaluated first as in the target.
-    memcpy(&stts, g_dComIfG_gameInfo.play.getPlayerInfoBuffer(), sizeof(stts));
-    u8* buffer = dComIfGp_getPlayerInfoBuffer();
-    memcpy(buffer, dComIfGs_getpPlayerStatusA(), sizeof(dSv_player_status_a_c));
-    buffer += sizeof(dSv_player_status_a_c);
-    memcpy(buffer, dComIfGs_getpItem(), sizeof(dSv_player_item_c));
-    buffer += sizeof(dSv_player_item_c);
-    memcpy(buffer, &dComIfGs_getpItemRecord()->mItemRecord2, sizeof(dSv_player_item_record2_c));
-    buffer += sizeof(dSv_player_item_record2_c);
-    memcpy(buffer, &dComIfGs_getpItemMax()->mItemMax2, sizeof(dSv_player_item_max2_c));
-    buffer += sizeof(dSv_player_item_max2_c);
-    memcpy(buffer, dComIfGs_getpBagItem(), sizeof(dSv_player_bag_item_c));
-    buffer += sizeof(dSv_player_bag_item_c);
-    memcpy(buffer, dComIfGs_getpBagItemRecord(), sizeof(dSv_player_bag_item_record_c));
-    buffer += sizeof(dSv_player_bag_item_record_c);
-    memcpy(buffer, dComIfGs_getpCollect(), sizeof(dSv_player_collect_c));
-
-    u8* stts_buffer = (u8*)&stts;
-    memcpy(dComIfGs_getpPlayerStatusA(), stts_buffer, sizeof(dSv_player_status_a_c));
-    stts_buffer += sizeof(dSv_player_status_a_c);
-    memcpy(dComIfGs_getpItem(), stts_buffer, sizeof(dSv_player_item_c));
-    stts_buffer += sizeof(dSv_player_item_c);
-    memcpy(&dComIfGs_getpItemRecord()->mItemRecord2, stts_buffer, sizeof(dSv_player_item_record2_c));
-    stts_buffer += sizeof(dSv_player_item_record2_c);
-    memcpy(&dComIfGs_getpItemMax()->mItemMax2, stts_buffer, sizeof(dSv_player_item_max2_c));
-    stts_buffer += sizeof(dSv_player_item_max2_c);
-    memcpy(dComIfGs_getpBagItem(), stts_buffer, sizeof(dSv_player_bag_item_c));
-    stts_buffer += sizeof(dSv_player_bag_item_c);
-    memcpy(dComIfGs_getpBagItemRecord(), stts_buffer, sizeof(dSv_player_bag_item_record_c));
-    stts_buffer += sizeof(dSv_player_bag_item_record_c);
-    memcpy(dComIfGs_getpCollect(), stts_buffer, sizeof(dSv_player_collect_c));
-#else
     // TODO: This matches but could probably be cleaned up somehow.
     dSv_player_status_c_c stts;
     memcpy(&stts, dComIfGp_getPlayerInfoBuffer(), sizeof(stts));
@@ -1879,7 +1751,6 @@ void dComIfGs_exchangePlayerRecollectionData() {
     memcpy(dComIfGs_getpBagItem(),                   stts_buffer + offsetof(dSv_player_status_c_c, mRecollectBagItem),       sizeof(stts.mRecollectBagItem));
     memcpy(dComIfGs_getpBagItemRecord(),             stts_buffer + offsetof(dSv_player_status_c_c, mRecollectBagItemRecord), sizeof(stts.mRecollectBagItemRecord));
     memcpy(dComIfGs_getpCollect(),                   stts_buffer + offsetof(dSv_player_status_c_c, mRecollectCollect),       sizeof(stts.mRecollectCollect));
-#endif
 
     dComIfGs_setMaxLife(tmp_sttsA.mMaxLife);
     dComIfGs_setLife(tmp_sttsA.mLife);
@@ -1898,14 +1769,14 @@ void dComIfGs_exchangePlayerRecollectionData() {
     dComIfGs_setCollect(3, tmp_collect.mCollect[3]);
     dComIfGs_setCollect(4, tmp_collect.mCollect[4]);
 
-    dComIfGs_setSelectEquip(0, selectEquip0);
-    dComIfGs_setSelectEquip(1, selectEquip1);
-    dComIfGs_setSelectEquip(2, selectEquip2);
-    dComIfGs_setSelectEquip(3, selectEquip3);
+    dComIfGs_setSelectEquip(0, tmp_sttsA.mSelectEquip[0]);
+    dComIfGs_setSelectEquip(1, tmp_sttsA.mSelectEquip[1]);
+    dComIfGs_setSelectEquip(2, tmp_sttsA.mSelectEquip[2]);
+    dComIfGs_setSelectEquip(3, tmp_sttsA.mSelectEquip[3]);
     // Potential bug: This array is only length 4, so it's reading and writing the wallet size in a non-standard way.
     // Usually the wallet size would be set via dComIfGs_setWalletSize instead.
     // TODO: Investigate this more.
-    dComIfGs_setSelectEquip(4, selectEquip4);
+    dComIfGs_setSelectEquip(4, tmp_sttsA.mSelectEquip[4]);
 
     dComIfGp_setSelectEquip(0, dComIfGs_getSelectEquip(0));
     dComIfGp_setSelectEquip(1, dComIfGs_getSelectEquip(1));

@@ -1411,6 +1411,7 @@ void dMenu_Fmap_c::krogMarkAnimeInit() {
 
 #if VERSION == VERSION_DEMO
 void dMenu_Fmap_c::krogMarkAnime() {
+    /* Nonmatching */
     JUtility::TColor white;
     JUtility::TColor black;
 
@@ -1441,7 +1442,7 @@ void dMenu_Fmap_c::krogMarkAnime() {
 
     for (int i = 0; i < 8; i++) {
         if (mKr0xPanes[i].pane->isVisible()) {
-            u8 bit = i & 7;
+            u32 bit = i & 7;
             bool stat = dComIfGs_isEventBit(dSv_event_flag_c::UNK_0102) ||
                         ((dComIfGs_getEventReg(dSv_event_flag_c::UNK_9EFF) & 0xFF) >> bit & 1);
             if (stat == 0) {
@@ -1461,7 +1462,7 @@ u32 dMenu_Fmap_c::readFmapTexture(const char* i_filename) {
 /* 801B3698-801B36F0       .text aramCmapDatRead__12dMenu_Fmap_cFv */
 void dMenu_Fmap_c::aramCmapDatRead() {
     JKRArchive* archive = dComIfGp_getFmapResArchive();
-    aramCmapDatPat_t* pat = (aramCmapDatPat_t*)JKRArchive::getGlbResource('DATA', "CmapDat.bin", archive);
+    aramCmapDatPat_t* pat = (aramCmapDatPat_t*)JKRGetResource('DATA', "CmapDat.bin", archive);
     initCmapDatPnt(pat);
 }
 
@@ -1626,13 +1627,7 @@ void dMenu_Fmap_c::checkDspLargeMapShip() {
 
 /* 801B405C-801B4264       .text dispEndSalvageLargeMark__12dMenu_Fmap_cFv */
 void dMenu_Fmap_c::dispEndSalvageLargeMark() {
-#if VERSION == VERSION_DEMO
-    s8 curX = getCtCurX();
-    s8 curY = getCtCurY();
-    int grid = curX + (curY + 3) * 7 + 3;
-#else
     int grid = getCtCurX() + (getCtCurY() + 3) * 7 + 3;
-#endif
     aramCmapDatPnt_t* pnt = (aramCmapDatPnt_t*)mCmapDatPnt.getCmapDatPnt3(grid);
 
     if (!dComIfGs_isCompleteCollectMap(pnt->collectMapNo)) {
@@ -1882,12 +1877,8 @@ void dMenu_Fmap_c::_delete() {
     delete fmapDl.scrn;
     delete stick;
     delete mChkPntTxt_p;
-    if (outFont != NULL) {
-        delete outFont;
-    }
-    if (outFont2 != NULL) {
-        delete outFont2;
-    }
+    delete outFont;
+    delete outFont2;
     dComIfGp_getFmapResArchive()->removeResourceAll();
 #if VERSION > VERSION_DEMO
     dComIfGp_getFmapArchive()->removeResourceAll();

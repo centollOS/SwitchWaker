@@ -3,9 +3,7 @@
 // Translation Unit: d_resorce.cpp
 //
 
-#if VERSION > VERSION_DEMO
 #include "d/dolzel.h" // IWYU pragma: keep
-#endif
 #include "d/d_resorce.h"
 #include "JSystem/JKernel/JKRMemArchive.h"
 #include "d/d_com_inf_game.h"
@@ -86,7 +84,7 @@ static void setToonTex(J3DModelData* pModel) {
 
             j3dSys.setTexture(pTexture);
 
-            s32 isBDL = (pModel->getJointTree().getModelDataType() == 1);
+            s32 isBDL = (pModel->getModelDataType() == 1);
 
             for (u16 i = 0; i < pModel->getMaterialNum() ; i++) {
                 J3DMaterial * pMaterial = pModel->getMaterialNodePointer(i);
@@ -114,8 +112,6 @@ static void setToonTex(J3DModelData* pModel) {
 
 /* 8006DCEC-8006DFD4       .text setToonTex__FP16J3DMaterialTable */
 static void setToonTex(J3DMaterialTable* pMaterialTable) {
-    J3DMaterial * pMaterial;
-    J3DTevBlock * pTevBlock;
     J3DTexture * pTexture = pMaterialTable->getTexture();
     if (pTexture != NULL) {
         JUTNameTab * pTextureName = pMaterialTable->getTextureName();
@@ -131,8 +127,8 @@ static void setToonTex(J3DMaterialTable* pMaterialTable) {
             }
 
             for (u16 i = 0; i < pMaterialTable->getMaterialNum() ; i++) {
-                pMaterial = pMaterialTable->getMaterialNodePointer(i);
-                pTevBlock = pMaterial->getTevBlock();
+                J3DMaterial * pMaterial = pMaterialTable->getMaterialNodePointer(i);
+                J3DTevBlock * pTevBlock = pMaterial->getTevBlock();
 
                 if (pTevBlock != NULL) {
                     GXColorS10 * pTev3 = &pTevBlock->getTevColor(3)->mColor;
@@ -193,11 +189,11 @@ int dRes_info_c::loadResource() {
 
     u32 *pResType = &l_readResType[0];
     for (i = 0; i < ARRAY_SIZE(l_readResType); i++, pResType++) {
-        JKRFileFinder * pArcFinder = mpArchive->getFirstResource(*pResType);
+        JKRFileFinder * pArcFinder = JKRGetFirstResource(*pResType, mpArchive);
 
         for (; JKRIsFileFinderAvailable(pArcFinder); pArcFinder->findNextFile()) {
             u32 resType;
-            void * pRes = JKRGetTypeResource(*pResType, pArcFinder->mEntryName, mpArchive);
+            void * pRes = JKRGetResource(*pResType, pArcFinder->mEntryName, mpArchive);
             if (pRes == NULL) {
                 OSReport_Error("<%s> res == NULL !!\n", pArcFinder->mEntryName);
                 goto next;
@@ -715,20 +711,16 @@ int dRes_control_c::syncAllRes(dRes_info_c* pInfo, int infoNum) {
 int dRes_control_c::setStageRes(char const* pArcName, JKRHeap* pHeap) {
     char path[20];
     snprintf(path, sizeof(path), "/res/Stage/%s/", strcmp(dComIfGp_getStartStageName(), "ma2room") == 0 && dComIfGs_isEventBit(dSv_event_flag_c::UNK_1820) ? "ma3room" : dComIfGp_getStartStageName());
-    return setRes(pArcName, &mStageInfo[0], ARRAY_SIZE(mStageInfo), path, DEMO_SELECT(0, 1), pHeap);
+    return setRes(pArcName, &mStageInfo[0], ARRAY_SIZE(mStageInfo), path, 1, pHeap);
 }
 
 /* 8006F500-8006F580       .text dump__14dRes_control_cFv */
 void dRes_control_c::dump() {
     JUTReportConsole_f("\ndRes_control_c::dump mObjectInfo\n");
     dRes_info_c::dump(&mObjectInfo[0], ARRAY_SIZE(mObjectInfo));
-#if VERSION > VERSION_DEMO
     dRes_info_c::dump_long(&mObjectInfo[0], ARRAY_SIZE(mObjectInfo));
-#endif
 
     JUTReportConsole_f("\ndRes_control_c::dump mStageInfo\n");
     dRes_info_c::dump(&mStageInfo[0], ARRAY_SIZE(mStageInfo));
-#if VERSION > VERSION_DEMO
     dRes_info_c::dump_long(&mStageInfo[0], ARRAY_SIZE(mStageInfo));
-#endif
 }

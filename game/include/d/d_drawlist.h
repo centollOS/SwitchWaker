@@ -351,7 +351,10 @@ public:
     u32 set2(u32, s8, J3DModel*, cXyz*, f32, f32, dKy_tevstr_c*);
     bool add(J3DModel*);
     void init();
-    ~dDlst_shadowReal_c();
+    ~dDlst_shadowReal_c() {
+        delete mpTexData;
+        delete mpDrawBuffer;
+    }
     dDlst_shadowReal_c() { mState = 0; }
 
     bool isNoUse() { return mState == 0; }
@@ -471,6 +474,7 @@ public:
     };
 
     dDlst_alphaModel_c();
+    ~dDlst_alphaModel_c() {}
     static dDlst_alphaModel_c * create(int);
     BOOL set(u8 type, Mtx mtx, u8 alpha);
     BOOL draw(Mtx);
