@@ -257,40 +257,6 @@ u32 JKRArchive::getExpandSize(SDIFileEntry* fileEntry) const {
 }
 
 #if TARGET_PC
-// The side table of the resource pointers (JKAR_DATA), after Dusklight's JKRArchivePri.cpp (CC0,
-// ref/dusklight at 40457c6), which allocates it from the system heap. Here it comes from the
-// archive's heap, where the GameCube kept these pointers (inside the file table it loaded there):
-// its size follows the archive, and the 64 KiB the system heap keeps beside the zelda heap stay
-// for what the game puts there. A failed allocation fails the mount like the other allocations of
-// open().
-void*& JKRArchive::getFileDataPointer(u32 index) const {
-    if (mFileData == NULL || mArcInfoBlock == NULL || index >= mArcInfoBlock->num_file_entries) {
-        OSPanic(__FILE__, __LINE__, "JKRArchive: file entry index %u out of range (%u entries)",
-                index, mArcInfoBlock != NULL ? (u32)mArcInfoBlock->num_file_entries : 0);
-    }
-    return mFileData[index];
-}
-
-// Called by every open() once mArcInfoBlock and mFiles point at the loaded file table: numbers the
-// entries and clears their resource pointers (the GameCube's `data` fields are 0 in the file).
-bool JKRArchive::initFileDataPointers() {
-    if (mFileData != NULL) {
-        JKRFree(mFileData);
-        mFileData = NULL;
-    }
-
-    u32 count = mArcInfoBlock->num_file_entries;
-    int alignment = mMountDirection == MOUNT_DIRECTION_TAIL ? -(int)sizeof(void*) : (int)sizeof(void*);
-    mFileData = (void**)JKRAllocFromHeap(mHeap, count != 0 ? count * sizeof(void*) : sizeof(void*),
-                                         alignment);
-    if (mFileData == NULL) {
-        return false;
-    }
-
-    memset(mFileData, 0, count * sizeof(void*));
-    for (u32 i = 0; i < count; i++) {
-        mFiles[i].index = i;
-    }
-    return true;
-}
+// JKRArchive::getFileDataPointer and initFileDataPointers, the side table of the resource pointers
+// (JKAR_DATA): native/src/pc/game_hooks/pc_jkr_hooks.cpp.
 #endif

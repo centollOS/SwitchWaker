@@ -11,23 +11,8 @@
 #include "dolphin/types.h"
 
 JSUList<JKRThread> JKRThread::sThreadList;
-
 #if TARGET_PC
-#include <mutex>
-
-namespace {
-// sThreadList is linked from every thread that builds a JKRThread. On the GameCube those threads
-// never ran at the same time; here they are host threads: the four JUTGba threads each build and
-// drop one at start-up (gbaThreadMain), together with the audio thread's and the main thread's,
-// and the unguarded appends and removes raced. One wrote its link into another's JKRThread after
-// that one had gone out of scope (ASan, stack-use-after-scope in JSUPtrList::append), and a corrupt
-// list faulted in JSUPtrList::remove at boot (SIGSEGV, frame 0). Never destroyed: a JKRThread may
-// still unlink itself during exit.
-std::mutex& threadListMutex() {
-    static std::mutex* mutex = new std::mutex;
-    return *mutex;
-}
-} // namespace
+#include "pc/game_hooks/jkr_thread.h"
 #endif
 JKRThreadSwitch* JKRThreadSwitch::sManager;
 OSThread* preEnd;
@@ -62,10 +47,7 @@ JKRThread::JKRThread(u32 stack_size, int message_count, int param_3) : mThreadLi
 
     OSInitMessageQueue(&mMessageQueue, mMessages, mMessageCount);
 #if TARGET_PC
-    {
-        std::lock_guard<std::mutex> lock(threadListMutex());
-        getList().append(&mThreadListLink);
-    }
+    JKRPcThreadListAppend(&mThreadListLink); // sThreadList, shared by host threads: locked
 #else
     getList().append(&mThreadListLink);
 #endif
@@ -92,10 +74,7 @@ JKRThread::JKRThread(OSThread* thread, int message_count) : mThreadListLink(this
 
     OSInitMessageQueue(&mMessageQueue, mMessages, mMessageCount);
 #if TARGET_PC
-    {
-        std::lock_guard<std::mutex> lock(threadListMutex());
-        getList().append(&mThreadListLink);
-    }
+    JKRPcThreadListAppend(&mThreadListLink); // sThreadList, shared by host threads: locked
 #else
     getList().append(&mThreadListLink);
 #endif
@@ -107,10 +86,7 @@ JKRThread::JKRThread(OSThread* thread, int message_count) : mThreadListLink(this
 /* 802B3EFC-802B3FD4       .text __dt__9JKRThreadFv */
 JKRThread::~JKRThread() {
 #if TARGET_PC
-    {
-        std::lock_guard<std::mutex> lock(threadListMutex());
-        getList().remove(&mThreadListLink);
-    }
+    JKRPcThreadListRemove(&mThreadListLink); // sThreadList, shared by host threads: locked
 #else
     getList().remove(&mThreadListLink);
 #endif
