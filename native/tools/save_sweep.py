@@ -3,7 +3,7 @@
 
   native/tools/save_sweep.py [options] [case ...]
 
-For each case: a first run saves (COS_SMOKE=save-sweep, native/src/pc/pc_save_sweep.cpp: the debug
+For each case: a first run saves (COS_SMOKE=save-sweep, native/src/pc/harness/sweeps/pc_save_sweep.cpp: the debug
 boot of the case's stage with its story flags / preset / items, then the save screen's steps into
 an empty card in the run directory; for the `items` case COS_SMOKE=item-sweep with
 COS_ITEM_SWEEP_SAVE=1, so the items come from real item-get demos first); a copy of that card is

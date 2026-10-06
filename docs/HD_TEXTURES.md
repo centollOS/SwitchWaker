@@ -56,7 +56,7 @@ files of the same name. `cos_hd_pack` (`native/tools/hd_pack`, bc7enc_rdo for BC
   the GPU would read 1024-16384 px textures for distant surfaces (aliasing and bandwidth);
 - writes `index.bin` and `data00.bin`, `data01.bin`, ... (1 GiB each at most, for FAT32 and MTP),
   each texture a complete DDS (DX10 header) at a 512-byte boundary. Index layout: see
-  `native/src/pc/pc_hd_textures.cpp`.
+  `native/src/pc/features/pc_hd_textures.cpp`.
 
 ASTC is not used: Maxwell (Tegra X1) samples BC7 natively at the same 8 bits per texel as ASTC 4x4;
 larger ASTC blocks would save memory at a visible quality and encoding-time cost.

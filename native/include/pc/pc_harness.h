@@ -1,7 +1,7 @@
 /*
  * pc_harness.h - the run harness of the native executable centollos (docs/NATIVE_PORT_PHASE4_6.md,
- * step 6.0). Implemented in native/src/pc/pc_*.cpp, linked into centollos (and into the link census
- * bundle) as the static library cos_pc. Only TARGET_PC code calls it.
+ * step 6.0). Implemented in native/src/pc (README.md there), linked into centollos (and into the
+ * link census bundle) as the static library cos_pc. Only TARGET_PC code calls it.
  *
  * Environment (read once by pc_harness_init):
  *   COS_DISC       path of the GZLE01 disc image (required unless the smoke test needs none)
@@ -127,7 +127,7 @@ const struct PcBootStage* pc_boot_stage(void);
    (the request stands in for dComIfG_changeOpeningScene). */
 void pc_boot_stage_requested(const char* stage, int room, int point, int layer);
 // dScnPly_Draw, after the actors' draws: the harness's own draws into the game's draw lists
-// (COS_SMOKE=res-sweep, native/src/pc/pc_res_sweep.cpp); nothing otherwise.
+// (COS_SMOKE=res-sweep, native/src/pc/harness/sweeps/pc_res_sweep.cpp); nothing otherwise.
 void pc_play_draw(void);
 /* d_s_play.cpp phase_1, when a PLAY scene takes the next stage as its start stage: with
    COS_BOOT_STAGE, the first one must be the requested stage (logged; exit 1 on a difference). */

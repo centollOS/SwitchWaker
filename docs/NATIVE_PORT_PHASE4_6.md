@@ -123,7 +123,7 @@ loop:
 - Risk: lldb may need `DevToolsSecurity` enabled (a human prerequisite). The built-in handler is the fallback.
 
 **6.1 Aurora bring-up in `main`**
-- Files: `game/src/m_Do/m_Do_main.cpp` (`TARGET_PC`), `native/src/pc/pc_main.cpp`.
+- Files: `game/src/m_Do/m_Do_main.cpp` (`TARGET_PC`), `native/src/pc/runtime/pc_main.cpp`.
 - What changes:
   - `main` calls `aurora_initialize` (with `mem1Size` per decision H5, `mem2Size` 16 MiB, `userPath`/`cachePath` under `build/native-mac/user`, vsync off when uncapped).
   - Then `aurora_dvd_open(COS_DISC)` and a check of `DVDGetCurrentDiskID()`.
@@ -156,7 +156,7 @@ loop:
 **6.6 M13 controllable Outset** with the input script; recorded in the plan.
 
 **NG-probe: probes for the real new-game flow (M11, M14)** (decision H4: after M12/M13)
-- Files: `native/src/pc/pc_new_game.cpp` (fed by `pc_name_scene_drawn` and `pc_frame_end`),
+- Files: `native/src/pc/harness/milestones/pc_new_game.cpp` (fed by `pc_name_scene_drawn` and `pc_frame_end`),
   `prepareRunCard` in `pc_save.cpp` (a clean card in `<run dir>/card/` for both milestones),
   `native/check/input/new-game.txt`; the `run.sh` targets `new-game` and `outset-real`.
 - The probe only reads game state: it logs each change of the name scene's main / memory card /

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Fight every enemy, and play every boss, mini-boss and minigame room, for crash detection and to
-record the pipelines combat uses (COS_SMOKE=combat-sweep, native/src/pc/pc_combat_sweep.cpp).
+record the pipelines combat uses (COS_SMOKE=combat-sweep, native/src/pc/harness/sweeps/pc_combat_sweep.cpp).
 
   native/tools/combat_sweep.py enemies [options]     every enemy spawned in front of the player
   native/tools/combat_sweep.py rooms [options]       every boss / mini-boss / minigame room

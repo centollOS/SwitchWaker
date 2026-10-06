@@ -1,5 +1,5 @@
 # Controller script of milestones M11 new-game and M14 outset-real (docs/NATIVE_PORT_PHASE4_6.md,
-# step NG-probe; syntax in native/src/pc/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each
+# step NG-probe; syntax in native/src/pc/harness/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each
 # line holding until the next. Both milestones start from a clean memory card (run.sh puts it
 # in the run directory). Every button is held two frames, so it triggers once.
 # - Title (as file-select.txt): the first START makes d_a_title skip to "press START", the second

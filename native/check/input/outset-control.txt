@@ -1,12 +1,12 @@
 # Controller script of milestone M13 outset-control (docs/NATIVE_PORT_PHASE4_6.md, step 6.6;
-# syntax in native/src/pc/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each line holding
+# syntax in native/src/pc/harness/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each line holding
 # until the next. Run with --stage sea:44:206: The player is in Outset at about frame 290 and Aryll's
 # lookout event starts. B taps (held two frames, every ten) advance its messages; the event is over
 # at about frame 3270. B is used rather than A because A next to Aryll starts a new talk with her;
 # with no sword B does nothing while the player is free. The taps go on to frame 3480 for margin. Then
 # the main stick is held in six directions, 140 frames each with a 20-frame rest; the stick is
 # camera-relative and the lookout is small, so the player meets the railing in some directions. The
-# probe (native/src/pc/pc_outset.cpp) needs one 120-frame hold to move the player more than 300 units.
+# probe (native/src/pc/harness/milestones/pc_outset.cpp) needs one 120-frame hold to move the player more than 300 units.
 400  B  0  0
 402  -  0  0
 410  B  0  0

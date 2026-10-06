@@ -174,7 +174,7 @@ public:
     // thread callback swaps the single current heap; host threads run in parallel and cos_sdk never
     // calls that callback. A thread made by OSCreateThread starts with the current heap of the thread
     // whose OSResumeThread started it, as on the GameCube (the game glue's cos_sdk thread hooks,
-    // native/src/pc/pc_main.cpp); other host threads (Aurora, SDL, Dawn) start with none, so the
+    // native/src/pc/runtime/pc_main.cpp); other host threads (Aurora, SDL, Dawn) start with none, so the
     // global operator new gives them host memory.
     static thread_local JKRHeap* sCurrentHeap;
 #else
@@ -266,7 +266,7 @@ void JKRPcEndHostAlloc();
 
 // Allocation failure report (bug B8): JKRExpHeap::do_alloc and JKRSolidHeap::do_alloc call
 // JKRPcReportAllocFailure when a block cannot be had, after the heap is unlocked; the PC layer
-// installs the reporter (native/src/pc/pc_heap.cpp: one log line with the heap's name, the size
+// installs the reporter (native/src/pc/harness/pc_heap.cpp: one log line with the heap's name, the size
 // asked, its free total and largest free block). Many callers handle NULL themselves, so the report
 // never stops the game.
 typedef void (*JKRPcAllocFailureFn)(JKRHeap* heap, u32 size, int alignment);

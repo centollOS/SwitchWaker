@@ -1,5 +1,5 @@
 # Controller script of native/tools/gen_pipeline_cache.sh, tier 6 combat (syntax in
-# native/src/pc/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each line holding until the next.
+# native/src/pc/harness/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each line holding until the next.
 # Run with COS_BOOT_ITEMS=38,3B (sword and shield; a heart container cannot be given at the debug boot:
 # item_func_utuwa_heart reads the stage info, which is not there yet) and
 # --stage M_NewD2:1:20 (red chuchus and a bokoblin) or M_NewD2:6:9 (three bokoblins), --frames 2600

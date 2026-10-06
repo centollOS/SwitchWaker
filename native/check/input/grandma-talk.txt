@@ -1,4 +1,4 @@
-# Controller script of the grandmother's tunic talk (bug B4; syntax in native/src/pc/pc_input.cpp):
+# Controller script of the grandmother's tunic talk (bug B4; syntax in native/src/pc/harness/pc_input.cpp):
 # <frame> <buttons> <stickX> <stickY>, each line holding until the next. Run with
 # --stage LinkRM:0:0 on a new file (debug stage boot): the room is reloaded at about frame 355 and
 # the grandmother's event starts by itself ("I've been waiting for you, the player."): her talk, the tunic

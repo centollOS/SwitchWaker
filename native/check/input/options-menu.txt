@@ -1,4 +1,4 @@
-# COS_SMOKE=options-menu (native/src/pc/pc_menu.cpp), with --stage sea:44:206 (Outset; the player is in
+# COS_SMOKE=options-menu (native/src/pc/features/pc_menu.cpp), with --stage sea:44:206 (Outset; the player is in
 # the room from about frame 291). Opens the menu with L+R+Z, changes the internal resolution
 # (handheld) from the window's size to 1.5 (1280x720 at 16:9, 960x720 at 4:3) and turns the depth of
 # field off (Gráficos), turns the FPS overlay on (Rendimiento), looks at Depuración, closes it with B;

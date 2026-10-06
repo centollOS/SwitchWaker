@@ -1,4 +1,4 @@
-// Shared state of the run harness (native/src/pc/pc_*.cpp, docs/NATIVE_PORT_PHASE4_6.md step 6.0).
+// Shared state of the run harness (native/src/pc/**/pc_*.cpp, docs/NATIVE_PORT_PHASE4_6.md step 6.0).
 // Public API: native/include/pc/pc_harness.h.
 #pragma once
 

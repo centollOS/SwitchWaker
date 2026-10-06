@@ -1,6 +1,6 @@
 /*
  * pc_hd_textures.h - optional HD texture replacement from a Dolphin-format pack
- * (native/src/pc/pc_hd_textures.cpp; docs/HD_TEXTURES.md). Off by default.
+ * (native/src/pc/features/pc_hd_textures.cpp; docs/HD_TEXTURES.md). Off by default.
  *
  * The replacement itself is Aurora's (lib/gfx/texture_replacement.cpp, tuned by
  * native/patches/aurora/0010): static GX textures are keyed by Dolphin's name

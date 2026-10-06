@@ -3,7 +3,7 @@
 
   native/tools/item_sweep.py [options]
 
-Runs `run.sh item-sweep --stage Asoko:0:0:2` (COS_SMOKE=item-sweep, native/src/pc/pc_item_sweep.cpp:
+Runs `run.sh item-sweep --stage Asoko:0:0:2` (COS_SMOKE=item-sweep, native/src/pc/harness/sweeps/pc_item_sweep.cpp:
 for each item number the item tables define, a big chest with that item is created in front of the
 player, opened with A, and its DEFAULT_TREASURE event, the item-get demo with its fanfare and
 message, must end within a wall-time limit). A stuck item (its event does not end: the smoke logs

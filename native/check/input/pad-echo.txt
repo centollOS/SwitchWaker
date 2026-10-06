@@ -1,5 +1,5 @@
 # Controller script of COS_SMOKE=pad-echo (docs/NATIVE_PORT_PHASE4_6.md, step 6.3; syntax in
-# native/src/pc/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each line holding until the
+# native/src/pc/harness/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each line holding until the
 # next. It ends well before the logo scene hands over to the opening (about frame 240), and never
 # holds B+X+START (the 3-button reset).
 10  A          0     0      # A held two frames: trigger on the first only

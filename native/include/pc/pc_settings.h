@@ -1,6 +1,6 @@
 /*
  * pc_settings.h - the persistent settings of the native port and the registry behind the in-game
- * options menu (native/src/pc/pc_settings.cpp, pc_menu.cpp; native/README.md, "Options menu").
+ * options menu (native/src/pc/features/pc_settings.cpp, pc_menu.cpp; native/README.md, "Options menu").
  *
  * Every setting is named by the environment variable that already selects it (COS_FB_SCALE,
  * COS_DOF, ...), so the menu, the settings file, env.txt on the Switch and the environment on the

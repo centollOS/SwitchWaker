@@ -1,5 +1,5 @@
 /*
- * pc_aspect.h - the widescreen option of the native port (COS_ASPECT, native/src/pc/pc_aspect.cpp).
+ * pc_aspect.h - the widescreen option of the native port (COS_ASPECT, native/src/pc/features/pc_aspect.cpp).
  *
  * COS_ASPECT=4:3 | 16:9 | 16:10 (default 4:3; the Switch harness sets 16:9). At 4:3 the game runs
  * as on the GameCube. A wider aspect does in C what the community 16:9 Gecko code does to the

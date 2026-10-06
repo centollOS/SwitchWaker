@@ -6,7 +6,7 @@
 For each stage of the disc (the start boot_sweep.py picks from the stage data: one run per stage,
 since the event list is the stage's, Stage.arc event_list.dat), runs
 `run.sh event-sweep --stage <spec> --uncapped --heap-check N` (COS_SMOKE=event-sweep,
-native/src/pc/pc_event_sweep.cpp: each event of the list is ordered with the player as the ordering
+native/src/pc/harness/sweeps/pc_event_sweep.cpp: each event of the list is ordered with the player as the ordering
 actor, A is pressed for its messages, and it runs until it ends, gets stuck or times out). A run ends
 early on a fault (crash, panic, stall, heap damage), a stage change asked for by an event, or a lost
 scene; the next run boots again and starts after the event it ended on (COS_EVENT_SWEEP=<n>-), until

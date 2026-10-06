@@ -28,3 +28,16 @@ State at the decision (since the import ce41ca9): 542 of ~2029 game files touche
 
 Each step: its own lane, one commit per verified sub-step, full Mac regression
 (`native/tools/regress.sh`, never `--no-build`) before integrating, Switch build checked for G2/G3.
+
+## G2 notes (2026-10-06)
+
+`native/src/pc` is split into `runtime/`, `features/` and `harness/` (with `milestones/`,
+`boot_tests/`, `smokes/` and `sweeps/`); `native/src/pc/README.md` lists every file. File names
+are kept, so the many comments and logs that name a `pc_*.cpp` still find it.
+
+The harness stays compiled into every build, the release and the Switch build included: the tests
+are chosen at run time (`COS_SMOKE`, `COS_MILESTONE`, `COS_INPUT`...) and the game calls harness
+hooks under `TARGET_PC`. Compiling it out of a release would need a stub for each hook and moving
+the runtime pieces that live in harness files today (the game frame counter in `pc_milestone.cpp`,
+the allocation-failure reporter installed by `pc_heaps_created` in `pc_heap.cpp`, the debug stage
+boot the logo scene asks for). Not planned; noted here in case binary size or start-up ever needs it.

@@ -3,7 +3,7 @@
 # frames at about half tilt (a walk, not a run, so he stays near the spawn point), so the actors
 # around the spawn point see him move and wake up. A B tap every 60 frames advances a message box
 # an event of the debug boot may open (with no sword B does nothing while the player is free).
-# Syntax in native/src/pc/pc_input.cpp: <frame> <buttons> <stickX> <stickY>, each line holding
+# Syntax in native/src/pc/harness/pc_input.cpp: <frame> <buttons> <stickX> <stickY>, each line holding
 # until the next; the last line (neutral) holds to the end.
 300  B   0    0
 302  -   0    60

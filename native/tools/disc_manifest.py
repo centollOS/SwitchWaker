@@ -2021,7 +2021,7 @@ def g9(x):
 
 
 def audio_lines(manifest):
-    """The lines COS_SMOKE=audio-parse writes (native/src/pc/pc_audio.cpp), built from the
+    """The lines COS_SMOKE=audio-parse writes (native/src/pc/harness/boot_tests/pc_audio.cpp), built from the
     manifest's independent reading of JaiInit.aaf, JaiSeqs.arc and the /Audiores files."""
     by_path = {r["path"]: r for r in manifest["files"]}
     aaf = by_path.get("/Audiores/JaiInit.aaf")

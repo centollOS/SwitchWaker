@@ -1,5 +1,5 @@
 # Controller script of native/tools/gen_pipeline_cache.sh, tier 5 bombs (syntax in
-# native/src/pc/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each line holding until the next.
+# native/src/pc/harness/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each line holding until the next.
 # Run with COS_BOOT_ITEMS=31,38 (the bomb bag on X, the sword) and --stage sea:44:0 (the Outset pier,
 # the player free from about frame 400, facing the sea) or M_NewD2:0:0 (the first dungeon's
 # entrance), --frames 2400 --uncapped. X takes a bomb out, A throws it, R drops it; the bombs

@@ -1,4 +1,4 @@
-# Controller script of the telescope demo telescope_demo (bug B6; syntax in native/src/pc/pc_input.cpp,
+# Controller script of the telescope demo telescope_demo (bug B6; syntax in native/src/pc/harness/pc_input.cpp,
 # the last two columns are the C stick): <frame> <buttons> <stickX> <stickY> [<cX> <cY>], each line
 # holding until the next. Run with --stage sea:44:206 and COS_SMOKE=telescope-demo (which gives the new
 # file event bit 0x2A80 and the telescope on X). Aryll's lookout event plays first; B taps (held

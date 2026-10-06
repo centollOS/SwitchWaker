@@ -1,5 +1,5 @@
 /*
- * pc_controls.h - control options (native/src/pc/pc_controls.cpp).
+ * pc_controls.h - control options (native/src/pc/features/pc_controls.cpp).
  *
  * COS_CAMERA_INVERT_X=1   the C stick's horizontal axis turns the camera the other way
  * COS_CAMERA_INVERT_Y=1   the C stick's vertical axis tilts the camera the other way

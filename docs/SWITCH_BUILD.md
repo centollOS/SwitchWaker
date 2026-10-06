@@ -456,7 +456,7 @@ Besides that, the port compiles fewer programs and compiles them before they are
       for. If the builds turn slow behind the logos (Switch, logo scene: a sample of at least 8
       slow builds among the last 16, or 1.5 s of slow work measured, and the pipelines left times
       the recent slow share times the slow builds' cost over `COS_PRECOMPILE_SCREEN_MIN_S`;
-      `native/src/pc/pc_precompile_gate.h`), the loading screen comes up there until the whole
+      `native/src/pc/features/pc_precompile_gate.h`), the loading screen comes up there until the whole
       warm-up is built (the game's frame counter waits meanwhile). A build's time leaves out its
       wait for the GL context (Dawn `dawn-switch-gl-pipeline-wait.patch`, Aurora patch 0012): on
       every warm boot the 3-4 builds of the game's first frame waited ~300 ms in all for the render

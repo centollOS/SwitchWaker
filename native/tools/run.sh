@@ -21,7 +21,7 @@
 # `combat-sweep` (needs --stage) fights with a driven pad: each enemy spawned in front of the player
 # (COS_COMBAT_SWEEP_LIST / COS_COMBAT_SWEEP) or a room's own (COS_COMBAT_MODE=room), keeping the player
 # alive; native/tools/combat_sweep.py derives the enemies and the boss/minigame rooms and runs it
-# with COS_CACHE_PER_RUN=1 (native/src/pc/pc_combat_sweep.cpp lists its variables).
+# with COS_CACHE_PER_RUN=1 (native/src/pc/harness/sweeps/pc_combat_sweep.cpp lists its variables).
 # `item-sweep` (needs --stage, e.g. Asoko:0:0:2) gives every item through a chest's item-get demo
 # (COS_ITEM_SWEEP=<list> limits the items); native/tools/item_sweep.py goes on after stuck items and
 # faults. `save-sweep` (needs --stage or --preset) saves through the save screen's steps into the run's

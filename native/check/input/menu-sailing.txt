@@ -1,4 +1,4 @@
-# COS_SMOKE=options-menu (native/src/pc/pc_menu.cpp), with --stage sea:44:206 (Outset, a new file with
+# COS_SMOKE=options-menu (native/src/pc/features/pc_menu.cpp), with --stage sea:44:206 (Outset, a new file with
 # no boat; the player is in the room from about frame 291). Opens the menu with L+R+Z, R twice to
 # Depuración, down once to "Navegar (barco, vela y batuta)", A: the sailing preset (native/src/pc/
 # pc_preset.cpp) goes on the file in memory and the player is taken to Windfall's sea room (11,

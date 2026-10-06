@@ -1,5 +1,5 @@
 // cos_hd_pack: converts a Dolphin-format HD texture pack (loose tex1_*.dds files) into the compact
-// pack that the game streams from disk or the Switch's SD card (native/src/pc/pc_hd_textures.cpp,
+// pack that the game streams from disk or the Switch's SD card (native/src/pc/features/pc_hd_textures.cpp,
 // docs/HD_TEXTURES.md). Written for this port (CC0, like the rest of native/); BC codecs from
 // bc7enc_rdo (MIT / public domain).
 //

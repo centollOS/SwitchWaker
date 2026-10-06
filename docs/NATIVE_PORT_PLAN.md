@@ -1046,7 +1046,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   DIFF; `COS_DISC=/nonexistent` 14; build 0 errors, smoke and `cos_pc_tests` ok, census diff
   empty, 0 duplicate strong, static-init 0 x2, crash/panic/stall/timeout-test 13/12/11/10.
   `--check-ls` compares directories by count only (file entries by number, path and size).
-- **6.1 Aurora bring-up in `main`:** new `native/src/pc/pc_main.cpp` (`pc_aurora_init`, called
+- **6.1 Aurora bring-up in `main`:** new `native/src/pc/runtime/pc_main.cpp` (`pc_aurora_init`, called
   by `main` right after `pc_harness_init`): `aurora_initialize` with `mem1Size` 256 MiB (H5),
   `mem2Size` 16 MiB, user/cache paths `<exe dir>/user` and `<exe dir>/user/cache`
   (`build/native-mac/user`, ignored), vsync off when `COS_UNCAPPED`, log level info; then
@@ -1157,7 +1157,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
     is a fixed 32 MiB, command and archive heaps x2, game heap x20: about 109 MiB.
     `fopAcM_entrySolidHeap` doubles each actor's estimate (an estimate with room to spare is
     shrunk by `mDoExt_adjustSolidHeap`, as on the GameCube).
-  - Harness: `COS_SMOKE=heap` (`native/src/pc/pc_heap.cpp`, run by `pc_aurora_init` once Aurora
+  - Harness: `COS_SMOKE=heap` (`native/src/pc/harness/pc_heap.cpp`, run by `pc_aurora_init` once Aurora
     and `OSInit` are up): `operator new` before any heap gives host memory; `createRoot`
     (`initArena`) inside MEM1; below it the heaps of `mDoMch_Create` with their PC sizes (system,
     main in system, command, archive, game); in each 10,000 random allocations (head and tail,
@@ -1216,7 +1216,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   - Milestone M3: `LOAD_COPYDATE` (run by the DVD thread, queued by `main01` after `mDoGph_Create`
     and `mDoCPd_Create`) calls `pc_copydate_loaded`, which logs the date and `gfx-create` when
     `/COPYDATE` was read.
-  - Harness: `COS_SMOKE=font` (`native/src/pc/pc_font.cpp`, run by `pc_heaps_created` once M2's
+  - Harness: `COS_SMOKE=font` (`native/src/pc/harness/boot_tests/pc_font.cpp`, run by `pc_heaps_created` once M2's
     checks held, so after `JFWSystem::init`): the system font and `/res/Menu/kanfont_fix16.bfn`
     (Shift-JIS, 27 MAP1 blocks of methods 1 and 2, read into the game heap) against an
     independent reading of the same bytes (big-endian loads at the BFN offsets, no struct):
@@ -1293,7 +1293,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
     0 times. Before the fix the test fails. The sweep's own strings, vectors and maps use the same
     allocator, so they stay out of the heaps it measures. `JKRHeap.cpp`'s TODO(native phase 6)
     now covers only Aurora/SDL/libc++ allocations.
-  - Harness: `COS_SMOKE=arc-sweep` (`native/src/pc/pc_arc.cpp`, run by `pc_heaps_created`): every
+  - Harness: `COS_SMOKE=arc-sweep` (`native/src/pc/harness/boot_tests/pc_arc.cpp`, run by `pc_heaps_created`): every
     `.arc` of the FST (1319 under `/res`, `/RELS.arc`, one under `/Audiores`) read independently
     (DVDReadPrio, a Yaz0 decoder of its own, big-endian loads at the RARC offsets, every
     compressed entry expanded), then mounted with `JKRArchive::mount` in MEM, ARAM, DVD and COMP
@@ -1354,7 +1354,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   equal to HEAD; committed on its own.
 - **6.2 Frame loop and pacing:** `TARGET_PC` code in the game files, GameCube code in `#else`
   (`unifdef -UTARGET_PC` of `m_Do_main.cpp` and `JFWDisplay.cpp` equals HEAD's).
-  - New `native/src/pc/pc_frame.cpp`. `main01`'s loop calls `pc_frame_begin` first: Aurora's
+  - New `native/src/pc/runtime/pc_frame.cpp`. `main01`'s loop calls `pc_frame_begin` first: Aurora's
     events (`aurora_update`; a quit request exits 0, or 1 when a milestone or `COS_FRAMES` was
     still expected), then `aurora_begin_frame` (retried every 10 ms while the window cannot
     present, instead of Dusklight's skipped game frame). It calls `pc_frame_end` last:
@@ -1493,7 +1493,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
     raw. All read through `BE(T)` under `TARGET_PC`; `TParseValue_raw_` itself is left to JStudio
     (4.17). Without it `fopMsgM_messageGet` kept the tags that hold the player name (message 13:
     118 bytes instead of 119).
-  - **`COS_SMOKE=msg-sweep`** (new `native/src/pc/pc_msg.cpp`, after M2): mounts bmgres, bmgresh,
+  - **`COS_SMOKE=msg-sweep`** (new `native/src/pc/harness/boot_tests/pc_msg.cpp`, after M2): mounts bmgres, bmgresh,
     fontres and rubyres (MEM, archive heap) and sets them as d_s_logo's phase_2 does, sets the
     player name "Link" (PAL language 0, clear count 0 required). Each BMG is read independently
     (plain big-endian loads), then through the game: `JMessage::TParse` into one container as
@@ -1548,7 +1548,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
     file equals HEAD's once `BE(T)` is read as `T` and the `helpers/endian.h` includes dropped
     (`JPAColorRegAnmKey` also gained its offset comments). The layout check adds
     `JPAColorRegAnmKey` (134 structs, 1073 checks on the GameCube configuration).
-  - **`COS_SMOKE=jpa-sweep`** (new `native/src/pc/pc_jpa.cpp`, after M2): every JPC under
+  - **`COS_SMOKE=jpa-sweep`** (new `native/src/pc/harness/boot_tests/pc_jpa.cpp`, after M2): every JPC under
     `/res/Particle` (DVDReadDir; common.jpc first) loaded as `mDoDvdThd_toMainRam_c` does, read
     independently (plain big-endian loads) and through the game as `dPa_control_c` does:
     `JPAResourceManager` (common.jpc in the sweep heap, each scene in a solid heap adjusted after
@@ -1817,7 +1817,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
     bounds, colours (through `TColor`'s 0xRRGGBBAA form), spacing and font sizes then come out as on
     the GameCube; `BE(T)` is `T` there. `J2DPane.h`'s two headers join `layout_headers.txt`
     (1027 GameCube checks).
-  - **Harness:** new `native/src/pc/pc_blo.cpp` (after M2). Every `.arc` under `/res` is mounted
+  - **Harness:** new `native/src/pc/harness/boot_tests/pc_blo.cpp` (after M2). Every `.arc` under `/res` is mounted
     in main RAM, or in ARAM when it stores compressed files (the logo scene's `aramMount` archives
     under `/res/Msg`; a MEM mount hands those out still compressed); the nested archive is mounted
     with `mountFixed` as `d_s_name` does; `fontres.arc` stays mounted. Each BLO is read
@@ -2379,7 +2379,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
 
 - **Step 6.4: debug stage boot** (2026-10-03, lane outset, decision H4). `COS_BOOT_STAGE=<stage>:
   <room>[:<point>[:<layer>]]` (point 0 and layer -1 by default; `run.sh --stage`), parsed by
-  the new `native/src/pc/pc_boot.cpp` at start-up (a malformed spec exits 2). When the logo
+  the new `native/src/pc/harness/pc_boot.cpp` at start-up (a malformed spec exits 2). When the logo
   scene's `dvdWaitDraw` has every `l_*Command` synced, `pcBootStage` (d_s_logo.cpp, `TARGET_PC`)
   replaces `dComIfG_changeOpeningScene`: a new file as `dScnName_c::NameInMain` makes it
   (`dComIfGs_init`, which sets the name "Link" and the return place sea 44 point 206, then
@@ -2401,7 +2401,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
 - **Screenshots: COS_SHOT** (2026-10-03, lane shot): `COS_SHOT=<frame>,...` and/or
   `COS_SHOT_EVERY=<n>` (`run.sh --shot`) save the presented frame of those game frames
   (pc_frame_count numbering) as `shot-<frame>.png` in `COS_SHOT_DIR`, else the run directory,
-  without macOS Screen Recording permission. The new `native/src/pc/pc_shot.cpp` (parsed at
+  without macOS Screen Recording permission. The new `native/src/pc/harness/pc_shot.cpp` (parsed at
   start-up, a malformed list exits 2; inert without the variables) is called by `pc_frame_end`
   right after `aurora_end_frame`: it queues a job on Aurora's render worker behind the frame
   (FIFO, so the frame is submitted and the next not begun) that copies `present_source()` (the
@@ -2471,7 +2471,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   fault through frame 3732, OPEN2_SCENE).
 - M8 boot loop (lane boot, iter 6, harness): no code reported milestone M8, so title-stage timed
   out (exit 10) in OPEN2_SCENE with the title demo playing and frames advancing. The new
-  `native/src/pc/pc_title_stage.cpp` adds the probe: `pc_stage_created` arms it with sea_T's start
+  `native/src/pc/harness/milestones/pc_title_stage.cpp` adds the probe: `pc_stage_created` arms it with sea_T's start
   room (M7), and `pc_frame_end` polls each frame, reading game state only, until the room is
   loaded (its ROOM_SCENE process is executing, `Room<n>` holds room.dzr and the room status has its
   `dStage_roomDt_c`), its collision is registered (the room's BG actor is created, status flag 0x10
@@ -2484,7 +2484,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   reported it, so `title` timed out (exit 10) in OPEN2_SCENE at frame 5535 with frames advancing
   (the title actor had run and requested OPEN2_SCENE). `daTitle_proc_c::proc_draw` now calls
   `pc_title_drawn` (under `TARGET_PC`) after it draws the title_logo BLO screen, and the new
-  `native/src/pc/pc_title.cpp` polls from `pc_frame_end`, reading game state only. A frame counts
+  `native/src/pc/harness/milestones/pc_title.cpp` polls from `pc_frame_end`, reading game state only. A frame counts
   when the d_a_title actor has finished creating, its screen was drawn that frame, its logo pane is
   fully faded in (J2DPane alpha equals the BLO's initial alpha, which is nonzero), its
   title-smoke JPA emitter has live particles and its sparkle emitter was set once. The probe
@@ -2529,7 +2529,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   frame 757, the memory-card "create a save file" prompt on screen), but no code reported it, so
   `file-select` timed out (exit 10) in NAME_SCENE at frame 5534 with frames advancing.
   `dScnName_c::draw` now calls `pc_name_scene_drawn(mMainProc, mMemCardCheckProc, mDrawProc)`
-  (under `TARGET_PC`) at its end, and the new `native/src/pc/pc_file_select.cpp` polls from
+  (under `TARGET_PC`) at its end, and the new `native/src/pc/harness/milestones/pc_file_select.cpp` polls from
   `pc_frame_end`, reading only what the hook recorded. A frame counts when the name scene drew
   since the previous frame with a screen up (draw procedure other than `NoneDraw`); after 60 such
   frames in a row it reports `file-select`. Runs log "name scene first drawn at frame 757" and
@@ -2547,7 +2547,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
 
 - M12 boot loop (lane outset, iter 2, harness): `outset-debug --stage sea:44:206` timed out
   (exit 10) in ROOM_SCENE at frame 5531 with frames advancing: the game had reached M12, but no
-  code called `pc_milestone("outset-debug")`. New `native/src/pc/pc_outset.cpp`: `pc_stage_created`
+  code called `pc_milestone("outset-debug")`. New `native/src/pc/harness/milestones/pc_outset.cpp`: `pc_stage_created`
   arms it for the COS_BOOT_STAGE stage's start room and `pc_frame_end` polls it, reading game state
   only, until a PLAY_SCENE process executes with the requested start stage, the room is up (the M8
   room checks, now shared as `stageRoomReady` in `pc_title_stage.cpp`) and `dComIfGp_getPlayer(0)`
@@ -2594,7 +2594,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   outset-control probe (6.6), the uncapped VI stall and the AGB map swap.
 
 - M13 boot loop (lane outset, iter 1, harness; step 6.6): `outset-control --stage sea:44:206`
-  had no probe and no input script. `native/src/pc/pc_outset.cpp` now also reports outset-control:
+  had no probe and no input script. `native/src/pc/harness/milestones/pc_outset.cpp` now also reports outset-control:
   after the player is in the room it logs every change of `dComIfGp_event_runCheck`, measures each run of
   frames in which `g_mDoCPd_cpadInfo[0].mMainStickValue` > 0.5 and, when one reaches 120 frames,
   logs the player's horizontal displacement over it; one above 300 units makes the player controllable, and the
@@ -2636,7 +2636,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   panics first in `dStage_memaInfoInit` (`d_stage.cpp:2932`: the MEMA chunk's
   `OFFSET_PTR(u32) m_entries` are read raw, so the room heap size is byte-swapped; not fixed here),
   and with `--audio off` faults earlier in `JAIZelBasic::sceneChange`. So the new smoke
-  `COS_SMOKE=amp-sweep` (`native/src/pc/pc_amp.cpp`) mounts every `/res/Stage` archive (705) and
+  `COS_SMOKE=amp-sweep` (`native/src/pc/harness/boot_tests/pc_amp.cpp`) mounts every `/res/Stage` archive (705) and
   puts each of the 180 `.amp` maps with its `m<N>.bti` through `dMap_2DAGBScrDsp_c::init`, then
   reads `getMapDtSize`, the pixel size, the tile map offset and every tile's info word (497,289) as
   the game does, against an independent little-endian reading: the file must be 0x3C header +
@@ -3386,7 +3386,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   exit 0, 901 CSV lines, wall = busy + wait and the split sums to busy in every row, cpu <= busy.
 
 - **Step 6.9a actor sweep** (2026-10-03, lane audio). `COS_SMOKE=actor-sweep`
-  (`native/src/pc/pc_actor_sweep.cpp`, `run.sh actor-sweep --stage sea:44:206`): once the M12
+  (`native/src/pc/harness/sweeps/pc_actor_sweep.cpp`, `run.sh actor-sweep --stage sea:44:206`): once the M12
   probe has the player in Outset's start room (plus 60 frames), every actor profile of
   `g_fpcPfLst_ProfileList` (leaf sub-method `g_fopAc_Method`: 453 of the 502 names; scenes, overlaps,
   kankyo, message and camera processes are skipped) is created in turn with
@@ -3527,7 +3527,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
 
 - **Widescreen option `COS_ASPECT`** (2026-10-03, lane wide). The community 16:9 Gecko code that the
   translated build applies (mods/widescreen/GZLE01.gecko) is done in C under `TARGET_PC`:
-  `COS_ASPECT=4:3|16:9|16:10` (`native/include/pc/pc_aspect.h`, `native/src/pc/pc_aspect.cpp`; 4:3 by
+  `COS_ASPECT=4:3|16:9|16:10` (`native/include/pc/pc_aspect.h`, `native/src/pc/features/pc_aspect.cpp`; 4:3 by
   default on the Mac, 16:9 by default on the Switch through `cos_switch.cpp`'s defaults; a malformed
   value exits 2). Every line of the code was decoded against the decompilation's symbols and
   `main.dol` (table in [MODS.md](MODS.md), "Widescreen in the native port"): the camera aspect (which
@@ -3578,7 +3578,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   Checked with COS_SHOT: the title sky and Outset (frame 690: houses, mailbox, trees, boat) draw correctly.
 
 - **Item sweep and save/load sweep** (2026-10-06, lane item-sweep). Two new diagnostic sweeps.
-  - `COS_SMOKE=item-sweep` (`native/src/pc/pc_item_sweep.cpp`, driver `native/tools/item_sweep.py`,
+  - `COS_SMOKE=item-sweep` (`native/src/pc/harness/sweeps/pc_item_sweep.cpp`, driver `native/tools/item_sweep.py`,
     default stage `Asoko:0:0:2`): every item number whose `dItem_data::item_resource` names an
     archive (214 of 0x00-0xFE; 41 have none and are skipped) is given the way the game gives it: a
     big chest (takara3, parameters 0xFF200200, angle z = item << 8 | 0xFF) is created in the play
@@ -3594,7 +3594,7 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
     from the next item and writes `<sweep>/item_sweep.txt` (name, archive, result, frames, seconds,
     got, shot, detail, run); `EXPECTED` lists failures of the original data (`xfail`), `--rebuild DIR`
     rewrites a report. `COS_ITEM_SWEEP=<list>` limits the items (`0x20-0x30,0x50`).
-  - `COS_SMOKE=save-sweep` / `save-load` (`native/src/pc/pc_save_sweep.cpp`, driver
+  - `COS_SMOKE=save-sweep` / `save-load` (`native/src/pc/harness/sweeps/pc_save_sweep.cpp`, driver
     `native/tools/save_sweep.py`): the first run boots a situation (stage, `COS_BOOT_EVENTS`,
     `COS_BOOT_ITEMS`, `COS_BOOT_PRESET`; or the item sweep with `COS_ITEM_SWEEP_SAVE=1`) and saves into
     an empty card in the run directory with the save screen's steps in their order

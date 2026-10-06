@@ -38,7 +38,7 @@
 #                      --sweep-frames frames each; --room-skip LIST leaves rooms out (none by
 #                      default; --no-rooms skips the tier)
 #   9  fx              every particle emitter drawn in front of the player (COS_SMOKE=fx-sweep,
-#                      native/src/pc/pc_fx_sweep.cpp): on Outset the common ones and those of
+#                      native/src/pc/harness/sweeps/pc_fx_sweep.cpp): on Outset the common ones and those of
 #                      every scene JPC of the disc, the common ones in M_NewD2, then each stage's
 #                      own in its stage (boot_sweep.py --target fx-sweep; --no-fx)
 #  10  model-sweep     every BMD/BDL model of every archive of the disc drawn on the Outset pier,
@@ -256,7 +256,7 @@ if [ "$items" = 1 ]; then
     done
 fi
 # Effects (tier 9): on Outset every common particle emitter and every emitter of every scene JPC of
-# the disc (COS_SMOKE=fx-sweep COS_FX_SWEEP=disc, native/src/pc/pc_fx_sweep.cpp), the common ones
+# the disc (COS_SMOKE=fx-sweep COS_FX_SWEEP=disc, native/src/pc/harness/sweeps/pc_fx_sweep.cpp), the common ones
 # again in the first dungeon; each stage's own emitters in their stage come from the fx-sweep over
 # every stage below.
 if [ "$fx" = 1 ]; then
@@ -297,7 +297,7 @@ for line in ${sweeps[@]+"${sweeps[@]}"}; do
      echo $? > "$runs/$tier-$name.rc")
 done
 
-# Disc resources (tiers 10-11, COS_SMOKE=res-sweep, native/src/pc/pc_res_sweep.cpp) on the Outset
+# Disc resources (tiers 10-11, COS_SMOKE=res-sweep, native/src/pc/harness/sweeps/pc_res_sweep.cpp) on the Outset
 # pier: every J3D model of every archive drawn lit as an actor and as a room, split into
 # $sweep_jobs shards run side by side; every BLO screen drawn once. A run that faults is started
 # again after the archive it was on (named last in res_sweep.txt); that archive is listed in

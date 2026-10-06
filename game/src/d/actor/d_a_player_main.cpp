@@ -590,7 +590,7 @@ JKRHeap* daPy_lk_c::setItemHeap() {
 // A *_POS resource of LkAnm.arc (the sword blur: a root and a tip Vec per animation frame) is a
 // raw array of big-endian f32, copied as is by JKRReadIdxResource: swap each one to host order,
 // or the blur quads get garbage corners and cover the screen (bug B3). Also used by the
-// COS_SMOKE=blur-pos check (native/src/pc/pc_blur.cpp). Returns the size read.
+// COS_SMOKE=blur-pos check (native/src/pc/harness/boot_tests/pc_blur.cpp). Returns the size read.
 u32 daPy_readBlurPosResource(Vec* buffer, u32 bufferSize, u16 index, JKRArchive* arc) {
     u32 size = JKRReadIdxResource(buffer, bufferSize, index, arc);
     u32* words = reinterpret_cast<u32*>(buffer);

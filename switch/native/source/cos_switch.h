@@ -39,7 +39,7 @@ int cos_switch_read_word(uintptr_t addr, uintptr_t* out);
 void cos_switch_set_crash_state_writer(void (*writer)(int fd));
 
 /* Running totals (since start) of the Switch's graphics and disc counters, for the harness's
- * "[cos] perf-switch" and "[cos] hitch" lines (native/src/pc/pc_frame.cpp), which diff two reads.
+ * "[cos] perf-switch" and "[cos] hitch" lines (native/src/pc/runtime/pc_frame.cpp), which diff two reads.
  * Times in ns. Sources: Aurora's Switch patch 0005 (aurora_switch_get_stats), the Dawn GL queue
  * and command statistics patches (switch/dawn/patches) and the disc reader (nod/). */
 typedef struct {

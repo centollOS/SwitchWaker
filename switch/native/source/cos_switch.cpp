@@ -42,7 +42,7 @@
 #include "cos_switch_internal.h"
 #include "usb_log.h"
 
-extern "C" void pc_settings_load_early(void); // native/src/pc/pc_settings.cpp
+extern "C" void pc_settings_load_early(void); // native/src/pc/features/pc_settings.cpp
 
 namespace {
 

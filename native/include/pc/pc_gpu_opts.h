@@ -1,6 +1,6 @@
 /*
  * pc_gpu_opts.h - opt-in GPU-side reductions of the native port, for A/B runs on the Switch
- * (docs/SWITCH_PERF_STUDY.md; native/src/pc/pc_gpu_opts.cpp).
+ * (docs/SWITCH_PERF_STUDY.md; native/src/pc/features/pc_gpu_opts.cpp).
  * All default off except COS_MIST_LOWRES (near-identical output, see below): with none set the
  * game renders as before.
  *

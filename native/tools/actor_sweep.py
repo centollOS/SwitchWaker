@@ -5,7 +5,7 @@ step 6.9 robustness).
   native/tools/actor_sweep.py [options]
 
 Runs `run.sh actor-sweep --stage sea:44:206 --uncapped` (COS_SMOKE=actor-sweep,
-native/src/pc/pc_actor_sweep.cpp: each actor profile is created next to the player, run 30 game frames and
+native/src/pc/harness/sweeps/pc_actor_sweep.cpp: each actor profile is created next to the player, run 30 game frames and
 deleted; a refused creation is fine). A fault ends that run; the profile it was on is the last
 "begin" line of the run's actor_sweep.txt. The next run starts after it (COS_ACTOR_SWEEP=<n>-<last>),
 until the last profile is done. Each run lands in <sweep dir>/from-<n>/ (the usual run.sh run

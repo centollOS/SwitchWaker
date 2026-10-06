@@ -1,5 +1,5 @@
 # Controller script of native/tools/gen_pipeline_cache.sh, tier 7 items (syntax in
-# native/src/pc/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each line holding until the next.
+# native/src/pc/harness/pc_input.cpp): <frame> <buttons> <stickX> <stickY>, each line holding until the next.
 # Run with COS_BOOT_ITEMS=<item>,38 (the item on X, the sword) and --stage sea:44:0 (the Outset
 # pier, the player free from about frame 400), --frames 2400 --uncapped, once per item (boomerang 2D,
 # grappling hook 25, deku leaf 34, skull hammer 33, hookshot 2F, bow 27). Five rounds: X twice

@@ -1305,7 +1305,7 @@ BOOL daPy_lk_c::procRopeUpHang() {
 }
 
 #if TARGET_PC
-// COS_SMOKE=rope (native/src/pc/pc_rope.cpp, bug B19): puts the player at *at and grabs the hanging
+// COS_SMOKE=rope (native/src/pc/harness/smokes/pc_rope.cpp, bug B19): puts the player at *at and grabs the hanging
 // rope as the collision in changeRopeSwingProc does, so the test does not depend on reaching the
 // rope through the ship's hold.
 void daPy_lk_c::debugGrabRope(fopAc_ac_c* rope, const cXyz& at) {

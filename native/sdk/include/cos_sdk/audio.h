@@ -2,7 +2,7 @@
 // <dolphin/ai.h>. Not part of the SDK; nothing in the game calls it.
 //
 // Step 5.5 (docs/NATIVE_PORT_PHASE4_6.md): the COS_SMOKE=title-audio test
-// (native/src/pc/pc_title_audio.cpp) measures the level of what the AI DMA played.
+// (native/src/pc/harness/smokes/pc_title_audio.cpp) measures the level of what the AI DMA played.
 #ifndef COS_SDK_AUDIO_H
 #define COS_SDK_AUDIO_H
 
