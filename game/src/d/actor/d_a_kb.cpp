@@ -2424,11 +2424,7 @@ static BOOL useHeapInit(fopAc_ac_c* i_actor) {
     tex_anm_set(i_this, temp);
 
     i_this->mpMaterialTable = (J3DMaterialTable*)dComIfG_getObjectRes("Kb", kb_bmt_idx[temp]);
-#if TARGET_PC
     i_this->mpMorf->getModel()->setUserArea((uintptr_t)i_actor);
-#else
-    i_this->mpMorf->getModel()->setUserArea((u32)i_actor);
-#endif
 
     for (u16 i = 0; i < i_this->mpMorf->getModel()->getModelData()->getJointNum(); i++) {
         i_this->mpMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack);

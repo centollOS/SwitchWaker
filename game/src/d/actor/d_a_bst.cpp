@@ -127,7 +127,6 @@ static BOOL nodeCallBackHead(J3DNode* node, int calcTiming) {
         J3DModel* model = j3dSys.getModel();
         bst_class* i_this = (bst_class*)model->getUserArea();
         if (i_this != NULL) {
-            cXyz unused;
             MtxP mtx = model->getAnmMtx(jnt_no);
             cMtx_copy(mtx, *calc_mtx);
             if (jnt_no == BST_JNT_MABURTAR1_e) {
@@ -144,6 +143,12 @@ static BOOL nodeCallBackHead(J3DNode* node, int calcTiming) {
         }
     }
     return TRUE;
+}
+
+// Fakematch? Fixes ~cXyz dtor ordering.
+static void dummy() {
+    cXyz temp;
+    temp.~cXyz();
 }
 
 /* 00000550-000005B4       .text beam_draw__FP9bst_class */
@@ -286,7 +291,7 @@ static void stay(bst_class* i_this) {
         if (i_this->mBstPartType != bst_class::Type_HEAD_e && i_this->m10FC[3] != 0) {
             for (s32 i = 2; i <= 16; i++) {
                 MtxP mtx = i_this->m02B8->getModel()->getAnmMtx(i);
-                MTXCopy(mtx, *calc_mtx);
+                cMtx_copy(mtx, *calc_mtx);
                 cXyz pos_vec;
                 cXyz vec(0.0f, 0.0f, 0.0f);
                 MtxPosition(&vec, &pos_vec);
@@ -1041,8 +1046,10 @@ static void damage(bst_class* i_this) {
         if (i_this->mBstPartType != bst_class::Type_HEAD_e) {
             anm_init(i_this, damage_bck_d[i_this->mBstPartType], 1.0f, J3DFrameCtrl::EMode_NONE, 1.0f, -1);
         }
-        i_this->mpTevRegAnimator->init(i_this->m02B8->getModel()->getModelData(), (J3DAnmTevRegKey*)dComIfG_getObjectRes("Bst", damage_brk_d[i_this->mBstPartType]), TRUE, J3DFrameCtrl::EMode_NONE, 1.0f, 0, -1, true, FALSE);
-        i_this->mpTexMtxAnimator->init(i_this->m02B8->getModel()->getModelData(), (J3DAnmTextureSRTKey*)dComIfG_getObjectRes("Bst", damage_btk_d[i_this->mBstPartType]), TRUE, J3DFrameCtrl::EMode_NONE, 1.0f, 0, -1, true, FALSE);
+        J3DAnmTevRegKey* reg_key = (J3DAnmTevRegKey*)dComIfG_getObjectRes("Bst", damage_brk_d[i_this->mBstPartType]);
+        i_this->mpTevRegAnimator->init(i_this->m02B8->getModel()->getModelData(), reg_key, TRUE, J3DFrameCtrl::EMode_NONE, 1.0f, 0, -1, true, FALSE);
+        J3DAnmTextureSRTKey* srt_key = (J3DAnmTextureSRTKey*)dComIfG_getObjectRes("Bst", damage_btk_d[i_this->mBstPartType]);
+        i_this->mpTexMtxAnimator->init(i_this->m02B8->getModel()->getModelData(), srt_key, TRUE, J3DFrameCtrl::EMode_NONE, 1.0f, 0, -1, true, FALSE);
         i_this->mDamage++;
         i_this->m10FC[0] = 30;
         break;
@@ -1303,7 +1310,7 @@ static void col_set(bst_class* i_this) {
     cXyz pos_vec;
     if (i_this->mBstPartType == bst_class::Type_HEAD_e) {
         MtxP mtx = i_this->m02B8->getModel()->getAnmMtx(BST_JNT_KUTI_e);
-        MTXCopy(mtx, *calc_mtx);
+        cMtx_copy(mtx, *calc_mtx);
         vec.x = REG0_F(0) + (-30.0f);
         vec.y = REG0_F(1);
         vec.z = REG0_F(2) + (-100.0f);
@@ -1326,7 +1333,7 @@ static void col_set(bst_class* i_this) {
         vec.setall(0.0f);
         for (s32 i = 0; i < 2; i++) {
             MtxP mtx = i_this->m02B8->getModel()->getAnmMtx(i + BST_JNT_EYEL_e);
-            MTXCopy(mtx, *calc_mtx);
+            cMtx_copy(mtx, *calc_mtx);
             MtxPosition(&vec, &pos_vec);
             if (i_this->m2E74[i] != 0 || i_this->mEyeHealth[i] <= 0) {
                 if (i_this->m2E74[i] != 0) {
@@ -1349,14 +1356,14 @@ static void col_set(bst_class* i_this) {
         }
         for (s32 i = 0; i < 15; i++) {
             MtxP mtx = i_this->m02B8->getModel()->getAnmMtx(i + 2);
-            MTXCopy(mtx, *calc_mtx);
+            cMtx_copy(mtx, *calc_mtx);
             MtxPosition(&vec, &pos_vec);
             i_this->mFingerSphs[i].SetC(pos_vec);
             i_this->mFingerSphs[i].SetR(REG0_F(14) + 50.0f + radius);
             dComIfG_Ccsp()->Set(&i_this->mFingerSphs[i]);
         }
         MtxP mtx = i_this->m02B8->getModel()->getAnmMtx(17);
-        MTXCopy(mtx, *calc_mtx);
+        cMtx_copy(mtx, *calc_mtx);
         static f32 te_x[4] = {70.0f, 70.0f, 70.0f, 70.0f};
         static f32 te_y[4] = {70.0f, -70.0f, 70.0f, -70.0f};
         static f32 te_z[4] = {90.0f, 90.0f, -30.0f, -30.0f};
@@ -2112,26 +2119,26 @@ void demo_camera(bst_class* i_this) {
         spA4.y = 0.0f;
         spA4.z = 0.0f;
         player->setPlayerPosAndAngle(&spA4, 0x4000);
-        cLib_addCalc2(&i_this->m2EA0.z, boss->actor.current.pos.z + REG0_F(3) + 300.0f, 0.02f, VERSION_SELECT(1.5f, 1.5f, 1.4f, 1.5f));
+        cLib_addCalc2(&i_this->m2EA0.z, boss->actor.current.pos.z + REG0_F(3) + 300.0f, 0.02f, DEMO_SELECT(1.5f, 1.4f));
         if (i_this->msFrameCount == 60) {
             message_set(i_this, 0x170d);
         }
-        if (i_this->msFrameCount == VERSION_SELECT(150, 150, 180, 150)) {
+        if (i_this->msFrameCount == DEMO_SELECT(150, 180)) {
             msg_end = 1;
         }
-        if (i_this->msFrameCount == (REG0_S(4) + VERSION_SELECT(170, 170, 200, 170))) {
+        if (i_this->msFrameCount == (REG0_S(4) + DEMO_SELECT(170, 200))) {
             message_set(i_this, 0x170e);
         }
-        if (i_this->msFrameCount == (REG0_S(4) + VERSION_SELECT(260, 260, 290, 260))) {
+        if (i_this->msFrameCount == (REG0_S(4) + DEMO_SELECT(260, 290))) {
             msg_end = 1;
         }
-        if (i_this->msFrameCount == (REG0_S(4) + VERSION_SELECT(260, 260, 290, 260)) + (REG0_S(4) + 20)) {
+        if (i_this->msFrameCount == (REG0_S(4) + DEMO_SELECT(260, 290)) + (REG0_S(4) + 20)) {
             message_set(i_this, 0x170f);
         }
-        if (i_this->msFrameCount == (REG0_S(4) + VERSION_SELECT(360, 360, 390, 360)) + (REG0_S(4) + 20)) {
+        if (i_this->msFrameCount == (REG0_S(4) + DEMO_SELECT(360, 390)) + (REG0_S(4) + 20)) {
             msg_end = 1;
         }
-        if (i_this->msFrameCount != (REG0_S(4) + VERSION_SELECT(380, 380, 410, 380)) + (REG0_S(4) + 20)) {
+        if (i_this->msFrameCount != (REG0_S(4) + DEMO_SELECT(380, 410)) + (REG0_S(4) + 20)) {
             break;
         }
         i_this->m2E9A = 0xc;
@@ -2353,32 +2360,28 @@ void demo_camera(bst_class* i_this) {
         if (i_this->msFrameCount == 120) {
             message_set(i_this, 0x1710);
         }
-        if (i_this->msFrameCount == VERSION_SELECT(210, 210, 240, 210)) {
+        if (i_this->msFrameCount == DEMO_SELECT(210, 240)) {
             msg_end = 1;
         }
-        if (i_this->msFrameCount == REG0_S(4) + VERSION_SELECT(230, 230, 260, 230)) {
+        if (i_this->msFrameCount == REG0_S(4) + DEMO_SELECT(230, 260)) {
             message_set(i_this, 0x1711);
         }
-        if (i_this->msFrameCount == REG0_S(4) + VERSION_SELECT(320, 320, 350, 320)) {
+        if (i_this->msFrameCount == REG0_S(4) + DEMO_SELECT(320, 350)) {
             msg_end = 1;
         }
-        if (i_this->msFrameCount == REG0_S(4) + VERSION_SELECT(320, 320, 350, 320) + (REG0_S(4) + 20)) {
+        if (i_this->msFrameCount == REG0_S(4) + DEMO_SELECT(320, 350) + (REG0_S(4) + 20)) {
             message_set(i_this, 0x1712);
         }
-        if (i_this->msFrameCount == REG0_S(4) + VERSION_SELECT(410, 410, 500, 410) + (REG0_S(4) + 20)) {
+        if (i_this->msFrameCount == REG0_S(4) + DEMO_SELECT(410, 500) + (REG0_S(4) + 20)) {
             msg_end = 1;
         }
-#if VERSION <= VERSION_JPN || VERSION == VERSION_PAL
-        if (i_this->msFrameCount == REG0_S(4) + 410 + (REG0_S(4) + 20) + (REG0_S(4) + 20)) {
-#else
-        if (i_this->msFrameCount == REG0_S(4) + 500 + (REG0_S(4) + 20) + REG0_S(4) + 20) {
-#endif
+        if (i_this->msFrameCount == REG0_S(4) + DEMO_SELECT(410, 500) + (REG0_S(4) + 20) + REG0_S(4) + 20) {
             message_set(i_this, 0x1713);
         }
-        if (i_this->msFrameCount == REG0_S(4) + VERSION_SELECT(110, 110, 170, 110) + (REG0_S(4) + VERSION_SELECT(430, 430, 460, 430) + REG0_S(4))) {
+        if (i_this->msFrameCount == REG0_S(4) + DEMO_SELECT(110, 170) + (REG0_S(4) + DEMO_SELECT(430, 460) + REG0_S(4))) {
             msg_end = 1;
         }
-        if (i_this->msFrameCount != REG0_S(4) + VERSION_SELECT(140, 140, 200, 140) + (REG0_S(4) + VERSION_SELECT(430, 430, 460, 430) + REG0_S(4))) {
+        if (i_this->msFrameCount != REG0_S(4) + DEMO_SELECT(140, 200) + (REG0_S(4) + DEMO_SELECT(430, 460) + REG0_S(4))) {
             break;
         }
         i_this->m2E9A++;
@@ -2841,11 +2844,7 @@ static BOOL useHeapInit(fopAc_ac_c* a_this) {
                 i_this->m02B8->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBackHead);
             }
         }
-#if TARGET_PC
         i_this->m02B8->getModel()->setUserArea((uintptr_t)i_this);
-#else
-        i_this->m02B8->getModel()->setUserArea((u32)i_this);
-#endif
     }
     i_this->m0388 = mDoExt_J3DModel__create(i_this->m02B8->getModel()->getModelData(), 0, 0x11020203);
     if (i_this->m0388 == NULL) {

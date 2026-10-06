@@ -479,14 +479,14 @@ void joint_control(mant_class* i_this, mant_j_s* joint, int column) {
 void mant_v_calc(mant_class* i_this) {
     cXyz local, offset, delta;
     csXyz angle(0, 0, 0);
-    delta = i_this->mAnchor[0] - i_this->mAnchor[1];
+    delta = i_this->m1BE0 - i_this->m1BEC;
     angle.y = cM_atan2s(delta.x, delta.z) + DEMO_SELECT(REG13_S(3) + 0x4000, 0x4000);
     mant_j_s* joint = i_this->mJoint;
     local.x = 0.0f;
     for (int i = 0; i < 9; ++i, ++joint) {
-        i_this->mJoint[i].pos[0].x = i_this->mAnchor[1].x + delta.x / 8.0f * i;
-        i_this->mJoint[i].pos[0].y = i_this->mAnchor[1].y + delta.y / 8.0f * i;
-        i_this->mJoint[i].pos[0].z = i_this->mAnchor[1].z + delta.z / 8.0f * i;
+        i_this->mJoint[i].pos[0].x = i_this->m1BEC.x + delta.x / 8.0f * i;
+        i_this->mJoint[i].pos[0].y = i_this->m1BEC.y + delta.y / 8.0f * i;
+        i_this->mJoint[i].pos[0].z = i_this->m1BEC.z + delta.z / 8.0f * i;
         cMtx_YrotS(*calc_mtx, angle.y);
         f32 sin = cM_ssin(cM_rad2s(0.3926991f * i));
         local.y = DEMO_SELECT(sin * (-10.0f + REG0_F(11)), -10.0f * sin);

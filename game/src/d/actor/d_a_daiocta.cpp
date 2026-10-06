@@ -349,11 +349,7 @@ BOOL daDaiocta_c::createBodyHeap() {
         return FALSE;
     }
 
-#if TARGET_PC
-    mpMorf->getModel()->setUserArea((uintptr_t)this);
-#else
-    mpMorf->getModel()->setUserArea((u32) this);
-#endif
+    mpMorf->getModel()->setUserArea((uintptr_t) this);
 
     return TRUE;
 }
@@ -1100,7 +1096,7 @@ void daDaiocta_c::modeDemo() {
 
     if (eventInfo.checkCommandDemoAccrpt()) {
         int staff_id = dComIfGp_evmng_getMyStaffId("Daiocta");
-        char* cut_name = dComIfGp_getPEvtManager()->getMyNowCutName(staff_id);
+        const char* cut_name = dComIfGp_getPEvtManager()->getMyNowCutName(staff_id);
 
         cXyz current_pos = current.pos;
         s16 o_angle;
@@ -1214,7 +1210,7 @@ void daDaiocta_c::modeDemo() {
             }
         }
     } else {
-        fopAcM_orderOtherEvent2(this, "DAIOCTA_SUIKOMI", dEvtFlag_NOPARTNER_e);
+        fopAcM_orderOtherEvent(this, "DAIOCTA_SUIKOMI");
     }
 }
 
@@ -1232,7 +1228,7 @@ void daDaiocta_c::modeDeleteInit() {
 void daDaiocta_c::modeDelete() {
     if (eventInfo.checkCommandDemoAccrpt()) {
         int staff_id = dComIfGp_evmng_getMyStaffId("Daiocta");
-        char* cut_name = dComIfGp_getPEvtManager()->getMyNowCutName(staff_id);
+        const char* cut_name = dComIfGp_getPEvtManager()->getMyNowCutName(staff_id);
 
         if (strcmp(cut_name, "DEATH1") == 0) {
             current.pos.y = mWaterY;
@@ -1280,9 +1276,9 @@ void daDaiocta_c::modeDelete() {
             fopAcM_delete(this);
         }
     } else if (m057C == 1) {
-        fopAcM_orderOtherEvent2(this, "DAIOCTA_DEAD_ELF", dEvtFlag_NOPARTNER_e);
+        fopAcM_orderOtherEvent(this, "DAIOCTA_DEAD_ELF");
     } else {
-        fopAcM_orderOtherEvent2(this, "DAIOCTA_DEAD", dEvtFlag_NOPARTNER_e);
+        fopAcM_orderOtherEvent(this, "DAIOCTA_DEAD");
     }
 }
 

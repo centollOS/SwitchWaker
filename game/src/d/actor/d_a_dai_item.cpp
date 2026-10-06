@@ -360,11 +360,7 @@ void daStandItem_c::CreateInit() {
                     break;
                 }
             }
-#if TARGET_PC
             mpModel->setUserArea((uintptr_t)this);
-#else
-            mpModel->setUserArea((u32)this);
-#endif
             mpModel->calc();
         }
         break;
@@ -375,11 +371,7 @@ void daStandItem_c::CreateInit() {
                 if (strcmp("tuboko_head", jointName) == 0 || strcmp("tuboko_base", jointName) == 0)
                     mpModel->getModelData()->getJointNodePointer(i)->setCallBack(DEMO_SELECT(nodeCallBack, daiItemNodeCallBack));
             }
-#if TARGET_PC
             mpModel->setUserArea((uintptr_t)this);
-#else
-            mpModel->setUserArea((u32)this);
-#endif
             mpModel->calc();
         }
         break;

@@ -2391,11 +2391,7 @@ static BOOL useHeapInit(fopAc_ac_c* a_this) {
         return FALSE;
     }
 
-#if TARGET_PC
     i_this->m2B4->getModel()->setUserArea((uintptr_t)i_this);
-#else
-    i_this->m2B4->getModel()->setUserArea((u32)i_this);
-#endif
 
     for (u16 i = 0; i < i_this->m2B4->getModel()->getModelData()->getJointNum(); i++) {
         i_this->m2B4->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack);

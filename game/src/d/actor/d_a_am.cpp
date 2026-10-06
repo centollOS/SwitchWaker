@@ -1135,11 +1135,7 @@ static BOOL useHeapInit(fopAc_ac_c* i_this) {
         return FALSE;
     }
 
-#if TARGET_PC
     a_this->mpMorf->getModel()->setUserArea((uintptr_t)a_this);
-#else
-    a_this->mpMorf->getModel()->setUserArea((u32)a_this);
-#endif
     for (u16 i = 0; i < a_this->mpMorf->getModel()->getModelData()->getJointNum(); i++) {
         a_this->mpMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack);
     }

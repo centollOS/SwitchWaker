@@ -674,9 +674,9 @@ static void daBgn_DrawS(bgn_class* i_this) {
     for (s32 i = 0; i < BGN_TAIL_MAX; i++) {
         part_draw(i_this, &i_this->mTailParts[i]);
     }
-    i_this->mBlueRopeMat.update(60, (GXColor){DEMO_SELECT(0, 0xFF), 0xFF, 0xFF, 0}, &actor->tevStr);
+    i_this->mBlueRopeMat.update(60, COMPOUND_LITERAL(GXColor){DEMO_SELECT(0, 0xFF), 0xFF, 0xFF, 0}, &actor->tevStr);
     dComIfGd_set3DlineMat(&i_this->mBlueRopeMat);
-    i_this->mRedRopeMat.update(60, (GXColor){DEMO_SELECT(0xD2, 0xFF), DEMO_SELECT(0x32, 0xFF), DEMO_SELECT(0x5A, 0xFF), 0}, &actor->tevStr);
+    i_this->mRedRopeMat.update(60, COMPOUND_LITERAL(GXColor){DEMO_SELECT(0xD2, 0xFF), DEMO_SELECT(0x32, 0xFF), DEMO_SELECT(0x5A, 0xFF), 0}, &actor->tevStr);
     dComIfGd_set3DlineMat(&i_this->mRedRopeMat);
 }
 
@@ -748,7 +748,7 @@ static BOOL daBgn2_Draw(bgn2_class* i_this) {
             i_this->m02E4.update();
         }
     }
-    i_this->mRedRopeMat.update(60, (GXColor){0xD2, 0x32, 0x5A, 0x00}, &actor->tevStr);
+    i_this->mRedRopeMat.update(60, COMPOUND_LITERAL(GXColor){0xD2, 0x32, 0x5A, 0x00}, &actor->tevStr);
     dComIfGd_set3DlineMat(&i_this->mRedRopeMat);
     return TRUE;
 }
@@ -871,7 +871,7 @@ static BOOL daBgn3_Draw(bgn3_class* i_this) {
 #endif
         }
     }
-    i_this->mRedRopeMat.update(60, (GXColor){0xD2, 0x32, 0x5A, 0}, &actor->tevStr);
+    i_this->mRedRopeMat.update(60, COMPOUND_LITERAL(GXColor){0xD2, 0x32, 0x5A, 0}, &actor->tevStr);
     dComIfGd_set3DlineMat(&i_this->mRedRopeMat);
     return TRUE;
 }
@@ -997,7 +997,7 @@ static BOOL daBgn_Draw(bgn_class* i_this) {
         }
 #if VERSION > VERSION_DEMO
         if (i_this->mC720 != 0) {
-            i_this->mDefeatCSRopeMat.update(60, (GXColor){0xFF, 0xFF, 0xFF, 0}, &actor->tevStr);
+            i_this->mDefeatCSRopeMat.update(60, COMPOUND_LITERAL(GXColor){0xFF, 0xFF, 0xFF, 0}, &actor->tevStr);
             dComIfGd_set3DlineMat(&i_this->mDefeatCSRopeMat);
         }
 #endif
@@ -2810,12 +2810,12 @@ static void action_s(bgn_class* i_this, move_s* param_2, int param_3) {
         cMtx_YrotS(*calc_mtx, (int)(param_3 * (REG0_S(2) + 13000)));
         for (s32 i = 0; i < 60; i++, pcVar4++, pcVar7++) {
             if (param_2->m300 != 0) {
-                fVar3 = (REG0_F(12) + 10.0f) * (param_2->m300 * cM_ssin(cM_rad2s((s32)(i) * 0.053247336f)));
+                fVar3 = (REG0_F(12) + 10.0f) * (param_2->m300 * cM_fsin((s32)(i) * 0.053247336f));
                 local_70.x = fVar3 * cM_scos(i_this->mC746 * (REG0_S(3) + 0x5800));
                 local_70.z = fVar3 * cM_scos(i_this->mC746 * (REG0_S(5) + 0x5200));
             } else {
-                fVar3 = param_2->m2EC * cM_ssin(cM_rad2s(0.053247336f * (f32)(i)));
-                fVar3 *= (0.01666667f * (f32)(0x3B - i));
+                fVar3 = param_2->m2EC * cM_fsin(0.053247336f * (f32)(i));
+                fVar3 *= (0.01666667f * (f32)(59 - i));
                 local_70.x = fVar3 * cM_scos(i_this->mC746 * (REG0_S(3) + 200) + i * (REG0_S(4) + 2000));
                 local_70.z = fVar3 * cM_scos(i_this->mC746 * (REG0_S(5) + 0xfa) + i * (REG0_S(6) + 2000));
             }
@@ -2841,7 +2841,7 @@ static void action_main(bgn_class* i_this) {
     pcVar7 = i_this->mRedRopeMat.getPos(0);
     pcVar5 = i_this->mRedRopeMat.getSize(0);
     for (s32 i = 0; i < 60; i++, pcVar7++, pcVar5++) {
-        dVar9 = i_this->mC774 * cM_ssin(cM_rad2s(0.053247336f * (f32)(i)));
+        dVar9 = i_this->mC774 * cM_fsin(0.053247336f * (f32)(i));
         dVar9 *= (0.01666667f * (f32)(59 - i));
         local_90.x = dVar9 * cM_ssin(i_this->mC746 * (REG0_S(3) + 300) + i * (REG0_S(4) + 2000));
         local_90.z = dVar9 * cM_ssin(i_this->mC746 * (REG0_S(5) + 0xfa) + i * (REG0_S(6) + 2000));

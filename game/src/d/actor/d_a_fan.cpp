@@ -76,11 +76,7 @@ BOOL daFan_c::CreateHeap() {
     mModel = mDoExt_J3DModel__create(modelData, 0x80000, 0x11000022);
     if (mModel == NULL)
         return FALSE;
-#if TARGET_PC
     mModel->setUserArea((uintptr_t)this);
-#else
-    mModel->setUserArea((u32)this);
-#endif
 
     modelData = (J3DModelData*)dComIfG_getObjectRes(m_arcname2, dRes_INDEX_YAFLW00_BDL_YAFLW00_e);
     JUT_ASSERT(0x17f, modelData != NULL);
@@ -88,26 +84,20 @@ BOOL daFan_c::CreateHeap() {
     if (mWindModel == NULL)
         return FALSE;
 
-    {
-        J3DAnmTextureSRTKey* pbtk = (J3DAnmTextureSRTKey*)dComIfG_getObjectRes(m_arcname2, dRes_INDEX_YAFLW00_BTK_YAFLW00_01_e);
-        JUT_ASSERT(400, pbtk != NULL);
-        if (!mWindBtkAnm0.init(modelData, pbtk, TRUE, J3DFrameCtrl::EMode_LOOP, 1.0f, 0,-1, false, 0))
-            return FALSE;
-    }
+    J3DAnmTextureSRTKey* pbtk = (J3DAnmTextureSRTKey*)dComIfG_getObjectRes(m_arcname2, dRes_INDEX_YAFLW00_BTK_YAFLW00_01_e);
+    JUT_ASSERT(400, pbtk != NULL);
+    if (!mWindBtkAnm0.init(modelData, pbtk, TRUE, J3DFrameCtrl::EMode_LOOP, 1.0f, 0,-1, false, 0))
+        return FALSE;
 
-    {
-        J3DAnmTextureSRTKey* pbtk = (J3DAnmTextureSRTKey*)dComIfG_getObjectRes(m_arcname2, dRes_INDEX_YAFLW00_BTK_YAFLW00_02_e);
-        JUT_ASSERT(0x19c, pbtk != NULL);
-        if (!mWindBtkAnm1.init(modelData, pbtk, TRUE, J3DFrameCtrl::EMode_NONE, 1.0f, 0,-1, false, 0))
-            return FALSE;
-    }
+    pbtk = (J3DAnmTextureSRTKey*)dComIfG_getObjectRes(m_arcname2, dRes_INDEX_YAFLW00_BTK_YAFLW00_02_e);
+    JUT_ASSERT(0x19c, pbtk != NULL);
+    if (!mWindBtkAnm1.init(modelData, pbtk, TRUE, J3DFrameCtrl::EMode_NONE, 1.0f, 0,-1, false, 0))
+        return FALSE;
 
-    {
-        J3DAnmTransform* pbck = (J3DAnmTransform*)dComIfG_getObjectRes(m_arcname2, dRes_INDEX_YAFLW00_BCK_YAFLW00_e);
-        JUT_ASSERT(0x1a9, pbck != NULL);
-        if (!mWindBckAnm.init(modelData, pbck, TRUE, J3DFrameCtrl::EMode_LOOP, 1.0f, 0,-1, false))
-            return FALSE;
-    }
+    J3DAnmTransform* pbck = (J3DAnmTransform*)dComIfG_getObjectRes(m_arcname2, dRes_INDEX_YAFLW00_BCK_YAFLW00_e);
+    JUT_ASSERT(0x1a9, pbck != NULL);
+    if (!mWindBckAnm.init(modelData, pbck, TRUE, J3DFrameCtrl::EMode_LOOP, 1.0f, 0,-1, false))
+        return FALSE;
 
     return TRUE;
 }
@@ -167,16 +157,6 @@ cPhs_State daFan_c::_create() {
     fopAcM_ct(this, daFan_c);
 
     mType = daFan_prm::getType(this);
-#if VERSION == VERSION_DEMO
-    cPhs_State rt1 = dComIfG_resLoad(&mPhs, m_arcname[mType]);
-    cPhs_State rt2 = dComIfG_resLoad(&mWindPhs, m_arcname2);
-    if (rt1 == cPhs_ERROR_e || rt2 == cPhs_ERROR_e)
-        return cPhs_ERROR_e;
-    if (rt1 != cPhs_COMPLEATE_e)
-        return rt1;
-    if (rt2 != cPhs_COMPLEATE_e)
-        return rt2;
-#else
     cPhs_State rt1 = dComIfG_resLoad(&mPhs, m_arcname[mType]);
     if (rt1 != cPhs_COMPLEATE_e)
         return rt1;
@@ -184,7 +164,6 @@ cPhs_State daFan_c::_create() {
     cPhs_State rt2 = dComIfG_resLoad(&mWindPhs, m_arcname2);
     if (rt2 != cPhs_COMPLEATE_e)
         return rt2;
-#endif
 
     if (rt1 == cPhs_COMPLEATE_e && rt2 == cPhs_COMPLEATE_e) {
         rt1 = MoveBGCreate(m_arcname[mType], m_dzbidx[mType], dBgS_MoveBGProc_TypicalRotY, m_heapsize[mType]);

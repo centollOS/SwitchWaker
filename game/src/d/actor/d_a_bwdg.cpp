@@ -20,93 +20,15 @@ static bwd_class* boss;
 #include "assets/l_B_sand2TEX.h"
 const u16 l_B_sand2TEX__width = 512;
 const u16 l_B_sand2TEX__height = 256;
-// Stripped by the linker (unused); size/position from the target .data. Contents are not on the disc; placeholder grid from base_xz_set with y = 0.
-#define L_POS_ROW(z) \
-    {-4160.0f, 0.0f, z}, {-4030.0f, 0.0f, z}, {-3900.0f, 0.0f, z}, {-3770.0f, 0.0f, z}, {-3640.0f, 0.0f, z}, \
-    {-3510.0f, 0.0f, z}, {-3380.0f, 0.0f, z}, {-3250.0f, 0.0f, z}, {-3120.0f, 0.0f, z}, {-2990.0f, 0.0f, z}, \
-    {-2860.0f, 0.0f, z}, {-2730.0f, 0.0f, z}, {-2600.0f, 0.0f, z}, {-2470.0f, 0.0f, z}, {-2340.0f, 0.0f, z}, \
-    {-2210.0f, 0.0f, z}, {-2080.0f, 0.0f, z}, {-1950.0f, 0.0f, z}, {-1820.0f, 0.0f, z}, {-1690.0f, 0.0f, z}, \
-    {-1560.0f, 0.0f, z}, {-1430.0f, 0.0f, z}, {-1300.0f, 0.0f, z}, {-1170.0f, 0.0f, z}, {-1040.0f, 0.0f, z}, \
-    {-910.0f, 0.0f, z}, {-780.0f, 0.0f, z}, {-650.0f, 0.0f, z}, {-520.0f, 0.0f, z}, {-390.0f, 0.0f, z}, \
-    {-260.0f, 0.0f, z}, {-130.0f, 0.0f, z}, {0.0f, 0.0f, z}, {130.0f, 0.0f, z}, {260.0f, 0.0f, z}, \
-    {390.0f, 0.0f, z}, {520.0f, 0.0f, z}, {650.0f, 0.0f, z}, {780.0f, 0.0f, z}, {910.0f, 0.0f, z}, \
-    {1040.0f, 0.0f, z}, {1170.0f, 0.0f, z}, {1300.0f, 0.0f, z}, {1430.0f, 0.0f, z}, {1560.0f, 0.0f, z}, \
-    {1690.0f, 0.0f, z}, {1820.0f, 0.0f, z}, {1950.0f, 0.0f, z}, {2080.0f, 0.0f, z}, {2210.0f, 0.0f, z}, \
-    {2340.0f, 0.0f, z}, {2470.0f, 0.0f, z}, {2600.0f, 0.0f, z}, {2730.0f, 0.0f, z}, {2860.0f, 0.0f, z}, \
-    {2990.0f, 0.0f, z}, {3120.0f, 0.0f, z}, {3250.0f, 0.0f, z}, {3380.0f, 0.0f, z}, {3510.0f, 0.0f, z}, \
-    {3640.0f, 0.0f, z}, {3770.0f, 0.0f, z}, {3900.0f, 0.0f, z}, {4030.0f, 0.0f, z}, {4160.0f, 0.0f, z},
-static Vec l_pos[] = {
-    L_POS_ROW(-4160.0f)
-    L_POS_ROW(-4030.0f)
-    L_POS_ROW(-3900.0f)
-    L_POS_ROW(-3770.0f)
-    L_POS_ROW(-3640.0f)
-    L_POS_ROW(-3510.0f)
-    L_POS_ROW(-3380.0f)
-    L_POS_ROW(-3250.0f)
-    L_POS_ROW(-3120.0f)
-    L_POS_ROW(-2990.0f)
-    L_POS_ROW(-2860.0f)
-    L_POS_ROW(-2730.0f)
-    L_POS_ROW(-2600.0f)
-    L_POS_ROW(-2470.0f)
-    L_POS_ROW(-2340.0f)
-    L_POS_ROW(-2210.0f)
-    L_POS_ROW(-2080.0f)
-    L_POS_ROW(-1950.0f)
-    L_POS_ROW(-1820.0f)
-    L_POS_ROW(-1690.0f)
-    L_POS_ROW(-1560.0f)
-    L_POS_ROW(-1430.0f)
-    L_POS_ROW(-1300.0f)
-    L_POS_ROW(-1170.0f)
-    L_POS_ROW(-1040.0f)
-    L_POS_ROW(-910.0f)
-    L_POS_ROW(-780.0f)
-    L_POS_ROW(-650.0f)
-    L_POS_ROW(-520.0f)
-    L_POS_ROW(-390.0f)
-    L_POS_ROW(-260.0f)
-    L_POS_ROW(-130.0f)
-    L_POS_ROW(0.0f)
-    L_POS_ROW(130.0f)
-    L_POS_ROW(260.0f)
-    L_POS_ROW(390.0f)
-    L_POS_ROW(520.0f)
-    L_POS_ROW(650.0f)
-    L_POS_ROW(780.0f)
-    L_POS_ROW(910.0f)
-    L_POS_ROW(1040.0f)
-    L_POS_ROW(1170.0f)
-    L_POS_ROW(1300.0f)
-    L_POS_ROW(1430.0f)
-    L_POS_ROW(1560.0f)
-    L_POS_ROW(1690.0f)
-    L_POS_ROW(1820.0f)
-    L_POS_ROW(1950.0f)
-    L_POS_ROW(2080.0f)
-    L_POS_ROW(2210.0f)
-    L_POS_ROW(2340.0f)
-    L_POS_ROW(2470.0f)
-    L_POS_ROW(2600.0f)
-    L_POS_ROW(2730.0f)
-    L_POS_ROW(2860.0f)
-    L_POS_ROW(2990.0f)
-    L_POS_ROW(3120.0f)
-    L_POS_ROW(3250.0f)
-    L_POS_ROW(3380.0f)
-    L_POS_ROW(3510.0f)
-    L_POS_ROW(3640.0f)
-    L_POS_ROW(3770.0f)
-    L_POS_ROW(3900.0f)
-    L_POS_ROW(4030.0f)
-    L_POS_ROW(4160.0f)
-};
-#undef L_POS_ROW
 #include "assets/l_texCoord__d_a_bwdg.h"
 #include "assets/l_Hsand1DL.h"
 #include "assets/l_matDL__d_a_bwdg.h"
 l_matDL__d_a_bwdg(l_B_sand2TEX);
+
+// Fakematch: For some reason daBwdg_packet_c::draw needs to have .data pooling disabled, but the in-function statics cause .data pooling to be used.
+// Disabling data pooling for the entire TU breaks wave_cont, which uses ...rodata pooling, so instead disable it for just this one function.
+#pragma push
+#pragma pool_data off
 
 /* 00000078-000001C4       .text draw__15daBwdg_packet_cFv */
 void daBwdg_packet_c::draw() {
@@ -153,6 +75,7 @@ void daBwdg_packet_c::draw() {
     m00010 ^= 0x01;
 }
 
+#pragma pop
 
 /* 000001C4-00000260       .text daBwdg_Draw__FP10bwdg_class */
 static BOOL daBwdg_Draw(bwdg_class* i_this) {
@@ -161,7 +84,7 @@ static BOOL daBwdg_Draw(bwdg_class* i_this) {
     MtxTrans(0.0f, 10.0f + f1, 0.0f, 0);
     cMtx_concat(j3dSys.getViewMtx(), *calc_mtx, i_this->mBwdgPacket.getMtx());
     i_this->mBwdgPacket.setTevStr(&i_this->tevStr);
-    j3dSys.getDrawBuffer(0)->entryImm(&i_this->mBwdgPacket, 0);
+    j3dSys.getDrawBuffer(J3DSysDrawBuf_Opa)->entryImm(&i_this->mBwdgPacket, 0);
     return TRUE;
 }
 

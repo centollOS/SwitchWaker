@@ -1212,14 +1212,8 @@ static void kamome_imouto_move(kamome_class* i_this) {
         cVar8 = 1;
         i_this->mVelocityFwdTarget = 0.0f;
         a_this->speedF = 0.0f;
-#if TARGET_PC
-        // A case label below jumps past this declaration; clang rejects jumping past an initializer.
-        mDoExt_McaMorf* morf;
-        morf = i_this->mpMorf;
-#else
-        mDoExt_McaMorf* morf = i_this->mpMorf;
-#endif
-        if (morf->isStop()) {
+        frame = i_this->mpMorf->getFrame();
+        if (i_this->mpMorf->isStop()) {
             if (cM_rndF(1.0f) < 0.2f) {
                 i_this->mMoveState = 0x13;
                 anm_init(i_this, dRes_INDEX_KAMOME_BCK_KA_SING2_e, 5.0f, J3DFrameCtrl::EMode_NONE, 1.0f, 0);
@@ -1443,11 +1437,7 @@ static BOOL createHeap(fopAc_ac_c* a_this) {
         return FALSE;
     }
 
-#if TARGET_PC
     i_this->mpMorf->getModel()->setUserArea((uintptr_t)&i_this->actor);
-#else
-    i_this->mpMorf->getModel()->setUserArea((u32)&i_this->actor);
-#endif
     return TRUE;
 }
 

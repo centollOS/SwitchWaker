@@ -3321,12 +3321,12 @@ static void part_move(tn_class* i_this, int partIndex) {
                 local_134.x = DEMO_SELECT(REG13_F(0), REG0_F(0)) + 2.0f;
                 local_134.y = DEMO_SELECT(REG13_F(1), REG0_F(1)) + 15.0f;
                 local_134.z = DEMO_SELECT(REG13_F(2), REG0_F(2)) + -43.0f;
-                MtxPosition(&local_134, &mant_actor->mAnchor[0]);
+                MtxPosition(&local_134, &mant_actor->m1BE0);
                 MTXCopy(i_this->mpArmorMorf->getModel()->getAnmMtx(REG6_S(6) + (s16)TN_YOROI1_JNT_J_YOROI_KATA_L1_e), *calc_mtx);
                 local_134.x = DEMO_SELECT(REG13_F(3), REG0_F(3)) + 2.0f;
                 local_134.y = DEMO_SELECT(REG13_F(4), REG0_F(4)) + 15.0f;
                 local_134.z = DEMO_SELECT(REG13_F(5), REG0_F(5)) + 43.0f;
-                MtxPosition(&local_134, &mant_actor->mAnchor[1]);
+                MtxPosition(&local_134, &mant_actor->m1BEC);
                 mant_actor->current.pos = actor->eyePos;
                 mant_actor->current.angle = actor->current.angle;
             }
@@ -3509,12 +3509,12 @@ static BOOL daTn_Execute(tn_class* i_this) {
                 if (i_this->mMantPcId != 0xFFFF) {
                     mant_actor = (mant_class*)fopAcM_SearchByID(i_this->mMantPcId);
                     if (mant_actor != NULL) {
-                        mant_actor->mAnchor[0].x = -10000.0f;
-                        mant_actor->mAnchor[0].y = 20000.0f;
-                        mant_actor->mAnchor[0].z = -21000.0f;
-                        mant_actor->mAnchor[1].x = -10000.0f;
-                        mant_actor->mAnchor[1].y = 20000.0f;
-                        mant_actor->mAnchor[1].z = -21000.0f;
+                        mant_actor->m1BE0.x = -10000.0f;
+                        mant_actor->m1BE0.y = 20000.0f;
+                        mant_actor->m1BE0.z = -21000.0f;
+                        mant_actor->m1BEC.x = -10000.0f;
+                        mant_actor->m1BEC.y = 20000.0f;
+                        mant_actor->m1BEC.z = -21000.0f;
                     }
                 }
                 return TRUE;

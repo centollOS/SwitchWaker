@@ -1765,11 +1765,7 @@ BOOL useHeapInit(bmd_class* i_this) {
     if (model == NULL) {
         return FALSE;
     }
-#if TARGET_PC
     model->setUserArea((uintptr_t)i_this);
-#else
-    model->setUserArea((u32)i_this);
-#endif
     for (u16 uVar16 = 0; uVar16 < model->getModelData()->getJointNum(); uVar16++) {
         model->getModelData()->getJointNodePointer(uVar16)->setCallBack(core_nodeCallBack);
     }

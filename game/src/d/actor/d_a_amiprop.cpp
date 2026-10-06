@@ -82,11 +82,7 @@ BOOL daAmiProp_c::CreateHeap() {
         return FALSE;
     }
 
-#if TARGET_PC
     mpModel->setUserArea(reinterpret_cast<uintptr_t>(this));
-#else
-    mpModel->setUserArea(reinterpret_cast<u32>(this));
-#endif
     setMoveBGMtx();
 
     mpBgW = new dBgW();

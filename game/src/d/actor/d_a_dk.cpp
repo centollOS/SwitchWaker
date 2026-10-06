@@ -335,11 +335,7 @@ static BOOL useHeapInit(fopAc_ac_c* i_this) {
             a_this->field_0x2B8->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack);
         }
     }
-#if TARGET_PC
-    a_this->field_0x2B8->getModel()->setUserArea((uintptr_t)a_this);
-#else
-    a_this->field_0x2B8->getModel()->setUserArea((u32) a_this);
-#endif
+    a_this->field_0x2B8->getModel()->setUserArea((uintptr_t) a_this);
 
     J3DModelData* modelData = (J3DModelData*) dComIfG_getObjectIDRes("Dk", dRes_ID_DK_BDL_DK_KAMEN_e);
     a_this->mpModelKamen = mDoExt_J3DModel__create(modelData, 0x80000, 0x11020002);

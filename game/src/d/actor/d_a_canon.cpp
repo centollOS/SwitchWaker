@@ -509,11 +509,7 @@ BOOL daCanon_c::CreateHeap() {
 
     s8 cVar10 = modelData->getJointName()->getIndex("canon");
     modelData->getJointNodePointer(cVar10)->setCallBack(daCanon_nodeCallBack);
-#if TARGET_PC
     mpModel1->setUserArea((uintptr_t)this);
-#else
-    mpModel1->setUserArea((u32)this);
-#endif
     mpModel2 = mDoExt_J3DModel__create(modelData2, 0, 0x11020203);
     if (mpModel2 == NULL) {
         return FALSE;

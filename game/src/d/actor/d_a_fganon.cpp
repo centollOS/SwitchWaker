@@ -90,12 +90,12 @@ static BOOL daFganon_Draw(fganon_class* i_this) {
     fopAc_ac_c* a_this = &i_this->actor;
     dSnap_RegistFig(DSNAP_TYPE_FGANON, a_this, 1.0f, 1.0f, 1.0f);
     J3DModel* pModel = i_this->mpMorf->getModel();
-    g_env_light.setLightTevColorType(pModel, &i_this->actor.tevStr);
+    g_env_light.setLightTevColorType(pModel, &a_this->tevStr);
     i_this->mpBrkAnm1->entry(pModel->getModelData());
     i_this->mpMorf->entryDL();
     if (i_this->m2D0 != 2) {
         pModel = i_this->mpKenModel;
-        g_env_light.settingTevStruct(TEV_TYPE_ACTOR, &i_this->actor.current.pos, &i_this->mKenTevStr);
+        g_env_light.settingTevStruct(TEV_TYPE_ACTOR, &a_this->current.pos, &i_this->mKenTevStr);
         g_env_light.setLightTevColorType(pModel, &i_this->mKenTevStr);
         i_this->mpBrkAnm2->entry(pModel->getModelData());
         mDoExt_modelUpdateDL(pModel);
@@ -982,7 +982,7 @@ void fail(fganon_class* i_this) {
             linChk.Set(&offset, &transformedPos, a_this);
 
             MtxP mtx = i_this->mpMorf->getModel()->getAnmMtx(BPG_JNT_J_BPG_ITEM1_e);
-            MTXCopy(mtx, *calc_mtx);
+            cMtx_copy(mtx, *calc_mtx);
             
             offset.x = 0.0f;
             offset.y = 0.0f;
@@ -1318,6 +1318,7 @@ void last_end(fganon_class* i_this) {
 /* 000056A4-00006288       .text damage_check__FP12fganon_class */
 void damage_check(fganon_class* i_this) {
     CcAtInfo atInfo;
+    cXyz* pPos;
 
     csXyz local_a0;
     cXyz local_44;
@@ -1452,7 +1453,8 @@ void damage_check(fganon_class* i_this) {
             if (i_this->mCyl.ChkTgHit()) {
                 if(((i_this->mAction == 8) || (i_this->mAction == 7)) || (i_this->mAction == 10)) {
                     atInfo.mpObj = i_this->mCyl.GetTgHitObj();
-                    atInfo.pParticlePos = i_this->mCyl.GetTgHitPosP();
+                    pPos = i_this->mCyl.GetTgHitPosP();
+                    atInfo.pParticlePos = pPos;
                     atInfo.mpActor = at_power_check(&atInfo);
                     if((atInfo.mpObj != NULL) && (atInfo.mpObj->ChkAtType(AT_TYPE_SWORD)) && (dComIfGs_getSelectEquip(0) == dItemNo_MASTER_SWORD_1_e ||
                                                                                               dComIfGs_getSelectEquip(0) == dItemNo_MASTER_SWORD_3_e ||
@@ -1481,7 +1483,7 @@ void damage_check(fganon_class* i_this) {
                         local_a0.x = 0.0f;
                         local_a0.y = fopAcM_searchPlayerAngleY(a_this);
 
-                        dComIfGp_particle_set(dPa_name::ID_AK_JN_OK, i_this->mCyl.GetTgHitPosP(), &local_a0, &local_44);
+                        dComIfGp_particle_set(dPa_name::ID_AK_JN_OK, pPos, &local_a0, &local_44);
 
                         if ((i_this->mAction == 7) || (i_this->mAction == 10)) {
                             i_this->mAction = 8;
@@ -2579,13 +2581,13 @@ static BOOL daFganon_Execute(fganon_class* i_this) {
         local_70.x = DEMO_SELECT(REG13_F(0), REG0_F(0)) + 35.0f;
         local_70.y = DEMO_SELECT(REG13_F(1), REG0_F(1));
         local_70.z = DEMO_SELECT(REG13_F(2), REG0_F(2)) + -30.0f;
-        MtxPosition(&local_70, &cape->mAnchor[0]);
+        MtxPosition(&local_70, &cape->m1BE0);
         mtx = i_this->mpMorf->getModel()->getAnmMtx(DEMO_SELECT(REG6_S(6), REG0_S(6)) + (s16)BPG_JNT_J_BPG_KATA_L1_e);
         cMtx_copy(mtx, *calc_mtx);
         local_70.x = DEMO_SELECT(REG13_F(3), REG0_F(3)) + 35.0f;
         local_70.y = DEMO_SELECT(REG13_F(4), REG0_F(4));
         local_70.z = DEMO_SELECT(REG13_F(5), REG0_F(5)) + 30.0f;
-        MtxPosition(&local_70, &cape->mAnchor[1]);
+        MtxPosition(&local_70, &cape->m1BEC);
         cape->current.pos = a_this->eyePos;
         cape->current.angle = a_this->current.angle;
         float fVar1;

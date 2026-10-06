@@ -50,7 +50,8 @@ public:
     /* 0x1248 */ int mFrame;
     /* 0x124C */ u8 field_0x124c[4];
     /* 0x1250 */ mant_j_s mJoint[9];
-    /* 0x1BE0 */ cXyz mAnchor[2];
+    /* 0x1BE0 */ cXyz m1BE0;
+    /* 0x1BEC */ cXyz m1BEC;
     /* 0x1BF8 */ f32 m1BF8;
     /* 0x1BFC */ f32 m1BFC;
     /* 0x1C00 */ f32 mWindStrength;

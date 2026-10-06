@@ -21,16 +21,12 @@ static BOOL CheckCreateHeap(fopAc_ac_c* i_this) {
 /* 00000098-00000194       .text CreateHeap__9daLwood_cFv */
 BOOL daLwood_c::CreateHeap() {
     J3DModelData* modelData = (J3DModelData*)dComIfG_getObjectRes(m_arcname, dRes_INDEX_LWOOD_BDL_ALWD_e);
-    JUT_ASSERT(DEMO_SELECT(0xb2, 0xb9), modelData != NULL);
+    JUT_ASSERT(0xb9, modelData != NULL);
     mModel = mDoExt_J3DModel__create(modelData, 0x80000, 0x11000022);
     if (mModel == NULL)
         return FALSE;
 
-#if TARGET_PC
     mModel->setUserArea((uintptr_t)this);
-#else
-    mModel->setUserArea((u32)this);
-#endif
     setMoveBGMtx();
     cBgD_t* bgp = (cBgD_t*)dComIfG_getObjectRes(m_arcname, dRes_INDEX_LWOOD_DZB_ALWD_e);
     mpBgW = dBgW_NewSet(bgp, dBgW::MOVE_BG_e, &mtx);
@@ -73,35 +69,25 @@ static BOOL nodeCallBack(J3DNode* joint, int calcTiming) {
         J3DModel* model = j3dSys.getModel();
         daLwood_c* i_this = (daLwood_c*)model->getUserArea();
         if (i_this != NULL) {
-#if VERSION == VERSION_DEMO
-            int spd = 300;
-            cXyz windSpeed = daObj::get_wind_spd(i_this, 100.0f);
-            s16 spd2 = 300; // fakematch: separate s16 copy of the speed (target li+mullw at the use, product CSEd for sin/cos)
-            f32 sy = cM_ssin(i_this->getYureTimer() * spd2);
-            s16 amp = 10;
-            s16 r2 = amp * (windSpeed.x * sy);
-            f32 cy = cM_scos(i_this->getYureTimer() * spd2);
-            s16 r0 = amp * (windSpeed.z * cy);
-            s16 amp2 = 250;
-            s16 r1 = amp2 * fabs(cM_ssin(i_this->getYureTimer() * spd) + 1.0f);
-#else
             cXyz windSpeed = daObj::get_wind_spd(i_this, 100.0f);
             f32 sy = cM_ssin(i_this->getYureTimer() * 300);
             s16 r2 = windSpeed.x * sy * 10.0f;
             f32 cy = cM_scos(i_this->getYureTimer() * 300);
             s16 r0 = windSpeed.z * cy * 10.0f;
 
-            s16 r1 = fabs(sy + 1.0f) * 250.0f;
-#endif
+            // Fakematch: In order for the compiler to put the conversion in the right order, this
+            // needs to be a double assignment for some reason. An unused temp variable is enough.
+            s16 faketemp;
+            s16 r1 = faketemp = fabs(sy + 1.0f) * 250.0f;
 
-            r2 = i_this->getYureScale() * r2;
-            r0 = i_this->getYureScale() * r0;
-            r1 = i_this->getYureScale() * r1;
+            s16 p1 = i_this->getYureScale() * r2;
+            s16 p2 = i_this->getYureScale() * r0;
+            s16 p0 = i_this->getYureScale() * r1;
 
             mDoMtx_stack_c::copy(model->getAnmMtx(jntNo));
-            mDoMtx_stack_c::ZXYrotM(r1, r2, r0);
+            mDoMtx_stack_c::ZXYrotM(p0, p1, p2);
             model->setAnmMtx(jntNo, mDoMtx_stack_c::get());
-            MTXCopy(mDoMtx_stack_c::get(), J3DSys::mCurrentMtx);
+            mDoMtx_copy(mDoMtx_stack_c::get(), j3dSys.mCurrentMtx);
         }
     }
 
@@ -111,17 +97,17 @@ static BOOL nodeCallBack(J3DNode* joint, int calcTiming) {
 /* 000004D8-00000560       .text set_mtx__9daLwood_cFv */
 void daLwood_c::set_mtx() {
     mModel->setBaseScale(scale);
-    mDoMtx_stack_c::transS(current.pos.x, current.pos.y, current.pos.z);
-    mDoMtx_stack_c::ZXYrotM(current.angle.x, current.angle.y, current.angle.z);
+    mDoMtx_stack_c::transS(current.pos);
+    mDoMtx_stack_c::ZXYrotM(current.angle);
     mModel->setBaseTRMtx(mDoMtx_stack_c::get());
 }
 
 /* 00000560-000005D8       .text setMoveBGMtx__9daLwood_cFv */
 void daLwood_c::setMoveBGMtx() {
-    mDoMtx_stack_c::transS(current.pos.x, current.pos.y, current.pos.z);
-    mDoMtx_stack_c::ZXYrotM(current.angle.x, current.angle.y, current.angle.z);
-    mDoMtx_stack_c::scaleM(scale.x, scale.y, scale.z);
-    MTXCopy(mDoMtx_stack_c::get(), mtx);
+    mDoMtx_stack_c::transS(current.pos);
+    mDoMtx_stack_c::ZXYrotM(current.angle);
+    mDoMtx_stack_c::scaleM(scale);
+    mDoMtx_copy(mDoMtx_stack_c::get(), mtx);
 }
 
 cPhs_State daLwood_c::_create() {
@@ -141,12 +127,10 @@ cPhs_State daLwood_c::_create() {
 }
 
 bool daLwood_c::_delete() {
-#if VERSION > VERSION_DEMO
     if (heap != NULL)
-#endif
         dComIfG_Bgsp()->Release(mpBgW);
 
-    dComIfG_resDeleteDemo(&mPhs, m_arcname);
+    dComIfG_resDelete(&mPhs, m_arcname);
     return TRUE;
 }
 

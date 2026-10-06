@@ -1,10 +1,10 @@
 #ifndef D_A_KDDOOR_H
 #define D_A_KDDOOR_H
 
-#include "f_op/f_op_actor.h"
-#include "d/d_door.h"
 #include "d/d_cc_d.h"
-#include "d/d_bg_w.h"
+#include "d/d_door.h"
+
+class dBgW;
 
 class dDoor_ssk_sub_c {
 public:
@@ -15,28 +15,31 @@ public:
     void closeInit();
     BOOL closeProc(dDoor_info_c*);
     dDoor_ssk_sub_c();
-    ~dDoor_ssk_sub_c() {}
     BOOL drawSet();
     void calcMtx(dDoor_info_c*, float, float, unsigned char);
 
+    ~dDoor_ssk_sub_c() {}
+
 public:
-    /* 0x000 */ mDoExt_McaMorf* mpMorf;
-    /* 0x004 */ mDoExt_McaMorf* mpMorf2;
-    /* 0x008 */ dPa_smokeEcallBack mSmoke;
-    /* 0x028 */ dCcD_Stts mStts;
-    /* 0x064 */ dCcD_Cyl mCyl;
-    /* 0x194 */ u8 mEnabled;
-    /* 0x196 */ s16 mAngle;
-    /* 0x198 */ s16 mAngleSpeed;
-    /* 0x19A */ s16 mRotation;
-    /* 0x19C */ s16 mDelay;
-    /* 0x19E */ s16 mWaveSpeed;
-    /* 0x1A0 */ cXyz mScale;
-    /* 0x1AC */ cXyz mScale2;
-    /* 0x1B8 */ cXyz mPos;
-    /* 0x1C4 */ u8 mTriggered;
-    /* 0x1C5 */ u8 mSoundTimer;
-};
+    /* 0x000 */ mDoExt_McaMorf* field_0x000;
+    /* 0x004 */ mDoExt_McaMorf* field_0x004;
+    /* 0x008 */ dPa_smokeEcallBack field_0x008;
+    /* 0x028 */ dCcD_Stts field_0x028;
+    /* 0x064 */ dCcD_Cyl field_0x064;
+    /* 0x194 */ u8 field_0x194;
+    /* 0x195 */ u8 field_0x195[0x196 - 0x195];
+    /* 0x196 */ s16 field_0x196;
+    /* 0x198 */ s16 field_0x198;
+    /* 0x19A */ s16 field_0x19A;
+    /* 0x19C */ s16 field_0x19C;
+    /* 0x19E */ s16 field_0x19E;
+    /* 0x1A0 */ cXyz field_0x1A0;
+    /* 0x1AC */ cXyz field_0x1AC;
+    /* 0x1B8 */ cXyz field_0x1B8;
+    /* 0x1C4 */ u8 field_0x1C4;
+    /* 0x1C5 */ u8 field_0x1C5;
+    /* 0x1C6 */ u8 field_0x1C6[0x1C8 - 0x1C6];
+};  // Size: 0x1C8
 
 class dDoor_ssk_c {
 public:
@@ -51,37 +54,36 @@ public:
     BOOL openProc(dDoor_info_c*);
 
 public:
-    /* 0x000 */ dDoor_ssk_sub_c mSub[3];
-    /* 0x558 */ u8 mEnabled;
-    /* 0x559 */ u8 mFrontCheck;
-    /* 0x55A */ u8 mOtherEnabled;
-    /* 0x55B */ u8 mProcessing;
-    /* 0x55C */ dKy_tevstr_c mTevStr;
-};
+    /* 0x000 */ dDoor_ssk_sub_c field_0x000[3];
+    /* 0x558 */ u8 field_0x558;
+    /* 0x559 */ u8 field_0x559;
+    /* 0x55A */ u8 field_0x55A;
+    /* 0x55B */ u8 field_0x55B;
+    /* 0x55C */ dKy_tevstr_c field_0x55C;
+};  // Size: 0x60C
 
 class daKddoor_c : public dDoor_info_c {
 public:
-    bool checkFlag(unsigned short flag) { return mFlags & flag; }
+    bool checkFlag(unsigned short flag) { return (field_0x94A & flag) != 0; }
     inline BOOL execute();
-    void offFlag(unsigned short flag) { mFlags &= ~flag; }
-    void onFlag(unsigned short flag) { mFlags |= flag; }
-    void setAction(u8 action) { mAction = action; }
+    void offFlag(unsigned short flag) { field_0x94A &= ~flag; }
+    void onFlag(unsigned short flag) { field_0x94A |= flag; }
+    void setAction(unsigned char) {}
 
     BOOL chkMakeKey();
     void setKey();
     BOOL chkMakeStop();
-    s32 chkStopF();
-    s32 chkStopB();
+    int chkStopF();
+    int chkStopB();
     void setStop();
     BOOL chkGenocideCase();
     BOOL chkFeelerCase();
     BOOL chkStopOpen();
     void setStopDemo();
     BOOL chkStopClose();
-    const char* getBmdName();
-    const char* getBmdName2();
-    const char* getDzbName();
-    f32 getSize2X();
+    char* getBmdName();
+    char* getBmdName2();
+    char* getDzbName();
     BOOL CreateHeap();
     void setEventPrm();
     void openInit();
@@ -96,21 +98,19 @@ public:
     void demoProc();
     BOOL draw();
 
-public:
     static const char M_arcname[];
 
-    /* 0x2D0 */ request_of_phase_process_class mPhase;
-    /* 0x2D8 */ dDoor_smoke_c mSmoke;
-    /* 0x310 */ dDoor_key2_c mKey;
-    /* 0x334 */ dDoor_ssk_c mStop;
-    /* 0x940 */ J3DModel* mpModel;
-    /* 0x944 */ dBgW* mpBgW;
-    /* 0x948 */ u8 mAction;
-    /* 0x94A */ u16 mFlags;
-    /* 0x94C */ f32 mOffsetY;
-};
-
-STATIC_ASSERT(sizeof(dDoor_ssk_sub_c) == 0x1C8);
-STATIC_ASSERT(sizeof(daKddoor_c) == 0x950);
+public:
+    /* 0x2D0 */ request_of_phase_process_class field_0x2D0;
+    /* 0x2D8 */ dDoor_smoke_c field_0x2D8;
+    /* 0x310 */ dDoor_key2_c field_0x310;
+    /* 0x334 */ dDoor_ssk_c field_0x334;
+    /* 0x940 */ J3DModel* field_0x940;
+    /* 0x944 */ dBgW* field_0x944;
+    /* 0x948 */ u8 field_0x948;
+    /* 0x949 */ u8 field_0x949[0x94A - 0x949];
+    /* 0x94A */ u16 field_0x94A;
+    /* 0x94C */ f32 field_0x94C;
+};  // Size: 0x950
 
 #endif /* D_A_KDDOOR_H */

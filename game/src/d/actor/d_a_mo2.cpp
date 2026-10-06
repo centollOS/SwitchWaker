@@ -169,7 +169,7 @@ static void yari_off_check(mo2_class* i_this) {
     if (i_this->mSpawnWeaponActor != 0) {
         i_this->m05AE = l_mo2HIO.m08A;
         MTXCopy(i_this->mpMorf->getModel()->getAnmMtx(MO_JNT_MO_YARI_e), *calc_mtx);
-        local_48.set(0.0f, 0.0f, 0.0f);
+        local_48.setall(0.0f);
         MtxPosition(&local_48, &cStack_54);
         i_this->mWeaponPcId = fopAcM_create(fpcNm_BOKO_e, daBoko_c::Type_MOBLIN_SPEAR_e, &cStack_54, fopAcM_GetRoomNo(actor));
         i_this->mbThrowWeapon = 1;
@@ -597,12 +597,12 @@ static void ke_disp(mo2_class* i_this) {
     fopAc_ac_c* actor = &i_this->actor;
     ke_s* pkVar2 = i_this->m0DD8;
     cM_initRnd2(0xC, 0x7B, 0x32);
-    wind.set(0.0f, 0.0f, 0.0f);
+    wind.setall(0.0f);
     for (s32 i = 0; i < 16; i++, pkVar2++) {
         ke_control(i_this, pkVar2, i);
         ke_draw(i_this, pkVar2, i);
     }
-    i_this->m3Dline.update(10, 1.25f, (GXColor){0xFF, 0x64, 0, 0xFF}, 2, &actor->tevStr);
+    i_this->m3Dline.update(10, 1.25f, COMPOUND_LITERAL(GXColor){0xFF, 0x64, 0, 0xFF}, 2, &actor->tevStr);
     dComIfGd_set3DlineMat(&i_this->m3Dline);
 }
 
@@ -1870,7 +1870,7 @@ static void fight(mo2_class* i_this) {
                             i_this->m0598 = 1;
                         }
                         iVar6 = (int)i_this->m2068 - l_mo2HIO.m0D8;
-                        if (iVar6 < (int)ARRAY_SIZE(l_mo2HIO.m0E0)) {
+                        if (iVar6 < ARRAY_SSIZE(l_mo2HIO.m0E0)) {
                             i_this->m0590 = l_mo2HIO.m0E0[iVar6];
                         }
                     }
@@ -1882,7 +1882,7 @@ static void fight(mo2_class* i_this) {
                             i_this->m0598 = 1;
                         }
                         iVar6 = (int)i_this->m2068 - l_mo2HIO.m108;
-                        if (iVar6 < (int)ARRAY_SIZE(l_mo2HIO.m110)) {
+                        if (iVar6 < ARRAY_SSIZE(l_mo2HIO.m110)) {
                             i_this->m0590 = l_mo2HIO.m110[iVar6];
                         }
                     }
@@ -1912,28 +1912,6 @@ static void fight(mo2_class* i_this) {
             }
             fopAc_ac_c* hitActor = yari_hit_check(i_this);
             if (hitActor != NULL) {
-#if VERSION == VERSION_DEMO
-                // fakematch (demo only): the demo target branches `beq case; b next` on the name, the
-                // shape a one-case switch produces; if/else-if gives `bne`. Still 99.79%: the name stays in r4 in the
-                // target and the checkPlayerGuard test also has the `bne; b` shape (not reproduced).
-                switch (fopAcM_GetName(hitActor)) {
-                case fpcNm_PLAYER_e:
-                    if (player->checkPlayerGuard() && i_this->m2060 != 3) {
-                        i_this->mpMorf->setPlaySpeed(-1.0f);
-                        if (i_this->m05F0 != 0) {
-                            i_this->m05F0 = l_mo2HIO.m024 + 6;
-                        }
-                        i_this->m207E = 0xFF;
-                        i_this->mpMorf->play(&actor->eyePos, 0, 0);
-                    }
-                    break;
-                default:
-                    if (fopAcM_GetName(hitActor) == fpcNm_MO2_e) {
-                        i_this->m2954 = fopAcM_GetID(hitActor);
-                    }
-                    break;
-                }
-#else
                 if (fopAcM_GetName(hitActor) == fpcNm_PLAYER_e) {
                     if (player->checkPlayerGuard() && i_this->m2060 != 3) {
                         i_this->mpMorf->setPlaySpeed(-1.0f);
@@ -1946,7 +1924,6 @@ static void fight(mo2_class* i_this) {
                 } else if (fopAcM_GetName(hitActor) == fpcNm_MO2_e) {
                     i_this->m2954 = fopAcM_GetID(hitActor);
                 }
-#endif
             } else {
                 i_this->mWeaponSph.ClrAtHit();
                 i_this->mWeapon2Sph.ClrAtHit();
@@ -4155,11 +4132,7 @@ static cPhs_State daMo2_Create(fopAc_ac_c* a_this) {
     fopAcM_SetMin(a_this, -200.0f, -50.0f, -100.0f);
     fopAcM_SetMax(a_this, 125.0f, 250.0f, 250.0f);
     fopAcM_SetMtx(a_this, i_this->mpMorf->getModel()->getBaseTRMtx());
-#if TARGET_PC
     i_this->mpMorf->getModel()->setUserArea((uintptr_t)a_this);
-#else
-    i_this->mpMorf->getModel()->setUserArea((u32)a_this);
-#endif
     i_this->actor.initBt(162.5f, 125.0f);
     i_this->mDamageReaction.m70C = 1;
     i_this->mDamageReaction.mSpawnY = a_this->current.pos.y;
