@@ -204,9 +204,10 @@ BOOL dEvt_control_c::talkXyCheck(dEvt_order_c* order) {
             break;
         }
 
-        s16 eventId;
-        if (actor2 != NULL && (eventId = actor2->eventInfo.runXyEventCB(actor2, itemBtn)) != -1) {
-            mEventId = eventId;
+        // Fakematch
+        s16 r3;
+        if (actor2 != NULL && (r3 = actor2->eventInfo.runXyEventCB(actor2, itemBtn), r3 != -1)) {
+            mEventId = r3;
         } else {
             mEventId = dComIfGp_evmng_getEventIdx(defaultEventName);
         }
@@ -431,11 +432,11 @@ BOOL dEvt_control_c::checkChange() {
         while (true) {
             order = &mOrder[nextIdx];
             nextIdx = order->mNextOrderIdx;
-            switch (order->mEventType) {
-            case dEvtType_CHANGE_e:
+            if ((s32)order->mEventType != dEvtType_CHANGE_e) {
+                // Fakematch, assigning a float member to itself tricks the compiler into creating a beq then a b.
+                mCullFarClipRatio = mCullFarClipRatio;
+            } else {
                 return TRUE;
-            default:
-                break;
             }
 
             if (nextIdx < 0)
@@ -454,14 +455,11 @@ BOOL dEvt_control_c::changeProc() {
         while (true) {
             dEvt_order_c* order = &mOrder[nextIdx];
             nextIdx = order->mNextOrderIdx;
-            switch (order->mEventType) {
-            case dEvtType_CHANGE_e:
-                if (demoCheck(order)) {
-                    return TRUE;
-                }
-                break;
-            default:
-                break;
+            if ((s32)order->mEventType != dEvtType_CHANGE_e) {
+                // Fakematch, assigning a float member to itself tricks the compiler into creating a beq then a b.
+                mCullFarClipRatio = mCullFarClipRatio;
+            } else if (demoCheck(order)) {
+                return TRUE;
             }
 
             if (nextIdx < 0)

@@ -12,11 +12,11 @@
 
 /* 80071778-8007195C       .text dEvDt_Next_Stage__Fii */
 BOOL dEvDt_Next_Stage(int staffIdx, int wipePrm) {
-    const char * pStageName;
     u32 roomNo;
     u32 layerNo;
     u32 mode;
     u32 wipe;
+    const char * pStageName;
 
     roomNo = 0;
     layerNo = -1;
@@ -70,7 +70,8 @@ BOOL dEvDtFlag_c::flagSet(int flag_id) {
         return FALSE;
 
     u32 byteNo = ((u32)flag_id / 0x20);
-    mFlag[byteNo] |= 1 << (flag_id & 0x1F);
+    u32 bitNo = 1 << (flag_id & 0x1F);
+    mFlag[byteNo] |= bitNo;
     return TRUE;
 }
 
@@ -537,16 +538,12 @@ void dEvDtStaff_c::specialProcCreate() {
                 if (pAngle == NULL) {
                     angle.setall(0);
                 } else {
-#if VERSION == VERSION_DEMO
-                    angle.set(pAngle[0], pAngle[1], pAngle[2]);
-#else
                     s16 x = pAngle[0];
                     s16 z = pAngle[2];
                     s16 y = pAngle[1];
                     angle.x = x;
                     angle.y = y;
                     angle.z = z;
-#endif
                 }
 
                 cXyz* pScale = dComIfGp_evmng_getMyXyzP(staffIdx, "SCALE");
@@ -656,15 +653,11 @@ void dEvDtStaff_c::specialProcDirector() {
                     if (pattern == NULL || type == NULL)
                         JUT_ASSERT(0x36f, FALSE);
 
-#if VERSION == VERSION_DEMO
-                    dComIfGp_getVibration().StartQuake(pattern, 0, *type, cXyz(0.0f, 1.0f, 0.0f));
-#else
                     Vec xyz;
                     xyz.x = 0.0f;
                     xyz.y = 1.0f;
                     xyz.z = 0.0f;
                     dComIfGp_getVibration().StartQuake(pattern, 0, *type, xyz);
-#endif
                 }
                 break;
             case ACT_SE_START:
@@ -916,10 +909,8 @@ void dEvDtBase_c::init() {
 
 /* 80073674-800736E4       .text advanceCut__11dEvDtBase_cFP12dEvDtEvent_c */
 void dEvDtBase_c::advanceCut(dEvDtEvent_c* evt) {
-    for (s32 i = 0; i < evt->getNStaff(); i++) {
-        dEvDtStaff_c* staff = &mStaffP[evt->getStaff(i)];
-        advanceCutLocal(staff);
-    }
+    for (s32 i = 0; i < evt->getNStaff(); i++)
+        advanceCutLocal(&mStaffP[evt->getStaff(i)]);
 }
 
 /* 800736E4-800737DC       .text advanceCutLocal__11dEvDtBase_cFP12dEvDtStaff_c */

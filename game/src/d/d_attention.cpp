@@ -253,7 +253,7 @@ s32 check_event_condition(u32 attnType, u16 flags) {
 /* 8009DB60-8009DC28       .text check_flontofplayer__FUlss */
 s32 check_flontofplayer(u32 checkMask, s16 angle1, s16 angle2) {
     /// merged from TP
-    static uint ftp_table[] = {
+    static u32 ftp_table[] = {
         0x04, 0x01, 0x02, 0x08, 0x10, 0x20, 0x40, 0x80, 0x100,
     };
     static s16 ang_table[3] = {
@@ -293,8 +293,7 @@ s32 check_flontofplayer(u32 checkMask, s16 angle1, s16 angle2) {
 /* 8009DC28-8009DC74       .text distace_weight__Ffsf */
 f32 distace_weight(f32 distance, s16 angle, f32 ratio) {
     f32 turns = (f32)angle / 0x8000;
-    f32 sq = turns * turns;
-    return distance * ((1.0F - ratio) + ratio * sq);
+    return distance * (f32)((1.0F - ratio) + (f32)(ratio * (turns * turns)));
 }
 
 /* 8009DC74-8009DCD4       .text distace_angle_adjust__Ffsf */
@@ -303,8 +302,8 @@ f32 distace_angle_adjust(f32 distance, s16 angle, f32 ratio) {
     if (turns < 0.0f) {
         turns = -turns;
     }
-    f32 sq = (1.0f - turns) * (1.0f - turns);
-    return distance * ((1.0f - ratio) + ratio * sq);
+
+    return distance * ((1.0f - ratio) + (ratio * ((1.0f - turns) * (1.0f - turns))));
 }
 
 /* 8009DCD4-8009DE44       .text check_distace__FP4cXyzsP4cXyzffff */
@@ -775,7 +774,8 @@ void dAttention_c::judgementStatusSw(u32 interactMask) {
         case LockState_LOCK:
             mLockonTargetID = LockonTargetPId(0);
             if (field_0x01a == 1) {
-                if (-0.9f < CPad_GET_STICK_POS_Y(mPadNo) && nextAttention(interactMask) != NULL && mLockonCount > 1) {
+                f32 stickY = CPad_GET_STICK_POS_Y(mPadNo);
+                if (-0.9f < stickY && nextAttention(interactMask) != NULL && mLockonCount > 1) {
                     setFlag(AttnFlag_00000008);
                 } else {
                     mLockOnState = LockState_RELEASE;

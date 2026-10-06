@@ -14,10 +14,8 @@ public:
     /* 0x1D4 */ mDoDvdThd_toMainRam_c * sceneCommand;
     /* 0x1D8 */ bool mbHasRoomParticle;
     /* 0x1D9 */ bool mbReLoaded;
-#if VERSION > VERSION_DEMO
     /* 0x1DA */ bool mbSetMap;
     /* 0x1DB */ bool field_0x1db;
-#endif
     /* 0x1DC */ u16 field_0x1dc;
 };
 

@@ -331,14 +331,8 @@ void dKyw_wether_delete() {
         delete g_env_light.mpWavePacket;
     }
 
-#if VERSION == VERSION_DEMO
-    dScnKy_env_light_c& env_light = dKy_getEnvlight();
-    if (env_light.mbWindlineInitialized) {
-        WINDEFF_SET* wind_p = env_light.mpWind;
-#else
     if (g_env_light.mbWindlineInitialized) {
         WINDEFF_SET* wind_p = g_env_light.mpWind;
-#endif
         for (int i = 0; i < 30; i++) {
             if (wind_p->mWindEff[i].mpEmitter != NULL) {
                 wind_p->mWindEff[i].mpEmitter->deleteAllParticle();
@@ -1225,7 +1219,8 @@ void dKyw_pntwind_get_info(cXyz* param_0, cXyz* i_dir, f32* i_power) {
     *i_power = 0.0f;
 
     WIND_INFLUENCE* influence;
-    for (int i = 0; i < 30; i++) {
+    s32 influence_count = ARRAY_SIZE(g_env_light.mpWindInfluence);
+    for (int i = 0; i < influence_count; i++) {
         influence = g_env_light.mpWindInfluence[i];
         if (influence != NULL) {
             f32 dist = param_0->abs(influence->mPos);
@@ -1356,9 +1351,8 @@ void dKyw_tact_wind_set_go() {
 
 /* 8008A890-8008A8B0       .text dKyw_get_tactwind_dir__Fv */
 int dKyw_get_tactwind_dir() {
-    dScnKy_env_light_c& env_light = dKy_getEnvlight();
     int ret = 0;
-    if ((env_light.mWind.mTactWindAngleFlags & 0x80) != 0) {
+    if ((g_env_light.mWind.mTactWindAngleFlags & 0x80) != 0) {
         ret = 1;
     }
 
@@ -1405,17 +1399,15 @@ void dKyw_evt_wind_set(s16 i_windX, s16 i_windY) {
 
 /* 8008A958-8008A96C       .text dKyw_evt_wind_set_go__Fv */
 void dKyw_evt_wind_set_go() {
-    dScnKy_env_light_c& env_light = dKy_getEnvlight();
-    env_light.mWind.mEvtWindSet = 1;
+    g_env_light.mWind.mEvtWindSet = 1;
 }
 
 /* 8008A96C-8008A9F8       .text dKyw_gbwind_use_check__Fv */
 BOOL dKyw_gbwind_use_check() {
-    dScnKy_env_light_c& env_light = dKy_getEnvlight();
     dStage_FileList_dt_c* fili_p = NULL;
     BOOL rt = 0;
 
-    if (env_light.mWind.mpWindVecOverride == NULL) {
+    if (g_env_light.mWind.mpWindVecOverride == NULL) {
         s32 roomNo = dComIfGp_roomControl_getStayNo();
         if (roomNo >= 0) {
             fili_p = dComIfGp_roomControl_getStatusRoomDt(roomNo)->getFileListInfo();

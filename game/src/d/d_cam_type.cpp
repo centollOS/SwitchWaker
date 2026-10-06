@@ -199,12 +199,6 @@ const dCamera__Type dCamera_c::types[] = {
         "FixdFrm",
         {dCamStyle_XN06_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_SS01_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_SX01_e, dCamStyle_SY01_e, dCamStyle_NONE_e, dCamStyle_CC01_e, dCamStyle_SN15_e, dCamStyle_NONE_e, dCamStyle_EN00_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e},
     },
-#if VERSION == VERSION_DEMO
-    {
-        "Restrict",
-        {dCamStyle_LN01_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_SS01_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_SX01_e, dCamStyle_SY01_e, dCamStyle_NONE_e, dCamStyle_CC01_e, dCamStyle_SN15_e, dCamStyle_NONE_e, dCamStyle_EN00_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e},
-    },
-#endif
     {
         "DStairs",
         {dCamStyle_FN02_e, dCamStyle_FN02_e, dCamStyle_LL02_e, dCamStyle_TT02_e, dCamStyle_SS01_e, dCamStyle_LW01_e, dCamStyle_LE01_e, dCamStyle_LH02_e, dCamStyle_LA02_e, dCamStyle_LB02_e, dCamStyle_SX01_e, dCamStyle_SY01_e, dCamStyle_MM16_e, dCamStyle_CC01_e, dCamStyle_SN15_e, dCamStyle_JN05_e, dCamStyle_EN00_e, dCamStyle_HN18_e, dCamStyle_HN16_e, dCamStyle_DD02_e},
@@ -257,7 +251,6 @@ const dCamera__Type dCamera_c::types[] = {
         "Boss04",
         {dCamStyle_FN37_e, dCamStyle_FN05_e, dCamStyle_LL02_e, dCamStyle_TT02_e, dCamStyle_SS01_e, dCamStyle_LW01_e, dCamStyle_LE01_e, dCamStyle_LH02_e, dCamStyle_LA02_e, dCamStyle_LB02_e, dCamStyle_SX01_e, dCamStyle_SY01_e, dCamStyle_MM02_e, dCamStyle_CC01_e, dCamStyle_SN15_e, dCamStyle_JN05_e, dCamStyle_EN00_e, dCamStyle_HN18_e, dCamStyle_HN16_e, dCamStyle_DD04_e},
     },
-#if VERSION > VERSION_DEMO
     {
         "UnderTheEaves",
         {dCamStyle_FN01_e, dCamStyle_FN01_e, dCamStyle_LL01_e, dCamStyle_TT01_e, dCamStyle_SS01_e, dCamStyle_LW01_e, dCamStyle_LE01_e, dCamStyle_LH01_e, dCamStyle_LA01_e, dCamStyle_LB01_e, dCamStyle_SX01_e, dCamStyle_SY01_e, dCamStyle_MM22_e, dCamStyle_CC01_e, dCamStyle_SN15_e, dCamStyle_JN05_e, dCamStyle_EN00_e, dCamStyle_HN18_e, dCamStyle_HN16_e, dCamStyle_DD01_e},
@@ -266,7 +259,6 @@ const dCamera__Type dCamera_c::types[] = {
         "Restrict",
         {dCamStyle_LN01_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_SS01_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_SX01_e, dCamStyle_SY01_e, dCamStyle_NONE_e, dCamStyle_CC01_e, dCamStyle_SN15_e, dCamStyle_NONE_e, dCamStyle_EN00_e, dCamStyle_NONE_e, dCamStyle_NONE_e, dCamStyle_NONE_e},
     },
-#endif
 #if VERSION > VERSION_JPN
     {
         "DungeonUp",

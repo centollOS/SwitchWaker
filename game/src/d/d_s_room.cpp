@@ -17,12 +17,10 @@
 #include "d/actor/d_a_salvage.h"
 #include "d/actor/d_a_npc_md.h"
 #include "m_Do/m_Do_dvd_thread.h"
-#include "m_Do/m_Do_machine.h"
 #include "JSystem/JKernel/JKRHeap.h"
 #include "JSystem/JKernel/JKRExpHeap.h"
 #include "stdio.h"
 
-#if VERSION > VERSION_DEMO
 // Fake inline: An inline like this seems necessary for setMapImage to match, but it isn't in the debug maps.
 // TODO: Try to find a way to match setMapImage with real inlines.
 inline f32 getActorPositionY(fopAc_ac_c* actor) {
@@ -47,7 +45,6 @@ void deleteMapImage(room_of_scene_class* i_this) {
 
     dComIfGp_map_deleteImage(fopScnM_GetParam(i_this));
 }
-#endif
 
 /* 802369C8-80236A0C       .text setArcName__FP19room_of_scene_class */
 char* setArcName(room_of_scene_class* i_this) {
@@ -69,11 +66,7 @@ void* deleteJugge(void* i_this, void*) {
 
 /* 80236A38-80236B1C       .text objectSetCheck__FP19room_of_scene_class */
 void objectSetCheck(room_of_scene_class* i_this) {
-#if VERSION == VERSION_DEMO
-    int roomNo = fopScnM_GetParam(i_this);
-#else
     s32 roomNo = fopScnM_GetParam(i_this);
-#endif
     s32 hiddenFlag = dComIfGp_roomControl_checkStatusFlag(roomNo, 0x08);
 
     if (!i_this->mbReLoaded) {
@@ -83,9 +76,7 @@ void objectSetCheck(room_of_scene_class* i_this) {
             i_this->mbReLoaded = true;
         }
     } else {
-#if VERSION > VERSION_DEMO
         s32 roomNo = fopScnM_GetParam(i_this);
-#endif
         if (hiddenFlag) {
             fpcLyIt_Judge(fpcM_Layer(i_this), deleteJugge, NULL);
             dComIfGs_clearRoomSwitch(dComIfGp_roomControl_getZoneNo(roomNo));
@@ -97,9 +88,7 @@ void objectSetCheck(room_of_scene_class* i_this) {
 /* 80236B1C-80236BAC       .text dScnRoom_Execute__FP19room_of_scene_class */
 static BOOL dScnRoom_Execute(room_of_scene_class* i_this) {
     u32 roomNo = fopScnM_GetParam(i_this);
-#if VERSION > VERSION_DEMO
     setMapImage(i_this);
-#endif
 
     if (dComIfGp_roomControl_checkStatusFlag(roomNo, 0x04)) {
         fopScnM_DeleteReq(i_this);
@@ -125,11 +114,7 @@ static BOOL dScnRoom_IsDelete(room_of_scene_class* i_this) {
 /* 80236BB4-80236D24       .text dScnRoom_Delete__FP19room_of_scene_class */
 static BOOL dScnRoom_Delete(room_of_scene_class* i_this) {
     int roomNo = fopScnM_GetParam(i_this);
-#if VERSION == VERSION_DEMO
-    dComIfGp_map_deleteImage(roomNo);
-#else
     deleteMapImage(i_this);
-#endif
     const char * arcName = setArcName(i_this);
     dComIfG_deleteStageRes(arcName);
     dStage_roomControl_c::mStatus[roomNo].mFlags = 0;
@@ -273,35 +258,12 @@ cPhs_State phase_3(room_of_scene_class* i_this) {
 
 /* 802371D0-802372C4       .text phase_4__FP19room_of_scene_class */
 cPhs_State phase_4(room_of_scene_class* i_this) {
-#if VERSION == VERSION_DEMO
-    fopAc_ac_c* player = dComIfGp_getPlayer(0);
-    if (player == NULL)
-        return cPhs_INIT_e;
-
-    int roomNo = fopScnM_GetParam(i_this);
-
-    dComIfGp_map_setImage(roomNo, dComIfGp_roomControl_getStayNo(), player->current.pos.y);
-
-    if (mDoMch_render_c::getRenderModeObj() == &g_ntscZeldaProg) {
-        dStage_FileList_dt_c* fili = dComIfGp_roomControl_getStatusRoomDt(roomNo)->getFileListInfo();
-        if (fili != NULL) {
-            int depth = 180;
-            if (strcmp(dComIfGp_getStartStageName(), "KAIZOKU") == 0 || strcmp(dComIfGp_getStartStageName(), "MajyuE") == 0) {
-                depth = 205;
-            } else if (strcmp(dComIfGp_getStartStageName(), "Ocean") == 0) {
-                depth = 240;
-            }
-            fili->mParam = (fili->mParam & ~0x7F80) | (depth << 7);
-        }
-    }
-#else
     if (dComIfGp_getPlayer(0) == NULL)
         return cPhs_INIT_e;
 
     s32 roomNo = fopScnM_GetParam(i_this);
 
     setMapImage(i_this);
-#endif
 
     if (dComIfGs_checkGetItem(dItemNo_PEARL_DIN_e))
         i_this->field_0x1dc = 1;

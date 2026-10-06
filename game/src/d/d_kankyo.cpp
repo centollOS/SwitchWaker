@@ -1769,7 +1769,7 @@ void setLightTevColorType_sub(J3DMaterial* i_material, dKy_tevstr_c* i_tevstr) {
         int prev_a = i_material->getTevColor(3)->mColor.a;
 
         var_r28 = 0xFF;
-        if (prev_a > 0 && i_material->mTevBlock->getTevKColorSel(prev_a - 1) == 13) {
+        if (prev_a > 0 && i_material->getTevBlock()->getTevKColorSel(prev_a - 1) == 13) {
             var_r28 = prev_a - 1;
         }
 

@@ -757,14 +757,6 @@ const dCamera__Style dCamParam_c::styles[] = {
         {0.0f, 0.0f, -99999.99f, 0.75f, 0.25f, 12.0f, -99999.99f, -99999.99f, -99999.99f, -99999.99f, 350.0f, 100.0f, -99999.99f, 0.66f, 0.09f, 15.0f, -40.0f, 60.0f, 2.0f, 0.05f, 0.1f, -99999.99f, -99999.99f, 2.0f, 0.3f, 60.0f, -99999.99f, -99999.99f, -99999.99f, 0.05f},
         dCamPrmFlg_UNK001 | dCamPrmFlg_UNK400,
     },
-#if VERSION == VERSION_DEMO
-    {
-        'MM18',
-        dCamAlg_MANUAL_CAMERA_e,
-        {0.0f, 0.0f, -99999.99f, 0.7f, 0.25f, 20.0f, 20.0f, 30.0f, 0.0f, 1.0f, 300.0f, 200.0f, 500.0f, 0.0f, 20.0f, 20.0f, 30.0f, 10.0f, 0.0f, 1.3f, 0.33f, 0.66f, -99999.99f, 0.0f, 8.0f, 55.0f, 55.0f, 60.0f, 0.0f, 0.5f},
-        dCamPrmFlg_UNK002,
-    },
-#endif
     {
         'FN19',
         dCamAlg_FOLLOW_CAMERA_e,
@@ -831,14 +823,6 @@ const dCamera__Style dCamParam_c::styles[] = {
         {0.0f, 0.0f, -99999.99f, 0.7f, 0.25f, 10.0f, 0.0f, 30.0f, 0.0f, 2.0f, 320.0f, 250.0f, 500.0f, 0.0f, 26.0f, 0.0f, -5.0f, 20.0f, 0.0f, 1.2f, 0.33f, 0.5f, -99999.99f, 0.0f, 8.0f, 55.0f, 50.0f, 64.0f, 0.0f, 0.9f},
         dCamPrmFlg_UNK002,
     },
-#if VERSION == VERSION_DEMO
-    {
-        'MM17',
-        dCamAlg_MANUAL_CAMERA_e,
-        {0.0f, 0.0f, -99999.99f, 0.7f, 0.25f, 20.0f, 20.0f, 30.0f, 0.0f, 1.0f, 250.0f, 160.0f, 420.0f, 0.0f, 20.0f, 20.0f, 20.0f, 5.0f, 0.0f, 1.4f, 0.33f, 0.66f, -99999.99f, 0.0f, 8.0f, 55.0f, 55.0f, 60.0f, 0.0f, 0.5f},
-        dCamPrmFlg_UNK002,
-    },
-#endif
     {
         'FN05',
         dCamAlg_FOLLOW_CAMERA_e,
@@ -875,7 +859,6 @@ const dCamera__Style dCamParam_c::styles[] = {
         {80.0f, 0.0f, -99999.99f, 0.03f, 0.03f, 60.0f, -99999.99f, -99999.99f, -99999.99f, -99999.99f, 450.0f, 400.0f, -99999.99f, -99999.99f, -99999.99f, -4.0f, -99999.99f, -99999.99f, 0.33f, -99999.99f, 0.0f, -99999.99f, -99999.99f, -45.0f, -99999.99f, 45.0f, -99999.99f, -99999.99f, -99999.99f, -99999.99f},
         dCamPrmFlg_UNK002,
     },
-#if VERSION > VERSION_DEMO
     {
         'MM22',
         dCamAlg_MANUAL_CAMERA_e,
@@ -894,7 +877,6 @@ const dCamera__Style dCamParam_c::styles[] = {
         {0.0f, 0.0f, -99999.99f, 0.7f, 0.25f, 30.0f, 25.0f, 30.0f, 0.0f, 0.5f, 250.0f, 160.0f, 420.0f, 0.0f, 20.0f, 20.0f, 40.0f, 5.0f, 0.0f, 2.4f, 0.33f, 0.66f, -99999.99f, 0.0f, 8.0f, 55.0f, 55.0f, 58.0f, 0.0f, 0.45f},
         dCamPrmFlg_UNK002,
     },
-#endif
 #if VERSION > VERSION_JPN
     {
         'MM03',

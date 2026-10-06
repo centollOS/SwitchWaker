@@ -37,42 +37,9 @@ void dBgS_AcchCir::SetWall(f32 height, f32 radius) {
     SetWallR(radius);
 }
 
-dBgS_Acch::dBgS_Acch(const dBgS_Acch& other)
-    : cBgS_Chk(other),
-      dBgS_Chk(other),
-      m_flags(other.m_flags),
-      pm_pos(other.pm_pos),
-      pm_old_pos(other.pm_old_pos),
-      pm_speed(other.pm_speed),
-      pm_angle(other.pm_angle),
-      pm_shape_angle(other.pm_shape_angle),
-      m_lin(other.m_lin),
-      m_wall_cyl(other.m_wall_cyl),
-      m_bg_index(other.m_bg_index),
-      field_0x78(other.field_0x78),
-      m_ap_id(other.m_ap_id),
-      m_my_ac(other.m_my_ac),
-      m_tbl_size(other.m_tbl_size),
-      pm_acch_cir(other.pm_acch_cir),
-      m_ground_up_h(other.m_ground_up_h),
-      m_ground_up_h_diff(other.m_ground_up_h_diff),
-      m_ground_h(other.m_ground_h),
-      m_ground_check_offset(other.m_ground_check_offset),
-      m_pla(other.m_pla),
-      field_0xb0(other.field_0xb0),
-      field_0xb4(other.field_0xb4),
-      field_0xb8(other.field_0xb8),
-      m_roof_height(other.m_roof_height),
-      m_roof_crr_height(other.m_roof_crr_height),
-      field_0xC4(other.field_0xC4),
-      m_wtr_check_offset(other.m_wtr_check_offset),
-      pm_out_poly_info(other.pm_out_poly_info),
-      m_sea_height(other.m_sea_height),
-      m_gnd(other.m_gnd),
-      m_roof(other.m_roof),
-      m_wtr(other.m_wtr)
-{
-    OSReport("***********************************\ndBgS_Acch::copy constructer called.\n***********************************\n");
+static void dummy3() {
+    // Fakematch to fix the order of vtables in this TU, cM3dGPla's should appear after dBgS_Acch's.
+    cM3dGPla pla;
 }
 
 /* 800A2624-800A29B0       .text __dt__9dBgS_AcchFv */
@@ -106,6 +73,10 @@ dBgS_Acch::dBgS_Acch() {
     m_my_ac = NULL;
     pm_out_poly_info = NULL;
     m_sea_height = -G_CM3D_F_INF;
+}
+
+static void dummy1() {
+    DEAD_STRING("***********************************\ndBgS_Acch::copy constructer called.\n***********************************\n");
 }
 
 /* 800A2CFC-800A2D78       .text Init__9dBgS_AcchFv */
@@ -479,6 +450,7 @@ f32 dBgS_Acch::GetWallAddY(Vec& vec, int) {
     }
 }
 
-dBgS_ObjAcch::dBgS_ObjAcch(const dBgS_ObjAcch& other) : dBgS_Acch(other) {
-    OSReport("\x1B[43;30m**************************************\ndBgS_ObjAcch::copy constructer called.\n**************************************\n\033[m");
+static void dummy2() {
+    DEAD_STRING("\x1B[43;30m**************************************\ndBgS_ObjAcch::copy constructer called.\n**************************************\n\033[m");
+    dBgS_ObjAcch acch; // fakematch to get dBgS_ObjAcch's vtable and destructor to show up in this TU
 }

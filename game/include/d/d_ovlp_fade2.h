@@ -25,10 +25,7 @@ public:
     void execNextSnap();
     void execFadeIn();
 
-    typedef void (dOvlpFd2_c::*ExecuteFunc)();
-    void setExecute(ExecuteFunc func) { mProc = func; }
-
-    /* 0x0CC */ ExecuteFunc mProc;
+    /* 0x0CC */ void (dOvlpFd2_c::*mProc)();
     /* 0x0D8 */ dDlst_snapShot_c dSnap_dlst;
     /* 0x0DC */ dOvlpFd2_dlst_c dOvlpFd2_dlst;
     /* 0x110 */ s16 field_0x110;

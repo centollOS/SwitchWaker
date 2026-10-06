@@ -52,6 +52,8 @@ public:
     void proc_draw();
     virtual void draw();
 
+    bool isEnd() { return mState == 44; }
+
     /* 0x004 */ JKRExpHeap* exp_heap;
     /* 0x008 */ dScnOpen_message_c* m_message;
     /* 0x00C */ J2DScreen* m_Screen;

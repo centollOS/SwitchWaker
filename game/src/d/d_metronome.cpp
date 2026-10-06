@@ -304,13 +304,9 @@ void dMetronome_c::melodyGuideShow(s32 note, s16 no) {
 
     fopMsgM_cposMove(&pane_cn[no]);
 
-#if VERSION == VERSION_DEMO
-    ((J2DScreen*)pane_i11[no].pane)->rotate(pane_i11[no].mSize.x / 2.0f, pane_i11[no].mSize.y / 2.0f, ROTATE_Z, rot[note]);
-#else
     f32 centerX = pane_i11[no].mSize.x / 2.0f;
     f32 centerY = pane_i11[no].mSize.y / 2.0f;
     ((J2DScreen*)pane_i11[no].pane)->rotate(centerX, centerY, ROTATE_Z, rot[note]);
-#endif
 }
 
 /* 80222854-80222C4C       .text melodyShow__12dMetronome_cFv */
@@ -510,18 +506,12 @@ void dMetronome_c::_create() {
     scrn->set("baton_input.blo", dComIfGp_getTactMsgArchive());
     screenSet();
     initialize();
-#if VERSION == VERSION_DEMO
-    g_mnHIO.entryHIO("メトロノーム");
-#endif
 }
 
 /* 8022319C-802231F4       .text _delete__12dMetronome_cFv */
 void dMetronome_c::_delete() {
     delete scrn;
     dComIfGp_getTactMsgArchive()->removeResourceAll();
-#if VERSION == VERSION_DEMO
-    g_mnHIO.removeHIO();
-#endif
 }
 
 /* 802231F4-80223314       .text _move__12dMetronome_cFv */
@@ -599,7 +589,6 @@ bool dMetronome_c::_open() {
 bool dMetronome_c::_close() {
     mbOpen = false;
     if (!mbOpen) {  // nice bug
-#if VERSION > VERSION_DEMO
         for (s32 i = 0; i < 7; i++) {
             fopMsgM_setNowAlphaZero(&pane_cn[i]);
             fopMsgM_setNowAlphaZero(&pane_wn[i]);
@@ -608,7 +597,6 @@ bool dMetronome_c::_close() {
             fopMsgM_setNowAlphaZero(&pane_i12[i]);
             fopMsgM_setNowAlphaZero(&pane_bs[i]);
         }
-#endif
 
         for (s32 i = 0; i < 21; i++) {
             fopMsgM_setNowAlphaZero(&pane_timing[i]);

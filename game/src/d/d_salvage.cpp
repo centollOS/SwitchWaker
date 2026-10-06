@@ -13,10 +13,9 @@ namespace daSalvage_prm {
     inline u8 getKindCmapNo(fopAc_ac_c* pact) { return pact->home.angle.z & 0x03; }
     inline int getSwitchNo(fopAc_ac_c* pact) { return pact->home.angle.z & 0xFF; }
     inline u8 getRoomNo(fopAc_ac_c* pact) { return fopAcM_GetParam(pact) >> 12; }
-    // fakematch? u32 returns with an inner (u8) cast; needed for demo entry()
-    inline u32 getSvNo(fopAc_ac_c* pact) { return (u8)(fopAcM_GetParam(pact) >> 20); }
+    inline u8 getSvNo(fopAc_ac_c* pact) { return fopAcM_GetParam(pact) >> 20; }
     inline u8 getType(fopAc_ac_c* pact) { return fopAcM_GetParam(pact) & 0x0F; }
-    inline u32 getItemNo(fopAc_ac_c* pact) { return (u8)(fopAcM_GetParam(pact) >> 4); }
+    inline u8 getItemNo(fopAc_ac_c* pact) { return fopAcM_GetParam(pact) >> 4; }
     inline u8 getKind(fopAc_ac_c* pact) { return fopAcM_GetParam(pact) >> 28; }
 };
 

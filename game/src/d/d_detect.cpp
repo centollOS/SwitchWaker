@@ -39,11 +39,12 @@ dDetect_c::~dDetect_c() {}
 
 /* 8009C0F8-8009C14C       .text proc__9dDetect_cFv */
 void dDetect_c::proc() {
-    for (int i = 0; i < 1; i++) {
-        if (mPlace[i].mTimer > 0) {
-            mPlace[i].mTimer--;
-        } else if (mPlace[i].mTimer < 0) {
-            mPlace[i].mTimer = 1;
+    dDetectPlace_c* place = mPlace;
+    for (int i = 0; i < ARRAY_SIZE(mPlace); i++, place++) {
+        if (place->mTimer > 0) {
+            place->mTimer--;
+        } else if (place->mTimer < 0) {
+            place->mTimer = 1;
         }
     }
 
@@ -80,8 +81,8 @@ bool dDetect_c::chk_quake(const cXyz* pos) const {
 /* 8009C1E0-8009C254       .text set_quake__9dDetect_cFPC4cXyz */
 void dDetect_c::set_quake(const cXyz* pos) {
     if (pos) {
-        for (int i = 0; i < 1; i++) {
-            dDetectPlace_c* place = &mPlace[i];
+        dDetectPlace_c* place = mPlace;
+        for (int i = 0; i < ARRAY_SIZE(mPlace); i++, place++) {
             if (!place->chk_enable()) {
                 place->mTimer = -1;
                 place->mPos = *pos;
@@ -98,8 +99,7 @@ bool dDetect_c::chk_quake_area(const cXyz* pos) const {
     daPy_py_c* player = daPy_getPlayerActorClass();
     f32 maxDist2XZ = SQUARE(attr().maxDistXZ);
     f32 dist2XZ = player->current.pos.abs2XZ(*pos);
-    f32 playerY = player->current.pos.y;
-    f32 diffY = pos->y - playerY;
+    f32 diffY = pos->y - player->current.pos.y;
     return dist2XZ <= maxDist2XZ && diffY <= attr().maxY && diffY >= attr().minY;
 }
 

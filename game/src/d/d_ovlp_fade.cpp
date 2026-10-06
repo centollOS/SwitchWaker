@@ -21,20 +21,12 @@ static BOOL dOvlpFd_Draw(overlap1_class* i_this) {
 BOOL dOvlpFd_FadeOut(overlap1_class* i_this) {
     if (i_this->mFadeOutTime == 0) {
         if (fpcM_GetProfName(i_this) != fpcNm_OVERLAP6_e) {
-#if VERSION == VERSION_DEMO
-            JFWDisplay::getManager()->startFadeIn(26);
-#else
             if (!JFWDisplay::getManager()->getFader()->startFadeIn(26))
                 return TRUE;
-#endif
             i_this->mFadeOutTime = 26;
         } else {
-#if VERSION == VERSION_DEMO
-            JFWDisplay::getManager()->startFadeIn(0);
-#else
             if (!JFWDisplay::getManager()->getFader()->startFadeIn(0))
                 return TRUE;
-#endif
             i_this->mFadeOutTime = 1;
         }
     }
