@@ -21,7 +21,7 @@ const f32 daShopItem_c::m_cullfar_max = 5000.0f;
 
 /* 00000078-000000D8       .text getShopArcname__12daShopItem_cFv */
 const char* daShopItem_c::getShopArcname() {
-    u32 type = fopAcM_GetParamBit(fopAcM_GetParam(this), 8, 4);
+    u8 type = fopAcM_GetParamBit(fopAcM_GetParam(this), 8, 4);
     if(type == 1 || (type == 0 && mModelType[m_itemNo] == 0x01)) {
         return dItem_data::getFieldArc(m_itemNo);
     }
@@ -32,7 +32,7 @@ const char* daShopItem_c::getShopArcname() {
 
 /* 000000D8-00000140       .text getShopBmdIdx__12daShopItem_cFv */
 s16 daShopItem_c::getShopBmdIdx() {
-    u32 type = fopAcM_GetParamBit(fopAcM_GetParam(this), 8, 4);
+    u8 type = fopAcM_GetParamBit(fopAcM_GetParam(this), 8, 4);
     if(type == 1 || (type == 0 && mModelType[m_itemNo] == 0x01)) {
         return dItem_data::getFieldBmdIdx(m_itemNo);
     }
@@ -61,9 +61,7 @@ void daShopItem_c::CreateInit() {
         mTevType = TEV_TYPE_BG1_PLIGHT;
     }
 
-#if VERSION > VERSION_DEMO
-    mpModel->setUserArea(0);
-#endif
+    mpModel->setUserArea(NULL);
 }
 
 /* 00000240-000003BC       .text clothCreate__12daShopItem_cFv */
@@ -115,7 +113,7 @@ BOOL daShopItem_c::clothCreate() {
 /* 000003BC-000005A8       .text set_mtx__12daShopItem_cFv */
 void daShopItem_c::set_mtx() {
     mpModel->setBaseScale(scale);
-    mDoMtx_stack_c::transS(current.pos.x, current.pos.y, current.pos.z);
+    MTXTrans(mDoMtx_stack_c::get(), current.pos.x, current.pos.y, current.pos.z);
     mDoMtx_stack_c::ZXYrotM(current.angle.x, current.angle.y, current.angle.z);
     MTXCopy(mDoMtx_stack_c::get(), field_0x64C);
 
@@ -158,11 +156,9 @@ bool daShopItem_c::_execute() {
 bool daShopItem_c::_draw() {
     if(!chkDraw()) return true;
 
-#if VERSION > VERSION_DEMO
     if(m_itemNo == dItemNo_FOUNTAIN_IDOL_e || m_itemNo == dItemNo_POSTMAN_STATUE_e) {
         mpModel->getModelData()->getJointNodePointer(0)->setMtxCalc(0);
     }
-#endif
     DrawBase();
     
     if(field_0x644 != 0) field_0x644->cloth_draw();
@@ -205,45 +201,6 @@ cPhs_State daShopItem_c::_create() {
         m_itemNo = dItemNo_GREEN_RUPEE_e;
     }
 
-#if VERSION == VERSION_DEMO
-    int result2 = cPhs_COMPLEATE_e;
-    arcName = getShopArcname();
-    cPhs_State result = dComIfG_resLoad(&mPhs, arcName);
-    if(isUseClothPacket(m_itemNo)) {
-        result2 = dComIfG_resLoad(&mPhase, m_cloth_arcname);
-    }
-    if(result == cPhs_ERROR_e || result2 == cPhs_ERROR_e) {
-        return cPhs_ERROR_e;
-    }
-    if(result != cPhs_COMPLEATE_e) {
-        return result;
-    }
-    else {
-        if(result2 != cPhs_COMPLEATE_e) {
-            return result2;
-        }
-        else if(result == cPhs_COMPLEATE_e && result2 == cPhs_COMPLEATE_e) {
-            u32 type = fopAcM_GetParamBit(fopAcM_GetParam(this), 8, 4);
-            if(type == 2 || (type == 0 && mModelType[m_itemNo] == 0x02)) {
-                if(fopAcM_entrySolidHeap(this, CheckItemCreateHeap, dItem_data::getHeapSize(m_itemNo)) == 0) {
-                    return cPhs_ERROR_e;
-                }
-            }
-            else if(fopAcM_GetParamBit(fopAcM_GetParam(this), 8, 4) == 1 || (fopAcM_GetParamBit(fopAcM_GetParam(this), 8, 4) == 0 && mModelType[m_itemNo] == 0x01)) {
-                if(fopAcM_entrySolidHeap(this, CheckFieldItemCreateHeap, dItem_data::getFieldHeapSize(m_itemNo)) == 0) {
-                    return cPhs_ERROR_e;
-                }
-            }
-            else {
-                if(fopAcM_entrySolidHeap(this, CheckItemCreateHeap, dItem_data::getHeapSize(m_itemNo)) == 0) {
-                    return cPhs_ERROR_e;
-                }
-            }
-
-            CreateInit();
-        }
-    }
-#else
     arcName = getShopArcname();
     cPhs_State result = dComIfG_resLoad(&mPhs, arcName);
     if(result != cPhs_COMPLEATE_e) {
@@ -279,7 +236,6 @@ cPhs_State daShopItem_c::_create() {
             CreateInit();
         }
     }
-#endif
     
     return result;
 }

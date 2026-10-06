@@ -84,11 +84,7 @@ static dCcD_SrcTri l_tri_src = {
 /* 00000078-00000100       .text _delete__8daWall_cFv */
 bool daWall_c::_delete() {
     mSmokeCb.remove();
-#if VERSION == VERSION_DEMO
-    if (mState == false)
-#else
     if (heap != NULL && mState == false)
-#endif
         dComIfG_Bgsp()->Release(mpBgW);
 
     dComIfG_resDelete(&mPhs, m_arcname[mType]);
@@ -104,7 +100,7 @@ static BOOL CheckCreateHeap(fopAc_ac_c* i_this) {
 BOOL daWall_c::CreateHeap() {
     J3DModelData* modelData =
         (J3DModelData*)(dComIfG_getObjectRes(m_arcname[mType], m_bmdname[mType]));
-    JUT_ASSERT(DEMO_SELECT(0x186, 0x181), modelData != NULL);
+    JUT_ASSERT(0x181, modelData != NULL);
 
     mpModel = mDoExt_J3DModel__create(modelData, 0x80000, 0x11000022);
     if (mpModel == NULL)
@@ -143,12 +139,8 @@ cPhs_State daWall_c::_create() {
     fopAcM_ct(this, daWall_c);
     mType = fopAcM_GetParam(this) >> 8;
     mSwitchNo = fopAcM_GetParam(this) & 0xFF;
-#if VERSION == VERSION_DEMO
-    if (fopAcM_isSwitch(this, mSwitchNo) || mSwitchNo == 0xff) {
-#else
     bool isSwitch = dComIfGs_isSwitch(mSwitchNo, fopAcM_GetHomeRoomNo(this));
     if (isSwitch || mSwitchNo == 0xff) {
-#endif
         return cPhs_ERROR_e;
     }
 
@@ -224,11 +216,7 @@ void daWall_c::mode_break() {
                 fopAcM_delete(this);
             }
 
-#if VERSION == VERSION_DEMO
-            JPABaseEmitter* pEmitter = mpEmitter;
-#else
             JPABaseEmitter* pEmitter = mSmokeCb.getEmitter();
-#endif
             if (pEmitter != NULL) {
                 pEmitter->setGlobalAlpha(mDst);
             }

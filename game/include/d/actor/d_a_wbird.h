@@ -11,9 +11,6 @@ public:
         mAction = action;
     }
 
-#if VERSION == VERSION_DEMO
-    BOOL CreateHeap();
-#endif
     void calcMtx();
     void setStartPos();
     BOOL CreateInit();

@@ -507,6 +507,7 @@ bool Act_c::_draw() {
 
         J3DModelData* modelData = mpModel->getModelData();
         s8 tmp = (m308 * 255.5f);
+        // Fakematch?
         u8 tmp2 = tmp;
         set_material(modelData->getJointNodePointer(MSPOT_JNT_HIKARITAG_e)->getMesh(), (u8)tmp2);
         set_material(modelData->getJointNodePointer(MSPOT_JNT_KOGEN_e)->getMesh(), (u8)tmp2);

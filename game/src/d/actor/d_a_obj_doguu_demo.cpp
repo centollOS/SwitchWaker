@@ -22,7 +22,7 @@ BOOL daObjDoguuD_c::CreateHeap() {
     mUnusedParam = fopAcM_GetParam(this) & 0xFF;
 
     J3DModelData* modelData = (J3DModelData*)(dComIfG_getObjectRes("DoguuD", dRes_INDEX_DOGUUD_BDL_ESKZTO_e));
-    JUT_ASSERT(DEMO_SELECT(0x63, 0x65), modelData != NULL);
+    JUT_ASSERT(0x65, modelData != NULL);
     mpModel = mDoExt_J3DModel__create(modelData, 0x00, 0x11020203);
     if (mpModel == NULL)
         return FALSE;
@@ -83,11 +83,7 @@ static cPhs_State daObjDoguuD_create(void* i_this) {
 }
 
 bool daObjDoguuD_c::_delete() {
-#if VERSION > VERSION_DEMO
     if (heap != NULL && mBgwRegistered == true)
-#else
-    if (mBgwRegistered == true)
-#endif
         dComIfG_Bgsp()->Release(mpBgW);
 
     dComIfG_resDelete(&mPhs, "DoguuD");

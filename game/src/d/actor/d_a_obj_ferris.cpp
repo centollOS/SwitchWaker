@@ -500,10 +500,8 @@ void daObjFerris::Act_c::make_lean() {
             delta2.set(mRidePos.x - pt0.x, 0.0f, mRidePos.z - pt0.z);
             delta.normalizeRS();
 
-            f32 a = -delta.z;
-            f32 b = delta.x;
-            f32 c = -(a * pt0.x + b * pt0.z);
-            f32 h = std::fabsf(c + (a * mRidePos.x + b * mRidePos.z));
+            f32 temp2 = -delta.z;
+            f32 h = std::fabsf(-(temp2 * pt0.x + delta.x * pt0.z) + (temp2 * mRidePos.x + delta.x * mRidePos.z));
             f32 temp = delta.x * delta2.z - delta.z * delta2.x;
             f32 h2 = h / 162.0f;
             if (temp < 0.0f) {

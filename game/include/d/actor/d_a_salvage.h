@@ -12,7 +12,7 @@ class daSalvage_c : public fopAc_ac_c {
 
 public:
     static int getSalvageId() { return mSalvageId; }
-    void setSalvageId(int salvageId) { mSalvageId = salvageId; }
+    static void setSalvageId(int salvageId) { mSalvageId = salvageId; }
     static BOOL isValidSalvageId() {
         if (mSalvageId != -1) {
             return TRUE;
@@ -89,7 +89,7 @@ public:
         mSalvageId = -1;
     }
 
-    static char* m_arcname;
+    static const char* m_arcname;
     static const f32 m_outersea_near;
     static const f32 m_inside_near;
     static const f32 m_cmap_near;

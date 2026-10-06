@@ -656,7 +656,9 @@ void daTbox_c::demoProcOpen() {
 /* 00001890-00001A40       .text demoInitAppear_Tact__8daTbox_cFv */
 void daTbox_c::demoInitAppear_Tact() {
     csXyz angle;
-    angle = current.angle;
+    angle.x = current.angle.x;
+    angle.y = current.angle.y;
+    angle.z = current.angle.z;
 
     dComIfGp_particle_set(dPa_name::ID_AK_SN_WINDCHEST01, &current.pos, &angle);
     dComIfGp_particle_set(dPa_name::ID_AK_SN_WINDCHEST00, &current.pos, &angle);
@@ -760,13 +762,9 @@ s32 daTbox_c::demoProc() {
     };
 
     int actionIdx = dComIfGp_evmng_getMyActIdx(mStaffId, action_table, ARRAY_SIZE(action_table), FALSE, 0);
-#if VERSION == VERSION_DEMO
-    if (dComIfGp_evmng_getIsAddvance(mStaffId)) {
-#else
     BOOL bIsAdvance = dComIfGp_evmng_getIsAddvance(mStaffId);
 
     if (bIsAdvance) {
-#endif
         mHasOpenAnmFinished = false;
 
         switch (actionIdx) {
@@ -957,7 +955,7 @@ BOOL daTbox_c::actionOpenWait() {
     if (eventInfo.checkCommandDoor()) {
         dComIfGp_event_onEventFlag(0x04);
 
-        int itemNo = getItemNo();
+        u8 itemNo = getItemNo();
         fpc_ProcID itemPID = fopAcM_createItemForTrBoxDemo(&current.pos, itemNo);
 
         if (itemPID != fpcM_ERROR_PROCESS_ID_e) {
@@ -1162,9 +1160,7 @@ BOOL daTbox_c::execute() {
             mIsFlashPlaying = FALSE;
         }
 
-        cXyz scale;
-        scale.set(10.0f / 7.0f, 1.0f, 1.0f);
-        mpFlashMdl->setBaseScale(scale);
+        mpFlashMdl->setBaseScale(cXyz(10.0f / 7.0f, 1.0f, 1.0f));
 
         mDoMtx_stack_c::transS(current.pos.x, current.pos.y + 50.0f, current.pos.z);
         mDoMtx_stack_c::YrotM(current.angle.y + 0x7FFF);

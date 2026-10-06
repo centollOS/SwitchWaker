@@ -59,11 +59,7 @@ BOOL daObjSwheavy::Act_c::solidHeapCB(fopAc_ac_c* i_this) {
 }
 
 /* 0000009C-0000032C       .text create_heap__Q212daObjSwheavy5Act_cFv */
-#if VERSION == VERSION_DEMO
-bool daObjSwheavy::Act_c::create_heap() {
-#else
 u8 daObjSwheavy::Act_c::create_heap() {
-#endif
     J3DModelData* mdl_1_data = (J3DModelData*) dComIfG_getObjectRes(M_arcname, dRes_INDEX_HHBOT_BDL_HHBOT1_e);
     JUT_ASSERT(0x116, mdl_1_data != NULL);
     mpModel1 = mDoExt_J3DModel__create(mdl_1_data, 0x80000, 0x11000022);
@@ -97,12 +93,12 @@ u8 daObjSwheavy::Act_c::create_heap() {
         success = true;
     }
 
-#if VERSION > VERSION_DEMO
     if (!success) {
         mpBgW1 = NULL;
         mpBgW2 = NULL;
     }
-#endif
+    // Fakematch? This function should probably have return type bool, but the codegen towards the
+    // end here doesn't work unless the return type is u8.
     return success;
 }
 
@@ -124,7 +120,7 @@ cPhs_State daObjSwheavy::Act_c::_create() {
             mDoMtx_stack_c::get()[1][3] += -35.5f;
         }
         mDoMtx_copy(mDoMtx_stack_c::get(), mMtx2);
-        if (fopAcM_entrySolidHeap(this, solidHeapCB, DEMO_SELECT(0, 0x2000))) {
+        if (fopAcM_entrySolidHeap(this, solidHeapCB, 0x2000)) {
             dComIfG_Bgsp()->Regist(mpBgW1, this);
             mpBgW1->SetCrrFunc(NULL);
             dComIfG_Bgsp()->Regist(mpBgW2, this);
@@ -180,7 +176,7 @@ bool daObjSwheavy::Act_c::_delete() {
             dComIfG_Bgsp()->Release(mpBgW2);
         }
     }
-    dComIfG_resDeleteDemo(&mPhs, M_arcname);
+    dComIfG_resDelete(&mPhs, M_arcname);
     return true;
 }
 
@@ -220,9 +216,8 @@ void daObjSwheavy::Act_c::rideCB(dBgW* bgw, fopAc_ac_c* i_ac, fopAc_ac_c* i_pt) 
 
 /* 00000884-00000998       .text calc_top_pos__Q212daObjSwheavy5Act_cFv */
 void daObjSwheavy::Act_c::calc_top_pos() {
-    float diff = mCurHFrac - mTargetHFrac;
     float decay = attr().mVSpeedDecay;
-    mVSpeed -= diff * attr().mVSpring;
+    mVSpeed -= (mCurHFrac - mTargetHFrac) * attr().mVSpring;
     mVSpeed -= mVSpeed * decay;
     mCurHFrac += mVSpeed;
     m328 = (1.0f - mCurHFrac) * -35.5f;

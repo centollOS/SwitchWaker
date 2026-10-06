@@ -27,11 +27,11 @@ const u32 daYgcwp_c::M_brk_mode_table[] = {
 
 const char daYgcwp_c::M_arcname[6] = "Ygcwp";
 
-const char* daYgcwp_c::M_ev_name[3] = {
-    "rtn_warp",
-    "fg_warp0",
-    "fg_warp1",
-};
+static void dummy() {
+    DEAD_STRING("rtn_warp");
+    DEAD_STRING("fg_warp0");
+    DEAD_STRING("fg_warp1");
+}
 
 static char* M_act_table[] = {
     "warp_start",

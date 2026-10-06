@@ -77,7 +77,7 @@ cPhs_State daObjShelf::Act_c::Mthd_Create() {
 
     cPhs_State phase_state = dComIfG_resLoad(&mPhs, M_arcname);
     if (phase_state == cPhs_COMPLEATE_e) {
-        phase_state = MoveBGCreate(M_arcname, dRes_INDEX_OTANA_DZB_OTANA_e, dBgS_MoveBGProc_Trans, DEMO_SELECT(0x1880, 0xb00));
+        phase_state = MoveBGCreate(M_arcname, dRes_INDEX_OTANA_DZB_OTANA_e, dBgS_MoveBGProc_Trans, 0xb00);
         JUT_ASSERT(0x15b, (phase_state == cPhs_COMPLEATE_e) || (phase_state == cPhs_ERROR_e));
     }
     return phase_state;
@@ -91,7 +91,7 @@ BOOL daObjShelf::Act_c::Delete() {
 /* 000002A4-000002F0       .text Mthd_Delete__Q210daObjShelf5Act_cFv */
 BOOL daObjShelf::Act_c::Mthd_Delete() {
     BOOL ret = MoveBGDelete();
-    dComIfG_resDeleteDemo(&mPhs, M_arcname);
+    dComIfG_resDelete(&mPhs, M_arcname);
     return ret;
 }
 

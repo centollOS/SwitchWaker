@@ -35,11 +35,7 @@ namespace daObjSwheavy {
             PRM_SWSAVE_S = 0x8,
         };
 
-#if VERSION == VERSION_DEMO
-        bool is_switch() const { return fopAcM_isSwitch(const_cast<Act_c*>(this), prm_get_swSave()); }
-#else
         BOOL is_switch() const { return fopAcM_isSwitch(const_cast<Act_c*>(this), prm_get_swSave()); }
-#endif
         void off_switch() const { fopAcM_offSwitch(const_cast<Act_c*>(this), prm_get_swSave()); }
         void on_switch() const { fopAcM_onSwitch(const_cast<Act_c*>(this), prm_get_swSave()); }
         s32 prm_get_swSave() const { return daObj::PrmAbstract(this, PRM_SWSAVE_W, PRM_SWSAVE_S); }
@@ -47,11 +43,7 @@ namespace daObjSwheavy {
         void rev_switch() const { fopAcM_revSwitch(const_cast<Act_c*>(this), prm_get_swSave()); }
     
         static BOOL solidHeapCB(fopAc_ac_c*);
-#if VERSION == VERSION_DEMO
-        bool create_heap();
-#else
         u8 create_heap();
-#endif
         cPhs_State _create();
         bool _delete();
         void set_mtx();

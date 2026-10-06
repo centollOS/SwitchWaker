@@ -127,7 +127,7 @@ static BOOL daRaceItem_Execute(daRaceItem_c* i_this) {
 
 /* 0000073C-00000C44       .text execute__12daRaceItem_cFv */
 BOOL daRaceItem_c::execute() {
-    daPy_py_c* pl = daPy_getPlayerActorClass();
+    daPy_getPlayerActorClass();
 
     m_timer++;
     animPlay(1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
@@ -227,8 +227,7 @@ BOOL daRaceItem_c::execute() {
                 cLib_onBit(field_0x645, (u8)0x01);
             } else if (hitObj->ChkAtType(AT_TYPE_HOOKSHOT)) {
                 cXyz offset(0.0f, dItem_data::getH(m_itemNo) / 2.0f, 0.0f);
-                daPy_py_c* hookPlayer = daPy_getPlayerActorClass();
-                hookPlayer->setHookshotCarryOffset(fopAcM_GetID(this), &offset);
+                daPy_getPlayerActorClass()->setHookshotCarryOffset(fopAcM_GetID(this), &offset);
             }
         }
     }

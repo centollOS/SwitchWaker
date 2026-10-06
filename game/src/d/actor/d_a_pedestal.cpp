@@ -14,15 +14,12 @@ const char daPds_c::m_arcname[] = "Hdai1";
 
 /* 00000078-000000DC       .text _delete__Q210daPedestal7daPds_cFv */
 bool daPds_c::_delete() {
-#if VERSION > VERSION_DEMO
-    if (heap != NULL)
-#endif
-    {
+    if (heap != NULL) {
         dComIfG_Bgsp()->Release(mpBgW);
     }
 
     mOctagonGlowCb.end();
-    dComIfG_resDeleteDemo(&mPhase, m_arcname);
+    dComIfG_resDelete(&mPhase, m_arcname);
 
     return TRUE;
 }
@@ -35,7 +32,7 @@ static BOOL CheckCreateHeap(fopAc_ac_c* i_this) {
 /* 000000FC-00000244       .text CreateHeap__Q210daPedestal7daPds_cFv */
 BOOL daPds_c::CreateHeap() {
     J3DModelData* modelData = (J3DModelData*)dComIfG_getObjectRes(m_arcname, dRes_INDEX_HDAI1_BDL_HDAI1_e);
-    JUT_ASSERT(DEMO_SELECT(0xBE, 0xC1), modelData != NULL);
+    JUT_ASSERT(0xC1, modelData != NULL);
 
     mpModel = mDoExt_J3DModel__create(modelData, 0, 0x11020203U);
 
@@ -103,9 +100,7 @@ cPhs_State daPds_c::_create() {
 
     if (phase_state == cPhs_COMPLEATE_e) {
         if (!fopAcM_entrySolidHeap(this, CheckCreateHeap, 0x2000)) {
-#if VERSION > VERSION_DEMO
             mpBgW = NULL;
-#endif
             return cPhs_ERROR_e;
         }
 
@@ -351,7 +346,7 @@ BOOL daPds_c::initBrkAnm(u8 param_1, bool param_2) {
     bool ret = false;
 
     J3DAnmTevRegKey* a_brk = (J3DAnmTevRegKey*)dComIfG_getObjectRes(m_arcname, dRes_INDEX_HDAI1_BRK_HDAI1_e);
-    JUT_ASSERT(DEMO_SELECT(0x288, 0x28C), a_brk != NULL);
+    JUT_ASSERT(0x28C, a_brk != NULL);
 
     if (mBrk.init(modelData, a_brk, TRUE, brkAnmTbl[param_1].loopMode, brkAnmTbl[param_1].speed, 0, -1, param_2, 0)) {
         unk30E = param_1;

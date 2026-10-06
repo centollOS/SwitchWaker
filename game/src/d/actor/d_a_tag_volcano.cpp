@@ -34,28 +34,18 @@ cPhs_State daTagvolcano::Act_c::_create() {
         if (current.roomNo == dIsleRoom_FireMountain_e) {
             if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_1902)) {
                 fopAcM_onSwitch(this, prm_get_swSave());
-#if VERSION == VERSION_DEMO
-            } else if (dComIfGs_getStartPoint() == 2) {
-                field_0x2a0 = 10;
-#else
             } else if (dComIfGs_getStartPoint() == 2 && current.roomNo == dComIfGs_getRestartRoomNo()) {
                 field_0x2a0 = 10;
                 fopAcM_onSwitch(this, prm_get_swSave());
-#endif
             } else {
                 fopAcM_offSwitch(this, prm_get_swSave());
             }
         } else {
             if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_1901)) {
                 fopAcM_onSwitch(this, prm_get_swSave());
-#if VERSION == VERSION_DEMO
-            } else if (dComIfGs_getStartPoint() == 2) {
-                field_0x2a0 = 10;
-#else
             } else if (dComIfGs_getStartPoint() == 2 && current.roomNo == dComIfGs_getRestartRoomNo()) {
                 field_0x2a0 = 10;
                 fopAcM_onSwitch(this, prm_get_swSave());
-#endif
             } else {
                 fopAcM_offSwitch(this, prm_get_swSave());
             }
@@ -110,10 +100,8 @@ bool daTagvolcano::Act_c::_execute() {
                             }
 
                             if (dComIfG_getTimerRestTimeMs() <= 0) {
-#if VERSION > VERSION_DEMO
                                 mDoAud_seStart(JA_SE_ISLE_TIMER_0);
                                 dComIfGp_getVibration().StartShock(6, -33, cXyz(0.0f, 1.0f, 0.0f));
-#endif
                                 fopAcM_offSwitch(this, prm_get_swSave());
                                 dComIfG_TimerDeleteRequest(3);
 
@@ -140,22 +128,12 @@ bool daTagvolcano::Act_c::_execute() {
         }
     } else {
         if (dComIfGs_isTbox(prm_get_bitTRB())) {
-#if VERSION == VERSION_DEMO
-            if (dComIfG_getTimerPtr() != NULL) {
-                dComIfG_TimerDeleteRequest(3);
-                if (mType == 1)
-                    dComIfGs_onEventBit(dSv_event_flag_c::UNK_1902);
-                else
-                    dComIfGs_onEventBit(dSv_event_flag_c::UNK_1901);
-            }
-#else
             if (dComIfG_getTimerPtr() != NULL)
                 dComIfG_TimerDeleteRequest(3);
             if (mType == 1)
                 dComIfGs_onEventBit(dSv_event_flag_c::UNK_1902);
             else
                 dComIfGs_onEventBit(dSv_event_flag_c::UNK_1901);
-#endif
             field_0x2a4 = 0;
         } else if (dComIfG_getTimerPtr() != NULL) {
             if (dComIfGp_event_runCheck()) {
@@ -167,10 +145,8 @@ bool daTagvolcano::Act_c::_execute() {
             }
 
             if (dComIfG_getTimerRestTimeMs() <= 0) {
-#if VERSION > VERSION_DEMO
                 mDoAud_seStart(JA_SE_ISLE_TIMER_0);
                 dComIfGp_getVibration().StartShock(6, -33, cXyz(0.0f, 1.0f, 0.0f));
-#endif
                 dComIfG_TimerDeleteRequest(3);
 
                 field_0x2a4 = 1;

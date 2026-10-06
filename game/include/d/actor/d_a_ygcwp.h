@@ -24,7 +24,6 @@ public:
     static const u32 M_brk_table[];
     static const u32 M_brk_mode_table[];
     static const char M_arcname[];
-    static const char* M_ev_name[3];
 
 public:
     /* 0x290 */ J3DModel* mpModel;

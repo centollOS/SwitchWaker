@@ -199,11 +199,7 @@ void daSpcItem01_c::move() {
         break;
     }
 
-#if VERSION == VERSION_DEMO
-    if (fopAcM_GetSpeed_p(this)->y != 0.0f) {
-#else
     if (speed.y != 0.0f) {
-#endif
         field_0x63C = speed.y;
     }
 }

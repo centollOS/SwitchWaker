@@ -9,22 +9,8 @@
 #include "d/d_kankyo_wether.h"
 #include "SSystem/SComponent/c_angle.h"
 #include "d/actor/d_a_player.h"
-#include "d/d_s_play.h"
 
 const char daWbird_c::M_arcname[] = "Wbird";
-
-#if VERSION == VERSION_DEMO
-/* 00000078-00000098       .text CheckCreateHeap__FP10fopAc_ac_c */
-static BOOL CheckCreateHeap(fopAc_ac_c* i_this) {
-    return ((daWbird_c*)i_this)->CreateHeap();
-}
-
-/* 00000098-000000A0       .text CreateHeap__9daWbird_cFv */
-BOOL daWbird_c::CreateHeap() {
-    return TRUE;
-}
-#endif
-
 /* 00000078-000000AC       .text calcMtx__9daWbird_cFv */
 void daWbird_c::calcMtx() {
     eyePos = current.pos;
@@ -69,11 +55,7 @@ void daWbird_c::setStartPos() {
     float fVar1 = field_0x29E * 0.5f;
     current.pos.z = current.pos.z - fVar1 * speed.z;
     current.pos.x = current.pos.x - fVar1 * speed.x;
-#if VERSION == VERSION_DEMO
-    field_0x29E += REG3_S(1) + 60;
-#else
     field_0x29E = field_0x29E + 60;
-#endif
     field_0x2A0 = 1.0f;
     current.pos.y += field_0x2A0 * fVar1 * fVar1 * 0.5f;
     speed.y = -(field_0x2A0 * fVar1);
@@ -92,11 +74,6 @@ BOOL daWbird_c::CreateInit() {
 /* 00000388-000003E0       .text create__9daWbird_cFv */
 cPhs_State daWbird_c::create() {
     fopAcM_ct(this, daWbird_c);
-#if VERSION == VERSION_DEMO
-    if (!fopAcM_entrySolidHeap(this, CheckCreateHeap, 0x5700)) {
-        return cPhs_ERROR_e;
-    }
-#endif
     CreateInit();
     return cPhs_COMPLEATE_e;
 }
@@ -124,11 +101,7 @@ void daWbird_c::actionMove() {
     }
     if (field_0x29E > 0) {
         field_0x29E--;
-#if VERSION == VERSION_DEMO
-        if (field_0x29E > REG3_S(1) + 60) {
-#else
         if (field_0x29E > 60) {
-#endif
             fopAcM_posMove(this, NULL);
             speed.y = speed.y + field_0x2A0;
         }

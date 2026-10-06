@@ -338,9 +338,9 @@ void daObjDoguu_c::setGoal(int i_staffIdx) {
 
 /* 00000E98-00000F18       .text setPlayerAngle__12daObjDoguu_cFi */
 void daObjDoguu_c::setPlayerAngle(int i_staffIdx) {
-    s16 angle = *dComIfGp_evmng_getMyIntegerP(i_staffIdx, "angle");
+    u32 angle = *dComIfGp_evmng_getMyIntegerP(i_staffIdx, "angle");
     daPy_py_c* player = (daPy_py_c*)dComIfGp_getPlayer(0);
-    player->setPlayerPosAndAngle(&player->current.pos, current.angle.y + angle);
+    player->setPlayerPosAndAngle(&player->current.pos, current.angle.y + (s16)angle);
 }
 
 /* 00000F18-00000FB8       .text setQuake__12daObjDoguu_cFi */
@@ -573,12 +573,6 @@ bool daObjDoguu_c::_draw() {
         J3DMaterialTable* bmt = (J3DMaterialTable*)dComIfG_getObjectRes("Doguu", daObjDoguu_idx_table.bmt_vgsb[field_0x894]);
         
         field_0x6D4->getModelData()->setMaterialTable(bmt, J3DMatCopyFlag_All);
-#if VERSION == VERSION_DEMO
-        mBckHead.entry(field_0x6D0->getModelData());
-        mBckBody.entry(field_0x6D4->getModelData());
-        mDoExt_modelUpdateDL(field_0x6D0);
-        mDoExt_modelUpdateDL(field_0x6D4);
-#else
         mBckHead.entry(field_0x6D0->getModelData());
         mDoExt_modelUpdateDL(field_0x6D0);
         field_0x6D0->getModelData()->getJointNodePointer(0)->setMtxCalc(NULL);
@@ -586,22 +580,17 @@ bool daObjDoguu_c::_draw() {
         mBckBody.entry(field_0x6D4->getModelData());
         mDoExt_modelUpdateDL(field_0x6D4);
         field_0x6D4->getModelData()->getJointNodePointer(0)->setMtxCalc(NULL);
-#endif
     } else {
         J3DMaterialTable* bmt = (J3DMaterialTable*)dComIfG_getObjectRes("Doguu", daObjDoguu_idx_table.bmt_vgsm[field_0x894]);
         field_0x6CC->getModelData()->setMaterialTable(bmt, J3DMatCopyFlag_All);
         mBrk.entry(field_0x6CC->getModelData());
         mDoExt_modelUpdateDL(field_0x6CC);
-#if VERSION > VERSION_DEMO
         mBrk.remove(field_0x6CC->getModelData());
-#endif
     }
     if (field_0x8A0 == true) {
         mBckCrystal.entry(field_0x6D8->getModelData());
         mDoExt_modelUpdateDL(field_0x6D8);
-#if VERSION > VERSION_DEMO
-        field_0x6D8->getModelData()->getJointNodePointer(0)->setMtxCalc(NULL);
-#endif
+        field_0x6D8->getModelData()->getJointNodePointer(0)->setMtxCalc(NULL);       
     }
     return true;
 }
@@ -628,9 +617,10 @@ void daObjDoguu_c::setEffectMtx(const cXyz* i_pos, float i_scale) {
     mDoMtx_stack_c::scaleS(scale, scale, 1.0f);
     mDoMtx_stack_c::concat(mtx_adj);
     mDoMtx_stack_c::concat(reflMtx);
-    mDoMtx_stack_c::get()[0][3] = 0.0f;
-    mDoMtx_stack_c::get()[1][3] = 0.0f;
-    mDoMtx_stack_c::get()[2][3] = 0.0f;
+    MtxP mtx = mDoMtx_stack_c::get();
+    mtx[0][3] = 0.0f;
+    mtx[1][3] = 0.0f;
+    mtx[2][3] = 0.0f;
     
     J3DModelData *modelData = field_0x6D0->getModelData();
     for (u16 i = 0; i < modelData->getMaterialNum(); i++) {

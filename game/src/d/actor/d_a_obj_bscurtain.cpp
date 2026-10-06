@@ -59,16 +59,11 @@ cPhs_State daObj_Bscurtain_c::CreateInit() {
 }
 
 cPhs_State daObj_Bscurtain_c::_create() {
-#if VERSION > VERSION_DEMO
     fopAcM_ct(this, daObj_Bscurtain_c);
-#endif
 
     cPhs_State ret = dComIfG_resLoad(&mPhs, M_arcname);
 
     if (ret == cPhs_COMPLEATE_e) {
-#if VERSION == VERSION_DEMO
-        fopAcM_ct(this, daObj_Bscurtain_c);
-#endif
         if (fopAcM_entrySolidHeap(this, CheckCreateHeap, 0x10000)) {
             ret = CreateInit();
         } else {
@@ -80,7 +75,7 @@ cPhs_State daObj_Bscurtain_c::_create() {
 }
 
 bool daObj_Bscurtain_c::_delete() {
-    dComIfG_resDeleteDemo(&mPhs, M_arcname);
+    dComIfG_resDelete(&mPhs, M_arcname);
     return true;
 }
 
