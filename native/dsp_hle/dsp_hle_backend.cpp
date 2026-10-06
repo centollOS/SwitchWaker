@@ -21,6 +21,8 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <chrono>
+#include <pthread.h>
 
 #include "Common/CommonTypes.h"
 #include "Common/Swap.h"
@@ -246,7 +248,56 @@ void WriteControl(std::uint16_t value) {
     g_hle->DSP_WriteControlRegister(value);
 }
 
+namespace {
+
+// The ring of recent mails (DumpRecentMails). Every call into this interface is serialised by the
+// caller (cos_sdk's DSP mutex), so the ring needs no lock of its own.
+struct MailRecord {
+    std::uint32_t mail;
+    bool toDsp;
+    std::uint64_t us;
+    char thread[24];
+};
+constexpr int kMailRing = 64;
+MailRecord g_mails[kMailRing];
+int g_mailNext = 0;
+int g_mailCount = 0;
+std::uint16_t g_dspMailHigh = 0;
+
+void RecordMail(std::uint32_t mail, bool toDsp) {
+    MailRecord& r = g_mails[g_mailNext];
+    r.mail = mail;
+    r.toDsp = toDsp;
+    r.us = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+                                          std::chrono::steady_clock::now().time_since_epoch())
+                                          .count());
+    r.thread[0] = '\0';
+#if defined(__APPLE__) || defined(__linux__)
+    pthread_getname_np(pthread_self(), r.thread, sizeof(r.thread));
+#endif
+    if (r.thread[0] == '\0') {
+        std::snprintf(r.thread, sizeof(r.thread), "%p", reinterpret_cast<void*>(pthread_self()));
+    }
+    g_mailNext = (g_mailNext + 1) % kMailRing;
+    if (g_mailCount < kMailRing) {
+        g_mailCount++;
+    }
+}
+
+} // namespace
+
+void DumpRecentMails(const char* why) {
+    std::fprintf(stderr, "[cos] dsp-mail: %s; the last %d mails, oldest first:\n", why, g_mailCount);
+    const std::uint64_t last = g_mailCount ? g_mails[(g_mailNext + kMailRing - 1) % kMailRing].us : 0;
+    for (int i = 0; i < g_mailCount; i++) {
+        const MailRecord& r = g_mails[(g_mailNext + kMailRing - g_mailCount + i) % kMailRing];
+        std::fprintf(stderr, "[cos] dsp-mail:   %8.3f ms %s %08x  thread %s\n", (double)(last - r.us) / -1000.0,
+                     r.toDsp ? "cpu->dsp" : "dsp->cpu", r.mail, r.thread);
+    }
+}
+
 void WriteCpuMail(std::uint32_t mail) {
+    RecordMail(mail, true);
     g_hle->DSP_WriteMailBoxHigh(true, static_cast<u16>(mail >> 16));
     g_hle->DSP_WriteMailBoxLow(true, static_cast<u16>(mail));
 }
@@ -256,11 +307,16 @@ std::uint32_t ReadCpuMail() {
 }
 
 std::uint16_t ReadDspMailHigh() {
-    return g_hle->DSP_ReadMailBoxHigh(false);
+    g_dspMailHigh = g_hle->DSP_ReadMailBoxHigh(false);
+    return g_dspMailHigh;
 }
 
 std::uint16_t ReadDspMailLow() {
-    return g_hle->DSP_ReadMailBoxLow(false);
+    const std::uint16_t low = g_hle->DSP_ReadMailBoxLow(false);
+    if (g_dspMailHigh & 0x8000) {
+        RecordMail((std::uint32_t(g_dspMailHigh) << 16) | low, false);
+    }
+    return low;
 }
 
 } // namespace cos_dsp_hle

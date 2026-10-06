@@ -53,6 +53,12 @@ std::uint32_t ReadCpuMail();
 std::uint16_t ReadDspMailHigh();
 std::uint16_t ReadDspMailLow();
 
+// Diagnostics: the last mails in both directions (value, host thread, time) are kept in a ring;
+// DumpRecentMails writes them to stderr as "[cos] dsp-mail: ..." lines. The log shim calls it once
+// when the ucode halts on an unexpected mail (a halted ucode renders no more audio: every sequence
+// stops where it is, and the game waits on sounds that never end).
+void DumpRecentMails(const char* why);
+
 } // namespace cos_dsp_hle
 
 #endif // COS_DSP_HLE_H
