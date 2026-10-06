@@ -311,6 +311,9 @@ void saveSweepFrame(unsigned int frames);
 void saveSweepStart(const char* who);
 bool saveSweepWantsRunCard();
 void saveLoadNameScene(int mainProc, int memCardCheckProc, int drawProc);
+// COS_SMOKE=event-sweep (pc_event_sweep.cpp): every event of the boot stage's event list started
+// and run to its end (native/tools/event_sweep.py drives it over every stage).
+void eventSweepFrame(unsigned int frames);
 // Stuck-event watch (pc_event_watch.cpp): logs an event that runs for more than 20 s.
 void eventWatchFrame(unsigned int frames);
 // The same report on demand (the running event, its staff and cuts, the sub BGM and message

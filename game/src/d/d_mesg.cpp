@@ -2177,6 +2177,18 @@ void dMesg_initialize(sub_mesg_class* i_Msg) {
 
 /* 801E5ADC-801E5B58       .text dMesg_finalize__Fv */
 void dMesg_finalize() {
+#if TARGET_PC
+    // The demo manager's message control (dDemo_manager_c::mMesgControl, which outlives this
+    // message process) keeps the container dMesg_initialize gave it: a demo that sends a message
+    // code after the message process is gone (event sweep: sea awake_zola) walked the freed
+    // container in JMessage::TResourceContainer::Get_groupID (bug B34). On the GameCube the freed block
+    // usually still held the emptied list (Clear_destroy above), so the lookup found no group;
+    // without a container TControl::getResource_groupID returns NULL the same way.
+    if (dMesg_gpControl != NULL && dMesg_gpControl->mResourceContainer == dMesg_gpResourceContainer) {
+        dMesg_gpControl->mResourceContainer = NULL;
+        dMesg_gpControl->mResource = NULL;
+    }
+#endif
     delete dMesg_gpResourceContainer;
     delete dMesg_gpSequenceProcessor;
     delete dMesg_gpRenderingProcessor;

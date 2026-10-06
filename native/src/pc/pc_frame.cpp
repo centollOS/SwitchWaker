@@ -1103,6 +1103,7 @@ void pc_frame_end(void) {
     chestFrame(frames);
     itemSweepFrame(frames);
     saveSweepFrame(frames);
+    eventSweepFrame(frames);
     eventWatchFrame(frames);
     stageHopFrame(frames);
     cameraInvertFrame(frames);

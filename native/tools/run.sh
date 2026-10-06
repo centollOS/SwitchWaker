@@ -13,6 +13,8 @@
 # native/tools/boot_sweep.py (see its --help), which runs this script once per stage.
 # `room-sweep` boots every room of every stage (one spawn point per room, or every point) with an
 # idle walk: it hands its options to native/tools/room_sweep.py (see its --help).
+# `event-sweep` (needs --stage) orders every event of the stage's event list in turn and runs it to its
+# end (COS_EVENT_SWEEP=<indices> limits them); native/tools/event_sweep.py runs it over every stage.
 # `actor-sweep` (step 6.9, needs --stage, e.g. sea:44:206) spawns every actor profile next to the player,
 # runs it 30 frames and deletes it; COS_ACTOR_SWEEP=<first>[-<last>] limits it to those process
 # names. native/tools/actor_sweep.py runs it again after each fault and lists the faults.
