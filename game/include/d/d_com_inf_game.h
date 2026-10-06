@@ -418,6 +418,7 @@ public:
 
     u8 fmapOpenCheck() { return mFmapOpen; }
     void fmapOpenOn() { mFmapOpen = 1; }
+    void fmapOpenFishOn() { mFmapOpen = 2; }
     void fmapOpenOff() { mFmapOpen = 0; }
 
     s16 getItemMagicCount() { return mItemMagicCount; }
@@ -4451,6 +4452,7 @@ inline u16 dComIfGp_getWaveFrame() { return g_dComIfG_gameInfo.play.getWaveFrame
 
 inline u8 dComIfGp_fmapOpenCheck() { return g_dComIfG_gameInfo.play.fmapOpenCheck(); }
 inline void dComIfGp_fmapOpenOn() { g_dComIfG_gameInfo.play.fmapOpenOn(); }
+inline void dComIfGp_fmapOpenFishOn() { g_dComIfG_gameInfo.play.fmapOpenFishOn(); }
 inline void dComIfGp_fmapOpenOff() { g_dComIfG_gameInfo.play.fmapOpenOff(); }
 
 

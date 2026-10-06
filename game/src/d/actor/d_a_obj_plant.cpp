@@ -140,11 +140,7 @@ BOOL daObjPlant_c::CreateHeap() {
                 break;
             }
         }
-#if TARGET_PC
         mpModel->setUserArea((uintptr_t)this);
-#else
-        mpModel->setUserArea((u32)this);
-#endif
     } else {
         return FALSE; 
     }
@@ -174,12 +170,12 @@ static inline BOOL nodeCallBack(J3DNode* node, int calcTiming) {
         daObjPlant_c* plant = (daObjPlant_c*)model->getUserArea();
         
         if (plant != NULL) {
-            PSMTXCopy(model->getAnmMtx(jntNo), *calc_mtx);
+            MTXCopy(model->getAnmMtx(jntNo), *calc_mtx);
             cMtx_XrotM(*calc_mtx, plant->field_0x40E);
             cMtx_YrotM(*calc_mtx, plant->field_0x408);
             cMtx_XrotM(*calc_mtx, -plant->field_0x40E);
             model->setAnmMtx(jntNo, *calc_mtx);
-            PSMTXCopy(*calc_mtx, j3dSys.mCurrentMtx);
+            MTXCopy(*calc_mtx, j3dSys.mCurrentMtx);
         }
     }
     return TRUE;

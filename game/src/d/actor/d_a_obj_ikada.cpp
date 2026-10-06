@@ -397,7 +397,7 @@ void daObj_Ikada_c::createWave() {
 
         JPABaseEmitter* emitter = mTrackCallBack.getEmitter();
         if (emitter != NULL) {
-            JGeometry::TVec3<f32> scale = (Vec){1.0f, 1.0f, 1.0f};
+            JGeometry::TVec3<f32> scale = COMPOUND_LITERAL(Vec){1.0f, 1.0f, 1.0f};
             emitter->setGlobalScale(scale);
         }
     }
@@ -1160,7 +1160,7 @@ bool daObj_Ikada_c::_execute() {
         mBombSmokeRot = shape_angle;
         mBombSmokeRot.y += mBombSmokeAngle;
 
-        JGeometry::TVec3<f32> scale = (Vec){3.0f, 3.0f, 3.0f};
+        JGeometry::TVec3<f32> scale = COMPOUND_LITERAL(Vec){3.0f, 3.0f, 3.0f};
         JPABaseEmitter* emitter = mBombSmokeEasterEgg.getEmitter();
         emitter->setGlobalDynamicsScale(scale);
         emitter->setGlobalParticleScale(scale);
@@ -1499,11 +1499,7 @@ BOOL daObj_Ikada_c::_createHeap() {
         }
     }
 
-#if TARGET_PC
     mpModel->setUserArea((uintptr_t)this);
-#else
-    mpModel->setUserArea((u32)this);
-#endif
 
     if (mType == 4) {
         for (u16 i = 0; i < modelData->getJointNum(); i++) {

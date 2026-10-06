@@ -40,10 +40,8 @@
 #include "d/actor/d_a_npc_bs1.h"
 #include "SSystem/SComponent/c_counter.h"
 
-#if VERSION > VERSION_DEMO
 s32 daLodbg_c::sObjectCount;
 JKRExpHeap* daLodbg_c::sLocalHeap;
-#endif
 
 u8 daSteamTag_c::mEmitterNum;
 
@@ -145,8 +143,8 @@ void daSalvage_c::init_room(s8 roomNo) {
 }
 
 s16 daObjLight::Act_c::M_S_light_angle;
-unsigned int daObjLight::Act_c::M_S_pre_set_frame_LOD;
-unsigned int daObjLight::Act_c::M_S_pre_set_frame_FRRS;
+u32 daObjLight::Act_c::M_S_pre_set_frame_LOD;
+u32 daObjLight::Act_c::M_S_pre_set_frame_FRRS;
 u8 daObjLight::Act_c::M_S_lod_access;
 
 /* 80056790-800567F8       .text renew_light_angle__Q210daObjLight5Act_cFv */
@@ -184,14 +182,14 @@ BOOL daObjLight::Act_c::set_light_dif_angle_LOD(s16 r3) {
 }
 
 /* 80056860-800568A8       .text set_light_dif_angle_FRRS__Q210daObjLight5Act_cFs */
-bool daObjLight::Act_c::set_light_dif_angle_FRRS(s16 r3) {
+BOOL daObjLight::Act_c::set_light_dif_angle_FRRS(s16 r3) {
     if (g_Counter.mCounter0 != M_S_pre_set_frame_LOD && g_Counter.mCounter0-1 == M_S_pre_set_frame_FRRS) {
         M_S_light_angle = r3;
         M_S_pre_set_frame_FRRS = g_Counter.mCounter0;
-        return true;
+        return TRUE;
     } else {
-        M_S_pre_set_frame_FRRS = g_Counter.mCounter0;
-        return false;
+        M_S_pre_set_frame_FRRS = *(s32*)&g_Counter.mCounter0; // fakematch
+        return FALSE;
     }
 }
 
@@ -381,23 +379,23 @@ const s16 daWindMill_c::m_max_rot_speed[] = {
 const u8 daNpc_Kg1_c::m_highscore = 20;
 
 /* 80056AD0-80056AFC       .text kb_dig__13daTagKbItem_cFP10fopAc_ac_c */
-void daTagKbItem_c::kb_dig(fopAc_ac_c* i_actor) {
-    field_0x299 = 1;
-    mpActor = i_actor;
+void daTagKbItem_c::kb_dig(fopAc_ac_c* i_pigActor) {
+    field_0x299 = true;
+    mpActor = i_pigActor;
     dig_main();
 }
 
 /* 80056AFC-80056CC0       .text dig_main__13daTagKbItem_cFv */
 void daTagKbItem_c::dig_main() {
 #if VERSION > VERSION_JPN
-    if (fopAcM_isSwitch(this, field_0x2a4)) {
+    if (fopAcM_isSwitch(this, mSwBitNo)) {
         return;
     }
 #endif
-    if (field_0x299 == 0) {
+    if (!field_0x299) {
         return;
     }
-    if (field_0x298 != 0) {
+    if (field_0x298) {
         return;
     }
     
@@ -411,16 +409,17 @@ void daTagKbItem_c::dig_main() {
         // Not a pig.
         return;
     }
+    if (
+        mItemNo != dItemNo_NONE_e
 #if VERSION <= VERSION_JPN
-    if (field_0x2a0 != 0xFF && field_0x298 == 0) {
-#else
-    if (field_0x2a0 != 0xFF) {
+        && !field_0x298
 #endif
+    ) {
         angle.y = cM_rndF((f32)0x7FFE);
         s8 roomNo = current.roomNo;
         daItem_c* item = (daItem_c*)fopAcM_fastCreateItem(
-            &mpActor->current.pos, field_0x2a0, roomNo, &angle,
-            &scale, cM_rndF(5.0f), 60.0f + cM_rndFX(5.0f), -6.0f, field_0x29c
+            &mpActor->current.pos, mItemNo, roomNo, &angle,
+            &scale, cM_rndF(5.0f), 60.0f + cM_rndFX(5.0f), -6.0f, mItemBitNo
         );
         if (item) {
             fopAcM_OnStatus(item, fopAcStts_UNK4000_e);
@@ -428,8 +427,8 @@ void daTagKbItem_c::dig_main() {
 #if VERSION <= VERSION_JPN
         fopAcM_delete(this);
 #else
-        if (field_0x2a4 != 0xFF) {
-            fopAcM_onSwitch(this, field_0x2a4);
+        if (mSwBitNo != 0xFF) {
+            fopAcM_onSwitch(this, mSwBitNo);
         } else {
             fopAcM_delete(this);
         }
@@ -437,9 +436,9 @@ void daTagKbItem_c::dig_main() {
         r30 = true;
     }
     
-    if (field_0x2a1 != 0xFF) {
-        mpActor->home.angle.z = field_0x2a1;
-        fopAcM_onSwitch(this, field_0x2a4);
+    if (mEnemyKind != 0xFF) {
+        mpActor->home.angle.z = mEnemyKind;
+        fopAcM_onSwitch(this, mSwBitNo);
         fopAcM_delete(this);
         r30 = true;
     }
@@ -447,7 +446,7 @@ void daTagKbItem_c::dig_main() {
     if (r30) {
         field_0x298 = r30;
     }
-    field_0x299 = 0;
+    field_0x299 = false;
 }
 
 #if VERSION > VERSION_DEMO

@@ -68,7 +68,7 @@ public:
     daNpcAh_c();
 
     request_of_phase_process_class* getPhaseP() { return &mPhs; }
-    void setResFlag(unsigned char flag) { field_0x747 = flag; }
+    void setResFlag(u8 flag) { field_0x747 = flag; }
 
     cPhs_State _create();
     BOOL createHeap();
@@ -77,7 +77,7 @@ public:
     bool _draw();
     bool _execute();
     u8 executeCommon();
-    void executeSetMode(unsigned char);
+    void executeSetMode(u8);
     BOOL executeWaitInit();
     void executeWait();
     BOOL executeTalkInit();
@@ -90,15 +90,10 @@ public:
     bool eventMesSet();
     void eventGetItemInit();
     u16 talk2(int);
-#if TARGET_PC
-    // u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
     u16 next_msgStatus(u32*);
-#else
-    u16 next_msgStatus(unsigned long*);
-#endif
     u32 getMsg();
     void chkMsg();
-    void setMessage(unsigned long);
+    void setMessage(u32);
     void setAnmFromMsgTag();
     u8 getPrmArg0();
     u8 getSwBit();
@@ -108,7 +103,7 @@ public:
     BOOL initTexPatternAnm(bool);
     void playTexPatternAnm();
     void playAnm();
-    void setAnm(unsigned char, int, float);
+    void setAnm(u8, int, float);
     bool setAnmTbl(sAhAnmDat*);
     void setCollision(dCcD_Cyl*, cXyz, float, float);
     BOOL chkEndEvent();

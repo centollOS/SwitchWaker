@@ -16,7 +16,7 @@ const char daObjSwpush::Act_c::M_arcname_hhbot[] = "Hhbot";
 
 const daObjSwpush::Attr_c daObjSwpush::Act_c::M_attr[] = {
     {
-        /* mHeapSize        */ DEMO_SELECT(0x1A00, 0xAE0),
+        /* mHeapSize        */ 0xAE0,
         /* mFlags           */ static_cast<AttrFlag_e>(FLAG_STAY_PRESSED | FLAG_OBEY_SAVE),
         /* mScale           */ 1.0f,
         /* mKbotaResName    */ daObjSwpush::Act_c::M_arcname_kbota,
@@ -40,7 +40,7 @@ const daObjSwpush::Attr_c daObjSwpush::Act_c::M_attr[] = {
         /* mPauseDuration   */ 10
     },
     {
-        /* mHeapSize        */ DEMO_SELECT(0x1A00, 0xAE0),
+        /* mHeapSize        */ 0xAE0,
         /* mFlags           */ static_cast<AttrFlag_e>(FLAG_UNK20),
         /* mScale           */ 1.0f,
         /* mKbotaResName    */ daObjSwpush::Act_c::M_arcname_kbota,
@@ -64,7 +64,7 @@ const daObjSwpush::Attr_c daObjSwpush::Act_c::M_attr[] = {
         /* mPauseDuration   */ 10
     },
     {
-        /* mHeapSize        */ DEMO_SELECT(0x1A00, 0xAE0),
+        /* mHeapSize        */ 0xAE0,
         /* mFlags           */ static_cast<AttrFlag_e>(FLAG_ON_IS_UP | FLAG_STAY_PRESSED | FLAG_OBEY_SAVE),
         /* mScale           */ 1.0f,
         /* mKbotaResName    */ daObjSwpush::Act_c::M_arcname_kbota,
@@ -87,7 +87,7 @@ const daObjSwpush::Attr_c daObjSwpush::Act_c::M_attr[] = {
         /* m44              */ 2.5f,
         /* mPauseDuration   */ 10
     },
-    {
+    { // Unused type
         /* mHeapSize        */ 0x8000,
         /* mFlags           */ static_cast<AttrFlag_e>(FLAG_REQ_HEAVY | FLAG_STAY_PRESSED | FLAG_OBEY_SAVE),
         /* mScale           */ 1.5f,
@@ -156,12 +156,8 @@ bool daObjSwpush::Act_c::create_heap() {
     }
     mpModel = mDoExt_J3DModel__create(model_data, 0x80000, flag);
     if (mpModel) {
-        model_data->getJointNodePointer(1)->setCallBack(jnodeCB);
-#if TARGET_PC
-        mpModel->setUserArea((uintptr_t)this);
-#else
-        mpModel->setUserArea((u32) this);
-#endif
+        model_data->getJointNodePointer(KBOTA_00_JNT_BOTAN_e)->setCallBack(jnodeCB);
+        mpModel->setUserArea((uintptr_t) this);
     }
 
     BOOL btp_success = TRUE;
@@ -173,27 +169,10 @@ bool daObjSwpush::Act_c::create_heap() {
 
     cBgD_t* bg_data = (cBgD_t*) dComIfG_getObjectRes(attr().mBgArcName, attr().mBgResIndex);
     bool bg_success = false;
-    JUT_ASSERT(DEMO_SELECT(0x22A, 0x22B), bg_data != NULL);
+    JUT_ASSERT(0x22B, bg_data != NULL);
     mpBgW = new dBgWSv();
     if (mpBgW != NULL && !mpBgW->Set(bg_data, 0)) {
-#if VERSION == VERSION_DEMO
-        mDoMtx_stack_c::transS(current.pos);
-        mDoMtx_stack_c::ZXYrotM(shape_angle);
-        mDoMtx_stack_c::scaleM(scale);
-        mDoMtx_copy(mDoMtx_stack_c::get(), mMtx);
-        mpBgW->ClrNoCalcVtx();
-        mpBgW->SetBaseMtxP(&mMtx);
-        mpBgW->GlobalVtx();
-        mpBgW->SetBaseMtxP(NULL);
-        mpBgW->SetNoCalcVtx();
-
-        m2D4 = mpBgW->GetVtxTbl()[M_op_vtx[0]].y;
-        if (!dComIfG_Bgsp()->Regist(mpBgW, this)) {
-            bg_success = true;
-        }
-#else
         bg_success = true;
-#endif
     }
 
     if (mpModel != NULL && btp_success) {
@@ -201,27 +180,14 @@ bool daObjSwpush::Act_c::create_heap() {
             rt = true;
         }
     }
-#if VERSION > VERSION_DEMO
     if (!rt) {
         mpBgW = NULL;
     }
-#endif
     return rt;
 }
 
 /* 00000478-0000051C       .text create_res_load__Q211daObjSwpush5Act_cFv */
 cPhs_State daObjSwpush::Act_c::create_res_load() {
-#if VERSION == VERSION_DEMO
-    cPhs_State rt_kbota = attr().mKbotaResName != NULL ? dComIfG_resLoad(&mKbotaPhs, attr().mKbotaResName) : cPhs_COMPLEATE_e;
-    cPhs_State rt_hhbot = attr().mHhbotResName != NULL ? dComIfG_resLoad(&mHhbotPhs, attr().mHhbotResName) : cPhs_COMPLEATE_e;
-    if (rt_kbota == cPhs_COMPLEATE_e && rt_hhbot == cPhs_COMPLEATE_e) {
-        return cPhs_COMPLEATE_e;
-    }
-    if (rt_kbota == cPhs_ERROR_e || rt_hhbot == cPhs_ERROR_e) {
-        return cPhs_ERROR_e;
-    }
-    return cPhs_INIT_e;
-#else
     cPhs_State rt = attr().mKbotaResName != NULL ? dComIfG_resLoad(&mKbotaPhs, attr().mKbotaResName) : cPhs_COMPLEATE_e;
     if (rt != cPhs_COMPLEATE_e) {
         return rt;
@@ -231,7 +197,6 @@ cPhs_State daObjSwpush::Act_c::create_res_load() {
         return rt;
     }
     return cPhs_COMPLEATE_e;
-#endif
 }
 
 /* 0000051C-000008C4       .text Mthd_Create__Q211daObjSwpush5Act_cFv */
@@ -246,9 +211,6 @@ cPhs_State daObjSwpush::Act_c::Mthd_Create() {
         scale.x *= attr().mScale;
         scale.z *= attr().mScale;
         if (fopAcM_entrySolidHeap(this, solidHeapCB, attr().mHeapSize)) {
-#if VERSION == VERSION_DEMO
-            {
-#else
             if (dComIfG_Bgsp()->Regist(mpBgW, this)) {
                 phase_state = cPhs_ERROR_e;
             } else {
@@ -263,7 +225,6 @@ cPhs_State daObjSwpush::Act_c::Mthd_Create() {
                 mpBgW->SetNoCalcVtx();
 
                 m2D4 = mpBgW->GetVtxTbl()[M_op_vtx[0]].y;
-#endif
                 mpBgW->SetRideCallback(rideCB);
                 fopAcM_SetMtx(this, mpModel->getBaseTRMtx());
                 init_mtx();
@@ -329,10 +290,10 @@ cPhs_State daObjSwpush::Act_c::Mthd_Create() {
 BOOL daObjSwpush::Act_c::Mthd_Delete() {
     dComIfG_Bgsp()->Release(mpBgW);
     if (attr().mKbotaResName != NULL) {
-        dComIfG_resDeleteDemo(&mKbotaPhs, attr().mKbotaResName);
+        dComIfG_resDelete(&mKbotaPhs, attr().mKbotaResName);
     }
     if (attr().mHhbotResName != NULL) {
-        dComIfG_resDeleteDemo(&mHhbotPhs, attr().mHhbotResName);
+        dComIfG_resDelete(&mHhbotPhs, attr().mHhbotResName);
     }
     return TRUE;
 }
@@ -433,9 +394,8 @@ BOOL daObjSwpush::Act_c::jnodeCB(J3DNode* node, int calcTiming) {
 
 /* 0000105C-00001170       .text calc_top_pos__Q211daObjSwpush5Act_cFv */
 void daObjSwpush::Act_c::calc_top_pos() {
-    f32 diff = mCurHFrac - mTargetHFrac;
     f32 decay = attr().mSpeedDecay;
-    mSpeed -= diff * attr().mSpring;
+    mSpeed -= (mCurHFrac - mTargetHFrac) * attr().mSpring;
     mSpeed -= mSpeed * decay;
     mCurHFrac += mSpeed;
     m31C = (1.0f - mCurHFrac) * -35.5f;
@@ -590,7 +550,7 @@ void daObjSwpush::Act_c::mode_u_l() {
                 }
             } 
             if (mVibTimer != 0) {
-                dComIfGp_getVibration().StartShock(DEMO_SELECT(2, 4), DEMO_SELECT(1, -0x21), cXyz(0.0f, 1.0f, 0.0f));
+                dComIfGp_getVibration().StartShock(4, -0x21, cXyz(0.0f, 1.0f, 0.0f));
             }
         }
         fopAcM_seStart(this, JA_SE_OBJ_FOOT_SW_ON, 0);
@@ -789,7 +749,7 @@ BOOL daObjSwpush::Act_c::Mthd_Execute() {
     int i_max = mpBgW->GetVtxNum();
 
     for (int i = 0; i < 4; i++) {
-        JUT_ASSERT(DEMO_SELECT(0x55F, 0x578), M_op_vtx[i] < i_max)
+        JUT_ASSERT(0x578, M_op_vtx[i] < i_max)
         vtx_tbl[M_op_vtx[i]].y = m2D4 + mTopPos;
     }
     mpBgW->Move();

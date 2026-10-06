@@ -31,12 +31,7 @@ public:
     BOOL otherCheck();
     BOOL arrivalTerms();
     void demoInitProc();
-#if TARGET_PC
-    // u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
     int next_msgStatus(u32*);
-#else
-    int next_msgStatus(unsigned long*);
-#endif
     u32 getMsg();
     void talkInit();
     u16 talk();

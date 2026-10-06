@@ -7,11 +7,7 @@
 
 class daTitle_proc_c : public dDlst_base_c {
 public:
-#if VERSION == VERSION_DEMO
-    daTitle_proc_c(JKRExpHeap*);
-#else
     daTitle_proc_c();
-#endif
     ~daTitle_proc_c();
     void proc_init3D();
     void proc_init2D();
@@ -69,11 +65,7 @@ public:
 public:
     /* 0x290 */ request_of_phase_process_class mPhs;
     /* 0x298 */ daTitle_proc_c* mpTitleProc;
-#if VERSION == VERSION_DEMO
-    /* 0x29C */ JKRExpHeap* mpExpHeap;
-#else
     /* 0x29C */ bool m29C;
-#endif
 };
 
 #endif /* D_A_TITLE_H */

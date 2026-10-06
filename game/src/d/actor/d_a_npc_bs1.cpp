@@ -802,7 +802,7 @@ u16 daNpc_Bs1_c::next_msgStatus(u32* pMsgNo) {
             }
 
             if(l_msg->mSelectNum == 0) {
-                u32 rupee = dComIfGp_getMessageRupee();
+                int rupee = dComIfGp_getMessageRupee();
                 u8 status = dShop_BoughtErrorStatus(&mShopItems, 0, rupee);
 
                 if(status & 1) {
@@ -872,7 +872,7 @@ u16 daNpc_Bs1_c::next_msgStatus(u32* pMsgNo) {
             }
 
             if(l_msg->mSelectNum == 0) {
-                u32 rupee = dComIfGp_getMessageRupee();
+                int rupee = dComIfGp_getMessageRupee();
                 u32 status = dShop_BoughtErrorStatus(&mShopItems, 0, rupee);
 
                 if(status & 0x20) {
@@ -2221,11 +2221,7 @@ BOOL daNpc_Bs1_c::CreateHeap() {
             mpMorf->getModel()->getModelData()->getJointNodePointer(jntNo)->setCallBack(nodeCallBack_Bs);
         }
     }
-#if TARGET_PC
     mpMorf->getModel()->setUserArea((uintptr_t)this);
-#else
-    mpMorf->getModel()->setUserArea((u32)this);
-#endif
     mAcchCir.SetWall(30.0f, 0.0f);
     mAcch.Set(fopAcM_GetPosition_p(this), fopAcM_GetOldPosition_p(this),  this, 1, &mAcchCir, fopAcM_GetSpeed_p(this));
     J3DAnmTevRegKey* brk = (J3DAnmTevRegKey*)dComIfG_getObjectRes("Bs", dRes_INDEX_BS_BRK_SHOP_CURSOR01_e);

@@ -30,7 +30,8 @@ daShand_HIO_c::daShand_HIO_c() {
 
 /* 00000114-00000194       .text hand_draw__FP11shand_class */
 void hand_draw(shand_class* i_this) {
-    i_this->mLineMat.update(0x14, (GXColor){0x50, 0x96, 0x96, 0xff}, &i_this->tevStr);
+    GXColor color = {0x50, 0x96, 0x96, 0xff};
+    i_this->mLineMat.update(0x14, color, &i_this->tevStr);
     dComIfGd_set3DlineMat(&i_this->mLineMat);
 }
 
@@ -47,9 +48,9 @@ void control1(shand_class* i_this) {
 
     i_this->field_31C[0].mPos = i_this->current.pos;
     int i = 1;
-    shand_s* shand_i = &i_this->field_31C[1];
+    shand_s* shand_i = &i_this->field_31C[i];
     
-    cMtx_YrotS(*calc_mtx, i_this->current.angle.y);
+    mDoMtx_YrotS(*calc_mtx, i_this->current.angle.y);
 
     cXyz local94, cStack_a0, localac;
     local94.x = 0.0f;
@@ -95,7 +96,7 @@ void control2(shand_class* i_this) {
     int i = 18;
     short Yangle;
     int XZangle;
-    shand_s* shand_i = &i_this->field_31C[18];
+    shand_s* shand_i = &i_this->field_31C[i];
     for(i = 18; i >= 1; i--, shand_i--){
         float delta_pos_x = shand_i->mPos.x - shand_i[1].mPos.x;
         float delta_pos_y = shand_i->mPos.y - shand_i[1].mPos.y;
@@ -118,8 +119,7 @@ void control3(shand_class* i_this) {
             shand_i->field_18 = i_this->field_304;
         }
         else {
-            f32 scale = 1.0f - (counter + -10) * 0.05f;
-            shand_i->field_18 = i_this->field_304 * scale;
+            shand_i->field_18 = i_this->field_304 * (1.0f - (counter + -10) * 0.05f);
         }
     }
 }
@@ -128,10 +128,10 @@ void control3(shand_class* i_this) {
 void cut_control(shand_class* i_this) {
     i_this->field_31C[0].mPos = i_this->current.pos;
     int i = 1;
-    shand_s *shand_i = &i_this->field_31C[1];
+    shand_s *shand_i = &i_this->field_31C[i];
 
     cXyz local_b8, cStack_c4, local_d0;
-    cMtx_YrotS(*calc_mtx, i_this->current.angle.y);
+    mDoMtx_YrotS(*calc_mtx, i_this->current.angle.y);
     local_b8.x = 0.0f;
     local_b8.y = i_this->field_2F8;
     local_b8.z = i_this->field_2FC;
@@ -176,8 +176,7 @@ void cut_control3(shand_class* i_this) {
             shand_i->field_18 = i_this->field_304;
         }
         else {
-            f32 scale = 1.0f - (counter - 10) * 0.08f;
-            shand_i->field_18 = i_this->field_304 * scale;
+            shand_i->field_18 = i_this->field_304 * (1.0f - (counter - 10) * 0.08f);
         }
     }
 }
@@ -204,8 +203,7 @@ void normal(shand_class* i_this) {
         case 0:
             if(std::abs(i_this->field_31C[19].mPos.y - i_this->field_2D4.y) < 10.0f){
                 i_this->field_2BA = 1;
-                u8* state_p = i_this->field_314;
-                *state_p = 2;
+                *i_this->field_314 = 2;
             }
             // Fall-through
         case 1:
@@ -263,19 +261,11 @@ void hand_move(shand_class* i_this) {
                     local_ac.SetPos(&chk_pos);
                     i_this->ground_y = dComIfG_Bgsp()->GroundCross(&local_ac);
                     
-#if VERSION == VERSION_DEMO
-                    dBgS_ObjGndChk_Yogan local_100;
-                    chk_pos = actor->current.pos;
-                    chk_pos.y -= 100.0f;
-                    local_100.SetPos(&chk_pos);
-                    f32 spl_ground_y = dComIfG_Bgsp()->GroundCross(&local_100);
-#else
                     dBgS_ObjGndChk_Spl local_100;
                     chk_pos = actor->current.pos;
                     chk_pos.y += 200.0f;
                     local_100.SetPos(&chk_pos);
                     f32 spl_ground_y = dComIfG_Bgsp()->GroundCross(&local_100) + 10.0f;
-#endif
                     if(spl_ground_y != -G_CM3D_F_INF){
                         i_this->ground_y = spl_ground_y;
                     }
@@ -362,8 +352,7 @@ void hand_move(shand_class* i_this) {
                 i_this->field_2F8 = 3.0f;
                 i_this->field_2FC = 40.0f;
                 i_this->field_300 = cM_rndF(20.0f) + 30.0f;
-                u8* state_p = i_this->field_314;
-                *state_p = 1;
+                *i_this->field_314 = 1;
                 cXyz particle_scale(0.5f, 0.5f, 0.5f);
                 dComIfGp_particle_set(dPa_name::ID_AK_JN_SIBOUBAKUEN, &hit_atInfo.mpActor->eyePos, NULL, &particle_scale);
                 dComIfGp_particle_set(dPa_name::ID_AK_JN_SIBOUFLASH, &hit_atInfo.mpActor->eyePos, NULL, &particle_scale);
@@ -397,7 +386,7 @@ static BOOL daShand_IsDelete(shand_class*) {
 
 /* 00002264-000022D4       .text daShand_Delete__FP11shand_class */
 static BOOL daShand_Delete(shand_class* i_this) {
-    dComIfG_resDeleteDemo(&i_this->mPhs, "Shand");
+    dComIfG_resDelete(&i_this->mPhs, "Shand");
     if(i_this->mHasHIO){
         hio_set = false;
         mDoHIO_deleteChild(l_HIO.mNo);
@@ -512,9 +501,7 @@ static cPhs_State daShand_Create(fopAc_ac_c* i_this) {
             }
             s_this->mSph.Set(bm_sph_src);
             s_this->mSph.SetStts(&s_this->mStts);
-#if VERSION > VERSION_DEMO
             s_this->field_2C4 = 30;
-#endif
             for(int i = 0; i < 3; i++){
                 daShand_Execute(s_this);
             }
@@ -553,11 +540,7 @@ actor_process_profile_definition g_profile_SHAND = {
     /* Leaf SubMtd  */ &g_fopAc_Method.base,
     /* Draw Prio    */ fpcDwPi_SHAND_e,
     /* Actor SubMtd */ &l_daShand_Method,
-#if VERSION == VERSION_DEMO
-    /* Status       */ fopAcStts_UNK40000_e,
-#else
     /* Status       */ fopAcStts_UNK4000_e | fopAcStts_UNK40000_e,
-#endif
     /* Group        */ fopAc_ENEMY_e,
     /* Cull Type    */ fopAc_CULLBOX_CUSTOM_e,
 };

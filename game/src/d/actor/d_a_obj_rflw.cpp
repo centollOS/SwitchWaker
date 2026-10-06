@@ -62,11 +62,7 @@ BOOL daObjRflw_c::CreateHeap() {
                 break;
             }
         }
-#if TARGET_PC
         mpModel->setUserArea(reinterpret_cast<uintptr_t>(this));
-#else
-        mpModel->setUserArea(reinterpret_cast<u32>(this));
-#endif
     } else {
         return FALSE;
     }

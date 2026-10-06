@@ -864,7 +864,7 @@ void daNpc_Ba1_c::partner_srch() {
 /* 00001B90-00001CA8       .text check_useFairyArea__11daNpc_Ba1_cFv */
 bool daNpc_Ba1_c::check_useFairyArea() {
     bool ret;
-    f32 mag = std::sqrtf((dComIfGp_getPlayer(0)->current.pos - current.pos).abs2XZ());
+    f32 mag = (dComIfGp_getPlayer(0)->current.pos - current.pos).absXZ();
     ret = FALSE;
     if (
         std::abs(dComIfGp_getPlayer(0)->current.pos.y - current.pos.y) < 100.0f 
@@ -955,7 +955,7 @@ void daNpc_Ba1_c::eInit_MOV_POS_() {
 /* 00001F04-00001F48       .text eInit_SET_PLYER_TRN_ANG___11daNpc_Ba1_cFv */
 void daNpc_Ba1_c::eInit_SET_PLYER_TRN_ANG_() {
     daPy_py_c* player = daPy_getPlayerActorClass();
-    player->mDemo.setMoveAngle(
+    player->changeDemoMoveAngle(
         cLib_targetAngleY(
             &dComIfGp_getPlayer(0)->current.pos, 
             &current.pos)
@@ -1107,7 +1107,7 @@ bool daNpc_Ba1_c::eMove_MOV_POS_() {
         return FALSE;
         
     }
-    f32 mag = std::sqrtf((temp - current.pos).abs2XZ());
+    f32 mag = (temp - current.pos).absXZ();
     ret = mag < 4.0f;
     m78A.y = cLib_targetAngleY(&current.pos, &dComIfGp_getPlayer(0)->current.pos);
     m7F5 = true;
@@ -1408,7 +1408,7 @@ BOOL daNpc_Ba1_c::wait_0() {
     }
     m812 = 0;
     if(!dComIfGs_isTmpBit(dSv_event_flag_c::UNK_0310)) {
-        f32 dist = std::sqrtf((dComIfGp_getPlayer(0)->current.pos - current.pos).abs2XZ());
+        f32 dist = (dComIfGp_getPlayer(0)->current.pos - current.pos).absXZ();
         if(
             std::fabsf(dComIfGp_getPlayer(0)->current.pos.y - current.pos.y) < 100.0f
             && dist < l_HIO.mPrmTbl.m20
@@ -2057,11 +2057,7 @@ BOOL daNpc_Ba1_c::CreateHeap() {
                 mpMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Ba1);
             }
         }
-#if TARGET_PC
         mpMorf->getModel()->setUserArea((uintptr_t)this);
-#else
-        mpMorf->getModel()->setUserArea((u32)this);
-#endif
         mAcchCir.SetWall(30.0f,50.0f);
         mObjAcch.Set(
             fopAcM_GetPosition_p(this),

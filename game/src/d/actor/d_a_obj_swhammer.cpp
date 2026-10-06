@@ -118,11 +118,7 @@ BOOL daObjSwhammer::Act_c::CreateHeap() {
     mpModel = mDoExt_J3DModel__create(modelData, 0x80000, 0x11000022);
     if (mpModel) {
         modelData->getJointNodePointer(MHMRSW_JNT_HIT_e)->setCallBack(jnodeCB);
-#if TARGET_PC
-        mpModel->setUserArea((uintptr_t)this);
-#else
-        mpModel->setUserArea((u32) this);
-#endif
+        mpModel->setUserArea((uintptr_t) this);
     }
     return mpModel != NULL;
 }
@@ -153,7 +149,7 @@ BOOL daObjSwhammer::Act_c::Create() {
     mVSpeed = 0.0f;
     mTargetHFrac = 0.0f;
 
-    if (is_switch() != FALSE) {
+    if (is_switch()) {
         mCurHFrac = 0.0f;
         mTopPos = -60.0f;
         mode_lower_init();

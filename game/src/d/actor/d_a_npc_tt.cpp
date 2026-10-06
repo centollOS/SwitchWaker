@@ -45,7 +45,7 @@ static BOOL nodeCallBack_Tt(J3DNode* node, int calcTiming) {
             if (jntNo == i_this->getHeadJntNum()) {
                 temp.setall(0.0f);
                 cMtx_YrotM(*calc_mtx, -i_this->getHead_y());
-                cMtx_ZrotM(*calc_mtx, -i_this->getHead_x() - i_this->mHeadAnm.field_0x00);
+                cMtx_ZrotM(*calc_mtx, -i_this->getHead_x() - i_this->mHeadAnm.field_0x00.x);
                 MtxPosition(&temp, &temp2);
                 i_this->setAttentionBasePos(temp2);
                 temp.set(20.0f, -20.0f, 0.0f);
@@ -174,7 +174,7 @@ u32 daNpc_Tt_c::getMsg() {
             msgNo = mMsgNo;
             switch(msgNo) {
                 case 0x5B3:
-                    dComIfGp_setMelodyNum(5);
+                    dComIfGp_setMelodyNum(mDoAud_MELODY_SONG_OF_PASSING_e);
                     break;
             }
     }
@@ -782,7 +782,7 @@ BOOL daNpc_Tt_c::_draw() {
         current.pos.y, mObjAcch.GetGroundH(), mObjAcch.m_gnd, &tevStr
     );
 
-    mLineKe.mLineMat.update(10, 0.8f, (GXColor){0xC9, 0xCA, 0xE4, 0xFF}, 0, &tevStr);
+    mLineKe.mLineMat.update(10, 0.8f, COMPOUND_LITERAL(GXColor){0xC9, 0xCA, 0xE4, 0xFF}, 0, &tevStr);
     dComIfGd_set3DlineMat(&mLineKe.mLineMat);
 
     dSnap_RegistFig(DSNAP_TYPE_NPC_TT, this, 1.0f, 1.0f, 1.0f);
@@ -937,11 +937,7 @@ BOOL daNpc_Tt_c::CreateHeap() {
         }
     }
 
-#if TARGET_PC
     mpMorf->getModel()->setUserArea((uintptr_t)(this));
-#else
-    mpMorf->getModel()->setUserArea((u32)(this));
-#endif
 
     mAcchCir.SetWall(30.0f, 0.0f);
     mObjAcch.Set(fopAcM_GetPosition_p(this), fopAcM_GetOldPosition_p(this), this, 1, &mAcchCir, fopAcM_GetSpeed_p(this));

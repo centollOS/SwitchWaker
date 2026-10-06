@@ -13,7 +13,7 @@ void dDlst_MENU_CAPTURE_c::draw() {
     if (checkDrawFlag() == 1) {
         setDrawFlagOn2();
         GXSetTexCopySrc(0, 0, 0x280, 0x1e0);
-        GXSetTexCopyDst(0x140, 0xf0, (GXTexFmt)mDoGph_gInf_c::getFrameBufferTimg()->format, 1);
+        GXSetTexCopyDst(0x140, 0xf0, GXTexFmt(mDoGph_gInf_c::mFrameBufferTimg->format), 1);
         GXCopyTex(mDoGph_gInf_c::mFrameBufferTex, 0);
         GXPixModeSync();
     } else {
@@ -22,7 +22,7 @@ void dDlst_MENU_CAPTURE_c::draw() {
         GXCopyTex(mDoGph_gInf_c::mZbufferTex, 0);
         GXPixModeSync();
         GXTexObj tex_obj;
-        GXInitTexObj(&tex_obj, mDoGph_gInf_c::getFrameBufferTex(), 0x140, 0xf0, (GXTexFmt)mDoGph_gInf_c::getFrameBufferTimg()->format, GX_CLAMP, GX_CLAMP, false);
+        GXInitTexObj(&tex_obj, mDoGph_gInf_c::mFrameBufferTex, 0x140, 0xf0, GXTexFmt(mDoGph_gInf_c::mFrameBufferTimg->format), GX_CLAMP, GX_CLAMP, false);
         GXInitTexObjLOD(&tex_obj, GX_LINEAR, GX_LINEAR, 0.0, 0.0, 0.0, 0, 0, GX_ANISO_1);
         GXLoadTexObj(&tex_obj, GX_TEXMAP0);
         GXSetNumChans(0);
@@ -38,7 +38,8 @@ void dDlst_MENU_CAPTURE_c::draw() {
         GXSetZMode(false, GX_ALWAYS, false);
         GXSetBlendMode(GX_BM_NONE, GX_BL_ZERO, GX_BL_ZERO, GX_LO_OR);
         GXSetAlphaCompare(GX_ALWAYS, 0, GX_AOP_OR, GX_ALWAYS, 0);
-        GXSetFog(GX_FOG_NONE, 0.0, 0.0, 0.0, 0.0, g_clearColor);
+        GXColor local_68 = g_clearColor;
+        GXSetFog(GX_FOG_NONE, 0.0, 0.0, 0.0, 0.0, local_68);
         GXSetFogRangeAdj(false, 0, NULL);
         GXSetCullMode(GX_CULL_NONE);
         GXSetDither(1);
@@ -74,20 +75,6 @@ void dDlst_MENU_CAPTURE_c::draw() {
     }
 }
 
-#if VERSION == VERSION_DEMO
-void dDlst_MENU_CLOTH_c::draw() {
-    Mtx44 mtx;
-
-    const view_port_class* viewport = dComIfGp_getCurrentViewport();
-    C_MTXPerspective(mtx, 30.0f, viewport->mWidth / viewport->mHeight * fapGmHIO_getAspectRatio(), 1.0f, 100000.0f);
-
-    GXSetProjection(mtx, GX_PERSPECTIVE);
-
-    cloth_c->draw(0.0f, g_miHIO.mClothColor, g_miHIO.mShadowColor, 1);
-
-    dComIfGp_getCurrentGrafPort()->setPort();
-}
-#else
 void dDlst_MENU_CLOTH_c::draw() {
     Mtx44 mtx;
 
@@ -104,7 +91,6 @@ void dDlst_MENU_CLOTH_c::draw() {
 
     dComIfGp_getCurrentGrafPort()->setPort();
 }
-#endif
 
 dDlst_MENU_CAPTURE_c::~dDlst_MENU_CAPTURE_c() {}
 

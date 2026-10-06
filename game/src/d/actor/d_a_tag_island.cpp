@@ -136,12 +136,7 @@ void daTag_Island_c::demoInitProc() {
 }
 
 /* 00000550-00000558       .text next_msgStatus__14daTag_Island_cFPUl */
-#if TARGET_PC
-// u32 is unsigned int on the host, not unsigned long; same type as the original on MWCC.
 int daTag_Island_c::next_msgStatus(u32*) {
-#else
-int daTag_Island_c::next_msgStatus(unsigned long*) {
-#endif
     return fopMsgStts_MSG_ENDS_e;
 }
 
@@ -197,11 +192,11 @@ void daTag_Island_c::demoInitTact_Bf() {
     talkInit();
 
     int* a_intP = dComIfGp_evmng_getMyIntegerP(mStaffId, "prm0");
-    JUT_ASSERT(0x167, a_intP);
+    JUT_ASSERT(359, a_intP);
 
     if (a_intP != NULL) {
         dComIfGp_setMelodyNum(*a_intP);
-        if (*a_intP == 6) {
+        if (*a_intP == mDoAud_MELODY_UNK6_e) {
             m2AC = 0x05B4;
         } else {
             m2AC = 0x05B3;
@@ -252,7 +247,7 @@ BOOL daTag_Island_c::demoProcTact_Af() {
             setFlag(daTagIsl_UNK_02);
             fopAcM_orderChangeEventId(this, daPy_getPlayerLinkActorClass(), mEventId, 0, 0xFFFF);
         } else {
-            JUT_ASSERT(0x1b3, FALSE);
+            JUT_ASSERT(435, FALSE);
             dComIfGp_evmng_cutEnd(mStaffId);
         }
     }
@@ -264,7 +259,7 @@ BOOL daTag_Island_c::demoProcTact_Af() {
 void daTag_Island_c::demoInitSpeak() {
     talkInit();
     int* a_intP = dComIfGp_evmng_getMyIntegerP(mStaffId, "MsgNo");
-    JUT_ASSERT(0x1C2, a_intP);
+    JUT_ASSERT(450, a_intP);
 
     m2AC = *a_intP;
     

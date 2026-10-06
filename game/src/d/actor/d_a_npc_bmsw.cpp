@@ -14,7 +14,10 @@
 #include "f_op/f_op_camera.h"
 #include "m_Do/m_Do_controller_pad.h"
 #include "m_Do/m_Do_hostIO.h"
+
+#if VERSION == VERSION_DEMO
 #include "d/d_s_play.h"
+#endif
 
 class daNpc_Bmsw_HIO_c : public JORReflexible {
 public:
@@ -113,16 +116,17 @@ daNpc_Bmsw_HIO_c::daNpc_Bmsw_HIO_c() {
 }
 
 
-static const s32 l_bck_ix_tbl[] = {
+static const int l_bck_ix_tbl[] = {
     dRes_ID_BMSW_BCK_BM_WAIT01_e, dRes_ID_BMSW_BCK_BM_WAIT02_e, dRes_ID_BMSW_BCK_BM_TALK01_e, dRes_ID_BMSW_BCK_BM_TALK02_e,
     dRes_ID_BMSW_BCK_BM_TALK03_e, dRes_ID_BMSW_BCK_BM_SHIWAKE01_e, dRes_ID_BMSW_BCK_BM_SHIWAKE02_e,
 };
-static const s32 l_arm_bck_ix_tbl[] = {
+
+static const int l_arm_bck_ix_tbl[] = {
     dRes_ID_BMSW_BCK_BMARM_WAIT01_e, dRes_ID_BMSW_BCK_BMARM_WAIT02_e, dRes_ID_BMSW_BCK_BMARM_TALK01_e, dRes_ID_BMSW_BCK_BMARM_TALK02_e,
     dRes_ID_BMSW_BCK_BMARM_TALK03_e, dRes_ID_BMSW_BCK_BMARM_SHIWAKE01_e, dRes_ID_BMSW_BCK_BMARM_SHIWAKE02_e,
 };
 
-static const u32 l_btp_ix_tbl[] = {dRes_ID_BMSW_BTP_BMHEAD11_e, dRes_ID_BMSW_BTP_BMHEAD11_e};
+static const int l_btp_ix_tbl[] = {dRes_ID_BMSW_BTP_BMHEAD11_e, dRes_ID_BMSW_BTP_BMHEAD11_e};
 
 
 /* 000001E4-000003FC       .text nodeCallBack__FP7J3DNodei */
@@ -136,11 +140,7 @@ static BOOL nodeCallBack(J3DNode* node, int calcTiming) {
             static cXyz a_att_pos_offst(0.0f, 0.0f, 0.0f);
             static cXyz a_eye_pos_offst(26.0f, 26.0f, 0.0f);
 
-#if VERSION == VERSION_DEMO
-            int jointNo = joint->getJntNo();
-#else
-            u16 jointNo = joint->getJntNo();
-#endif
+            s32 jointNo = joint->getJntNo();
             mDoMtx_stack_c::copy(model->getAnmMtx(jointNo));
 
             if (jointNo == i_this->m_neck_jnt_num) {
@@ -174,11 +174,7 @@ static BOOL nodeCallBackArm(J3DNode* node, int calcTiming) {
 
         if (i_this != NULL) {
             static cXyz a_eff_pos_offst(0.0f, 0.0f, 0.0f);
-#if VERSION == VERSION_DEMO
-            int jointNo = joint->getJntNo();
-#else
-            u16 jointNo = joint->getJntNo();
-#endif
+            s32 jointNo = joint->getJntNo();
 
             mDoMtx_stack_c::copy(model->getAnmMtx(jointNo));
             if (jointNo == i_this->m_ArmL) {
@@ -256,11 +252,7 @@ static u32 daNpc_Bmsw_getGameEndMsg(s16 rupees) {
 BOOL daNpc_Bmsw_c::initTexPatternAnm(bool i_modify) {
     J3DModelData* modelData = field_0x6D4->getModelData();
 
-#if VERSION == VERSION_DEMO
-    m_head_tex_pattern = (J3DAnmTexPattern*) dComIfG_getObjectIDRes("Bmsw", (int)l_btp_ix_tbl[field_0x9D4]);
-#else
-    m_head_tex_pattern = (J3DAnmTexPattern*) dComIfG_getObjectIDRes("Bmsw", (u16)l_btp_ix_tbl[field_0x9D4]);
-#endif
+    m_head_tex_pattern = (J3DAnmTexPattern*) dComIfG_getObjectIDRes("Bmsw", l_btp_ix_tbl[field_0x9D4]);
     JUT_ASSERT(385, m_head_tex_pattern != NULL);
 
     if (!field_0x7F8.init(modelData, m_head_tex_pattern, TRUE, J3DFrameCtrl::EMode_LOOP, 1.0f, 0, -1, i_modify, FALSE)) {
@@ -330,7 +322,7 @@ bool daNpc_Bmsw_c::chkAttention(cXyz pos, s16 angle) {
     s16 targetAngleY = cM_atan2s(delta.x, delta.z);
     if (mHasAttention) {
         maxAttnDistXZ += 40.0f;
-        maxAttnAngleY += cAngle::d2s(10.0f);
+        maxAttnAngleY += cM_deg2s(10.0f);
     }
     targetAngleY -= angle;
     return maxAttnAngleY > abs(targetAngleY) && maxAttnDistXZ > distXZ;
@@ -584,7 +576,7 @@ void daNpc_Bmsw_c::anmAtr(u16 i_msgStatus) {
             break;
     }
 
-    dComIfGp_clearMesgAnimeAttrInfo();
+    dComIfGp_setMesgAnimeAttrInfo(0xFF);
 }
 
 /* 000010C0-00001340       .text CreateInit__12daNpc_Bmsw_cFv */
@@ -639,7 +631,7 @@ BOOL daNpc_Bmsw_c::CreateInit() {
 void daNpc_Bmsw_c::set_mtx() {
     J3DModel* model = mpMorf->getModel();
 
-    mDoMtx_stack_c::transS(current.pos);
+    mDoMtx_stack_c::transS(current.pos.x, current.pos.y, current.pos.z);
     mDoMtx_stack_c::YrotM(current.angle.y);
 
     model->setBaseTRMtx(mDoMtx_stack_c::get());
@@ -647,18 +639,14 @@ void daNpc_Bmsw_c::set_mtx() {
     field_0x6D8->setBaseTRMtx(model->getAnmMtx(m_jnt.getBackboneJntNum()));
 
     if (field_0x9D5 == 6 || field_0x9D5 == 5) {
-#if VERSION == VERSION_DEMO
-        if ((field_0x9D5 == 5 && mpMorfHand->getFrame() < 18.0f + REG10_F(5)) || (field_0x9D5 == 6 && mpMorfHand->getFrame() < 18.0f)) {
-#else
-        if ((field_0x9D5 == 5 && mpMorfHand->getFrame() < 18.0f) || (field_0x9D5 == 6 && mpMorfHand->getFrame() < 18.0f)) {
-#endif
+        if ((field_0x9D5 == 5 && mpMorfHand->getFrame() < 18.0f + DEMO_SELECT(REG10_F(5), 0.0f)) || (field_0x9D5 == 6 && mpMorfHand->getFrame() < 18.0f)) {
             mDoMtx_stack_c::copy(mpMorfHand->getModel()->getAnmMtx(m_handR));
             mDoMtx_stack_c::transM(24.77f, -3.73f, 22.69f);
-            mDoMtx_stack_c::XYZrotM(0x45B4, -0x2BE7, 0xE6C);
+            mDoMtx_stack_c::XYZrotM(cM_deg2s(98.02001654f), cM_deg2s(-61.737669014f), cM_deg2s(20.2807611f));
         } else {
             mDoMtx_stack_c::copy(mpMorfHand->getModel()->getAnmMtx(m_handL));
             mDoMtx_stack_c::transM(26.18f, 8.72f, 18.55f);
-            mDoMtx_stack_c::XYZrotM(0x5065, 0x28A0, -0x7F80);
+            mDoMtx_stack_c::XYZrotM(cM_deg2s(113.05480612f), cM_deg2s(57.128904507f), cM_deg2s(-179.296869528f));
         }
         field_0x6DC->setBaseTRMtx(mDoMtx_stack_c::get());
     }
@@ -1061,11 +1049,7 @@ BOOL daNpc_Bmsw_c::_draw() {
     mDoExt_modelUpdateDL(field_0x6D8);
 
     if (field_0x9D5 == 5 || field_0x9D5 == 6) {
-#if VERSION == VERSION_DEMO
-        g_env_light.settingTevStruct(REG10_S(9), &current.pos, &field_0x6E0);
-#else
-        g_env_light.settingTevStruct(TEV_TYPE_ACTOR, &current.pos, &field_0x6E0);
-#endif
+        g_env_light.settingTevStruct(DEMO_SELECT(REG10_S(9), TEV_TYPE_ACTOR), &current.pos, &field_0x6E0);
 
         field_0x6E0.mColorK0.r = l_HIO.r_1;
         field_0x6E0.mColorK0.g = l_HIO.g_1;
@@ -1129,15 +1113,14 @@ BOOL daNpc_Bmsw_c::_execute() {
 BOOL daNpc_Bmsw_c::_delete() {
     dComIfG_resDelete(&mPhs, "Bmsw");
 
-#if VERSION == VERSION_DEMO
-    if (mpMorf != NULL) {
+    if (
+#if VERSION > VERSION_DEMO
+        heap != NULL &&
+#endif
+        mpMorf != NULL) {
         mpMorf->stopZelAnime();
     }
-#else
-    if (heap != NULL && mpMorf != NULL) {
-        mpMorf->stopZelAnime();
-    }
-
+#if VERSION > VERSION_DEMO
     mSwMail0.SeDelete();
     mSwMail1.SeDelete();
     mSwMail2.SeDelete();
@@ -1163,15 +1146,9 @@ cPhs_State daNpc_Bmsw_c::_create() {
         fopAcM_create(
             "Btsw",
             fopAcM_GetParam(this),
-#if VERSION == VERSION_DEMO
             &current.pos,
             fopAcM_GetRoomNo(this),
             &current.angle
-#else
-            fopAcM_GetPosition_p(this),
-            fopAcM_GetRoomNo(this),
-            fopAcM_GetAngle_p(this)
-#endif
         );
         return cPhs_ERROR_e;
     }
@@ -1286,31 +1263,23 @@ BOOL daNpc_Bmsw_c::CreateHeap() {
             armModelData->getJointNodePointer(i)->setCallBack(nodeCallBackArm);
         }
     }
-#if TARGET_PC
     mpMorf->getModel()->setUserArea((uintptr_t)this);
-#else
-    mpMorf->getModel()->setUserArea((u32) this);
-#endif
-#if TARGET_PC
     mpMorfHand->getModel()->setUserArea((uintptr_t)this);
-#else
-    mpMorfHand->getModel()->setUserArea((u32) this);
-#endif
 
     field_0x930[0] = &mSwMail0;
     field_0x930[1] = &mSwMail1;
     field_0x930[2] = &mSwMail2;
     field_0x93C = 0;
 
-    cXyz* eyeP = mSwCam.getEyeP();
     cXyz* cameraCenter = mSwCam.getCenterP();
-    if (field_0x930[0]->MailCreateInit(eyeP, cameraCenter) == FALSE) {
+    cXyz* eyeP = mSwCam.getEyeP();
+    if (field_0x930[0]->MailCreateInit(cameraCenter, eyeP) == FALSE) {
         return FALSE;
     }
-    if (field_0x930[1]->MailCreateInit(eyeP, cameraCenter) == FALSE) {
+    if (field_0x930[1]->MailCreateInit(cameraCenter, eyeP) == FALSE) {
         return FALSE;
     }
-    if (field_0x930[2]->MailCreateInit(eyeP, cameraCenter) == FALSE) {
+    if (field_0x930[2]->MailCreateInit(cameraCenter, eyeP) == FALSE) {
         return FALSE;
     }
 
@@ -1516,28 +1485,15 @@ void SwMail_c::Appear() {
     }
 
     cXyz vec = *field_0x5C;
-#if VERSION == VERSION_DEMO
-    diff = diff * (120.0f + REG10_F(0));
+    diff = diff * (120.0f + DEMO_SELECT(REG10_F(0), 0));
     vec += diff;
-#else
-    diff = diff * 120.0f;
-    vec += diff;
-#endif
 
-#if VERSION == VERSION_DEMO
-    vec.y -= 40.0f + REG10_F(1);
-#else
-    vec.y -= 40.0f;
-#endif
+    vec.y -= 40.0f + DEMO_SELECT(REG10_F(1), 0);
     field_0x48.x = field_0x4E.x;
-#if VERSION == VERSION_DEMO
-    field_0x48.y = field_0x4E.y + new_y + REG10_S(1);
-#else
-    field_0x48.y = field_0x4E.y + new_y;
-#endif
+    field_0x48.y = field_0x4E.y + new_y + DEMO_SELECT(REG10_S(1), 0);
     cLib_addCalcAngleS2(&field_0x48.z, field_0x4E.z, 4, 0x1000);
 
-    if (std::abs(cLib_addCalcPos(&field_0x24, vec, 0.25f, 30.0f, 2.5f)) < 2.5f) {
+    if (std::fabsf(cLib_addCalcPos(&field_0x24, vec, 0.25f, 30.0f, 2.5f)) < 2.5f) {
         WaitInit();
     }
     set_mtx();
@@ -1558,24 +1514,12 @@ void SwMail_c::Wait() {
     }
 
     field_0x24 = *field_0x5C;
-#if VERSION == VERSION_DEMO
-    diff = diff * (120.0f + REG10_F(0));
+    diff = diff * (120.0f + DEMO_SELECT(REG10_F(0), 0));
     field_0x24 += diff;
-#else
-    diff = diff * 120.0f;
-    field_0x24 += diff;
-#endif
 
-#if VERSION == VERSION_DEMO
-    field_0x24.y -= 40.0f + REG10_F(1);
-#else
-    field_0x24.y -= 40.0f;
-#endif
-#if VERSION == VERSION_DEMO
-    field_0x48.set((s16)field_0x4E.x, field_0x4E.y + new_y + REG10_S(1), field_0x4E.z + REG10_S(2));
-#else
-    field_0x48.set(field_0x4E.x, field_0x4E.y + new_y, field_0x4E.z);
-#endif
+    field_0x24.y -= 40.0f + DEMO_SELECT(REG10_F(1), 0);
+
+    field_0x48.set((s16)field_0x4E.x, (s16)(field_0x4E.y + new_y + DEMO_SELECT(REG10_S(1), 0)), (s16)(field_0x4E.z + DEMO_SELECT(REG10_S(2), 0)));
     set_mtx();
 }
 
@@ -1595,11 +1539,8 @@ void SwMail_c::Throw() {
         s16 y_angle = cLib_targetAngleY(field_0x58, field_0x5C);
 
         cXyz multVec;
-#if VERSION == VERSION_DEMO
-        cXyz vec(REG10_F(2) - 40.0f, REG10_F(3) - 50.0f, 100.0f * REG10_F(4));
-#else
-        cXyz vec(-40.0f, -50.0f, 0.0f);
-#endif
+        cXyz vec(DEMO_SELECT(REG10_F(2), 0.0f) - 40.0f, DEMO_SELECT(REG10_F(3), 0.0f) - 50.0f, 100.0f * DEMO_SELECT(REG10_F(4), 0.0f));
+
         mDoMtx_stack_c::ZXYrotS(x_angle, y_angle, 0);
         mDoMtx_stack_c::multVec(&vec, &multVec);
         multVec += *field_0x5C;
@@ -1615,26 +1556,13 @@ void SwMail_c::Throw() {
     } else {
         s16 x_angle = cLib_targetAngleX(&field_0x30, field_0x5C);
         field_0x48.x = -x_angle;
-#if VERSION == VERSION_DEMO
-        field_0x48.y += (s16)((field_0x54 * 0x80) + 0x1000);
-#else
-        s16 new_y = (field_0x54 * 0x80) + 0x1000;
-        field_0x48.y += new_y;
-#endif
+        field_0x48.y = field_0x48.y + (s16)(field_0x54 * 0x80 + 0x1000);
         field_0x48.z = 0;
 
         f32 pos_step = cLib_addCalcPos(&field_0x24, field_0x30, 0.5f, l_HIO.field_0x44, 1.0f);
 
-#if VERSION == VERSION_DEMO
-        field_0x4E.x += REG10_S(0) + 4000;
-#else
-        field_0x4E.x += 4000;
-#endif
-#if VERSION == VERSION_DEMO
-        field_0x3C.y = (1.0f - cM_scos(field_0x4E.x)) * (20.0f + REG10_F(10));
-#else
-        field_0x3C.y = (1.0f - cM_scos(field_0x4E.x)) * 20.0f;
-#endif
+        field_0x4E.x += DEMO_SELECT(4000 + REG10_S(0), 4000);
+        field_0x3C.y = (1.0f - cM_scos(field_0x4E.x)) * DEMO_SELECT(20.0f+ REG10_F(10), 20.0f);
 
         if (pos_step < 1.0f) {
             mDoAud_seStart(JA_SE_LETTER_IN_BOX, &field_0x24);
@@ -1675,11 +1603,7 @@ void SwMail_c::End() {
             s16 target;
             if (field_0x24.y > 720.0f) {
                 target = -0x4000;
-#if VERSION == VERSION_DEMO
-                field_0x30.y -= 3.0f + REG10_F(11);
-#else
-                field_0x30.y -= 3.0f;
-#endif
+                field_0x30.y -= DEMO_SELECT(3.0f + REG10_F(11), 3.0f);
             } else {
                 target = 0;
                 field_0x30.y *= 0.6f;
@@ -1692,11 +1616,7 @@ void SwMail_c::End() {
                 field_0x24.y = 700.0f;
             }
 
-#if VERSION == VERSION_DEMO
-            cLib_addCalcAngleS2(&field_0x48.x, target, 2, 0x800 + REG10_S(3));
-#else
-            cLib_addCalcAngleS2(&field_0x48.x, target, 2, 0x800);
-#endif
+            cLib_addCalcAngleS2(&field_0x48.x , target, 2, 0x800 + DEMO_SELECT(REG10_S(3), 0));
         }
         field_0x30 *= 0.9f;
         field_0x24 += field_0x30;
@@ -1727,14 +1647,14 @@ void SwMail_c::draw(dKy_tevstr_c* tevStr) {
 
 /* 00004C04-00004D0C       .text Move__7SwCam_cFv */
 void SwCam_c::Move() {
-    if (field_0x1E != 0) {
+    if (mActive) {
         camera_process_class* camera = dComIfGp_getCamera(dComIfGp_getPlayerCameraID(0));
         
         cXyz center = camera_center_data[field_0x1D][field_0x1C + 1];
-        cLib_addCalcPos(&field_0x00, center, 0.25f, 10.0f, 1.0f);
+        cLib_addCalcPos(&mCenter, center, 0.25f, 10.0f, 1.0f);
 
         camera->mCamera.Stay();
-        camera->mCamera.Set(*getEyeP(), *getCenterP(), field_0x18, 0);
+        camera->mCamera.Set(mCenter, mEye, mFovY, 0);
     }
 }
 

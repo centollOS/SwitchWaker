@@ -140,11 +140,11 @@ static BOOL nodeCallBack_Bms(J3DNode* node, int timing) {
             if (joint == actor->getHeadJntNum()) {
                 cXyz offset(0.0f, 0.0f, 0.0f), pos;
 #if VERSION == VERSION_DEMO
-                cMtx_YrotM(*calc_mtx, -actor->getHead_y() - actor->mHeadAnm.field_0x02);
-                cMtx_ZrotM(*calc_mtx, -actor->getHead_x() - actor->mHeadAnm.field_0x00);
+                cMtx_YrotM(*calc_mtx, -actor->getHead_y() - actor->mHeadAnm.field_0x00.y);
+                cMtx_ZrotM(*calc_mtx, -actor->getHead_x() - actor->mHeadAnm.field_0x00.x);
 #else
-                mDoMtx_YrotM(*calc_mtx, -actor->getHead_y() - actor->mHeadAnm.field_0x02);
-                mDoMtx_ZrotM(*calc_mtx, -actor->getHead_x() - actor->mHeadAnm.field_0x00);
+                mDoMtx_YrotM(*calc_mtx, -actor->getHead_y() - actor->mHeadAnm.field_0x00.y);
+                mDoMtx_ZrotM(*calc_mtx, -actor->getHead_x() - actor->mHeadAnm.field_0x00.x);
 #endif
                 MtxPosition(&offset, &pos);
                 actor->setAttentionBasePos(pos);

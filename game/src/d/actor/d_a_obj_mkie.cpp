@@ -267,12 +267,7 @@ BOOL daObjMkie::Act_c::chk_light() {
 
 /* 00000DF4-00000E84       .text eff_break__Q29daObjMkie5Act_cFv */
 void daObjMkie::Act_c::eff_break() {
-#if TARGET_PC
-    // Aurora's GXColor is a typedef of an unnamed struct, so there is no _GXColor tag.
     GXColor envColor;
-#else
-    _GXColor envColor;
-#endif
     envColor.r = (u8)tevStr.mColorC0.r;
     envColor.g = (u8)tevStr.mColorC0.g;
     envColor.b = (u8)tevStr.mColorC0.b;

@@ -4629,8 +4629,8 @@ static BOOL nodeCallBack1(J3DNode* node, int calcTiming) {
         if(i_this) {
             mDoMtx_stack_c::copy(model->getAnmMtx(jntNo));
             if(jntNo == i_this->m_jnt.getHeadJntNum()) {
-                mDoMtx_stack_c::XrotM(i_this->mHeadAnm.field_0x02 + i_this->m_jnt.getHead_y());
-                mDoMtx_stack_c::ZrotM(i_this->mHeadAnm.field_0x00 - i_this->m_jnt.getHead_x());
+                mDoMtx_stack_c::XrotM(i_this->mHeadAnm.field_0x00.y + i_this->m_jnt.getHead_y());
+                mDoMtx_stack_c::ZrotM(i_this->mHeadAnm.field_0x00.x - i_this->m_jnt.getHead_x());
             }
             if(jntNo == i_this->m_jnt.getBackboneJntNum()) {
                 mDoMtx_stack_c::XrotM(i_this->m_jnt.getBackbone_y());

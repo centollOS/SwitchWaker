@@ -196,11 +196,7 @@ BOOL daObjMknjD::Act_c::CreateHeap() {
             }
         }
 
-#if TARGET_PC
         mMainMdl->setUserArea(reinterpret_cast<uintptr_t>(this));
-#else
-        mMainMdl->setUserArea(reinterpret_cast<u32>(this));
-#endif
 
         int curTblIdx = 0;
         nameTable = mBreakMdl->getModelData()->getJointName();
@@ -218,11 +214,7 @@ BOOL daObjMknjD::Act_c::CreateHeap() {
             }
         }
 
-#if TARGET_PC
         mBreakMdl->setUserArea(reinterpret_cast<uintptr_t>(this));
-#else
-        mBreakMdl->setUserArea(reinterpret_cast<u32>(this));
-#endif
         mMainMdlAlpha = 0xFF;
 
         return TRUE;
@@ -264,7 +256,7 @@ BOOL daObjMknjD::Act_c::Create() {
         mErrorEventIdx = dComIfGp_evmng_getEventIdx(daObjMknjD_EventName[5]);
         mLessonEventIdx = dComIfGp_evmng_getEventIdx(daObjMknjD_EventName[7]);
 
-        mMelodyNum = 4;
+        mMelodyNum = mDoAud_MELODY_WIND_GODS_ARIA_e;
         mGiveItemNo = dItemNo_WIND_GODS_ARIA_e;
         eventInfo.setEventName("MKNJD_K_TALK");
         m0430 = dSv_event_flag_c::UNK_2910;
@@ -275,7 +267,7 @@ BOOL daObjMknjD::Act_c::Create() {
         mErrorEventIdx = dComIfGp_evmng_getEventIdx(daObjMknjD_EventName[4]);
         mLessonEventIdx = dComIfGp_evmng_getEventIdx(daObjMknjD_EventName[6]);
 
-        mMelodyNum = 3;
+        mMelodyNum = mDoAud_MELODY_EARTH_GODS_LYRIC_e;
         mGiveItemNo = dItemNo_EARTH_GODS_LYRIC_e;
         eventInfo.setEventName("MKNJD_D_TALK");
         m0430 = dSv_event_flag_c::UNK_2920;
@@ -738,7 +730,9 @@ BOOL daObjMknjD::Act_c::Execute(Mtx** i_mtx) {
 #if VERSION > VERSION_DEMO
                 s16 rotDiff = cM_atan2s(partnerDiff.x, partnerDiff.z) - current.angle.y;
 #endif
-                if (partnerDiff.absXZ() < 800.0f
+                f32 absXZ = partnerDiff.absXZ();
+
+                if (absXZ < 800.0f
 #if VERSION > VERSION_DEMO
                     && (rotDiff < -0x4000 || rotDiff > 0x4000)
 #endif
@@ -753,10 +747,10 @@ BOOL daObjMknjD::Act_c::Execute(Mtx** i_mtx) {
             break;
         case 1:
             if (m043E == 1) {
-                player->setTactZev(fopAcM_GetID(this), 4, daObjMknjD_EventName[3]);
+                player->setTactZev(fopAcM_GetID(this), mDoAud_MELODY_WIND_GODS_ARIA_e, daObjMknjD_EventName[3]);
             }
             else {
-                player->setTactZev(fopAcM_GetID(this), 3, daObjMknjD_EventName[2]);
+                player->setTactZev(fopAcM_GetID(this), mDoAud_MELODY_EARTH_GODS_LYRIC_e, daObjMknjD_EventName[2]);
             }
 
             m043F = 2;
@@ -769,7 +763,9 @@ BOOL daObjMknjD::Act_c::Execute(Mtx** i_mtx) {
 #endif
                     
                     cXyz diff = player->current.pos - partner->current.pos;
-                    if ((diff.absXZ() < 800.0f)
+                    f32 absXZ = diff.absXZ();
+
+                    if ((absXZ < 800.0f)
 #if VERSION > VERSION_DEMO
                         && ((rotDiff < -0x4000) || (rotDiff > 0x4000))
 #endif
@@ -777,7 +773,8 @@ BOOL daObjMknjD::Act_c::Execute(Mtx** i_mtx) {
                         fopAcM_orderChangeEventId(this, mDemoEventIdx, 0, 0xFFFF);
                         dComIfGs_onEventBit(m0430);
 
-                        fopAc_ac_c* judgeResult = fopAcM_SearchByName(fpcNm_NPC_MD_e);
+                        s16 procMedli = fpcNm_NPC_MD_e;
+                        void* judgeResult = fopAcIt_Judge(fpcSch_JudgeForPName, &procMedli);
 
                         if (judgeResult != NULL) {
                             dComIfGp_event_setTalkPartner(judgeResult);

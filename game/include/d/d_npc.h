@@ -29,7 +29,7 @@ public:
     /* 0x1C */ f32 mAttnYOffset;
     /* 0x20 */ s16 mMaxAttnAngleY;
     /* 0x22 */ u8 m22;
-    /* 0x23 */ // padding
+    /* 0x23 */ u8 m23[0x24 - 0x23];
     /* 0x24 */ f32 mMaxAttnDistXZ;
 }; // Size: 0x28
 
@@ -107,7 +107,7 @@ public:
 
 class dNpc_EventCut_c {
 private:
-    /* 0x00 */ char* mpEvtStaffName;
+    /* 0x00 */ const char* mpEvtStaffName;
     /* 0x04 */ int mEvtStaffId;
     /* 0x08 */ fopAc_ac_c* mpActor;
     /* 0x0C */ fopNpc_npc_c* mpTalkActor;
@@ -127,7 +127,7 @@ private:
     /* 0x52 */ u8 field_0x52;
     /* 0x54 */ cXyz mPos;
     /* 0x60 */ bool mbAttention;
-    /* 0x61 */ bool mbNoTurn;
+    /* 0x61 */ u8 mbNoTurn;
     /* 0x62 */ s16 mTurnSpeed;
     /* 0x64 */ u32 mTurnType;
     /* 0x68 */ dNpc_JntCtrl_c* mpJntCtrl;
@@ -157,7 +157,7 @@ public:
     void cutContinueTalkStart();
     void cutTalkMsgProc();
 
-    char* getActorName() { return mpEvtStaffName; }
+    const char* getActorName() { return mpEvtStaffName; }
     int getNowCut() { return mCurActIdx; }
     bool getAttnFlag() { return mbAttention; }
     void setAttnFlag(bool flag) { mbAttention = flag; }
@@ -228,17 +228,14 @@ public:
         field_0x1C = 0;
         field_0x1E = 0;
         field_0x20 = 0;
-        field_0x00 = 0;
-        field_0x02 = 0;
-        field_0x04 = 0;
+        field_0x00.setall(0);
     }
-    void defaultCalcX(s16 target) { cLib_addCalcAngleS(&field_0x00, target, 4, 0x1000, 0x100); }
-    void defaultCalcY(s16 target) { cLib_addCalcAngleS(&field_0x02, target, 4, 0x1000, 0x100); }
+
+    void defaultCalcX(s16) {}
+    void defaultCalcY(s16) {}
     void setProc(SwingProc proc) { mProc = proc; }
 
-    /* 0x00 */ s16 field_0x00;
-    /* 0x02 */ s16 field_0x02;
-    /* 0x04 */ s16 field_0x04;
+    /* 0x00 */ csXyz field_0x00;
     /* 0x08 */ SwingProc mProc;
     /* 0x14 */ f32 field_0x14;
     /* 0x18 */ f32 field_0x18;

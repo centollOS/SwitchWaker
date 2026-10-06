@@ -33,9 +33,6 @@ public:
     /* 0x400 */ cXyz partPos[kEmtrNum];
     /* 0x448 */ cXyz partPosOld[kEmtrNum];
     /* 0x490 */ s16 partRotY[kEmtrNum];
-#if VERSION == VERSION_DEMO
-    /* 0x49C */ JPABaseEmitter* emtr[kEmtrNum];
-#endif
     /* 0x49C */ dPa_followEcallBack emtrCallBack[kEmtrNum];
     /* 0x514 */ f32 partAlpha[kEmtrNum];
     /* 0x52C */ f32 field_0x52c[kEmtrNum];

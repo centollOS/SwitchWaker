@@ -134,11 +134,7 @@ BOOL daObj_Canon_c::_createHeap() {
     }
 #endif
 
-#if TARGET_PC
     mpModel->setUserArea((uintptr_t)this);
-#else
-    mpModel->setUserArea((u32)this);
-#endif
     modelData->getJointNodePointer(WALLBOM_JNT_SHOT_e)->setCallBack(nodeControl_CB);
 
     return TRUE;

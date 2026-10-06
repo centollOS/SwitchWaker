@@ -59,7 +59,7 @@ void daPirate_Flag_packet_c::setCorrectNrmAngle(s16 param_0, f32 param_1) {
     m878 = 300.0f * cM_ssin(m87C);
 
     s16 temp_r0 = param_0 + 0x8000;
-    s16 angle = (s16)param_0;
+    s32 param_0_int = param_0; // Probably fake variable
     s16 temp_r26 = (l_HIO.m1C * (1.0f - param_1 * 0.5f));
 
     if (abs((s32)temp_r0) < (s16)cM_deg2s(temp_r26 * 1.25f)) {
@@ -71,9 +71,9 @@ void daPirate_Flag_packet_c::setCorrectNrmAngle(s16 param_0, f32 param_1) {
         }
 
         cLib_addCalcAngleS2(&m87A, var_r4, 5, 0xC0);
-    } else if (abs(angle) < (s16)cM_deg2s(temp_r26 * 1.25f)) {
+    } else if (abs(param_0_int) < (s16)cM_deg2s(temp_r26 * 1.25f)) {
         s16 var_r4;
-        if (angle > 0) {
+        if ((s16)param_0_int > 0) { // Fakematch? Pointless cast
             var_r4 = (s16)cM_deg2s(-temp_r26);
         } else {
             var_r4 = (s16)cM_deg2s(temp_r26);
@@ -250,8 +250,8 @@ void daPirate_Flag_packet_c::draw() {
     GXSetTevColor(GX_TEVREG2, mTevStr->mColorK1);
     GXCallDisplayList(l_pirate_flag_matDL, sizeof(l_pirate_flag_matDL) - 0x14);
 
-    GXLoadPosMtxImm(mMtx, GX_PNMTX0);
-    GXLoadNrmMtxImm(mMtx, GX_PNMTX0);
+    GXLoadPosMtxImm(getMtx(), GX_PNMTX0);
+    GXLoadNrmMtxImm(getMtx(), GX_PNMTX0);
     GXSetCullMode(GX_CULL_BACK);
     GXCallDisplayList(l_pirate_flag_DL, sizeof(l_pirate_flag_DL) - 0x04);
 
@@ -289,7 +289,7 @@ static BOOL daPirate_Flag_Draw(pirate_flag_class* i_this) {
     cMtx_concat(j3dSys.getViewMtx(), *calc_mtx, i_this->mPacket.getMtx());
     i_this->mPacket.setTevStr(&i_this->tevStr);
 
-    j3dSys.getDrawBuffer(0)->entryImm(&i_this->mPacket, 0);
+    j3dSys.getDrawBuffer(J3DSysDrawBuf_Opa)->entryImm(&i_this->mPacket, 0);
     if (l_HIO.m05 != 0) {
         s16 tmp_r29 = i_this->current.angle.y;
 
@@ -383,9 +383,6 @@ static cXyz get_cloth_anim_factor(pirate_flag_class* param_0, cXyz* param_1, cXy
 
 /* 00001624-00001938       .text pirate_flag_move__FP17pirate_flag_class */
 static void pirate_flag_move(pirate_flag_class* i_this) {
-#if VERSION == VERSION_DEMO
-    f32 windPower = 0.8f;
-#endif
     cXyz* windVec = dKyw_get_wind_vec();
     cXyz* pos = i_this->mPacket.getPos();
     cXyz* nrm = i_this->mPacket.getNrm();
@@ -394,12 +391,7 @@ static void pirate_flag_move(pirate_flag_class* i_this) {
     s16 windAngle = cM_atan2s(windVec->x, windVec->z);
 
     cMtx_YrotS(*calc_mtx, -((s16)(i_this->current.angle.y + i_this->shape_angle.y) - windAngle));
-#if VERSION == VERSION_DEMO
-    f32 windZ = 0.08f * windPower;
-    cXyz tmp(0.0f, 0.0f, windZ);
-#else
     cXyz tmp(0.0f, 0.0f, 0.064f);
-#endif
     cXyz dest;
     MtxPosition(&tmp, &dest);
     tmp.x = 1.0f;
@@ -430,12 +422,8 @@ static void pirate_flag_move(pirate_flag_class* i_this) {
 
     cXyz lightVec;
     dKy_FirstlightVec_get(&lightVec);
-#if VERSION == VERSION_DEMO
-    i_this->mPacket.setCorrectNrmAngle(cM_atan2s(lightVec.x, lightVec.z) - angleY, absZ);
-#else
     s16 lightAngle = cM_atan2s(lightVec.x, lightVec.z);
     i_this->mPacket.setCorrectNrmAngle(lightAngle - angleY, absZ);
-#endif
     i_this->mPacket.setNrmMtx();
 
     for (int i = 0; i < 5; i++) {
@@ -486,8 +474,8 @@ static BOOL daPirate_Flag_IsDelete(pirate_flag_class*) {
 
 /* 00001A40-00001A90       .text daPirate_Flag_Delete__FP17pirate_flag_class */
 static BOOL daPirate_Flag_Delete(pirate_flag_class* i_this) {
-    dComIfG_resDeleteDemo(&i_this->mPhs1, "Cloth");
-    dComIfG_resDeleteDemo(&i_this->mPhs2, "Kaizokusen");
+    dComIfG_resDelete(&i_this->mPhs1, "Cloth");
+    dComIfG_resDelete(&i_this->mPhs2, "Kaizokusen");
 
     return TRUE;
 }
@@ -497,21 +485,6 @@ static cPhs_State daPirate_Flag_Create(fopAc_ac_c* i_this) {
     pirate_flag_class* a_this = static_cast<pirate_flag_class*>(i_this);
     fopAcM_ct(i_this, pirate_flag_class);
 
-#if VERSION == VERSION_DEMO
-    cPhs_State cloth_result = dComIfG_resLoad(&a_this->mPhs1, "Cloth");
-    cPhs_State ship_result = dComIfG_resLoad(&a_this->mPhs2, "Kaizokusen");
-    if (cloth_result == cPhs_ERROR_e || ship_result == cPhs_ERROR_e) {
-        return cPhs_ERROR_e;
-    }
-    if (cloth_result != cPhs_COMPLEATE_e) {
-        return cloth_result;
-    }
-    if (ship_result != cPhs_COMPLEATE_e) {
-        return ship_result;
-    }
-    cPhs_State result = cPhs_COMPLEATE_e;
-    if (result == cPhs_COMPLEATE_e)
-#else
     cPhs_State result = dComIfG_resLoad(&a_this->mPhs1, "Cloth");
     if (result != cPhs_COMPLEATE_e) {
         return result;
@@ -521,21 +494,19 @@ static cPhs_State daPirate_Flag_Create(fopAc_ac_c* i_this) {
     if (result != cPhs_COMPLEATE_e) {
         return result;
     }
-#endif
-    {
-        cXyz* pos = a_this->mPacket.getPos();
 
-        for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < 5; j++) {
-                cXyz tmp(l_pos[i * 5 + j].x, l_pos[i * 5 + j].y, l_pos[i * 5 + j].z);
+    cXyz* pos = a_this->mPacket.getPos();
 
-                *pos++ = tmp;
-            }
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            cXyz tmp = l_pos[i * 5 + j];
+
+            *pos++ = tmp;
         }
-
-        l_p_ship = static_cast<daObjPirateship::Act_c*>(fopAcM_SearchByID(a_this->parentActorID));
-        pirate_flag_move(a_this);
     }
+
+    l_p_ship = static_cast<daObjPirateship::Act_c*>(fopAcM_SearchByID(a_this->parentActorID));
+    pirate_flag_move(a_this);
 
     return cPhs_COMPLEATE_e;
 }

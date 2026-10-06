@@ -896,7 +896,7 @@ int daNpc_Ds1_c::createdemo_action(void*) {
 /* 00002A04-00002BD0       .text privateCut__11daNpc_Ds1_cFv */
 int daNpc_Ds1_c::privateCut() {
     int cut;
-    char* name = mEventCut.getActorName();
+    const char* name = mEventCut.getActorName();
     int staff = dComIfGp_evmng_getMyStaffId(name, NULL, 0);
     if (staff == -1) {
         return 0;

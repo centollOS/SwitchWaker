@@ -74,12 +74,12 @@ static BOOL nodeCallBack_Km(J3DNode* i_node, int i_calcTiming) {
             static cXyz a_eye_pos_offst(20.0f,20.0f,0.0f);
             u16 jointIdx = ((J3DJoint*)(i_node))->getJntNo();
             mDoMtx_stack_c::copy(model->getAnmMtx(jointIdx));
-            if(jointIdx == km1Actor->getHeadJntNum()){
-                MTXMultVec(mDoMtx_stack_c::get(),&a_att_pos_offst,km1Actor->getAttPos());
+            if (jointIdx == km1Actor->getHeadJntNum()){
+                mDoMtx_stack_c::multVec(&a_att_pos_offst, km1Actor->getAttPos());
                 mDoMtx_stack_c::XrotM(km1Actor->getHead_y());
                 mDoMtx_stack_c::ZrotM(km1Actor->getHead_x()); 
-                MTXMultVec(mDoMtx_stack_c::get(),&a_eye_pos_offst,km1Actor->getEyePos());
-            }else if(jointIdx == km1Actor->getBackboneJntNum()){
+                mDoMtx_stack_c::multVec(&a_eye_pos_offst, km1Actor->getEyePos());
+            } else if(jointIdx == km1Actor->getBackboneJntNum()){
                 mDoMtx_stack_c::XrotM(km1Actor->getBackbone_y());
                 mDoMtx_stack_c::ZrotM(km1Actor->getBackbone_x());  
             }
@@ -151,7 +151,7 @@ void daNpc_Km1_c::BtpNum2ResID(int i_num, int* o_btp_num){
 }
 
 /* 000006F0-00000734       .text setAnm_tex__11daNpc_Km1_cFSc */
-void daNpc_Km1_c::setAnm_tex(signed char i_param_1) {
+void daNpc_Km1_c::setAnm_tex(s8 i_param_1) {
     if(i_param_1 >= 0 && i_param_1 != field_0x7CD){
         field_0x7CD = i_param_1;
         initTexPatternAnm(true);
@@ -266,7 +266,7 @@ void daNpc_Km1_c::ctrlAnmTag() {
 }
 
 /* 00000AA4-00000AE4       .text chngAnmAtr__11daNpc_Km1_cFUc */
-void daNpc_Km1_c::chngAnmAtr(unsigned char param_1) {
+void daNpc_Km1_c::chngAnmAtr(u8 param_1) {
     if(param_1 < 1 && param_1 != field_0x7CB){
         field_0x7CB = param_1;
         setAnm_ATR(1);
@@ -310,7 +310,7 @@ void daNpc_Km1_c::anmAtr(u16 i_msgStatus) {
 }
 
 /* 00000C0C-00000C64       .text setStt__11daNpc_Km1_cFSc */
-void daNpc_Km1_c::setStt(signed char param_1) {
+void daNpc_Km1_c::setStt(s8 param_1) {
     s8 uVar1 = field_0x7D0;
     field_0x7D0 = param_1;
     switch((s8)field_0x7D0) {
@@ -352,7 +352,7 @@ void daNpc_Km1_c::checkOrder() {
     if(eventInfo.checkCommandDemoAccrpt()){
         return;
     }
-    if(eventInfo.getCommand() != dEvtCmd_INTALK_e){
+    if(eventInfo.getCommand()!= dEvtCmd_INTALK_e){
         return;
     }
     if(field_0x7CF != 1 && field_0x7CF != 2){
@@ -764,11 +764,7 @@ BOOL daNpc_Km1_c::CreateHeap() {
                             mpMorf->getModel()->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack_Km);
                         }
                     }
-#if TARGET_PC
                     mpMorf->getModel()->setUserArea((uintptr_t)this);
-#else
-                    mpMorf->getModel()->setUserArea((u32)this);
-#endif
                     mAcchCir.SetWall(30.0f,60.0f);
                     mObjAcch.Set(fopAcM_GetPosition_p(this), fopAcM_GetOldPosition_p(this), this, 1, &mAcchCir, fopAcM_GetSpeed_p(this));
                     return TRUE;

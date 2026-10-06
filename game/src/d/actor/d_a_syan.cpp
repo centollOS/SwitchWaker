@@ -22,25 +22,22 @@ static BOOL nodeCallBack(J3DNode* node, int calcTiming) {
         J3DModel* model = j3dSys.getModel();
         syan_class* i_this = (syan_class*)model->getUserArea();
         if (i_this != NULL) {
-            PSMTXCopy(model->getAnmMtx(jntNo), *calc_mtx);
+            mDoMtx_copy(model->getAnmMtx(jntNo), *calc_mtx);
             if (jntNo == SYAN_JNT_JOINT5_e) {
                 cMtx_YrotM(*calc_mtx, i_this->field_0x2a4[0].y);
                 cMtx_XrotM(*calc_mtx, -i_this->field_0x2a4[0].x);
                 cMtx_ZrotM(*calc_mtx, i_this->field_0x2a4[0].z);
                 model->setAnmMtx(jntNo, *calc_mtx);
-                PSMTXCopy(*calc_mtx, J3DSys::mCurrentMtx);
+                cMtx_copy(*calc_mtx, J3DSys::mCurrentMtx);
             } else if (jntNo == SYAN_JNT_JOINT8_e) {
                 cMtx_YrotM(*calc_mtx, i_this->field_0x2b0.y);
                 cMtx_XrotM(*calc_mtx, -(i_this->field_0x2a4[1].x + i_this->field_0x2b0.x));
                 cMtx_ZrotM(*calc_mtx, i_this->field_0x2b0.z);
                 model->setAnmMtx(jntNo, *calc_mtx);
-                PSMTXCopy(*calc_mtx, J3DSys::mCurrentMtx);
+                cMtx_copy(*calc_mtx, J3DSys::mCurrentMtx);
 
                 for (s32 i = 0; i < (s32)ARRAY_SIZE(b_pos_x); i++) {
-                    cXyz b_pos;
-                    b_pos.x = b_pos_x[i];
-                    b_pos.y = b_pos_y[i];
-                    b_pos.z = b_pos_z[i];
+                    cXyz b_pos(b_pos_x[i], b_pos_y[i], b_pos_z[i]);
                     i_this->partPosOld[i] = i_this->partPos[i];
                     MtxPosition(&b_pos, &i_this->partPos[i]);
                 }
@@ -139,15 +136,9 @@ static BOOL daSyan_Execute(syan_class* i_this) {
             if (!i_this->emtrEnabled[i]) {
                 i_this->emtrEnabled[i] = true;
                 static cXyz fire_scale(0.7f, 0.7f, 0.7f);
-#if VERSION == VERSION_DEMO
-                i_this->emtr[i] = dComIfGp_particle_set(dPa_name::ID_AK_JN_TORCH, &i_this->partPos[i], NULL, &fire_scale, 0xFF, &i_this->emtrCallBack[i]);
-            } else {
-                JPABaseEmitter* emtr = i_this->emtr[i];
-#else
                 dComIfGp_particle_set(dPa_name::ID_AK_JN_TORCH, &i_this->partPos[i], NULL, &fire_scale, 0xFF, &i_this->emtrCallBack[i]);
             } else {
                 JPABaseEmitter* emtr = i_this->emtrCallBack[i].getEmitter();
-#endif
                 if (emtr != NULL) {
                     JGeometry::TVec3<f32> dir;
                     dir.x = (REG0_F(3) + -0.03f) * (i_this->partPos[i].x - i_this->partPosOld[i].x);
@@ -160,17 +151,13 @@ static BOOL daSyan_Execute(syan_class* i_this) {
                     dir.y = 0.1f;
                     emtr->setDirection(dir);
 
-                    JGeometry::TVec3<f32> scale(1.0f, 1.0f, 1.0f);
                     f32 dirMag = std::sqrtf(dir.x*dir.x + dir.z*dir.z);
-                    scale.y = (REG0_F(12) + 2.0f) * dirMag + 1.0f;
-                    if (scale.y > REG0_F(13) + 4.0f)
-                        scale.y = REG0_F(13) + 4.0f;
+                    f32 scaleY = (REG0_F(12) + 2.0f) * dirMag + 1.0f;
+                    if (scaleY > REG0_F(13) + 4.0f)
+                        scaleY = REG0_F(13) + 4.0f;
 
-#if VERSION == VERSION_DEMO
-                    i_this->emtr[i]->setGlobalParticleScale(scale);
-#else
+                    JGeometry::TVec3<f32> scale(1.0f, scaleY, 1.0f);
                     i_this->emtrCallBack[i].getEmitter()->setGlobalParticleScale(scale);
-#endif
 
                     cXyz pos(i_this->partPos[i].x, i_this->partPos[i].y + REG0_F(7) + 20.0f, i_this->partPos[i].z);
                     dComIfGp_particle_setSimple(dPa_name::ID_AK_JP_O_KAGEROU00, &pos);
@@ -197,17 +184,9 @@ static BOOL daSyan_IsDelete(syan_class* i_this) {
 
 /* 00000CA8-00000D1C       .text daSyan_Delete__FP10syan_class */
 static BOOL daSyan_Delete(syan_class* i_this) {
-    dComIfG_resDeleteDemo(&i_this->mPhs, "Syan");
-#if VERSION == VERSION_DEMO
-    for (s32 i = 0; i < (s32)ARRAY_SIZE(i_this->emtrCallBack); i++) {
-        if (i_this->emtr[i] != NULL) {
-            i_this->emtrCallBack[i].remove();
-        }
-    }
-#else
+    dComIfG_resDelete(&i_this->mPhs, "Syan");
     for (s32 i = 0; i < (s32)ARRAY_SIZE(i_this->emtrCallBack); i++)
         i_this->emtrCallBack[i].remove();
-#endif
     return TRUE;
 }
 
@@ -237,11 +216,7 @@ static cPhs_State daSyan_Create(fopAc_ac_c* i_ac) {
             fopAcM_SetMin(i_this, -1000.0f, -5000.0f, -1000.0f);
             fopAcM_SetMax(i_this, 1000.0f, 5000.0f, 1000.0f);
             fopAcM_SetMtx(i_this, i_this->morf->getModel()->getBaseTRMtx());
-#if TARGET_PC
             model->setUserArea((uintptr_t)i_this);
-#else
-            model->setUserArea((u32)i_this);
-#endif
             i_this->field_0x2b8 = 200.0f;
 
             static s16 fire_time[] = { 0, 5, 10, 15, 20, 25 };

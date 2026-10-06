@@ -7,6 +7,7 @@
 #include "d/actor/d_a_npc_ls1.h"
 #include "d/actor/d_a_npc_bm1.h"
 #include "d/actor/d_a_player_main.h"
+#include "d/d_scope.h"
 #if VERSION > VERSION_DEMO
 #include "d/d_bg_s_func.h"
 #endif
@@ -1803,7 +1804,7 @@ bool daNpc_Ls1_c::telescope_proc() {
             if (g_dComIfG_gameInfo.play.mScopeWipeFlag) {
                 daPy_getPlayerLinkActorClass()->setPlayerPosAndAngle(&m7CC[1], 0xCC70);
             }
-            dComIfGp_setScopeType(1);
+            dComIfGp_setScopeType(dScpTyp_UNK1_e);
             return true;
         }
         return false;
@@ -2542,11 +2543,7 @@ BOOL daNpc_Ls1_c::bodyCreateHeap() {
     mpMorf->getModel()->getModelData()->getJointNodePointer(m_bbone_jnt_num)->setCallBack(nodeCB_BackBone);
     mpMorf->getModel()->getModelData()->getJointNodePointer(m_hnd_L_jnt_num)->setCallBack(nodeCB_Hand_L);
     mpMorf->getModel()->getModelData()->getJointNodePointer(m_hnd_R_jnt_num)->setCallBack(nodeCB_Hand_R);
-#if TARGET_PC
     mpMorf->getModel()->setUserArea((uintptr_t)this);
-#else
-    mpMorf->getModel()->setUserArea((u32)this);
-#endif
     
     return TRUE;
 }
@@ -2570,11 +2567,7 @@ BOOL daNpc_Ls1_c::handCreateHeap() {
 
     mpLsHandModel->getModelData()->getJointNodePointer(m_lsHnd_L_jnt_num)->setCallBack(Ls_hand_nodeCB_Hand_L);
     mpLsHandModel->getModelData()->getJointNodePointer(m_lsHnd_R_jnt_num)->setCallBack(Ls_hand_nodeCB_Hand_R);
-#if TARGET_PC
     mpLsHandModel->setUserArea((uintptr_t)this);
-#else
-    mpLsHandModel->setUserArea((u32)this);
-#endif
     return TRUE;
 }
 

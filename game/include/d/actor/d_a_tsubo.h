@@ -11,8 +11,6 @@
 #include "SSystem/SComponent/c_angle.h"
 #include "SSystem/SComponent/c_phase.h"
 #include "m_Do/m_Do_mtx.h"
-#include "f_op/f_op_actor_mng.h"
-#include "JSystem/JUtility/JUTAssert.h"
 
 namespace daTsubo {
     enum DataFlag_e {

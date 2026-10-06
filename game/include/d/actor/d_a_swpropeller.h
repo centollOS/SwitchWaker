@@ -15,24 +15,27 @@ public:
     bool _execute();
     bool _draw();
 
-public:
-    static const char* m_arcname[2];
     static const s16 m_bdlidx[2];
     static const u32 m_heapsize[2];
+    static const char* m_arcname[2];
+
+public:
     /* 0x290 */ request_of_phase_process_class mPhs;
     /* 0x298 */ J3DModel* mpModel;
     /* 0x29C */ dCcD_Stts mStts;
     /* 0x2D8 */ dCcD_Cyl mCyl;
-    /* 0x408 */ u8 m408[0x43C - 0x408];
+    /* 0x408 */ u8 pad_0x408[0x43C - 0x408];
     /* 0x43C */ dBgS_ObjAcch mAcch;
     /* 0x600 */ dBgS_AcchCir mAcchCir;
     /* 0x640 */ s16 mRotY;
     /* 0x642 */ s16 mRotYVel;
-    /* 0x644 */ s16 mTargetRotYVel;
-    /* 0x648 */ u32 m648;
-    /* 0x64C */ u8 mWindHit;
+    /* 0x644 */ s16 mRotYVelTarget;
+    /* 0x646 */ u8 pad_0x646[0x648 - 0x646];
+    /* 0x648 */ u32 mSwitchNo;
+    /* 0x64C */ u8 mPrevWindHit;
     /* 0x64D */ u8 mType;
-    /* 0x64E */ u8 mRebounding;
-};
+    /* 0x64E */ u8 mSpinDecay;
+    /* 0x64F */ u8 pad_0x64F[0x650 - 0x64F];
+}; // Size: 0x650
 
 #endif /* D_A_SWPROPELLER_H */

@@ -121,11 +121,7 @@ BOOL daObjTpost_c::_createHeap() {
         return FALSE;
     }
     else {
-#if TARGET_PC
         mMorf->getModel()->setUserArea((uintptr_t)this);
-#else
-        mMorf->getModel()->setUserArea((u32)this);
-#endif
 
         return TRUE;
     }
@@ -589,7 +585,7 @@ void daObjTpost_c::setAttention() {
 }
 
 /* 00000EA4-0000100C       .text setAnm__12daObjTpost_cFScb */
-void daObjTpost_c::setAnm(s8 anmPrmIdx, bool param_2) {
+void daObjTpost_c::setAnm(s8 anmPrmIdx, bool force) {
     static const int a_anm_bcks_tbl[] = {
         dRes_INDEX_TORIPOST_BCK_POST_GET_e,
         dRes_INDEX_TORIPOST_BCK_POST_PUTOUT_e,
@@ -660,7 +656,7 @@ void daObjTpost_c::setAnm(s8 anmPrmIdx, bool param_2) {
         }
     }
 
-    dLib_bcks_setAnm(m_arc_name, mMorf, &mBckIdx, &mAnmPrmIdx, &mOldAnmPrmIdx, a_anm_bcks_tbl, a_anm_prm_tbl, param_2);
+    dLib_bcks_setAnm(m_arc_name, mMorf, &mBckIdx, &mAnmPrmIdx, &mOldAnmPrmIdx, a_anm_bcks_tbl, a_anm_prm_tbl, force);
 }
 
 /* 0000100C-00001094       .text setMtx__12daObjTpost_cFv */

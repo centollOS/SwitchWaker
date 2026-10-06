@@ -13,9 +13,7 @@
 #include "d/d_material.h"
 #include "d/d_snap.h"
 #include "d/actor/d_a_player.h"
-#if VERSION > VERSION_DEMO
 #include "d/actor/d_a_player_main.h"
-#endif
 #include "d/d_cc_uty.h"
 #include "d/d_s_play.h"
 #include "d/d_item_data.h"
@@ -251,11 +249,7 @@ BOOL daRd_c::_createHeap() {
     if (mpMorf == NULL || mpMorf->getModel() == NULL) {
         return FALSE;
     }
-#if TARGET_PC
     mpMorf->getModel()->setUserArea(reinterpret_cast<uintptr_t>(this));
-#else
-    mpMorf->getModel()->setUserArea(reinterpret_cast<u32>(this));
-#endif
     
     if (!mInvisModel.create(mpMorf->getModel())) {
         return FALSE;
@@ -1445,7 +1439,7 @@ void daRd_c::setBtkAnm(s8 idx) {
 }
 
 /* 00003B3C-00003C48       .text setAnm__6daRd_cFScb */
-void daRd_c::setAnm(s8 anmPrmIdx, bool param_2) {
+void daRd_c::setAnm(s8 anmPrmIdx, bool force) {
     static const int a_anm_bcks_tbl[] = {
         dRes_INDEX_RD_BCK_TACHIP_e,
         dRes_INDEX_RD_BCK_SUWARIP_e,
@@ -1620,7 +1614,7 @@ void daRd_c::setAnm(s8 anmPrmIdx, bool param_2) {
         mBrkAnm.setFrame(mpMorf->getFrame());
     }
     
-    dLib_bcks_setAnm(m_arc_name, mpMorf, &mBckIdx, &mAnmPrmIdx, &mOldAnmPrmIdx, a_anm_bcks_tbl, a_anm_prm_tbl, param_2);
+    dLib_bcks_setAnm(m_arc_name, mpMorf, &mBckIdx, &mAnmPrmIdx, &mOldAnmPrmIdx, a_anm_bcks_tbl, a_anm_prm_tbl, force);
 }
 
 /* 00003C48-000040A8       .text _execute__6daRd_cFv */
@@ -1735,9 +1729,9 @@ void daRd_c::debugDraw() {
     cXyz pos = current.pos;
     pos.y += 10.0f;
     GXColor unused = {0x00, 0xFF, 0x00, 0x80}; // Unused color, needed for the .rodata section to match.
-    dLib_debugDrawFan(pos, mHeadAngle, l_HIO.mCrySpreadAngle, l_HIO.mCryRadius, (GXColor){0xFF, 0xFF, 0x00, 0x80});
-    dLib_debugDrawFan(pos, shape_angle.y, l_HIO.mAttackSpreadAngle, l_HIO.mAttackRadius, (GXColor){0xFF, 0x00, 0x00, 0x80});
-    dLib_debugDrawFan(pos, shape_angle.y, l_HIO.m40, l_HIO.m34, (GXColor){0xFF, 0x00, 0xFF, 0x80});
+    dLib_debugDrawFan(pos, mHeadAngle, l_HIO.mCrySpreadAngle, l_HIO.mCryRadius, COMPOUND_LITERAL(GXColor){0xFF, 0xFF, 0x00, 0x80});
+    dLib_debugDrawFan(pos, shape_angle.y, l_HIO.mAttackSpreadAngle, l_HIO.mAttackRadius, COMPOUND_LITERAL(GXColor){0xFF, 0x00, 0x00, 0x80});
+    dLib_debugDrawFan(pos, shape_angle.y, l_HIO.m40, l_HIO.m34, COMPOUND_LITERAL(GXColor){0xFF, 0x00, 0xFF, 0x80});
     dLib_debugDrawAxis(mCE8, 50.0f);
 }
 
@@ -1895,11 +1889,11 @@ void daRd_c::createInit() {
 /* 000046A4-00004720       .text getArg__6daRd_cFv */
 void daRd_c::getArg() {
     u32 param = fopAcM_GetParam(this);
-    mWhichIdleAnm = param & 1;
-    u8 radiusParam = (param >> 1) & 0x7F;
+    mWhichIdleAnm = fopAcM_GetParamBit(param, 0x00, 1);
+    u8 radiusParam = fopAcM_GetParamBit(param, 0x01, 7);
     int areaRadius = radiusParam;
-    mChecksSwitch = (param >> 8) & 0xFF;
-    mSwNo = (param >> 0x18) & 0xFF;
+    mChecksSwitch = fopAcM_GetParamBit(param, 0x08, 8);
+    mSwNo = fopAcM_GetParamBit(param, 0x18, 8);
     if (areaRadius == 0x7F) {
         areaRadius = 0;
     }

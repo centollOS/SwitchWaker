@@ -222,7 +222,7 @@ static void ke_pos_set(st_class* i_this, st_ke_s* param_2, int param_3) {
 static void ke_disp(st_class* i_this) {
     fopAc_ac_c* actor = &i_this->actor;
 
-    i_this->mLineMat.update(10, 1.2f, (GXColor){0xFF, 0x64, 0, 0xFF}, 2, &actor->tevStr);
+    i_this->mLineMat.update(10, 1.2f, COMPOUND_LITERAL(GXColor){0xFF, 0x64, 0, 0xFF}, 2, &actor->tevStr);
     dComIfGd_set3DlineMat(&i_this->mLineMat);
 }
 
@@ -2693,7 +2693,7 @@ static BOOL createHeap(fopAc_ac_c* a_this) {
     }
 #if VERSION == VERSION_DEMO
     J3DModel* model = i_this->mpMorf->getModel();
-    model->setUserArea((u32)i_this);
+    model->setUserArea((uintptr_t)i_this);
     for (u16 i = 0; i < model->getModelData()->getJointNum(); i++) {
         if ((i < ST_JNT_ASIR_e + 1) && (i != ST_JNT_BUKI_e)) {
             model->getModelData()->getJointNodePointer(i)->setCallBack(nodeCallBack);
@@ -2877,11 +2877,7 @@ static cPhs_State daSt_Create(fopAc_ac_c* a_this) {
                 i_this->m02B9 = 0xFF;
             }
         }
-#if TARGET_PC
         i_this->mpMorf->getModel()->setUserArea((uintptr_t)a_this);
-#else
-        i_this->mpMorf->getModel()->setUserArea((u32)a_this);
-#endif
         e_this->initBt(162.5f, 125.0f);
         a_this->attention_info.flags = fopAc_Attn_LOCKON_BATTLE_e;
         fopAcM_OnStatus(a_this, fopAcStts_SHOWMAP_e);

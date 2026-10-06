@@ -204,11 +204,7 @@ void daWindMill_c::CreateInit() {
             break;
     }
 
-#if TARGET_PC
     mpModel->setUserArea((uintptr_t)this);
-#else
-    mpModel->setUserArea((u32) this);
-#endif
     set_mtx();
 
     for (u16 i = 0; i < mpModel->getModelData()->getJointNum(); i++) {
@@ -237,7 +233,7 @@ static BOOL nodeCallBack(J3DNode* node, int calcTiming) {
         J3DJoint* joint = (J3DJoint*)node;
         s32 jntNo = joint->getJntNo();
         J3DModel* model = j3dSys.getModel();
-        daWindMill_c* i_this = (daWindMill_c*) j3dSys.getModel()->getUserArea();
+        daWindMill_c* i_this = (daWindMill_c*) model->getUserArea();
 
         if (i_this) {
             i_this->mAngle[0] += i_this->mAngle[1];

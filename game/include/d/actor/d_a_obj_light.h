@@ -38,7 +38,7 @@ namespace daObjLight {
         static s16 get_light_angle();
         static s16 get_light_dif_angle();
         static BOOL set_light_dif_angle_LOD(s16);
-        static bool set_light_dif_angle_FRRS(s16);
+        static BOOL set_light_dif_angle_FRRS(s16);
 
         static s16 M_S_light_angle;
         static unsigned int M_S_pre_set_frame_LOD;

@@ -191,11 +191,7 @@ BOOL daObjShmrgrd_c::create_heap() {
         mpModel = mDoExt_J3DModel__create(mdl_data, 0, 0x11020203);
         if (mpModel) {
             mdl_data->getJointNodePointer(SHMRGRD_JNT_HIT_e)->setCallBack(jnodeCB);
-#if TARGET_PC
-            mpModel->setUserArea((uintptr_t)this);
-#else
-            mpModel->setUserArea((u32) this);
-#endif
+            mpModel->setUserArea((uintptr_t) this);
             mpBgW = dBgW_NewSet((cBgD_t *)dComIfG_getObjectRes(M_arcname, dRes_INDEX_SHMRGRD_DZB_HGBASE_e), cBgW::MOVE_BG_e, &mMtx);
             if (mpBgW) {
                 rt = TRUE;
@@ -263,13 +259,6 @@ cPhs_State daObjShmrgrd_c::_create() {
 
 /* 00000964-00000A14       .text _delete__14daObjShmrgrd_cFv */
 bool daObjShmrgrd_c::_delete() {
-#if VERSION == VERSION_DEMO
-    if (mpBgW != NULL && mpBgW->ChkUsed()) {
-        dComIfG_Bgsp()->Release(mpBgW);
-    }
-    leave_list();
-    dComIfG_resDeleteDemo(&mPhs, M_arcname);
-#else
     if (heap != NULL && mpBgW != NULL) {
         if (mpBgW->ChkUsed()) {
             dComIfG_Bgsp()->Release(mpBgW);
@@ -279,7 +268,6 @@ bool daObjShmrgrd_c::_delete() {
     leave_list();
     mSmokeCb.remove();
     dComIfG_resDelete(&mPhs, M_arcname);
-#endif
     return true;
 }
 
@@ -421,20 +409,14 @@ void daObjShmrgrd_c::set_damage() {
 
 /* 0000102C-00001090       .text vib_start__14daObjShmrgrd_cFsf */
 void daObjShmrgrd_c::vib_start(s16 dir, f32 mag) {
-    f32 m = mag * attr().mVibMag0Mult;
-    mAngleSpeedZ = m * cM_scos(dir);
-    mAngleSpeedX = m * cM_ssin(dir);
+    mAngleSpeedZ = mag * attr().mVibMag0Mult * cM_scos(dir);
+    mAngleSpeedX = mag * attr().mVibMag0Mult * cM_ssin(dir);
 }
 
 /* 00001090-00001108       .text vib_proc__14daObjShmrgrd_cFv */
 void daObjShmrgrd_c::vib_proc() {
-#if VERSION == VERSION_DEMO
-    float angleAccelZ = -(mAngleZ * attr().mVibSpring) - mAngleSpeedZ * attr().mAngleSpeedDecay;
-    float angleAccelX = -(mAngleX * attr().mVibSpring) - mAngleSpeedX * attr().mAngleSpeedDecay;
-#else
     float angleAccelX = -(mAngleX * attr().mVibSpring) - mAngleSpeedX * attr().mAngleSpeedDecay;
     float angleAccelZ = -(mAngleZ * attr().mVibSpring) - mAngleSpeedZ * attr().mAngleSpeedDecay;
-#endif
 
     mAngleSpeedZ += angleAccelZ;
     mAngleSpeedX += angleAccelX;
@@ -501,11 +483,10 @@ BOOL daObjShmrgrd_c::jnodeCB(J3DNode* node, int calcTiming) {
         J3DModel* model = (J3DModel*) j3dSys.getModel();
         daObjShmrgrd_c* i_this = (daObjShmrgrd_c*) model->getUserArea();
         J3DJoint* joint = (J3DJoint*) node;
-        u16 jntNo = joint->getJntNo();
+        s32 jntNo = joint->getJntNo();
 
         mDoMtx_stack_c::copy(model->getAnmMtx(jntNo));
-        f32 y = (1.0f - i_this->mScaleY) * 20.0f;
-        mDoMtx_stack_c::transM(0.0f, y, 0.0f);
+        mDoMtx_stack_c::transM(0.0f, (1.0f - i_this->mScaleY) * 20.0f, 0.0f);
         mDoMtx_stack_c::scaleM(1.0f, i_this->mScaleY, 1.0f);
         mDoMtx_stack_c::transM(0.0f, i_this->mTopPos, 0.0f);
 
@@ -606,11 +587,7 @@ bool daObjShmrgrd_c::_execute() {
     attention_info.position.y = current.pos.y + mTopPos + 125.0f;
     eyePos.y = current.pos.y + mTopPos + 75.0f;
 
-#if VERSION == VERSION_DEMO
-    if (mpBgW) {
-#else
     if (heap && mpBgW) {
-#endif
         if (mpBgW->ChkUsed()) {
             mpBgW->Move();
         }

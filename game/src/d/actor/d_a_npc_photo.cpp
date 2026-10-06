@@ -559,8 +559,8 @@ struct PsoData {
     /* 0x0C */ f32 field_0x0C;
     /* 0x10 */ f32 field_0x10;
     /* 0x14 */ s16 field_0x14;
-    /* 0x16 */ u8 field_0x16;
-    /* 0x17 */ u8 field_0x17;
+    /* 0x16 */ s8 field_0x16;
+    /* 0x17 */ s8 field_0x17;
 };  // Size: 0x18
 #if TARGET_PC
 } // namespace
@@ -662,9 +662,7 @@ static cPhs_State phase_2(daNpcPhoto_c* i_this) {
         if (fopAcM_entrySolidHeap(i_this, CheckCreateHeap, 0)) {
             return i_this->createInit();
         } else {
-#if VERSION > VERSION_DEMO
             i_this->mpMorf = NULL;
-#endif
             return cPhs_ERROR_e;
         }
     }
@@ -697,9 +695,9 @@ BOOL daNpcPhoto_c::createHeap() {
     }
 
     m_jnt.setHeadJntNum(modelData->getJointName()->getIndex("head"));
-    JUT_ASSERT(DEMO_SELECT(0x4A6, 0x4A7), m_jnt.getHeadJntNum() >= 0);
+    JUT_ASSERT(0x4A7, m_jnt.getHeadJntNum() >= 0);
     m_jnt.setBackboneJntNum(modelData->getJointName()->getIndex("backbone"));
-    JUT_ASSERT(DEMO_SELECT(0x4AB, 0x4AC), m_jnt.getBackboneJntNum() >= 0);
+    JUT_ASSERT(0x4AC, m_jnt.getBackboneJntNum() >= 0);
 
     if (!initTexPatternAnm(false, -1)) {
         return FALSE;
@@ -710,11 +708,7 @@ BOOL daNpcPhoto_c::createHeap() {
             modelData->getJointNodePointer(i)->setCallBack(daNpc_Photo_nodeCallBack);
         }
     }
-#if TARGET_PC
     mpMorf->getModel()->setUserArea((uintptr_t)this);
-#else
-    mpMorf->getModel()->setUserArea((u32)this);
-#endif
     mAcchCir.SetWall(30.0f, 30.0f);
     mObjAcch.Set(fopAcM_GetPosition_p(this), fopAcM_GetOldPosition_p(this), this, 1, &mAcchCir, fopAcM_GetSpeed_p(this), fopAcM_GetAngle_p(this), fopAcM_GetShapeAngle_p(this));
     return TRUE;
@@ -756,16 +750,6 @@ cPhs_State daNpcPhoto_c::createInit() {
         }
         temp = 0xFE;
     }
-#if VERSION == VERSION_DEMO
-    mStts.Init(temp, 0xFF, this);
-    mCyl.Set(dNpc_cyl_src);
-    mCyl.SetStts(&mStts);
-    setCollision(&mCyl, current.pos + field_0x958, field_0x988, 150.0f);
-    field_0x6F8[0].Set(l_cyl_src2);
-    field_0x6F8[0].SetStts(&mStts);
-    field_0x6F8[1].Set(l_cyl_src2);
-    field_0x6F8[1].SetStts(&mStts);
-#endif
     gravity = -9.0f;
 
     mPhotoLinkBackEventIdx = dComIfGp_evmng_getEventIdx("PHOTO_LINK_BACK",0xff);
@@ -803,11 +787,6 @@ cPhs_State daNpcPhoto_c::createInit() {
     field_0x9B2 = l_npc_dat.field_0x28;
     mObjAcch.CrrPos(*dComIfG_Bgsp());
 
-#if VERSION == VERSION_DEMO
-    current.pos.y = home.pos.y = mObjAcch.GetGroundH();
-
-    setMtx();
-#else
     if(mObjAcch.GetGroundH() != -G_CM3D_F_INF) {
         current.pos.y = home.pos.y = mObjAcch.GetGroundH();
     }
@@ -822,25 +801,15 @@ cPhs_State daNpcPhoto_c::createInit() {
     field_0x6F8[0].SetStts(&mStts);
     field_0x6F8[1].Set(l_cyl_src2);
     field_0x6F8[1].SetStts(&mStts);
-#endif
     return 4;
 }
 
 /* 00001048-000010A4       .text _delete__12daNpcPhoto_cFv */
 bool daNpcPhoto_c::_delete() {
-#if VERSION == VERSION_DEMO
-    if (field_0x9C2) {
-        dComIfG_deleteObjectRes(l_arcname_tbl[0]);
-    }
-    if (mpMorf) {
-        mpMorf->stopZelAnime();
-    }
-#else
     dComIfG_resDelete(getPhaseP(), l_arcname_tbl[0]);
     if(heap && mpMorf) {
         mpMorf->stopZelAnime();
     }
-#endif
     return true;
 }
 
@@ -866,19 +835,6 @@ bool daNpcPhoto_c::_draw() {
     );
 
     if (field_0x9C1 == 4) {
-#if VERSION == VERSION_DEMO
-        dSnap_Obj obj;
-        PsoData* pso = &l_pso_photo;
-
-        cXyz temp(
-            pso->field_0x00,
-            pso->field_0x04,
-            pso->field_0x08
-        );
-        temp += current.pos;
-        obj.SetInf(DSNAP_TYPE_UNK05, this, pso->field_0x16, pso->field_0x17, 0x7FFF);
-        obj.SetGeo(temp, pso->field_0x0C, pso->field_0x10, pso->field_0x14 + current.angle.y);
-#else
         dSnap_Obj obj;
 
         cXyz temp(
@@ -889,7 +845,6 @@ bool daNpcPhoto_c::_draw() {
         temp += current.pos;
         obj.SetInf(DSNAP_TYPE_UNK05, this, l_pso_photo.field_0x16, l_pso_photo.field_0x17, 0x7FFF);
         obj.SetGeo(temp, l_pso_photo.field_0x0C, l_pso_photo.field_0x10, l_pso_photo.field_0x14 + current.angle.y);
-#endif
         dSnap_RegistSnapObj(obj);
     } else {
         dSnap_RegistFig(DSNAP_TYPE_NPC_PHOTO, this, 1.0f, 1.0f, 1.0f);
@@ -949,9 +904,6 @@ bool daNpcPhoto_c::_execute() {
 
     if (field_0x9C1 == 2) {
         for(int i = 0; i < 2; i++) {
-#if VERSION == VERSION_DEMO
-            setCollision(&field_0x6F8[i], l_counter_pos[i], 110.0f, 150.0f);
-#else
             setCollision(&field_0x6F8[i], 
                 cXyz(
                     l_counter_pos[i].x,
@@ -960,7 +912,6 @@ bool daNpcPhoto_c::_execute() {
                 ), 
                 110.0f, 150.0f
             );
-#endif
         }
     }
     
@@ -1471,17 +1422,10 @@ void daNpcPhoto_c::eventPosSetInit() {
                 dBgS_GndChk gndChk;
                 
                 Vec temp;
-#if VERSION == VERSION_DEMO
-                temp.x = current.pos.x;
-                temp.y = current.pos.y;
-                temp.z = current.pos.z;
-                temp.y += 50.0f;
-#else
                 temp.y = current.pos.y;
                 temp.z = current.pos.z;
                 temp.y += 50.0f;
                 temp.x = current.pos.x;
-#endif
 
                 gndChk.SetPos(&temp);
 
@@ -1785,14 +1729,6 @@ u32 daNpcPhoto_c::getMsg() {
         if (eventReg < 1) {
             msgNo = 0x2A5C;
         } else if (eventReg < 3) {
-#if VERSION == VERSION_DEMO
-            if (isPhotoOk()) {
-                field_0x980 = l_msg_1st_order_xy;
-                field_0x9D0 = 0;
-            } else {
-                msgNo = 0x2A5D;
-            }
-#else
             if (eventReg == 2) {
                 msgNo = 0x2A57;
             } else {
@@ -1803,16 +1739,7 @@ u32 daNpcPhoto_c::getMsg() {
                     msgNo = 0x2A5D;
                 }
             }
-#endif
         } else if (eventReg < 5) {
-#if VERSION == VERSION_DEMO
-            if (isPhotoOk()) {
-                field_0x980 = l_msg_2nd_order_xy;
-                field_0x9D0 = 0;
-            } else {
-                msgNo = 0x2A5D;
-            }
-#else
             if (eventReg == 4) {
               msgNo = 0x2A57;
             } else {
@@ -1823,7 +1750,6 @@ u32 daNpcPhoto_c::getMsg() {
                     msgNo = 0x2A5D;
                 }
             }
-#endif
         } else if (eventReg < 6) {
             if (isPhotoOk()) {
                 field_0x980 = l_msg_3rd_order_xy;
@@ -1920,11 +1846,7 @@ u32 daNpcPhoto_c::getMsg() {
                 }
             }
         } 
-#if VERSION == VERSION_DEMO
-    } else if(dComIfGs_checkGetItem(dItemNo_PICTO_BOX_e)) {
-#else
     } else if(dComIfGs_checkGetItem(dItemNo_PICTO_BOX_e) || dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e)) {
-#endif
         if(!dComIfGs_isEventBit(l_save_dat.field_0x02)) {
             field_0x980 = l_msg_1st_photo;
             field_0x9D0 = 0;
@@ -2137,7 +2059,7 @@ BOOL daNpcPhoto_c::initTexPatternAnm(bool i_modify, int i_param2) {
         }
     }
     m_head_tex_pattern = (J3DAnmTexPattern*)dComIfG_getObjectIDRes(l_arcname_tbl[0], l_btp_ix_tbl[i_param2]);
-    JUT_ASSERT(DEMO_SELECT(0xB9A, 0xBAA), m_head_tex_pattern != NULL);
+    JUT_ASSERT(0xBAA, m_head_tex_pattern != NULL);
     
     if(!mBtpAnm.init(modelData, m_head_tex_pattern, TRUE, J3DFrameCtrl::EMode_LOOP, 1.0f, 0, -1, i_modify, FALSE)) {
         return FALSE;
@@ -2165,13 +2087,8 @@ void daNpcPhoto_c::playAnm() {
     u32 mtrlSndId;
     s8 roomNo = fopAcM_GetRoomNo(this);
     
-#if VERSION == VERSION_DEMO
-    if (mObjAcch.ChkGroundHit() != FALSE) {
-        mtrlSndId = dComIfG_Bgsp()->GetMtrlSndId(mObjAcch.m_gnd);
-#else
     if (mObjAcch.ChkGroundHit()) {
         mtrlSndId = dComIfG_Bgsp()->GetMtrlSndId(mObjAcch.m_gnd);
-#endif
     }
     else {
         mtrlSndId = 0;
@@ -2232,11 +2149,7 @@ bool daNpcPhoto_c::setAnmTbl(sPhotoAnmDat* i_anmDat) {
 
 /* 000048D0-00004950       .text XyCheckCB__12daNpcPhoto_cFi */
 s16 daNpcPhoto_c::XyCheckCB(int i_itemBtn) {
-#if VERSION == VERSION_DEMO
-    if(dComIfGs_isTmpBit(dSv_event_tmp_flag_c::UNK_0302) && !dComIfGs_isTmpBit(dSv_event_tmp_flag_c::UNK_0301) && dComIfGs_getPictureNum() < 3){
-#else
     if(dComIfGs_isTmpBit(dSv_event_tmp_flag_c::UNK_0302) && !dComIfGs_isTmpBit(dSv_event_tmp_flag_c::UNK_0301)){
-#endif
         attention_info.flags = fopAc_Attn_LOCKON_TALK_e | fopAc_Attn_ACTION_SPEAK_e;
     } else {
         attention_info.flags = fopAc_Attn_UNK1000000_e | fopAc_Attn_LOCKON_TALK_e | fopAc_Attn_ACTION_SPEAK_e;
@@ -2248,12 +2161,6 @@ s16 daNpcPhoto_c::XyCheckCB(int i_itemBtn) {
 s16 daNpcPhoto_c::XyEventCB(int i_itemBtn) {
     s16 eventIdx;
     u8 itemNo = dComIfGp_getSelectItem(i_itemBtn);
-#if VERSION == VERSION_DEMO
-    if(itemNo == dItemNo_DELUXE_PICTO_BOX_e && dComIfGs_isTmpBit(dSv_event_tmp_flag_c::UNK_0302) && dComIfGs_getPictureNum() < 3){
-        eventIdx = mPhotoGetPhotoEventIdx;
-        field_0x9C7 = false;
-    } else {
-#else
     if(itemNo == dItemNo_DELUXE_PICTO_BOX_e && dComIfGs_isTmpBit(dSv_event_tmp_flag_c::UNK_0302)){
         if(dComIfGs_getPictureNum() < 3){
             eventIdx = mPhotoGetPhotoEventIdx;
@@ -2262,7 +2169,6 @@ s16 daNpcPhoto_c::XyEventCB(int i_itemBtn) {
             return dComIfGp_evmng_getEventIdx("DEFAULT_TALK_XY",0xff);
         }
     } else {
-#endif
         if(itemNo == dItemNo_FIREFLY_BOTTLE_e && dComIfGs_getEventReg(l_save_dat.field_0x06) >= 6 && !dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e)){
             eventIdx = mPhotoGetItem2EventIdx;
             field_0x9C7 = false;
