@@ -16,7 +16,7 @@
 #include "d/d_cc_uty.h"
 #include "d/d_bg_s_lin_chk.h"
 
-cXyz non_pos(-20000.0f, -20000.0f, 20000.0f);
+static cXyz non_pos(-20000.0f, -20000.0f, 20000.0f);
 
 /* 8001BEDC-8001C0B4       .text ice_bg_check__FP8enemyice */
 BOOL ice_bg_check(enemyice* ei) {
@@ -1461,14 +1461,9 @@ void dr_damage_anime(damagereaction* dr) {
     if(dr->m47C != 0 || test_sw != 0) {
         maxSpeed = 0x3000;
 
-        // Each joint group works on its own copy of the (x, z) angle pair. The demo debug map's size for this
-        // function (0x17F0) matches only with these copies.
-        f32 zero;
-        f32 temp;
-        temp = (s16)(dr->m482 + 0x8000 - dr->mpEnemy->current.angle.y);
-        zero = 0.0f;
+        f32 temp = (s16)(dr->m482 + 0x8000 - dr->mpEnemy->current.angle.y);
+        f32 zero = 0.0f;
         f32 temp2 = temp;
-        f32 zero2 = zero;
         if(temp2 > 5000.0f) {
             temp2 = 5000.0f;
         }
@@ -1477,11 +1472,10 @@ void dr_damage_anime(damagereaction* dr) {
         }
         dr->m010[8].y = 0.4f * temp2 + 0x2000;
         dr->m010[4].z = 0.4f * -temp2 - 0x2000;
-        dr->m010[8].z = 0.4f * zero2 + 0x2000;
-        dr->m010[4].y = 0.4f * zero2 + 0x2000;
+        dr->m010[8].z = 0.4f * zero + 0x2000;
+        dr->m010[4].y = 0.4f * zero + 0x2000;
 
         f32 temp3 = temp;
-        f32 zero3 = zero;
         if(temp3 > 22000.0f) {
             temp3 = 22000.0f;
         }
@@ -1490,11 +1484,10 @@ void dr_damage_anime(damagereaction* dr) {
         }
         dr->m010[9].y = 0.4f * temp3 - 0x2000;
         dr->m010[5].z = 0.4f * temp3 - 0x2000;
-        dr->m010[9].z = 0.4f * zero3 + 0x2000;
-        dr->m010[5].y = 0.4f * -zero3 - 0x2000;
+        dr->m010[9].z = 0.4f * zero + 0x2000;
+        dr->m010[5].y = 0.4f * -zero - 0x2000;
 
         f32 temp4 = temp;
-        f32 zero4 = zero;
         if(temp4 > 20000.0f) {
             temp4 = 20000.0f;
         }
@@ -1503,11 +1496,10 @@ void dr_damage_anime(damagereaction* dr) {
         }
         dr->m010[0x0C].x = 0.2f * temp4;
         dr->m010[0x13].x = 0.2f * temp4;
-        dr->m010[0x0C].z = 0.2f * -zero4;
-        dr->m010[0x13].z = 0.2f * -zero4;
+        dr->m010[0x0C].z = 0.2f * -zero;
+        dr->m010[0x13].z = 0.2f * -zero;
 
         f32 temp5 = temp;
-        f32 zero5 = zero;
         if(temp5 > 7000.0f) {
             temp5 = 7000.0f;
         }
@@ -1515,7 +1507,7 @@ void dr_damage_anime(damagereaction* dr) {
             temp5 = -10000.0f;
         }
         dr->m010[6].x = (3000.0f - temp5) + REG0_S(0);
-        dr->m010[6].z = (-zero5 - 0x4000) + REG0_S(1);
+        dr->m010[6].z = (-zero - 0x4000) + REG0_S(1);
 
         f32 temp6 = temp;
         if(temp6 > 10000.0f) {
@@ -1525,7 +1517,7 @@ void dr_damage_anime(damagereaction* dr) {
             temp6 = -7000.0f;
         }
         dr->m010[7].x = (-temp6 - 3000.0f);
-        dr->m010[7].z = (-zero5 - 0x4000);
+        dr->m010[7].z = (-zero - 0x4000);
     }
     else {
         dr->m010[6].y += dr->m4B8;
@@ -1851,7 +1843,9 @@ void dr_damage_anime(damagereaction* dr) {
             break;
     }
 
-    csxyz_temp.set(0, 0, 0);
+    csxyz_temp.x = 0;
+    csxyz_temp.y = 0;
+    csxyz_temp.z = 0;
     for(int i = 0; i < 20; i++) {
         if((dr->m474 > 0.1f && (i == 2 || i == 6 || i == 7 || i == 3) && (dr->m70E & 8)) ||
             ((i == 0 || i == 4 || i == 5 || i == 1) && (dr->m70E & 4)) ||

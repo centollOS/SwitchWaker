@@ -236,6 +236,7 @@ public:
     static CStick mPadMStick[4];
     static CStick mPadSStick[4];
     static EStickMode mStickMode;
+    static u32 mClampMode;
     static u8 mPadAssign[4];
     static u32 mSuppressPadReset;
     static s32 sAnalogMode;

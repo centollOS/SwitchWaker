@@ -10,6 +10,22 @@
 namespace JStudio_JParticle {
 
 namespace {
+// Fake inline.
+// TODO: supposed to use JStudio::TObject::createFromAdaptor instead of this somehow
+static inline JStudio::TObject_particle* create(const JStudio::stb::data::TParse_TBlock_object& data, TAdaptor_particle* adaptor)
+{
+    JStudio::TObject_particle* object = new JStudio::TObject_particle(data, adaptor);
+    if (object == NULL) {
+        // TODO: This should probably delete the adaptor in NONMATCHING builds, if the object couldn't get created.
+        return NULL;
+    } else {
+        if (object->mpAdaptor != NULL) {
+            object->mpAdaptor->adaptor_do_prepare(object);
+        }
+    }
+    return object;
+}
+
 /* 802796E4-802797A0       .text createObject_PARTICLE_JPA___Q217JStudio_JParticle21@unnamed@control_cpp@FRCQ47JStudio3stb4data20TParse_TBlock_objectP17JPAEmitterManagerPCQ26JStage7TSystem */
 JStudio::TObject_particle* createObject_PARTICLE_JPA_(const JStudio::stb::data::TParse_TBlock_object& data, JPAEmitterManager* manager,
                                                       const JStage::TSystem* system)
@@ -18,7 +34,7 @@ JStudio::TObject_particle* createObject_PARTICLE_JPA_(const JStudio::stb::data::
     if (adaptor == NULL) {
         return NULL;
     }
-    JStudio::TObject_particle* object = JStudio::TObject::createFromAdaptor<JStudio::TObject_particle>(data, adaptor);
+    JStudio::TObject_particle* object = create(data, adaptor);
     return object;
 }
 } // namespace

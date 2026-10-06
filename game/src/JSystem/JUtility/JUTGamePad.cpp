@@ -59,6 +59,7 @@ JUTGamePad::CButton JUTGamePad::mPadButton[4];
 JUTGamePad::CStick JUTGamePad::mPadMStick[4];
 JUTGamePad::CStick JUTGamePad::mPadSStick[4];
 JUTGamePad::EStickMode JUTGamePad::mStickMode = EStickMode1;
+u32 JUTGamePad::mClampMode = EClampStick;
 u32 JUTGamePad::sRumbleSupported;
 
 /* 802C3980-802C3C14       .text read__10JUTGamePadFv */

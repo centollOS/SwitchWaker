@@ -1,2 +1,8 @@
 url=https://github.com/snrubrm/tww.git
 commit=b09eebc39852e18397031d9a563a8eae124f21f1
+converged_url=https://github.com/zeldaret/tww.git
+converged_commit=a1854d47ce5aa9d0f21c7fb5a71aaade63659693
+# game/ is snrubrm/tww b09eebc (url=, commit=: the import, what native/tools/gen_assets.sh builds
+# the asset headers from) plus units taken verbatim from zeldaret/tww converged_commit, where
+# zeldaret's configure.py marks them Matching for GZLE01 (step G4 of docs/GAME_CODE_ORGANIZATION.md),
+# with the header hunks they need. Which files differ from either is in docs/GAME_DIVERGENCE.md.

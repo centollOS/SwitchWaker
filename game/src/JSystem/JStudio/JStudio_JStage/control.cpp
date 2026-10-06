@@ -10,6 +10,78 @@
 namespace JStudio_JStage {
 
 namespace {
+// Fake inline.
+// TODO: supposed to use JStudio::TObject::createFromAdaptor instead of this somehow
+static inline JStudio::TObject* doCreateObject(const JStudio::stb::data::TParse_TBlock_object& data, TAdaptor_actor* adaptor)
+{
+    JStudio::TObject* object = new JStudio::TObject_actor(data, adaptor);
+    if (object == NULL) {
+        // TODO: This should probably delete the adaptor in NONMATCHING builds, if the object couldn't get created.
+        return NULL;
+    } else {
+        if (object->mpAdaptor != NULL) {
+            object->mpAdaptor->adaptor_do_prepare(object);
+        }
+    }
+    return object;
+}
+
+static inline JStudio::TObject* doCreateObject(const JStudio::stb::data::TParse_TBlock_object& data, TAdaptor_camera* adaptor)
+{
+    JStudio::TObject* object = new JStudio::TObject_camera(data, adaptor);
+    if (object == NULL) {
+        // TODO: This should probably delete the adaptor in NONMATCHING builds, if the object couldn't get created.
+        return NULL;
+    } else {
+        if (object->mpAdaptor != NULL) {
+            object->mpAdaptor->adaptor_do_prepare(object);
+        }
+    }
+    return object;
+}
+
+static inline JStudio::TObject* doCreateObject(const JStudio::stb::data::TParse_TBlock_object& data, TAdaptor_ambientLight* adaptor)
+{
+    JStudio::TObject* object = new JStudio::TObject_ambientLight(data, adaptor);
+    if (object == NULL) {
+        // TODO: This should probably delete the adaptor in NONMATCHING builds, if the object couldn't get created.
+        return NULL;
+    } else {
+        if (object->mpAdaptor != NULL) {
+            object->mpAdaptor->adaptor_do_prepare(object);
+        }
+    }
+    return object;
+}
+
+static inline JStudio::TObject* doCreateObject(const JStudio::stb::data::TParse_TBlock_object& data, TAdaptor_light* adaptor)
+{
+    JStudio::TObject* object = new JStudio::TObject_light(data, adaptor);
+    if (object == NULL) {
+        // TODO: This should probably delete the adaptor in NONMATCHING builds, if the object couldn't get created.
+        return NULL;
+    } else {
+        if (object->mpAdaptor != NULL) {
+            object->mpAdaptor->adaptor_do_prepare(object);
+        }
+    }
+    return object;
+}
+
+static inline JStudio::TObject* doCreateObject(const JStudio::stb::data::TParse_TBlock_object& data, TAdaptor_fog* adaptor)
+{
+    JStudio::TObject* object = new JStudio::TObject_fog(data, adaptor);
+    if (object == NULL) {
+        // TODO: This should probably delete the adaptor in NONMATCHING builds, if the object couldn't get created.
+        return NULL;
+    } else {
+        if (object->mpAdaptor != NULL) {
+            object->mpAdaptor->adaptor_do_prepare(object);
+        }
+    }
+    return object;
+}
+
 typedef JStudio::TObject* (*CreateObjectFunction)(const JStudio::stb::data::TParse_TBlock_object&, JStage::TObject*,
                                                   const JStage::TSystem*);
 
@@ -21,6 +93,16 @@ JStudio::TObject* createObject_JSG_(const JStudio::stb::data::TParse_TBlock_obje
 
 /* 80275BAC-80275C0C       .text __dt__Q214JStudio_JStage13TCreateObjectFv */
 TCreateObject::~TCreateObject() {}
+
+static void dummy() {
+    // fakematch to reverse the weak function ordering
+    CreateObjectFunction function;
+    function = &createObject_JSG_<TAdaptor_fog, JStage::TFog>;
+    function = &createObject_JSG_<TAdaptor_light, JStage::TLight>;
+    function = &createObject_JSG_<TAdaptor_ambientLight, JStage::TAmbientLight>;
+    function = &createObject_JSG_<TAdaptor_camera, JStage::TCamera>;
+    function = &createObject_JSG_<TAdaptor_actor, JStage::TActor>;
+}
 
 /* 80275C0C-80275D5C       .text create__Q214JStudio_JStage13TCreateObjectFPPQ27JStudio7TObjectRCQ47JStudio3stb4data20TParse_TBlock_object */
 bool TCreateObject::create(JStudio::TObject** newObject, const JStudio::stb::data::TParse_TBlock_object& data) {
@@ -84,7 +166,7 @@ JStudio::TObject* createObject_JSG_(const JStudio::stb::data::TParse_TBlock_obje
         return NULL;
     }
 
-    return JStudio::TObject::createFromAdaptor<typename Adaptor::JStudioObject>(data, adaptor);
+    return doCreateObject(data, adaptor);
 }
 
 } // namespace

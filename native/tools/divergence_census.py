@@ -9,7 +9,8 @@ guard macros in GUARD_RE), the changed lines outside any guard (edits to decompi
 marked; the identity annotations of game/include/helpers such as BE(T) are counted apart), the
 commits behind each file, and the state of each unit in zeldaret/tww main (the
 upstream decompilation): does its file differ from our base, and does zeldaret's configure.py mark
-it Matching for GZLE01.
+it Matching for GZLE01. Files equal to zeldaret's (taken from it in step G4) are listed apart, not as
+our divergence.
 
 zeldaret/tww and snrubrm/tww are fetched into a bare cache repository, build/upstream-tww.git
 (build/ is ignored by git); the main repository's config is not touched. The cache is fetched when
@@ -385,6 +386,7 @@ def upstream_state(cache, repo):
             origin = "both"
         files[p] = origin
     info["files"] = files
+    info["blobs"] = upb
     return info
 
 
@@ -413,8 +415,9 @@ def main():
     ap.add_argument("--offline", action="store_true", help="never fetch; skip upstream without a cache")
     args = ap.parse_args()
 
-    # The last commit that changed game/ (not HEAD, so that commits elsewhere leave the report as it is).
-    head = git(["log", "-1", "--format=%h", "HEAD", "--", "game/"], cwd=repo).strip()
+    # The tree id of game/ at HEAD (not a commit id: a commit that changes game/ can carry its own
+    # report, and commits elsewhere leave the report as it is).
+    head = git(["rev-parse", "--short", "HEAD:game"], cwd=repo).strip()
     status = {}
     for line in git(["diff", "--name-status", "--no-renames", IMPORT_COMMIT, "HEAD", "--", "game/"], cwd=repo).splitlines():
         st, path = line.split("\t", 1)
@@ -424,11 +427,35 @@ def main():
         ins, dels, path = line.split("\t", 2)
         stat[path] = (int(ins), int(dels))
     diffs = parse_diff(repo)
+
+    up = None
+    if ensure_cache(args.cache, args.fetch, args.offline):
+        up = upstream_state(args.cache, repo)
+    # Files whose HEAD content is zeldaret's (step G4: units taken from zeldaret, headers merged to
+    # zeldaret's): reported apart, not as our divergence. Other files keep zeldaret's lines as
+    # lines taken from upstream (partially merged headers), not as unguarded divergence.
+    head_blobs = {}
+    for line in git(["ls-tree", "-r", "HEAD", "--", "game/src", "game/include"], cwd=repo).splitlines():
+        meta, path = line.split("\t", 1)
+        head_blobs[path] = meta.split()[2]
+    converged = set()
+    if up:
+        converged = {p for p in status if status[p] == "M" and up["blobs"].get(p[len("game/"):]) == head_blobs.get(p)}
     texts = read_blobs([f"HEAD:{p}" for p in sorted(status) if status[p] != "D"], cwd=repo)
     commits = commits_per_file(repo)
 
-    rows, new_files = [], []
+    up_texts, base_texts = {}, {}
+    if up:
+        want = [p for p in status if status[p] == "M" and p not in converged and p[len("game/"):] in up["blobs"]]
+        got = read_blobs([f"{up['up']}:{p[len('game/'):]}" for p in want], git_dir=args.cache)
+        up_texts = {p: got[f"{up['up']}:{p[len('game/'):]}"] for p in want}
+        base = read_blobs([f"{IMPORT_COMMIT}:{p}" for p in want], cwd=repo)
+        base_texts = {p: base[f"{IMPORT_COMMIT}:{p}"] or "" for p in want}
+    rows, new_files, conv_rows = [], [], []
     for p in sorted(status):
+        if p in converged:
+            conv_rows.append({"path": p, "ins": stat[p][0], "dels": stat[p][1]})
+            continue
         if status[p] == "A":
             new_files.append(p)
             continue
@@ -438,13 +465,19 @@ def main():
                          "annot_added": 0, "annot_deleted": 0, "lines": []})
             continue
         r = analyse_file(p, texts[f"HEAD:{p}"], diffs.get(p, {"added": {}, "deleted": []}))
+        r["up_added"] = r["up_deleted"] = 0
+        if up_texts.get(p) is not None:
+            up_norm = {norm(x) for x in up_texts[p].split("\n")}
+            new_up = up_norm - {norm(x) for x in base_texts[p].split("\n")}  # lines zeldaret added
+            keep = [n for n in r["unguarded_added"] if norm(r["lines"][n - 1]) not in new_up]
+            r["up_added"] = len(r["unguarded_added"]) - len(keep)
+            r["unguarded_added"] = keep
+            keep = [x for x in r["unguarded_deleted"] if norm(x) in up_norm]
+            r["up_deleted"] = len(r["unguarded_deleted"]) - len(keep)
+            r["unguarded_deleted"] = keep
         r.update(path=p, ins=stat[p][0], dels=stat[p][1])
         rows.append(r)
     rows.sort(key=lambda r: (-(r["ins"] + r["dels"]), r["path"]))
-
-    up = None
-    if ensure_cache(args.cache, args.fetch, args.offline):
-        up = upstream_state(args.cache, repo)
 
     def up_cells(path):
         if up is None or not path.startswith("game/"):
@@ -466,6 +499,9 @@ def main():
     tot_ann_add = sum(r["annot_added"] for r in rows)
     tot_ann_del = sum(r["annot_deleted"] for r in rows)
     ann_files = sum(1 for r in rows if r["annot_added"] or r["annot_deleted"])
+    tot_up_add = sum(r["up_added"] for r in rows)
+    tot_up_del = sum(r["up_deleted"] for r in rows)
+    up_files = sum(1 for r in rows if r["up_added"] or r["up_deleted"])
 
     o = []
     w = o.append
@@ -475,7 +511,7 @@ def main():
     w("`python3 -I native/tools/divergence_census.py` (`--fetch` to update the zeldaret/tww cache in")
     w("`build/upstream-tww.git`). Step G1 of [GAME_CODE_ORGANIZATION.md](GAME_CODE_ORGANIZATION.md).")
     w("")
-    w(f"Base: the import `{IMPORT_COMMIT}` (snrubrm/tww `{FORK_COMMIT[:7]}`); compared with HEAD, whose game/ is that of `{head}`.")
+    w(f"Base: the import `{IMPORT_COMMIT}` (snrubrm/tww `{FORK_COMMIT[:7]}`); compared with HEAD, whose game/ is the tree `{head}`.")
     if up:
         w(f"Upstream: zeldaret/tww {UPSTREAM_REF} `{up['up_desc']}`. The fork branched from zeldaret at "
           f"`{up['mb_desc']}`; since then zeldaret has {up['ahead']} commits and the fork {up['fork_ahead']}.")
@@ -488,12 +524,14 @@ def main():
     w("")
     w("| | |")
     w("| --- | --- |")
-    w(f"| Files touched since the import | {len(rows) + len(new_files)} ({len(rows)} changed, {len(new_files)} added) |")
+    w(f"| Files touched since the import | {len(rows) + len(new_files)} ({len(rows)} changed, {len(new_files)} added), "
+      f"besides {len(conv_rows)} files now equal to zeldaret/tww |")
     w(f"| Lines | +{tot_ins} / -{tot_dels} |")
     w(f"| Guarded blocks added (`#if` chains naming a guard macro) | {tot_blocks} ({tot_outer} outermost) |")
     w(f"| Lines inside the outermost added guarded blocks | {tot_guarded} |")
     w(f"| **Unguarded code divergence** (code changed outside any guard) | **{tot_ung_add} added, {tot_ung_del} removed, in {len(ung)} files** |")
     w(f"| Unguarded annotations and cosmetic changes | {tot_ann_add} added, {tot_ann_del} removed, in {ann_files} files |")
+    w(f"| Unguarded lines that are zeldaret/tww's (headers partially merged with it) | {tot_up_add} added, {tot_up_del} removed, in {up_files} files |")
     w("")
     w("Guard macros: `TARGET_PC`, `__MWERKS__`, `__clang__`, `TARGET_LITTLE_ENDIAN`, `COS_*`, "
       "`address_sanitizer` (in any `#if`/`#elif` of the chain). A line is guarded when it lies inside "
@@ -503,10 +541,22 @@ def main():
       "into annotations and cosmetic changes (the same code on the GameCube once the identity macros of "
       "`game/include/helpers` — `BE()`, `LE()`, `BE_HOST()`, `RES_*()`, `OFFSET_PTR()`, `OFFSET_PTR_RAW` — "
       "are expanded and comments and whitespace are ignored; `#include \"helpers/...\"`; comment-only "
-      "lines) and code divergence (everything else).")
+      "lines) and code divergence (everything else). Files equal to zeldaret/tww (step G4) are listed "
+      "apart and left out of everything else; in the other files an unguarded line that zeldaret added "
+      "as well (or a removed line that zeldaret removed as well) is counted as zeldaret's, not as our divergence.")
     w("")
     if new_files:
         w("Files added to game/ (ours, not decompiled code): " + ", ".join(f"`{p}` (+{stat[p][0]})" for p in new_files) + ".")
+        w("")
+
+    if conv_rows:
+        w(f"## Converged on zeldaret/tww ({len(conv_rows)})")
+        w("")
+        w("Files whose content is zeldaret/tww's at the upstream commit below (step G4: units it marks "
+          "Matching, taken verbatim, and the headers they needed). They differ from the import but are not "
+          "our edits; re-taking them from a newer zeldaret is a plain copy.")
+        w("")
+        w(", ".join(f"`{r['path'][5:]}` (+{r['ins']}/-{r['dels']})" for r in conv_rows) + ".")
         w("")
 
     w("## Unguarded divergence")
@@ -556,6 +606,7 @@ def main():
 
     if up:
         touched = {r["path"][len("game/"):] for r in rows}
+        conv = {r["path"][len("game/"):] for r in conv_rows}
         units = sorted(up["status"])
         cnt = collections.Counter(up["status"].values())
         w("## Upstream (zeldaret/tww)")
@@ -567,10 +618,12 @@ def main():
         oc = collections.Counter(up["files"][p] for p in up["files"] if p.startswith("include/"))
         w("Headers (include/): " + ", ".join(f"{k} {v}" for k, v in sorted(oc.items())) + ".")
         w("")
-        cands = [u for u in units if up["status"][u] == "Matching" and up["files"].get(u, "same") != "same"]
+        cands = [u for u in units if up["status"][u] == "Matching" and up["files"].get(u, "same") != "same"
+                 and u not in conv]
         w(f"### Convergence candidates ({len(cands)})")
         w("")
-        w(f"Units zeldaret marks Matching for {VERSION} whose file differs from our base. At fork point: the "
+        w(f"Units zeldaret marks Matching for {VERSION} whose file differs from our base and that are not "
+          "converged yet. At fork point: the "
           "unit's status in zeldaret when the fork branched (NonMatching there: zeldaret matched it since). "
           "Fork status: the unit in snrubrm's configure.py. Touched: we changed the file since the import (our hunks would "
           "have to be re-applied).")
@@ -588,7 +641,8 @@ def main():
             w(f"| `{u}` | {up['files'][u]} | {up['delta'].get(u, 0)} | {up['mb_status'].get(u, '')} | "
               f"{up['fork_status'].get(u, '')} | {ts} |")
         w("")
-        others = [u for u in units if up["status"][u] != "Matching" and up["files"].get(u, "same") != "same"]
+        others = [u for u in units if up["status"][u] != "Matching" and up["files"].get(u, "same") != "same"
+                  and u not in conv]
         w(f"### Units that differ upstream but are not Matching there ({len(others)})")
         w("")
         w("| Unit | Status | Origin | Lines differing | Touched |")
@@ -596,7 +650,7 @@ def main():
         for u in sorted(others, key=lambda u: (-up["delta"].get(u, 0), u)):
             w(f"| `{u}` | {up['status'][u]} | {up['files'][u]} | {up['delta'].get(u, 0)} | {'yes' if u in touched else ''} |")
         w("")
-        hdrs = sorted(p for p, oo in up["files"].items() if p.startswith("include/") and oo != "same")
+        hdrs = sorted(p for p, oo in up["files"].items() if p.startswith("include/") and oo != "same" and p not in conv)
         w(f"### Headers that differ from our base ({len(hdrs)})")
         w("")
         w("A unit taken from zeldaret may need its headers too; a header change reaches every unit "
@@ -607,7 +661,8 @@ def main():
         for h in sorted(hdrs, key=lambda h: (-up["delta"].get(h, 0), h)):
             w(f"| `{h}` | {up['files'][h]} | {up['delta'].get(h, 0)} | {'yes' if h in touched else ''} |")
         w("")
-        rest = sorted(p for p, oo in up["files"].items() if p.startswith("src/") and oo != "same" and p not in up["status"])
+        rest = sorted(p for p, oo in up["files"].items() if p.startswith("src/") and oo != "same" and p not in up["status"]
+                      and p not in conv)
         if rest:
             w(f"Other src/ files that differ and are not a configure.py unit ({len(rest)}): " +
               ", ".join(f"`{p}` ({up['files'][p]}, {up['delta'].get(p, 0)})" for p in rest) + ".")
@@ -629,7 +684,8 @@ def main():
         f.write("\n".join(o))
     print(f"wrote {os.path.relpath(args.out, repo)}: {len(rows) + len(new_files)} files, +{tot_ins}/-{tot_dels}, "
           f"{tot_blocks} guarded blocks ({tot_guarded} lines), unguarded code {tot_ung_add} added / {tot_ung_del} removed "
-          f"in {len(ung)} files, annotations {tot_ann_add}/{tot_ann_del}" + (f", {len([u for u in up['status'] if up['status'][u] == 'Matching' and up['files'].get(u, 'same') != 'same'])} convergence candidates" if up else ""))
+          f"in {len(ung)} files, annotations {tot_ann_add}/{tot_ann_del}, {len(conv_rows)} files converged on zeldaret" +
+          (f", {len([u for u in up['status'] if up['status'][u] == 'Matching' and up['files'].get(u, 'same') != 'same' and 'game/' + u not in converged])} convergence candidates" if up else ""))
 
 
 if __name__ == "__main__":

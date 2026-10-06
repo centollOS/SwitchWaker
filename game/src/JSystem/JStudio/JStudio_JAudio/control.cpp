@@ -11,6 +11,21 @@ namespace JStudio_JAudio {
 
 namespace {
 
+// Fake inline.
+// TODO: supposed to use JStudio::TObject::createFromAdaptor instead of this somehow
+inline JStudio::TObject_sound* sound_creator(const JStudio::stb::data::TParse_TBlock_object& data, JStudio_JAudio::TAdaptor_sound* adaptor)
+{
+    JStudio::TObject_sound* object = new JStudio::TObject_sound(data, adaptor);
+
+    if (!object) {
+        return NULL;
+    }
+    if (object->mpAdaptor) {
+        object->mpAdaptor->adaptor_do_prepare(object);
+    }
+    return object;
+}
+
 /* 80278B98-80278C4C       .text createObject_SOUND_JAI___Q214JStudio_JAudio21@unnamed@control_cpp@FRCQ47JStudio3stb4data20TParse_TBlock_objectP8JAIBasic */
 JStudio::TObject* createObject_SOUND_JAI_(const JStudio::stb::data::TParse_TBlock_object& parseBlock, JAIBasic* sound) {
     TAdaptor_sound* adaptor = new TAdaptor_sound(sound);
@@ -18,7 +33,7 @@ JStudio::TObject* createObject_SOUND_JAI_(const JStudio::stb::data::TParse_TBloc
         return NULL;
     }
 
-    return JStudio::TObject::createFromAdaptor<JStudio::TObject_sound>(parseBlock, adaptor);
+    return sound_creator(parseBlock, adaptor);
 }
 
 } // namespace
