@@ -1,0 +1,13 @@
+diff --git a/lib/gfx/pipeline_cache.cpp b/lib/gfx/pipeline_cache.cpp
+--- a/lib/gfx/pipeline_cache.cpp
++++ b/lib/gfx/pipeline_cache.cpp
+@@ -1154,7 +1154,8 @@
+     if (!sqlite::is_damaged(ret)) { // a damaged file gets one line where it is deleted
+       Log.error("Failed to read pipeline cache rows: {}", sqlite3_errmsg(g_pipelineCacheDb));
+     }
+-    pipeline_cache_abort();
++    pipeline_cache_abort(); // finalizes the load statement: sqlite3_clear_bindings(nullptr) would crash
++    return acceptedRows;
+   }
+ 
+   sqlite3_reset(g_pipelineCacheLoadStmt);
