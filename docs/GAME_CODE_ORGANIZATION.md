@@ -81,3 +81,45 @@ Unguarded changes kept as they are (no code change on the GameCube): identity ma
 GameCube), `this->` and `public:` for two-phase lookup and the node offsets, scope braces around
 blocks a `TARGET_PC` condition skips (m_Do_graphic, d_drawlist, d_event_manager), and the fixes
 zeldaret/tww made too (fopScnRq_Execute's result, camera_delete's int, d_menu_cloth's GXEnd).
+
+## G4b notes (2026-10-06)
+
+The 199 candidates G4a left (units Matching upstream that we had edited, and the 14 G4a skipped for
+their headers) were 3-way merged (base snrubrm b09eebc, ours, theirs zeldaret a1854d47c) in five
+batches (JSystem and audio; framework, SSystem and m_Do; d/ core; actors A-M; actors N-Z with
+d_npc and d_com_static): zeldaret's code everywhere, our guarded hunks re-applied on top with
+zeldaret's names, hunks dropped where zeldaret has the same host fix (mostly `(u32)` ->
+`(uintptr_t)` pointer casts and `u32` vs `unsigned long`). Coupled groups moved together:
+ALIGN_DECL's two-argument form with its users, the controller pad buttons, the save's packed card
+structs, MyScreen, the collision headers, d_npc with the NPCs. Census (`docs/GAME_DIVERGENCE.md`):
+
+| | Before G4b | After G4b |
+|---|---|---|
+| Files equal to zeldaret/tww | 186 | 342 |
+| Files that are zeldaret's code under our guarded hunks | (not counted) | 114 |
+| Convergence candidates | 199 | 19 |
+| Guarded blocks added (outermost) | 1200 (1196) | 1024 |
+| Unguarded code divergence | 184 added, 119 removed, 46 files | 193 added, 120 removed, 49 files |
+
+What is left: d_a_beam/d_a_obj_bemos (snrubrm's d_a_mozo, NonMatching upstream, uses the stepping
+beamOn/beamOff zeldaret's d_a_beam.h no longer has), d_cam_param (zeldaret's d_cam_param.h moves
+dCamSetup_c's names to other offsets and stubs accessors d_camera.cpp reads), JAIZelSound and
+JAISystemInterface (they need zeldaret's JAISound.h, a work in progress there), and 15 merged
+units whose only remaining difference is one of G3's unguarded identity macros (JKAR_DATA,
+JUT_CONTEXT, TObject::NodeOffset, mDoMemCd_tryLockForSync, scope braces).
+
+Lessons for the next convergence:
+- Zeldaret's headers sometimes turn an inline snrubrm implements into an empty stub
+  (`void setKind(u8, u8) {}`, `void chk_walk(cXyz*) { /* TODO */ }`), because no matched unit calls
+  it. A snrubrm unit that still calls it compiles and silently does nothing. Every header taken
+  is checked for such stubs; where snrubrm code calls one, snrubrm's body stays (d_a_tsubo.h,
+  d_a_obj_movebox.h, d_a_obj_ikada.h, d_a_obj_swlight.h, d_a_player_main.h), or the whole header
+  stays ours (JAISound.h, JAIBasic.h, JASDSPInterface.h, JASTrack.h, JAIStreamMgr.h,
+  d_a_auction.h, d_a_obj_light.h, d_a_mant.h, d_cam_param.h).
+- The census works on configure.py units: the `.inc` files a unit includes (d_a_player_*.inc,
+  d_menu_capture.inc, d_a_bomb3.inc...) have to be taken with it by hand.
+- Zeldaret's fakematches (`*(f32*)NULL = *(f32*)NULL;`) are undefined behaviour for clang and stay
+  `#ifdef __MWERKS__`.
+- The asset headers gen_assets.sh makes with snrubrm's converters write the one-argument
+  ALIGN_DECL and no `*_NUM_JNTS_e`: global.h takes both ALIGN_DECL forms on TARGET_PC, and
+  d_a_player_main.h defines CL_NUM_JNTS_e there.
