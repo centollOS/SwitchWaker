@@ -7685,6 +7685,20 @@ int dCamera_c::StartShake(s32 i_length, u8* i_pattern, s32 i_flags, cXyz i_pos) 
     if (i_length < 0 || i_length > PATTERN_LENGTH_MAX << 3) {
         i_length = PATTERN_LENGTH_MAX << 3;
     }
+#if TARGET_PC
+    // The pattern's bytes are read first byte = first 32 frames' high bits (m548[byte] << 8 below).
+    // The only caller, dVibration_c::Run, passes a native s32 ((u8*)&pattern): big-endian on the
+    // GameCube, reversed here. Read it as the s32 it is and use its big-endian bytes.
+    u8 beBytes[PATTERN_LENGTH_MAX];
+    {
+        const u32 v = *(const u32*)i_pattern;
+        beBytes[0] = (u8)(v >> 24);
+        beBytes[1] = (u8)(v >> 16);
+        beBytes[2] = (u8)(v >> 8);
+        beBytes[3] = (u8)v;
+        i_pattern = beBytes;
+    }
+#endif
     
     m550 = i_length;
     

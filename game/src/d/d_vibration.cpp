@@ -272,6 +272,28 @@ bool dVibration_c::StartQuake(int patt_idx, int flags, cXyz coord) {
 bool dVibration_c::StartQuake(u8 const *pattern, int rounds, int flags, cXyz coord) {
     /* Starts quake pattern from an arbitrary bit pattern */
     bool ret = false;
+#if TARGET_PC
+    // The pattern is big-endian bytes: a 16-bit length, then up to 32 bits. Every caller passes it
+    // as native ints (a u32 0x0010FFEE on the stack in daPy_py_c::setDoButtonQuake and
+    // daObjDoguu_c::setQuake, the event's "Pattern" integers, byte-swapped at load, in
+    // ACT_VIBRATION): on the GameCube their bytes were that layout. Little-endian bytes read a
+    // length of 0xEEFF and the bits from past the u32 (ASan, stack-buffer-overflow). Rebuild the
+    // big-endian bytes; the second int is only read when the length needs it, as on the GameCube.
+    u8 beBytes[6] = {};
+    {
+        const u32 w0 = ((const u32*)pattern)[0];
+        beBytes[0] = (u8)(w0 >> 24);
+        beBytes[1] = (u8)(w0 >> 16);
+        beBytes[2] = (u8)(w0 >> 8);
+        beBytes[3] = (u8)w0;
+        if ((int)(w0 >> 16) >= 17) {
+            const u32 w1 = ((const u32*)pattern)[1];
+            beBytes[4] = (u8)(w1 >> 24);
+            beBytes[5] = (u8)(w1 >> 16);
+        }
+        pattern = beBytes;
+    }
+#endif
     int pattLen = (pattern[0] << 8) | pattern[1];
     s32 bits =
            (pattern[pattLen >= 1  ? 2 : 0]) << 24

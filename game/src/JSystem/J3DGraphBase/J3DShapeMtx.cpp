@@ -15,6 +15,25 @@
 #include "JSystem/J3DGraphAnimator/J3DModelData.h"
 
 u32 J3DShapeMtx::sCurrentPipeline;
+#if TARGET_PC
+// The normal-matrix loaders index sCurrentScaleFlag, the model's joint scale flags
+// (J3DModel::mpScaleFlagArr, getJointNum() bytes), with the draw matrix's index, which for a
+// weighted (envelope) draw matrix counts the weight matrices instead (J3DModel::calcNrmMtx reads
+// mpEvlpScaleFlagArr for those). In a model with more weight matrices than joints the GameCube read
+// past the joint array, and the byte only chose between loading the matrix as is (1) and its
+// inverse transpose, which is right for any matrix. Past the array take the inverse transpose
+// (ASan: an overrun of mpScaleFlagArr's allocation, res-sweep of Always.arc, Link.arc, ...).
+static inline u8 cosScaleFlag(u16 index) {
+    J3DModel* model = j3dSys.getModel();
+    if (model != NULL && index >= model->getModelData()->getJointNum()) {
+        return 0;
+    }
+    return J3DShapeMtx::sCurrentScaleFlag[index];
+}
+#define COS_SCALE_FLAG(index) cosScaleFlag(index)
+#else
+#define COS_SCALE_FLAG(index) J3DShapeMtx::sCurrentScaleFlag[index]
+#endif
 
 /* 802DB9D8-802DBA1C       .text loadMtxIndx_PNGP__11J3DShapeMtxCFiUs */
 void J3DShapeMtx::loadMtxIndx_PNGP(int mtxNo, u16 index) const {
@@ -149,7 +168,7 @@ void J3DShapeMtxConcatView::load() const {
 
 /* 802DC08C-802DC184       .text loadNrmMtx__14J3DShapeMtxImmCFiUs */
 void J3DShapeMtxImm::loadNrmMtx(int mtxNo, u16 index) const {
-    if (J3DShapeMtx::sCurrentScaleFlag[index] == 1) {
+    if (COS_SCALE_FLAG(index) == 1) {
         if (J3DShapeMtx::sNBTFlag == 0) {
             J3DFifoLoadNrmMtxImm(j3dSys.getModelDrawMtx(index), 0);
         } else {
@@ -175,7 +194,7 @@ void J3DShapeMtxImm::loadNrmMtx(int mtxNo, u16 index) const {
 
 /* 802DC184-802DC254       .text loadNrmMtx__21J3DShapeMtxConcatViewCFiUsPA4_f */
 void J3DShapeMtxConcatView::loadNrmMtx(int mtxNo, u16 index, Mtx mtx) const {
-    if (J3DShapeMtx::sCurrentScaleFlag[index] == 1) {
+    if (COS_SCALE_FLAG(index) == 1) {
         if (J3DShapeMtx::sNBTFlag == 0) {
             J3DFifoLoadNrmMtxImm(mtx, 0);
         } else {
@@ -249,7 +268,7 @@ void J3DShapeMtxMultiConcatView::load() const {
 
 /* 802DC524-802DC620       .text loadNrmMtx__19J3DShapeMtxMultiImmCFiUs */
 void J3DShapeMtxMultiImm::loadNrmMtx(int mtxNo, u16 index) const {
-    if (J3DShapeMtx::sCurrentScaleFlag[index] == 1) {
+    if (COS_SCALE_FLAG(index) == 1) {
         if (J3DShapeMtx::sNBTFlag == 0) {
             J3DFifoLoadNrmMtxImm(j3dSys.getModelDrawMtx(index), mtxNo * 3);
         } else {
@@ -275,7 +294,7 @@ void J3DShapeMtxMultiImm::loadNrmMtx(int mtxNo, u16 index) const {
 
 /* 802DC620-802DC6F4       .text loadNrmMtx__26J3DShapeMtxMultiConcatViewCFiUsPA4_f */
 void J3DShapeMtxMultiConcatView::loadNrmMtx(int mtxNo, u16 index, Mtx mtx) const {
-    if (J3DShapeMtx::sCurrentScaleFlag[index] == 1) {
+    if (COS_SCALE_FLAG(index) == 1) {
         if (J3DShapeMtx::sNBTFlag == 0) {
             J3DFifoLoadNrmMtxImm(mtx, mtxNo * 3);
         } else {

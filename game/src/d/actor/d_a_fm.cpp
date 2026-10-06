@@ -2810,6 +2810,16 @@ void daFm_c::searchTarget() {
 void daFm_c::setBaseTarget() {
     daPy_lk_c* pLink;
     fopAc_ac_c* pMdActor;
+#if TARGET_PC
+    // fopAcM_SearchByName(s16) also finds actors still creating: a Floormaster of type 2 (Cave08,
+    // KATA_RM) took the room's Makar while he was creating, his create then failed and he was
+    // deleted, and the GameCube kept reading his freed block through
+    // mBaseTarget (case 2 keeps the old target when neither NPC is found). Forget a target that
+    // is gone (ASan, use-after-poison with --heap-check 1).
+    if (mBaseTarget != NULL && fopAcM_SearchByID(mBaseTargetId) != mBaseTarget) {
+        mBaseTarget = NULL;
+    }
+#endif
     switch(field_0x2DC) {
         case 0:
             fopAcM_SearchByName(fpcNm_NPC_CB1_e);
@@ -2853,6 +2863,11 @@ void daFm_c::setBaseTarget() {
             break;
     }
 
+#if TARGET_PC
+    if (mBaseTarget != NULL && fopAcM_GetID(mBaseTarget) != mBaseTargetId) {
+        mBaseTargetId = fopAcM_GetID(mBaseTarget);
+    }
+#endif
     if (mBaseTarget == NULL) {
         field_0x9D0 = 0;
         field_0x9D4 = 0.0f;
