@@ -51,4 +51,17 @@ void pc_gph_mist_ab_show();
    target the casters are drawn into, in place of the EFB's corner (closed by GXRestoreFrameBuffer). */
 void pc_shadow_image_offscreen_open();
 
+/* ---- Logo scene (d_s_logo.cpp): run harness, native/src/pc/game_hooks/pc_logo_hooks.cpp ------ */
+
+class dScnLogo_c;
+
+/* dvdWaitDraw, once every load command has synced: milestone M6 logo-res, then the debug stage
+   boot (COS_BOOT_STAGE, step 6.4), which requests the PLAY scene itself and returns true (the
+   opening scene is not requested). */
+bool pc_logo_dvd_synced(dScnLogo_c* i_this);
+
+/* phase_2, the logo scene created: milestone M5 logo-scene; the debug stage boot's request is
+   not made yet. */
+void pc_logo_scene_created_hook();
+
 #endif /* PC_GAME_HOOKS_H */

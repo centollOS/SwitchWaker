@@ -2,7 +2,7 @@
 // rope-swing lesson; the actor RopeR, d_a_himo3). Boot with COS_BOOT_STAGE=Asoko:0:0:2.
 //   1. wait for the player, A through Niko's opening talk until no event runs, then kSettleFrames;
 //   2. the player grabs the rope nearest to the start kGrabDrop below its top and kGrabSide to the
-//      side (pc_debug_grab_rope, d_a_player_rope.inc: what changeRopeSwingProc does when the player
+//      side (pc_debug_grab_rope, below: what changeRopeSwingProc does when the player
 //      jumps into it; the rope hangs in the hold, out of reach from the start): the player must be
 //      on the rope (daPyStts0_UNK800000_e) within kGrabFrames, hanging about where they grabbed it,
 //      |grab point - top| - 95 units below the top within kTolerance (procRopeSwing_init clamps that
@@ -14,6 +14,7 @@
 #include "pc_internal.h"
 
 #include "d/actor/d_a_himo3.h"
+#include "d/actor/d_a_player_main.h"
 #include "d/d_camera.h"
 #include "d/d_com_inf_game.h"
 #include "f_op/f_op_actor_mng.h"
@@ -26,7 +27,23 @@
 #include <cstring>
 #include <unistd.h>
 
-extern "C" int pc_debug_grab_rope(fopAc_ac_c* rope, const cXyz* at); // d_a_player_rope.inc
+// The player side (moved here from d_a_player_rope.inc, step G3 of docs/GAME_CODE_ORGANIZATION.md):
+// puts the player at *at and grabs the hanging rope as the collision in changeRopeSwingProc does,
+// so the test does not depend on reaching the rope through the ship's hold.
+void daPy_lk_c::debugGrabRope(fopAc_ac_c* rope, const cXyz& at) {
+    current.pos = at;
+    old.pos = at;
+    procRopeSwing_init(rope, 0x1800);
+}
+
+extern "C" int pc_debug_grab_rope(fopAc_ac_c* rope, const cXyz* at) {
+    daPy_lk_c* player = daPy_getPlayerLinkActorClass();
+    if (player == NULL || rope == NULL) {
+        return 0;
+    }
+    player->debugGrabRope(rope, *at);
+    return 1;
+}
 
 namespace pc {
 
