@@ -63,7 +63,9 @@ namespace {
 
 constexpr unsigned int kSettleFrames = 60;     // after the player is in the room
 constexpr unsigned int kStartEventFrames = 3600; // the stage's own start event, before the first order
-constexpr unsigned int kStartFrames = 90;      // order -> the manager starts the event
+constexpr unsigned int kStartFrames = 240;     // order -> the manager starts the event
+constexpr unsigned int kOtherResetFrames = 60;  // another event running meanwhile: reset after
+constexpr double kBootSeconds = 240.0;          // the player in the start room, from the first frame
 constexpr unsigned int kTalkFrames = 20;       // A every kTalkFrames (held 2 frames)
 constexpr double kEventSecondsDefault = 45.0;  // wall time per event (fanfares play in real time)
 constexpr unsigned int kEventFrames = 9000;
@@ -382,7 +384,20 @@ struct PlayLayerScope {
 
 void order() {
     PlayLayerScope layer;
-    fopAcM_orderOtherEventId(dComIfGp_getPlayer(0), (s16)sIdx);
+    // Priority 1, ahead of any other order of the frame (an actor that orders its own event every
+    // frame, e.g. the sea's Skn_Islnd, would otherwise win each time).
+    fopAcM_orderOtherEventId(dComIfGp_getPlayer(0), (s16)sIdx, 0xFF, 0xFFFF, 1);
+}
+
+// Ends the running event as its ordering actor would (dComIfGp_event_reset), and the demo it was
+// playing: a demo cut short keeps running after its event, and its actors then looked up their
+// animations by ID in the next event's demo bank (GTower's g2before, then endhr in Demo43).
+void resetEvent() {
+    dComIfGp_event_reset();
+    if (dComIfGp_demo_mode() != 0) {
+        writef(STDERR_FILENO, "[cos] event-sweep: the demo stops with its event\n");
+        dComIfGp_demo_remove();
+    }
 }
 
 double secondsSince(uint64_t ns) {
@@ -521,6 +536,14 @@ void eventSweepFrame(unsigned int frames) {
     if (sState == kWaitLink) {
         if (!outsetLinkReady()) {
             sSince = 0;
+            static uint64_t sBootNs = monotonicNs();
+            if (secondsSince(sBootNs) >= kBootSeconds) {
+                // The boot never put the player in the room (the player actor still creating, the
+                // PLAY scene not executing): nothing to sweep here.
+                writef(STDERR_FILENO, "[cos] event-sweep: FAIL the player is not in the start room after "
+                                      "%.0f s\n", kBootSeconds);
+                pc_exit(PC_EXIT_CHECK_FAILED);
+            }
             return;
         }
         // A through the stage's own start event first.
@@ -537,7 +560,7 @@ void eventSweepFrame(unsigned int frames) {
         }
         if (dComIfGp_event_runCheck()) {
             writef(STDERR_FILENO, "[cos] event-sweep: the stage's event \"%s\" still runs; reset\n", runningName());
-            dComIfGp_event_reset();
+            resetEvent();
         }
         const int num = eventNum();
         if (sFd >= 0) {
@@ -573,7 +596,7 @@ void eventSweepFrame(unsigned int frames) {
             if (sSince == kGapMaxFrames) {
                 writef(STDERR_FILENO, "[cos] event-sweep: event \"%s\" runs between two events; reset\n",
                        runningName());
-                dComIfGp_event_reset();
+                resetEvent();
             } else if (sSince > kGapMaxFrames + kResetFrames) {
                 if (sFd >= 0) {
                     writef(sFd, "%d %s scene-lost %u 0.0 why=event-%s-not-reset\n", sIdx, eventName(sIdx), 0u,
@@ -640,10 +663,9 @@ void eventSweepFrame(unsigned int frames) {
                 sSince = 0;
                 return;
             }
+            // The bank mounted before stays mounted: actors its demo created (Ganondorf after GTower's
+            // g2before) still use its animations after the event's reset.
             char* arc = dStage_roomControl_c::getDemoArcName();
-            if (arc[0] != '\0') {
-                dComIfG_deleteObjectRes(arc);
-            }
             snprintf(arc, 8, "Demo%02d", bank);
             writef(STDERR_FILENO, "[cos] event-sweep: event %d plays %s: mounting %s\n", sIdx, file, arc);
             detail(" demo=%s", arc);
@@ -710,7 +732,14 @@ void eventSweepFrame(unsigned int frames) {
         if (!dComIfGp_event_runCheck()) {
             order();
         } else {
+            // Another event holds the stage (one an actor of the stage starts again and again):
+            // reset it every kOtherResetFrames so the order gets its turn.
             setDrivenPad(true, sSince % kTalkFrames < 2 ? PAD_BUTTON_A : 0, 0, 0);
+            if (sSince % kOtherResetFrames == 0) {
+                writef(STDERR_FILENO, "[cos] event-sweep: event \"%s\" runs while event %d waits; reset\n",
+                       runningName(), sIdx);
+                resetEvent();
+            }
         }
         return;
     }
@@ -735,7 +764,7 @@ void eventSweepFrame(unsigned int frames) {
         if (dComIfGp_evmng_endCheck((s16)sIdx)) {
             // The harness ordered the event, so it ends it, as the ordering actor would.
             putBack();
-            dComIfGp_event_reset();
+            resetEvent();
             sEnded++;
             result("end");
             sState = kGap;
@@ -761,7 +790,7 @@ void eventSweepFrame(unsigned int frames) {
             sStuck++;
             result("stuck");
             putBack();
-            dComIfGp_event_reset();
+            resetEvent();
             setDrivenPad(true, 0, 0, 0);
             sState = kReset;
             sSince = 0;

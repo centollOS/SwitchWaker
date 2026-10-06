@@ -24,10 +24,11 @@ in no demo bank of the disc; a demo in a bank the boot layer did not mount is mo
 another stage: the run ends there), scene-lost, and for an event that made no progress or timed
 out (the staff still waiting are listed as <name>:<cut>:<staff type>):
   stuck-missing-cast  every waiting staff is an actor not in the debug-booted stage;
-  stuck-actor         every waiting staff is an actor (present, a partner stand-in such as TALKMAN
-                      or TREASURE, or the player) that did not play its part: actors play only the
-                      events they order themselves, in the state they order them from;
-  stuck               an engine staff (camera, message, demo package, timekeeper, ...) waits;
+  stuck-actor         a waiting staff is an actor (present, a partner stand-in such as TALKMAN or
+                      TREASURE, or the player) that did not play its part: actors play only the
+                      events they order themselves, in the state they order them from (engine
+                      staff waiting with it usually wait for its cuts);
+  stuck               only engine staff (camera, message, demo package, timekeeper, ...) wait;
 the first two are harness artifacts. FAULT: the run ended on the event (exit code and signature as
 boot_sweep.py writes them); FAULT-after: the fault came after the event had ended, before the next
 one (an event that faults with boot_sweep.py's LkD01 signature runs again on a file with event
@@ -227,7 +228,9 @@ def classify(r):
         return "stuck"
     if missing and all(w[0] in missing for w in waiting):
         return "stuck-missing-cast"
-    if all(w[2] == "0" or w[0] in PARTNER_STAFF for w in waiting):
+    # Type 0 (NORMAL) and 10 are played by actors; when one of them waits, the engine staff
+    # (camera, timekeeper, director) that wait too usually wait for it (their start flags).
+    if any(w[2] in ("0", "10") or w[0] in PARTNER_STAFF for w in waiting):
         return "stuck-actor"
     return "stuck"
 
@@ -235,10 +238,22 @@ def classify(r):
 def sweep_stage(args, out, stage, room, point, todo, names):
     spec = "%s:%d:%d" % (stage, room, point)
     rows, runs, boot = run_events(args, out, stage, spec, todo, names, {}, "")
+    if boot is not None and re.search(boot_sweep._LKD01_SIG, boot["signature"]):
+        # The stage's own start demo needs the later player animations too (boot_sweep.py's
+        # GTower, GanonK, M2ganon): boot again with the flag for the rest.
+        done = {r["idx"] for r in rows}
+        rows2, runs2, boot2 = run_events(args, out, stage, spec, [i for i in todo if i not in done], names,
+                                         {"COS_BOOT_EVENTS": "2D01"}, "-2D01")
+        for r in rows2:
+            r["retry"] = "2D01"
+        rows += rows2
+        runs += runs2
+        boot = boot2
     # The player's later demo animations (LkD01.arc) are mounted only with event flag 0x2D01
     # (boot_sweep.py's LkD01 expected fail): an event that faults with that signature runs again
     # on a file with the flag (COS_BOOT_EVENTS=2D01).
-    lk = sorted(r["idx"] for r in rows if r["cls"] == "FAULT" and re.search(boot_sweep._LKD01_SIG, r["signature"]))
+    lk = sorted(r["idx"] for r in rows if r["cls"] == "FAULT" and re.search(boot_sweep._LKD01_SIG, r["signature"])
+                and r.get("retry") != "2D01")
     if lk and boot is None:
         rows2, runs2, _ = run_events(args, out, stage, spec, lk, names, {"COS_BOOT_EVENTS": "2D01"}, "-2D01")
         runs += runs2
@@ -364,6 +379,7 @@ def main():
             a, _, b = part.partition("-")
             want.update(range(int(a), int(b or a) + 1))
         todo = {st: [i for i in range(len(lists.get(st, []))) if i in want] for st in todo}
+    todo = {st: todo[st] for st, _, _, _ in starts}
     out = args.out or os.path.join(BUILD, "runs", "event-sweep-" + time.strftime("%Y%m%d-%H%M%S"))
     os.makedirs(out, exist_ok=True)
     log("event-sweep: %d stages, %d of their %d events selected, %d jobs, into %s" % (
