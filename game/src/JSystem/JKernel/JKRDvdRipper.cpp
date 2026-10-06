@@ -50,11 +50,7 @@ void* JKRDvdRipper::loadToMainRAM(JKRDvdFile* dvdFile, u8* dst, JKRExpandSwitch 
     fileSizeAligned = ALIGN_NEXT(dvdFile->getFileSize(), 32);
     if (expandSwitch == EXPAND_SWITCH_UNKNOWN1) {
         u8 buffer[0x40];
-#if TARGET_PC
         u8 *bufPtr = (u8 *)ALIGN_NEXT((uintptr_t)buffer, 32);
-#else
-        u8 *bufPtr = (u8 *)ALIGN_NEXT((u32)buffer, 32);
-#endif
         while (true) {
             int readBytes = DVDReadPrio(dvdFile->getFileInfo(), bufPtr, 0x20, 0, 2);
             if (readBytes >= 0) {
@@ -113,11 +109,7 @@ void* JKRDvdRipper::loadToMainRAM(JKRDvdFile* dvdFile, u8* dst, JKRExpandSwitch 
 
         if (offset != 0) {
             u8 buffer[0x40];
-#if TARGET_PC
             u8 *bufPtr = (u8 *)ALIGN_NEXT((uintptr_t)buffer, 32);
-#else
-            u8 *bufPtr = (u8 *)ALIGN_NEXT((u32)buffer, 32);
-#endif
             while (true) {
                 int readBytes = DVDReadPrio(dvdFile->getFileInfo(), bufPtr, 32, (s32)offset, 2);
                 if (readBytes >= 0) {
@@ -433,7 +425,7 @@ static u8* nextSrcData(u8* src) {
     }
 
     memcpy(buf, src, limit);
-    u32 transSize = (u32)(szpEnd - (buf + limit));
+    u32 transSize = szpEnd - (buf + limit);
     if (transSize > transLeft) {
         transSize = transLeft;
     }

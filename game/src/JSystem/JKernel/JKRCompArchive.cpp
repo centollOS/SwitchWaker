@@ -17,7 +17,7 @@
 #include "JSystem/JKernel/JKRHeap.h"
 #include "JSystem/JKernel/JKRMemArchive.h"
 #include "JSystem/JUtility/JUTAssert.h"
-#include "stdlib.h"
+#include "math.h"
 #include "string.h"
 #include "dolphin/os/OS.h"
 
@@ -123,13 +123,9 @@ bool JKRCompArchive::open(s32 entryNum) {
             }
             else
             {
-                JKRDvdToMainRam(entryNum, (u8 *)mArcInfoBlock, EXPAND_SWITCH_UNKNOWN1, (u32)arcHeader->file_data_offset + mSizeOfMemPart,
+                JKRDvdToMainRam(entryNum, (u8 *)mArcInfoBlock, EXPAND_SWITCH_UNKNOWN1, (uintptr_t)arcHeader->file_data_offset + mSizeOfMemPart,
                                 NULL, JKRDvdRipper::ALLOC_DIRECTION_FORWARD, 0x20, NULL);
-#if TARGET_PC
                 field_0x64 = (uintptr_t)mArcInfoBlock + arcHeader->file_data_offset;
-#else
-                field_0x64 = (u32)mArcInfoBlock + arcHeader->file_data_offset;
-#endif
 
                 if (mSizeOfAramPart != 0) {
                     mAramPart = (JKRAramBlock*)JKRAllocFromAram(mSizeOfAramPart, JKRAramHeap::HEAD);
@@ -141,15 +137,9 @@ bool JKRCompArchive::open(s32 entryNum) {
                     JKRDvdToAram(entryNum, mAramPart->getAddress(), EXPAND_SWITCH_UNKNOWN1, arcHeader->header_length + arcHeader->file_data_offset + mSizeOfMemPart, 0);
                 }
 
-#if TARGET_PC
                 mNodes = (SDIDirEntry*)((uintptr_t)mArcInfoBlock + mArcInfoBlock->node_offset);
                 mFiles = (SDIFileEntry *)((uintptr_t)mArcInfoBlock + mArcInfoBlock->file_entry_offset);
                 mStringTable = (char*)((uintptr_t)mArcInfoBlock + mArcInfoBlock->string_table_offset);
-#else
-                mNodes = (SDIDirEntry*)((u32)mArcInfoBlock + mArcInfoBlock->node_offset);
-                mFiles = (SDIFileEntry *)((u32)mArcInfoBlock + mArcInfoBlock->file_entry_offset);
-                mStringTable = (char*)((u32)mArcInfoBlock + mArcInfoBlock->string_table_offset);
-#endif
                 field_0x6c = arcHeader->header_length + arcHeader->file_data_offset;
             }
             break;
@@ -182,11 +172,7 @@ bool JKRCompArchive::open(s32 entryNum) {
                     else {
                         // arcHeader + 1 should lead to 0x20, which is the data after the header
                         JKRHeap::copyMemory((u8 *)mArcInfoBlock, arcHeader + 1, (arcHeader->file_data_offset + mSizeOfMemPart));
-#if TARGET_PC
                         field_0x64 = (uintptr_t)mArcInfoBlock + arcHeader->file_data_offset;
-#else
-                        field_0x64 = (u32)mArcInfoBlock + arcHeader->file_data_offset;
-#endif
                         if (mSizeOfAramPart != 0) {
                             mAramPart = (JKRAramBlock*)JKRAllocFromAram(mSizeOfAramPart, JKRAramHeap::HEAD);
                             if(mAramPart == NULL) {
@@ -200,15 +186,9 @@ bool JKRCompArchive::open(s32 entryNum) {
                     }
                 }
             }
-#if TARGET_PC
             mNodes = (SDIDirEntry *)((uintptr_t)mArcInfoBlock + mArcInfoBlock->node_offset);
             mFiles = (SDIFileEntry *)((uintptr_t)mArcInfoBlock + mArcInfoBlock->file_entry_offset);
             mStringTable = (char *)((uintptr_t)mArcInfoBlock + mArcInfoBlock->string_table_offset);
-#else
-            mNodes = (SDIDirEntry *)((u32)mArcInfoBlock + mArcInfoBlock->node_offset);
-            mFiles = (SDIFileEntry *)((u32)mArcInfoBlock + mArcInfoBlock->file_entry_offset);
-            mStringTable = (char *)((u32)mArcInfoBlock + mArcInfoBlock->string_table_offset);
-#endif
             field_0x6c = arcHeader->header_length + arcHeader->file_data_offset;
             break;
         }
@@ -404,11 +384,7 @@ u32 JKRCompArchive::getExpandedResSize(const void* resource) const {
     }
 
     u8 buf[64];
-#if TARGET_PC
     u8 *bufPtr = (u8 *)ALIGN_NEXT((uintptr_t)buf, 32);
-#else
-    u8 *bufPtr = (u8 *)ALIGN_NEXT((u32)buf, 32);
-#endif
     if ((flags & 0x20) != 0) {
         u32 addr = mAramPart->mAddress;
         addr = fileEntry->data_offset + addr;

@@ -100,8 +100,12 @@ void TAdaptor_particle::adaptor_do_PARENT(JStudio::data::TEOperationData operati
     case JStudio::data::TEOD_Unknown_18:
         if (mSystem != NULL) {
             mObject = (JStage::TObject*)mSystem->JSGFindObject((const char*)param_2, JStage::TOBJ_ACTOR_UNK);
-            if (mObject == NULL) {
-                return;
+            if (mObject == 0) {
+                // Fakematch, just need something in here to stop the compiler from optimizing out the cmplwi
+#ifdef __MWERKS__
+                // Other compilers treat the null store as reachable undefined behaviour.
+                *(f32*)NULL = *(f32*)NULL;
+#endif
             }
         }
         break;
@@ -147,7 +151,7 @@ void TAdaptor_particle::TVVOOn_BEGIN_FADE_IN_::operator()(f32 value, JStudio::TA
     if (adaptor_particle->mEmitter) {
         adaptor_particle->mEmitterManager->forceDeleteEmitter(adaptor_particle->mEmitter);
     }
-    JGeometry::TVec3<f32> pos = (Vec){0.0f, 0.0f, 0.0f};
+    JGeometry::TVec3<f32> pos = COMPOUND_LITERAL(Vec){0.0f, 0.0f, 0.0f};
     adaptor_particle->mEmitter = adaptor_particle->mEmitterManager->createSimpleEmitterID(
         pos,
         (temp & 0x0000FFFF),
@@ -249,9 +253,9 @@ void TAdaptor_particle::TJPACallback_::execute(JPABaseEmitter* emitter) {
         }
         emitter->setGlobalTranslation(pos[0]);
 
-        s16 angleX = 0x10000 * (pos[1].x / 360.0);
-        s16 angleY = 0x10000 * (pos[1].y / 360.0);
-        s16 angleZ = 0x10000 * (pos[1].z / 360.0);
+        int angleX = 0x10000 * (pos[1].x / 360.0);
+        int angleY = 0x10000 * (pos[1].y / 360.0);
+        int angleZ = 0x10000 * (pos[1].z / 360.0);
         emitter->setGlobalRotation(JGeometry::TVec3<s16>(angleX, angleY, angleZ));
         emitter->setGlobalScale(sp0C);
     } else {

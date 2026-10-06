@@ -63,9 +63,9 @@ void J3DLoadCPCmd(u8 cmd, u32 param) {
     GXCmd1u8(cmd);
     GXCmd1u32(param);
 #else
-    GXFIFO.u8 = GX_CMD_LOAD_CP_REG;
-    GXFIFO.u8 = cmd;
-    GXFIFO.u32 = param;
+    GXCmd1u8(GX_CMD_LOAD_CP_REG);
+    GXCmd1u8(cmd);
+    GXCmd1u32(param);
 #endif
 }
 
@@ -77,7 +77,7 @@ void J3DLoadCPCmd(u8 cmd, u32 param) {
 /* 802DD308-802DD344       .text J3DLoadArrayBasePtr__F7_GXAttrPv */
 static void J3DLoadArrayBasePtr(GXAttr attr, void* data) {
     u32 idx = (attr == GX_VA_NBT) ? 1 : (attr - GX_VA_POS);
-    J3DLoadCPCmd(0xA0 + idx, ((u32)data & 0x7FFFFFFF));
+    J3DLoadCPCmd(0xA0 + idx, ((uintptr_t)data & 0x7FFFFFFF));
 }
 #endif
 

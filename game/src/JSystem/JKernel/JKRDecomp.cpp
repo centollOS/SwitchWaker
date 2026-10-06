@@ -49,11 +49,7 @@ void* JKRDecomp::run() {
         }
 
         if (command->mCallback) {
-#if TARGET_PC
             (*command->mCallback)((uintptr_t)command);
-#else
-            (*command->mCallback)((u32)command);
-#endif
             continue;
         }
 

@@ -8,14 +8,6 @@
 #include "dolphin/os/OSAlarm.h"
 #include "dolphin/types.h"
 
-#if TARGET_PC
-// GXColor and GXRenderModeObj come from dolphin/gx/GXStruct.h through JUTXfb.h -> JUTVideo.h.
-// Aurora defines them as typedefs of unnamed structs, so forward declarations through the tags
-// _GXColor/_GXRenderModeObj would declare second, different types.
-#else
-typedef struct _GXColor GXColor;
-typedef struct _GXRenderModeObj GXRenderModeObj;
-#endif
 class JKRHeap;
 
 typedef void (*JFWDisplayUnkFunc)(void);

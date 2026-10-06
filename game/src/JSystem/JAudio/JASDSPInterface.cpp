@@ -98,8 +98,8 @@ void JASystem::DSPInterface::setupBuffer() {
                 Kernel::toPhysical(sDspAdpcmFilter), Kernel::toPhysical(FX_BUF));
     DsetDolbyDelay(Kernel::toPhysical(sDolbyDelayBuf), 10);
 #else
-    DsetupTable(64, (u32)CH_BUF, (u32)&DSPRES_FILTER, (u32)&DSPADPCM_FILTER, (u32)FX_BUF);
-    DsetDolbyDelay((u32)&DOLBY2_DELAY_BUF, 10);
+    DsetupTable(64, (uintptr_t)CH_BUF, (uintptr_t)DSPRES_FILTER, (uintptr_t)DSPADPCM_FILTER, (uintptr_t)FX_BUF);
+    DsetDolbyDelay((uintptr_t)DOLBY2_DELAY_BUF, 10);
 #endif
 }
 

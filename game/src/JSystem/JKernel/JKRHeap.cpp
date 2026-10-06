@@ -104,11 +104,7 @@ bool JKRHeap::initArena(char** memory, u32* size, int maxHeaps) {
     OSSetArenaHi(ram_end);
 
     *memory = (char*)ram_start;
-#if TARGET_PC
     *size = (uintptr_t)ram_end - (uintptr_t)ram_start;
-#else
-    *size = (u32)ram_end - (u32)ram_start;
-#endif
     return true;
 }
 
@@ -267,7 +263,7 @@ u32 JKRHeap::getMaxAllocatableSize(int alignment) {
 #if TARGET_PC
     u32 maxFreeBlock = (uintptr_t)getMaxFreeBlock();
 #else
-    u32 maxFreeBlock = (u32)getMaxFreeBlock();
+    uintptr_t maxFreeBlock = (uintptr_t)getMaxFreeBlock();
 #endif
     u32 ptrOffset = (alignment - 1) & alignment - (maxFreeBlock & 0xf);
     return ~(alignment - 1) & (getFreeSize() - ptrOffset);
@@ -308,11 +304,7 @@ JKRHeap* JKRHeap::find(void* memory) const {
 }
 
 /* 802B0A58-802B0AEC       .text dispose_subroutine__7JKRHeapFUlUl */
-#if TARGET_PC
 void JKRHeap::dispose_subroutine(uintptr_t begin, uintptr_t end) {
-#else
-void JKRHeap::dispose_subroutine(u32 begin, u32 end) {
-#endif
     JSUListIterator<JKRDisposer> last_iterator;
     JSUListIterator<JKRDisposer> next_iterator;
     JSUListIterator<JKRDisposer> iterator;
@@ -341,21 +333,13 @@ void JKRHeap::dispose_subroutine(u32 begin, u32 end) {
 
 /* 802B0AEC-802B0B14       .text dispose__7JKRHeapFPvUl */
 bool JKRHeap::dispose(void* ptr, u32 size) {
-#if TARGET_PC
     dispose_subroutine((uintptr_t)ptr, (uintptr_t)ptr + size);
-#else
-    dispose_subroutine((u32)ptr, (u32)ptr + size);
-#endif
     return false;
 }
 
 /* 802B0B14-802B0B34       .text dispose__7JKRHeapFPvPv */
 void JKRHeap::dispose(void* begin, void* end) {
-#if TARGET_PC
     dispose_subroutine((uintptr_t)begin, (uintptr_t)end);
-#else
-    dispose_subroutine((u32)begin, (u32)end);
-#endif
 }
 
 /* 802B0B34-802B0B8C       .text dispose__7JKRHeapFv */

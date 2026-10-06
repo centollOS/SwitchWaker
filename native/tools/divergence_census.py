@@ -93,6 +93,93 @@ def deannotate(s):
     return re.sub(r"[\s()]+", "", s)
 
 
+# GameCube values of the guard macros, for the GameCube view of a file (gc_view).
+GC_GUARD_VALUES = {"TARGET_PC": 0, "__MWERKS__": 1, "__clang__": 0, "TARGET_LITTLE_ENDIAN": 0,
+                   "address_sanitizer": 0}
+
+
+def eval_guard(kind, rest):
+    """1/0 for a guard condition on the GameCube, None when it names anything else."""
+    rest = strip_comments(rest).strip()
+    if kind in ("ifdef", "ifndef"):
+        name = rest.split()[0] if rest else ""
+        v = GC_GUARD_VALUES.get(name, 0 if name.startswith("COS_") else None)
+        return None if v is None else (v if kind == "ifdef" else 1 - v)
+    e = re.sub(r"\bdefined\s*\(\s*(\w+)\s*\)|\bdefined\s+(\w+)", lambda m: "__def_" + (m.group(1) or m.group(2)), rest)
+    def name(m):
+        n = m.group(0)
+        if n.startswith("__def_"):
+            n = n[len("__def_"):]
+            if n in GC_GUARD_VALUES:
+                return "1" if n == "__MWERKS__" else "0"
+            return "0" if n.startswith("COS_") else n
+        if n in GC_GUARD_VALUES:
+            return str(GC_GUARD_VALUES[n])
+        return "0" if n.startswith("COS_") else n
+    e = re.sub(r"\b[A-Za-z_]\w*\b", name, e)
+    if re.search(r"[A-Za-z_]", e):
+        return None
+    e = e.replace("&&", " and ").replace("||", " or ").replace("!", " not ").replace(" not =", "!=")
+    try:
+        return 1 if eval(e, {"__builtins__": {}}) else 0
+    except Exception:
+        return None
+
+
+def gc_view(text):
+    """The file as the GameCube build sees it through the guard chains (non-guard chains kept as
+    they are), or None when a guard condition cannot be decided."""
+    out, stack = [], []  # frames: [is_guard, taking, any_taken]
+    for line in text.split("\n"):
+        m = DIRECTIVE_RE.match(line)
+        on = all(fr[1] for fr in stack if fr[0])
+        if m is None:
+            if on:
+                out.append(line)
+            continue
+        kind, rest = m.group(1), m.group(2)
+        if kind in ("if", "ifdef", "ifndef"):
+            if GUARD_RE.search(rest):
+                v = eval_guard(kind, rest)
+                if v is None:
+                    return None
+                stack.append([True, bool(v), bool(v)])
+            else:
+                stack.append([False, True, True])
+                if on:
+                    out.append(line)
+        elif kind in ("elif", "else"):
+            if not stack:
+                return None
+            fr = stack[-1]
+            if fr[0]:
+                v = 1 if kind == "else" else eval_guard("if", rest)
+                if v is None:
+                    return None
+                fr[1] = bool(v) and not fr[2]
+                fr[2] = fr[2] or fr[1]
+            elif GUARD_RE.search(rest):
+                return None
+            elif all(f[1] for f in stack[:-1] if f[0]):
+                out.append(line)
+        else:
+            if not stack:
+                return None
+            fr = stack.pop()
+            if not fr[0] and all(f[1] for f in stack if f[0]):
+                out.append(line)
+    return "\n".join(out)
+
+
+def same_code(a, b):
+    """a and b are the same code once comments, whitespace, helper includes and the host
+    annotations (deannotate) are left out."""
+    def lines(t):
+        t = re.sub(r"/\*.*?\*/", "", t, flags=re.S)
+        return [x for x in (deannotate(l) for l in t.split("\n") if not ANNOT_INCLUDE_RE.match(l)) if x]
+    return lines(a) == lines(b)
+
+
 def is_comment_only(s):
     t = s.strip()
     return t.startswith("//") or t.startswith("/*") or t.startswith("*") or t.endswith("*/")
@@ -442,6 +529,18 @@ def main():
     if up:
         converged = {p for p in status if status[p] == "M" and up["blobs"].get(p[len("game/"):]) == head_blobs.get(p)}
     texts = read_blobs([f"HEAD:{p}" for p in sorted(status) if status[p] != "D"], cwd=repo)
+    # Files that are zeldaret's code with our guarded hunks on top (step G4b): their GameCube view
+    # (gc_view) is zeldaret's file once comments, whitespace and annotations are left out.
+    hosted = set()
+    if up:
+        cand = [p for p in status if status[p] == "M" and p not in converged and p[len("game/"):] in up["blobs"]
+                and up["files"].get(p[len("game/"):], "same") != "same"]
+        got = read_blobs([f"{up['up']}:{p[len('game/'):]}" for p in cand], git_dir=args.cache)
+        for p in cand:
+            gv = gc_view(texts[f"HEAD:{p}"])
+            uv = gc_view(got[f"{up['up']}:{p[len('game/'):]}"] or "")
+            if gv is not None and uv is not None and same_code(gv, uv):
+                hosted.add(p)
     commits = commits_per_file(repo)
 
     up_texts, base_texts = {}, {}
@@ -618,8 +717,20 @@ def main():
         oc = collections.Counter(up["files"][p] for p in up["files"] if p.startswith("include/"))
         w("Headers (include/): " + ", ".join(f"{k} {v}" for k, v in sorted(oc.items())) + ".")
         w("")
+        host_units = sorted(p[len("game/"):] for p in hosted)
+        if host_units:
+            w(f"### Converged with our host hunks ({len(host_units)})")
+            w("")
+            w("Files that are zeldaret's code under our guarded hunks (step G4b): with the guards resolved "
+              "for the GameCube (TARGET_PC 0, __MWERKS__ 1, COS_* 0) and the host annotations "
+              "(`BE()`...), comments and whitespace left out, the file is zeldaret's. Re-taking them from a "
+              "newer zeldaret is a 3-way merge of our hunks. Status: zeldaret's configure.py.")
+            w("")
+            w(", ".join(f"`{u}`" + (f" ({up['status'][u]})" if u in up["status"] and up["status"][u] != "Matching" else "")
+                        for u in host_units) + ".")
+            w("")
         cands = [u for u in units if up["status"][u] == "Matching" and up["files"].get(u, "same") != "same"
-                 and u not in conv]
+                 and u not in conv and "game/" + u not in hosted]
         w(f"### Convergence candidates ({len(cands)})")
         w("")
         w(f"Units zeldaret marks Matching for {VERSION} whose file differs from our base and that are not "
@@ -685,7 +796,7 @@ def main():
     print(f"wrote {os.path.relpath(args.out, repo)}: {len(rows) + len(new_files)} files, +{tot_ins}/-{tot_dels}, "
           f"{tot_blocks} guarded blocks ({tot_guarded} lines), unguarded code {tot_ung_add} added / {tot_ung_del} removed "
           f"in {len(ung)} files, annotations {tot_ann_add}/{tot_ann_del}, {len(conv_rows)} files converged on zeldaret" +
-          (f", {len([u for u in up['status'] if up['status'][u] == 'Matching' and up['files'].get(u, 'same') != 'same' and 'game/' + u not in converged])} convergence candidates" if up else ""))
+          (f", {len(hosted)} converged with host hunks, {len([u for u in up['status'] if up['status'][u] == 'Matching' and up['files'].get(u, 'same') != 'same' and 'game/' + u not in converged and 'game/' + u not in hosted])} convergence candidates" if up else ""))
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ static int JKRDecompressFromDVDToAram(JKRDvdFile*, u32, u32, u32, u32, u32);
 static int decompSZS_subroutine(u8*, u32);
 static u8* firstSrcData();
 static u8* nextSrcData(u8*);
-static u32 dmaBufferFlush(u32);
+static u32 dmaBufferFlush(uintptr_t);
 
 /* 802BDA14-802BDAB0       .text loadToAram__16JKRDvdAramRipperFlUl15JKRExpandSwitchUlUl */
 JKRAramBlock* JKRDvdAramRipper::loadToAram(s32 entryNumber, u32 address, JKRExpandSwitch expandSwitch, u32 param_3, u32 param_4) {
@@ -59,11 +59,7 @@ JKRAramBlock* JKRDvdAramRipper::loadToAram(JKRDvdFile* dvdFile, u32 address, JKR
 bool JKRDvdAramRipper::errorRetry = true;
 
 /* 802BDB50-802BDBFC       .text loadToAram_Async__16JKRDvdAramRipperFP10JKRDvdFileUl15JKRExpandSwitchPFUl_vUlUl */
-#if TARGET_PC
 JKRADCommand* JKRDvdAramRipper::loadToAram_Async(JKRDvdFile* dvdFile, u32 address, JKRExpandSwitch expandSwitch, void (*callback)(uintptr_t), u32 param_4, u32 param_5) {
-#else
-JKRADCommand* JKRDvdAramRipper::loadToAram_Async(JKRDvdFile* dvdFile, u32 address, JKRExpandSwitch expandSwitch, void (*callback)(u32), u32 param_4, u32 param_5) {
-#endif
     JKRADCommand* command = new (JKRGetSystemHeap(), -4) JKRADCommand();
     command->mDvdFile = dvdFile;
     command->mAddress = address;
@@ -108,7 +104,7 @@ JKRADCommand* JKRDvdAramRipper::callCommand_Async(JKRADCommand* command) {
 #if TARGET_PC
             u8* bufPtr = (u8*)ALIGN_NEXT((uintptr_t)&buffer, 0x20);
 #else
-            u8* bufPtr = (u8*)ALIGN_NEXT((u32)&buffer, 0x20);
+            u8* bufPtr = (u8*)ALIGN_NEXT((uintptr_t)buffer, 0x20);
 #endif
             while (true) {
                 if (DVDReadPrio(dvdFile->getFileInfo(), bufPtr, 0x20, 0, 2) >= 0) {
@@ -183,11 +179,7 @@ JKRADCommand* JKRDvdAramRipper::callCommand_Async(JKRADCommand* command) {
         if (!command->mCallback) {
             (*((JSUList<JKRADCommand>*)&sDvdAramAsyncList)).append(&command->mLink);
         } else {
-#if TARGET_PC
             command->mCallback((uintptr_t)command);
-#else
-            command->mCallback((u32)command);
-#endif
         }
     }
 
@@ -445,16 +437,12 @@ static u8* nextSrcData(u8* src) {
 }
 
 /* 802BE790-802BE7F8       .text dmaBufferFlush__FUl */
-static u32 dmaBufferFlush(u32 param_1) {
+static u32 dmaBufferFlush(uintptr_t param_1) {
     if (dmaCurrent == dmaBuf) {
         return 0;
     }
     u32 size = ALIGN_NEXT(dmaCurrent - dmaBuf, 0x20);
-#if TARGET_PC
     JKRAramPiece::orderSync(0, (uintptr_t)dmaBuf, param_1, size, NULL);
-#else
-    JKRAramPiece::orderSync(0, (u32)dmaBuf, param_1, size, NULL);
-#endif
     dmaCurrent = dmaBuf;
     return size;
 }

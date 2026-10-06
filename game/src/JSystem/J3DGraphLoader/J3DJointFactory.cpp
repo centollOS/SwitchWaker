@@ -16,8 +16,8 @@ J3DJointFactory::J3DJointFactory(const J3DJointBlock& jointBlock) {
     mJointInitData = JSUConvertOffsetToPtr<J3DJointInitData>(&jointBlock, (u32)jointBlock.mpJointInitData);
     mIndexTable = JSUConvertOffsetToPtr<BE(u16)>(&jointBlock, (u32)jointBlock.mpIndexTable);
 #else
-    mJointInitData = JSUConvertOffsetToPtr<J3DJointInitData>(&jointBlock, (u32)jointBlock.mpJointInitData);
-    mIndexTable = JSUConvertOffsetToPtr<u16>(&jointBlock, (u32)jointBlock.mpIndexTable);
+    mJointInitData = JSUConvertOffsetToPtr<J3DJointInitData>(&jointBlock, (uintptr_t)jointBlock.mpJointInitData);
+    mIndexTable = JSUConvertOffsetToPtr<u16>(&jointBlock, (uintptr_t)jointBlock.mpIndexTable);
 #endif
 }
 

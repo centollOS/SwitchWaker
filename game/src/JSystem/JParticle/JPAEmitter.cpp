@@ -106,15 +106,15 @@ void JPABaseEmitter::calcVolumeSphere() {
 void JPABaseEmitter::calcVolumeCylinder() {
     s16 angle = mVolumeSweep * getRandomSS();
     f32 rad = getRandomF();
-    if (checkEmDataFlag(JPADynFlag_FixedDensity)) {
+    if (checkEmDataFlag(JPADynFlag_FixedDensity))
         rad = 1.0f - rad * rad;
-        // FAKEMATCH: zero-code memory kill; stops MWCC's IRO CSE from reusing mRandomSeed.value across the if
-#ifdef __MWERKS__
-        // Other compilers treat the null store as unreachable and delete the whole branch.
-        *(f32*)NULL = *(f32*)NULL;
-#endif
-    }
     rad = emtrInfo.mVolumeSize * (mVolumeMinRad + rad * (1.0f - mVolumeMinRad));
+
+    // Fakematch, needed to force mRandomSeed.value to be reloaded before the third random call
+#ifdef __MWERKS__
+    // Other compilers treat the null store as unreachable and delete the whole branch.
+    *(f32*)NULL = *(f32*)NULL;
+#endif
 
     emtrInfo.mVolumePos.set(rad * JMASSin(angle), emtrInfo.mVolumeSize * getRandomRF(), rad * JMASCos(angle));
     emtrInfo.mVelOmni.mul(emtrInfo.mVolumePos, emtrInfo.mEmitterGlobalScale);
@@ -208,20 +208,23 @@ void JPABaseEmitter::calcEmitterInfo() {
     emtrInfo.mDivNumber = mDivNumber * 2 + 1;
     emtrInfo.mVolumeSize = mVolumeSize;
     
-    Mtx mtxScale, mtxRot;
-    JGeometry::TPosition3f32 mtx;
+    Mtx mtxScale, mtxRot, mtx;
     MTXScale(mtxScale, mEmitterScale.x, mEmitterScale.y, mEmitterScale.z);
     JPAGetXYZRotateMtx((mEmitterRot.x * 0x4000) / 90, (mEmitterRot.y * 0x4000) / 90, (mEmitterRot.z * 0x4000) / 90, mtxRot);
     
     MTXScale(mtx, mGlobalDynamicsScale.x, mGlobalDynamicsScale.y, mGlobalDynamicsScale.z);
     MTXConcat(mGlobalRotation, mtx, mtx);
-    mtx.setTrans(mGlobalTranslation);
+    mtx[0][3] = mGlobalTranslation.x;
+    mtx[1][3] = mGlobalTranslation.y;
+    mtx[2][3] = mGlobalTranslation.z;
     MTXCopy(mGlobalRotation, emtrInfo.mGlobalRot);
     MTXConcat(mGlobalRotation, mtxRot, emtrInfo.mEmitterGlobalRot);
     MTXConcat(emtrInfo.mEmitterGlobalRot, mtxScale, emtrInfo.mEmitterGlobalSR);
     JPAGetDirMtx(mEmitterDir, emtrInfo.mEmitterDirMtx);
     emtrInfo.mEmitterGlobalScale.mul(mEmitterScale, mGlobalDynamicsScale);
-    emtrInfo.mEmitterTranslation.set(mEmitterTranslation);
+    emtrInfo.mEmitterTranslation.x = mEmitterTranslation.x;
+    emtrInfo.mEmitterTranslation.y = mEmitterTranslation.y;
+    emtrInfo.mEmitterTranslation.z = mEmitterTranslation.z;
     emtrInfo.mPublicScale.mul(mGlobalDynamicsScale, JGeometry::TVec3<f32>(1.0f, 1.0f, 1.0f));
     MTXMultVec(mtx, mEmitterTranslation, emtrInfo.mEmitterGlobalCenter);
 }
@@ -297,7 +300,7 @@ void JPABaseEmitter::createChildren(JPABaseParticle* ptcl) {
         JPABaseParticle * chld = getPtclFromVacList();
         if (chld == NULL)
             break;
-        mChildParticles.prepend(chld->getLinkBufferPtr());
+        mChildParticles.prepend(&chld->mLink);
         chld->initChild(ptcl);
         mDraw.initChild(ptcl, chld);
     }
@@ -307,7 +310,7 @@ void JPABaseEmitter::createChildren(JPABaseParticle* ptcl) {
 JPABaseParticle * JPABaseEmitter::createParticle() {
     JPABaseParticle * ptcl = getPtclFromVacList();
     if (ptcl != NULL) {
-        mActiveParticles.prepend(ptcl->getLinkBufferPtr());
+        mActiveParticles.prepend(&ptcl->mLink);
         (this->*mVolumeFunc)();
         ptcl->initParticle();
         mDraw.initParticle(ptcl);
@@ -399,8 +402,8 @@ void JPABaseEmitter::calcKey() {
 /* 8025DA90-8025DAD8       .text deleteParticle__14JPABaseEmitterFP15JPABaseParticleP26JSUList<15JPABaseParticle> */
 void JPABaseEmitter::deleteParticle(JPABaseParticle* ptcl, JSUList<JPABaseParticle>* list) {
     JSUPtrList * ptrlist = list;
-    ptrlist->remove(ptcl->getLinkBufferPtr());
-    mpPtclVacList->prepend(ptcl->getLinkBufferPtr());
+    ptrlist->remove(&ptcl->mLink);
+    mpPtclVacList->prepend(&ptcl->mLink);
 }
 
 /* 8025DAD8-8025DB68       .text deleteAllParticle__14JPABaseEmitterFv */
@@ -425,7 +428,7 @@ JPABaseParticle * JPABaseEmitter::getPtclFromVacList() {
     JPABaseParticle * ptcl = NULL;
     if (mpPtclVacList->getNumLinks() != 0) {
         ptcl = (JPABaseParticle*)mpPtclVacList->getFirstLink()->getObjectPtr();
-        mpPtclVacList->remove(ptcl->getLinkBufferPtr());
+        mpPtclVacList->remove(&ptcl->mLink);
     }
     return ptcl;
 }
@@ -461,10 +464,12 @@ bool JPABaseEmitter::doTerminationProcess() {
 
 /* 8025DCDC-8025DD5C       .text calcEmitterGlobalPosition__14JPABaseEmitterFRQ29JGeometry8TVec3<f> */
 void JPABaseEmitter::calcEmitterGlobalPosition(JGeometry::TVec3<float>& dst) {
-    JGeometry::TPosition3f32 mtx;
+    Mtx mtx;
     MTXScale(mtx, mGlobalDynamicsScale.x, mGlobalDynamicsScale.y, mGlobalDynamicsScale.z);
     MTXConcat(mGlobalRotation, mtx, mtx);
-    mtx.setTrans(mGlobalTranslation);
+    mtx[0][3] = mGlobalTranslation.x;
+    mtx[1][3] = mGlobalTranslation.y;
+    mtx[2][3] = mGlobalTranslation.z;
     MTXMultVec(mtx, mEmitterTranslation, dst);
 }
 

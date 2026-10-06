@@ -251,7 +251,7 @@ void TObject::process_paragraph_reserved_(u32 arg1, const void* pContent, u32 uS
                 // The ID header's size as a pointer difference (the addresses do not fit a u32).
                 uSize - (u32)((const u8*)temp - (const u8*)dataID.getRaw()));
 #else
-                uSize - ((u32)temp - (u32)dataID.getRaw()));
+                uSize - ((uintptr_t)temp - (uintptr_t)dataID.getRaw()));
 #endif
         break;
     }

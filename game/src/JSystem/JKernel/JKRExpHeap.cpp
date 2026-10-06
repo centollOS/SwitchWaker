@@ -167,13 +167,8 @@ void* JKRExpHeap::allocFromHead(u32 size, int align) {
     CMemBlock* newUsedBlock = NULL;
 
     for (CMemBlock* block = mHeadFreeList; block; block = block->mNext) {
-#if TARGET_PC
         uintptr_t alignedContent = ALIGN_NEXT((uintptr_t)block->getContent(), align);
         u32 offset = alignedContent - (uintptr_t)block->getContent();
-#else
-        u32 alignedContent = ALIGN_NEXT((u32)block->getContent(), align);
-        u32 offset = alignedContent - (u32)block->getContent();
-#endif
         if (block->size < size + offset) {
             continue;
         }
@@ -230,11 +225,7 @@ void* JKRExpHeap::allocFromHead(u32 size, int align) {
                 CMemBlock* prev = foundBlock->mPrev;
                 CMemBlock* next = foundBlock->mNext;
                 removeFreeBlock(foundBlock);
-#if TARGET_PC
                 newUsedBlock = (CMemBlock*)((uintptr_t)foundBlock + foundOffset);
-#else
-                newUsedBlock = (CMemBlock*)((u32)foundBlock + foundOffset);
-#endif
                 newUsedBlock->size = foundBlock->size - foundOffset;
                 newFreeBlock =
                     newUsedBlock->allocFore(size, mCurrentGroupId, (u8)foundOffset, 0, 0);
@@ -312,13 +303,8 @@ void* JKRExpHeap::allocFromTail(u32 size, int align) {
 #endif
 
     for (CMemBlock* block = mTailFreeList; block; block = block->mPrev) {
-#if TARGET_PC
         start = ALIGN_PREV((uintptr_t)block->getContent() + block->size - size, align);
         usedSize = (uintptr_t)block->getContent() + block->size - start;
-#else
-        start = ALIGN_PREV((u32)block->getContent() + block->size - size, align);
-        usedSize = (u32)block->getContent() + block->size - start;
-#endif
         if (block->size >= usedSize) {
             foundBlock = block;
             offset = block->size - usedSize;
@@ -468,11 +454,7 @@ s32 JKRExpHeap::do_resize(void* ptr, u32 size) {
     if (size > block->size) {
         CMemBlock* foundBlock = NULL;
         for (CMemBlock* freeBlock = mHeadFreeList; freeBlock; freeBlock = freeBlock->mNext) {
-#if TARGET_PC
             if (freeBlock == (CMemBlock*)((uintptr_t)(block + 1) + block->size)) {
-#else
-            if (freeBlock == (CMemBlock*)((u32)(block + 1) + block->size)) {
-#endif
                 foundBlock = freeBlock;
                 break;
             }
@@ -745,15 +727,11 @@ void JKRExpHeap::joinTwoBlocks(CMemBlock* block) {
     uintptr_t curBlock = (uintptr_t)block; // Fakematch?
     uintptr_t endAddr = (uintptr_t)(block + 1) + block->size;
 #else
-    u32 curBlock = (u32)block; // Fakematch?
-    u32 endAddr = (u32)(block + 1) + block->size;
+    uintptr_t curBlock = (uintptr_t)block; // Fakematch?
+    uintptr_t endAddr = (uintptr_t)(block + 1) + block->size;
 #endif
     CMemBlock* next = block->mNext;
-#if TARGET_PC
     uintptr_t nextAddr = (uintptr_t)next - (next->mFlags & 0x7f);
-#else
-    u32 nextAddr = (u32)next - (next->mFlags & 0x7f);
-#endif
     if (endAddr > nextAddr) {
         JUTWarningConsole_f(":::Heap may be broken. (block = %x)", block);
         OSReport(":::block = %x\n", curBlock);
@@ -815,11 +793,7 @@ bool JKRExpHeap::check() {
                                     block->mNext->mPrev);
             }
 
-#if TARGET_PC
             if ((uintptr_t)block + block->size + sizeof(CMemBlock) > (uintptr_t)block->mNext) {
-#else
-            if ((u32)block + block->size + sizeof(CMemBlock) > (u32)block->mNext) {
-#endif
                 ok = false;
                 JUTWarningConsole_f(":::addr %08x: bad block size (%08x)\n", block, block->size);
             }
@@ -1038,11 +1012,7 @@ JKRExpHeap::CMemBlock* JKRExpHeap::CMemBlock::allocFore(u32 size, u8 groupId1, u
     mGroupId = groupId1;
     mFlags = alignment1;
     if (getSize() >= size + sizeof(CMemBlock)) {
-#if TARGET_PC
         block = (CMemBlock*)(size + (uintptr_t)this);
-#else
-        block = (CMemBlock*)(size + (u32)this);
-#endif
 #if COS_JKR_POISON
         jkrUnpoison(&block[1], sizeof(CMemBlock));
 #endif
@@ -1059,11 +1029,7 @@ JKRExpHeap::CMemBlock* JKRExpHeap::CMemBlock::allocFore(u32 size, u8 groupId1, u
 JKRExpHeap::CMemBlock* JKRExpHeap::CMemBlock::allocBack(u32 size, u8 groupId1, u8 alignment1, u8 groupId2, u8 alignment2) {
     CMemBlock* newblock = NULL;
     if (getSize() >= size + sizeof(CMemBlock)) {
-#if TARGET_PC
         newblock = (CMemBlock*)((uintptr_t)this + getSize() - size);
-#else
-        newblock = (CMemBlock*)((u32)this + getSize() - size);
-#endif
 #if COS_JKR_POISON
         jkrUnpoison(newblock, sizeof(CMemBlock));
 #endif

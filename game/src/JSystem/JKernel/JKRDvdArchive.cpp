@@ -11,7 +11,7 @@
 #include "JSystem/JKernel/JKRDvdRipper.h"
 #include "JSystem/JKernel/JKRHeap.h"
 #include "JSystem/JUtility/JUTAssert.h"
-#include "stdlib.h"
+#include "math.h"
 #include "string.h"
 #include "dolphin/os/OS.h"
 
@@ -71,7 +71,7 @@ bool JKRDvdArchive::open(s32 entryNum) {
     SDIFileEntry* fileEntry;
     
     mArcInfoBlock = NULL;
-    mDataOffset = NULL;
+    mDataOffset = 0;
     mNodes = NULL;
     mFiles = NULL;
     mStringTable = NULL;
@@ -252,11 +252,7 @@ u32 JKRDvdArchive::fetchResource_subroutine(s32 entryNum, u32 offset, u32 size, 
             // The dst pointer to JKRDvdToMainRam should be aligned to 32 bytes. This will align
             // arcHeader to 32 bytes on the stack.
             char arcHeaderBuffer[64];
-#if TARGET_PC
             u8* arcHeader = (u8*)ALIGN_NEXT((uintptr_t)arcHeaderBuffer, 0x20);
-#else
-            u8* arcHeader = (u8*)ALIGN_NEXT((u32)arcHeaderBuffer, 0x20);
-#endif
             JKRDvdToMainRam(entryNum, arcHeader, EXPAND_SWITCH_UNKNOWN2, sizeof(SArcHeader),
                             NULL, JKRDvdRipper::ALLOC_DIRECTION_FORWARD, offset, NULL);
 #if VERSION > VERSION_DEMO
@@ -319,11 +315,7 @@ u32 JKRDvdArchive::fetchResource_subroutine(s32 entryNum, u32 offset, u32 size, 
             // The dst pointer to JKRDvdToMainRam should be aligned to 32 bytes. This will align
             // arcHeader to 32 bytes on the stack.
             char arcHeaderBuffer[64];
-#if TARGET_PC
             u8* arcHeader = (u8*)ALIGN_NEXT((uintptr_t)arcHeaderBuffer, 0x20);
-#else
-            u8* arcHeader = (u8*)ALIGN_NEXT((u32)arcHeaderBuffer, 0x20);
-#endif
             JKRDvdToMainRam(entryNum, arcHeader, EXPAND_SWITCH_UNKNOWN2, sizeof(SArcHeader),
                             NULL, JKRDvdRipper::ALLOC_DIRECTION_FORWARD, offset, NULL);
 #if VERSION > VERSION_DEMO
@@ -388,11 +380,7 @@ u32 JKRDvdArchive::getExpandedResSize(const void* resource) const {
     // The dst pointer to JKRDvdToMainRam should be aligned to 32 bytes. This will align arcHeader
     // to 32 bytes on the stack.
     char buffer[64];
-#if TARGET_PC
     u8* arcHeader = (u8*)ALIGN_NEXT((uintptr_t)buffer, 0x20);
-#else
-    u8* arcHeader = (u8*)ALIGN_NEXT((u32)buffer, 0x20);
-#endif
     JKRDvdToMainRam(mEntryNum, arcHeader, EXPAND_SWITCH_UNKNOWN2, sizeof(SArcHeader), NULL,
                     JKRDvdRipper::ALLOC_DIRECTION_FORWARD,
                     this->mDataOffset + fileEntry->data_offset, NULL);

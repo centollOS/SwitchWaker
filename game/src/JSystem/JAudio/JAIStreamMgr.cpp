@@ -50,7 +50,7 @@ u32 JAInter::StreamLib::outputmode = 1;
 JAInter::StreamMgr::flags_t JAInter::StreamMgr::flags;
 JAInter::streamUpdate_t* JAInter::StreamMgr::streamUpdate;
 JAInter::streamList_t* JAInter::StreamMgr::streamList;
-JAInter::streamList_t** JAInter::StreamMgr::initOnCodeStrm;
+JAInter::streamList_t* JAInter::StreamMgr::initOnCodeStrm;
 u32 JAInter::StreamLib::adpcm_remain;
 u32 JAInter::StreamLib::adpcm_loadpoint;
 unsigned int JAInter::StreamLib::loadsize;

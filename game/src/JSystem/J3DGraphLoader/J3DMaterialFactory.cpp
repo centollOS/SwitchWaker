@@ -28,7 +28,7 @@ J3DMaterialFactory::J3DMaterialFactory(const J3DMaterialBlock& block) {
     // The block holds 32-bit big-endian offsets (OFFSET_PTR_V0, J3DModelLoader.h).
     if (block.mpIndInitData != 0 && ((u32)block.mpIndInitData - (u32)block.mpNameTable) > 4)
 #else
-    if (block.mpIndInitData != NULL && ((u32)block.mpIndInitData - (u32)block.mpNameTable) > 4)
+    if (block.mpIndInitData != NULL && ((uintptr_t)block.mpIndInitData - (uintptr_t)block.mpNameTable) > 4)
 #endif
         mpIndInitData = JSUConvertOffsetToPtr<J3DIndInitData>(&block, block.mpIndInitData);
     else
@@ -369,7 +369,7 @@ J3DMaterial* J3DMaterialFactory::createLockedMaterial(J3DMaterial* mat, int idx,
         // The offset is relative to the entry; the display list itself stays big-endian (GX data).
         mat->mSharedDLObj->setSingleDisplayList((void*)((u32)mpDisplayListInit[idx].mOffset + (uintptr_t)&mpDisplayListInit[idx]), mpDisplayListInit[idx].mSize);
 #else
-        mat->mSharedDLObj->setSingleDisplayList((void*)(mpDisplayListInit[idx].mOffset + (u32)&mpDisplayListInit[idx]), mpDisplayListInit[idx].mSize);
+        mat->mSharedDLObj->setSingleDisplayList((void*)(mpDisplayListInit[idx].mOffset + (uintptr_t)&mpDisplayListInit[idx]), mpDisplayListInit[idx].mSize);
 #endif
     }
     return mat;

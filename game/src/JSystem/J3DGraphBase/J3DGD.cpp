@@ -6,7 +6,6 @@
 #include "JSystem/JSystem.h" // IWYU pragma: keep
 
 #include "JSystem/J3DGraphBase/J3DGD.h"
-#include "dolphin/gd/GDLight.h"
 #include "dolphin/types.h"
 #include "dolphin/os/OS.h"
 
@@ -97,6 +96,17 @@ void J3DGDSetIndTexStageNum(u32 indTevNum) {
     J3DGDWriteBPCmd(indTevNum << 16 | 0x00 << 24);
 }
 
+inline u16 __GDLightID2Index(GXLightID id) {
+    u16 lightIdx = (31 - __cntlzw(id));
+    if (lightIdx > 7)
+        lightIdx = 0;
+    return lightIdx;
+}
+
+inline u16 __GDLightID2Offset(GXLightID id) {
+    return __GDLightID2Index(id) * 0x10;
+}
+
 /* 802D632C-802D6624       .text J3DGDSetLightAttn__F10_GXLightIDffffff */
 void J3DGDSetLightAttn(GXLightID id, f32 a0, f32 a1, f32 a2, f32 k0, f32 k1, f32 k2) {
     J3DGDWriteXFCmdHdr(0x0604 + __GDLightID2Offset(id), 6);
@@ -131,42 +141,42 @@ void J3DGDSetLightDir(GXLightID id, f32 x, f32 y, f32 z) {
 
 /* 802D6ACC-802D702C       .text J3DGDSetVtxAttrFmtv__F9_GXVtxFmtP17_GXVtxAttrFmtListb */
 void J3DGDSetVtxAttrFmtv(GXVtxFmt fmt, GXVtxAttrFmtList* vtxAttr, bool forceNBT) {
-    u32 posCompCnt = GX_POS_XYZ;
-    u32 posCompType = GX_F32;
+    GXCompCnt posCompCnt = GX_POS_XYZ;
+    GXCompType posCompType = GX_F32;
     u32 posCompShift = 0;
 
-    u32 nrmCompCnt = GX_NRM_XYZ;
-    u32 nrmCompType = GX_F32;
-    u32 nbt3 = 0;
+    GXCompCnt nrmCompCnt = GX_NRM_XYZ;
+    GXCompType nrmCompType = GX_F32;
+    bool nbt3 = false;
 
-    u32 clr0CompCnt = GX_CLR_RGBA;
-    u32 clr0CompType = GX_RGBA8;
-    u32 clr1CompCnt = GX_CLR_RGBA;
-    u32 clr1CompType = GX_RGBA8;
+    GXCompCnt clr0CompCnt = GX_CLR_RGBA;
+    GXCompType clr0CompType = GX_RGBA8;
+    GXCompCnt clr1CompCnt = GX_CLR_RGBA;
+    GXCompType clr1CompType = GX_RGBA8;
 
-    u32 tex0CompCnt = GX_TEX_ST;
-    u32 tex0CompType = GX_F32;
+    GXCompCnt tex0CompCnt = GX_TEX_ST;
+    GXCompType tex0CompType = GX_F32;
     u32 tex0CompShift = 0;
-    u32 tex1CompCnt = GX_TEX_ST;
-    u32 tex1CompType = GX_F32;
+    GXCompCnt tex1CompCnt = GX_TEX_ST;
+    GXCompType tex1CompType = GX_F32;
     u32 tex1CompShift = 0;
-    u32 tex2CompCnt = GX_TEX_ST;
-    u32 tex2CompType = GX_F32;
+    GXCompCnt tex2CompCnt = GX_TEX_ST;
+    GXCompType tex2CompType = GX_F32;
     u32 tex2CompShift = 0;
-    u32 tex3CompCnt = GX_TEX_ST;
-    u32 tex3CompType = GX_F32;
+    GXCompCnt tex3CompCnt = GX_TEX_ST;
+    GXCompType tex3CompType = GX_F32;
     u32 tex3CompShift = 0;
-    u32 tex4CompCnt = GX_TEX_ST;
-    u32 tex4CompType = GX_F32;
+    GXCompCnt tex4CompCnt = GX_TEX_ST;
+    GXCompType tex4CompType = GX_F32;
     u32 tex4CompShift = 0;
-    u32 tex5CompCnt = GX_TEX_ST;
-    u32 tex5CompType = GX_F32;
+    GXCompCnt tex5CompCnt = GX_TEX_ST;
+    GXCompType tex5CompType = GX_F32;
     u32 tex5CompShift = 0;
-    u32 tex6CompCnt = GX_TEX_ST;
-    u32 tex6CompType = GX_F32;
+    GXCompCnt tex6CompCnt = GX_TEX_ST;
+    GXCompType tex6CompType = GX_F32;
     u32 tex6CompShift = 0;
-    u32 tex7CompCnt = GX_TEX_ST;
-    u32 tex7CompType = GX_F32;
+    GXCompCnt tex7CompCnt = GX_TEX_ST;
+    GXCompType tex7CompType = GX_F32;
     u32 tex7CompShift = 0;
 
     for (; vtxAttr->attr != GX_VA_NULL; vtxAttr++) {
@@ -181,14 +191,12 @@ void J3DGDSetVtxAttrFmtv(GXVtxFmt fmt, GXVtxAttrFmtList* vtxAttr, bool forceNBT)
             nrmCompType = vtxAttr->type;
             if (vtxAttr->cnt == GX_NRM_NBT3) {
                 nrmCompCnt = GX_NRM_NBT;
-                nbt3 = 1;
+                nbt3 = true;
             } else {
-                if (forceNBT) {
-                    nrmCompCnt = GX_NRM_NBT;
-                } else {
-                    nrmCompCnt = vtxAttr->cnt;
-                }
-                nbt3 = 0;
+                // possible fakematch? need to cast vtxAttr->cnt to int to put value in r0 temporarily
+                // nrmCompCnt = forceNBT ? GX_NRM_NBT : vtxAttr->cnt;
+                nrmCompCnt = (GXCompCnt)(forceNBT ? GX_NRM_NBT : (int)(vtxAttr->cnt));
+                nbt3 = false;
             }
             break;
         case GX_VA_CLR0:

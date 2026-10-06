@@ -53,14 +53,23 @@
 #define GLUE(a, b) a##b
 #define GLUE2(a, b) GLUE(a, b)
 #define STATIC_ASSERT(cond) typedef char GLUE2(static_assertion_failed, __LINE__)[(cond) ? 1 : -1]
-#define ALIGN_DECL(ALIGNMENT) __attribute__((aligned(ALIGNMENT)))
+#define ALIGN_DECL(alignment, decl) decl ATTRIBUTE_ALIGN(alignment)
 #define SECTION_DATA __declspec(section ".data")
 #define SECTION_INIT __declspec(section ".init")
 #define ASM asm
 #define WEAKFUNC __declspec(weak)
 #else
 #define STATIC_ASSERT(...)
-#define ALIGN_DECL(...)
+#if TARGET_PC
+// The asset headers native/tools/gen_assets.sh generates with snrubrm's converters still write the
+// one-argument form after the declarator (`static u8 l_matDL[] ALIGN_DECL(32) = {`): take both.
+#define ALIGN_DECL_1_(alignment) ATTRIBUTE_ALIGN(alignment)
+#define ALIGN_DECL_2_(alignment, decl) ATTRIBUTE_ALIGN(alignment) decl
+#define ALIGN_DECL_PICK_(_1, _2, NAME, ...) NAME
+#define ALIGN_DECL(...) ALIGN_DECL_PICK_(__VA_ARGS__, ALIGN_DECL_2_, ALIGN_DECL_1_)(__VA_ARGS__)
+#else
+#define ALIGN_DECL(alignment, decl) ATTRIBUTE_ALIGN(alignment) decl
+#endif
 #define SECTION_DATA
 #define SECTION_INIT
 #define ASM

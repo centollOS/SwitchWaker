@@ -100,7 +100,7 @@ dMap_2DT2_c dMap_c::mShip;
 dMap_CollectPoint dMap_c::mCollectPointData[64];
 s8 dMap_c::mCollectPointDataLinkList[21];
 #if VERSION == VERSION_PAL
-u8 dMap_img[0xC00] ALIGN_DECL(32);
+ALIGN_DECL(32, u8 dMap_img[0xC00]);
 #endif
 
 u8 dMap_c::mCompAlpha;

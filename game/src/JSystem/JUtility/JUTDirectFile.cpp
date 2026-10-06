@@ -37,11 +37,7 @@ JUTDirectFile::JUTDirectFile() {
     mLength = 0;
     mPos = 0;
     mToRead = 0;
-#if TARGET_PC
     mSectorStart = (u8*)ALIGN_NEXT((uintptr_t)mBuffer, 0x20);
-#else
-    mSectorStart = (u8*)ALIGN_NEXT((u32)mBuffer, 0x20);
-#endif
     mIsOpen = false;
 }
 

@@ -77,7 +77,7 @@ J3DModelData* J3DModelLoader::load(const void* i_data, u32 i_flags) {
     for (u32 block_no = 0; block_no < data->mBlockNum; block_no++) {
         switch (block->mType) {
             case 'INF1':
-                readInformation((J3DModelInfoBlock*)block, (s32)i_flags);
+                readInformation((J3DModelInfoBlock*)block, (u32)i_flags); // cast fixes regalloc
                 break;
             case 'VTX1':
                 readVertex((J3DVertexBlock*)block);
@@ -92,13 +92,13 @@ J3DModelData* J3DModelLoader::load(const void* i_data, u32 i_flags) {
                 readJoint((J3DJointBlock*)block);
                 break;
             case 'MAT3':
-                readMaterial((J3DMaterialBlock*)block, (s32)i_flags);
+                readMaterial((J3DMaterialBlock*)block, i_flags);
                 break;
             case 'MAT2':
-                readMaterial_v21((J3DMaterialBlock_v21*)block, (s32)i_flags);
+                readMaterial_v21((J3DMaterialBlock_v21*)block, i_flags);
                 break;
             case 'SHP1':
-                readShape((J3DShapeBlock*)block, (s32)i_flags);
+                readShape((J3DShapeBlock*)block, i_flags);
                 break;
             case 'TEX1':
                 readTexture((J3DTextureBlock*)block);
@@ -160,12 +160,9 @@ J3DModelData* J3DModelLoader::loadBinaryDisplayList(const void* i_data, u32 i_fl
     const JUTDataFileHeader* data = (JUTDataFileHeader*)i_data;
     const JUTDataBlockHeader* block = &data->mFirstBlock;
     for (u32 block_no = 0; block_no < data->mBlockNum; block_no++) {
-        s32 flags;
-        u32 materialType;
         switch (block->mType) {
             case 'INF1':
-                flags = i_flags;
-                readInformation((J3DModelInfoBlock*)block, flags);
+                readInformation((J3DModelInfoBlock*)block, (u32)i_flags); // cast fixes regalloc
                 break;
             case 'VTX1':
                 readVertex((J3DVertexBlock*)block);
@@ -189,17 +186,18 @@ J3DModelData* J3DModelLoader::loadBinaryDisplayList(const void* i_data, u32 i_fl
                 readMaterialDL((J3DMaterialDLBlock*)block, i_flags);
                 modifyMaterial(i_flags);
                 break;
-            case 'MAT3':
-                flags = 0x50100000;
-                flags |= (i_flags & 0x3000000);
+            case 'MAT3': {
+                u32 matFlags = 0x50100000;
+                matFlags |= i_flags & 0x03000000;
                 mpMaterialBlock = (J3DMaterialBlock*)block;
-                materialType = getBdlFlag_MaterialType(i_flags);
-                if (materialType == 0) {
-                    readMaterial((J3DMaterialBlock*)block, flags);
-                } else if (materialType == 0x2000) {
-                    readPatchedMaterial((J3DMaterialBlock*)block, flags);
+                u32 matType = getBdlFlag_MaterialType(i_flags);
+                if (matType == 0) {
+                    readMaterial((J3DMaterialBlock*)block, matFlags);
+                } else if (matType == 0x2000) {
+                    readPatchedMaterial((J3DMaterialBlock*)block, matFlags);
                 }
                 break;
+            }
             default:
                 OSReport("Unknown data block\n");
                 break;
@@ -224,10 +222,10 @@ void J3DModelLoader::setupBBoardInfo() {
             // The block holds 32-bit big-endian offsets; the index table is big-endian too.
             BE(u16)* index_table = JSUConvertOffsetToPtr<BE(u16)>(mpShapeBlock, (u32)mpShapeBlock->mpIndexTable);
 #else
-            u16* index_table = JSUConvertOffsetToPtr<u16>(mpShapeBlock, (u32)mpShapeBlock->mpIndexTable);
+            u16* index_table = JSUConvertOffsetToPtr<u16>(mpShapeBlock, (uintptr_t)mpShapeBlock->mpIndexTable);
 #endif
             J3DShapeInitData* shape_init_data =
-                JSUConvertOffsetToPtr<J3DShapeInitData>(mpShapeBlock, (u32)mpShapeBlock->mpShapeInitData);
+                JSUConvertOffsetToPtr<J3DShapeInitData>(mpShapeBlock, (uintptr_t)mpShapeBlock->mpShapeInitData);
             J3DJoint* joint;
             switch (shape_init_data[index_table[shape_index]].mShapeMtxType) {
                 case 0:
@@ -331,11 +329,11 @@ void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
         // Both arrays are in the same VTX1 block: the distance fits in 32 bits.
         vertex_data.mNrmNum = (u32)((uintptr_t)nrm_end - (uintptr_t)vertex_data.mVtxNrmArray) / nrm_size + 1;
 #else
-        vertex_data.mNrmNum = ((u32)nrm_end - (u32)vertex_data.mVtxNrmArray) / nrm_size + 1;
+        vertex_data.mNrmNum = ((uintptr_t)nrm_end - (uintptr_t)vertex_data.mVtxNrmArray) / nrm_size + 1;
 #endif
     } else {
         // mpVtxNrmArray is the 32-bit big-endian file offset (OFFSET_PTR_V0).
-        vertex_data.mNrmNum = (i_block->mSize - (u32)i_block->mpVtxNrmArray) / nrm_size + 1;
+        vertex_data.mNrmNum = (i_block->mSize - (uintptr_t)i_block->mpVtxNrmArray) / nrm_size + 1;
     }
 
     void* color0_end = NULL;
@@ -352,18 +350,18 @@ void J3DModelLoader::readVertex(const J3DVertexBlock* i_block) {
         // Both arrays are in the same VTX1 block: the distance fits in 32 bits.
         vertex_data.mColNum = (u32)((uintptr_t)color0_end - (uintptr_t)vertex_data.mVtxColorArray[0]) / 4 + 1;
 #else
-        vertex_data.mColNum = ((u32)color0_end - (u32)vertex_data.mVtxColorArray[0]) / 4 + 1;
+        vertex_data.mColNum = ((uintptr_t)color0_end - (uintptr_t)vertex_data.mVtxColorArray[0]) / 4 + 1;
 #endif
     } else {
         // mpVtxColorArray[0] is the 32-bit big-endian file offset (OFFSET_PTR_V0).
-        vertex_data.mColNum = (i_block->mSize - (u32)i_block->mpVtxColorArray[0]) / 4 + 1;
+        vertex_data.mColNum = (i_block->mSize - (uintptr_t)i_block->mpVtxColorArray[0]) / 4 + 1;
     }
 
     if (vertex_data.mVtxTexCoordArray[0] == NULL) {
         vertex_data.mTexCoordNum = 0;
     } else {
         // mpVtxTexCoordArray[0] is the 32-bit big-endian file offset (OFFSET_PTR_V0).
-        vertex_data.mTexCoordNum = (i_block->mSize - (u32)i_block->mpVtxTexCoordArray[0]) / 8 + 1;
+        vertex_data.mTexCoordNum = (i_block->mSize - (uintptr_t)i_block->mpVtxTexCoordArray[0]) / 8 + 1;
     }
 }
 
@@ -460,7 +458,7 @@ void J3DModelLoader_v26::readMaterial(const J3DMaterialBlock* i_block, u32 i_fla
             // The material ID is built from a GameCube address (J3DGCAddressBits).
             mpMaterialTable->mMaterialBase[i].mDiffFlag = J3DGCAddressBits(&mpMaterialTable->mMaterialBase[i]) >> 4;
 #else
-            mpMaterialTable->mMaterialBase[i].mDiffFlag = (u32)&mpMaterialTable->mMaterialBase[i] >> 4;
+            mpMaterialTable->mMaterialBase[i].mDiffFlag = (uintptr_t)&mpMaterialTable->mMaterialBase[i] >> 4;
 #endif
         }
     }
@@ -476,7 +474,7 @@ void J3DModelLoader_v26::readMaterial(const J3DMaterialBlock* i_block, u32 i_fla
                 J3DGCAddressBits(&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)]) >> 4;
 #else
             mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
-                (u32)&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)] >> 4;
+                (uintptr_t)&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)] >> 4;
 #endif
             mpMaterialTable->mMaterialNodePointer[i]->mpOrigMaterial =
                 &mpMaterialTable->mMaterialBase[factory.getMaterialID(i)];
@@ -489,7 +487,7 @@ void J3DModelLoader_v26::readMaterial(const J3DMaterialBlock* i_block, u32 i_fla
                 (J3DGCAddressBits(mpMaterialTable->mMaterialNodePointer) >> 4) + factory.getMaterialID(i);
 #else
             mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
-                ((u32)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
+                ((uintptr_t)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
 #endif
         }
     }
@@ -519,7 +517,7 @@ void J3DModelLoader_v21::readMaterial_v21(const J3DMaterialBlock_v21* i_block, u
             // The material ID is built from a GameCube address (J3DGCAddressBits).
             mpMaterialTable->mMaterialBase[i].mDiffFlag = J3DGCAddressBits(&mpMaterialTable->mMaterialBase[i]) >> 4;
 #else
-            mpMaterialTable->mMaterialBase[i].mDiffFlag = (u32)&mpMaterialTable->mMaterialBase[i] >> 4;
+            mpMaterialTable->mMaterialBase[i].mDiffFlag = (uintptr_t)&mpMaterialTable->mMaterialBase[i] >> 4;
 #endif
         }
     }
@@ -534,7 +532,7 @@ void J3DModelLoader_v21::readMaterial_v21(const J3DMaterialBlock_v21* i_block, u
                 J3DGCAddressBits(&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)]) >> 4;
 #else
             mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
-                (u32)&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)] >> 4;
+                (uintptr_t)&mpMaterialTable->mMaterialBase[factory.getMaterialID(i)] >> 4;
 #endif
             mpMaterialTable->mMaterialNodePointer[i]->mpOrigMaterial =
                 &mpMaterialTable->mMaterialBase[factory.getMaterialID(i)];
@@ -603,7 +601,7 @@ void J3DModelLoader_v26::readMaterialTable(const J3DMaterialBlock* i_block, u32 
             J3DGCAddressBits(mpMaterialTable->mMaterialNodePointer) + factory.getMaterialID(i);
 #else
         mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
-            (u32)mpMaterialTable->mMaterialNodePointer + factory.getMaterialID(i);
+            (uintptr_t)mpMaterialTable->mMaterialNodePointer + factory.getMaterialID(i);
 #endif
     }
 }
@@ -630,7 +628,7 @@ void J3DModelLoader_v21::readMaterialTable_v21(const J3DMaterialBlock_v21* i_blo
             (J3DGCAddressBits(mpMaterialTable->mMaterialNodePointer) >> 4) + factory.getMaterialID(i);
 #else
         mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
-            ((u32)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
+            ((uintptr_t)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
 #endif
     }
 }
@@ -669,7 +667,7 @@ void J3DModelLoader::readPatchedMaterial(const J3DMaterialBlock* i_block, u32 i_
             (J3DGCAddressBits(mpMaterialTable->mMaterialNodePointer) >> 4) + factory.getMaterialID(i);
 #else
         mpMaterialTable->mMaterialNodePointer[i]->mDiffFlag =
-            ((u32)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
+            ((uintptr_t)mpMaterialTable->mMaterialNodePointer >> 4) + factory.getMaterialID(i);
 #endif
     }
 }
@@ -677,7 +675,6 @@ void J3DModelLoader::readPatchedMaterial(const J3DMaterialBlock* i_block, u32 i_
 /* 802FD390-802FD548       .text readMaterialDL__14J3DModelLoaderFPC18J3DMaterialDLBlockUl */
 void J3DModelLoader::readMaterialDL(const J3DMaterialDLBlock* i_block, u32 i_flags) {
     J3DMaterialFactory factory(*i_block);
-    s32 flags;
     if (mpMaterialTable->mMaterialNum == 0) {
         mpMaterialTable->mbIsLocked = 1;
         mpMaterialTable->mMaterialNum = i_block->mMaterialNum;
@@ -691,9 +688,8 @@ void J3DModelLoader::readMaterialDL(const J3DMaterialDLBlock* i_block, u32 i_fla
         mpMaterialTable->mMaterialNodePointer = new J3DMaterial*[mpMaterialTable->mMaterialNum];
         mpMaterialTable->mMaterialBase = NULL;
         for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
-            flags = i_flags;
             mpMaterialTable->mMaterialNodePointer[i] = factory.create(
-                NULL, J3DMaterialFactory::MATERIAL_TYPE_LOCKED, i, flags
+                NULL, J3DMaterialFactory::MATERIAL_TYPE_LOCKED, i, (u32)i_flags // cast fixes regalloc
             );
         }
         for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
@@ -701,10 +697,9 @@ void J3DModelLoader::readMaterialDL(const J3DMaterialDLBlock* i_block, u32 i_fla
         }
     } else {
         for (u16 i = 0; i < mpMaterialTable->mMaterialNum; i++) {
-            flags = i_flags;
             mpMaterialTable->mMaterialNodePointer[i] = factory.create(
                 mpMaterialTable->mMaterialNodePointer[i],
-                J3DMaterialFactory::MATERIAL_TYPE_LOCKED, i, flags
+                J3DMaterialFactory::MATERIAL_TYPE_LOCKED, i, (u32)i_flags // cast fixes regalloc
             );
         }
     }
