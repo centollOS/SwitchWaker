@@ -20,6 +20,11 @@
 # (COS_COMBAT_SWEEP_LIST / COS_COMBAT_SWEEP) or a room's own (COS_COMBAT_MODE=room), keeping the player
 # alive; native/tools/combat_sweep.py derives the enemies and the boss/minigame rooms and runs it
 # with COS_CACHE_PER_RUN=1 (native/src/pc/pc_combat_sweep.cpp lists its variables).
+# `item-sweep` (needs --stage, e.g. Asoko:0:0:2) gives every item through a chest's item-get demo
+# (COS_ITEM_SWEEP=<list> limits the items); native/tools/item_sweep.py goes on after stuck items and
+# faults. `save-sweep` (needs --stage or --preset) saves through the save screen's steps into the run's
+# card; `save-load` (COS_CARD_DIR=<that card>) loads it through the title and file select and
+# compares; native/tools/save_sweep.py runs both for several situations.
 #
 # Options:
 #   --timeout S      in-process watchdog timeout (COS_TIMEOUT_S), default 180 (720 with
@@ -63,6 +68,8 @@
 #                    and the 2D heap's children; a failed JKR allocation is always logged, bug B8)
 #   --alloc-max N    COS_ALLOC_FAILURES_MAX: a run that reaches --frames with more than N failed JKR
 #                    allocations exits 1 (bug B13: a heap too small that the game survives)
+#   --env N=V        export the COS_* variable N with value V for the run (a regress_targets.txt
+#                    line can set one so), e.g. --env COS_ITEM_SWEEP=0x22,0x38
 #   --build          run `ninja -C build/native-mac centollos` first
 #   --exe PATH       the executable (default build/native-mac/centollos)
 #   --run-dir DIR    put the run in DIR (created; must not exist yet) instead of
@@ -161,6 +168,12 @@ while [ $# -gt 0 ]; do
         --aspect) aspect="$2"; shift 2 ;;
         --heap-check) heap_check="$2"; shift 2 ;;
         --alloc-max) export COS_ALLOC_FAILURES_MAX="$2"; shift 2 ;;
+        --env)
+            case "$2" in
+                COS_[A-Z0-9_]*=*) export "${2?}" ;;
+                *) echo "run: --env needs COS_<NAME>=<value>" >&2; exit 2 ;;
+            esac
+            shift 2 ;;
         --build) do_build=1; shift ;;
         --exe) exe="$2"; shift 2 ;;
         --quiet) quiet=1; shift ;;

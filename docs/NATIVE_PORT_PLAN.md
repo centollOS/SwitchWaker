@@ -3577,6 +3577,60 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   of 1 for map 0`; after it all 2556 BDLs on the disc load and the sweep equals the manifest.
   Checked with COS_SHOT: the title sky and Outset (frame 690: houses, mailbox, trees, boat) draw correctly.
 
+- **Item sweep and save/load sweep** (2026-10-06, lane item-sweep). Two new diagnostic sweeps.
+  - `COS_SMOKE=item-sweep` (`native/src/pc/pc_item_sweep.cpp`, driver `native/tools/item_sweep.py`,
+    default stage `Asoko:0:0:2`): every item number whose `dItem_data::item_resource` names an
+    archive (214 of 0x00-0xFE; 41 have none and are skipped) is given the way the game gives it: a
+    big chest (takara3, parameters 0xFF200200, angle z = item << 8 | 0xFF) is created in the play
+    scene's layer at a fixed spot in front of the player (chest flag 4 cleared first, or the chest
+    is created open), the player walks to it until the A button says "Open" and presses A, and its
+    DEFAULT_TREASURE event (`fopAcM_createItemForTrBoxDemo`, the player's item-get demo, fanfare,
+    message, `execItemGet`) must end within 60 s of wall time, A every 45 frames for the message.
+    Items accumulate on the file. `<run>/item_sweep.txt`: a `begin` line per item (written before
+    the chest, so a fault names it), then `ok <frames> <s> got=<checkGetItem> shot=<frame>`,
+    `no-open`, `refused` or `stuck` (with the event name, the sub BGM flag, message-waits-for-music
+    and the message status; the event-watch report, `eventWatchReport`, goes to run.log). One shot per
+    item, 30 frames after its message opened. The driver restarts after a stuck item or a fault
+    from the next item and writes `<sweep>/item_sweep.txt` (name, archive, result, frames, seconds,
+    got, shot, detail, run); `EXPECTED` lists failures of the original data (`xfail`), `--rebuild DIR`
+    rewrites a report. `COS_ITEM_SWEEP=<list>` limits the items (`0x20-0x30,0x50`).
+  - `COS_SMOKE=save-sweep` / `save-load` (`native/src/pc/pc_save_sweep.cpp`, driver
+    `native/tools/save_sweep.py`): the first run boots a situation (stage, `COS_BOOT_EVENTS`,
+    `COS_BOOT_ITEMS`, `COS_BOOT_PRESET`; or the item sweep with `COS_ITEM_SWEEP_SAVE=1`) and saves into
+    an empty card in the run directory with the save screen's steps in their order
+    (`dMenu_save_c::memCardCheck`, game file creation, load, `memCardDataSave`:
+    `exchangePlayerRecollectionData`, `putSave`, `setGameStartStage`, checksum test, `dataWrite`,
+    `SaveSync`, then the card id and new-file flags), minus its screens; the GCI on disk must hold
+    the packed bytes (both copies); `save_expect.txt` gets a summary (return place, item slots,
+    status, every packed region in hex). The second run (`COS_CARD_DIR` = a copy of that card) boots
+    through the title (START), the name scene and the file select (A); when the name scene reaches
+    `changeGameScene` (it ran `dComIfGs_setCardToMemory`) the state is packed again and compared
+    region by region with file 1 of the card (only the save date differs), then the game must start
+    at the save's return place with the player in its room. Note: a debug-boot file without
+    `RODE_KORL` (0x2A08) always returns to Outset (`dComIfGs_setGameStartStage`, l_checkData), so the
+    dungeon cases set it. `run.sh --env COS_X=v` sets a variable from a regress line.
+  - Results (Mac, at most 2 runs at a time next to an ASan sweep; every run with
+    `COS_CACHE_PER_RUN=1`): item sweep on the fixed build (`build/native-mac/runs/item-sweeps-final-a`,
+    `-b`): 213 ok, 1 xfail (0x16), 0 stuck, 0 faults, no DSP halt in any run (about 20 s an item: 9.5 s for rupees and hearts, 21.5 s for the wind baton). Before the fix (`item-sweeps-full2a`, `-b`): 212 ok, 1 stuck
+    (0x25 GRAPPLING_HOOK: bug B33, the DSP ucode halted), 1 xfail. Save sweep
+    (`save-sweeps-full2`): 7 of 7 cases saved and loaded back equal, return places `sea 44 128`
+    (Outset, new file), `sea 44 0` (Outset after the boat ride), `sea 11 102` (on the boat, sailing
+    preset), `M_NewD2 0 0` (Dragon Roost Cavern), `kindan 0 1` (Forbidden Woods), `sea 11 0`
+    (Windfall), and the items case (49 chest items, then saved and loaded).
+  - Failures: real: B33 (fixed, see the known-bugs table). Expected: 0x16 RECOVER_FAIRY panics in
+    `daItemBase_c::CreateItemHeap` (d_a_itembase.cpp:85, no model): its item_resource entry uses
+    the Always archive's indices with the Fa archive (a data bug of the original game, noted in
+    d_item_data.cpp); the game makes fairies as NPC_FA1 actors, never as a demo item. Harness
+    artifacts fixed on the way: the first load comparison ran once the PLAY scene existed, after
+    Outset's mailbox (d_a_obj_toripost) had stocked letters into the event registers (0x7D03, 0xB503)
+    for the bomb bag and Farore's pearl, so it now runs at `changeGameScene`; a first full item
+    sweep was discarded because run.sh was edited while it ran (bash reads its script as it goes:
+    the running instance started centollos a second time over the same run directory).
+  - Regression: `item-sweep 0 --stage Asoko:0:0:2 --env COS_ITEM_SWEEP=0x22,0x38,0x78`,
+    `save-sweep 0 --stage M_NewD2:0:0 --env COS_BOOT_EVENTS=2A08`, `title-audio 0 --env
+    COS_DSP_INT_GAP_US=2000` (B33). The full sweeps are not in `regress_targets.txt` (about 25 s an
+    item). Open: using or equipping the items after the get is not tested.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
@@ -3810,3 +3864,4 @@ does. Check: `COS_SHOT=430,440,450,460 run --frames 470 --uncapped` (inspected, 
 | B14 | 2026-10-05, actor sweep under ASan with the JKR poisoning (step 6.9c, BMD, process 236) | all hosts | `JUTReport` (debug text, 19 game files call it; d_a_bmd's demo camera here): ASan reported a 16-byte strcpy write ending one byte past a JKR block in `JUTDbPrint::enter`. Cause: the entry (`unk_print`) is allocated as `length + 0x10`, the GameCube's 0xC-byte header plus room for the NUL; on the host the 8-byte `mNext` moves the text to 0x10, so the NUL went one byte past the block, into the next block's header when the size was a multiple of 4. Real damage on every host, rare (only some lengths), invisible without the poisoning. | fixed (lane room-sweep): under `TARGET_PC` the entry is `offsetof(unk_print, unk_0x0C) + length + 1` bytes (`JUTDbPrint.cpp`). Check (ASan build only, no regress line: the normal build cannot see a one-byte overrun): `COS_ACTOR_SWEEP=236 run.sh actor-sweep --stage sea:44:206 --uncapped --exe build/native-mac-asan/centollos` runs BMD its 30 frames |
 | B15 | 2026-10-05, actor sweep under ASan (step 6.9c, FGANON, process 243) | all hosts | The cape actor (`d_a_mant`, worn by Darknuts and the phantom boss): ASan reported a global-buffer-overflow on Aurora's FIFO worker hashing the cape's palette (`hash_texture_source` <- `resolve_static_palette_texture`), reading past `l_pg_mantle1_palettePAL` (32 bytes). Cause: the palettes hold 16 colours (the C4 texture's) but `GXInitTlutObj` is given 256 entries; the console's `GXLoadTlut` copied the 480 bytes after the palette into TMEM, unused, while Aurora hashes the whole TLUT and so read other globals (no fault seen, but the hash, and so the texture cache key, depended on unrelated memory). | fixed (lane room-sweep): under `TARGET_PC` the TLUT has 16 entries (`d_a_mant.cpp`). Check (ASan build): `COS_ACTOR_SWEEP=243 run.sh actor-sweep --stage sea:44:206 --uncapped --exe build/native-mac-asan/centollos` (FGANON runs its 30 frames, no report) |
 | B16 | 2026-10-04/05, room sweep (step 6.9c: `Ocean:0:2`, `Xboss3:0:0`, `Cave10:19:0`, `I_SubAN:16:0`, `sea:10:100`; the ASan actor sweep once) | all hosts (seen on the Mac) | A fault on the audio thread: SIGSEGV at pc 0 with x0 0 in `JASystem::Kernel::portCmdMain` (JASCmdStack.cpp:130) <- `subframeCallback`: a port command with neither function nor arguments (a never-set `TPortCmd`) reached `cmd_once`. About 1 boot in 400 (3 of 1106 in the last sweep), under load, every spec passing on its rerun; 30 more boots of those five specs and 16 of Ocean:0:2 did not reproduce it. The interrupt lock already taken in `portCmdMain` (an earlier fix of the same pc=0 symptom) orders `setPortCmd` before the list walk; the remaining host-only window was not found (the commands live in `PlayerParameter` arrays allocated once; `setParameterSeqSync` runs `outerInit` from the audio thread while `checkPlayingSeq` queues the same commands from the game thread; `setPortCmd` clears `mHead` of a command possibly still queued). | open, guarded (lane room-sweep): under `TARGET_PC` `addPortCmd` refuses a command without a function and logs it with its two callers (`[cos] JAS: port command ... without a function added from ... <- ...`), and `portCmdProcOnce`/`portCmdProcStay` skip one (logged): the audio thread can no longer call through 0, and the next occurrence names the caller. Watch the room sweeps for that line |
+| B33 | 2026-10-06, item sweep (lane item-sweep: `GRAPPLING_HOOK` 0x25 through a chest, 1 of 99 item events; the ASan sweep of the same night halted in 44 of its 630 runs) | all hosts | The item-get message never closed and DEFAULT_TREASURE ran forever: the stuck-event watch showed sub BGM 0x80000002 (`JA_BGM_ITEM_GET`) still playing, the message waiting for the music (d_msg checkMesgBgm / `mDoAud_checkPlayingSubBgmFlag`) and `[dsp-log] Zelda.cpp:159 Sync mail (00000000) received when rendering was not active. Halting.` earlier in the log: the HLE ucode had halted, no audio was rendered from then on, every sequence stopped where it was, so the fanfare never ended (the known "message cannot close while the fanfare plays" hang). Cause (host threading): at the end of a DSP frame the ucode queues the frame-done mails (0xDCD10004, 0xF355FFxx) and DONE_RENDERING (0xDCD10005), after which it blocks its commands until the CPU answers 0xCDD10003. Reading each mail raises the interrupt for the next, and the DSP interrupt thread released the OS lock between two handler calls: the audio thread, woken by the frame-done mail (syncDSP), could take the lock first and send the next `DsyncFrame` (0x82, queued, not run) and the release-halt sync mails before 0xDCD10005 was handled; the ucode saw a sync mail with no frame in progress and halted. On the console a pending interrupt is taken as soon as the handler returns, before any thread runs. More likely under load (sweeps, ASan). | fixed (lane item-sweep): `native/sdk/src/audio/DSP.cpp` handles every pending DSP interrupt under one hold of the OS lock (drains the mail queue before any thread runs). Diagnostics: the HLE keeps the last 64 mails both ways; when the ucode halts the log gets `[cos] dsp-mail:` lines naming them. Test knob `COS_DSP_INT_GAP_US` (a pause with the lock released): with the old loop and 2000 us `title-audio` fails 2 of 2 (RMS -999 dBFS, 0 sequence ticks, halt logged; the mail ring shows f355ff06, then 82075ffb's DsyncFrame and the sync mail 00000000 before 0xDCD10005 was answered), with the fix it passes 2 of 2 (-21.6 dBFS). Regression: `title-audio 0 --env COS_DSP_INT_GAP_US=2000` |

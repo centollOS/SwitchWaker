@@ -140,7 +140,8 @@ void prepareSaveSmoke();
 [[noreturn]] void smokeSave();
 // pc_save.cpp: points the card of slot A at the empty folder <COS_RUN_DIR>/card/ (before
 // CARDInit), so a run starts from a clean card and never touches the user's (`who` names the
-// caller in the log; exit PC_EXIT_USAGE without COS_RUN_DIR). runCardGciPath: the game's save file
+// caller in the log; exit PC_EXIT_USAGE without COS_RUN_DIR; COS_CARD_DIR names another folder,
+// e.g. the card a COS_SMOKE=save-sweep run wrote). runCardGciPath: the game's save file
 // in that folder, nullptr when prepareRunCard was not called.
 void prepareRunCard(const char* who);
 const char* runCardGciPath();
@@ -300,8 +301,21 @@ void windScreenFrame(unsigned int frames);
 void kyProcsFrame(unsigned int frames);
 // COS_SMOKE=chest (pc_chest.cpp): the chest after Niko's rope lesson.
 void chestFrame(unsigned int frames);
+// COS_SMOKE=item-sweep (pc_item_sweep.cpp): every item through a chest's item-get demo.
+void itemSweepFrame(unsigned int frames);
+// Save/load sweep (pc_save_sweep.cpp): COS_SMOKE=save-sweep saves through the save screen's steps,
+// COS_SMOKE=save-load loads that card through the title and file select and compares.
+// saveSweepStart begins the save (`who` names the caller in the log); saveSweepWantsRunCard: the
+// run needs prepareRunCard before CARDInit; saveLoadNameScene gets the name scene's procedures.
+void saveSweepFrame(unsigned int frames);
+void saveSweepStart(const char* who);
+bool saveSweepWantsRunCard();
+void saveLoadNameScene(int mainProc, int memCardCheckProc, int drawProc);
 // Stuck-event watch (pc_event_watch.cpp): logs an event that runs for more than 20 s.
 void eventWatchFrame(unsigned int frames);
+// The same report on demand (the running event, its staff and cuts, the sub BGM and message
+// state); COS_SMOKE=item-sweep logs it for an item whose event does not end.
+void eventWatchReport(unsigned int frames);
 // COS_SMOKE=stage-hop (pc_stage_hop.cpp): door-like scene changes through COS_STAGE_HOP.
 void stageHopFrame(unsigned int frames);
 // COS_SMOKE=camera-invert (pc_camera_invert.cpp): the inverted camera axes.

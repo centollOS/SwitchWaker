@@ -312,6 +312,10 @@ void pc_aurora_init(int argc, char* argv[]) {
     if (menuSmokeWantsRunCard()) {
         prepareRunCard("options-menu");
     }
+    // The save/load sweep (pc_save_sweep.cpp) writes and reads its own card.
+    if (saveSweepWantsRunCard()) {
+        prepareRunCard(gConfig.smoke);
+    }
 
     // Smoke tests that need Aurora and OSInit but none of the game's main code (heap) end here.
     runAuroraSmoke();

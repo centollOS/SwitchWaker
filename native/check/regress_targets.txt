@@ -53,6 +53,9 @@ static-init 2 --stage sea
 
 # step 5.5: after the title, the AI output is above -40 dBFS RMS and the sequence ticks advance
 title-audio 0
+# bug B33: the DSP interrupt thread handles every pending DSP interrupt under one hold of the OS lock;
+# COS_DSP_INT_GAP_US widens the window a thread switch opens: without the fix the ucode halts (silence)
+title-audio 0 --env COS_DSP_INT_GAP_US=2000
 
 # milestone M12 (boot loop, lane outset): debug stage boot puts the player in Outset
 outset-debug 0 --stage sea:44:206
@@ -145,6 +148,12 @@ ky-procs 0 --preset sailing
 # COS_SMOKE=chest: the chest of Niko's rope lesson (takara3, the Spoils Bag) created in front of the player on
 # Tetra's ship and opened end to end (DEFAULT_TREASURE starts and ends); the stuck-event watch logs it
 chest 0 --stage Asoko:0:0:2
+# COS_SMOKE=item-sweep (native/tools/item_sweep.py runs every item): three items through a big chest's
+# item-get demo (the wind baton, the sword, the sail); each DEFAULT_TREASURE event must end, fanfare included
+item-sweep 0 --stage Asoko:0:0:2 --env COS_ITEM_SWEEP=0x22,0x38,0x78 --env COS_ITEM_SWEEP_SHOTS=0
+# COS_SMOKE=save-sweep (native/tools/save_sweep.py also loads each save back): a save in Dragon Roost
+# Cavern through the save screen's steps; the card must hold what the game packed, return place its entrance
+save-sweep 0 --stage M_NewD2:0:0 --env COS_BOOT_EVENTS=2A08
 # COS_SMOKE=camera-invert: the options' inverted camera axes (Gráficos > "Invertir cámara horizontal" /
 # "vertical"): the C stick turns the camera's yaw and pitch the opposite way with the axis inverted,
 # and the wind baton's left hand still reads the C stick's real direction

@@ -59,6 +59,8 @@
 #include <cstdint>
 #include <cstring>
 #include <mutex>
+#include <cstdlib>
+#include <thread>
 
 namespace aurora {
 // Aurora's configuration (lib/aurora.cpp); mem1Size is the size of the MEM1 block.
@@ -204,6 +206,14 @@ void WriteControlLocked(u16 value) {
 
 // ---- the DSP interrupt thread -----------------------------------------------------------------
 
+unsigned IntGapUs() {
+    static const unsigned gap = [] {
+        const char* v = std::getenv("COS_DSP_INT_GAP_US");
+        return v != nullptr ? (unsigned)std::strtoul(v, nullptr, 10) : 0u;
+    }();
+    return gap;
+}
+
 void* InterruptThreadMain(void*) {
     {
         std::lock_guard<std::mutex> os(Lock());
@@ -220,22 +230,39 @@ void* InterruptThreadMain(void*) {
             std::lock_guard<std::mutex> dsp(DspMutex());
             cos_dsp_hle::Update();
         }
-        while (sDspInt.load()) {
+        // Every interrupt the DSP has pending is handled under one hold of the OS lock: the
+        // console takes a pending interrupt as soon as the handler returns, before any thread
+        // runs again. Reading a mail in the handler raises the interrupt for the next queued one
+        // (Dolphin's CMailHandler::ReadDSPMailboxLow), so the loop drains the DSP's mail queue.
+        // Releasing the lock between two handlers let the audio thread, woken by the first (the
+        // frame-done mail, syncDSP), send its next DsyncFrame and the release-halt sync mails
+        // before the second, DONE_RENDERING (0xDCD10005), was answered with 0xCDD10003: the ucode
+        // still blocked its commands, saw a sync mail with no frame being rendered and halted
+        // ("Sync mail received when rendering was not active"); no audio was rendered after that,
+        // every sequence stopped, and the item-get message waited forever for its fanfare.
+        if (sDspInt.load()) {
             std::unique_lock<std::mutex> os(Lock());
             tInterruptsDisabled = true; // the handler runs "in interrupt context"
-            if (ShuttingDownLocked()) {
-                tInterruptsDisabled = false;
-                return nullptr;
+            while (sDspInt.load()) {
+                if (ShuttingDownLocked()) {
+                    tInterruptsDisabled = false;
+                    return nullptr;
+                }
+                const __OSInterruptHandler handler = __OSGetInterruptHandler(__OS_INTERRUPT_DSP_DSP);
+                if (handler == nullptr) {
+                    break;
+                }
+                OSContext context;
+                std::memset(&context, 0, sizeof(context));
+                handler(__OS_INTERRUPT_DSP_DSP, &context);
             }
-            const __OSInterruptHandler handler = __OSGetInterruptHandler(__OS_INTERRUPT_DSP_DSP);
-            if (handler == nullptr || !sDspInt.load()) {
-                tInterruptsDisabled = false;
-                break;
-            }
-            OSContext context;
-            std::memset(&context, 0, sizeof(context));
-            handler(__OS_INTERRUPT_DSP_DSP, &context);
             tInterruptsDisabled = false;
+        }
+        // COS_DSP_INT_GAP_US (a test knob, bug B33): a pause after each drain, with the OS lock
+        // released, as long as a thread switch under load; with the lock released between two
+        // handlers (before the fix) it made the DSP halt within seconds.
+        if (const unsigned gap = IntGapUs()) {
+            std::this_thread::sleep_for(std::chrono::microseconds(gap));
         }
     }
 }

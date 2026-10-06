@@ -19,6 +19,7 @@
 #include <zlib.h>
 
 #include "Common/CommonTypes.h"
+#include "cos_dsp_hle.h"
 #include "Common/Hash.h"
 #include "Common/Logging/Log.h"
 #include "Common/MemoryUtil.h"
@@ -49,6 +50,14 @@ void GenericLogFmtImpl(LogLevel level, LogType, const char* file, int line,
     return;
   const std::string message = fmt::vformat(format, args);
   std::fprintf(stderr, "[dsp-log] %s:%d %s\n", file, line, message.c_str());
+  // The ucode halted on a mail it did not expect: no audio is rendered from here on. Name the
+  // mails that led there (once a run).
+  static bool dumped = false;
+  if (!dumped && message.find("Halting") != std::string::npos)
+  {
+    dumped = true;
+    cos_dsp_hle::DumpRecentMails("the DSP ucode halted");
+  }
 }
 }  // namespace Log
 
