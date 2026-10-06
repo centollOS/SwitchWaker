@@ -6,8 +6,7 @@
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "d/d_kankyo_rain.h"
 #if TARGET_PC
-#include "pc/pc_gpu_opts.h"
-#include "m_Do/m_Do_graphic.h"
+#include "pc/game_hooks.h"
 #endif
 #include "d/d_bg_s_gnd_chk.h"
 #include "d/d_bg_s_roof_chk.h"
@@ -5403,133 +5402,6 @@ void drawWave(Mtx drawMtx, u8** pImg) {
 }
 
 /* 8009A5D4-8009AB88       .text drawCloudShadow__FPA4_fPPUc */
-#if TARGET_PC
-// The whole EFB (logical 640x480) into an RGBA8 copy texture named by buf.
-static void pcMistCopyEfb(void* buf) {
-    GXSetTexCopySrc(0, 0, 640, 480);
-    GXSetTexCopyDst(640, 480, GX_TF_RGBA8, GX_FALSE);
-    GXCopyTex(buf, GX_FALSE);
-    GXPixModeSync();
-}
-
-// Draws the RGBA8 copy texture named by buf over the current viewport: premultiplied over the EFB
-// (ONE, INV_SRC_ALPHA; colour only) when blend, else replacing colour and alpha (nearest texels).
-void pcMistDrawFullscreen(void* buf, GXBool blend, u32 w, u32 h) {
-    GXTexObj texObj;
-    GXInitTexObj(&texObj, buf, w, h, GX_TF_RGBA8, GX_CLAMP, GX_CLAMP, GX_FALSE);
-    const GXTexFilter filter = blend ? GX_LINEAR : GX_NEAR;
-    GXInitTexObjLOD(&texObj, filter, filter, 0.0f, 0.0f, 0.0f, GX_FALSE, GX_FALSE, GX_ANISO_1);
-    GXLoadTexObj(&texObj, GX_TEXMAP0);
-    GXSetNumChans(0);
-    GXSetNumTexGens(1);
-    GXSetTexCoordGen(GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY);
-    GXSetNumTevStages(1);
-    GXSetNumIndStages(0);
-    GXSetTevDirect(GX_TEVSTAGE0);
-    GXSetTevOrder(GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR_NULL);
-    GXSetTevColorIn(GX_TEVSTAGE0, GX_CC_ZERO, GX_CC_ZERO, GX_CC_ZERO, GX_CC_TEXC);
-    GXSetTevColorOp(GX_TEVSTAGE0, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV);
-    GXSetTevAlphaIn(GX_TEVSTAGE0, GX_CA_ZERO, GX_CA_ZERO, GX_CA_ZERO, GX_CA_TEXA);
-    GXSetTevAlphaOp(GX_TEVSTAGE0, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV);
-    if (blend) {
-        GXSetBlendMode(GX_BM_BLEND, GX_BL_ONE, GX_BL_INV_SRC_ALPHA, GX_LO_SET);
-        GXSetColorUpdate(GX_TRUE);
-        GXSetAlphaUpdate(GX_FALSE);
-    } else {
-        GXSetBlendMode(GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_SET);
-        GXSetColorUpdate(GX_TRUE);
-        GXSetAlphaUpdate(GX_TRUE);
-    }
-    GXSetAlphaCompare(GX_ALWAYS, 0, GX_AOP_OR, GX_ALWAYS, 0);
-    GXSetZMode(GX_FALSE, GX_ALWAYS, GX_FALSE);
-    GXSetFog(GX_FOG_NONE, 0.0f, 1.0f, 0.1f, 1.0f, g_clearColor);
-    GXSetFogRangeAdj(GX_FALSE, 0, NULL);
-    GXSetCullMode(GX_CULL_NONE);
-    Mtx44 ortho;
-    C_MTXOrtho(ortho, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 10.0f);
-    GXSetProjection(ortho, GX_ORTHOGRAPHIC);
-    GXLoadPosMtxImm(cMtx_getIdentity(), GX_PNMTX1);
-    GXSetCurrentMtx(GX_PNMTX1);
-    GXClearVtxDesc();
-    GXSetVtxDesc(GX_VA_POS, GX_DIRECT);
-    GXSetVtxDesc(GX_VA_TEX0, GX_DIRECT);
-    GXSetVtxAttrFmt(GX_VTXFMT1, GX_VA_POS, GX_POS_XYZ, GX_S8, 0);
-    GXSetVtxAttrFmt(GX_VTXFMT1, GX_VA_TEX0, GX_TEX_ST, GX_S8, 0);
-    GXBegin(GX_QUADS, GX_VTXFMT1, 4);
-    GXPosition3s8(0, 0, -5);
-    GXTexCoord2s8(0, 0);
-    GXPosition3s8(1, 0, -5);
-    GXTexCoord2s8(1, 0);
-    GXPosition3s8(1, 1, -5);
-    GXTexCoord2s8(1, 1);
-    GXPosition3s8(0, 1, -5);
-    GXTexCoord2s8(0, 1);
-    GXEnd();
-    view_class* view = dComIfGd_getView();
-    if (view != NULL) {
-        GXSetProjection(view->mProjMtx, GX_PERSPECTIVE);
-    }
-    GXSetCurrentMtx(GX_PNMTX0);
-}
-
-static void pcMistDrawFullscreen(void* buf, GXBool blend) {
-    pcMistDrawFullscreen(buf, blend, 640, 480);
-}
-#endif
-
-#if TARGET_PC
-// COS_MIST_LOWRES (pc_gpu_opts.h; docs/SWITCH_PERF_STUDY.md, section 8): the forest mist
-// ("moya", up to 100 camera-facing sprites drawn with no depth test, blended with
-// SRC_ALPHA/INV_SRC_ALPHA) costs 10-12 screens of blended fragments in A_mori at 1280x720. Drawn
-// into an offscreen target 1/divisor the EFB's size and composited, the result is the same
-// blend: each sprite i of alpha a_i and colour c_i turns the scene S into S(1-a_i) + c_i a_i, so
-// after all of them S' = S T + M with T = prod(1-a_i) and M the sprites blended over black. Pass 1
-// accumulates M in the target's colour (the original blend, colour only); pass 2 accumulates
-// D = 1-T in its alpha (blend ONE/INV_SRC_ALPHA, alpha only: D' = a + D(1-a)); the composite
-// draws the target over the EFB with ONE/INV_SRC_ALPHA: S' = M + S(1-D). The EFB alpha is left
-// as it was (the original also blended the sprites' alpha into it).
-template <typename F>
-static void drawCloudShadowLowres(F& drawSprites, void* buf, u32 w, u32 h, view_port_class* vp) {
-    f32 viewport[6];
-    GXGetViewportv(viewport);
-    u32 scLeft, scTop, scWidth, scHeight;
-    GXGetScissor(&scLeft, &scTop, &scWidth, &scHeight);
-    GXCreateFrameBuffer(w, h);
-    GXSetViewport(0.0f, 0.0f, (f32)w, (f32)h, vp->mNearZ, vp->mFarZ);
-    GXSetScissor(0, 0, w, h);
-
-    // Pass 1: colour, the original blend (state set by drawCloudShadow).
-    GXSetColorUpdate(GX_TRUE);
-    GXSetAlphaUpdate(GX_FALSE);
-    drawSprites();
-
-    // Pass 2: coverage D in alpha; fog only changes colour.
-    GXSetBlendMode(GX_BM_BLEND, GX_BL_ONE, GX_BL_INV_SRC_ALPHA, GX_LO_SET);
-    GXSetColorUpdate(GX_FALSE);
-    GXSetAlphaUpdate(GX_TRUE);
-    GXSetFog(GX_FOG_NONE, 0.0f, 1.0f, 0.1f, 1.0f, g_clearColor);
-    GXSetFogRangeAdj(GX_FALSE, 0, NULL);
-    drawSprites();
-
-    GXSetTexCopySrc(0, 0, w, h);
-    GXSetTexCopyDst(w, h, GX_TF_RGBA8, GX_FALSE);
-    GXCopyTex(buf, GX_FALSE);
-    GXRestoreFrameBuffer();
-    GXSetViewport(viewport[0], viewport[1], viewport[2], viewport[3], viewport[4], viewport[5]);
-    GXSetScissor(scLeft, scTop, scWidth, scHeight);
-
-    // Composite: S' = M + S(1-D), colour only.
-    pcMistDrawFullscreen(buf, GX_TRUE, w, h);
-
-    // Leave the state as the original drawing did.
-    GXSetBlendMode(GX_BM_BLEND, GX_BL_SRC_ALPHA, GX_BL_INV_SRC_ALPHA, GX_LO_SET);
-    GXSetAlphaCompare(GX_GREATER, 0, GX_AOP_OR, GX_GREATER, 0);
-    GXSetAlphaUpdate(GX_TRUE);
-    GXSetZMode(GX_FALSE, GX_LEQUAL, GX_FALSE);
-    dKy_GxFog_set();
-}
-#endif
-
 void drawCloudShadow(Mtx drawMtx, u8** pImg) {
     dScnKy_env_light_c& envLight = dKy_getEnvlight();
     camera_process_class *pCamera = (camera_process_class*)dComIfGp_getCamera(0);
@@ -5580,8 +5452,9 @@ void drawCloudShadow(Mtx drawMtx, u8** pImg) {
     dKyr_set_btitex(&texObj, (ResTIMG*)pImg[0]);
 
 #if TARGET_PC
-    // The GX state of the sprites, as a lambda: COS_MIST_AB redraws them after other drawing.
+    // The GX state of the sprites, as a lambda: COS_MIST_AB redraws them (pc_kyr_draw_mist).
     auto setupState = [&]() {
+#endif
     GXSetNumChans(0);
     GXSetTevColor(GX_TEVREG0, reg0);
     GXSetTevColor(GX_TEVREG1, reg1);
@@ -5604,33 +5477,11 @@ void drawCloudShadow(Mtx drawMtx, u8** pImg) {
     GXClearVtxDesc();
     GXSetVtxDesc(GX_VA_POS, GX_DIRECT);
     GXSetVtxDesc(GX_VA_TEX0, GX_DIRECT);
+#if TARGET_PC
         GXLoadPosMtxImm(drawMtx, GX_PNMTX0);
         GXSetCurrentMtx(GX_PNMTX0);
     };
     setupState();
-#else
-    GXSetNumChans(0);
-    GXSetTevColor(GX_TEVREG0, reg0);
-    GXSetTevColor(GX_TEVREG1, reg1);
-    GXSetNumTexGens(1);
-    GXSetTexCoordGen(GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY);
-    GXSetNumTevStages(1);
-    GXSetTevOrder(GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR_NULL);
-    GXSetTevColorIn(GX_TEVSTAGE0, GX_CC_C1, GX_CC_C0, GX_CC_TEXC, GX_CC_ZERO);
-    GXSetTevColorOp(GX_TEVSTAGE0, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, true, GX_TEVPREV);
-    GXSetTevAlphaIn(GX_TEVSTAGE0, GX_CA_ZERO, GX_CA_A0, GX_CA_TEXA, GX_CA_ZERO);
-    GXSetTevAlphaOp(GX_TEVSTAGE0, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, true, GX_TEVPREV);
-    dKy_GxFog_set();
-    GXSetBlendMode(GX_BM_BLEND, GX_BL_SRC_ALPHA, GX_BL_INV_SRC_ALPHA, GX_LO_SET);
-    GXSetAlphaCompare(GX_GREATER, 0, GX_AOP_OR, GX_GREATER, 0);
-    GXSetZMode(GX_FALSE, GX_LEQUAL, GX_FALSE);
-    GXSetCullMode(GX_CULL_NONE);
-    GXSetNumIndStages(0);
-    GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
-    GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_S16, 8);
-    GXClearVtxDesc();
-    GXSetVtxDesc(GX_VA_POS, GX_DIRECT);
-    GXSetVtxDesc(GX_VA_TEX0, GX_DIRECT);
 #endif
     MTXRotDeg(rotMtx, 'Z', rot);
     MTXConcat(camMtx, rotMtx, camMtx);
@@ -5641,9 +5492,10 @@ void drawCloudShadow(Mtx drawMtx, u8** pImg) {
     GXSetCurrentMtx(GX_PNMTX0);
 
 #if TARGET_PC
-    // COS_MIST_LOWRES (pc_gpu_opts.h): the same sprites, drawn by a lambda so the reduced-
-    // resolution path can draw them twice.
+    // COS_MIST_LOWRES and COS_MIST_AB (pc_gpu_opts.h): the sprites, drawn by a lambda so
+    // pc_kyr_draw_mist (native/src/pc/game_hooks/pc_gpu_hooks.cpp) can draw them more than once.
     auto drawSprites = [&]() {
+#endif
     for (s32 i = 0; i < pPkt->mCount; i++) {
         f32 size = pPkt->mEff[i].mSize;
         if (pPkt->mEff[i].mAlpha <= 0.000001f)
@@ -5702,99 +5554,9 @@ void drawCloudShadow(Mtx drawMtx, u8** pImg) {
         GXEnd();
     }
 
+#if TARGET_PC
     };
-    view_port_class* pcViewport = dComIfGp_getCurrentViewport();
-    unsigned int pcMistW = 0, pcMistH = 0;
-    void* pcMistBuf = NULL;
-    // The sprites have no depth test, so drawn alone into a smaller target and composited they
-    // give the same image, blurred by the upscale only. Not while something after the filter
-    // list reads the EFB alpha this pass would no longer write (spot lights, motion blur), nor
-    // with a viewport other than the whole EFB.
-    if (pc_mist_lowres() > 1 && dComIfGd_getSpotModelNum() == 0 && !mDoGph_gInf_c::isBlure() &&
-        pcViewport != NULL && pcViewport->mXOrig == 0.0f && pcViewport->mYOrig == 0.0f &&
-        pcViewport->mWidth == 640.0f && pcViewport->mHeight == 480.0f &&
-        (pcMistBuf = pc_mist_lowres_target(&pcMistW, &pcMistH)) != NULL) {
-        if (pc_mist_ab_frame()) {
-            // COS_MIST_AB (pc_gpu_opts.h): both ways from the same scene, each copied for display
-            // in the next two frames, the original last so this frame goes on as usual.
-            pcMistCopyEfb(pc_mist_ab_buffer(0));
-            drawCloudShadowLowres(drawSprites, pcMistBuf, pcMistW, pcMistH, pcViewport);
-            pcMistCopyEfb(pc_mist_ab_buffer(2));
-            pcMistDrawFullscreen(pc_mist_ab_buffer(0), GX_FALSE);
-            dKy_GxFog_set();
-            GXSetBlendMode(GX_BM_BLEND, GX_BL_SRC_ALPHA, GX_BL_INV_SRC_ALPHA, GX_LO_SET);
-            GXSetAlphaCompare(GX_GREATER, 0, GX_AOP_OR, GX_GREATER, 0);
-            GXSetZMode(GX_FALSE, GX_LEQUAL, GX_FALSE);
-            GXSetColorUpdate(GX_TRUE);
-            GXSetAlphaUpdate(GX_TRUE);
-            setupState();
-            drawSprites();
-            pcMistCopyEfb(pc_mist_ab_buffer(1));
-        } else {
-            drawCloudShadowLowres(drawSprites, pcMistBuf, pcMistW, pcMistH, pcViewport);
-        }
-    } else {
-        drawSprites();
-    }
-#else
-    for (s32 i = 0; i < pPkt->mCount; i++) {
-        f32 size = pPkt->mEff[i].mSize;
-        if (pPkt->mEff[i].mAlpha <= 0.000001f)
-            continue;
-
-        GXLoadTexObj(&texObj, GX_TEXMAP0);
-
-        reg0.a = pPkt->mEff[i].mAlpha * 255.0f;
-        GXSetTevColor(GX_TEVREG0, reg0);
-
-        p.x = pPkt->mEff[i].mBasePos.x + pPkt->mEff[i].mPos.x;
-        p.y = pPkt->mEff[i].mBasePos.y + pPkt->mEff[i].mPos.y;
-        p.z = pPkt->mEff[i].mBasePos.z + pPkt->mEff[i].mPos.z;
-
-        vp.x = -size;
-        vp.y = size;
-        vp.z = 0.0f;
-        MTXMultVec(camMtx, &vp, &lp);
-        pos[0].x = p.x + lp.x;
-        pos[0].y = p.y + lp.y;
-        pos[0].z = p.z + lp.z;
-
-        vp.x = size;
-        vp.y = size;
-        vp.z = 0.0f;
-        MTXMultVec(camMtx, &vp, &lp);
-        pos[1].x = p.x + lp.x;
-        pos[1].y = p.y + lp.y;
-        pos[1].z = p.z + lp.z;
-
-        vp.x = size;
-        vp.y = -size;
-        vp.z = 0.0f;
-        MTXMultVec(camMtx, &vp, &lp);
-        pos[2].x = p.x + lp.x;
-        pos[2].y = p.y + lp.y;
-        pos[2].z = p.z + lp.z;
-
-        vp.x = -size;
-        vp.y = -size;
-        vp.z = 0.0f;
-        MTXMultVec(camMtx, &vp, &lp);
-        pos[3].x = p.x + lp.x;
-        pos[3].y = p.y + lp.y;
-        pos[3].z = p.z + lp.z;
-
-        GXBegin(GX_QUADS, GX_VTXFMT0, 4);
-        GXPosition3f32(pos[0].x, pos[0].y, pos[0].z);
-        GXTexCoord2s16(0, 0);
-        GXPosition3f32(pos[1].x, pos[1].y, pos[1].z);
-        GXTexCoord2s16(0xFF, 0);
-        GXPosition3f32(pos[2].x, pos[2].y, pos[2].z);
-        GXTexCoord2s16(0xFF, 0xFF);
-        GXPosition3f32(pos[3].x, pos[3].y, pos[3].z);
-        GXTexCoord2s16(0, 0xFF);
-        GXEnd();
-    }
-
+    pc_kyr_draw_mist(drawSprites, setupState);
 #endif
     GXSetClipMode(GX_CLIP_ENABLE);
 #if VERSION > VERSION_JPN

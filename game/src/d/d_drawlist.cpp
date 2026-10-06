@@ -7,6 +7,7 @@
 #if TARGET_PC
 #include "pc/pc_aspect.h"
 #include "pc/pc_gpu_opts.h"
+#include "pc/game_hooks.h"
 #endif
 #include "d/d_drawlist.h"
 #include "d/d_com_inf_game.h"
@@ -1591,12 +1592,8 @@ void dDlst_shadowControl_c::imageDraw(Mtx mtx) {
     #include "assets/l_matDL__imageDraw__21dDlst_shadowControl_cFPA4_f.h"
 
 #if TARGET_PC
-    // COS_SHADOW_OFFSCREEN=1 (pc_gpu_opts.h): draw the casters into an offscreen target the size
-    // of the EFB region they would use (256x256 logical, at the internal resolution) instead of
-    // the EFB's corner, so the main EFB pass is neither broken nor partially cleared per shadow.
-    // In an offscreen target logical coordinates are its pixels: viewport, scissor and copy
-    // source span it, and the copy keeps the size Aurora gives the 128x128 copy from the EFB, so
-    // the I4 textures (and the shadows drawn with them) are the same.
+    // COS_SHADOW_OFFSCREEN (pc_gpu_opts.h): the casters into an offscreen target instead of the
+    // EFB's corner (native/src/pc/game_hooks/pc_gpu_hooks.cpp).
     bool offscreen = false;
     if (pc_shadow_offscreen()) {
         for (s32 i = 0; i < (s32)ARRAY_SIZE(mReal); i++) {
@@ -1606,20 +1603,9 @@ void dDlst_shadowControl_c::imageDraw(Mtx mtx) {
             }
         }
     }
-    if (offscreen) {
-        // COS_SHADOW_OFFSCREEN=gc: the GameCube's 256x256 and 128x128, whatever the resolution.
-        unsigned int w = 256, h = 256, dstW = 128, dstH = 128;
-        if (pc_shadow_offscreen() == PC_SHADOW_OFFSCREEN_SAME) {
-            pc_efb_pixel_size(256, 256, &w, &h);
-            pc_efb_pixel_size(128, 128, &dstW, &dstH);
-        }
-        GXCreateFrameBuffer(w, h);
-        GXSetViewport(0.0f, 0.0f, (f32)w, (f32)h, 0.0f, 1.0f);
-        GXSetScissor(0, 0, w, h);
-        GXSetTexCopySrc(0, 0, w, h);
-        GXSetTexCopyDst(dstW, dstH, GX_TF_I4, GX_TRUE);
-        pc_shadow_offscreen_opened(w, h, dstW, dstH);
-    } else
+    if (offscreen)
+        pc_shadow_image_offscreen_open();
+    else
 #endif
     {
     GXSetViewport(0.0f, 0.0f, 256.0f, 256.0f, 0.0f, 1.0f);

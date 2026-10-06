@@ -8,11 +8,9 @@
 #include "pc/pc_aspect.h"
 #include "pc/pc_gpu_opts.h"
 #include "pc/pc_dynres.h"
+#include "pc/game_hooks.h"
 // COS_GPU_GROUPS (pc_gpu_opts.h): a GX debug marker before each bucket the GPU timer groups by.
 #define PC_GPU_GROUP(name) pc_gpu_group(name)
-// COS_SKY_LOWRES: whether a draw buffer holds any packet.
-static bool pcDrawBufferUsed(J3DDrawBuffer* buffer);
-void pcMistDrawFullscreen(void* buf, GXBool blend, u32 w, u32 h); // d_kankyo_rain.cpp
 #else
 #define PC_GPU_GROUP(name) ((void)0)
 #endif
@@ -1582,20 +1580,6 @@ void setLight() {
 }
 
 /* 8000AF2C-8000BC38       .text mDoGph_Painter__Fv */
-#if TARGET_PC
-static bool pcDrawBufferUsed(J3DDrawBuffer* buffer) {
-    if (buffer == NULL) {
-        return false;
-    }
-    for (u32 i = 0; i < buffer->getEntryTableSize(); i++) {
-        if (buffer->getEntryPacket((u16)i) != NULL) {
-            return true;
-        }
-    }
-    return false;
-}
-#endif
-
 bool mDoGph_Painter() {
 #if VERSION > VERSION_DEMO
     JFWDisplay::getManager()->setFader(mDoGph_gInf_c::mFader);
@@ -1677,43 +1661,16 @@ bool mDoGph_Painter() {
             j3dSys.setViewMtx(camera->view.mViewMtx);
             dKy_setLight();
 #if TARGET_PC
-            // COS_SKY_LOWRES (pc_gpu_opts.h): the sky lists into a smaller target, stretched back.
-            const bool pcSkyLowres = pc_sky_lowres_begin(
-                viewport_p->mNearZ, viewport_p->mFarZ,
-                pcDrawBufferUsed(g_dComIfG_gameInfo.drawlist.mpOpaListSky) ||
-                    pcDrawBufferUsed(g_dComIfG_gameInfo.drawlist.mpXluListSky),
-                g_dComIfG_gameInfo.drawlist.mpCopy2D == &g_dComIfG_gameInfo.drawlist.mpCopy2DArr[0]);
-            if (pcSkyLowres) {
-                GXSetProjection(camera->view.mProjMtx, GX_PERSPECTIVE);
-                j3dSys.reinitGX();
-                J3DShape::resetVcdVatCache();
-                dKy_setLight();
-            }
+            // COS_SKY_LOWRES (pc_gpu_opts.h): the sky lists into a smaller target, stretched back
+            // (native/src/pc/game_hooks/pc_gpu_hooks.cpp).
+            const bool pcSkyLowres = pc_gph_sky_lowres_begin(camera, viewport_p);
 #endif
             PC_GPU_GROUP("sky");
             dComIfGd_drawOpaListSky();
             dComIfGd_drawXluListSky();
 #if TARGET_PC
-            if (pcSkyLowres) {
-                pc_sky_lowres_end();
-                if (pc_sky_ab_frame()) {
-                    // COS_SKY_AB: keep this result, redraw the sky the original way from the same
-                    // cleared EFB, keep that too (shown in the next two frames).
-                    pc_ab_copy_efb(pc_mist_ab_buffer(2));
-                    pc_sky_ab_restore();
-                    GXSetProjection(camera->view.mProjMtx, GX_PERSPECTIVE);
-                    j3dSys.reinitGX();
-                    J3DShape::resetVcdVatCache();
-                    dKy_setLight();
-                    dComIfGd_drawOpaListSky();
-                    dComIfGd_drawXluListSky();
-                    pc_ab_copy_efb(pc_mist_ab_buffer(1));
-                }
-                j3dSys.reinitGX();
-                J3DShape::resetVcdVatCache();
-                GXSetProjection(camera->view.mProjMtx, GX_PERSPECTIVE);
-                dKy_setLight();
-            }
+            if (pcSkyLowres)
+                pc_gph_sky_lowres_end(camera); // and COS_SKY_AB's redraw the original way
 #endif
 
             if (!dMenu_flag() && dPa_control_c::isStatus(0x01))
@@ -2053,12 +2010,7 @@ bool mDoGph_Painter() {
         dComIfGp_particle_draw2Dfore(&jpaDrawInfo2D);
     dComIfGp_particle_draw2DmenuFore(&jpaDrawInfo2D);
 #if TARGET_PC
-    // COS_MIST_AB (pc_gpu_opts.h): show the A/B frame's copies over everything.
-    if (void* abBuf = pc_mist_ab_show()) {
-        GXSetViewport(0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 1.0f);
-        GXSetScissor(0, 0, 640, 480);
-        pcMistDrawFullscreen(abBuf, GX_FALSE, 640, 480);
-    }
+    pc_gph_mist_ab_show(); // COS_MIST_AB (pc_gpu_opts.h): the A/B frame's copies over everything
 #endif
 
     mDoGph_gInf_c::endRender();
