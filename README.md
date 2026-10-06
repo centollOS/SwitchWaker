@@ -135,7 +135,10 @@ Full guide: [docs/SWITCH_BUILD.md](docs/SWITCH_BUILD.md).
 ## Status
 
 Boots and plays on the Mac and the Switch, with sound, controllers, memory-card saves and an
-options menu; testing so far covers mostly the opening island and a few other areas. The Switch
+options menu. Played by hand mostly on the opening island and a few other areas; automated sweeps
+run on the Mac over every stage and room, every actor, particle effect, model and screen, every event
+of every stage, every item through its item-get demo, saves loaded back, every enemy fought and
+every boss room, also under AddressSanitizer ([native/README.md](native/README.md), "Sweeps"). The Switch
 does not yet hold a stable 30 fps everywhere. The Linux build boots to the same milestones and
 passes the regression in a container with software Vulkan (aarch64); it has not been played on a
 Linux desktop with a GPU yet.

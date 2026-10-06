@@ -506,6 +506,29 @@ open the PLAY scene is paused (hit-stop pause timer) and the game gets no pad in
   `#expect` lines (`native/check/input/options-menu.txt`; regression target). `COS_SHOT_IMGUI=1`
   draws the ImGui windows (menu, FPS overlay) into `COS_SHOT` images.
 
+### Sweeps
+
+Automated runs over the whole disc, for crashes, panics, stalls, stuck events and (with the ASan
+build) silent memory damage. Each script prints its options with `--help`, writes a Markdown and a
+TSV report in its output directory and goes on after a fault from the next case. Runs with
+`COS_CACHE_PER_RUN=1` (the combat, item, save and event sweeps set it) keep the pipelines they used in
+`<run dir>/cache/pipeline_cache.db`, which `native/tools/gen_pipeline_cache.sh --merge-only
+--merge-from DB` adds to the bundled pipeline cache.
+
+| Script | What it runs |
+| --- | --- |
+| `native/tools/boot_sweep.py` (`run.sh boot-sweep`) | every stage of the disc booted once; `--target fx-sweep` draws each stage's particle emitters |
+| `native/tools/room_sweep.py` (`run.sh room-sweep`) | every room with a spawn point, with an idle walk |
+| `native/tools/actor_sweep.py` | every actor profile spawned next to the player in Outset |
+| `native/tools/event_sweep.py` | every event of every stage's event list started and run to its end; `EVENT_EXPECTED_FAIL` lists the events the game never plays that way |
+| `native/tools/item_sweep.py` | every item given through a chest's item-get demo (fanfare and message included) |
+| `native/tools/save_sweep.py` | saves in several situations through the game's save code, loaded back through the file select and compared |
+| `native/tools/combat_sweep.py` | every enemy fought with a driven pad (`enemies`, `--home` in its own room), every boss, mini-boss and minigame room (`rooms`); `pipelines` lists the pipelines each case adds |
+
+The fx and model/screen sweeps are the `fx-sweep` and `res-sweep` smoke tests (`COS_FX_SWEEP`,
+`COS_RES_SWEEP` above). Any of these takes `--exe build/native-mac-asan/centollos` (the ASan build,
+recipe in `native/CMakeLists.txt`) and `COS_HEAP_CHECK=1` to check every JKR heap each frame.
+
 ## The Switch (phase 7)
 
 `scripts/switch/build_native.sh` builds this tree as a Switch NRO, `build/switch-native/centollos.nro`,
