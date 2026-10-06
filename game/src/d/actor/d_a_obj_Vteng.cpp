@@ -12,33 +12,10 @@
 #include "d/d_com_inf_game.h"
 #include "m_Do/m_Do_ext.h"
 #include "m_Do/m_Do_mtx.h"
-#include "m_Do/m_Do_hostIO.h"
 
 namespace {
     static const char l_arcname[] = "Vteng";
 };
-
-#if VERSION == VERSION_DEMO
-class daObjVteng_HIO_c : public JORReflexible {
-public:
-    daObjVteng_HIO_c();
-    virtual ~daObjVteng_HIO_c() {}
-
-    void genMessage(JORMContext*) {}
-
-public:
-    /* 0x04 */ s8 mNo;
-    /* 0x05 */ u8 mAnmReset;
-};
-
-static daObjVteng_HIO_c l_HIO;
-
-/* 000000EC-0000010C       .text __ct__16daObjVteng_HIO_cFv */
-daObjVteng_HIO_c::daObjVteng_HIO_c() {
-    mNo = -1;
-    mAnmReset = 0;
-}
-#endif
 
 /* 00000078-00000120       .text init_mtx__12daObjVteng_cFv */
 void daObjVteng_c::init_mtx() {
@@ -63,7 +40,7 @@ bool daObjVteng_c::create_heap() {
     J3DAnmTransform * pAnm = (J3DAnmTransform *)dComIfG_getObjectRes(l_arcname, dRes_INDEX_VTENG_BCK_VTENG_e);
 
     if (!pModelData || !pAnm) {
-        JUT_ASSERT(DEMO_SELECT(0xb3, 0xb7), FALSE);
+        JUT_ASSERT(0xb7, FALSE);
         ret = false;
     } else {
         mpMorf = new mDoExt_McaMorf(
@@ -121,12 +98,6 @@ cPhs_State daObjVteng_c::_create() {
         }
     }
 
-#if VERSION == VERSION_DEMO
-    if (l_HIO.mNo < 0) {
-        l_HIO.mNo = mDoHIO_createChild("ガノン城の天蓋", &l_HIO);
-    }
-#endif
-
     return ret;
 }
 
@@ -134,16 +105,6 @@ cPhs_State daObjVteng_c::_create() {
 bool daObjVteng_c::_delete() {
     dComIfG_resDelete(&mPhs, l_arcname);
 
-#if VERSION == VERSION_DEMO
-    if (mpBgW != NULL && mpBgW->ChkUsed()) {
-        dComIfG_Bgsp()->Release(mpBgW);
-    }
-
-    if (l_HIO.mNo >= 0) {
-        mDoHIO_deleteChild(l_HIO.mNo);
-        l_HIO.mNo = -1;
-    }
-#else
     if (heap != NULL && mpBgW != NULL) {
         if (mpBgW->ChkUsed()) {
             dComIfG_Bgsp()->Release(mpBgW);
@@ -151,7 +112,6 @@ bool daObjVteng_c::_delete() {
 
         mpBgW = NULL;
     }
-#endif
 
     return true;
 }
@@ -160,16 +120,8 @@ bool daObjVteng_c::_delete() {
 bool daObjVteng_c::_execute() {
     if (mpBgW != NULL && mpBgW->ChkUsed())
         mpBgW->Move();
-    if (!jokai_demo()) {
-#if VERSION == VERSION_DEMO
-        if (l_HIO.mAnmReset == 1) {
-            l_HIO.mAnmReset = 0;
-            J3DAnmTransform* bck = (J3DAnmTransform*)dComIfG_getObjectRes(l_arcname, dRes_INDEX_VTENG_BCK_VTENG_e);
-            mpMorf->setAnm(bck, J3DFrameCtrl::EMode_NONE, 0.0f, 1.0f, mpMorf->getFrame(), -1.0f, NULL);
-        }
-#endif
+    if (!jokai_demo())
         mpMorf->play(NULL, 0, 0);
-    }
     return true;
 }
 

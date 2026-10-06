@@ -35,7 +35,7 @@ u32 daBoko_c::m_heap_size[] = {
     /* Type_PGANON_SWORD_e  */ 0x2000
 };
 
-char* daBoko_c::m_arc_name[] = {
+const char* daBoko_c::m_arc_name[] = {
     /* Type_BOKO_STICK_e    */ "Boko",
     /* Type_MACHETE_e       */ "Nata",
     /* Type_STALFOS_MACE_e  */ "Club",
@@ -73,24 +73,21 @@ static daBoko_HIO_c l_HIO;
 
 /* 000000EC-0000017C       .text keDraw__8daBoko_cFv */
 void daBoko_c::keDraw() {
-    mpLineKe->lineMat.update(0xA, 1.25f, (GXColor){0xFF, 0x64, 0x00, 0xFF}, 2, &tevStr);
+    mpLineKe->lineMat.update(0xA, 1.25f, COMPOUND_LITERAL(GXColor){0xFF, 0x64, 0x00, 0xFF}, 2, &tevStr);
     dComIfGd_set3DlineMat(&mpLineKe->lineMat);
 }
 
 /* 0000017C-00000620       .text keCalc1__8daBoko_cFP6ke_c_si */
 void daBoko_c::keCalc1(ke_c_s* arg1, int arg2) {
-    s16 iVar7;
-    int iVar8;
     int i;
     cXyz* pcVar11 = &arg1->m000[1];
     cXyz* pcVar10 = &arg1->m078[1];
     cXyz sp18(0.0f, 0.0f, 21.875f);
+    f32 tmp = -6.25f;
     f32 fVar1;
     f32 fVar7;
     f32 fVar5;
     f32 fVar6;
-    f32 fVar14;
-    f32 tmp = -6.25f;
 
     dBgS_GndChk gndChk;
     Vec temp;
@@ -100,7 +97,7 @@ void daBoko_c::keCalc1(ke_c_s* arg1, int arg2) {
     temp.y += 100.0f;
     gndChk.m_pos.set(temp);
 
-    fVar14 = dComIfG_Bgsp()->GroundCross(&gndChk) + 3.0f;
+    f32 fVar14 = dComIfG_Bgsp()->GroundCross(&gndChk) + 3.0f;
     if (fVar14 == -G_CM3D_F_INF) {
         fVar14 = G_CM3D_F_INF;
     }
@@ -122,8 +119,8 @@ void daBoko_c::keCalc1(ke_c_s* arg1, int arg2) {
         }
 
         fVar5 = fVar5tmp - pcVar11[-1].y;
-        iVar7 = -cM_atan2s(fVar5, fVar6);
-        iVar8 = cM_atan2s(fVar7, std::sqrtf(SQUARE(fVar5) + SQUARE(fVar6)));
+        s16 iVar7 = -cM_atan2s(fVar5, fVar6);
+        int iVar8 = cM_atan2s(fVar7, std::sqrtf(SQUARE(fVar5) + SQUARE(fVar6)));
         mDoMtx_XrotS(*calc_mtx, iVar7);
         mDoMtx_YrotM(*calc_mtx, iVar8);
         cXyz sp0C;
@@ -310,13 +307,13 @@ void daBoko_c::setFlameEffect() {
         pJVar5->setDirection(s);
 
         s = current.pos - old.pos;
-        JGeometry::TVec3<f32> s2(1.0f, 1.0f, 1.0f);
+        const f32 f5 = 1.0f; // TODO: nonmatching for demo
         f32 fVar11 = (REG0_F(12) + 0.05f) * std::sqrtf(SQUARE(s.x) + SQUARE(s.y) + SQUARE(s.z)) + 1.0f;
         if (fVar11 > REG0_F(13) + 2.0f) {
             fVar11 = REG0_F(13) + 2.0f;
         }
 
-        s2.y = fVar11;
+        JGeometry::TVec3<f32> s2(f5, fVar11, f5);
         pJVar5->setGlobalParticleScale(s2);
         m320 = m2D0;
         mDoAud_seStart(JA_SE_OBJ_TORCH_BURNING, &m2D0, 0, dComIfGp_getReverb(fopAcM_GetRoomNo(this)));

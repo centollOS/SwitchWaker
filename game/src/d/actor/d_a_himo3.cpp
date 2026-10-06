@@ -1,6 +1,6 @@
 /**
  * d_a_himo3.cpp
- * Object - Rope (Pirate Ship rope minigame, Forsaken Fortress)
+ * Object - Climbable Rope (Pirate Ship rope minigame, Forsaken Fortress, Puppet Ganon's room)
  */
 
 #include "d/dolzel_rel.h" // IWYU pragma: keep
@@ -306,7 +306,7 @@ static BOOL daHimo3_Draw(himo3_class* i_this) {
         fVar1 = DEMO_SELECT(REG0_F(0) + 3.75f, 3.75f);
     }
 
-    i_this->mLineMat.update(i_this->m15C0, fVar1, (GXColor){200, 150, 50, 255}, 0, &actor->tevStr);
+    i_this->mLineMat.update(i_this->m15C0, fVar1, COMPOUND_LITERAL(GXColor){200, 150, 50, 255}, 0, &actor->tevStr);
     dComIfGd_set3DlineMat(&i_this->mLineMat);
 
     if (i_this->m0298 != 0xf) {
@@ -366,7 +366,7 @@ static void ga_move(himo3_class* i_this) {
 }
 
 /* 00001108-00001128       .text setActorHang__11himo3_classF4cXyzs */
-void himo3_class::setActorHang(cXyz arg1, short arg2) {
+void himo3_class::setActorHang(cXyz arg1, s16 arg2) {
     m21F4 = arg1;
     m2200 = arg2;
 }

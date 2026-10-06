@@ -52,8 +52,6 @@ const daIball_c__data m_data = {
     /* m3A              */ 60,
 };
 
-inline const daIball_c__data* getData() { return &m_data; }
-
 /* 800F3228-800F3380       .text setPointLight__9daIball_cFv */
 void daIball_c::setPointLight() {
     static const s16 light_color[3][3] = {
@@ -85,7 +83,7 @@ void daIball_c::createDisappearEffect(int param_1, int color_idx) {
     cXyz scale;
     scale.setall(1.0f);
     cXyz pos(current.pos);
-    pos.y += getData()->mYOffset;
+    pos.y += m_data.mYOffset;
     switch (param_1) {
     case 0:
         dComIfGp_particle_set(dPa_name::ID_AK_JN_BREAKLIFEBALL, &pos, NULL, &scale, 0xFF, dPa_control_c::getLifeBallSetColorEcallBack(color_idx));
@@ -115,18 +113,20 @@ static BOOL itemParamSet_CB(void* i_actor) {
 
 /* 800F3658-800F3994       .text createItem__9daIball_cFv */
 BOOL daIball_c::createItem() {
-    // One variable holds the item table index here and the item bit number in the loop (one register in the target).
+    // Fakematch: itemBitNo and itemTableIdx should really be separate variables as they aren't
+    // related, but we need r27 to be used for both of them in order for the regalloc to match.
     int itemBitNo = daIball_prm::getAdId(this);
+    int itemTableIdx = itemBitNo;
     u32 items[8];
     
-    items[0] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM0(), itemBitNo);
-    items[1] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM1(), itemBitNo);
-    items[2] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM2(), itemBitNo);
-    items[3] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM3(), itemBitNo);
-    items[4] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM4(), itemBitNo);
-    items[5] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM5(), itemBitNo);
-    items[6] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM6(), itemBitNo);
-    items[7] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM7(), itemBitNo);
+    items[0] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM0(), itemTableIdx);
+    items[1] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM1(), itemTableIdx);
+    items[2] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM2(), itemTableIdx);
+    items[3] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM3(), itemTableIdx);
+    items[4] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM4(), itemTableIdx);
+    items[5] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM5(), itemTableIdx);
+    items[6] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM6(), itemTableIdx);
+    items[7] = dComIfGp_CharTbl()->GetInf(dComIfGp_CharTbl()->GetITEM7(), itemTableIdx);
     
     for (int i = 0; i < 8; i++) {
         itemBitNo = -1;
@@ -150,7 +150,7 @@ BOOL daIball_c::createItem() {
         if (cM_rndFX(1.0f) < 0.0f) {
             speed_f = -1.0f;
         }
-        speed_f = speed_f*getData()->mSpeedF + cM_rndFX(getData()->mRandSpeedF);
+        speed_f = speed_f*m_data.mSpeedF + cM_rndFX(m_data.mRandSpeedF);
         
         angle.y = (s16)cM_rndF((f32)0x7FFF);
         
@@ -159,7 +159,7 @@ BOOL daIball_c::createItem() {
         s8 roomNo = current.roomNo;
         fopAcM_fastCreateItem(
             &current.pos, items[i], roomNo, &angle, &scale,
-            speed_f, getData()->mSpeedY + cM_rndF(10.0f), -6.0f, itemBitNo, itemParamSet_CB
+            speed_f, m_data.mSpeedY + cM_rndF(10.0f), -6.0f, itemBitNo, itemParamSet_CB
         );
     }
     
@@ -192,7 +192,7 @@ void daIball_c::checkGeo() {
     };
     
     mPrevSpeedY = speed.y;
-    if (mTimer > getData()->mMoveDelay) {
+    if (mTimer > m_data.mMoveDelay) {
         fopAcM_posMoveF(this, mStts.GetCCMoveP());
     }
     mAcch.CrrPos(*dComIfG_Bgsp());
@@ -200,7 +200,7 @@ void daIball_c::checkGeo() {
     (this->*mode_proc[mMode])();
     
     dBgS_ObjGndChk_Yogan lavaChk;
-    cXyz pos(current.pos.x, old.pos.y + 30.0f + getData()->mYOffset, current.pos.z);
+    cXyz pos(current.pos.x, old.pos.y + 30.0f + m_data.mYOffset, current.pos.z);
     lavaChk.SetPos(&pos);
     f32 lavaY = dComIfG_Bgsp()->GroundCross(&lavaChk);
     f32 groundH = mAcch.GetGroundH();
@@ -227,7 +227,7 @@ void daIball_c::mode_wait_init() {
 /* 800F3EB0-800F3F6C       .text mode_wait__9daIball_cFv */
 void daIball_c::mode_wait() {
     if (mAcch.ChkGroundLanding()) {
-        mPrevSpeedY *= getData()->mBounceSpeedMult;
+        mPrevSpeedY *= m_data.mBounceSpeedMult;
         if (mPrevSpeedY > fopAcM_GetGravity(this) - 0.5f) {
             speedF = 0.0f;
         } else {
@@ -267,7 +267,7 @@ void daIball_c::animControl() {
         isEventRun = TRUE;
     }
     
-    mBrkAnm[0].setPlaySpeed(getData()->mPlaySpeeds[mPlaySpeedIdx]);
+    mBrkAnm[0].setPlaySpeed(m_data.mPlaySpeeds[mPlaySpeedIdx]);
     mBrkAnm[0].play();
     BOOL isLoop = mBrkAnm[0].isLoop();
     mBrkAnm[1].setPlaySpeed(1.0f);
@@ -310,7 +310,7 @@ void daIball_c::damage() {
 /* 800F4250-800F42E8       .text set_mtx__9daIball_cFv */
 void daIball_c::set_mtx() {
     mpModel->setBaseScale(scale);
-    mDoMtx_stack_c::transS(current.pos.x, current.pos.y + getData()->mYOffset, current.pos.z);
+    mDoMtx_stack_c::transS(current.pos.x, current.pos.y + m_data.mYOffset, current.pos.z);
     mDoMtx_stack_c::XYZrotM(current.angle);
     mpModel->setBaseTRMtx(mDoMtx_stack_c::get());
 }
@@ -327,9 +327,9 @@ void daIball_c::CreateInit() {
     mAcch.OnSeaWaterHeight();
     
     mbPlayedSe = false;
-    gravity = getData()->mGravity;
+    gravity = m_data.mGravity;
     mMode = MODE_WAIT;
-    current.pos.y -= getData()->mYOffset;
+    current.pos.y -= m_data.mYOffset;
     
     mBckAnm.entry(mpModel->getModelData());
     
@@ -351,7 +351,7 @@ BOOL daIball_c::_daIball_draw() {
     g_env_light.settingTevStruct(TEV_TYPE_ACTOR, &current.pos, &tevStr);
     g_env_light.setLightTevColorType(mpModel, &tevStr);
     
-    for (int i = 0; i < (int)ARRAY_SIZE(mBrkAnm); i++) {
+    for (int i = 0; i < ARRAY_SSIZE(mBrkAnm); i++) {
         mBrkAnm[i].entry(mpModel->getModelData());
     }
     mBtkAnm.entry(mpModel->getModelData());
@@ -442,7 +442,7 @@ BOOL daIball_c::CreateHeap() {
         dRes_INDEX_ALWAYS_BRK_IB_02_e,
     };
     J3DAnmTevRegKey* pbrk;
-    for (int i = 0; i < (int)ARRAY_SIZE(mBrkAnm); i++) {
+    for (int i = 0; i < ARRAY_SSIZE(mBrkAnm); i++) {
         pbrk = (J3DAnmTevRegKey*)dComIfG_getObjectRes(m_arcname, brkIds[i]);
         JUT_ASSERT(DEMO_SELECT(1180, 1182), pbrk != NULL);
         ret = mBrkAnm[i].init(modelData, pbrk, TRUE, J3DFrameCtrl::EMode_LOOP);

@@ -34,7 +34,6 @@ BOOL daItemBase_c::CreateItemHeap(const char* resName, s16 resIdx, s16 btkAnm1, 
     J3DModelData* modelData = (J3DModelData*)dComIfG_getObjectRes(resName, resIdx);
     JUT_ASSERT(85, modelData != NULL);
     
-    u32 arrowDiffFlags = 0x11000002;
     mpModel = mDoExt_J3DModel__create(modelData, 0, 0x11020203);
     if (!mpModel) {
         return FALSE;
@@ -42,12 +41,12 @@ BOOL daItemBase_c::CreateItemHeap(const char* resName, s16 resIdx, s16 btkAnm1, 
     
     switch (m_itemNo) {
     case dItemNo_ARROW_30_e:
-        mpModelArrow[0] = mDoExt_J3DModel__create(modelData, 0x80000, arrowDiffFlags);
+        mpModelArrow[0] = mDoExt_J3DModel__create(modelData, 0x80000, 0x11000002);
         if (!mpModelArrow[0]) {
             return FALSE;
         }
     case dItemNo_ARROW_20_e:
-        mpModelArrow[1] = mDoExt_J3DModel__create(modelData, 0x80000, arrowDiffFlags);
+        mpModelArrow[1] = mDoExt_J3DModel__create(modelData, 0x80000, 0x11000002);
         if (!mpModelArrow[1]) {
             return FALSE;
         }
@@ -108,11 +107,7 @@ BOOL daItemBase_c::CreateItemHeap(const char* resName, s16 resIdx, s16 btkAnm1, 
     mpBckAnm = NULL;
     if (bckAnm != -1) {
         pbck = (J3DAnmTransform*)dComIfG_getObjectRes(resName, bckAnm);
-#if VERSION == VERSION_DEMO
-        JUT_ASSERT(212, pbrk != NULL);
-#else
         JUT_ASSERT(212, pbck != NULL);
-#endif
         mpBckAnm = new mDoExt_bckAnm();
         if (!mpBckAnm || !mpBckAnm->init(modelData, pbck, TRUE, 2)) {
             return FALSE;

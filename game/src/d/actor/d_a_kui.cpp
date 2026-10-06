@@ -1,6 +1,6 @@
 /**
  * d_a_kui.cpp
- * Object - Grappling Hook objects
+ * Object - Hookable posts for the Grappling Hook
  */
 
 #include "d/dolzel_rel.h" // IWYU pragma: keep
@@ -17,8 +17,6 @@
 #include "f_op/f_op_actor_mng.h"
 #include "f_pc/f_pc_executor.h"
 #include "JSystem/JUtility/JUTReport.h"
-
-class J3DModelData;
 
 /* 00000078-000000C4       .text s_a_i_sub__FPvPv */
 static void* s_a_i_sub(void* search, void*) {
@@ -162,7 +160,7 @@ static void demo_camera(kui_class* i_this) {
                 }
                 cLib_addCalc2(&i_this->field_0x30C, -70.0f, 1.0f, 10.0f);
             } else if (uVar3 < 42) {
-                f32 sin_result = cM_ssin(i_this->field_0x2EA * 0x3A00);
+                f32 sin_result = cM_ssin(uVar3 * 0x3A00);
                 i_this->field_0x30C = sin_result * 5.0f + (-70.0f);
             }
 
@@ -208,19 +206,11 @@ static BOOL daKui_Execute(kui_class* i_this) {
 
     cXyz temp2;
     cXyz temp;
-#if VERSION == VERSION_DEMO
-    fopAc_ac_c* player_ac;
-#endif
     daPy_py_c* player;
     s16 target_x_angle;
     Mtx local_mtx;
 
-#if VERSION == VERSION_DEMO
-    player_ac = dComIfGp_getPlayer(0);
-    player = (daPy_py_c*)player_ac;
-#else
     player = (daPy_py_c*)dComIfGp_getPlayer(0);
-#endif
 
     if (i_this->field_0x2A2 != 0) {
         dr2_class* dragon_tail = search_dragontail(i_this);
@@ -241,7 +231,7 @@ static BOOL daKui_Execute(kui_class* i_this) {
     if (i_this->type == 3) {
         if (actor->health == 3) {
             temp2 = player->getLeftHandPos() - actor->home.pos;
-            cMtx_YrotS(*calc_mtx, -DEMO_SELECT(player_ac, player)->shape_angle.y);
+            cMtx_YrotS(*calc_mtx, -player->shape_angle.y);
 
             MtxPosition(&temp2, &temp);
             temp.z *= REG0_F(1) + 1.0f;
@@ -267,7 +257,7 @@ static BOOL daKui_Execute(kui_class* i_this) {
                     i_this->field_0x2DC[unk_flag] = 0x50;
                     i_this->field_0x2DC[0] = REG0_S(3) + 40;
 
-                    dComIfGp_getVibration().StartShock(REG0_S(2) + DEMO_SELECT(2, 5), -0x21, cXyz(0.0f, 1.0f, 0.0f));
+                    dComIfGp_getVibration().StartShock(REG0_S(2) + 5, -0x21, cXyz(0.0f, 1.0f, 0.0f));
                     fopAcM_seStartCurrent(actor, JA_SE_OBJ_ST_CHIME, 0);
 
                     i_this->field_0x2E4 = *(s16*) (bure_xa_d + unk_flag - 1);
@@ -276,22 +266,17 @@ static BOOL daKui_Execute(kui_class* i_this) {
                 }
             }
 
-#if VERSION == VERSION_DEMO
-            cLib_addCalcAngleS2(&actor->current.angle.x, target_x_angle, 4, REG0_S(1) + 0x200);
-#endif
             if (REG0_S(1) == 0) {
-                actor->shape_angle.y = -(actor->current.angle.y - DEMO_SELECT(player_ac, player)->shape_angle.y);
+                actor->shape_angle.y = -(actor->current.angle.y - player->shape_angle.y);
             } else {
-                actor->shape_angle.y = actor->current.angle.y - DEMO_SELECT(player_ac, player)->shape_angle.y;
+                actor->shape_angle.y = actor->current.angle.y - player->shape_angle.y;
             }
         }
-#if VERSION > VERSION_DEMO
         else {
             target_x_angle = 0;
         }
 
         cLib_addCalcAngleS2(&actor->current.angle.x, target_x_angle, 4, REG0_S(1) + 0x200);
-#endif
         if (i_this->field_0x2DC[1] != 0) {
             i_this->field_0x2DC[1]--;
         }
@@ -316,7 +301,7 @@ static BOOL daKui_Execute(kui_class* i_this) {
                 unk_f = (iVar10 * (REG0_F(17) + 0.001f)) + 1.0f;
             }
 
-            if (i_this->field_0x2DC[0] == 0 && DEMO_SELECT(TRUE, actor->health == 3) && REG0_S(3) == 0) {
+            if (i_this->field_0x2DC[0] == 0 && actor->health == 3 && REG0_S(3) == 0) {
                 dComIfGs_onSwitch(i_this->mSwitchNo, fopAcM_GetRoomNo(actor));
             }
         }
@@ -366,7 +351,7 @@ static BOOL daKui_Execute(kui_class* i_this) {
         if (i_this->field_0x2A2) {
             cMtx_scale(local_mtx, 4.0f, 4.0f, 4.0f);
         } else {
-            PSMTXScale(local_mtx, actor->scale.x, actor->scale.y, actor->scale.z);
+            cMtx_scale(local_mtx, actor->scale.x, actor->scale.y, actor->scale.z);
         }
 
         cMtx_concat(*calc_mtx, local_mtx, i_this->field_0x2A8);
@@ -387,7 +372,8 @@ static BOOL daKui_Execute(kui_class* i_this) {
         if (i_this->field_0x308 != 0) {
             i_this->field_0x308--;
 
-            if (i_this->field_0x308 == (s16)(REG8_S(3) + 970)) {
+            s16 finished = REG8_S(3) + 970;
+            if (i_this->field_0x308 == finished) {
                 if (i_this->type == 2) {
                     i_this->field_0x2E8 = 1;
                 } else {
@@ -440,7 +426,7 @@ static BOOL daKui_CreateHeap(fopAc_ac_c* a_this) {
             return FALSE;
         }
     } else {
-        // Rope
+        // Wooden post
         modelData = (J3DModelData*)dComIfG_getObjectRes("Kui", dRes_INDEX_KUI_BDL_OBI_ROPETAG_e);
         JUT_ASSERT(DEMO_SELECT(860, 875), modelData != NULL);
 
@@ -450,7 +436,7 @@ static BOOL daKui_CreateHeap(fopAc_ac_c* a_this) {
         }
 
         if (i_this->type == 2 || i_this->type == 4) {
-            // Rope swing attachment
+            // Device that holds the post
             modelData = (J3DModelData*)dComIfG_getObjectRes("Kui", dRes_INDEX_KUI_BDL_MROPESW_e);
             JUT_ASSERT(DEMO_SELECT(872, 887), modelData != NULL);
 

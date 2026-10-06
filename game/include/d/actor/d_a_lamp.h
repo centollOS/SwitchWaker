@@ -17,9 +17,6 @@ public:
     /* 0x2b4 */ u8 mParticleInit;
     /* 0x2b5-2b7 padding */
     /* 0x2b8 */ cXyz mPos;
-#if VERSION == VERSION_DEMO
-    /* 0x2c4 */ JPABaseEmitter* mpEmitter;
-#endif
     /* 0x2c4 */ dCcD_Stts mStts;
     /* 0x300 */ dCcD_Sph mSph;
     /* 0x42c */ s8 mOto;
@@ -32,6 +29,6 @@ public:
     /* 0x440 */ LIGHT_INFLUENCE mInf;
     /* 0x460 */ float mParticlePower;
 };
-STATIC_ASSERT(sizeof(lamp_class) == DEMO_SELECT(0x468, 0x464));
+STATIC_ASSERT(sizeof(lamp_class) == 0x464);
 
 #endif /* D_A_LAMP_H */

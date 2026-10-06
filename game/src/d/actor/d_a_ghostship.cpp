@@ -243,8 +243,8 @@ void daGhostship_c::createInit() {
 /* 00000C78-00000C8C .text getArg__13daGhostship_cFv */
 void daGhostship_c::getArg() {
     u32 param = fopAcM_GetParam(this);
-    mPathNo = (param >> 0x10) & 0xFF;
-    moonPhase = param & 0xFF;
+    mPathNo = fopAcM_GetParamBit(param, 0x10, 8);
+    moonPhase = fopAcM_GetParamBit(param, 0, 8);
 }
 
 cPhs_State daGhostship_c::_create() {
@@ -311,7 +311,9 @@ static BOOL daGhostshipExecute(void* i_this) {
 /* 00001048-0000182C .text _execute__13daGhostship_cFv */
 bool daGhostship_c::_execute() {
     f32 time = dComIfGs_getTime();
-    f32 dist = fopAcM_searchPlayerDistanceXZ(this);
+    fopAc_ac_c* player = dComIfGp_getPlayer(0);
+    // Fakematch, debug map says fopAcM_searchPlayerDistanceXZ was used, but that causes regalloc
+    f32 dist = fopAcM_searchActorDistanceXZ(this, player);
 
     mbCanEnterShip = false;
     if(moonPhase != dKy_moon_type_chk() || (time > 90.0f && time < DEMO_SELECT(330.0f, 285.0f))) {
@@ -385,19 +387,15 @@ bool daGhostship_c::_execute() {
             && !mbEnteredShip
 #endif
         ) {
-            mDoAud_seStart(JA_SE_LK_WARP_TO_G_SHIP, NULL, 0, 0);
+            mDoAud_seStart(JA_SE_LK_WARP_TO_G_SHIP);
             stage_scls_info_class* scls_data = dComIfGd_getMeshSceneList(current.pos);
             JUT_ASSERT(DEMO_SELECT(457, 463), scls_data != NULL)
 
             u8 startCode = scls_data->mStart;
-            int roomNo = scls_data->mRoom;
-            dComIfGs_setEventReg(dSv_event_flag_c::UNK_C3FF, roomNo);
+            dComIfGs_setEventReg(dSv_event_flag_c::UNK_C3FF, scls_data->mRoom);
             dComIfGs_setEventReg(dSv_event_flag_c::UNK_85FF, startCode);
 #if VERSION == VERSION_DEMO
-            // fakematch (demo only): named stage-name local, same pattern as d_s_play phase_2's
-            // `const char* stage = "Stage";` (its node gives r29 the extra interference the target needs)
-            const char* stage = "PShip";
-            dComIfGp_setNextStage(stage, 0, r29);
+            dComIfGp_setNextStage("PShip", 0, r29);
 #else
             dComIfGp_setNextStage("PShip", 0, 2);
             mbEnteredShip = true;

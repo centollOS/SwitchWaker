@@ -8,7 +8,6 @@
 #include "res/Object/Lamp.h"
 #include "d/d_com_inf_game.h"
 #include "m_Do/m_Do_mtx.h"
-#include "d/d_s_play.h"
 
 /* 000000EC-00000158       .text daLamp_Draw__FP10lamp_class */
 static BOOL daLamp_Draw(lamp_class* i_this) {
@@ -23,11 +22,7 @@ static BOOL daLamp_Draw(lamp_class* i_this) {
 static BOOL daLamp_Execute(lamp_class* i_this) {
     i_this->mCycleCtr += 1;
     MtxTrans(i_this->current.pos.x, i_this->current.pos.y, i_this->current.pos.z, 0);
-#if VERSION == VERSION_DEMO
-    cMtx_YrotM(*calc_mtx, i_this->current.angle.y);
-#else
     mDoMtx_YrotM(*calc_mtx, i_this->current.angle.y);
-#endif
     if (i_this->mParameters == 0) {
         i_this->mLength = 0.1f;
     } else {
@@ -45,9 +40,9 @@ static BOOL daLamp_Execute(lamp_class* i_this) {
     MtxRotX(oppDist, 1);
     f32 adjDist = cM_scos(i_this->mCycleCtr * 0x2bc) * i_this->mLength;
     MtxRotZ(adjDist, 1);
-    MtxScale(0.4f + DEMO_SELECT(REG0_F(9), 0.0f), 0.4f + DEMO_SELECT(REG0_F(9), 0.0f), 0.4f + DEMO_SELECT(REG0_F(9), 0.0f), 1);
+    MtxScale(0.4f, 0.4f, 0.4f, 1);
     i_this->mModel->setBaseTRMtx(*calc_mtx);
-    MtxTrans(10.0f + DEMO_SELECT(REG0_F(6), 0.0f), -140.0f + DEMO_SELECT(REG0_F(7), 0.0f), -15.0f + DEMO_SELECT(REG0_F(8), 0.0f), 1);
+    MtxTrans(10.0f, -140.0f, -15.0f, 1);
 
     cXyz offset;
     offset.x = offset.y = offset.z = 0.0f;
@@ -56,16 +51,12 @@ static BOOL daLamp_Execute(lamp_class* i_this) {
     if (!i_this->mParticleInit) {
         static cXyz fire_scale(0.5f, 0.5f, 0.5f);
 
-#if VERSION == VERSION_DEMO
-        i_this->mpEmitter = dComIfGp_particle_set(dPa_name::ID_AK_JN_TORCH, &i_this->mPos, NULL, &fire_scale, 0xFF, &i_this->mPa);
-#else
         dComIfGp_particle_set(dPa_name::ID_AK_JN_TORCH, &i_this->mPos, NULL, &fire_scale, 0xFF, &i_this->mPa);
-#endif
         i_this->mParticleInit = 1;
         i_this->mParticlePower = 1.0f;
     }
 
-    if (DEMO_SELECT(i_this->mpEmitter, i_this->mPa.getEmitter())) {
+    if (i_this->mPa.getEmitter()) {
         cXyz whitePartPos = i_this->mPos;
         whitePartPos.y += 20.0f;
         dComIfGp_particle_setSimple(dPa_name::ID_AK_JP_O_KAGEROU00, &whitePartPos);
@@ -89,32 +80,26 @@ static BOOL daLamp_Execute(lamp_class* i_this) {
             cCcD_Obj* pHitObj = i_this->mSph.GetTgHitObj();
             if (pHitObj && pHitObj->ChkAtType(AT_TYPE_WIND | AT_TYPE_UNK400000)) {
                 i_this->mHitAngle = dComIfGp_getPlayer(0)->shape_angle.y;
-                i_this->mHitTimeoutLeft = 0x28 + DEMO_SELECT(REG0_S(2), 0);
+                i_this->mHitTimeoutLeft = 0x28;
             }
         }
     } else {
         i_this->mHitTimeoutLeft--;
-        if (DEMO_SELECT(i_this->mpEmitter, i_this->mPa.getEmitter())) {
+        if (i_this->mPa.getEmitter()) {
             float tgtZ;
-            if (i_this->mHitTimeoutLeft > DEMO_SELECT((s16)(10 + REG0_S(3)), 10)) {
-                tgtZ = 4.0f + DEMO_SELECT(REG0_F(5), 0.0f);
+            if (i_this->mHitTimeoutLeft > 10) {
+                tgtZ = 4.0f;
             } else {
                 tgtZ = 0.0f;
             }
-            cLib_addCalc2(&i_this->mHitReactCurZ, tgtZ, 1.0f, 0.5f + DEMO_SELECT(REG0_F(8), 0.0f));
+            cLib_addCalc2(&i_this->mHitReactCurZ, tgtZ, 1.0f, 0.5f);
             cMtx_YrotS(*calc_mtx, i_this->mHitAngle);
             cXyz offset;
             offset.set(0.0f, 1.0f, i_this->mHitReactCurZ);
             cXyz rotOffset;
             MtxPosition(&offset, &rotOffset);
             JGeometry::TVec3<f32> dir(rotOffset);
-            DEMO_SELECT(i_this->mpEmitter, i_this->mPa.getEmitter())->setDirection(dir);
-#if VERSION == VERSION_DEMO
-            if (i_this->mHitTimeoutLeft == 15) {
-                i_this->mpEmitter->becomeInvalidEmitter();
-                i_this->mpEmitter = NULL;
-            }
-#endif
+            i_this->mPa.getEmitter()->setDirection(dir);
         }
     }
 
@@ -129,26 +114,21 @@ static BOOL daLamp_IsDelete(lamp_class* i_this) {
 
 /* 00000634-00000678       .text daLamp_Delete__FP10lamp_class */
 static BOOL daLamp_Delete(lamp_class* i_this) {
-#if VERSION == VERSION_DEMO
-    dKy_plight_cut(&i_this->mInf);
-    dComIfG_deleteObjectRes("Lamp");
-#else
     dComIfG_resDelete(&i_this->mPhs, "Lamp");
     dKy_plight_cut(&i_this->mInf);
-#endif
     return TRUE;
 }
 
 /* 00000678-0000073C       .text useHeapInit__FP10lamp_class */
 static BOOL useHeapInit(lamp_class* i_this) {
     J3DModelData* modelData = static_cast<J3DModelData*>(dComIfG_getObjectRes("Lamp", dRes_INDEX_LAMP_BMD_LAMP_00_e));
-    JUT_ASSERT(DEMO_SELECT(0x16d, 0x170), modelData != NULL);
+    JUT_ASSERT(0x170, modelData != NULL);
 
     i_this->mModel = mDoExt_J3DModel__create(modelData, 0, 0x11020203);
     if (i_this->mModel == 0) {
-        return DEMO_SELECT(cPhs_ERROR_e, FALSE);
+        return FALSE;
     } else {
-        return DEMO_SELECT(cPhs_COMPLEATE_e, TRUE);
+        return TRUE;
     }
 }
 

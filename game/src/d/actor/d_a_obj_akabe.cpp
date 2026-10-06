@@ -28,11 +28,7 @@ BOOL Act_c::solidHeapCB(fopAc_ac_c* i_this) {
 
 /* 0000009C-000001A4       .text create_heap__Q210daObjAkabe5Act_cFv */
 u8 Act_c::create_heap() {
-#if VERSION == VERSION_DEMO
-    u8 ret = false;
-#else
     bool ret = false;
-#endif
 
     mpBgW = new dBgW();
     if (mpBgW != NULL) {
@@ -43,12 +39,10 @@ u8 Act_c::create_heap() {
             ret = true;
     }
 
-#if VERSION > VERSION_DEMO
     if (!ret) {
         mpBgW = NULL;
         return ret;
     }
-#endif
 
     // Fakematch? This function should probably have return type bool, but the codegen towards the
     // end here doesn't work unless the return type is u8.
@@ -78,12 +72,8 @@ cPhs_State Act_c::_create() {
             init_scale();
             init_mtx();
 
-#if VERSION == VERSION_DEMO
-            if (fopAcM_entrySolidHeap(this, solidHeapCB, 0x4000)) {
-#else
             static const u32 heap_size[4] = { 0x200, 0x200, 0x200, 0x3E0, };
             if (fopAcM_entrySolidHeap(this, solidHeapCB, heap_size[mType])) {
-#endif
                 dComIfG_Bgsp()->Regist(mpBgW, this);
                 mpBgW->SetCrrFunc(NULL);
                 mpBgW->SetPriority((cBgW::PRIORITY)1);
@@ -109,7 +99,7 @@ bool Act_c::_delete() {
             dComIfG_Bgsp()->Release(mpBgW);
         }
 
-        dComIfG_resDeleteDemo(&mPhs, M_arcname[mType]);
+        dComIfG_resDelete(&mPhs, M_arcname[mType]);
     }
 
     return true;

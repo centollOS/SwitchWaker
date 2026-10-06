@@ -51,29 +51,6 @@ static dCcD_SrcCyl l_cyl_src = {
     }},
 };
 
-#if VERSION == VERSION_DEMO
-class daAgbsw0_HIO_c : public mDoHIO_entry_c {
-public:
-    daAgbsw0_HIO_c();
-    virtual ~daAgbsw0_HIO_c() {}
-
-public:
-    /* 0x08 */ u8 field_0x08[15];
-    /* 0x17 */ u8 field_0x17[15];
-};
-
-daAgbsw0_HIO_c::daAgbsw0_HIO_c() {
-    for (int i = 0; i < 15; i++) {
-        field_0x08[i] = 0;
-    }
-    for (int i = 0; i < 15; i++) {
-        field_0x17[i] = 0;
-    }
-}
-
-static daAgbsw0_HIO_c l_HIO;
-#endif
-
 /* 00004838-00004B2C       .text draw__10daAgbsw0_cFv */
 BOOL daAgbsw0_c::draw() {
     u8 toCheck = getSw0();
@@ -233,13 +210,9 @@ cPhs_State daAgbsw0_c::create() {
     }
 
     if(type == daAgbsw0Type_B_e && getMsgNo() == 0xFFFF) {
-#if VERSION == VERSION_DEMO
-        fpcM_SetParam(this, (fopAcM_GetParam(this) & 0xFFFF0000) | 0xE);
-#else
         u16 msgNo = 0xE;
         // Debug map indicates fpcM_SetParam was used here instead of fopAcM_SetParam.
         fpcM_SetParam(this, (fopAcM_GetParam(this) & 0xFFFF0000) | msgNo);
-#endif
     }
 
     if(type != daAgbsw0Type_MW_e && type != daAgbsw0Type_T_e && type != daAgbsw0Type_S_e && type != daAgbsw0Type_UNK_0xE_e && getMsgNo() == 0xFFFF) {
@@ -298,9 +271,6 @@ cPhs_State daAgbsw0_c::create() {
         }
     }
 
-#if VERSION == VERSION_DEMO
-    l_HIO.entryHIO("チンクルタグ");
-#endif
     return cPhs_COMPLEATE_e;
 }
 
@@ -329,14 +299,9 @@ BOOL daAgbsw0_c::execute() {
 
 void daAgbsw0_c::deleteSub() {
     daAgb_c* agb = dComIfGp_getAgb();
-#if VERSION > VERSION_DEMO
     u32 type = getType();
-#endif
 
     if(agb) {
-#if VERSION == VERSION_DEMO
-        u32 type = getType();
-#endif
         if(type == daAgbsw0Type_B_e) {
             if(getParamNo() == 3) {
                 agb->offBombDeny();
@@ -363,9 +328,6 @@ void daAgbsw0_c::deleteSub() {
         }
     }
 
-#if VERSION == VERSION_DEMO
-    l_HIO.removeHIO();
-#else
     if((
         type == daAgbsw0Type_A_e ||
         type == daAgbsw0Type_AT_e ||
@@ -386,7 +348,6 @@ void daAgbsw0_c::deleteSub() {
 
         mDoGaC_SendEntry(5, *(u32*)&info);
     }
-#endif
 }
 
 agb_mail_struct daAgbsw0_c::mMail;
@@ -401,11 +362,6 @@ BOOL daAgbsw0_c::ExeSubA() {
         if(conditionNo == 0) {
             if(!fopAcM_isSwitch(this, sw0)) {
                 if(field_0x298 == 1) {
-#if VERSION == VERSION_DEMO
-                    if(mDoGaC_GbaLink() && mDoGac_SendStatusCheck(5)) {
-                        MailSend(-1, 0, 0xFF, 0xFF, 0);
-                    }
-#else
                     if(mDoGaC_GbaLink()) {
 #if VERSION <= VERSION_JPN
                         if(mDoGac_SendStatusCheck(5)) {
@@ -417,7 +373,6 @@ BOOL daAgbsw0_c::ExeSubA() {
 
                         MailSend(-1, 0, 0xFF, 0xFF, 0);
                     }
-#endif
                     
                     field_0x298 = 0;
                 }
@@ -427,15 +382,6 @@ BOOL daAgbsw0_c::ExeSubA() {
         }
         else {
             if(fopAcM_isSwitch(this, sw0)) {
-#if VERSION == VERSION_DEMO
-                if(field_0x298 == 1 && mDoGaC_GbaLink()) {
-                    if(!mDoGac_SendStatusCheck(5)) {
-                        return true;
-                    }
-
-                    MailSend(-1, 0, 0xFF, 0xFF, 0);
-                }
-#else
                 if(field_0x298 == 1) {
                     if(mDoGaC_GbaLink()) {
                         if(!mDoGac_SendStatusCheck(5)) {
@@ -447,7 +393,6 @@ BOOL daAgbsw0_c::ExeSubA() {
 
                     field_0x298 = 0;
                 }
-#endif
                 
                 fopAcM_delete(this);
                 return true;
@@ -501,11 +446,6 @@ BOOL daAgbsw0_c::ExeSubAT() {
         if(conditionNo == 0) {
             if(!dComIfGs_isTbox(flag)) {
                 if(field_0x298 == 1) {
-#if VERSION == VERSION_DEMO
-                    if(mDoGaC_GbaLink() && mDoGac_SendStatusCheck(5)) {
-                        MailSend(-1, 0, 0xFF, 0xFF, 0);
-                    }
-#else
                     if(mDoGaC_GbaLink()) {
 #if VERSION <= VERSION_JPN
                         if(mDoGac_SendStatusCheck(5)) {
@@ -517,7 +457,6 @@ BOOL daAgbsw0_c::ExeSubAT() {
 
                         MailSend(-1, 0, 0xFF, 0xFF, 0);
                     }
-#endif
                     
                     field_0x298 = 0;
                 }
@@ -536,9 +475,7 @@ BOOL daAgbsw0_c::ExeSubAT() {
                         MailSend(-1, 0, 0xFF, 0xFF, 0);
                     }
 
-#if VERSION > VERSION_DEMO
                     field_0x298 = 0;
-#endif
                 }
                 
                 fopAcM_delete(this);
@@ -592,11 +529,7 @@ BOOL daAgbsw0_c::ExeSubAT() {
 
 /* 0000066C-00000940       .text ExeSubA2__10daAgbsw0_cFv */
 BOOL daAgbsw0_c::ExeSubA2() {
-#if VERSION == VERSION_DEMO
-    u8 sw0 = getSw0();
-#else
     u32 sw0 = getSw0();
-#endif
     s16 conditionNo = getParamNo();
 
     if(sw0 != 0xFF) {
@@ -628,9 +561,7 @@ BOOL daAgbsw0_c::ExeSubA2() {
                         MailSend(-1, 0, 0xFF, 0xFF, 0);
                     }
 
-#if VERSION > VERSION_DEMO
                     field_0x298 = 0;
-#endif
                 }
                 
                 fopAcM_delete(this);
@@ -678,11 +609,7 @@ BOOL daAgbsw0_c::ExeSubA2() {
 
 /* 00000940-00000AB4       .text ExeSubF__10daAgbsw0_cFv */
 BOOL daAgbsw0_c::ExeSubF() {
-#if VERSION == VERSION_DEMO
-    u8 sw0 = getSw0();
-#else
     u32 sw0 = getSw0();
-#endif
     s16 conditionNo = getParamNo();
 
     if(sw0 != 0xFF) {
@@ -718,11 +645,7 @@ BOOL daAgbsw0_c::ExeSubF() {
 
 /* 00000AB4-00000E48       .text ExeSubF2__10daAgbsw0_cFv */
 BOOL daAgbsw0_c::ExeSubF2() {
-#if VERSION == VERSION_DEMO
-    u8 sw0 = getSw0();
-#else
     u32 sw0 = getSw0();
-#endif
     s16 conditionNo = getParamNo();
     daAgb_c* agb = dComIfGp_getAgb();
 
@@ -854,9 +777,7 @@ BOOL daAgbsw0_c::ExeSubM2() {
                 MailSend(-1, 0, 0xFF, 0xFF, 0);
             }
 
-#if VERSION > VERSION_DEMO
             field_0x298 = 0;
-#endif
         }
 
         fopAcM_delete(this);
@@ -898,9 +819,7 @@ BOOL daAgbsw0_c::ExeSubM3() {
                 MailSend(-1, 0, 0xFF, 0xFF, 0);
             }
 
-#if VERSION > VERSION_DEMO
             field_0x298 = 0;
-#endif
         }
 
         fopAcM_delete(this);
@@ -942,14 +861,13 @@ u32 daAgbsw0_c::TriforceCheck()
 u32 daAgbsw0_c::TriforceCheck(daAgb_c* agb)
 #endif
 {
-    int i;
-    for(i = 0; i < 8; i++) {
+    for(int i = 0; i < 8; i++) {
         if(dComIfGs_isCollectMapTriforce(i + 1) && !dComIfGs_isTriforce(i)) {
             return dComIfGs_isEventBit(dSv_event_flag_c::UNK_3E02) ? 0x304 : 0x303;
         }
     }
 
-    for(i = 1; i < 9; i++) {
+    for(int i = 1; i < 9; i++) {
         if(dComIfGs_isGetCollectMap(i) && !dComIfGs_isCollectMapTriforce(i)) {
             if(398 <= (u32)dComIfGs_getRupee()) {
                 return 0x305;
@@ -983,7 +901,7 @@ u32 daAgbsw0_c::TriforceCheck(daAgb_c* agb)
         }
         else {
             u8 num = dComIfGs_checkGetItemNum(dItemNo_JOY_PENDANT_e);
-            return num >= DEMO_SELECT(30, 20) ? 0x30C : 0x30D;
+            return num >= 0x14 ? 0x30C : 0x30D;
         }
     }
     if(!dComIfGs_isGetCollectMap(3)) {
@@ -1006,11 +924,7 @@ u32 daAgbsw0_c::TriforceCheck(daAgb_c* agb)
     if(!dComIfGs_isGetCollectMap(4) && dComIfGs_checkGetItem(dItemNo_HOOKSHOT_e)) {
         if(dComIfGs_isOpenCollectMap(0x24)) {
             s32 hour = dKy_getdaytime_hour();
-#if VERSION == VERSION_DEMO
-            if(hour < 90.0f || hour > 330.0f) {
-#else
             if(hour < 6 || hour >= 0x13) {
-#endif
                 u32 moonType = dKy_moon_type_chk();
 #if VERSION <= VERSION_JPN
                 int roomNo = dComIfGp_roomControl_getStayNo();
@@ -1075,19 +989,7 @@ u32 daAgbsw0_c::TriforceCheck(daAgb_c* agb)
     }
     if(!dComIfGs_isGetCollectMap(5)) {
         if(dComIfGs_isEventBit(dSv_event_flag_c::UNK_3E80)) {
-#if VERSION == VERSION_DEMO
-            if (!dComIfGs_isGetCollectMap(0x1C)) {
-                return 0x31E;
-            } else if (!dComIfGs_isCompleteCollectMap(0x1C)) {
-                return 0x31F;
-            } else if (!dComIfGs_isCompleteCollectMap(0x1D)) {
-                return 0x320;
-            } else if (!dComIfGs_isCompleteCollectMap(0x1E)) {
-                return 0x321;
-            } else {
-                return 0x322;
-            }
-#elif VERSION <= VERSION_JPN
+#if VERSION <= VERSION_JPN
             if (!dComIfGs_isGetCollectMap(0x1C)) {
                 return 0x31E;
             } else if (!dComIfGs_isCompleteCollectMap(0x1C)) {
@@ -1116,8 +1018,11 @@ u32 daAgbsw0_c::TriforceCheck(daAgb_c* agb)
         if(dComIfGs_checkGetItem(dItemNo_MAGIC_ARROW_e)) {
             return 0x328;
         }
+        else if (dComIfGs_isTact(mDoAud_MELODY_BALLAD_OF_GALES_e)) {
+            return 0x32A;
+        }
         else {
-            return dComIfGs_isTact(1) ? 0x32A : 0x329;
+            return 0x329;
         }
     }
 
@@ -1226,14 +1131,6 @@ BOOL daAgbsw0_c::ExeSubT() {
     u8 sw0 = getSw0();
 
     if(sw0 != 0xFF && fopAcM_isSwitch(this, sw0)) {
-#if VERSION == VERSION_DEMO
-        if(dComIfGp_event_runCheck() || (mDoGaC_GbaLink() && !mDoGac_SendStatusCheck(5))) {
-            return true;
-        }
-
-        MailSend(BigLittleChange(getMsgNo()) >> 0x10, 0x7, 0xFF, 0xFF, 0);
-        fopAcM_delete(this);
-#else
         if(mTimer == 0) {
             if(mDoGaC_GbaLink()) {
                 if(dComIfGp_event_runCheck() || !mDoGac_SendStatusCheck(5)) {
@@ -1249,7 +1146,6 @@ BOOL daAgbsw0_c::ExeSubT() {
         else {
             mTimer -= 1;
         }
-#endif
         
         return true;
     }
@@ -1265,9 +1161,7 @@ BOOL daAgbsw0_c::ExeSubT() {
                         return true;
                     }
 
-#if VERSION > VERSION_DEMO
                     mTimer = 30;
-#endif
                 }
                 else {
                     dComIfG_Ccsp()->Set(&mCyl);
@@ -1366,9 +1260,7 @@ BOOL daAgbsw0_c::ExeSubR() {
             fopAcM_seStart(agb, JA_SE_CV_CHI_MEGAHORN, 0);
             MailSend(-1, 0, 0xFF, 0xFF, 0);
 
-#if VERSION > VERSION_DEMO
             field_0x298 = 0;
-#endif
             fopAcM_delete(this);
             return TRUE;
         }
@@ -1665,11 +1557,6 @@ BOOL daAgbsw0_c::ExeSubFA() {
         if(conditionNo == 0) {
             if(!fopAcM_isSwitch(this, sw0)) {
                 if(field_0x298 == 1) {
-#if VERSION == VERSION_DEMO
-                    if(mDoGaC_GbaLink() && mDoGac_SendStatusCheck(5)) {
-                        MailSend(-1, 0, 0xFF, 0xFF, 0);
-                    }
-#else
                     if(mDoGaC_GbaLink()) {
 #if VERSION <= VERSION_JPN
                         if(mDoGac_SendStatusCheck(5)) {
@@ -1681,7 +1568,6 @@ BOOL daAgbsw0_c::ExeSubFA() {
         
                         MailSend(-1, 0, 0xFF, 0xFF, 0);
                     }
-#endif
 
                     field_0x298 = 0;
                 }
@@ -1700,17 +1586,11 @@ BOOL daAgbsw0_c::ExeSubFA() {
                         MailSend(-1, 0, 0xFF, 0xFF, 0);
                     }
 
-#if VERSION == VERSION_DEMO
-                    fopAcM_delete(this);
-                    return true;
-                }
-#else
                     field_0x298 = 0;
                 }
 
                 fopAcM_delete(this);
                 return true;
-#endif
             }
         }
     }
@@ -1724,9 +1604,7 @@ BOOL daAgbsw0_c::ExeSubFA() {
                 MailSend(-1, 0, 0xFF, 0xFF, 0);
             }
 
-#if VERSION > VERSION_DEMO
             field_0x298 = 0;
-#endif
         }
 
         fopAcM_delete(this);
@@ -2137,13 +2015,13 @@ BOOL daAgbsw0_c::MoveCheck(s16 conditionNo) {
 
             break;
         case 0x32:
-            if(dComIfGs_isTact(0)) {
+            if(dComIfGs_isTact(mDoAud_MELODY_WINDS_REQUIEM_e)) {
                 return FALSE;
             }
 
             break;
         case 0x33:
-            if(!dComIfGs_isTact(0)) {
+            if(!dComIfGs_isTact(mDoAud_MELODY_WINDS_REQUIEM_e)) {
                 return FALSE;
             }
 
@@ -2612,7 +2490,6 @@ BOOL daAgbsw0_c::MoveCheck(s16 conditionNo) {
             }
 
             break;
-#if VERSION > VERSION_DEMO
         case 0x7D:
             if(!fopAcM_isSwitch(this, 0x7C)) {
                 return FALSE;
@@ -2625,7 +2502,6 @@ BOOL daAgbsw0_c::MoveCheck(s16 conditionNo) {
             }
 
             break;
-#endif
 #if VERSION > VERSION_JPN
         case 0x82:
             if(field_0x29B == 0) {

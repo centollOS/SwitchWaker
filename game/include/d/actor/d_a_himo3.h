@@ -27,9 +27,9 @@ struct h3_ga_s {
 
 class himo3_class {
 public:
-    void getPlayerMoveLength() {}
+    f32 getPlayerMoveLength() { return m15FC; }
 
-    void setActorHang(cXyz, short);
+    void setActorHang(cXyz, s16);
 
 public:
     /* 0x0000 */ fopAc_ac_c actor;

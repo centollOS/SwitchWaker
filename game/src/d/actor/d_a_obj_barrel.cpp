@@ -92,13 +92,8 @@ BOOL daObjBarrel::Act_c::solidHeapCB(fopAc_ac_c* i_this) {
 
 /* 0000009C-00000160       .text create_heap__Q211daObjBarrel5Act_cFv */
 bool daObjBarrel::Act_c::create_heap() {
-#if VERSION == VERSION_DEMO
-    bool ret = false;
-    J3DModelData* mdl_data;
-#else
     J3DModelData* mdl_data;
     bool ret = false;
-#endif
 
     mdl_data = (J3DModelData *)dComIfG_getObjectRes(M_arcname, attr().mBdlIdx);
     JUT_ASSERT(0x17A, mdl_data != NULL);
@@ -155,7 +150,7 @@ cPhs_State daObjBarrel::Act_c::_create() {
 
 /* 00000780-000007B0       .text _delete__Q211daObjBarrel5Act_cFv */
 bool daObjBarrel::Act_c::_delete() {
-    dComIfG_resDeleteDemo(&mPhs, M_arcname);
+    dComIfG_resDelete(&mPhs, M_arcname);
     return true;
 }
 
@@ -344,7 +339,7 @@ void daObjBarrel::Act_c::mode_walk() {
         set_walk_rot();
         cLib_onBit<u32>(attention_info.flags, fopAc_Attn_ACTION_CARRY_e);
 
-        float mag = speed.abs2XZ();
+        f32 mag = speed.abs2XZ();
         if (mag < l_gnd_fric) {
             if (std::fabsf(norm->x) >= 0.001f && std::fabsf(norm->z) >= 0.001f) {
                 mode_wait_init();
@@ -410,7 +405,6 @@ bool daObjBarrel::Act_c::mode_proc_call() {
 
 /* 000012A0-00001490       .text set_mtx__Q211daObjBarrel5Act_cFv */
 void daObjBarrel::Act_c::set_mtx() {
-    f32 radius;
     mDoMtx_stack_c::transS(current.pos);
     switch (mMode) {
         case MODE_VIB0:
@@ -427,8 +421,7 @@ void daObjBarrel::Act_c::set_mtx() {
         case MODE_CARRY:
         case MODE_JUMP:
         case MODE_WALK:
-            radius = cM_scos(shape_angle.z) * 5.0f + l_s_radius;
-            mDoMtx_stack_c::transM(0.0f, radius, 0.0f);
+            mDoMtx_stack_c::transM(0.0f, cM_scos(shape_angle.z) * 5.0f + l_s_radius, 0.0f);
             mDoMtx_stack_c::ZXYrotM(0, shape_angle.y, shape_angle.z);
             mDoMtx_stack_c::YrotM(m612);
             mDoMtx_stack_c::XrotM(m610);
@@ -461,9 +454,7 @@ void daObjBarrel::Act_c::set_walk_rot() {
     if (mag > l_min_move_dir || (mMode == MODE_WAIT && mag > l_min_move_dir / 2)) {
         cLib_chaseAngleS(&shape_angle.y, targetAngle, 0x600);
     }
-    float radius = cM_scos(shape_angle.z) * 5.0f + l_s_radius;
-    float ratio = mag / (radius * 6.28f);
-    float fVar2 = ratio * 0xFFFF;
+    float fVar2 = mag / ((cM_scos(shape_angle.z) * 5.0f + l_s_radius) * 6.28f) * 0xFFFF;
     if (!negAngle) {
         m612 -= (short)(fVar2 * 3.0f);
         m630 -= (short)fVar2;
@@ -581,8 +572,8 @@ bool daObjBarrel::Act_c::damage_cc_proc() {
                 broken = true;
             } else if ((mMode == MODE_WAIT || mMode == MODE_WALK) && hitObj->ChkAtType(AT_TYPE_WIND)) {
                 cXyz windVec = *mCyl.GetTgRVecP();
-                float windMag2 = windVec.abs2();
-                if (windMag2 > l_wind_max*l_wind_max) {
+                f32 windMag2 = windVec.abs2();
+                if (windMag2 > SQUARE(l_wind_max)) {
                     windVec *= l_wind_max / std::sqrtf(windMag2);
                 }
                 cCcD_ShapeAttr* hitShapeAttr = hitObj->GetShapeAttr();
@@ -601,8 +592,7 @@ bool daObjBarrel::Act_c::damage_cc_proc() {
                     }
                 }
                 float ratio = windMag2 > 0.01f ? l_tgr_ratio : 0.0f;
-                float inv = 1.0f - ratio;
-                mMove = windVec * ratio + hitNormal * inv * f1;
+                mMove = windVec * ratio + hitNormal * (1.0f - ratio) * f1;
                 if (mMode == MODE_WAIT) {
                     if (shape_angle.z == 0) {
                         mode_jump_init();
@@ -643,13 +633,8 @@ bool daObjBarrel::Act_c::damage_bg_proc() {
 
 /* 00001FCC-00002154       .text damage_bg_proc_directly__Q211daObjBarrel5Act_cFv */
 bool daObjBarrel::Act_c::damage_bg_proc_directly() {
-#if VERSION == VERSION_DEMO
-    u32 groundHit = mAcch.ChkGroundHit();
-    u32 groundLanding = mAcch.ChkGroundLanding();
-#else
     u32 groundHit = mAcch.ChkGroundHit() ? TRUE : FALSE;
     u32 groundLanding = mAcch.ChkGroundLanding() ? TRUE : FALSE;
-#endif
     bool broken = false;
 
     if (mMode == MODE_WAIT || mMode == MODE_JUMP || mMode == MODE_WALK) {
@@ -690,7 +675,7 @@ bool daObjBarrel::Act_c::damage_bg_proc_directly() {
 bool daObjBarrel::Act_c::_execute() {
     cull_set_move();
 
-    if (mForceExec || mMode != MODE_WAIT || mAcch.ChkGroundHit() == false || mAcch.ChkGroundLanding() || prm_get_cull() == 0 || !fopAcM_cullingCheck(this)) {
+    if (mForceExec || mMode != MODE_WAIT || !mAcch.ChkGroundHit() || mAcch.ChkGroundLanding() || prm_get_cull() == 0 || !fopAcM_cullingCheck(this)) {
         mForceExec = false;
         BOOL broken = TRUE;
         if (!damage_cc_proc() && !damage_bg_proc()) {

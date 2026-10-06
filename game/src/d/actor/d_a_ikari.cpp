@@ -10,150 +10,9 @@
 #include "d/d_s_play.h"
 #include "m_Do/m_Do_mtx.h"
 
-#if VERSION > VERSION_DEMO
 static daObjIkariHIO_c l_HIO;
-#endif
 
 const char daIkari_c::M_arcname[6] = "Ikari";
-
-#if VERSION == VERSION_DEMO
-/* 00000078-00000098       .text CallbackCreateHeap__FP10fopAc_ac_c */
-static BOOL CallbackCreateHeap(fopAc_ac_c* i_this) {
-    return ((daIkari_c*)i_this)->CreateHeap();
-}
-
-/* 00000098-00000158       .text set_mtx__9daIkari_cFv */
-void daIkari_c::set_mtx() {
-    mpMorf->getModel()->setBaseScale(scale);
-
-    mDoMtx_stack_c::transS(current.pos);
-    mDoMtx_stack_c::YrotM(shape_angle.y);
-    mDoMtx_stack_c::XrotM(current.angle.x);
-    mDoMtx_stack_c::YrotM(-shape_angle.y);
-    mDoMtx_stack_c::YrotM(current.angle.y);
-
-    mpMorf->getModel()->setBaseTRMtx(mDoMtx_stack_c::get());
-}
-
-/* 00000158-00000254       .text CreateHeap__9daIkari_cFv */
-BOOL daIkari_c::CreateHeap() {
-    static int ikari_bmd[5] = {
-        dRes_INDEX_IKARI_BMD_S_IKARI2_e,
-        dRes_INDEX_IKARI_BMD_S_IKARI2_e,
-        dRes_INDEX_IKARI_BMD_S_IKARI2_e,
-        dRes_INDEX_IKARI_BMD_S_IKARI3_e,
-        dRes_INDEX_IKARI_BMD_S_IKARI4_e,
-    };
-
-    J3DModelData* modelData = (J3DModelData*)dComIfG_getObjectRes(M_arcname, ikari_bmd[mModelType]);
-    if (modelData == NULL) {
-        return FALSE;
-    }
-
-    mpMorf = new mDoExt_McaMorf(modelData, NULL, NULL, NULL, J3DFrameCtrl::EMode_LOOP, 1.0f, 0, -1, 0, NULL, 0, 0x11020203);
-    if (mpMorf == NULL || mpMorf->getModel() == NULL) {
-        return FALSE;
-    }
-    return TRUE;
-}
-
-/* 00000254-000002BC       .text SetArgData__9daIkari_cFv */
-void daIkari_c::SetArgData() {
-    u32 param = fopAcM_GetParam(this);
-
-    mModelType = fopAcM_GetParamBit(param, 8, 16);
-    mEnvType = param;
-
-    if (mModelType == 0xff) {
-        mModelType = 0;
-    }
-
-    if (mEnvType == 0xff) {
-        scale.x = 1.0f;
-        scale.y = 1.0f;
-        scale.z = 1.0f;
-    } else if (mEnvType == 0x01) {
-        scale.x = 1.27f;
-        scale.y = 1.27f;
-        scale.z = 1.27f;
-    }
-}
-
-/* 000002BC-000003DC       .text _create__9daIkari_cFv */
-cPhs_State daIkari_c::_create() {
-    cPhs_State phase = dComIfG_resLoad(&mPhs, M_arcname);
-
-    if (phase == cPhs_COMPLEATE_e) {
-        fopAcM_ct(this, daIkari_c);
-        SetArgData();
-
-        if (!fopAcM_entrySolidHeap(this, CallbackCreateHeap, 0x345C)) {
-            return cPhs_ERROR_e;
-        }
-
-        set_mtx();
-
-        f32 scaleX = scale.x;
-
-        fopAcM_SetMtx(this, mpMorf->getModel()->getBaseTRMtx());
-        fopAcM_setCullSizeBox(this,
-            -160.0f * scaleX, -2500.0f * scaleX, -600.0f * scaleX,
-            160.0f * scaleX, 100.0f * scaleX, 600.0f * scaleX);
-        fopAcM_setCullSizeFar(this, 10.0f);
-
-        mTimer = (s16)cM_rndF(0x8000);
-    }
-
-    return phase;
-}
-
-/* 000003DC-0000041C       .text _delete__9daIkari_cFv */
-bool daIkari_c::_delete() {
-    dComIfG_resDeleteDemo(&mPhs, M_arcname);
-    return true;
-}
-
-/* 0000041C-000004F4       .text _execute__9daIkari_cFv */
-bool daIkari_c::_execute() {
-    mpMorf->calc();
-    mTimer++;
-
-    cXyz* windVec = dKyw_get_wind_vec();
-    s16 windAngle = cM_atan2s(windVec->x, windVec->z);
-    f32* windPow = dKyw_get_wind_power();
-
-    shape_angle.y = windAngle;
-
-    f32 rotX = 0.1f * (10000.0f * *windPow);
-
-    current.angle.x =
-        rotX + rotX * JMASSin(mTimer * (REG0_S(5) + 500) & 0xffff);
-
-    set_mtx();
-
-    return true;
-}
-
-/* 000004F4-000005C4       .text _draw__9daIkari_cFv */
-bool daIkari_c::_draw() {
-    if (mEnvType == 1) {
-        dScnKy_env_light_c& env = dKy_getEnvlight();
-        env.settingTevStruct(TEV_TYPE_BG0, &current.pos, &tevStr);
-        tevStr.mColorC0.r = env.mActorC0.r;
-        tevStr.mColorC0.g = env.mActorC0.g;
-        tevStr.mColorC0.b = env.mActorC0.b;
-        tevStr.mColorC0.a = env.mActorC0.a;
-        tevStr.mColorK0.r = env.mActorK0.r;
-        tevStr.mColorK0.g = env.mActorK0.g;
-        tevStr.mColorK0.b = env.mActorK0.b;
-    } else {
-        g_env_light.settingTevStruct(TEV_TYPE_ACTOR, &current.pos, &tevStr);
-    }
-    g_env_light.setLightTevColorType(mpMorf->getModel(), &tevStr);
-    mpMorf->entryDL();
-    return true;
-}
-#else
 
 /* 000000EC-0000010C       .text createHeap_CB__FP10fopAc_ac_c */
 static BOOL createHeap_CB(fopAc_ac_c* i_this) {
@@ -297,8 +156,6 @@ bool daIkari_c::_delete() {
     dComIfG_resDelete(&mPhs, M_arcname);
     return true;
 }
-
-#endif
 
 /* 000005E0-00000600       .text daIkariCreate__FPv */
 static cPhs_State daIkariCreate(void* i_this) {

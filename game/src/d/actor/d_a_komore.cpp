@@ -24,27 +24,19 @@ bool daKomore::Act_c::create_heap() {
 
     JUT_ASSERT(0x66, mdl_data != NULL);
 
-#if VERSION == VERSION_DEMO
-    mpModel = mDoExt_J3DModel__create(mdl_data, 0, 0x11020203);
-#else
     if (mdl_data != NULL) {
         mpModel = mDoExt_J3DModel__create(mdl_data, 0, 0x11020203);
     }
-#endif
 
     btk_data = (J3DAnmTextureSRTKey*)(dComIfG_getObjectRes(M_arcname, dRes_INDEX_FRLT_BTK_YFRLT00_e));
 
-    JUT_ASSERT(DEMO_SELECT(0x72, 0x6d), btk_data != NULL);
+    JUT_ASSERT(0x6d, btk_data != NULL);
 
     s32 btkRet =
         mBtkAnm.init(mdl_data, btk_data, 1, J3DFrameCtrl::EMode_LOOP);
 
     bool ret = FALSE;
-#if VERSION == VERSION_DEMO
-    if (mdl_data != NULL && btkRet != NULL) {
-#else
     if (mdl_data != NULL && this->mpModel != NULL && btkRet != NULL) {
-#endif
         ret = TRUE;
     }
     return ret;

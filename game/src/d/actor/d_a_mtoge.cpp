@@ -97,14 +97,12 @@ BOOL daMtoge_c::CreateInit() {
 
 /* 00000384-0000041C       .text create__9daMtoge_cFv */
 cPhs_State daMtoge_c::create() {
-    fopAcM_ct_Retail(this, daMtoge_c);
+    fopAcM_ct(this, daMtoge_c);
 
     cPhs_State phase_state = dComIfG_resLoad(&mPhaseProcReq, M_arcname);
     if (phase_state != cPhs_COMPLEATE_e) {
         return phase_state;
     }
-
-    fopAcM_ct_Demo(this, daMtoge_c);
 
     if (!fopAcM_entrySolidHeap(this, CheckCreateHeap, 0x15C0U)) {
         return cPhs_ERROR_e;
@@ -138,7 +136,7 @@ BOOL daMtoge_actionHind(daMtoge_c* i_this) {
 BOOL daMtoge_actionUp(daMtoge_c* i_this) {
     cLib_chaseF(&i_this->speedF, 30.0f, 4.0f);
 
-    if (cLib_chaseF(&i_this->mHeightOffset, 0.0f, i_this->speedF)) {
+    if (cLib_chaseF(&i_this->mHeightOffset, 0.0f, fopAcM_GetSpeedF(i_this))) {
         i_this->setAction(ACT_ARRIVAL);
     }
 
@@ -166,7 +164,7 @@ BOOL daMtoge_actionArrival(daMtoge_c* i_this) {
 BOOL daMtoge_actionDown(daMtoge_c* i_this) {
     cLib_chaseF(&i_this->speedF, 30.0f, 4.0f);
 
-    if (cLib_chaseF(&i_this->mHeightOffset, -300.0f, i_this->speedF) != 0) {
+    if (cLib_chaseF(&i_this->mHeightOffset, -300.0f, fopAcM_GetSpeedF(i_this)) != 0) {
         i_this->setAction(ACT_HIND);
     }
 
@@ -216,10 +214,7 @@ static BOOL daMtoge_IsDelete(daMtoge_c*) {
 
 /* 00000720-00000790       .text daMtoge_Delete__FP9daMtoge_c */
 static BOOL daMtoge_Delete(daMtoge_c* i_this) {
-#if VERSION > VERSION_DEMO
-    if (i_this->heap != NULL)
-#endif
-    {
+    if (i_this->heap != NULL) {
         dComIfG_Bgsp()->Release(i_this->mpBgW);
     }
 

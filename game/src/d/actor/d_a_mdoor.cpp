@@ -107,18 +107,18 @@ void daMdoor_c::smokeEnd() {
 
 /* 00000370-000005E0       .text CreateInit__9daMdoor_cFv */
 BOOL daMdoor_c::CreateInit() {
+    fopAc_ac_c* a_this = (fopAc_ac_c*)this;
     s32 uVar1;
     u8 bVar5;
     
     uVar1 = getSwbit();
     bVar5 = getType();
 
-    int rt = dComIfG_Bgsp()->Regist(mpBgW, this);
-    if (rt) {
+    if (dComIfG_Bgsp()->Regist(mpBgW, a_this)) {
         JUT_ASSERT(236, FALSE);
     }
 
-    tevStr.mRoomNo = fopAcM_GetRoomNo(this);
+    a_this->tevStr.mRoomNo = fopAcM_GetRoomNo(a_this);
     m2CC = 0.0f;
     m2C8 = 0xFF;
 
@@ -146,7 +146,7 @@ BOOL daMdoor_c::CreateInit() {
             break;
 
         case 2:
-            if (uVar1 == 0xFF || dComIfGs_isSwitch(uVar1, fopAcM_GetRoomNo(this))) {
+            if (uVar1 == 0xFF || dComIfGs_isSwitch(uVar1, fopAcM_GetRoomNo(a_this))) {
                 setAction(daMdoor_c::ACT_WAIT11_e);
                 m2CC = 280.0f;
             } else {
@@ -165,8 +165,8 @@ BOOL daMdoor_c::CreateInit() {
             break;
     }
 
-    attention_info.position.y += 150.0f;
-    eyePos.y += 150.0f;
+    a_this->attention_info.position.y += 150.0f;
+    a_this->eyePos.y += 150.0f;
     calcMtx();
     mpBgW->Move();
     return TRUE;

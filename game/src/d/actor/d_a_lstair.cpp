@@ -245,8 +245,8 @@ void daLStair_c::moveBG() {
 
     if (mAppearTimer < 0) {
         if (cLib_calcTimer(&mTimer) == 0) {
-            s16 frames = 60;
-            cLib_addCalc(&mStairYOffset, target, 1.0f / frames, maxStep, minStep);
+            int r0 = 60;
+            cLib_addCalc(&mStairYOffset, target, 1.0f / r0, maxStep, minStep);
         }
     }
 

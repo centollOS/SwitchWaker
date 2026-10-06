@@ -13,33 +13,6 @@
 #include "f_op/f_op_actor_mng.h"
 #include "m_Do/m_Do_graphic.h"
 #include "m_Do/m_Do_mtx.h"
-#if VERSION == VERSION_DEMO
-#include "d/actor/d_a_arrow.h"
-#include "d/actor/d_a_player_main.h"
-#include "m_Do/m_Do_hostIO.h"
-
-class daObjBarrier_HIO_c : public JORReflexible {
-public:
-    daObjBarrier_HIO_c();
-    virtual ~daObjBarrier_HIO_c() {}
-
-    void genMessage(JORMContext*) {}
-
-public:
-    /* 0x04 */ s8 mNo;
-    /* 0x08 */ f32 mAtRadiusOffset;
-    /* 0x0C */ f32 mTgRadiusOffset;
-    /* 0x10 */ f32 mCylOffsetY;
-    /* 0x14 */ f32 mBrkRadiusOffset;
-    /* 0x18 */ f32 mBrkRange;
-    /* 0x1C */ u8 mRegistCollision;
-    /* 0x1D */ u8 mEfBtkEntry;
-    /* 0x1E */ u8 mEfBckEntry;
-    /* 0x1F */ u8 mEfBrkEntry;
-    /* 0x20 */ u8 m20;
-    /* 0x21 */ u8 m21;
-};
-#endif
 
 namespace {
 static const char l_arcname[] = "Ycage";
@@ -82,11 +55,7 @@ static const dCcD_SrcCyl l_cyl_tg_src = {
         /* SrcObjAt  Atp     */ 0,
         /* SrcObjAt  SPrm    */ 0,
         /* SrcObjTg  Type    */ ~(AT_TYPE_WATER | AT_TYPE_UNK20000 | AT_TYPE_UNK400000 | AT_TYPE_LIGHT),
-#if VERSION == VERSION_DEMO
-        /* SrcObjTg  SPrm    */ cCcD_TgSPrm_Set_e | cCcD_TgSPrm_IsEnemy_e | cCcD_TgSPrm_IsPlayer_e | cCcD_TgSPrm_IsOther_e,
-#else
         /* SrcObjTg  SPrm    */ cCcD_TgSPrm_Set_e | cCcD_TgSPrm_IsOther_e,
-#endif
         /* SrcObjCo  SPrm    */ 0,
         /* SrcGObjAt Se      */ 0,
         /* SrcGObjAt HitMark */ 0,
@@ -111,37 +80,6 @@ static const dCcD_SrcCyl l_cyl_tg_src = {
 static cXyz l_ef_scale(1.0f, 1.0f, 1.0f);
 }  // namespace
 
-#if VERSION == VERSION_DEMO
-static daObjBarrier_HIO_c l_HIO;
-
-/* 000000EC-00000154       .text __ct__18daObjBarrier_HIO_cFv */
-daObjBarrier_HIO_c::daObjBarrier_HIO_c() {
-    mNo = -1;
-    mAtRadiusOffset = 60.0f;
-    mTgRadiusOffset = 20.0f;
-    mCylOffsetY = 300.0f;
-    mBrkRadiusOffset = 150.0f;
-    mBrkRange = 700.0f;
-    mRegistCollision = 1;
-    mEfBtkEntry = 1;
-    mEfBckEntry = 1;
-    mEfBrkEntry = 1;
-    m20 = 0;
-    m21 = 0;
-}
-
-/* 00000154-000001F4       .text set_mtx__14daObjBarrier_cFv */
-void daObjBarrier_c::set_mtx() {
-    mAnm.getMdlP()->setBaseScale(scale);
-    mDoMtx_stack_c::transS(current.pos);
-    mDoMtx_stack_c::YrotM(shape_angle.y);
-    mAnm.getMdlP()->setBaseTRMtx(mDoMtx_stack_c::get());
-
-    mDoMtx_stack_c::scaleM(scale);
-    cMtx_copy(mDoMtx_stack_c::get(), mBgMtx);
-}
-#endif
-
 /* 000000EC-0000018C       .text init_mtx__14daObjBarrier_cFv */
 void daObjBarrier_c::init_mtx() {
     mAnm.getMdlP()->setBaseScale(scale);
@@ -160,14 +98,13 @@ int daObjBarrier_c::solidHeapCB(fopAc_ac_c* i_this) {
 
 /* 000001B0-00000340       .text init__18daObjBarrier_anm_cFv */
 bool daObjBarrier_anm_c::init() {
-    J3DModelData* modelData;
     bool rt = true;
-    modelData = static_cast<J3DModelData*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BDL_YCAGE00_e));
+    J3DModelData* modelData = static_cast<J3DModelData*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BDL_YCAGE00_e));
     J3DAnmTextureSRTKey* pbtk = static_cast<J3DAnmTextureSRTKey*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BTK_YCAGE00_e));
     J3DAnmTevRegKey* pbrk = static_cast<J3DAnmTevRegKey*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BRK_YCAGE00_e));
 
     if (modelData == NULL || pbtk == NULL || pbrk == NULL) {
-        JUT_ASSERT(VERSION_SELECT(398, 406, 407, 407), FALSE);
+        JUT_ASSERT(VERSION_SELECT(406, 406, 407, 407), FALSE);
         rt = false;
     } else {
         mpModel = mDoExt_J3DModel__create(modelData, 0x80000, 0x1000200);
@@ -205,64 +142,6 @@ bool daObjBarrier_c::create_heap() {
 
 /* 000003E8-00000508       .text checkCollision_Tg__14daObjBarrier_cFv */
 bool daObjBarrier_c::checkCollision_Tg() {
-#if VERSION == VERSION_DEMO
-    bool chk = false;
-    if (mTgCyl.ChkTgHit()) {
-        fopAc_ac_c* hit_actor;
-        u32 at_type = 0;
-        cCcD_Obj* hit_obj = mTgCyl.GetTgHitObj();
-        hit_actor = mTgCyl.GetTgHitAc();
-        if (hit_obj != NULL) {
-            at_type = hit_obj->GetAtType();
-            if (mMoya == 0) {
-                switch (at_type) {
-                case AT_TYPE_SWORD:
-                    switch (dComIfGs_getSelectEquip(0)) {
-                    case dItemNo_MASTER_SWORD_3_e:
-                        dComIfGs_onEventBit(dSv_event_flag_c::BARRIER_BREAK);
-                        dComIfGp_setNextStage("Hyrule", 0xE9, 0, 9);
-                        mBreak = true;
-                        chk = true;
-                        break;
-                    }
-                    break;
-                }
-            }
-        }
-
-        if (hit_actor != NULL) {
-            cXyz hit_pos = hit_actor->current.pos;
-            int no_set_effect = true;
-
-            if (hit_actor == dComIfGp_getPlayer(0)) {
-                no_set_effect = false;
-                if (at_type == AT_TYPE_WIND) {
-                    hit_pos = ((daPy_lk_c*)dComIfGp_getLinkPlayer())->getDekuLeafWindPos();
-                } else if (hit_obj != NULL) {
-                    hit_pos = *mTgCyl.GetTgHitPosP();
-                }
-            }
-
-            switch (at_type) {
-            case AT_TYPE_HOOKSHOT:
-                no_set_effect = false;
-                break;
-            case AT_TYPE_NORMAL_ARROW:
-            case AT_TYPE_FIRE_ARROW:
-            case AT_TYPE_ICE_ARROW:
-            case AT_TYPE_LIGHT_ARROW:
-                ((daArrow_c*)hit_actor)->ArrowAtOff();
-                break;
-            }
-
-            mEffect.birth(hit_actor, scale.x * 1000.0f, mTgCyl.GetC(), hit_pos, no_set_effect);
-        }
-
-        mTgCyl.ClrTgHit();
-    }
-
-    return chk;
-#else
     if (mTgCyl.ChkTgHit()) {
         fopAc_ac_c* hit_actor = mTgCyl.GetTgHitAc();
         if (hit_actor != NULL) {
@@ -283,7 +162,6 @@ bool daObjBarrier_c::checkCollision_Tg() {
     }
 
     return false;
-#endif
 }
 
 /* 00000544-00000608       .text checkCollision_At__14daObjBarrier_cFv */
@@ -302,36 +180,7 @@ void daObjBarrier_c::checkCollision_At() {
 
 /* 00000608-00000754       .text registCollisionTable__14daObjBarrier_cFv */
 void daObjBarrier_c::registCollisionTable() {
-#if VERSION == VERSION_DEMO
-    f32 base_radius;
-    f32 height;
-    f32 at_r = l_HIO.mAtRadiusOffset;
-    f32 tg_r = l_HIO.mTgRadiusOffset;
-    f32 off_y = l_HIO.mCylOffsetY;
-#endif
     cXyz pos = current.pos;
-#if VERSION == VERSION_DEMO
-    pos.y -= off_y;
-
-    base_radius = 1000.0f * scale.x;
-    height = off_y + 10000.0f * scale.y;
-
-    mAtCyl.SetC(pos);
-    mAtCyl.SetR(base_radius - at_r);
-    mAtCyl.SetH(height);
-
-    mTgCyl.SetC(pos);
-    mTgCyl.SetR(base_radius - tg_r);
-    mTgCyl.SetH(height);
-
-    cXyz at_vec = current.pos - dComIfGp_getPlayer(0)->current.pos;
-    mAtCyl.SetAtVec(at_vec);
-
-    if (l_HIO.mRegistCollision == 1) {
-        dComIfG_Ccsp()->Set(&mAtCyl);
-        dComIfG_Ccsp()->Set(&mTgCyl);
-    }
-#else
     pos.y -= 300.0f;
 
     f32 base_radius = scale.x * 1000.0f;
@@ -350,18 +199,12 @@ void daObjBarrier_c::registCollisionTable() {
 
     dComIfG_Ccsp()->Set(&mAtCyl);
     dComIfG_Ccsp()->Set(&mTgCyl);
-#endif
 }
 
 /* 00000754-00000884       .text brkAnmPlay__14daObjBarrier_cFv */
 void daObjBarrier_c::brkAnmPlay() {
     f32 dist_to_playerXZ = (dComIfGp_getPlayer(0)->current.pos - current.pos).absXZ();
-#if VERSION == VERSION_DEMO
-    f32 radius = scale.x * 1000.0f - l_HIO.mBrkRadiusOffset;
-    f32 range = l_HIO.mBrkRange;
-#else
     f32 radius = scale.x * 1000.0f - 150.0f;
-#endif
 
     f32 var_r3;
     if (dist_to_playerXZ > radius) {
@@ -371,10 +214,10 @@ void daObjBarrier_c::brkAnmPlay() {
     }
 
     f32 brk_frame;
-    if (var_r3 > DEMO_SELECT(range, 700.0f)) {
+    if (var_r3 > 700.0f) {
         brk_frame = 1.0f;
     } else {
-        brk_frame = (1.0f - var_r3 / DEMO_SELECT(range, 700.0f)) * 59.0f + 1.0f;
+        brk_frame = (1.0f - var_r3 / 700.0f) * 59.0f + 1.0f;
     }
 
     mAnm.setBrkFrame(brk_frame);
@@ -429,7 +272,6 @@ void daObjBarrier_c::break_end_wait_proc() {
 }
 #endif
 
-#if VERSION > VERSION_DEMO
 /* 00000AB8-00000B34       .text break_check__14daObjBarrier_cFv */
 bool daObjBarrier_c::break_check() {
     bool chk = false;
@@ -466,7 +308,6 @@ bool daObjBarrier_c::break_check() {
 
     return chk;
 }
-#endif
 
 /* 00000B34-00000D24       .text setDummyTexture__17daObjBarrier_ef_cFi */
 void daObjBarrier_ef_c::setDummyTexture(int i_idx) {
@@ -474,8 +315,8 @@ void daObjBarrier_ef_c::setDummyTexture(int i_idx) {
     J3DTexture* texture = modelData->getTexture();
     JUTNameTab* textureName = modelData->getTextureName();
 
-    JUT_ASSERT(VERSION_SELECT(697, 710, 808, 808), texture != NULL);
-    JUT_ASSERT(VERSION_SELECT(698, 711, 809, 809), textureName != NULL);
+    JUT_ASSERT(VERSION_SELECT(710, 710, 808, 808), texture != NULL);
+    JUT_ASSERT(VERSION_SELECT(711, 711, 809, 809), textureName != NULL);
 
     for (u16 i = 0; i < texture->getNum(); i++) {
         if (strcmp(textureName->getName(i), "__dummy") == 0) {
@@ -550,13 +391,13 @@ void daObjBarrier_ef_c::birth(fopAc_ac_c* i_hitActor, f32 i_radius, cXyz i_cente
         J3DModelData* modelData = mpModel[effect_idx]->getModelData();
 
         J3DAnmTextureSRTKey* btk_anm_p = static_cast<J3DAnmTextureSRTKey*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BTK_YHRBR00_e));
-        JUT_ASSERT(VERSION_SELECT(826, 839, 937, 937), btk_anm_p != NULL);
+        JUT_ASSERT(VERSION_SELECT(839, 839, 937, 937), btk_anm_p != NULL);
 
         J3DAnmTransform* bck_anm_p = static_cast<J3DAnmTransform*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BCK_YHRBR00_e));
-        JUT_ASSERT(VERSION_SELECT(831, 844, 942, 942), bck_anm_p != NULL);
+        JUT_ASSERT(VERSION_SELECT(844, 844, 942, 942), bck_anm_p != NULL);
 
         J3DAnmTevRegKey* brk_anm_p = static_cast<J3DAnmTevRegKey*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BRK_YHRBR00_e));
-        JUT_ASSERT(VERSION_SELECT(836, 849, 947, 947), brk_anm_p != NULL);
+        JUT_ASSERT(VERSION_SELECT(849, 849, 947, 947), brk_anm_p != NULL);
 
         mBtk[effect_idx].init(modelData, btk_anm_p, TRUE, J3DFrameCtrl::EMode_NONE, 1.0f, 0, -1,
                               true, 0);
@@ -575,18 +416,14 @@ void daObjBarrier_ef_c::birth(fopAc_ac_c* i_hitActor, f32 i_radius, cXyz i_cente
 
 /* 000011B8-000013E0       .text init__17daObjBarrier_ef_cFv */
 bool daObjBarrier_ef_c::init() {
-    J3DModelData* modelData;
-    J3DAnmTextureSRTKey* pbtk;
-    J3DAnmTransform* pbck;
-    J3DAnmTevRegKey* pbrk;
     bool rt = true;
-    modelData = static_cast<J3DModelData*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BDL_YHRBR00_e));
-    pbtk = static_cast<J3DAnmTextureSRTKey*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BTK_YHRBR00_e));
-    pbck = static_cast<J3DAnmTransform*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BCK_YHRBR00_e));
-    pbrk = static_cast<J3DAnmTevRegKey*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BRK_YHRBR00_e));
+    J3DModelData* modelData = static_cast<J3DModelData*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BDL_YHRBR00_e));
+    J3DAnmTextureSRTKey* pbtk = static_cast<J3DAnmTextureSRTKey*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BTK_YHRBR00_e));
+    J3DAnmTransform* pbck = static_cast<J3DAnmTransform*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BCK_YHRBR00_e));
+    J3DAnmTevRegKey* pbrk = static_cast<J3DAnmTevRegKey*>(dComIfG_getObjectRes(l_arcname, dRes_INDEX_YCAGE_BRK_YHRBR00_e));
 
     if (modelData == NULL || pbtk == NULL || pbck == NULL || pbrk == NULL) {
-        JUT_ASSERT(VERSION_SELECT(905, 918, 1016, 1016), FALSE);
+        JUT_ASSERT(VERSION_SELECT(918, 918, 1016, 1016), FALSE);
         rt = false;
     } else {
         for (int i = 0; i < 4; i++) {
@@ -643,23 +480,10 @@ void daObjBarrier_ef_c::draw() {
         if (((active_flags >> i) & 1)) {
             model_p = mpModel[i];
 
-#if VERSION == VERSION_DEMO
-            if (l_HIO.mEfBtkEntry == 1) {
-                J3DModelData* modelData = model_p->getModelData();
-                mBtk[i].entry(modelData, getBtkFrame(i));
-            }
-            if (l_HIO.mEfBckEntry == 1) {
-                mBck[i].entry(model_p->getModelData(), (s16)getBtkFrame(i));
-            }
-            if (l_HIO.mEfBrkEntry == 1) {
-                mBrk[i].entry(model_p->getModelData(), (s16)getBtkFrame(i));
-            }
-#else
             J3DModelData* modelData = model_p->getModelData();
             mBtk[i].entry(modelData, getBtkFrame(i));
             mBck[i].entry(model_p->getModelData(), (s16)getBtkFrame(i));
             mBrk[i].entry(model_p->getModelData(), (s16)getBtkFrame(i));
-#endif
 
             dComIfGd_setListInvisisble();
             mDoExt_modelUpdateDL(model_p);
@@ -674,13 +498,6 @@ cPhs_State daObjBarrier_c::_create() {
     fopAcM_ct(this, daObjBarrier_c);
 
     if (fopAcM_IsFirstCreating(this)) {
-#if VERSION == VERSION_DEMO
-        if (dComIfGs_isEventBit(dSv_event_flag_c::BARRIER_BREAK) == true) {
-            mBarrierActive = false;
-        } else {
-            mBarrierActive = true;
-        }
-#else
         mMoya = param_get_moya();
         if (mMoya != 0) {
             mBarrierActive = true;
@@ -689,7 +506,6 @@ cPhs_State daObjBarrier_c::_create() {
         } else {
             mBarrierActive = true;
         }
-#endif
     }
 
     if (mBarrierActive == true) {
@@ -721,20 +537,11 @@ cPhs_State daObjBarrier_c::_create() {
                 }
 
                 mEffect.create();
-#if VERSION == VERSION_DEMO
-                mMoya = param_get_moya();
-#endif
             }
         } else {
             phase = cPhs_ERROR_e;
         }
     }
-
-#if VERSION == VERSION_DEMO
-    if (l_HIO.mNo < 0) {
-        l_HIO.mNo = mDoHIO_createChild("ハイラル城結界", &l_HIO); // Hyrule Castle barrier
-    }
-#endif
 
     return phase;
 }
@@ -744,11 +551,6 @@ bool daObjBarrier_c::_delete() {
     if (mBarrierActive == true) {
         dComIfG_resDelete(&mPhase, l_arcname);
 
-#if VERSION == VERSION_DEMO
-        if (mpBgW != NULL && mpBgW->ChkUsed()) {
-            dComIfG_Bgsp()->Release(mpBgW);
-        }
-#else
         if (heap != NULL && mpBgW != NULL) {
             if (mpBgW->ChkUsed()) {
                 dComIfG_Bgsp()->Release(mpBgW);
@@ -756,15 +558,7 @@ bool daObjBarrier_c::_delete() {
 
             mpBgW = NULL;
         }
-#endif
     }
-
-#if VERSION == VERSION_DEMO
-    if (l_HIO.mNo >= 0) {
-        mDoHIO_deleteChild(l_HIO.mNo);
-        l_HIO.mNo = -1;
-    }
-#endif
 
     return true;
 }
@@ -773,9 +567,6 @@ bool daObjBarrier_c::_delete() {
 bool daObjBarrier_c::_execute() {
     mAnm.mBtk.play();
     brkAnmPlay();
-#if VERSION == VERSION_DEMO
-    set_mtx();
-#endif
 
     mpBgW->Move();
     mAtStts.Move();
@@ -786,15 +577,9 @@ bool daObjBarrier_c::_execute() {
         registCollisionTable();
     }
 
-#if VERSION == VERSION_DEMO
-    if (!mBreak) {
-        mEffect.execute();
-    }
-#else
     if (!break_check()) {
         mEffect.execute();
     }
-#endif
 
     return true;
 }

@@ -67,9 +67,6 @@ public:
         PRM_MOYA_S = 0x08,
     };
 
-#if VERSION == VERSION_DEMO
-    void set_mtx();
-#endif
     void init_mtx();
     static int solidHeapCB(fopAc_ac_c*);
     bool create_heap();
@@ -100,9 +97,6 @@ public:
     /* 0x5D8 */ daObjBarrier_ef_c mEffect;
     /* 0x724 */ u8 mBarrierActive;
     /* 0x728 */ int mMoya;
-#if VERSION == VERSION_DEMO
-    /* 0x72C */ bool mBreak;
-#endif
 #if VERSION > VERSION_JPN
     /* 0x72C */ s16 mEventID;
     /* 0x730 */ int mBarrierProc;

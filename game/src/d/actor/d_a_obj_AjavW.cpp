@@ -12,35 +12,10 @@
 #include "d/d_com_inf_game.h"
 #include "m_Do/m_Do_ext.h"
 #include "m_Do/m_Do_mtx.h"
-#include "m_Do/m_Do_hostIO.h"
-
-#if VERSION == VERSION_DEMO
-class daObjAjavW_HIO_c : public JORReflexible {
-public:
-    daObjAjavW_HIO_c();
-    virtual ~daObjAjavW_HIO_c() {}
-
-    void genMessage(JORMContext* ctx) { UNUSED(ctx); }
-
-public:
-    /* 0x04 */ s8 mNo;
-    /* 0x05 */ u8 m05;
-}; // size = 0x08
-#endif
 
 namespace {
     static const char l_arcname[] = "AjavW";
 };
-
-#if VERSION == VERSION_DEMO
-static daObjAjavW_HIO_c l_HIO;
-
-/* 000000EC-0000010C       .text __ct__16daObjAjavW_HIO_cFv */
-daObjAjavW_HIO_c::daObjAjavW_HIO_c() {
-    mNo = -1;
-    m05 = 0;
-}
-#endif
 
 /* 00000078-0000009C       .text solidHeapCB__12daObjAjavW_cFP10fopAc_ac_c */
 BOOL daObjAjavW_c::solidHeapCB(fopAc_ac_c* i_this) {
@@ -55,7 +30,7 @@ bool daObjAjavW_c::create_heap() {
     J3DAnmTextureSRTKey * pBtk = (J3DAnmTextureSRTKey *)dComIfG_getObjectRes(l_arcname, dRes_INDEX_AJAVW_BTK_AJAVW_e);
 
     if (!pModelData || !pBtk) {
-        JUT_ASSERT(DEMO_SELECT(0xa3, 0xa7), FALSE);
+        JUT_ASSERT(0xa7, FALSE);
         ret = false;
     } else {
         mpModel = mDoExt_J3DModel__create(pModelData, 0x80000, 0x11000222);
@@ -91,12 +66,6 @@ cPhs_State daObjAjavW_c::_create() {
         }
     }
 
-#if VERSION == VERSION_DEMO
-    if (l_HIO.mNo < 0) {
-        l_HIO.mNo = mDoHIO_createChild("ジャブ洞窟の水面", &l_HIO);
-    }
-#endif
-
     return ret;
 }
 
@@ -104,16 +73,6 @@ cPhs_State daObjAjavW_c::_create() {
 bool daObjAjavW_c::_delete() {
     dComIfG_resDelete(&mPhs, l_arcname);
 
-#if VERSION == VERSION_DEMO
-    if (mpBgW != NULL && mpBgW->ChkUsed()) {
-        dComIfG_Bgsp()->Release(mpBgW);
-    }
-
-    if (l_HIO.mNo >= 0) {
-        mDoHIO_deleteChild(l_HIO.mNo);
-        l_HIO.mNo = -1;
-    }
-#else
     if (heap != NULL && mpBgW != NULL) {
         if (mpBgW->ChkUsed()) {
             dComIfG_Bgsp()->Release(mpBgW);
@@ -121,7 +80,6 @@ bool daObjAjavW_c::_delete() {
 
         mpBgW = NULL;
     }
-#endif
 
     return true;
 }
