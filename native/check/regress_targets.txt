@@ -168,3 +168,9 @@ stage-hop 0 --stage Adanmae:0:0 --heap-check 1
 # build sees every one). A crash ends the run with 13; the event itself stays "stuck" on its
 # message, as without a message process anywhere
 event-sweep 0 --stage sea:1:0 --env COS_EVENT_SWEEP=120 --env COS_EVENT_SWEEP_SECONDS=20 --env COS_EVENT_SWEEP_DEMOS=awake_zola.stb:28
+# COS_SMOKE=event-sweep (bug B35): the Earth and Wind sages' cutscenes (dance_zola.stb in Demo27,
+# dance_kokiri.stb in Demo30) name a BTK file as a model's BRK; the TEV-register animation built from
+# it followed a garbage pointer (SIGBUS in J3DAnmTevRegKey::searchUpdateMaterialID). Each demo plays to
+# its stage change
+event-sweep 0 --stage Edaichi:0:0 --env COS_EVENT_SWEEP=61 --env COS_BOOT_EVENTS=2D01 --env COS_EVENT_SWEEP_DEMOS=dance_zola.stb:27
+event-sweep 0 --stage Ekaze:0:0 --env COS_EVENT_SWEEP=60 --env COS_BOOT_EVENTS=2D01 --env COS_EVENT_SWEEP_DEMOS=dance_kokiri.stb:30

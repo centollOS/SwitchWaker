@@ -22,6 +22,9 @@
 #include "JSystem/J3DGraphAnimator/J3DModel.h"
 #include "JSystem/J3DGraphAnimator/J3DModelData.h"
 #include "string.h"
+#if TARGET_PC
+#include <cstdio>
+#endif
 
 struct light_data_s {
     /* 0x00 */ bool useJoint;
@@ -157,6 +160,26 @@ BOOL awaCheck(J3DModel* model) {
     }
     return TRUE;
 }
+
+#if TARGET_PC
+// Bug B35: an STB animation ID whose demo-bank file is not of the animation kind its slot needs
+// (J3DAnmBase::getKind: 2 texture pattern, 4 texture SRT, 5 TEV register) becomes -1 (none).
+static void pcDropWrongKindAnm(u32& id, s32 kind) {
+    if (id == (u32)-1) {
+        return;
+    }
+    J3DAnmBase* anm = (J3DAnmBase*)dComIfG_getObjectIDRes(dStage_roomControl_c::getDemoArcName(), (u16)id);
+    if (anm != NULL && anm->getKind() != kind) {
+        static J3DAnmBase* sLogged = NULL;  // the STB is parsed every frame: log a file once
+        if (anm != sLogged) {
+            sLogged = anm;
+            fprintf(stderr, "[cos] daDemo00: %s file 0x%x is animation kind %d, not %d: dropped (bug B35)\n",
+                dStage_roomControl_c::getDemoArcName(), (unsigned)(u16)id, (int)anm->getKind(), (int)kind);
+        }
+        id = (u32)-1;
+    }
+}
+#endif
 
 /* 800E5FF4-800E6014       .text createHeapCallBack__FP10fopAc_ac_c */
 static BOOL createHeapCallBack(fopAc_ac_c* i_this) {
@@ -812,6 +835,18 @@ BOOL daDemo00_c::execute() {
                             r5 = -1;
                         }
                     }
+#if TARGET_PC
+                    // Original data bug (bug B35): dance_zola.stb (Demo27, the Earth sage's
+                    // cutscene) names file 24, gdemo27_appr00.btk, as the BRK of gdemo27_appr00.bdl
+                    // (dance_kokiri.stb in Demo30 does the same). The GameCube initialised a
+                    // J3DAnmTevRegKey from the J3DAnmTextureSRTKey object and read its fields as
+                    // TEV register tables, which happened to be harmless; with the host's layout
+                    // searchUpdateMaterialID follows a garbage pointer (SIGBUS). An animation whose
+                    // file is not of the kind its slot needs is dropped, as if the STB named none.
+                    pcDropWrongKindAnm(mNextID.mBtpID, 2);
+                    pcDropWrongKindAnm(mNextID.mBtkID, 4);
+                    pcDropWrongKindAnm(mNextID.mBrkID, 5);
+#endif
                 }
             }
         }
