@@ -7,6 +7,7 @@
 #include "JSystem/JUtility/JUTAssert.h"
 #if TARGET_PC
 #include "SSystem/SComponent/c_math.h"
+#include "global.h" // COMPOUND_LITERAL: Aurora's dolphin/os.h does not bring global.h in
 #endif
 
 const cXyz cXyz::Zero(0, 0, 0);
@@ -97,7 +98,7 @@ cXyz cXyz::normZC(void) const {
             outVec.x = 0.0f;
             outVec.y = 0.0f;
             outVec.z = 1.0f;
-            outVec = (Vec){0, 0, 1};
+            outVec = COMPOUND_LITERAL(Vec){0, 0, 1};
         }
     }
     return outVec;

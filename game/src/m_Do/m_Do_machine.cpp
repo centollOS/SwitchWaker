@@ -512,25 +512,16 @@ bool mDoMch_Create() {
     JKRHeap::setDefaultDebugFill(mDoMch::mDebugFill);
     JFWSystem::setMaxStdHeap(1);
 
-#if TARGET_PC
     // Whole host addresses, as in Dusklight (ref/dusklight/src/m_Do/m_Do_machine.cpp, CC0). Aurora's
     // MEM1 lies above 4 GiB, so the test below always holds and the arena loses its top 24 MiB,
     // as on a development console with more memory than a retail one; 232 of the 256 MiB remain.
     uintptr_t arenaHi = (uintptr_t)OSGetArenaHi();
     uintptr_t arenaLo = (uintptr_t)OSGetArenaLo();
-#else
-    u32 arenaHi = (u32)OSGetArenaHi();
-    u32 arenaLo = (u32)OSGetArenaLo();
-#endif
     if (arenaHi > 0x81800000 && arenaHi - 0x1800000 > arenaLo) {
         OSSetArenaHi((void*)(arenaHi - 0x1800000));
     }
 
-#if TARGET_PC
     u32 arenaSize = ((uintptr_t)OSGetArenaHi() - (uintptr_t)OSGetArenaLo()) - 0xF0;
-#else
-    u32 arenaSize = ((u32)OSGetArenaHi() - (u32)OSGetArenaLo()) - 0xF0;
-#endif
 #if VERSION != VERSION_PAL
     if (OSGetConsoleSimulatedMemSize() >= 0x3000000) {
         arenaSize -= DEMO_SELECT(0x800000, 0x1000000);

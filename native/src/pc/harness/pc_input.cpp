@@ -225,35 +225,35 @@ void loadScript(const char* path) {
 
 uint32_t holdMask(const interface_of_controller_pad& pad) {
     uint32_t m = 0;
-    m |= pad.mButtonHold.bits.up ? PAD_BUTTON_UP : 0;
-    m |= pad.mButtonHold.bits.down ? PAD_BUTTON_DOWN : 0;
-    m |= pad.mButtonHold.bits.left ? PAD_BUTTON_LEFT : 0;
-    m |= pad.mButtonHold.bits.right ? PAD_BUTTON_RIGHT : 0;
-    m |= pad.mButtonHold.bits.z ? PAD_TRIGGER_Z : 0;
-    m |= pad.mButtonHold.bits.r ? PAD_TRIGGER_R : 0;
-    m |= pad.mButtonHold.bits.l ? PAD_TRIGGER_L : 0;
-    m |= pad.mButtonHold.bits.a ? PAD_BUTTON_A : 0;
-    m |= pad.mButtonHold.bits.b ? PAD_BUTTON_B : 0;
-    m |= pad.mButtonHold.bits.x ? PAD_BUTTON_X : 0;
-    m |= pad.mButtonHold.bits.y ? PAD_BUTTON_Y : 0;
-    m |= pad.mButtonHold.bits.start ? PAD_BUTTON_START : 0;
+    m |= pad.mButtonHold.up ? PAD_BUTTON_UP : 0;
+    m |= pad.mButtonHold.down ? PAD_BUTTON_DOWN : 0;
+    m |= pad.mButtonHold.left ? PAD_BUTTON_LEFT : 0;
+    m |= pad.mButtonHold.right ? PAD_BUTTON_RIGHT : 0;
+    m |= pad.mButtonHold.z ? PAD_TRIGGER_Z : 0;
+    m |= pad.mButtonHold.r ? PAD_TRIGGER_R : 0;
+    m |= pad.mButtonHold.l ? PAD_TRIGGER_L : 0;
+    m |= pad.mButtonHold.a ? PAD_BUTTON_A : 0;
+    m |= pad.mButtonHold.b ? PAD_BUTTON_B : 0;
+    m |= pad.mButtonHold.x ? PAD_BUTTON_X : 0;
+    m |= pad.mButtonHold.y ? PAD_BUTTON_Y : 0;
+    m |= pad.mButtonHold.start ? PAD_BUTTON_START : 0;
     return m;
 }
 
 uint32_t trigMask(const interface_of_controller_pad& pad) {
     uint32_t m = 0;
-    m |= pad.mButtonTrig.bits.up ? PAD_BUTTON_UP : 0;
-    m |= pad.mButtonTrig.bits.down ? PAD_BUTTON_DOWN : 0;
-    m |= pad.mButtonTrig.bits.left ? PAD_BUTTON_LEFT : 0;
-    m |= pad.mButtonTrig.bits.right ? PAD_BUTTON_RIGHT : 0;
-    m |= pad.mButtonTrig.bits.z ? PAD_TRIGGER_Z : 0;
-    m |= pad.mButtonTrig.bits.r ? PAD_TRIGGER_R : 0;
-    m |= pad.mButtonTrig.bits.l ? PAD_TRIGGER_L : 0;
-    m |= pad.mButtonTrig.bits.a ? PAD_BUTTON_A : 0;
-    m |= pad.mButtonTrig.bits.b ? PAD_BUTTON_B : 0;
-    m |= pad.mButtonTrig.bits.x ? PAD_BUTTON_X : 0;
-    m |= pad.mButtonTrig.bits.y ? PAD_BUTTON_Y : 0;
-    m |= pad.mButtonTrig.bits.start ? PAD_BUTTON_START : 0;
+    m |= pad.mButtonTrig.up ? PAD_BUTTON_UP : 0;
+    m |= pad.mButtonTrig.down ? PAD_BUTTON_DOWN : 0;
+    m |= pad.mButtonTrig.left ? PAD_BUTTON_LEFT : 0;
+    m |= pad.mButtonTrig.right ? PAD_BUTTON_RIGHT : 0;
+    m |= pad.mButtonTrig.z ? PAD_TRIGGER_Z : 0;
+    m |= pad.mButtonTrig.r ? PAD_TRIGGER_R : 0;
+    m |= pad.mButtonTrig.l ? PAD_TRIGGER_L : 0;
+    m |= pad.mButtonTrig.a ? PAD_BUTTON_A : 0;
+    m |= pad.mButtonTrig.b ? PAD_BUTTON_B : 0;
+    m |= pad.mButtonTrig.x ? PAD_BUTTON_X : 0;
+    m |= pad.mButtonTrig.y ? PAD_BUTTON_Y : 0;
+    m |= pad.mButtonTrig.start ? PAD_BUTTON_START : 0;
     return m;
 }
 

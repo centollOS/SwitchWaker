@@ -721,15 +721,8 @@ void JKRExpHeap::recycleFreeBlock(CMemBlock* block) {
 
 /* 802B27D0-802B291C       .text joinTwoBlocks__10JKRExpHeapFPQ210JKRExpHeap9CMemBlock */
 void JKRExpHeap::joinTwoBlocks(CMemBlock* block) {
-#if TARGET_PC
-    // Whole host addresses: compared as 32-bit values, two blocks on either side of a 4 GiB
-    // boundary would compare the wrong way round.
     uintptr_t curBlock = (uintptr_t)block; // Fakematch?
     uintptr_t endAddr = (uintptr_t)(block + 1) + block->size;
-#else
-    uintptr_t curBlock = (uintptr_t)block; // Fakematch?
-    uintptr_t endAddr = (uintptr_t)(block + 1) + block->size;
-#endif
     CMemBlock* next = block->mNext;
     uintptr_t nextAddr = (uintptr_t)next - (next->mFlags & 0x7f);
     if (endAddr > nextAddr) {

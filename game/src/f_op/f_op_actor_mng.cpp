@@ -553,11 +553,9 @@ s32 fopAcM_rollPlayerCrash(fopAc_ac_c* i_this, f32 distAdjust, u32 flag) {
 bool fopAcM_checkCullingBox(Mtx m, f32 x0, f32 y0, f32 z0, f32 x1, f32 y1, f32 z1) {
     Vec p0 = { x0, y0, z0 };
     Vec p1 = { x1, y1, z1 };
-    MtxP pMtx;
     Mtx viewMtx;
     cMtx_concat(j3dSys.getViewMtx(), m, viewMtx);
-    pMtx = viewMtx;
-    if (mDoLib_clipper::clip(pMtx, &p1, &p0)) {
+    if (mDoLib_clipper::clip(viewMtx, &p1, &p0)) {
         return true;
     } else {
         return false;
@@ -709,22 +707,22 @@ s32 fopAcM_orderCatchEvent(fopAc_ac_c* i_this, fopAc_ac_c* i_partner) {
 }
 
 /* 80025C34-80025CC8       .text fopAcM_orderOtherEvent2__FP10fopAc_ac_cPcUsUs */
-s32 fopAcM_orderOtherEvent2(fopAc_ac_c* i_this, char* pEventName, u16 flag, u16 hind) {
-    u16 prio = dComIfGp_evmng_getEventPrio(dComIfGp_evmng_getEventIdx(pEventName));
+s32 fopAcM_orderOtherEvent2(fopAc_ac_c* i_this, char* i_eventName, u16 flag, u16 hind) {
+    u16 prio = dComIfGp_evmng_getEventPrio(dComIfGp_evmng_getEventIdx(i_eventName));
     if (prio == 0)
         prio = 0xFF;
 
-    return dComIfGp_event_orderOld(dEvtType_OTHER_e, prio, flag, hind, i_this, dComIfGp_getPlayer(0), pEventName);
+    return dComIfGp_event_orderOld(dEvtType_OTHER_e, prio, flag, hind, i_this, dComIfGp_getPlayer(0), i_eventName);
 }
 
 /* 80025CC8-80025D28       .text fopAcM_orderChangeEvent__FP10fopAc_ac_cPcUsUs */
-s32 fopAcM_orderChangeEvent(fopAc_ac_c* i_this, char* pEventName, u16 flag, u16 hind) {
-    return fopAcM_orderChangeEventId(i_this, dComIfGp_evmng_getEventIdx(pEventName), flag, hind);
+s32 fopAcM_orderChangeEvent(fopAc_ac_c* i_this, char* i_eventName, u16 flag, u16 hind) {
+    return fopAcM_orderChangeEventId(i_this, dComIfGp_evmng_getEventIdx(i_eventName), flag, hind);
 }
 
 /* 80025D28-80025D94       .text fopAcM_orderChangeEvent__FP10fopAc_ac_cP10fopAc_ac_cPcUsUs */
-s32 fopAcM_orderChangeEvent(fopAc_ac_c* i_this, fopAc_ac_c* i_partner, char* pEventName, u16 flag, u16 hind) {
-    return fopAcM_orderChangeEventId(i_this, i_partner, dComIfGp_evmng_getEventIdx(pEventName), flag, hind);
+s32 fopAcM_orderChangeEvent(fopAc_ac_c* i_this, fopAc_ac_c* i_partner, char* i_eventName, u16 flag, u16 hind) {
+    return fopAcM_orderChangeEventId(i_this, i_partner, dComIfGp_evmng_getEventIdx(i_eventName), flag, hind);
 }
 
 /* 80025D94-80025E1C       .text fopAcM_orderChangeEventId__FP10fopAc_ac_csUsUs */
@@ -1315,7 +1313,7 @@ fopAc_ac_c* fopAcM_myRoomSearchEnemy(s8 roomNo) {
 
 /* 80027A9C-80027B24       .text fopAcM_createDisappear__FP10fopAc_ac_cP4cXyzUcUcUc */
 fpc_ProcID fopAcM_createDisappear(fopAc_ac_c* i_actor, cXyz* p_pos, u8 i_scale, u8 i_dropType, u8 i_itemBitNo) {
-    u32 params = i_itemBitNo << 16 | i_scale << 8 | i_dropType;
+    u32 params = (i_itemBitNo & 0xFF) << 16 | (i_scale & 0xFF) << 8 | (i_dropType & 0xFF) << 0;
 #if VERSION == VERSION_DEMO
     fopAc_ac_c* disappear = (fopAc_ac_c*)fopAcM_fastCreate(fpcNm_DISAPPEAR_e, params, p_pos, fopAcM_GetRoomNo(i_actor));
 #else
@@ -1346,9 +1344,9 @@ BOOL fopAcM_getGroundAngle(fopAc_ac_c* actor, csXyz* p_angle) {
         gndChk.SetPos(&chk_pos);
         f32 groundY = dComIfG_Bgsp()->GroundCross(&gndChk);
         if (groundY != -G_CM3D_F_INF) {
-            targetAngleX = cM_atan2s(groundY - pos.y, chk_pos.z - pos.z);
-            targetAngleX = -targetAngleX;
+            targetAngleX = -cM_atan2s(groundY - pos.y, chk_pos.z - pos.z);
         } else {
+            pos.y = pos.y; // ?? fakematch?
             ret = FALSE;
         }
         

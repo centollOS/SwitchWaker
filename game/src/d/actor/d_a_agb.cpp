@@ -787,27 +787,27 @@ void daAgb_c::FlagsRecv() {
     u32 temp_r3 = BigLittleChange(mGbaFlg.field_0x0);
 
     u16 buttons = temp_r3 >> 0x10U;
-    pad_p->mButtonHold.bits.up    = buttons & 0x0040;
-    pad_p->mButtonHold.bits.down  = buttons & 0x0080;
-    pad_p->mButtonHold.bits.left  = buttons & 0x0020;
-    pad_p->mButtonHold.bits.right = buttons & 0x0010;
-    pad_p->mButtonHold.bits.a     = buttons & 0x0001;
-    pad_p->mButtonHold.bits.b     = buttons & 0x0002;
-    pad_p->mButtonHold.bits.r     = buttons & 0x0100;
-    pad_p->mButtonHold.bits.l     = buttons & 0x0200;
-    pad_p->mButtonHold.bits.start = buttons & 0x0008;
+    pad_p->mButtonHold.up    = buttons & 0x0040;
+    pad_p->mButtonHold.down  = buttons & 0x0080;
+    pad_p->mButtonHold.left  = buttons & 0x0020;
+    pad_p->mButtonHold.right = buttons & 0x0010;
+    pad_p->mButtonHold.a     = buttons & 0x0001;
+    pad_p->mButtonHold.b     = buttons & 0x0002;
+    pad_p->mButtonHold.r     = buttons & 0x0100;
+    pad_p->mButtonHold.l     = buttons & 0x0200;
+    pad_p->mButtonHold.start = buttons & 0x0008;
 
     // Buttons just pressed this frame
     u16 triggeredButtons = buttons & (buttons ^ mPrevButtons);
-    pad_p->mButtonTrig.bits.up    = triggeredButtons & 0x0040;
-    pad_p->mButtonTrig.bits.down  = triggeredButtons & 0x0080;
-    pad_p->mButtonTrig.bits.left  = triggeredButtons & 0x0020;
-    pad_p->mButtonTrig.bits.right = triggeredButtons & 0x0010;
-    pad_p->mButtonTrig.bits.a     = triggeredButtons & 0x0001;
-    pad_p->mButtonTrig.bits.b     = triggeredButtons & 0x0002;
-    pad_p->mButtonTrig.bits.r     = triggeredButtons & 0x0100;
-    pad_p->mButtonTrig.bits.l     = triggeredButtons & 0x0200;
-    pad_p->mButtonTrig.bits.start = triggeredButtons & 0x0008;
+    pad_p->mButtonTrig.up    = triggeredButtons & 0x0040;
+    pad_p->mButtonTrig.down  = triggeredButtons & 0x0080;
+    pad_p->mButtonTrig.left  = triggeredButtons & 0x0020;
+    pad_p->mButtonTrig.right = triggeredButtons & 0x0010;
+    pad_p->mButtonTrig.a     = triggeredButtons & 0x0001;
+    pad_p->mButtonTrig.b     = triggeredButtons & 0x0002;
+    pad_p->mButtonTrig.r     = triggeredButtons & 0x0100;
+    pad_p->mButtonTrig.l     = triggeredButtons & 0x0200;
+    pad_p->mButtonTrig.start = triggeredButtons & 0x0008;
 
     CPad_GET_ERROR_STATUS(mDoGaC_getPortNo()) = 0;
 
@@ -1259,9 +1259,9 @@ void daAgb_c::FlagsSend(u32 stage_type) {
     } else {
         mFlags.field_0x8_0 = 0;
     }
-    mFlags.field_0x3_7 = dComIfGs_isTact(0);
+    mFlags.field_0x3_7 = dComIfGs_isTact(mDoAud_MELODY_WINDS_REQUIEM_e);
     
-    if (g_mDoCPd_cpadInfo[0].mButtonHold.raw ||
+    if (*(u16*)&g_mDoCPd_cpadInfo[0].mButtonHold || // fakematch? is controller_pad_buttons supposed to be a u16?
         CPad_GET_STICK_VALUE(0) ||
         CPad_GET_SUBSTICK_VALUE(0))
     {
@@ -1443,12 +1443,8 @@ void daAgb_c::modeMove() {
     BOOL r26 = dComIfGp_event_runCheck() | dMenu_flag();
 #endif
     
-#if VERSION == VERSION_DEMO
-    u32 stage_type = dStage_stagInfo_GetSTType(dComIfGp_getStageStagInfo());
-#else
     stage_stag_info_class* stag_info = dComIfGp_getStageStagInfo();
-    u16 stage_type = dStage_stagInfo_GetSTType(stag_info);
-#endif
+    u32 stage_type = dStage_stagInfo_GetSTType(stag_info);
     
 #if VERSION > VERSION_DEMO
     if (eventInfo.checkCommandTalk()) {
@@ -1565,7 +1561,8 @@ void daAgb_c::modeMove() {
             setTargetID(fpcM_ERROR_PROCESS_ID_e);
             setFollowTarget(false);
         } else if (stage_type != dStageType_MINIBOSS_e) {
-            dAttList_c* attList = g_dComIfG_gameInfo.play.getAttention().GetLockonList(0);
+            dAttention_c& attention = dComIfGp_getAttention();
+            dAttList_c* attList = attention.GetLockonList(0);
             if (attList) {
                 fopAc_ac_c* r3 = attList->getActor();
                 if (r3) {

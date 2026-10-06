@@ -3787,8 +3787,7 @@ void fopMsgM_msgDataProc_c::stringSet() {
                 const char* player_name = dComIfGs_getPlayerName();
 #else
                 char player_name[20];
-                const char* pn = dComIfGs_getPlayerName();
-                strcpy(player_name, pn);
+                strcpy(player_name, dComIfGs_getPlayerName());
 #endif
 
 #if VERSION > VERSION_JPN
@@ -3825,12 +3824,8 @@ void fopMsgM_msgDataProc_c::stringSet() {
                     if (mesgEntry->mTextboxType == 0xC)
 #endif
                     {
-#if VERSION == VERSION_DEMO
-                        if (((u8)player_name[r28] >> 4) == 8 || ((u8)player_name[r28] >> 4) == 9) {
-#else
                         int hi_nibble = ((u8)player_name[r28] >> 4);
                         if (hi_nibble == 8 || hi_nibble == 9) {
-#endif
                             int hi = (u8)player_name[r28];
                             field_0xD4[0] = (u8)player_name[r28++];
                             int lo = (u8)player_name[r28++];
@@ -4108,11 +4103,9 @@ void fopMsgM_msgDataProc_c::stringSet() {
                 ((u8)bmgData[count + 2] == 0 && (u8)bmgData[count + 3] == 0 && (u8)bmgData[count + 4] == MsgCtrlCode_UNK23)
             ) {
                 if ((u8)bmgData[count + 4] == MsgCtrlCode_UNK22) {
-                    u32 msgNo = dComIfGp_getNpcNameMessageID();
-                    getString(field_0x60, field_0x68, field_0x64, field_0x6C, msgNo, &nowCursorPos, &field_0x24, &field_0x150);
+                    getString(field_0x60, field_0x68, field_0x64, field_0x6C, dComIfGp_getNpcNameMessageID(), &nowCursorPos, &field_0x24, &field_0x150);
                 } else if ((u8)bmgData[count + 4] == MsgCtrlCode_UNK23) {
-                    u32 msgNo = dComIfGp_getItemNameMessageID();
-                    getString(field_0x60, field_0x68, field_0x64, field_0x6C, msgNo, &nowCursorPos, &field_0x24, &field_0x150);
+                    getString(field_0x60, field_0x68, field_0x64, field_0x6C, dComIfGp_getItemNameMessageID(), &nowCursorPos, &field_0x24, &field_0x150);
                 }
                 if (selectFlag != Select_ON) {
                     field_0x14 = nowCursorPos - field_0xF8[lineCount];
@@ -5771,8 +5764,7 @@ void fopMsgM_msgDataProc_c::getString(char* i_dest, u32 i_msgNo) {
     fopMsgM_msgGet_c msgGet;
 
 #if VERSION <= VERSION_JPN
-    mesg_header* header = msgGet.getMesgHeader(i_msgNo);
-    const char* src = msgGet.getMessage(header);
+    const char* src = msgGet.getMessage(msgGet.getMesgHeader(i_msgNo));
     int offset = 0;
     int numRead = 0;
 #else
@@ -5783,8 +5775,7 @@ void fopMsgM_msgDataProc_c::getString(char* i_dest, u32 i_msgNo) {
     if (i_msgNo == 0) {
         src = name;
     } else {
-        mesg_header* header = msgGet.getMesgHeader(i_msgNo);
-        src = msgGet.getMessage(header);
+        src = msgGet.getMessage(msgGet.getMesgHeader(i_msgNo));
     }
 #endif
 
@@ -10006,15 +9997,13 @@ f32 fopMsgM_valueIncrease(int i_max, int i_value, u8 i_mode) {
 void fopMsgM_blendInit(fopMsgM_pane_class* i_pane, const char* data) {
     ((J2DPicture*)i_pane->pane)->append(data, 1.0f);
     J2DPicture* pic = (J2DPicture*)i_pane->pane;
-    pic->setBlendColorRatio(0.0f, 1.0f, 1.0f, 1.0f);
-    pic->setBlendAlphaRatio(0.0f, 1.0f, 1.0f, 1.0f);
+    pic->setBlendRatio(0.0f, 1.0f, 1.0f, 1.0f);
 }
 
 /* 8003C0F8-8003C16C       .text fopMsgM_blendInit__FP10J2DPicturePCc */
 void fopMsgM_blendInit(J2DPicture* pic, const char* data) {
     pic->append(data, 1.0f);
-    pic->setBlendColorRatio(0.0f, 1.0f, 1.0f, 1.0f);
-    pic->setBlendAlphaRatio(0.0f, 1.0f, 1.0f, 1.0f);
+    pic->setBlendRatio(0.0f, 1.0f, 1.0f, 1.0f);
 }
 
 /* 8003C16C-8003C1D4       .text fopMsgM_blendDraw__FP18fopMsgM_pane_classPCc */

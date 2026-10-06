@@ -115,14 +115,8 @@ void* JKRSolidHeap::do_alloc(u32 size, int alignment) {
 void* JKRSolidHeap::allocFromHead(u32 size, int alignment) {
     size = ALIGN_NEXT(size, 0x4);
     void* ptr = NULL;
-#if TARGET_PC
-    // alignedStart is returned as the pointer, so it must hold a whole host address.
     uintptr_t alignedStart = (alignment - 1 + (uintptr_t)mSolidHead) & ~(alignment - 1);
     u32 offset = alignedStart - (uintptr_t)mSolidHead;
-#else
-    uintptr_t alignedStart = (alignment - 1 + (uintptr_t)mSolidHead) & ~(alignment - 1);
-    u32 offset = alignedStart - (uintptr_t)mSolidHead;
-#endif
     u32 totalSize = size + offset;
     if (totalSize <= mFreeSize) {
         ptr = (void*)alignedStart;
@@ -142,14 +136,8 @@ void* JKRSolidHeap::allocFromHead(u32 size, int alignment) {
 void* JKRSolidHeap::allocFromTail(u32 size, int alignment) {
     size = ALIGN_NEXT(size, 4);
     void* ptr = NULL;
-#if TARGET_PC
-    // alignedStart is returned as the pointer, so it must hold a whole host address.
     uintptr_t alignedStart = ALIGN_PREV((uintptr_t)mSolidTail - size, alignment);
     u32 totalSize = (uintptr_t)mSolidTail - alignedStart;
-#else
-    uintptr_t alignedStart = ALIGN_PREV((uintptr_t)mSolidTail - size, alignment);
-    u32 totalSize = (uintptr_t)mSolidTail - alignedStart;
-#endif
     if (totalSize <= mFreeSize) {
         ptr = (void*)alignedStart;
         mSolidTail -= totalSize;

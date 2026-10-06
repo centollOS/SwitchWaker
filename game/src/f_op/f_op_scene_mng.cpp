@@ -13,23 +13,6 @@ scene_class* fopScnM_SearchByID(fpc_ProcID id) {
     return (scene_class*)fopScnIt_Judge((fop_ScnItFunc)fpcSch_JudgeByID, &id);
 }
 
-#if VERSION == VERSION_DEMO
-BOOL fopScnM_ChangeReq(scene_class* i_scene, s16 procName, s16 fadeProcName, u16 fadePeekTime) {
-    return fopScnRq_Request(2, i_scene, procName, 0, fadeProcName, fadePeekTime);
-}
-
-BOOL fopScnM_DeleteReq(scene_class* i_scene) {
-    return fopScnRq_Request(1, i_scene, fpcNm_INVALID_e, 0, fpcNm_INVALID_e, 0);
-}
-
-#if TARGET_PC
-BOOL fopScnM_CreateReq(s16 procName, s16 fadeProcName, u16 fadePeekTime, uintptr_t user) {
-#else
-BOOL fopScnM_CreateReq(s16 procName, s16 fadeProcName, u16 fadePeekTime, u32 user) {
-#endif
-    return fopScnRq_Request(0, 0, procName, (void*)user, fadeProcName, fadePeekTime);
-}
-#else
 static uint l_scnRqID = -1;
 
 BOOL fopScnM_ChangeReq(scene_class* i_scene, s16 procName, s16 fadeProcName, u16 fadePeekTime) {
@@ -68,7 +51,6 @@ u32 fopScnM_ReRequest(s16 procName, u32 user) {
 
     return fopScnRq_ReRequest(l_scnRqID, procName, (void*)user);
 }
-#endif
 
 void fopScnM_Management() {
     if (!fopScnRq_Handler())

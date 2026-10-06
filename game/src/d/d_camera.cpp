@@ -112,7 +112,7 @@ namespace {
             return true;
         }
 
-        if (g_mDoCPd_cpadInfo[padId].mButtonHold.raw) {
+        if (*(u16*)&g_mDoCPd_cpadInfo[padId].mButtonHold) {
             return true;
         }
 
@@ -817,7 +817,7 @@ void dCamera_c::updateMonitor() {
 
         mMonitor.mPos = playerPos;
 
-        if (!m144 && g_mDoCPd_cpadInfo[0].mButtonHold.raw == 0 && mStickMainValueLast < 0.05f && mStickCValueLast < 0.05f) {
+        if (!m144 && *(u16*)&g_mDoCPd_cpadInfo[0].mButtonHold == 0 && mStickMainValueLast < 0.05f && mStickCValueLast < 0.05f) {
             mMonitor.field_0x18++;
         }
         else {

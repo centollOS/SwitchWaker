@@ -111,12 +111,7 @@ void JKRAramPiece::startDMA(JKRAMCommand* command) {
 }
 
 /* 802B5FE0-802B6088       .text doneDMA__12JKRAramPieceFUl */
-#if TARGET_PC
-// Aurora's ARQCallback type (see JKRAramPiece.h); mCallback takes the same uintptr_t.
 void JKRAramPiece::doneDMA(uintptr_t requestAddress) {
-#else
-void JKRAramPiece::doneDMA(uintptr_t requestAddress) {
-#endif
     JKRAMCommand* command = (JKRAMCommand*)requestAddress;
 
     if (command->mTransferDirection == 1) {

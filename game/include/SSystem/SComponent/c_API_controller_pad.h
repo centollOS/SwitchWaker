@@ -3,23 +3,20 @@
 
 #include "dolphin/types.h"
 
-// The controller conversion writes individual bits, while callers also read the full 16-bit value.
-union controller_pad_buttons {
-    u16 raw;
-    struct {
-        /* 0x00 (0x80 >> 7) */ bool left  : 1;
-        /* 0x00 (0x40 >> 6) */ bool right : 1;
-        /* 0x00 (0x20 >> 5) */ bool down  : 1;
-        /* 0x00 (0x10 >> 4) */ bool up    : 1;
-        /* 0x00 (0x08 >> 3) */ bool z     : 1;
-        /* 0x00 (0x04 >> 2) */ bool r     : 1;
-        /* 0x00 (0x02 >> 1) */ bool l     : 1;
-        /* 0x00 (0x01 >> 0) */ bool a     : 1;
-        /* 0x01 (0x80 >> 7) */ bool b     : 1;
-        /* 0x01 (0x40 >> 6) */ bool x     : 1;
-        /* 0x01 (0x20 >> 5) */ bool y     : 1;
-        /* 0x01 (0x10 >> 4) */ bool start : 1;
-    } bits;
+// made up name
+struct controller_pad_buttons {
+    /* 0x00 (0x80 >> 7) */ bool left  : 1;
+    /* 0x00 (0x40 >> 6) */ bool right : 1;
+    /* 0x00 (0x20 >> 5) */ bool down  : 1;
+    /* 0x00 (0x10 >> 4) */ bool up    : 1;
+    /* 0x00 (0x08 >> 3) */ bool z     : 1;
+    /* 0x00 (0x04 >> 2) */ bool r     : 1;
+    /* 0x00 (0x02 >> 1) */ bool l     : 1;
+    /* 0x00 (0x01 >> 0) */ bool a     : 1;
+    /* 0x01 (0x80 >> 7) */ bool b     : 1;
+    /* 0x01 (0x40 >> 6) */ bool x     : 1;
+    /* 0x01 (0x20 >> 5) */ bool y     : 1;
+    /* 0x01 (0x10 >> 4) */ bool start : 1;
 };
 
 struct interface_of_controller_pad {

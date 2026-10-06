@@ -64,7 +64,8 @@ extern "C" int search_partial_address(void* address, int* module_id, int* sectio
 
     OSModuleInfo* module = __OSModuleList.head;
     for (; module != NULL; module = (OSModuleInfo*)module->link.next) {
-        u32 i, addr;
+        u32 i;
+        uintptr_t addr;
         OSSectionInfo* section = (OSSectionInfo*)module->sectionInfoOffset;
 
         for (i = 0; i < module->numSections; section++, i++) {
@@ -74,7 +75,7 @@ extern "C" int search_partial_address(void* address, int* module_id, int* sectio
                 // TODO(native phase 4): pointers are 64-bit on the host; only the low 32 bits are used here.
                 if ((addr <= (u32)(uintptr_t)address) && (u32)(uintptr_t)address < (addr + section->size)) {
 #else
-                if ((addr <= (u32)address) && (u32)address < (addr + section->size)) {
+                if ((addr <= (uintptr_t)address) && (uintptr_t)address < (addr + section->size)) {
 #endif
                     if (module_id != NULL)
                         *module_id = module->id;
@@ -85,7 +86,7 @@ extern "C" int search_partial_address(void* address, int* module_id, int* sectio
                         // TODO(native phase 4): pointers are 64-bit on the host; only the low 32 bits are used here.
                         *section_offset = (u32)(uintptr_t)address - addr;
 #else
-                        *section_offset = (u32)address - addr;
+                        *section_offset = (uintptr_t)address - addr;
 #endif
                     if (name_offset)
                         *name_offset = module->nameOffset;
@@ -99,7 +100,7 @@ extern "C" int search_partial_address(void* address, int* module_id, int* sectio
 }
 
 /* 80006770-800067D0       .text convert_partial_address */
-extern "C" u32 convert_partial_address(void* param_0) {
+extern "C" uintptr_t convert_partial_address(void* param_0) {
     int param_1;
     int param_2;
     int param_3;
@@ -110,7 +111,7 @@ extern "C" u32 convert_partial_address(void* param_0) {
         // TODO(native phase 4): pointers are 64-bit on the host; only the low 32 bits are used here.
         return (u32)(uintptr_t)param_0;
 #else
-        return (u32)param_0;
+        return (uintptr_t)param_0;
 #endif
     }
 }
