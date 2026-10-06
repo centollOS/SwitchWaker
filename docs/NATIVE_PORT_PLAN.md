@@ -3577,6 +3577,60 @@ Plan, milestones and decisions: `docs/NATIVE_PORT_PHASE4_6.md`.
   of 1 for map 0`; after it all 2556 BDLs on the disc load and the sweep equals the manifest.
   Checked with COS_SHOT: the title sky and Outset (frame 690: houses, mailbox, trees, boat) draw correctly.
 
+- **Item sweep and save/load sweep** (2026-10-06, lane item-sweep). Two new diagnostic sweeps.
+  - `COS_SMOKE=item-sweep` (`native/src/pc/pc_item_sweep.cpp`, driver `native/tools/item_sweep.py`,
+    default stage `Asoko:0:0:2`): every item number whose `dItem_data::item_resource` names an
+    archive (214 of 0x00-0xFE; 41 have none and are skipped) is given the way the game gives it: a
+    big chest (takara3, parameters 0xFF200200, angle z = item << 8 | 0xFF) is created in the play
+    scene's layer at a fixed spot in front of the player (chest flag 4 cleared first, or the chest
+    is created open), the player walks to it until the A button says "Open" and presses A, and its
+    DEFAULT_TREASURE event (`fopAcM_createItemForTrBoxDemo`, the player's item-get demo, fanfare,
+    message, `execItemGet`) must end within 60 s of wall time, A every 45 frames for the message.
+    Items accumulate on the file. `<run>/item_sweep.txt`: a `begin` line per item (written before
+    the chest, so a fault names it), then `ok <frames> <s> got=<checkGetItem> shot=<frame>`,
+    `no-open`, `refused` or `stuck` (with the event name, the sub BGM flag, message-waits-for-music
+    and the message status; the event-watch report, `eventWatchReport`, goes to run.log). One shot per
+    item, 30 frames after its message opened. The driver restarts after a stuck item or a fault
+    from the next item and writes `<sweep>/item_sweep.txt` (name, archive, result, frames, seconds,
+    got, shot, detail, run); `EXPECTED` lists failures of the original data (`xfail`), `--rebuild DIR`
+    rewrites a report. `COS_ITEM_SWEEP=<list>` limits the items (`0x20-0x30,0x50`).
+  - `COS_SMOKE=save-sweep` / `save-load` (`native/src/pc/pc_save_sweep.cpp`, driver
+    `native/tools/save_sweep.py`): the first run boots a situation (stage, `COS_BOOT_EVENTS`,
+    `COS_BOOT_ITEMS`, `COS_BOOT_PRESET`; or the item sweep with `COS_ITEM_SWEEP_SAVE=1`) and saves into
+    an empty card in the run directory with the save screen's steps in their order
+    (`dMenu_save_c::memCardCheck`, game file creation, load, `memCardDataSave`:
+    `exchangePlayerRecollectionData`, `putSave`, `setGameStartStage`, checksum test, `dataWrite`,
+    `SaveSync`, then the card id and new-file flags), minus its screens; the GCI on disk must hold
+    the packed bytes (both copies); `save_expect.txt` gets a summary (return place, item slots,
+    status, every packed region in hex). The second run (`COS_CARD_DIR` = a copy of that card) boots
+    through the title (START), the name scene and the file select (A); when the name scene reaches
+    `changeGameScene` (it ran `dComIfGs_setCardToMemory`) the state is packed again and compared
+    region by region with file 1 of the card (only the save date differs), then the game must start
+    at the save's return place with the player in its room. Note: a debug-boot file without
+    `RODE_KORL` (0x2A08) always returns to Outset (`dComIfGs_setGameStartStage`, l_checkData), so the
+    dungeon cases set it. `run.sh --env COS_X=v` sets a variable from a regress line.
+  - Results (Mac, at most 2 runs at a time next to an ASan sweep; every run with
+    `COS_CACHE_PER_RUN=1`): item sweep on the fixed build (`build/native-mac/runs/item-sweeps-final-a`,
+    `-b`): 213 ok, 1 xfail (0x16), 0 stuck, 0 faults, no DSP halt in any run (about 20 s an item: 9.5 s for rupees and hearts, 21.5 s for the wind baton). Before the fix (`item-sweeps-full2a`, `-b`): 212 ok, 1 stuck
+    (0x25 GRAPPLING_HOOK: bug B33, the DSP ucode halted), 1 xfail. Save sweep
+    (`save-sweeps-full2`): 7 of 7 cases saved and loaded back equal, return places `sea 44 128`
+    (Outset, new file), `sea 44 0` (Outset after the boat ride), `sea 11 102` (on the boat, sailing
+    preset), `M_NewD2 0 0` (Dragon Roost Cavern), `kindan 0 1` (Forbidden Woods), `sea 11 0`
+    (Windfall), and the items case (49 chest items, then saved and loaded).
+  - Failures: real: B33 (fixed, see the known-bugs table). Expected: 0x16 RECOVER_FAIRY panics in
+    `daItemBase_c::CreateItemHeap` (d_a_itembase.cpp:85, no model): its item_resource entry uses
+    the Always archive's indices with the Fa archive (a data bug of the original game, noted in
+    d_item_data.cpp); the game makes fairies as NPC_FA1 actors, never as a demo item. Harness
+    artifacts fixed on the way: the first load comparison ran once the PLAY scene existed, after
+    Outset's mailbox (d_a_obj_toripost) had stocked letters into the event registers (0x7D03, 0xB503)
+    for the bomb bag and Farore's pearl, so it now runs at `changeGameScene`; a first full item
+    sweep was discarded because run.sh was edited while it ran (bash reads its script as it goes:
+    the running instance started centollos a second time over the same run directory).
+  - Regression: `item-sweep 0 --stage Asoko:0:0:2 --env COS_ITEM_SWEEP=0x22,0x38,0x78`,
+    `save-sweep 0 --stage M_NewD2:0:0 --env COS_BOOT_EVENTS=2A08`, `title-audio 0 --env
+    COS_DSP_INT_GAP_US=2000` (B33). The full sweeps are not in `regress_targets.txt` (about 25 s an
+    item). Open: using or equipping the items after the get is not tested.
+
 ### Phase 6 render issues
 
 - **Aurora WGSL for an alpha compare on a texture's alpha** (found by step 6.4, sea room 44,
