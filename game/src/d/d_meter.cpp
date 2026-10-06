@@ -4492,15 +4492,20 @@ void dMeter_magicInitTrans(sub_meter_class* i_Meter) {
 #if TARGET_PC
     // Widescreen: the magic meter moves left with the HUD (16:9 code, 0x801F9C5C-98).
     const f32 x = -pc_aspect_hud_shift();
-#else
-    const f32 x = 0.0f;
-#endif
     fopMsgM_paneTrans(&i_Meter->field_0x10f8, x, y);
     fopMsgM_paneTrans(&i_Meter->field_0x11a0, x, y);
     fopMsgM_paneTrans(&i_Meter->field_0x11d8, x, y);
     for (s32 i = 0; i < 8; i++) {
         fopMsgM_paneTrans(&i_Meter->field_0x0f38[i], x, y);
     }
+#else
+    fopMsgM_paneTrans(&i_Meter->field_0x10f8, 0.0f, y);
+    fopMsgM_paneTrans(&i_Meter->field_0x11a0, 0.0f, y);
+    fopMsgM_paneTrans(&i_Meter->field_0x11d8, 0.0f, y);
+    for (s32 i = 0; i < 8; i++) {
+        fopMsgM_paneTrans(&i_Meter->field_0x0f38[i], 0.0f, y);
+    }
+#endif
 }
 #endif
 
@@ -6958,12 +6963,14 @@ void dMeter_swimTekariScroll(sub_meter_class* i_Meter) {
     // Widescreen: the swim meter's shine moves right with the HUD; the 16:9 code loads 114 where
     // the game reads REG6_F(0) (0x80201D8C).
     const f32 reg6f0 = pc_aspect_wide() ? pc_aspect_hud_shift() : REG6_F(0);
-#else
-    const f32 reg6f0 = REG6_F(0);
-#endif
     s16 temp_r29 = (reg6f0 + (i_Meter->field_0x2c88.mPosCenterOrig.x - i_Meter->field_0x2c88.mSizeOrig.x / 2.0f));
     s16 temp_r28 = (REG6_F(1) + (i_Meter->field_0x2c88.mPosCenterOrig.y - i_Meter->field_0x2c88.mSizeOrig.y / 2.0f));
     s16 temp_r27 = (reg6f0 + (i_Meter->field_0x2c88.mPosCenterOrig.x + i_Meter->field_0x2c88.mSizeOrig.x / 2.0f));
+#else
+    s16 temp_r29 = (REG6_F(0) + (i_Meter->field_0x2c88.mPosCenterOrig.x - i_Meter->field_0x2c88.mSizeOrig.x / 2.0f));
+    s16 temp_r28 = (REG6_F(1) + (i_Meter->field_0x2c88.mPosCenterOrig.y - i_Meter->field_0x2c88.mSizeOrig.y / 2.0f));
+    s16 temp_r27 = (REG6_F(0) + (i_Meter->field_0x2c88.mPosCenterOrig.x + i_Meter->field_0x2c88.mSizeOrig.x / 2.0f));
+#endif
     s16 temp_r26 = (REG6_F(1) + (i_Meter->field_0x2c88.mPosCenterOrig.y + i_Meter->field_0x2c88.mSizeOrig.y / 2.0f));
     s16 temp_r4 = i_Meter->field_0x2fc4;
     if (temp_r4 < g_meterHIO.field_0x14e) {
