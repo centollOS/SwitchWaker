@@ -16,6 +16,10 @@
 # `actor-sweep` (step 6.9, needs --stage, e.g. sea:44:206) spawns every actor profile next to the player,
 # runs it 30 frames and deletes it; COS_ACTOR_SWEEP=<first>[-<last>] limits it to those process
 # names. native/tools/actor_sweep.py runs it again after each fault and lists the faults.
+# `combat-sweep` (needs --stage) fights with a driven pad: each enemy spawned in front of the player
+# (COS_COMBAT_SWEEP_LIST / COS_COMBAT_SWEEP) or a room's own (COS_COMBAT_MODE=room), keeping the player
+# alive; native/tools/combat_sweep.py derives the enemies and the boss/minigame rooms and runs it
+# with COS_CACHE_PER_RUN=1 (native/src/pc/pc_combat_sweep.cpp lists its variables).
 #
 # Options:
 #   --timeout S      in-process watchdog timeout (COS_TIMEOUT_S), default 180 (720 with

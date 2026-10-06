@@ -212,6 +212,11 @@ bool outsetLinkReady();
 // every game frame and, once outsetLinkReady, spawns every actor profile next to the player in turn,
 // runs it 30 frames and deletes it, then exits 0.
 void actorSweepFrame(unsigned int frames);
+// pc_combat_sweep.cpp: COS_SMOKE=combat-sweep; combatSweepFrame runs from pc_frame_end every game
+// frame and, once outsetLinkReady, drives pad 0 through a combat cycle (lock-on, sword, spin
+// attack, items) against each enemy it spawns in front of the player (COS_COMBAT_MODE=spawn) or
+// against the room's own enemies (room), keeping the player alive; native/tools/combat_sweep.py.
+void combatSweepFrame(unsigned int frames);
 // pc_fx_sweep.cpp: COS_SMOKE=fx-sweep; fxSweepFrame runs from pc_frame_end every game frame and,
 // once outsetLinkReady, creates every loaded particle emitter (common and scene, COS_FX_SWEEP) in
 // front of the player a few at a time, in the Normal and Toon groups, so their pipelines are

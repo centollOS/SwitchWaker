@@ -49,6 +49,8 @@
 //   (above -40 dBFS RMS) and the sequence ticks (advancing) over 300 game frames.
 // - actor-sweep (step 6.9, pc_actor_sweep.cpp): with COS_BOOT_STAGE (Outset), every actor profile
 //   spawned next to the player, run 30 frames and deleted; pass = no fault.
+// - combat-sweep (pc_combat_sweep.cpp): with COS_BOOT_STAGE, enemies spawned in front of the player
+//   (or a room's own, COS_COMBAT_MODE=room) fought with a driven pad; pass = no fault.
 // The format sweeps and the other smoke tests of phases 4-6 add their names to kSmokes; one that
 // runs after some of the boot is started by the boot code at that point, not by runEarlySmoke.
 #include "pc_internal.h"
@@ -324,6 +326,7 @@ const Smoke kSmokes[] = {
     {"pad-echo", kInGame},
     {"title-audio", kInGame},
     {"actor-sweep", kInGame},
+    {"combat-sweep", kInGame},
     {"fx-sweep", kInGame},
     {"res-sweep", kInGame},
     {"bgm-hop", kInGame},
