@@ -40,9 +40,17 @@ endif ()
 # pc_shot.cpp (COS_SHOT) reads the presented frame back through Aurora's internal WebGPU state
 # (lib/webgpu/gpu.hpp, lib/gfx/render_worker.hpp) and Dawn's C++ headers. Headers only: the symbols
 # are in aurora_core and Dawn, which centollos and the link census bundle already link through cos_sdk.
-set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/harness/pc_shot.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
+set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/harness/pc_shot.cpp" "${COS_NATIVE_ROOT}/src/pc/game_hooks/pc_capture.cpp"
+        APPEND PROPERTY INCLUDE_DIRECTORIES
         "${aurora_SOURCE_DIR}"
         "$<TARGET_PROPERTY:dawn::webgpu_dawn,INTERFACE_INCLUDE_DIRECTORIES>")
+# pc_capture.cpp (bug B36, the picto box's photo) also finds the copy texture in Aurora's GX state
+# (lib/gx/gx.hpp: abseil's flat_hash_map, fmt through lib/logging.hpp, xxHash through
+# lib/gfx/hash.hpp). Headers only.
+set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/game_hooks/pc_capture.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
+        "$<TARGET_PROPERTY:absl::flat_hash_map,INTERFACE_INCLUDE_DIRECTORIES>"
+        "$<TARGET_PROPERTY:fmt::fmt,INTERFACE_INCLUDE_DIRECTORIES>"
+        "$<TARGET_PROPERTY:xxHash::xxhash,INTERFACE_INCLUDE_DIRECTORIES>")
 # pc_main.cpp names Aurora's render worker for the Switch's per-thread CPU times
 # (render_worker::enqueue_work; lib/gfx/render_worker.hpp includes only standard headers).
 # pc_gpu_opts.cpp (COS_SHADOW_OFFSCREEN) reads the EFB's pixel size (lib/window.hpp, whose SDL

@@ -200,9 +200,10 @@ target_link_libraries(aurora_core PUBLIC ${COS_SWITCH_GL_LIBS} nx)
 # Game units: newlib's <ctype.h> macros collide with decomp member names (include/cos_switch_compat.h).
 target_compile_options(cos_game_headers INTERFACE
         "SHELL:-include ${COS_SWITCH_DIR}/include/cos_switch_compat.h")
-# pc_shot.cpp (COS_SHOT) reads Dawn's C++ headers; the vendored Dawn carries them on its own
+# pc_shot.cpp (COS_SHOT) and pc_capture.cpp (bug B36) read Dawn's C++ headers; the vendored Dawn carries them on its own
 # header target, not on webgpu_dawn as the Mac's prebuilt package does.
-set_property(SOURCE "${COS_REPO_ROOT}/native/src/pc/harness/pc_shot.cpp" DIRECTORY "${COS_REPO_ROOT}/native"
+set_property(SOURCE "${COS_REPO_ROOT}/native/src/pc/harness/pc_shot.cpp"
+        "${COS_REPO_ROOT}/native/src/pc/game_hooks/pc_capture.cpp" DIRECTORY "${COS_REPO_ROOT}/native"
         APPEND PROPERTY INCLUDE_DIRECTORIES
         "$<TARGET_PROPERTY:dawn::dawncpp_headers,INTERFACE_INCLUDE_DIRECTORIES>")
 

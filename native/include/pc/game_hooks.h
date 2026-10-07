@@ -53,6 +53,14 @@ void pc_gph_mist_ab_show();
    target the casters are drawn into, in place of the EFB's corner (closed by GXRestoreFrameBuffer). */
 void pc_shadow_image_offscreen_open();
 
+/* ---- Picto box capture (m_Do_graphic.cpp), native/src/pc/game_hooks/pc_capture.cpp ---------- */
+
+/* mDoGph_Painter, capture step 3 (bug B36): whether the GXCopyTex picture is in dest, in RAM, for
+   encode_s3tc. The first call asks for it and returns false; the copy is read back from the GPU
+   after that frame's aurora_end_frame, and the next frame's call returns true. format: GX_TF_I8 or
+   GX_TF_RGB565 (other formats: true at once, nothing read back). */
+bool pc_gph_capture_ready(void* dest, u32 width, u32 height, int format);
+
 /* ---- Logo scene (d_s_logo.cpp): run harness, native/src/pc/game_hooks/pc_logo_hooks.cpp ------ */
 
 class dScnLogo_c;

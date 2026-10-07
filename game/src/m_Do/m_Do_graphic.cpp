@@ -1838,7 +1838,14 @@ bool mDoGph_Painter() {
     pc_dynres_3d_end(); // COS_DYNRES: the 3D stretched over the EFB, full scale again
 #endif
 
+#if TARGET_PC
+    // The picto box (bug B36): GXCopyTex left the picture on the GPU; encode_s3tc reads it from RAM, so
+    // step 3 waits one frame for the readback (pc_capture.cpp).
+    if (mCaptureStep == 3 && (mCaptureTextureFormat != GX_TF_CMPR ||
+                              pc_gph_capture_ready(mCaptureCaptureBuffer, mCaptureSizeWidth, mCaptureSizeHeight, mCaptureCaptureFormat))) {
+#else
     if (mCaptureStep == 3) {
+#endif
 #if VERSION > VERSION_DEMO
         if (mCaptureCansel) {
             if (mCaptureCaptureBuffer != NULL) {

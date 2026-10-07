@@ -346,6 +346,21 @@ using FrameSink = void (*)(unsigned int frame, const std::vector<uint8_t>& rgb, 
 bool captureFrame(unsigned int frame, FrameSink sink, void* user);
 void saveFramePng(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t width, uint32_t height);
 
+// pc_capture.cpp (bug B36): after aurora_end_frame, the picto box's capture asked for by
+// pc_gph_capture_ready this frame is read back from its copy texture into the game's buffer.
+void captureFrameEnd();
+// pc_capture.cpp: the readbacks so far, for COS_SMOKE=picto-box (luma range of the last one).
+struct CaptureStats {
+    unsigned int readBack = 0;
+    unsigned int failed = 0;
+    unsigned int minLuma = 255;
+    unsigned int maxLuma = 0;
+    int lastFormat = -1;
+};
+const CaptureStats& captureStats();
+// COS_SMOKE=picto-box (pc_picto_box.cpp, bug B36): photos with the picto box.
+void pictoBoxFrame(unsigned int frames);
+
 // pc_frame.cpp (step 6.7): creates the COS_PERF file and writes its header row (exit
 // PC_EXIT_USAGE if it cannot be created); nothing without COS_PERF. perfFlush writes out the rows
 // still buffered (pc_exit; any thread, never blocks).

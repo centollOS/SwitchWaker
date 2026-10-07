@@ -1028,6 +1028,8 @@ void pc_frame_end(void) {
         // Aurora's frame work allocates host memory, not the game's current heap (JKRHeap.cpp).
         JKRPcHostAllocScope hostAlloc;
         aurora_end_frame();
+        // The picto box's photo (pc_capture.cpp): its GPU copy into the game's buffer.
+        captureFrameEnd();
         // COS_SHOT: the frame is queued to Aurora's render worker; the readback goes in behind it.
         shotFrameEnd(pc_frame_count() + 1);
         telescopeDemoFrameEnd(pc_frame_count() + 1);
@@ -1107,6 +1109,7 @@ void pc_frame_end(void) {
     eventWatchFrame(frames);
     stageHopFrame(frames);
     cameraInvertFrame(frames);
+    pictoBoxFrame(frames);
     fileSelectFrame(frames);
     newGameFrame(frames);
     precompileFrame(frames);

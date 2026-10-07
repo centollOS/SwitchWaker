@@ -145,6 +145,10 @@ wind-screen 0 --preset sailing
 # COS_SMOKE=ky-procs (bug B22): the storm's lightning, a water mark and a water pillar created as the
 # game creates them; the lightning's GameCube-sized heap failed, so no lightning appeared in storms
 ky-procs 0 --preset sailing
+# COS_SMOKE=picto-box (bug B36): photos with the picto box (I8) and the deluxe picto box (RGB565);
+# the copy is read back to RAM for the capture thread's CMPR encoder (it panicked on the empty buffer)
+picto-box 0 --stage Asoko:0:0:2 --input native/check/input/picto-box.txt
+picto-box 0 --stage Asoko:0:0:2 --input native/check/input/picto-box.txt --env COS_BOOT_ITEMS=26
 # COS_SMOKE=chest: the chest of Niko's rope lesson (takara3, the Spoils Bag) created in front of the player on
 # Tetra's ship and opened end to end (DEFAULT_TREASURE starts and ends); the stuck-event watch logs it
 chest 0 --stage Asoko:0:0:2

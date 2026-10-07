@@ -1,0 +1,15 @@
+# Controller script of COS_SMOKE=picto-box (bug B36; syntax in native/src/pc/harness/pc_input.cpp):
+# <frame> <buttons> <stickX> <stickY>, each line holding until the next. Run with --stage
+# Asoko:0:0:2 (the player free in the ship's cabin by frame 330). X at 600 raises the picto box
+# (on X: COS_BOOT_ITEMS), A at 750 takes a photo; the "Save this pictograph?" prompt defaults to
+# No, so A at 900 closes it. X at 1200 raises the box again and A at 1350 takes the second photo.
+600 X 0 0
+603 - 0 0
+750 A 0 0
+753 - 0 0
+900 A 0 0
+903 - 0 0
+1200 X 0 0
+1203 - 0 0
+1350 A 0 0
+1353 - 0 0
