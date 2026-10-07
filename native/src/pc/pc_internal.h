@@ -43,8 +43,8 @@ struct Config {
     unsigned int heapCheckEvery = 0;
     unsigned int heapReportEvery = 0; // COS_HEAP_REPORT (bug B8)
     int allocFailuresMax = -1;        // COS_ALLOC_FAILURES_MAX (bug B13); -1: no limit
-    // COS_FPS_OVERLAY: a frame-rate panel drawn with Aurora's ImGui (pc_overlay.cpp). Off by default;
-    // the Switch build sets 1.
+    // COS_FPS_OVERLAY: a frame-rate panel drawn with Aurora's ImGui (pc_overlay.cpp). Off by default
+    // on every host (the options menu turns it on).
     bool fpsOverlay = false;
     // COS_FPS_OVERLAY_DETAIL=compact: the panel shows the frame rate and the game thread only
     // (full, the default: every line). The options menu changes both at run time.

@@ -533,7 +533,7 @@ const PcSettingDesc kBuiltins[] = {
      "GPU profile (handheld)",
      "GPU clock in handheld mode (the console's official profiles; the CPU stays at 1020 MHz)."},
     {"COS_FPS_OVERLAY", "Contador de FPS", "Panel de cuadros por segundo y tiempos en la esquina.",
-     PC_SETTING_TAB_PERFORMANCE, 0, CHOICES(kOnOff), kSwitch ? "1" : "0", applyOverlay, nullptr, 20,
+     PC_SETTING_TAB_PERFORMANCE, 0, CHOICES(kOnOff), "0", applyOverlay, nullptr, 20,
      "FPS counter",
      "Frames per second and timings panel in the corner."},
     {"COS_FPS_OVERLAY_DETAIL", "Detalle del contador",

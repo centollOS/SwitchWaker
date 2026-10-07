@@ -1,6 +1,6 @@
 // COS_FPS_OVERLAY: a small frame-rate panel in the screen's top-left corner, drawn with Aurora's
-// ImGui (which presents over the game picture; COS_SHOT images leave it out). Off by default; the
-// Switch build turns it on (switch/native/source/cos_switch.cpp).
+// ImGui (which presents over the game picture; COS_SHOT images leave it out). Off by default on
+// every host; the options menu (Rendimiento > "Contador de FPS") or COS_FPS_OVERLAY=1 turns it on.
 //
 // COS_FPS_OVERLAY_DETAIL=compact keeps only the frame rate and the game thread's time on one line.
 //
