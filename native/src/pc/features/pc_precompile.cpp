@@ -330,7 +330,7 @@ void writeState(bool complete, uint32_t done, uint32_t total, double slowMs) {
 }
 
 // The console's language (Switch), else LANG; COS_LANG overrides both. Spanish or not.
-bool uiSpanish() {
+bool readUiSpanish() {
     const char* lang = getenv("COS_LANG");
     char system[16] = "";
     if (lang == nullptr || lang[0] == '\0') {
@@ -595,7 +595,7 @@ void precompileInit(const char* cacheDir) {
         cacheDir != nullptr && cacheDir[0] != '\0') {
         snprintf(sStatePath, sizeof(sStatePath), "%s/precompile_state.txt", cacheDir);
     }
-    sSpanish = sUi && uiSpanish();
+    sSpanish = sUi && pc_ui_spanish();
     if (sLog) {
         static const char* const kPolicy[] = {
             "boot: the warm-up runs until the first PLAY scene",
@@ -662,6 +662,11 @@ void startThrottle() {
 #endif
 }
 } // namespace
+
+bool pc_ui_spanish() {
+    static const bool spanish = readUiSpanish();
+    return spanish;
+}
 
 // After precompileInit, before the game starts: with COS_PRECOMPILE=boot or full, present the
 // loading screen until its pipelines are built (COS_PRECOMPILE_SCREEN=auto: only if the builds are

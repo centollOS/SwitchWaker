@@ -503,7 +503,11 @@ open the PLAY scene is paused (hit-stop pause timer) and the game gets no pad in
   sky): the Switch applies the other mode's values when docked or undocked; the Mac is handheld
   unless `COS_OPERATION_MODE=docked`.
 - Precedence: the environment at start (the Mac's environment, the Switch's `env.txt`) wins over
-  the file, so test kits keep working; such rows show as fixed (`[fijo]`) and cannot be changed.
+  the file, so test kits keep working; such rows show as fixed (`[fijo]`, `[set]` in English) and
+  cannot be changed.
+- Language: Spanish or English, as the shader loading screen (the console's language, else
+  `LC_ALL` or `LANG`; `COS_LANG=es|en` overrides). The rows' texts are the `label`/`help` and
+  `labelEn`/`helpEn` fields of `PcSettingDesc`; the log keeps the Spanish tab names.
 - Other modules add rows with `pc_settings_register` or follow one with `pc_settings_get` /
   `pc_settings_subscribe` (the HD texture loader: `COS_HD_TEXTURES`, "0"/"1").
 - `COS_SMOKE=options-menu` drives the menu from its `COS_INPUT` script and checks the script's

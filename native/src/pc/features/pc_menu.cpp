@@ -187,33 +187,34 @@ struct Warp {
     int room;
     int point;
     const char* label; // nullptr: the stage name
+    const char* labelEn;
 };
 
-// The main places, by their Spanish names (the sea's rooms are its 7x7 grid squares, A1 = 1).
+// The main places, by their Spanish and English names (the sea's rooms are its 7x7 grid squares, A1 = 1).
 const Warp kMainWarps[] = {
-    {"sea", 44, 206, "Isla Initia (Outset)"},
-    {"LinkRM", 0, 0, "Casa del héroe"},
-    {"sea", 11, 0, "Isla Taura (Windfall)"},
-    {"sea", 13, 0, "Isla del Dragón (Dragon Roost)"},
-    {"M_NewD2", 0, 0, "Caverna del Dragón"},
-    {"sea", 41, 0, "Isla del Bosque (Forest Haven)"},
-    {"Omori", 0, 3, "Refugio del Bosque (interior)"},
-    {"kindan", 0, 0, "Bosque Prohibido"},
-    {"sea", 26, 0, "Torre de los Dioses (mar)"},
-    {"Siren", 0, 0, "Torre de los Dioses"},
-    {"sea", 1, 0, "Fortaleza Maldita (mar)"},
-    {"MajyuE", 0, 0, "Fortaleza Maldita"},
-    {"Hyrule", 0, 0, "Castillo sumergido"},
-    {"sea", 45, 0, "Isla Lápida (Headstone)"},
-    {"M_Dai", 0, 0, "Templo de la Tierra"},
-    {"sea", 4, 0, "Isla del Vendaval (Gale)"},
-    {"kaze", 15, 15, "Templo del Viento"},
-    {"GanonK", 0, 0, "Torre de Ganon"},
+    {"sea", 44, 206, "Isla Initia (Outset)", "Outset Island"},
+    {"LinkRM", 0, 0, "Casa del héroe", "The hero's house"},
+    {"sea", 11, 0, "Isla Taura (Windfall)", "Windfall Island"},
+    {"sea", 13, 0, "Isla del Dragón (Dragon Roost)", "Dragon Roost Island"},
+    {"M_NewD2", 0, 0, "Caverna del Dragón", "Dragon Roost Cavern"},
+    {"sea", 41, 0, "Isla del Bosque (Forest Haven)", "Forest Haven"},
+    {"Omori", 0, 3, "Refugio del Bosque (interior)", "Forest Haven (inside)"},
+    {"kindan", 0, 0, "Bosque Prohibido", "Forbidden Woods"},
+    {"sea", 26, 0, "Torre de los Dioses (mar)", "Tower of the Gods (sea)"},
+    {"Siren", 0, 0, "Torre de los Dioses", "Tower of the Gods"},
+    {"sea", 1, 0, "Fortaleza Maldita (mar)", "Forsaken Fortress (sea)"},
+    {"MajyuE", 0, 0, "Fortaleza Maldita", "Forsaken Fortress"},
+    {"Hyrule", 0, 0, "Castillo sumergido", "Sunken castle"},
+    {"sea", 45, 0, "Isla Lápida (Headstone)", "Headstone Island"},
+    {"M_Dai", 0, 0, "Templo de la Tierra", "Earth Temple"},
+    {"sea", 4, 0, "Isla del Vendaval (Gale)", "Gale Isle"},
+    {"kaze", 15, 15, "Templo del Viento", "Wind Temple"},
+    {"GanonK", 0, 0, "Torre de Ganon", "Ganon's Tower"},
 };
 
 // Every stage of the disc with the start native/tools/boot_sweep.py --list picks.
 const Warp kAllWarps[] = {
-#define W(s, r, p) {s, r, p, nullptr},
+#define W(s, r, p) {s, r, p, nullptr, nullptr},
     W("ADMumi", 0, 100)
     W("A_R00", 0, 0)
     W("A_nami", 0, 0)
@@ -386,6 +387,19 @@ constexpr bool kSwitch = true;
 constexpr bool kSwitch = false;
 #endif
 
+// The menu's language (pc_ui_spanish, as the shader loading screen): the Spanish text or the English one.
+const char* T(const char* es, const char* en) {
+    return pc_ui_spanish() || en == nullptr ? es : en;
+}
+std::string T(const std::string& es, const std::string& en) {
+    return pc_ui_spanish() ? es : en;
+}
+const char* settingLabel(const PcSettingDesc* d) { return T(d->label, d->labelEn); }
+const char* settingHelp(const PcSettingDesc* d) { return T(d->help, d->helpEn); }
+const char* modeName(PcOperationMode mode) {
+    return T(pc_settings_mode_name(mode), mode == PC_MODE_DOCKED ? "Docked" : "Handheld");
+}
+
 void applyFbScale(const char*, const char* v, void*) {
     const float scale = (float)atof(v);
     setFrameBufferScale(scale);
@@ -423,96 +437,143 @@ void applyGpuGroups(const char*, const char* v, void*) { pc_gpu_groups_set(atoi(
 
 const PcSettingChoice kFbScale[] = {
 #if !defined(__SWITCH__)
-    {"0", "Tamaño de la ventana"},
+    {"0", "Tamaño de la ventana", "Window size"},
 #endif
     {"1.0", "854x480 (1.0)"},  {"1.125", "960x540 (1.125)"}, {"1.25", "1067x600 (1.25)"},
     {"1.5", "1280x720 (1.5)"}, {"2.0", "1707x960 (2.0)"},    {"2.25", "1920x1080 (2.25)"},
 };
-const PcSettingChoice kAspect[] = {{"16:9", "16:9 (panorámica)"}, {"4:3", "4:3 (GameCube)"}, {"16:10", "16:10"}};
-const PcSettingChoice kOnOff[] = {{"0", "Desactivado"}, {"1", "Activado"}};
-const PcSettingChoice kHdMaxSize[] = {{"auto", "Automático (512 / 1024)"}, {"256", "256"}, {"512", "512"},
-                                      {"1024", "1024"}, {"full", "Sin límite"}};
-const PcSettingChoice kDynres[] = {{"0", "Desactivada"}, {"1", "Automática"}};
-const PcSettingChoice kLowres[] = {{"0", "Completa"}, {"2", "1/2"}, {"4", "1/4"}};
-const PcSettingChoice kSkyLowres[] = {{"0", "Completa"}, {"2", "1/2"}};
+const PcSettingChoice kAspect[] = {{"16:9", "16:9 (panorámica)", "16:9 (widescreen)"}, {"4:3", "4:3 (GameCube)"}, {"16:10", "16:10"}};
+const PcSettingChoice kOnOff[] = {{"0", "Desactivado", "Off"}, {"1", "Activado", "On"}};
+const PcSettingChoice kHdMaxSize[] = {{"auto", "Automático (512 / 1024)", "Automatic (512 / 1024)"}, {"256", "256"}, {"512", "512"},
+                                      {"1024", "1024"}, {"full", "Sin límite", "No limit"}};
+const PcSettingChoice kDynres[] = {{"0", "Desactivada", "Off"}, {"1", "Automática", "Automatic"}};
+const PcSettingChoice kLowres[] = {{"0", "Completa", "Full"}, {"2", "1/2"}, {"4", "1/4"}};
+const PcSettingChoice kSkyLowres[] = {{"0", "Completa", "Full"}, {"2", "1/2"}};
 const PcSettingChoice kShadow[] = {
-    {"0", "En el EFB (como la GameCube)"}, {"1", "Fuera del EFB"}, {"gc", "Fuera del EFB, 256x256"}};
+    {"0", "En el EFB (como la GameCube)", "In the EFB (as on the GameCube)"}, {"1", "Fuera del EFB", "Outside the EFB"}, {"gc", "Fuera del EFB, 256x256", "Outside the EFB, 256x256"}};
 const PcSettingChoice kGpuProfile[] = {
-    {"460", "460,8 MHz"}, {"384", "384 MHz"}, {"default", "Del sistema (307,2 MHz)"}};
-const PcSettingChoice kDetail[] = {{"full", "Completo"}, {"compact", "Compacto"}};
+    {"460", "460,8 MHz", "460.8 MHz"}, {"384", "384 MHz"}, {"default", "Del sistema (307,2 MHz)", "System default (307.2 MHz)"}};
+const PcSettingChoice kDetail[] = {{"full", "Completo", "Full"}, {"compact", "Compacto", "Compact"}};
 const PcSettingChoice kPrecompile[] = {
-    {"boot", "Arranque (boot)"}, {"full", "Completo (full)"}, {"all", "Todos, sin pantalla (all)"}, {"off", "Desactivado"}};
+    {"boot", "Arranque (boot)", "Boot (boot)"}, {"full", "Completo (full)", "Full (full)"}, {"all", "Todos, sin pantalla (all)", "All, no screen (all)"}, {"off", "Desactivado", "Off"}};
 const PcSettingChoice kPrecompileScreen[] = {
-    {"auto", "Automática"}, {"priority", "Solo prioritarios"}, {"always", "Siempre"}, {"never", "Nunca"}};
+    {"auto", "Automática", "Automatic"}, {"priority", "Solo prioritarios", "Priority only"},
+    {"always", "Siempre", "Always"}, {"never", "Nunca", "Never"}};
 const PcSettingChoice kPerfEvery[] = {
-    {"0", "Desactivado"}, {"30", "Cada 30 cuadros"}, {"60", "Cada 60 cuadros"}, {"120", "Cada 120 cuadros"},
-    {"300", "Cada 300 cuadros"}};
-const PcSettingChoice kGpuGroups[] = {{"0", "Desactivados"}, {"1", "Por grupo"}, {"2", "Por material J3D"}};
-const PcSettingChoice kShowHide[] = {{"1", "Mostrar"}, {"0", "Ocultar"}};
+    {"0", "Desactivado", "Off"}, {"30", "Cada 30 cuadros", "Every 30 frames"},
+    {"60", "Cada 60 cuadros", "Every 60 frames"}, {"120", "Cada 120 cuadros", "Every 120 frames"},
+    {"300", "Cada 300 cuadros", "Every 300 frames"}};
+const PcSettingChoice kGpuGroups[] = {{"0", "Desactivados", "Off"}, {"1", "Por grupo", "Per group"},
+                                      {"2", "Por material J3D", "Per J3D material"}};
+const PcSettingChoice kShowHide[] = {{"1", "Mostrar", "Show"}, {"0", "Ocultar", "Hide"}};
 
 const PcSettingDesc kBuiltins[] = {
     // Gráficos
     {"COS_FB_SCALE", "Resolución interna",
      "Resolución a la que se dibuja el juego antes de escalar a la pantalla. Más baja = más rápido.",
      PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kFbScale), kSwitch ? "1.5" : "0", applyFbScale,
-     nullptr, 10},
+     nullptr, 10,
+     "Internal resolution",
+     "Resolution the game is drawn at before scaling to the screen. Lower = faster."},
     {"COS_DYNRES", "Resolución dinámica",
      "Baja la resolución del 3D (1.25, 1.125) cuando la GPU no llega a 30 fps; el HUD queda nítido.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kDynres), "0", applyDynres, nullptr, 20},
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kDynres), "0", applyDynres, nullptr, 20,
+     "Dynamic resolution",
+     "Lowers the 3D resolution (1.25, 1.125) when the GPU cannot hold 30 fps; the HUD stays sharp."},
     {"COS_MIST_LOWRES", "Niebla del bosque",
      "Resolución de la niebla (bosques): 1/4 se ve casi igual y cuesta mucho menos.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kLowres), "4", applyMist, nullptr, 30},
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kLowres), "4", applyMist, nullptr, 30,
+     "Forest mist",
+     "Resolution of the mist (forests): 1/4 looks almost the same and costs much less."},
     {"COS_SKY_LOWRES", "Cielo", "Resolución del cielo y las nubes: 1/2 ahorra GPU, bordes de nubes más suaves.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kSkyLowres), "0", applySky, nullptr, 40},
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kSkyLowres), "0", applySky, nullptr, 40,
+     "Sky",
+     "Resolution of the sky and clouds: 1/2 saves GPU time, with softer cloud edges."},
     {"COS_DOF", "Profundidad de campo", "Desenfoque del paisaje lejano, como en la GameCube.",
-     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "1", applyDof, nullptr, 50},
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "1", applyDof, nullptr, 50,
+     "Depth of field",
+     "Blur of the distant scenery, as on the GameCube."},
     {"COS_CAMERA_INVERT_X", "Invertir cámara horizontal",
      "El stick C gira la cámara al revés en horizontal.",
-     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertX, nullptr, 90},
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertX, nullptr, 90,
+     "Invert camera horizontally",
+     "The C stick turns the camera the other way horizontally."},
     {"COS_CAMERA_INVERT_Y", "Invertir cámara vertical",
      "El stick C inclina la cámara al revés en vertical.",
-     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertY, nullptr, 91},
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertY, nullptr, 91,
+     "Invert camera vertically",
+     "The C stick tilts the camera the other way vertically."},
     {"COS_SHADOW_OFFSCREEN", "Sombras en tiempo real",
      "Dónde se dibujan las sombras de los personajes: fuera del EFB evita cortar la pasada principal.",
-     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kShadow), "0", applyShadow, nullptr, 60},
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kShadow), "0", applyShadow, nullptr, 60,
+     "Real-time shadows",
+     "Where character shadows are drawn: outside the EFB avoids splitting the main pass."},
     {"COS_ASPECT", "Relación de aspecto", "Imagen panorámica 16:9 o la 4:3 original de la GameCube.",
      PC_SETTING_TAB_GRAPHICS, PC_SETTING_RESTART, CHOICES(kAspect), kSwitch ? "16:9" : "4:3", nullptr, nullptr,
-     70},
+     70,
+     "Aspect ratio",
+     "16:9 widescreen or the GameCube's original 4:3."},
     {"COS_HD_TEXTURES", "Texturas HD", "Usa el paquete de texturas en alta resolución si está instalado.",
-     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", nullptr, nullptr, 80},
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", nullptr, nullptr, 80,
+     "HD textures",
+     "Uses the high-resolution texture pack if it is installed."},
     {"COS_HD_MAX_SIZE", "Tamaño máx. texturas HD",
      "Lado mayor de las texturas HD. Automático: 512 en portátil, 1024 en sobremesa. Se cambian poco a poco.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kHdMaxSize), "auto", nullptr, nullptr, 81},
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kHdMaxSize), "auto", nullptr, nullptr, 81,
+     "HD texture max size",
+     "Longest side of the HD textures. Automatic: 512 handheld, 1024 docked. They change "
+     "gradually."},
     // Rendimiento
     {"COS_SWITCH_GPU_PROFILE", "Perfil de GPU (portátil)",
      "Reloj de la GPU en modo portátil (perfiles oficiales de la consola; la CPU sigue a 1020 MHz).",
-     PC_SETTING_TAB_PERFORMANCE, PC_SETTING_SWITCH_ONLY, CHOICES(kGpuProfile), "460", applyGpuProfile, nullptr, 10},
+     PC_SETTING_TAB_PERFORMANCE, PC_SETTING_SWITCH_ONLY, CHOICES(kGpuProfile), "460", applyGpuProfile, nullptr, 10,
+     "GPU profile (handheld)",
+     "GPU clock in handheld mode (the console's official profiles; the CPU stays at 1020 MHz)."},
     {"COS_FPS_OVERLAY", "Contador de FPS", "Panel de cuadros por segundo y tiempos en la esquina.",
-     PC_SETTING_TAB_PERFORMANCE, 0, CHOICES(kOnOff), kSwitch ? "1" : "0", applyOverlay, nullptr, 20},
+     PC_SETTING_TAB_PERFORMANCE, 0, CHOICES(kOnOff), kSwitch ? "1" : "0", applyOverlay, nullptr, 20,
+     "FPS counter",
+     "Frames per second and timings panel in the corner."},
     {"COS_FPS_OVERLAY_DETAIL", "Detalle del contador",
      "Completo: tiempos de render, draws y GPU. Compacto: solo FPS y tiempo del juego.",
-     PC_SETTING_TAB_PERFORMANCE, 0, CHOICES(kDetail), "full", applyOverlayDetail, nullptr, 30},
+     PC_SETTING_TAB_PERFORMANCE, 0, CHOICES(kDetail), "full", applyOverlayDetail, nullptr, 30,
+     "Counter detail",
+     "Full: render, draw and GPU timings. Compact: only FPS and game time."},
     {"COS_PRECOMPILE", "Precarga de shaders",
      "Qué shaders se compilan al arrancar: arranque (los del inicio y el resto detrás), completo, todos o ninguno.",
      PC_SETTING_TAB_PERFORMANCE, PC_SETTING_RESTART, CHOICES(kPrecompile), kSwitch ? "boot" : "off", nullptr,
-     nullptr, 40},
+     nullptr, 40,
+     "Shader preloading",
+     "Which shaders are compiled at start: boot (the start-up ones, the rest behind), full, all or "
+     "none."},
     {"COS_PRECOMPILE_SCREEN", "Pantalla de carga de shaders",
      "Automática: solo con la caché fría (primer arranque); prioritarios, siempre o nunca.",
-     PC_SETTING_TAB_PERFORMANCE, PC_SETTING_RESTART, CHOICES(kPrecompileScreen), "auto", nullptr, nullptr, 50},
+     PC_SETTING_TAB_PERFORMANCE, PC_SETTING_RESTART, CHOICES(kPrecompileScreen), "auto", nullptr, nullptr, 50,
+     "Shader loading screen",
+     "Automatic: only with a cold cache (first start); priority only, always or never."},
     {"COS_PERF_EVERY", "Intervalo del registro perf",
      "Cada cuántos cuadros se escribe una línea [cos] perf en el registro (switchwaker.log).",
-     PC_SETTING_TAB_PERFORMANCE, 0, CHOICES(kPerfEvery), "0", applyPerfEvery, nullptr, 60},
+     PC_SETTING_TAB_PERFORMANCE, 0, CHOICES(kPerfEvery), "0", applyPerfEvery, nullptr, 60,
+     "Perf log interval",
+     "How many frames between [cos] perf lines in the log (switchwaker.log)."},
     // Depuración
     {"COS_GPU_GROUPS", "Temporizadores de GPU por grupo",
      "Mide la GPU por grupo de dibujo (cielo, fondo, opacos, partículas...) en las líneas perf-switch.",
-     PC_SETTING_TAB_DEBUG, 0, CHOICES(kGpuGroups), "0", applyGpuGroups, nullptr, 100},
+     PC_SETTING_TAB_DEBUG, 0, CHOICES(kGpuGroups), "0", applyGpuGroups, nullptr, 100,
+     "GPU timers per group",
+     "Times the GPU per draw group (sky, background, opaque, particles...) in the perf-switch "
+     "lines."},
     {"COS_PERF_LOG", "Líneas perf en el registro",
      "Oculta o muestra las líneas [cos] perf y perf-switch (las mediciones siguen).",
-     PC_SETTING_TAB_DEBUG, 0, CHOICES(kShowHide), "1", applyPerfLog, nullptr, 110},
+     PC_SETTING_TAB_DEBUG, 0, CHOICES(kShowHide), "1", applyPerfLog, nullptr, 110,
+     "Perf lines in the log",
+     "Hides or shows the [cos] perf and perf-switch lines (measuring goes on)."},
     {"COS_USB_LOG", "Registro en directo por USB",
      "Envía el registro por USB a scripts/switch/usb_log.py mientras juegas. Desactívalo para dejar el USB "
      "libre (por ejemplo, para SysDVR por USB); el registro en la tarjeta SD se mantiene.",
-     PC_SETTING_TAB_DEBUG, PC_SETTING_RESTART | PC_SETTING_SWITCH_ONLY, CHOICES(kOnOff), "1", nullptr, nullptr, 120},
+     PC_SETTING_TAB_DEBUG, PC_SETTING_RESTART | PC_SETTING_SWITCH_ONLY, CHOICES(kOnOff), "1", nullptr, nullptr, 120,
+     "Live log over USB",
+     "Sends the log over USB to scripts/switch/usb_log.py while you play. Turn it off to free the "
+     "USB port (for example for SysDVR over USB); the log on the SD card is kept."},
 };
 
 // ---- menu state ----------------------------------------------------------------------------------
@@ -525,6 +586,7 @@ struct Row {
 };
 
 const char* const kTabNames[PC_SETTING_TABS] = {"Gráficos", "Rendimiento", "Depuración"};
+const char* const kTabNamesEn[PC_SETTING_TABS] = {"Graphics", "Performance", "Debug"};
 
 struct Menu {
     bool initialized = false;
@@ -583,7 +645,7 @@ std::vector<Row> rowsOf(int tab) {
 const char* choiceLabel(const PcSettingDesc* d, const char* value) {
     for (int i = 0; i < d->choiceCount; i++) {
         if (strcmp(d->choices[i].value, value) == 0) {
-            return d->choices[i].label;
+            return T(d->choices[i].label, d->choices[i].labelEn);
         }
     }
     return value[0] != '\0' ? value : "-";
@@ -595,7 +657,8 @@ PcOperationMode rowMode(const PcSettingDesc* d) {
 
 void cycle(const PcSettingDesc* d, int dir) {
     if (pc_settings_locked(d->key)) {
-        toast(std::string(d->label) + (kSwitch ? ": fijado por env.txt" : ": fijado por el entorno"));
+        toast(std::string(settingLabel(d)) +
+              (kSwitch ? T(": fijado por env.txt", ": set in env.txt") : T(": fijado por el entorno", ": set by the environment")));
         return;
     }
     if (d->choiceCount <= 0) {
@@ -638,7 +701,7 @@ void setOpen(bool open) {
 
 void doWarp(const Warp& w) {
     if (!inPlay()) {
-        toast("El viaje solo funciona durante la partida");
+        toast(T("El viaje solo funciona durante la partida", "Travel only works in the game"));
         return;
     }
     setOpen(false);
@@ -650,7 +713,7 @@ void doWarp(const Warp& w) {
 // memory only (the game's own save screen keeps it), then to its spawn on the boat.
 void doSailing() {
     if (!inPlay()) {
-        toast("Navegar solo funciona durante la partida");
+        toast(T("Navegar solo funciona durante la partida", "Sailing only works in the game"));
         return;
     }
     applySailingPreset(true);
@@ -687,7 +750,7 @@ void activate(const Row& r, int dir) {
     case RowKind::Reload:
         if (dir == 0) {
             pc_settings_reload();
-            toast(std::string("Ajustes recargados de ") + pc_settings_path());
+            toast(std::string(T("Ajustes recargados de ", "Settings reloaded from ")) + pc_settings_path());
         }
         break;
     }
@@ -787,16 +850,16 @@ const ImVec4 kWarn(1.00f, 0.55f, 0.45f, 1.0f);
 
 std::string rowLabel(const Row& r) {
     switch (r.kind) {
-    case RowKind::EditMode: return "Perfil a editar";
-    case RowKind::Warp: return "Viajar a un escenario...";
-    case RowKind::Sailing: return "Navegar (barco, vela y batuta)";
-    case RowKind::Screenshot: return "Capturar pantalla";
-    case RowKind::Reload: return "Recargar ajustes del archivo";
+    case RowKind::EditMode: return T("Perfil a editar", "Profile to edit");
+    case RowKind::Warp: return T("Viajar a un escenario...", "Travel to a stage...");
+    case RowKind::Sailing: return T("Navegar (barco, vela y batuta)", "Sail (boat, sail and baton)");
+    case RowKind::Screenshot: return T("Capturar pantalla", "Take a screenshot");
+    case RowKind::Reload: return T("Recargar ajustes del archivo", "Reload settings from the file");
     case RowKind::Setting: break;
     }
-    std::string s = r.desc->label;
+    std::string s = settingLabel(r.desc);
     if (r.desc->flags & PC_SETTING_PER_MODE) {
-        s += m.editMode == PC_MODE_DOCKED ? " [sobremesa]" : " [portátil]";
+        s += m.editMode == PC_MODE_DOCKED ? T(" [sobremesa]", " [docked]") : T(" [portátil]", " [handheld]");
     }
     return s;
 }
@@ -804,11 +867,11 @@ std::string rowLabel(const Row& r) {
 std::string rowValue(const Row& r) {
     switch (r.kind) {
     case RowKind::EditMode:
-        return std::string(pc_settings_mode_name(m.editMode)) + (m.editMode == pc_settings_mode() ? " (activo)" : "");
-    case RowKind::Warp: return inPlay() ? "A: elegir" : "solo en partida";
-    case RowKind::Sailing: return inPlay() ? "A: zarpar" : "solo en partida";
-    case RowKind::Screenshot: return "A: capturar";
-    case RowKind::Reload: return "A: recargar";
+        return std::string(modeName(m.editMode)) + (m.editMode == pc_settings_mode() ? T(" (activo)", " (active)") : "");
+    case RowKind::Warp: return inPlay() ? T("A: elegir", "A: choose") : T("solo en partida", "in game only");
+    case RowKind::Sailing: return inPlay() ? T("A: zarpar", "A: set sail") : T("solo en partida", "in game only");
+    case RowKind::Screenshot: return T("A: capturar", "A: capture");
+    case RowKind::Reload: return T("A: recargar", "A: reload");
     case RowKind::Setting: break;
     }
     return choiceLabel(r.desc, pc_settings_get_mode(r.desc->key, rowMode(r.desc)));
@@ -820,19 +883,21 @@ std::string rowNote(const Row& r) {
     }
     const PcSettingDesc* d = r.desc;
     if (pc_settings_locked(d->key)) {
-        return kSwitch ? "fijado por env.txt" : "fijado por variable de entorno";
+        return kSwitch ? T("fijado por env.txt", "set in env.txt")
+                       : T("fijado por variable de entorno", "set by an environment variable");
     }
     if ((d->flags & PC_SETTING_SWITCH_ONLY) && !kSwitch) {
-        return "solo Switch";
+        return T("solo Switch", "Switch only");
     }
     if (d->flags & PC_SETTING_RESTART) {
-        return pc_settings_restart_pending(d->key) ? "requiere reiniciar (pendiente)" : "requiere reiniciar";
+        return pc_settings_restart_pending(d->key) ? T("requiere reiniciar (pendiente)", "needs a restart (pending)")
+                                                   : T("requiere reiniciar", "needs a restart");
     }
     if (strcmp(d->key, "COS_HD_TEXTURES") == 0 && !pc_settings_has_subscriber(d->key)) {
-        return "cargador aún no incluido";
+        return T("cargador aún no incluido", "loader not included yet");
     }
     if ((d->flags & PC_SETTING_PER_MODE) && m.editMode != pc_settings_mode()) {
-        return "se aplica en ese modo";
+        return T("se aplica en ese modo", "applies in that mode");
     }
     return "";
 }
@@ -840,21 +905,32 @@ std::string rowNote(const Row& r) {
 std::string rowHelp(const Row& r) {
     switch (r.kind) {
     case RowKind::EditMode:
-        return "Las opciones marcadas [portátil]/[sobremesa] guardan un valor por modo; se aplican solas al "
-               "conectar o quitar la base.";
-    case RowKind::Warp: return "Lleva al jugador a otro escenario (lugares principales y todos los del disco).";
+        return T("Las opciones marcadas [portátil]/[sobremesa] guardan un valor por modo; se aplican solas al "
+                 "conectar o quitar la base.",
+                 "Options marked [handheld]/[docked] keep one value per mode; they apply by themselves when the "
+                 "console is docked or undocked.");
+    case RowKind::Warp:
+        return T("Lleva al jugador a otro escenario (lugares principales y todos los del disco).",
+                 "Takes the player to another stage (the main places and every one on the disc).");
     case RowKind::Sailing:
-        return "Da a esta partida el barco, la vela (X), la batuta (Y) y la canción del viento, y lleva al jugador "
-               "en barco junto a Isla Taura. Solo en memoria: se guarda únicamente si guardas la partida.";
+        return T("Da a esta partida el barco, la vela (X), la batuta (Y) y la canción del viento, y lleva al jugador "
+                 "en barco junto a Isla Taura. Solo en memoria: se guarda únicamente si guardas la partida.",
+                 "Gives this game the boat, the sail (X), the baton (Y) and the wind's song, and puts the player "
+                 "in the boat next to Windfall Island. In memory only: kept only if you save the game.");
     case RowKind::Screenshot:
-        return "Guarda la imagen del juego (sin el menú) como shot-<cuadro>.png en la carpeta del juego.";
-    case RowKind::Reload: return std::string("Vuelve a leer ") + pc_settings_path() + ".";
+        return T("Guarda la imagen del juego (sin el menú) como shot-<cuadro>.png en la carpeta del juego.",
+                 "Saves the game's image (without the menu) as shot-<frame>.png in the game's folder.");
+    case RowKind::Reload:
+        return std::string(T("Vuelve a leer ", "Reads ")) + pc_settings_path() + T(".", " again.");
     case RowKind::Setting: break;
     }
-    std::string help = r.desc->help != nullptr ? r.desc->help : "";
+    const char* descHelp = settingHelp(r.desc);
+    std::string help = descHelp != nullptr ? descHelp : "";
     if (pc_settings_locked(r.desc->key)) {
-        help += kSwitch ? " Fijado en env.txt: quítalo de allí para cambiarlo aquí."
-                        : " Fijado por una variable de entorno de esta ejecución.";
+        help += kSwitch ? T(" Fijado en env.txt: quítalo de allí para cambiarlo aquí.",
+                            " Set in env.txt: remove it there to change it here.")
+                        : T(" Fijado por una variable de entorno de esta ejecución.",
+                            " Set by an environment variable of this run.");
     }
     return help;
 }
@@ -878,8 +954,8 @@ void drawMenu() {
     ImGui::SetWindowFontScale(scale);
     ImGui::SetWindowFocus();
 
-    ImGui::TextColored(kAccent, "Opciones");
-    const std::string mode = std::string("Modo: ") + pc_settings_mode_name(pc_settings_mode());
+    ImGui::TextColored(kAccent, "%s", T("Opciones", "Options"));
+    const std::string mode = std::string(T("Modo: ", "Mode: ")) + modeName(pc_settings_mode());
     ImGui::SameLine(ImGui::GetWindowWidth() - ImGui::CalcTextSize(mode.c_str()).x - ImGui::GetStyle().WindowPadding.x);
     ImGui::TextColored(kDim, "%s", mode.c_str());
 
@@ -891,7 +967,7 @@ void drawMenu() {
         }
         const bool sel = t == m.tab;
         ImGui::PushStyleColor(ImGuiCol_Button, sel ? ImVec4(0.20f, 0.42f, 0.70f, 1.0f) : ImVec4(0.16f, 0.18f, 0.22f, 1.0f));
-        if (ImGui::Button(kTabNames[t], ImVec2(tabW, 0)) && !m.warpPage) {
+        if (ImGui::Button(T(kTabNames[t], kTabNamesEn[t]), ImVec2(tabW, 0)) && !m.warpPage) {
             m.tab = t;
         }
         ImGui::PopStyleColor();
@@ -904,18 +980,18 @@ void drawMenu() {
         // Child windows scale their text by their parent's font scale already.
         float valueX = ImGui::GetContentRegionAvail().x * 0.45f;
         if (m.warpPage) {
-            ImGui::TextColored(kAccent, "Viajar a...   (B: volver)");
+            ImGui::TextColored(kAccent, "%s", T("Viajar a...   (B: volver)", "Travel to...   (B: back)"));
             const int count = kMainWarpCount + kAllWarpCount;
             for (int i = 0; i < count; i++) {
                 if (i == 0) {
-                    ImGui::TextColored(kDim, "Lugares principales");
+                    ImGui::TextColored(kDim, "%s", T("Lugares principales", "Main places"));
                 } else if (i == kMainWarpCount) {
                     ImGui::Separator();
-                    ImGui::TextColored(kDim, "Todos los escenarios del disco (%d)", kAllWarpCount);
+                    ImGui::TextColored(kDim, T("Todos los escenarios del disco (%d)", "Every stage on the disc (%d)"), kAllWarpCount);
                 }
                 const Warp& w = warpAt(i);
                 char label[160];
-                snprintf(label, sizeof(label), "%s##w%d", w.label != nullptr ? w.label : w.stage, i);
+                snprintf(label, sizeof(label), "%s##w%d", w.label != nullptr ? T(w.label, w.labelEn) : w.stage, i);
                 ImGui::PushID(i);
                 if (ImGui::Selectable(label, i == m.warpRow)) {
                     m.warpRow = i;
@@ -928,7 +1004,8 @@ void drawMenu() {
                 }
                 ImGui::PopID();
             }
-            help = "Arriba/abajo: elegir (izquierda/derecha: de 10 en 10). A: viajar. B: volver.";
+            help = T("Arriba/abajo: elegir (izquierda/derecha: de 10 en 10). A: viajar. B: volver.",
+                     "Up/down: choose (left/right: 10 at a time). A: travel. B: back.");
         } else {
             const std::vector<Row> rows = rowsOf(m.tab);
             float labelW = 0.0f;
@@ -965,10 +1042,10 @@ void drawMenu() {
                     const bool pending = r.kind == RowKind::Setting && pc_settings_restart_pending(r.desc->key);
                     ImGui::SameLine();
                     ImGui::TextColored(locked ? kWarn : kDim, "%s",
-                                       locked                                          ? "[fijo]"
-                                       : pending                                       ? "[al reiniciar]"
-                                       : (r.desc->flags & PC_SETTING_RESTART) != 0     ? "[reinicio]"
-                                                                                       : "*");
+                                       locked    ? T("[fijo]", "[set]")
+                                       : pending ? T("[al reiniciar]", "[on restart]")
+                                       : (r.desc->flags & PC_SETTING_RESTART) != 0 ? T("[reinicio]", "[restart]")
+                                                                                   : "*");
                 }
                 if (i == row && m.scrollToRow) {
                     ImGui::SetScrollHereY(0.5f);
@@ -996,8 +1073,11 @@ void drawMenu() {
     }
     ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetTextLineHeightWithSpacing() -
                          ImGui::GetStyle().WindowPadding.y);
-    ImGui::TextColored(kDim, "%s", kSwitch ? "A: cambiar   B: cerrar   L/R: pestaña   ZL+ZR+Menos: cerrar"
-                                           : "A/Intro: cambiar   B/Esc: cerrar   L/R, Q/E: pestaña   F1: cerrar");
+    ImGui::TextColored(kDim, "%s",
+                       kSwitch ? T("A: cambiar   B: cerrar   L/R: pestaña   ZL+ZR+Menos: cerrar",
+                                   "A: change   B: close   L/R: tab   ZL+ZR+Minus: close")
+                               : T("A/Intro: cambiar   B/Esc: cerrar   L/R, Q/E: pestaña   F1: cerrar",
+                                   "A/Enter: change   B/Esc: close   L/R, Q/E: tab   F1: close"));
     ImGui::End();
 }
 
@@ -1327,10 +1407,10 @@ void menuFrameEnd(unsigned int frame) {
         m.pendingShot = false;
         if (captureFrame(frame, saveShot, nullptr)) {
             char name[64];
-            snprintf(name, sizeof(name), "Captura guardada: shot-%06u.png", frame);
+            snprintf(name, sizeof(name), T("Captura guardada: shot-%06u.png", "Screenshot saved: shot-%06u.png"), frame);
             toast(name);
         } else {
-            toast("No se pudo capturar la pantalla");
+            toast(T("No se pudo capturar la pantalla", "Could not take the screenshot"));
         }
     }
     if (sSmoke.on) {

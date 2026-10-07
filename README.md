@@ -183,6 +183,8 @@ may prepare a few new shaders again.
 
 - In-game options menu: **ZL+ZR+Minus** on the Switch, **F1** (or L+R+Z) on the Mac and Linux. Saved to
   `native/user/settings.ini`.
+- Language: the options menu and the shader loading screen are in Spanish or English, following the
+  console's language (on the Mac and Linux, `LANG`); `COS_LANG=es` or `COS_LANG=en` forces one.
 - `COS_*` variables (environment on the Mac and Linux, `sdmc:/switch/switchwaker/native/env.txt` on the
   Switch): [switch/native/env.example.txt](switch/native/env.example.txt) and
   [native/README.md](native/README.md).

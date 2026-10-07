@@ -400,6 +400,9 @@ void menuFrameEnd(unsigned int frame);
 // precompileOverlay from pc_frame_end before aurora_end_frame and precompileFrame after it, every
 // game frame.
 void precompileInit(const char* cacheDir);
+// The language of the loading screen and the options menu: the console's (Switch), else LC_ALL or
+// LANG; COS_LANG=es|en overrides both. True for Spanish, false for English. Read once.
+bool pc_ui_spanish();
 void precompileLoadingScreen();
 void precompileOverlay();
 void precompileFrame(unsigned int frames);

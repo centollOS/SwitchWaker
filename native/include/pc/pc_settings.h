@@ -58,7 +58,8 @@ typedef enum PcOperationMode {
 
 typedef struct PcSettingChoice {
     const char* value; /* as in the environment variable, e.g. "1.5" */
-    const char* label; /* what the menu shows, e.g. "1280x720 (1.5)" */
+    const char* label; /* what the menu shows in Spanish, e.g. "1280x720 (1.5)" */
+    const char* labelEn; /* the same in English (NULL: label) */
 } PcSettingChoice;
 
 /* Called with the setting's new effective value (a value of the current operation mode). */
@@ -76,6 +77,8 @@ typedef struct PcSettingDesc {
     PcSettingApplyFn apply;   /* live effect of a change (NULL: none, e.g. PC_SETTING_RESTART) */
     void* user;
     int order;                /* rows sort by order within a tab (built-in rows use 0-999) */
+    const char* labelEn;      /* English label and description (NULL: the Spanish ones); the menu */
+    const char* helpEn;       /* shows the console's language, pc_ui_spanish() */
 } PcSettingDesc;
 
 /* Adds (or replaces) a setting; the strings and choices must outlive the program. 0 on success. */
