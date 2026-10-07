@@ -17,6 +17,7 @@ build reads them from the player's own disc.
 | `native/patches/aurora/`, `switch/native/aurora/patches/` | Patches to Aurora | same as Aurora (MIT) |
 | `switch/dawn/patches/` | Patches to Dawn (Horizon/OpenGL ES backend) | same as Dawn (BSD-3-Clause) |
 | `switch/mesa/patches/`, `switch/mesa/test/` | Patches to Mesa (devkitPro's switch-mesa recipe) and their tests | same as Mesa (MIT) |
+| `switch/uam/` | [uam](https://github.com/devkitPro/uam) 1.1.0 at `5a5afc2` (fincs, devkitPro), the deko3d shader compiler, as vendored by [SwitchWakerHD](https://github.com/centollOS/SwitchWakerHD) (`runtime/third_party/uam/` at `df8fbde`) with its patches 1-7, CMake build and `uam_api` (`switch/uam/PATCHES.md`) | zlib for uam's own files, MIT for `mesa-imported/` (from Mesa) (`switch/uam/LICENSE`); SwitchWakerHD lists its additions there under the same terms (SwitchWakerHD itself is MPL-2.0) |
 | `switch/forwarder/nx-hbloader-forwarder.patch` | Patch to nx-hbloader | same as nx-hbloader (ISC) |
 
 Everything else is the project's own code under the MIT license (`LICENSE`), copyright Pulpparty
