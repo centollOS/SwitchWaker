@@ -110,9 +110,12 @@ Run options come from `native/env.txt`, one `NAME=value` per line, with `#` comm
 ([switch/native/env.example.txt](../switch/native/env.example.txt)); they are the Mac's `COS_*`
 variables ([native/README.md](../native/README.md), "Running switchwaker"). Without the file:
 `COS_DISC=/switch/switchwaker/GZLE01.iso`, `COS_RUN_DIR=/switch/switchwaker/native`,
-`COS_PERF_EVERY=60`, `COS_HITCH_MS=50`, `COS_STALL_S=90`, `COS_ASPECT=16:9` (the widescreen
+`COS_STALL_S=90`, `COS_ASPECT=16:9` (the widescreen
 option on the 1280x720 screen; `COS_ASPECT=4:3` gives the GameCube picture, pillarboxed) and
-`COS_FB_SCALE=1.5` (the internal resolution, see below).
+`COS_FB_SCALE=1.5` (the internal resolution, see below). The defaults are for players: no
+frame-rate panel and no perf or hitch lines in the log. For a measuring run put
+`COS_PERF_EVERY=60`, `COS_HITCH_MS=50` and `COS_FPS_OVERLAY=1` in `env.txt` (the lines below
+assume them).
 
 Options menu: **Minus (−)** opens it in game (B closes it; the game pauses meanwhile). It changes
 most of these options at run time and saves them to `native/user/settings.ini` on the SD card, with
@@ -141,7 +144,7 @@ What the log shows, in order (the same `[cos]` lines as on the Mac; values vary)
 [switch] SwitchWaker: application (title mode); memory 3xxx MiB, ... core mask 0x7; image at 0x...
 [switch] logs: /switch/switchwaker/native/switchwaker.log open, USB live log started
 [cos] harness: smoke=- milestone=- timeout=0s stall=90s ...
-[cos] perf: game-thread frame times every 60 frames (COS_PERF_EVERY)
+[cos] perf: game-thread frame times every 60 frames (COS_PERF_EVERY)  <- COS_PERF_EVERY=60 only
 [cos] disc: /switch/switchwaker/GZLE01.iso GZLE01 revision 0, 1459978240 bytes
 [info] [aurora::gpu] Attempting to initialize OpenGLES          <- Dawn on Mesa (NV120)
 [cos] aurora: backend=opengles window=1280x720 ...
@@ -317,8 +320,8 @@ core 2 alone and JAudio's audio thread and the game's DVD thread to core 1 when 
 (`switch/native/source/thread_wrap.c`; `[switch] COS_SWITCH_CORES=pinned:` lines in the log): by
 default every helper thread prefers core 1 or 2 in turn and Horizon does not time-slice threads of
 equal priority, so the worker can wait behind the audio mixer (compare the worker's CPU time in
-the `perf-switch cpu` line with and without it). Every game frame whose busy time is over `COS_HITCH_MS` (50 ms by default; 0 turns it
-off) gets one `[cos] hitch frame N: busy ... ms (wall ...): events, begin_frame, cpd, aud, logic,
+the `perf-switch cpu` line with and without it). Every game frame whose busy time is over `COS_HITCH_MS` (off by default; `COS_HITCH_MS=50` in
+`env.txt` sets the threshold) gets one `[cos] hitch frame N: busy ... ms (wall ...): events, begin_frame, cpd, aud, logic,
 painter, end_frame, other; pipelines +n (q queued), tex upload KiB, res loads +n last <path>,
 scene NAME (new); switch: slot wait, staging wait, queue-full wait, worker busy (encode, submit,
 present, events), gl fence wait, glFinish, pipeline compile ms (count), dvd reads; dawn gl: draws,

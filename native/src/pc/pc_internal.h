@@ -34,8 +34,8 @@ struct Config {
     bool syncPipelines = false;
     // COS_HITCH_MS=<n>: one "[cos] hitch" line for every game frame whose busy time (the frame
     // minus the pace wait) exceeds n ms, with its split and what else happened in it (pipelines
-    // built, texture bytes uploaded, resources loaded, scene created). 0 = off (the default; the
-    // Switch build sets 50).
+    // built, texture bytes uploaded, resources loaded, scene created). 0 = off (the default on every
+    // host).
     unsigned int hitchMs = 0;
     // COS_HEAP_CHECK=<n> (bug B4): every n game frames, check() every JKR heap of the tree from the
     // root (block signatures, list links, sizes); the first failure names the heap and ends the

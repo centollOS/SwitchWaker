@@ -13,8 +13,10 @@
 //
 // Run options: COS_SWITCH_ROOT/env.txt, one NAME=value per line (# comments), applied before the
 // Switch defaults (setenv without overwrite): COS_DISC (the shared GZLE01.iso), COS_RUN_DIR (the
-// native directory, for backtrace.txt), COS_PERF_EVERY=60, COS_STALL_S=90 and COS_ASPECT=16:9 (the
-// console's 1280x720 screen; COS_ASPECT=4:3 in env.txt gives the GameCube picture, pillarboxed).
+// native directory, for backtrace.txt), COS_STALL_S=90 and COS_ASPECT=16:9 (the console's 1280x720
+// screen; COS_ASPECT=4:3 in env.txt gives the GameCube picture, pillarboxed). The defaults are for
+// players: no perf or hitch lines, no frame-rate panel (COS_PERF_EVERY=60, COS_HITCH_MS=50 and
+// COS_FPS_OVERLAY=1 in env.txt for a measuring run).
 // COS_SWITCH_GPU_PROFILE (460 by default, 384, default) picks the console's official handheld performance
 // configuration through apm (CPU 1020 MHz always); the previous one is restored at exit. The options
 // menu changes it at run time (cos_switch_set_gpu_profile). Between env.txt and the defaults,
@@ -617,8 +619,6 @@ void cos_switch_start(int argc, char** argv) {
     }
     setDefault("COS_DISC", COS_SWITCH_DEFAULT_DISC);
     setDefault("COS_RUN_DIR", COS_SWITCH_ROOT);
-    setDefault("COS_PERF_EVERY", "60");
-    setDefault("COS_HITCH_MS", "50");
     setDefault("COS_STALL_S", "90");
     setDefault("COS_ASPECT", "16:9");
     // The internal resolution: 1280x720, the screen's (COS_FB_SCALE=1.125 960x540, 1.0 854x480).

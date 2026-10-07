@@ -553,12 +553,12 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_PERFORMANCE, PC_SETTING_RESTART, CHOICES(kPrecompileScreen), "auto", nullptr, nullptr, 50,
      "Shader loading screen",
      "Automatic: only with a cold cache (first start); priority only, always or never."},
+    // Depuración
     {"COS_PERF_EVERY", "Intervalo del registro perf",
      "Cada cuántos cuadros se escribe una línea [cos] perf en el registro (switchwaker.log).",
-     PC_SETTING_TAB_PERFORMANCE, 0, CHOICES(kPerfEvery), "0", applyPerfEvery, nullptr, 60,
+     PC_SETTING_TAB_DEBUG, 0, CHOICES(kPerfEvery), "0", applyPerfEvery, nullptr, 105,
      "Perf log interval",
      "How many frames between [cos] perf lines in the log (switchwaker.log)."},
-    // Depuración
     {"COS_GPU_GROUPS", "Temporizadores de GPU por grupo",
      "Mide la GPU por grupo de dibujo (cielo, fondo, opacos, partículas...) en las líneas perf-switch.",
      PC_SETTING_TAB_DEBUG, 0, CHOICES(kGpuGroups), "0", applyGpuGroups, nullptr, 100,

@@ -10,7 +10,7 @@
 //   with the game thread's busy time per frame (the frame minus the pace wait: average and
 //   maximum, and the aurora_begin_frame/aurora_end_frame parts), the average wait, the frame rate
 //   and the VI retrace rate (60 a second is full speed), then the phase split and the CPU time
-//   below as averages. Off by default (the Switch build turns it on).
+//   below as averages. Off by default on every host.
 // - COS_PERF=<file> (step 6.7): one CSV row per game frame (columns at kPerfCsvHeader): the wall
 //   time from pc_frame_begin to the end of aurora_end_frame, the busy part (wall minus the pace
 //   wait), the game thread's CPU time (CLOCK_THREAD_CPUTIME_ID, which leaves out time blocked;
