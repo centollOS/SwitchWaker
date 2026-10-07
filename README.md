@@ -7,6 +7,53 @@ revision 0) to the Mac, Linux and the Switch (homebrew). The game is compiled fr
 (the [`game/`](game/README.md) folder) and drawn with [Aurora](https://github.com/encounter/aurora);
 there is no CPU emulation.
 
+## Standing on the shoulders of others
+
+SwitchWaker would not exist without these projects. The hard part, understanding the game, is
+their work; this repository adds the layer that runs it on new hardware.
+
+- **[zeldaret/tww](https://github.com/zeldaret/tww)**: the community decompilation of the game.
+  The careful, byte-for-byte matching work of its contributors produced almost all of the code in
+  [`game/`](game/README.md). Without it there is nothing to port.
+- **[snrubrm/tww](https://github.com/snrubrm/tww)**: a personal fork of zeldaret/tww that completes
+  the functions still missing, with AI-assisted decompilation (in its author's words). `game/` was
+  imported from it; units that zeldaret has since matched are taken from zeldaret again.
+- **[encounter/aurora](https://github.com/encounter/aurora)**: the GameCube SDK reimplemented over
+  WebGPU (Dawn), which draws the game and reads the controllers on every platform, the Switch
+  included (with encounter's Dawn fork for it).
+- **[Dusklight](https://github.com/TwilitRealm/dusklight)** (TwilitRealm): the native port of a
+  sibling game on Aurora; the model for this project's SDK layer, and CC0 helper code.
+- **[Dolphin](https://dolphin-emu.org)**: its DSP HLE plays the game's audio (`native/dsp_hle/`, GPL).
+- **[elliotttate/Wind-Waker-Recomp](https://github.com/elliotttate/Wind-Waker-Recomp)** and
+  **[RecompCore](https://github.com/elliotttate/RecompCore)**: the static recompilation this work
+  started from, and the DSP adapter.
+- **[devkitPro](https://devkitpro.org)**, **[libnx](https://github.com/switchbrew/libnx)**,
+  **[Mesa](https://mesa3d.org)** and switch-mesa: the Switch toolchain and its OpenGL driver.
+- **[nx-hbloader](https://github.com/switchbrew/nx-hbloader)**,
+  **[hacBrewPack](https://github.com/TooTallNate/hacBrewPack)** and
+  **[hactool](https://github.com/SciresM/hactool)**: the HOME-menu forwarder.
+
+If you enjoy this port, the decompilation projects above are where the credit belongs. Every
+component and its license: [THIRD_PARTY.md](THIRD_PARTY.md).
+
+## How it was made: AI use
+
+Be aware of this before you use or build on this repository:
+
+- **This project's own code was written with AI.** Nearly all of the code outside `game/` (the SDK
+  layer, the run harness, the Switch platform layer, patches, tools and scripts), the documentation
+  and the commit messages were written by an AI coding agent, Anthropic's Claude through Claude
+  Code. The human authors chose what to build, set the priorities, reviewed the code line by line,
+  played and tested it on the Mac and on a real Switch, reported the bugs and decided what went in.
+  Commits written with the agent say so in a `Co-Authored-By: Claude` line.
+- **Part of the decompilation is AI-assisted too**: the functions snrubrm/tww completed (see
+  above). The rest of `game/` is zeldaret's human work. If you want only human-written
+  decompilation, use [zeldaret/tww](https://github.com/zeldaret/tww).
+- **How it is checked**: human review of the code, line by line, plus builds on every platform, a
+  regression suite of boot milestones and smoke tests, automated sweeps over every stage, room,
+  actor, event, item and boss (also under AddressSanitizer), and play on hardware
+  ([native/README.md](native/README.md)). Bugs can still slip through; reports are welcome.
+
 ## What you need
 
 - **Your own legally obtained copy of the disc**: `GZLE01` revision 0, as an uncompressed `.iso`.
@@ -220,26 +267,7 @@ distributed.
 
 ---
 
-## Credits
+## Authors
 
-- The community decompilation project and its contributors
-  ([github.com/zeldaret/tww](https://github.com/zeldaret/tww)): the decompiled game.
-- The fork the decompilation was imported from, which completes its remaining functions
-  ([github.com/snrubrm/tww](https://github.com/snrubrm/tww)).
-- [encounter/aurora](https://github.com/encounter/aurora): the GameCube SDK over WebGPU; Dawn
-  (Google, and encounter's fork for the Switch).
-- [Dusklight](https://github.com/TwilitRealm/dusklight) (TwilitRealm): the model for the SDK layer
-  and CC0 helper code.
-- [Dolphin](https://dolphin-emu.org): the DSP HLE.
-- elliotttate's recompilation project
-  ([github.com/elliotttate/Wind-Waker-Recomp](https://github.com/elliotttate/Wind-Waker-Recomp)) and
-  [RecompCore](https://github.com/elliotttate/RecompCore): where this work started and where the
-  DSP adapter comes from.
-- [Mesa](https://mesa3d.org), [devkitPro](https://devkitpro.org),
-  [libnx](https://github.com/switchbrew/libnx) and switch-mesa: the Switch toolchain and graphics.
-- [nx-hbloader](https://github.com/switchbrew/nx-hbloader),
-  [hacBrewPack](https://github.com/TooTallNate/hacBrewPack) and
-  [hactool](https://github.com/SciresM/hactool): the HOME-menu forwarder.
-- Authors: Pulpparty, depende3000, and the SwitchWaker contributors.
-
-Full list of third-party components and licenses: [THIRD_PARTY.md](THIRD_PARTY.md).
+Pulpparty, depende3000, and the SwitchWaker contributors, with an AI coding agent (see "How it was
+made: AI use"). Thanks to everyone behind the projects in "Standing on the shoulders of others".

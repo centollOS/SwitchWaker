@@ -1,6 +1,6 @@
 # game/: the decompiled game
 
-This folder is the decompiled source code of the game centollOS builds (disc ID `GZLE01`, USA
+This folder is the decompiled source code of the game SwitchWaker builds (disc ID `GZLE01`, USA
 revision 0). It is not the project's own code and keeps its own license, CC0-1.0
 ([LICENSE](LICENSE)).
 
