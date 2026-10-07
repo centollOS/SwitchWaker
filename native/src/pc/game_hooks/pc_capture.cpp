@@ -19,6 +19,8 @@
 #include "pc/game_hooks.h"
 #include "pc_internal.h"
 
+#include "d/d_snap.h"
+
 #include <lib/gfx/render_worker.hpp>
 #include <lib/gx/gx.hpp>
 #include <lib/webgpu/gpu.hpp>
@@ -174,31 +176,38 @@ bool pc_gph_capture_ready(void* dest, u32 width, u32 height, int format) {
     return false;
 }
 
-namespace pc {
+namespace {
 
-void captureFrameEnd() {
+// The copy texture GXCopyTex made for dest, as 8-bit RGBA rows at the EFB's scale. False (logged)
+// without one or if the readback failed.
+bool readCopy(const void* dest, const char* what, std::vector<uint8_t>& rgba, uint32_t& srcWidth,
+              uint32_t& srcHeight) {
+    const auto it = aurora::gx::g_gxState.copyTextures.find(dest);
+    if (it == aurora::gx::g_gxState.copyTextures.end() || !it->second.handle) {
+        pc::writef(STDERR_FILENO, "[cos] %s: no copy texture for %p\n", what, dest);
+        return false;
+    }
+    const aurora::gfx::TextureHandle handle = it->second.handle;
+    bool ok = false;
+    aurora::gfx::render_worker::enqueue_work([&] { ok = readTexture(handle, rgba, srcWidth, srcHeight); });
+    aurora::gfx::render_worker::synchronize();
+    if (!ok) {
+        pc::writef(STDERR_FILENO, "[cos] %s: readback failed\n", what);
+    }
+    return ok;
+}
+
+void captureReadBack() {
     if (sState != State::Requested) {
         return;
     }
     sState = State::Done;
     sStats.minLuma = 255;
     sStats.maxLuma = 0;
-    const auto it = aurora::gx::g_gxState.copyTextures.find(sDest);
-    if (it == aurora::gx::g_gxState.copyTextures.end() || !it->second.handle) {
-        writef(STDERR_FILENO, "[cos] capture: no copy texture for %p; the photo is grey\n", sDest);
-        writeGx(nullptr, 0, 0);
-        sStats.failed++;
-        return;
-    }
-    const aurora::gfx::TextureHandle handle = it->second.handle;
-    bool ok = false;
     std::vector<uint8_t> rgba;
     uint32_t srcWidth = 0, srcHeight = 0;
-    // Large host allocations on the worker, not in the game's JKR heaps.
-    aurora::gfx::render_worker::enqueue_work([&] { ok = readTexture(handle, rgba, srcWidth, srcHeight); });
-    aurora::gfx::render_worker::synchronize();
-    if (!ok) {
-        writef(STDERR_FILENO, "[cos] capture: readback failed; the photo is grey\n");
+    if (!readCopy(sDest, "capture", rgba, srcWidth, srcHeight)) {
+        pc::writef(STDERR_FILENO, "[cos] capture: the photo is grey\n");
         writeGx(nullptr, 0, 0);
         sStats.failed++;
         return;
@@ -206,9 +215,88 @@ void captureFrameEnd() {
     writeGx(&rgba, srcWidth, srcHeight);
     sStats.readBack++;
     sStats.lastFormat = sFormat;
-    writef(STDERR_FILENO, "[cos] capture: %ux%u %s copy read back from %ux%u, luma %u..%u\n", (unsigned int)sWidth,
-           (unsigned int)sHeight, sFormat == GX_TF_I8 ? "I8" : "RGB565", (unsigned int)srcWidth,
-           (unsigned int)srcHeight, (unsigned int)sStats.minLuma, (unsigned int)sStats.maxLuma);
+    pc::writef(STDERR_FILENO, "[cos] capture: %ux%u %s copy read back from %ux%u, luma %u..%u\n",
+               (unsigned int)sWidth, (unsigned int)sHeight, sFormat == GX_TF_I8 ? "I8" : "RGB565",
+               (unsigned int)srcWidth, (unsigned int)srcHeight, (unsigned int)sStats.minLuma,
+               (unsigned int)sStats.maxLuma);
+}
+
+// pc_efb_peek_request's copy: its destination names Aurora's copy texture.
+alignas(32) u8 sPeekKey[32];
+void (*sPeekDone)() = nullptr;
+u16 sPeekLeft = 0, sPeekTop = 0, sPeekWidth = 0, sPeekHeight = 0;
+bool sPeekValid = false;
+std::vector<uint8_t> sPeek;
+uint32_t sPeekSrcWidth = 0, sPeekSrcHeight = 0;
+
+void peekReadBack() {
+    if (sPeekDone == nullptr) {
+        return;
+    }
+    void (*done)() = sPeekDone;
+    sPeekDone = nullptr;
+    sPeekValid = readCopy(sPeekKey, "efb-peek", sPeek, sPeekSrcWidth, sPeekSrcHeight);
+    done();
+    sPeekValid = false;
+}
+
+} // namespace
+
+void pc_efb_peek_request(u16 left, u16 top, u16 width, u16 height, void (*done)()) {
+    if (sPeekDone != nullptr) {
+        pc::writef(STDERR_FILENO, "[cos] efb-peek: a request is already pending; dropped\n");
+        return;
+    }
+    sPeekLeft = left;
+    sPeekTop = top;
+    sPeekWidth = width;
+    sPeekHeight = height;
+    sPeekDone = done;
+    GXSetTexCopySrc(left, top, width, height);
+    GXSetTexCopyDst(width, height, GX_TF_RGBA8, GX_FALSE);
+    GXCopyTex(sPeekKey, GX_FALSE);
+    GXPixModeSync();
+}
+
+u32 pc_efb_peek_argb(u16 x, u16 y) {
+    if (!sPeekValid || x < sPeekLeft || y < sPeekTop || x >= sPeekLeft + sPeekWidth || y >= sPeekTop + sPeekHeight) {
+        return 0xFFFFFFFF;
+    }
+    // The texel under the centre of the logical pixel.
+    const uint32_t sx = ((uint32_t)(x - sPeekLeft) * 2 + 1) * sPeekSrcWidth / (2u * sPeekWidth);
+    const uint32_t sy = ((uint32_t)(y - sPeekTop) * 2 + 1) * sPeekSrcHeight / (2u * sPeekHeight);
+    const uint8_t* p = sPeek.data() + ((size_t)sy * sPeekSrcWidth + sx) * 4;
+    return (u32)p[3] << 24 | (u32)p[0] << 16 | (u32)p[1] << 8 | p[2];
+}
+
+void pc_snap_judged(int count, const dSnap_RegistObjElm* table, int result) {
+    int seen = 0;
+    char line[512];
+    int len = 0;
+    for (int col = 0; col < count; col++) {
+        const dSnap_Obj& obj = table[col].m_obj;
+        if (obj.mCapturedPixels == 0) {
+            continue;
+        }
+        seen++;
+        if (len < (int)sizeof(line) - 40) {
+            len += snprintf(line + len, sizeof(line) - len, " %d:%d px %.2f", (int)obj.mPhotoNo,
+                            (int)obj.mCapturedPixels, (double)obj.mCapturedRatio);
+        }
+    }
+    line[len] = '\0';
+    sStats.snapJudged++;
+    sStats.snapSeen = seen;
+    sStats.snapResult = result;
+    pc::writef(STDERR_FILENO, "[cos] snap: %d registered, %d in the photo (photo:pixels ratio)%s; result %d%s\n",
+               count, seen, line, result, sPeekValid ? "" : " (no readback: nothing seen)");
+}
+
+namespace pc {
+
+void captureFrameEnd() {
+    captureReadBack();
+    peekReadBack();
 }
 
 const CaptureStats& captureStats() { return sStats; }

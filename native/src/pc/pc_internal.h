@@ -356,6 +356,10 @@ struct CaptureStats {
     unsigned int minLuma = 255;
     unsigned int maxLuma = 0;
     int lastFormat = -1;
+    // dSnap's subject check (bug B37): photos judged, registered objects seen in the last one, its result.
+    unsigned int snapJudged = 0;
+    int snapSeen = 0;
+    int snapResult = 0;
 };
 const CaptureStats& captureStats();
 // COS_SMOKE=picto-box (pc_picto_box.cpp, bug B36): photos with the picto box.

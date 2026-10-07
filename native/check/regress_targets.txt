@@ -149,6 +149,9 @@ ky-procs 0 --preset sailing
 # the copy is read back to RAM for the capture thread's CMPR encoder (it panicked on the empty buffer)
 picto-box 0 --stage Asoko:0:0:2 --input native/check/input/picto-box.txt
 picto-box 0 --stage Asoko:0:0:2 --input native/check/input/picto-box.txt --env COS_BOOT_ITEMS=26
+# bug B37: dSnap's subject check (EFB alpha peeks, read back after the frame) sees a Killer Bee held in
+# front of the player on Windfall's town square and judges the photo DSNAP_TYPE_NPC_MK
+picto-box 0 --stage sea:11:9 --input native/check/input/picto-box.txt
 # COS_SMOKE=chest: the chest of Niko's rope lesson (takara3, the Spoils Bag) created in front of the player on
 # Tetra's ship and opened end to end (DEFAULT_TREASURE starts and ends); the stuck-event watch logs it
 chest 0 --stage Asoko:0:0:2

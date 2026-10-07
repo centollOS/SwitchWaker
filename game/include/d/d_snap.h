@@ -309,6 +309,10 @@ public:
     int JudgeGene();
     int JudgeFigure(int);
     void SetResult();
+#if TARGET_PC
+    // Judge's pixel loop, run after the frame with the EFB alpha read back (bug B37, d_snap.cpp).
+    void PcJudgePixels();
+#endif
 
     /* 0x010 */ int mPhotoNo;
     /* 0x014 */ int field_0x14;

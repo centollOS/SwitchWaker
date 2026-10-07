@@ -61,6 +61,18 @@ void pc_shadow_image_offscreen_open();
    GX_TF_RGB565 (other formats: true at once, nothing read back). */
 bool pc_gph_capture_ready(void* dest, u32 width, u32 height, int format);
 
+/* dSnap_packet::Judge (d_snap.cpp, bug B37): the picto box's subject check peeks the EFB alpha of
+   the shutter area right after drawing each registered object's volume with its own alpha. The
+   request copies that area of the EFB (logical coordinates) at this point of the frame; after the
+   frame's aurora_end_frame the copy is read back and done runs, where pc_efb_peek_argb reads it
+   as GXPeekARGB does (0xAARRGGBB; outside the area or without a readback: white). */
+void pc_efb_peek_request(u16 left, u16 top, u16 width, u16 height, void (*done)());
+u32 pc_efb_peek_argb(u16 x, u16 y);
+/* PcJudgePixels's result, for the log and COS_SMOKE=picto-box: count registered objects in table
+   (dSnap_RegistObjElm), the photo result. */
+class dSnap_RegistObjElm;
+void pc_snap_judged(int count, const dSnap_RegistObjElm* table, int result);
+
 /* ---- Logo scene (d_s_logo.cpp): run harness, native/src/pc/game_hooks/pc_logo_hooks.cpp ------ */
 
 class dScnLogo_c;

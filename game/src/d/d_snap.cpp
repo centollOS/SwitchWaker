@@ -12,6 +12,9 @@
 #include "JSystem/JUtility/JUTAssert.h"
 
 #include "weak_bss_3569.h" // IWYU pragma: keep
+#if TARGET_PC
+#include "pc/game_hooks.h"
+#endif
 
 int (dSnap_packet::*dSnap_packet::m_judge_tbl[])() = {
     NULL,
@@ -32,6 +35,12 @@ int (dSnap_packet::*dSnap_packet::m_judge_tbl[])() = {
 };
 
 static dSnap_packet l_snap;
+
+#if TARGET_PC
+static void dSnap_PcJudgeDone() {
+    l_snap.PcJudgePixels();
+}
+#endif
 
 struct CharaData {
     /* 0x00 */ SVec offset;
@@ -1946,10 +1955,26 @@ void dSnap_packet::Judge() {
         m_tbl[col].m_obj.mCapturedPixels = 0;
         m_tbl[col].m_obj.SetAreaClear();
     }
+#if TARGET_PC
+    // Bug B37: the host cannot peek the EFB while the frame is being drawn. The shutter area, with the
+    // objects' alpha just drawn, is copied here and read back after the frame; PcJudgePixels then
+    // does the GameCube's peeks on the copy and sets the result. The picture box reads the result
+    // only when the photo is saved, frames later.
+    pc_efb_peek_request(DSNAP_SHUTTER_LEFT, DSNAP_SHUTTER_TOP, DSNAP_SHUTTER_RIGHT - DSNAP_SHUTTER_LEFT,
+                        DSNAP_SHUTTER_BOTTOM - DSNAP_SHUTTER_TOP, dSnap_PcJudgeDone);
+    mFlag &= ~1;
+}
+
+void dSnap_packet::PcJudgePixels() {
+#endif
     for (int y = DSNAP_SHUTTER_TOP; y < DSNAP_SHUTTER_BOTTOM; y++) {
         for (int x = DSNAP_SHUTTER_LEFT; x < DSNAP_SHUTTER_RIGHT; x++) {
             u32 sp8;
+#if TARGET_PC
+            sp8 = pc_efb_peek_argb(x, y);
+#else
             GXPeekARGB(x, y, &sp8);
+#endif
             int r0 = sp8 >> 26;
             if (r0 >= 0x3F) {
                 continue;
@@ -1969,7 +1994,11 @@ void dSnap_packet::Judge() {
         m_tbl[col].m_obj.mCapturedRatio = m_tbl[col].m_obj.mCapturedPixels / area;
     }
     SetResult();
+#if TARGET_PC
+    pc_snap_judged(field_0x14, m_tbl, mResult);
+#else
     mFlag &= ~1;
+#endif
 }
 
 /* 800CE610-800CE6A4       .text FindPhoto__12dSnap_packetFii */
