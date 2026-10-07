@@ -284,7 +284,7 @@ set_target_properties(switchwaker PROPERTIES OUTPUT_NAME "switchwaker" SUFFIX ".
 
 set(COS_SWITCH_NRO_NAME "switchwaker" CACHE STRING "File name of the NRO (without .nro)")
 nx_generate_nacp(cos_native.nacp
-        NAME "SwitchWaker" AUTHOR "centollOS contributors" VERSION "0.1.0")
+        NAME "SwitchWaker" AUTHOR "SwitchWaker contributors" VERSION "0.1.0")
 nx_create_nro(cos_nro
         TARGET switchwaker
         OUTPUT "${CMAKE_BINARY_DIR}/${COS_SWITCH_NRO_NAME}.nro"

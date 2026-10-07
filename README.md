@@ -1,8 +1,8 @@
-# centollOS
+# SwitchWaker
 
 ## What it is
 
-centollOS is an unofficial native port of a 2002 GameCube adventure game (disc ID `GZLE01`, USA,
+SwitchWaker is an unofficial native port of a 2002 GameCube adventure game (disc ID `GZLE01`, USA,
 revision 0) to the Mac, Linux and the Switch (homebrew). The game is compiled from its decompilation
 (the [`game/`](game/README.md) folder) and drawn with [Aurora](https://github.com/encounter/aurora);
 there is no CPU emulation.
@@ -114,13 +114,70 @@ Full guide: [docs/SWITCH_BUILD.md](docs/SWITCH_BUILD.md).
 
 ## Install on the Switch
 
-- Copy `switchwaker.nro` to `sdmc:/switch/switchwaker/` and your disc as
-  `sdmc:/switch/switchwaker/GZLE01.iso` (`scripts/switch/push.sh` does it over USB/MTP).
-- Open it from the Homebrew Menu in title mode (hold **R** while opening an installed game).
-- Optional: a HOME-screen icon through the forwarder (`scripts/switch/build_forwarder.sh`, guide in
-  [switch/forwarder/INSTALL.md](switch/forwarder/INSTALL.md)).
-- If you used this port's earlier SD folder, move its data (save, settings, caches, HD textures) to
-  `sdmc:/switch/switchwaker/`; the old path is no longer read.
+### What you need
+
+- A Switch running custom firmware (Atmosphère) with the Homebrew Menu.
+- The NRO you built (`build/switch-native/switchwaker.nro`) and the bundled pipeline cache next to
+  it (`build/switch-native/initial_pipeline_cache.db`, copied there by the build).
+- Your disc as an **uncompressed** `.iso` (not RVZ, GCZ, CISO or NKit), renamed to `GZLE01.iso`.
+- About 1.6 GB free on the SD card (the disc is 1.4 GB; the shader caches grow to a few dozen MB).
+
+### Copy the files
+
+The SD card must end up like this (folder and file names exactly as shown):
+
+```
+sdmc:/switch/switchwaker/
+├── switchwaker.nro                the game
+├── GZLE01.iso                     your disc
+├── initial_pipeline_cache.db      the list of shaders to prepare on the first start
+└── native/                        created by the game: logs, saves, settings, caches
+```
+
+Either way works:
+
+- **By hand**: put the SD card in the computer (or mount it over USB with hekate's
+  *Tools → USB Tools → SD Card* or similar) and copy the three files into `switch/switchwaker/`.
+- **Over USB (MTP)**, from the repository: `scripts/switch/push.sh --disc /path/to/GZLE01.iso`
+  once, then `scripts/switch/push.sh native` (the NRO and the pipeline cache) after every build.
+  Every file is read back and checked. Needs `brew install libmtp` and USB file transfer enabled on
+  the console (DBI, haze or similar). Details: [docs/SWITCH_BUILD.md](docs/SWITCH_BUILD.md).
+
+Without `initial_pipeline_cache.db` the game still runs, but there is no first-start preparation:
+every shader is then built the first time it is drawn, and the game stutters for a long while.
+
+### Start the game
+
+- Open the Homebrew Menu **in title mode**: hold **R** while starting any installed game, then pick
+  **SwitchWaker**. Opened from the album (applet mode) the game has far too little memory and
+  will not run properly.
+- Or install the HOME-screen icon (forwarder), which always starts it in title mode:
+  build it with `scripts/switch/build_forwarder.sh` and install `switchwaker_forwarder.nsp` with
+  DBI ([switch/forwarder/INSTALL.md](switch/forwarder/INSTALL.md)).
+
+### The first start: preparing shaders
+
+The first start shows **"Preparing shaders (first start only)"** with a progress bar and the time
+left: the console compiles the graphics pipelines of the bundled list (about 3,000) so that the game
+does not stutter later. It takes **roughly 8 to 10 minutes** on a typical microSD (much longer on
+a slow card) and happens **only once**: later starts take a few seconds. A new version of the game
+may prepare a few new shaders again.
+
+- **Do not close the game (HOME → Close) while it is preparing shaders.** If it was interrupted,
+  the next start resumes where it stopped, but closing it mid-write can damage the shader
+  cache. If the game then fails to start or stutters again on every start, delete
+  `native/user/cache/` and let it prepare once more.
+- The text follows the console's language (Spanish or English).
+
+### Saves, settings and updates
+
+- Saves (the memory card): `sdmc:/switch/switchwaker/native/user/USA/Card A`. Back up this folder.
+- Settings from the options menu: `native/user/settings.ini`.
+- To update, replace `switchwaker.nro` (and `initial_pipeline_cache.db` if it changed). Saves,
+  settings and caches stay.
+- Logs, if something goes wrong: `native/switchwaker.log` (this run) and `switchwaker.prev.log`.
+- If you used this port's earlier SD folder (`sdmc:/switch/centollos/`), rename it to
+  `switchwaker` and rename `centollos.nro` to `switchwaker.nro`; the old path is no longer read.
 
 ## Options
 
@@ -181,6 +238,6 @@ distributed.
 - [nx-hbloader](https://github.com/switchbrew/nx-hbloader),
   [hacBrewPack](https://github.com/TooTallNate/hacBrewPack) and
   [hactool](https://github.com/SciresM/hactool): the HOME-menu forwarder.
-- Authors: Pulpparty, depende3000, and the centollOS contributors.
+- Authors: Pulpparty, depende3000, and the SwitchWaker contributors.
 
 Full list of third-party components and licenses: [THIRD_PARTY.md](THIRD_PARTY.md).

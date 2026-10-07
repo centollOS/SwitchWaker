@@ -1,6 +1,6 @@
 # native/dsp_hle: Dolphin's DSP HLE (isolated, GPL-2.0-or-later)
 
-This folder is the only part of centollOS under the GNU General Public License: its files are
+This folder is the only part of SwitchWaker under the GNU General Public License: its files are
 GPL-2.0-or-later ([LICENSE](LICENSE), SPDX headers in each file). They adapt the DSP HLE backend
 of an earlier recompilation project by elliotttate (see [THIRD_PARTY.md](../../THIRD_PARTY.md))
 and compile Dolphin's DSP HLE sources from RecompCore (`native/cmake/dsp_hle.cmake`,

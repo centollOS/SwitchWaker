@@ -92,7 +92,7 @@ SD card layout:
 
 | Path on the SD card | Contents |
 |---|---|
-| `switch/switchwaker/switchwaker.nro` | the app: "centollOS" in the Homebrew Menu |
+| `switch/switchwaker/switchwaker.nro` | the app: "SwitchWaker" in the Homebrew Menu |
 | `switch/switchwaker/GZLE01.iso` | your disc image |
 | `switch/switchwaker/initial_pipeline_cache.db` | the pipelines to precompile at boot (`native/data/`, committed; `build_native.sh` puts a copy next to the NRO). Without it there is no warm-up and no "Preparing shaders" screen: the opening cutscene starts at once and every pipeline is built when first drawn |
 | `switch/switchwaker/native/env.txt` | optional run options |
@@ -102,7 +102,7 @@ SD card layout:
 ## Run
 
 Start the Homebrew Menu in title mode (hold **R** while opening an installed game; an applet has far
-less memory than the game needs, and the log says so) and open **centollOS**. The CPU
+less memory than the game needs, and the log says so) and open **SwitchWaker**. The CPU
 stays at its stock 1020 MHz. With USB connected, `uv run scripts/switch/usb_log.py --out
 build/switch-logs/native-live.log` shows the log live.
 
@@ -137,8 +137,8 @@ run decides.
 What the log shows, in order (the same `[cos]` lines as on the Mac; values vary):
 
 ```
-[switch] centollOS, native port (phase 7); argv[0]=sdmc:/switch/switchwaker/switchwaker.nro
-[switch] centollOS: application (title mode); memory 3xxx MiB, ... core mask 0x7; image at 0x...
+[switch] SwitchWaker, native port (phase 7); argv[0]=sdmc:/switch/switchwaker/switchwaker.nro
+[switch] SwitchWaker: application (title mode); memory 3xxx MiB, ... core mask 0x7; image at 0x...
 [switch] logs: /switch/switchwaker/native/switchwaker.log open, USB live log started
 [cos] harness: smoke=- milestone=- timeout=0s stall=90s ...
 [cos] perf: game-thread frame times every 60 frames (COS_PERF_EVERY)
@@ -255,7 +255,7 @@ line) means the worker waits rather than works: for the GPU inside Mesa, or for 
 thread holds (study, timer 4). The hitch line has the same five numbers for the hitch frame.
 The line ends with the operation mode (handheld or docked), the apm performance configuration in
 force and the CPU, GPU and memory controller (EMC) clocks at that moment (clkrst, or pcv before firmware 8.0.0; "clocks unavailable" if the service
-refuses the app); the `[switch] centollOS:` start-up line has the same. At stock the GPU runs at
+refuses the app); the `[switch] SwitchWaker:` start-up line has the same. At stock the GPU runs at
 307.2 or 384 MHz handheld and 768 MHz docked, so the same frame can be GPU-bound in one mode and
 not in the other: always note the mode next to a measurement.
 Handheld GPU profile: at start the app asks apm (`apmSetPerformanceConfiguration`, handheld =

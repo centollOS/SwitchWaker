@@ -3,7 +3,7 @@
 Pins are the ones the build uses today; licenses marked "check" were not read from a local copy
 when this was written.
 
-centollOS contains, builds against, or fetches at build time the components below. Nothing in this
+SwitchWaker contains, builds against, or fetches at build time the components below. Nothing in this
 list is game data: the repository contains no asset, executable or data file of the game, and every
 build reads them from the player's own disc.
 
@@ -20,7 +20,7 @@ build reads them from the player's own disc.
 | `switch/forwarder/nx-hbloader-forwarder.patch` | Patch to nx-hbloader | same as nx-hbloader (ISC) |
 
 Everything else is the project's own code under the MIT license (`LICENSE`), copyright Pulpparty
-and depende3000, and the centollOS contributors.
+and depende3000, and the SwitchWaker contributors.
 
 ## Fetched at build time (not in the repository)
 

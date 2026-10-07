@@ -172,7 +172,7 @@ bool writeFile() {
         pc::writef(STDERR_FILENO, "[cos] settings: cannot write %s: %s\n", tmp.c_str(), strerror(errno));
         return false;
     }
-    fputs("# Ajustes de centollOS, escritos por el menú de opciones\n"
+    fputs("# Ajustes de SwitchWaker, escritos por el menú de opciones\n"
           "# (ZL+ZR+Menos en la Switch; F1 o L+R+Z en el Mac). Una línea NOMBRE=valor, o\n"
           "# NOMBRE@handheld= / NOMBRE@docked= para los valores de cada modo. env.txt y las\n"
           "# variables de entorno mandan sobre este archivo.\n",

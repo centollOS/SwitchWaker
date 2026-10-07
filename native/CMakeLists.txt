@@ -1,4 +1,4 @@
-# centollOS native build: the decompiled game (game/) built with the host compiler.
+# SwitchWaker native build: the decompiled game (game/) built with the host compiler.
 #
 # Phase 1 (docs/NATIVE_PORT_PLAN.md): every translation unit of the game compiles to an object
 # with clang under TARGET_PC, against the host C/C++ library instead of Metrowerks' MSL.

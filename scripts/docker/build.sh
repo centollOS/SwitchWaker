@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build centollOS in containers on any host with Docker or Podman (Linux, macOS, Windows through
+# Build SwitchWaker in containers on any host with Docker or Podman (Linux, macOS, Windows through
 # WSL 2 with Docker Desktop or Podman):
 #
 #   scripts/docker/build.sh [linux|switch|all] --disc /path/to/GZLE01.iso [options]

@@ -22,7 +22,7 @@
 #            the NRO's path, as hbmenu passes it (libnx sets the working directory from it; the
 #            game's data dir is the fixed COS_SWITCH_ROOT, switch/native/source/cos_switch.h).
 #   control  control.nacp from switch/forwarder/make_nacp.py ("SwitchWaker",
-#            "centollOS contributors", the version from git describe) and switch/native/icon/icon.jpg
+#            "SwitchWaker contributors", the version from git describe) and switch/native/icon/icon.jpg
 #            (scripts/switch/make_icon.py) in every language slot.
 #   pack     hacBrewPack v3.05 (pinned below), no logo section.
 #
@@ -39,7 +39,7 @@ title_id=${COS_FORWARDER_TITLE_ID:-01ff43454e540000}
 title_id=$(printf '%s' "${title_id#0x}" | tr 'A-F' 'a-f')
 nro_path=sdmc:/switch/switchwaker/switchwaker.nro
 name="SwitchWaker"
-publisher="centollOS contributors"
+publisher="SwitchWaker contributors"
 hbloader_url=https://github.com/switchbrew/nx-hbloader.git
 hbloader_rev=82b95122c5ae8dc059bf23893ba7623c72c86773  # v2.4.5
 hacbrewpack_url=https://github.com/TooTallNate/hacBrewPack.git  # The-4n's repository is gone
