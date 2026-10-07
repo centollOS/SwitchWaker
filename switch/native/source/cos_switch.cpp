@@ -2,7 +2,8 @@
 //
 // Logs. stdout and stderr (the harness's "[cos] ..." lines, OSReport, Aurora's log) go, through a
 // devoptab tee as in the translated port (switch/host/source/switch_main.c), to
-//   - the live USB log (switch/source/common/usb_log.c; scripts/switch/usb_log.py on the computer);
+//   - the live USB log (switch/source/common/usb_log.c; scripts/switch/usb_log.py on the computer),
+//     only with COS_USB_LOG=1 (off by default: it holds the USB port for the whole run);
 //   - COS_SWITCH_ROOT/switchwaker.log on the SD card (the previous run's is kept as switchwaker.prev.log), written
 //     by a thread of its own so a game thread never waits on the SD card. A crash or an exit
 //     writes what is still queued before the process ends.
@@ -603,15 +604,15 @@ void cos_switch_start(int argc, char** argv) {
     // lines win over it, and before the Switch defaults below, which it overrides.
     pc_settings_load_early();
     // The USB live log (scripts/switch/usb_log.py) holds the console's USB port as 057e:3000 for
-    // the whole run; COS_USB_LOG=0 (env.txt, or Depuración > "Registro en directo por USB", at the
-    // next start) leaves it free, e.g. for SysDVR's USB mode. The log file on the SD card is kept
-    // either way. Started after env.txt and the settings file, so the lines before it are only in
-    // the file.
-    setDefault("COS_USB_LOG", "1");
+    // the whole run, so it is off by default (players: the port stays free, e.g. for SysDVR's USB
+    // mode); COS_USB_LOG=1 (env.txt, or Depuración > "Registro en directo por USB", at the next
+    // start) turns it on for development. The log file on the SD card is written either way.
+    // Started after env.txt and the settings file, so the lines before it are only in the file.
+    setDefault("COS_USB_LOG", "0");
     {
         const char* usb = getenv("COS_USB_LOG");
         if (usb != nullptr && strcmp(usb, "0") == 0) {
-            sayf("[switch] USB live log off (COS_USB_LOG=0): the USB port is free\n");
+            sayf("[switch] USB live log off (COS_USB_LOG=1 turns it on): the USB port is free\n");
         } else {
             gUsb = usb_log_start();
             sayf("[switch] USB live log %s\n", gUsb ? "started" : "unavailable");

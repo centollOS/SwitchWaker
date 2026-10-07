@@ -103,8 +103,10 @@ SD card layout:
 
 Start the Homebrew Menu in title mode (hold **R** while opening an installed game; an applet has far
 less memory than the game needs, and the log says so) and open **SwitchWaker**. The CPU
-stays at its stock 1020 MHz. With USB connected, `uv run scripts/switch/usb_log.py --out
-build/switch-logs/native-live.log` shows the log live.
+stays at its stock 1020 MHz. With `COS_USB_LOG=1` in `env.txt` (or Depuración > "Registro en
+directo por USB", at the next start; off by default, since it holds the USB port for the whole run)
+and USB connected, `uv run scripts/switch/usb_log.py --out build/switch-logs/native-live.log`
+shows the log live.
 
 Run options come from `native/env.txt`, one `NAME=value` per line, with `#` comments
 ([switch/native/env.example.txt](../switch/native/env.example.txt)); they are the Mac's `COS_*`
@@ -142,7 +144,8 @@ What the log shows, in order (the same `[cos]` lines as on the Mac; values vary)
 ```
 [switch] SwitchWaker, native port (phase 7); argv[0]=sdmc:/switch/switchwaker/switchwaker.nro
 [switch] SwitchWaker: application (title mode); memory 3xxx MiB, ... core mask 0x7; image at 0x...
-[switch] logs: /switch/switchwaker/native/switchwaker.log open, USB live log started
+[switch] logs: /switch/switchwaker/native/switchwaker.log open
+[switch] USB live log off (COS_USB_LOG=1 turns it on): the USB port is free
 [cos] harness: smoke=- milestone=- timeout=0s stall=90s ...
 [cos] perf: game-thread frame times every 60 frames (COS_PERF_EVERY)  <- COS_PERF_EVERY=60 only
 [cos] disc: /switch/switchwaker/GZLE01.iso GZLE01 revision 0, 1459978240 bytes
