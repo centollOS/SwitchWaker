@@ -128,15 +128,25 @@ if [[ -n $dawn_src && -f $dawn_src/CMakeLists.txt ]]; then
     mounts+=(-v "$(cd "$dawn_src" && pwd):/inputs/dawn-src")
     dawn_flag=-DFETCHCONTENT_SOURCE_DIR_DAWN=/inputs/dawn-src
 fi
-echo "build_native: aurora=$aurora assets=$assets recompcore=$recompcore dawn-src=${dawn_src:-fetch} mesa=${mesa:-devkitPro switch-mesa}"
+# The NRO's display version (NACP, at most 15 bytes), as the forwarder's (build_forwarder.sh): git
+# describe without the "v", without the hash when that is too long.
+describe=$(git -C "$root" describe --tags --always --dirty 2>/dev/null || echo 0)
+version=${describe#v}
+if [[ ${#version} -gt 15 ]]; then
+    version=${version%-g*}
+    version=${version:0:15}
+fi
+
+echo "build_native: version=$version aurora=$aurora assets=$assets recompcore=$recompcore dawn-src=${dawn_src:-fetch} mesa=${mesa:-devkitPro switch-mesa}"
 
 container_run "$engine" "$root" "${mounts[@]}" -e JOBS="$jobs" -e TARGET="$target" \
-    -e DAWN_FLAG="$dawn_flag" -e MESA_FLAG="$mesa_flag" "$image" bash -lc '
+    -e DAWN_FLAG="$dawn_flag" -e MESA_FLAG="$mesa_flag" -e VERSION="$version" "$image" bash -lc '
 set -euo pipefail
 export PATH=/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin:$PATH
 cmake -S /work/switch/native -B /work/build/switch-native -G Ninja \
     -DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Switch.cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DDKP_USE_DOUBLE_OBJECT_FILE_EXTENSIONS=ON -DCOS_SWITCH_NRO_NAME=switchwaker \
+    -DCOS_SWITCH_VERSION="$VERSION" \
     -DCOS_SWITCH_AURORA_SOURCE=/inputs/aurora -DCOS_ASSETS_DIR=/inputs/assets \
     -DCOS_RECOMPCORE_DIR=/inputs/recompcore $DAWN_FLAG $MESA_FLAG >/dev/null
 cmake --build /work/build/switch-native --target "$TARGET" --parallel "$JOBS"

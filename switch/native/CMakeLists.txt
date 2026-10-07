@@ -283,8 +283,10 @@ target_link_options(switchwaker PRIVATE "LINKER:--wrap=abort")
 set_target_properties(switchwaker PROPERTIES OUTPUT_NAME "switchwaker" SUFFIX ".elf")
 
 set(COS_SWITCH_NRO_NAME "switchwaker" CACHE STRING "File name of the NRO (without .nro)")
+# The version the Homebrew Menu shows: scripts/switch/build_native.sh passes git describe's (the tag).
+set(COS_SWITCH_VERSION "0.0.0" CACHE STRING "NRO display version (NACP, at most 15 bytes)")
 nx_generate_nacp(cos_native.nacp
-        NAME "SwitchWaker" AUTHOR "SwitchWaker contributors" VERSION "0.1.0")
+        NAME "SwitchWaker" AUTHOR "SwitchWaker contributors" VERSION "${COS_SWITCH_VERSION}")
 nx_create_nro(cos_nro
         TARGET switchwaker
         OUTPUT "${CMAKE_BINARY_DIR}/${COS_SWITCH_NRO_NAME}.nro"
