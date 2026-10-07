@@ -7,6 +7,10 @@
 //   frame -> a backtrace of every other thread (to stderr and
 //   <COS_RUN_DIR>/stall.txt), then exit 11. `sample` would need developer mode (decision H9), so
 //   the threads are suspended and walked in-process instead.
+//   A check that comes more than 2 s after the previous one means the whole process was stopped
+//   (the Switch suspends an application on the HOME menu or in sleep mode; SIGSTOP on the Mac): the
+//   stall count starts again from then, so a player who leaves the game in the HOME menu for longer
+//   than COS_STALL_S does not get a stall exit on coming back.
 #include "pc_internal.h"
 
 #include <atomic>
@@ -33,10 +37,17 @@ void* watchdogMain(void*) {
     uint64_t lastChange = sWatchStartNs;
     unsigned int framesOneSecondAgo = lastFrames;
     uint64_t secondMark = sWatchStartNs;
+    uint64_t lastCheck = sWatchStartNs;
 
     for (;;) {
         usleep(100 * 1000);
         const uint64_t now = monotonicNs();
+        if (now - lastCheck > 2000000000ull) {
+            writef(STDERR_FILENO, "[cos] watchdog: no check for %.1fs (process suspended); stall count restarts\n",
+                   (now - lastCheck) / 1e9);
+            lastChange = now;
+        }
+        lastCheck = now;
         const unsigned int frames = pc_frame_count();
         const unsigned int pulses = sPulses.load(std::memory_order_relaxed);
         if (frames != lastFrames || pulses != lastPulses) {
