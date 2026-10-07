@@ -480,8 +480,8 @@ Exit codes: 0 reached, 1 smoke check failed, 2 usage error, 10 timeout, 11 stall
 
 `pc_menu.cpp` / `pc_settings.cpp` (API: `native/include/pc/pc_settings.h`): an ImGui options window
 opened with **F1** or **L+R+Z** (a GameCube-style pad; a `COS_INPUT` script only in `COS_SMOKE=options-menu`) on the Mac and
-**ZL+ZR+Minus** on the Switch; **B**/Esc or the same combination closes it. Tabs *Gráficos*,
-*Rendimiento* and *Depuración* (Spanish labels, a help line for the selected row); controller
+**Minus** on the Switch (ZL+ZR+Minus elsewhere); **B**/Esc or the same button(s) close it. Tabs *Gráficos*,
+*Rendimiento* and *Depuración* (*Graphics*, *Performance*, *Debug* in English; a help line for the selected row); controller
 (D-pad/stick, A change, B back, L/R tab), keyboard (arrows, Enter, Esc, Q/E) or mouse. While it is
 open the PLAY scene is paused (hit-stop pause timer) and the game gets no pad input.
 

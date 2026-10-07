@@ -114,7 +114,7 @@ variables ([native/README.md](../native/README.md), "Running switchwaker"). With
 option on the 1280x720 screen; `COS_ASPECT=4:3` gives the GameCube picture, pillarboxed) and
 `COS_FB_SCALE=1.5` (the internal resolution, see below).
 
-Options menu: **ZL+ZR+Minus** opens it in game (B closes it; the game pauses meanwhile). It changes
+Options menu: **Minus (−)** opens it in game (B closes it; the game pauses meanwhile). It changes
 most of these options at run time and saves them to `native/user/settings.ini` on the SD card, with
 separate values for handheld and docked where it says *[portátil]* / *[sobremesa]* (applied when the
 console is docked or undocked). A line in `env.txt` wins over the menu's file: that row shows as

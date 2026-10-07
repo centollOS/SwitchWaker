@@ -381,7 +381,7 @@ void writePacing(int fd);
 // pump. 0 = the window's size.
 void setFrameBufferScale(float scale);
 
-// pc_menu.cpp: the options menu (ZL+ZR+Minus / L+R+Z / F1). menuInit registers the built-in
+// pc_menu.cpp: the options menu (Minus on the Switch / L+R+Z / F1). menuInit registers the built-in
 // settings (after aurora_initialize); menuFrame runs in pc_frame_end before the FPS overlay, inside
 // the frame's ImGui frame. menuOpen: the menu is open (the game is paused and gets no pad input).
 void menuInit();

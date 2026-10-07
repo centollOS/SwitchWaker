@@ -173,7 +173,7 @@ bool writeFile() {
         return false;
     }
     fputs("# Ajustes de SwitchWaker, escritos por el menú de opciones\n"
-          "# (ZL+ZR+Menos en la Switch; F1 o L+R+Z en el Mac). Una línea NOMBRE=valor, o\n"
+          "# (Menos en la Switch; F1 o L+R+Z en el Mac). Una línea NOMBRE=valor, o\n"
           "# NOMBRE@handheld= / NOMBRE@docked= para los valores de cada modo. env.txt y las\n"
           "# variables de entorno mandan sobre este archivo.\n",
           f);

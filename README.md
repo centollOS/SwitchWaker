@@ -228,7 +228,7 @@ may prepare a few new shaders again.
 
 ## Options
 
-- In-game options menu: **ZL+ZR+Minus** on the Switch, **F1** (or L+R+Z) on the Mac and Linux. Saved to
+- In-game options menu: **Minus (−)** on the Switch, **F1** (or L+R+Z) on the Mac and Linux. Saved to
   `native/user/settings.ini`.
 - Language: the options menu and the shader loading screen are in Spanish or English, following the
   console's language (on the Mac and Linux, `LANG`); `COS_LANG=es` or `COS_LANG=en` forces one.

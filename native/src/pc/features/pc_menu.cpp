@@ -1,6 +1,6 @@
 // The in-game options menu (native/include/pc/pc_settings.h; native/README.md, "Options menu").
 //
-// Opens with ZL+ZR+Minus on the Switch (any connected controller), L+R+Z on a GameCube-style pad or
+// Opens with Minus on the Switch (any connected controller), L+R+Z on a GameCube-style pad or
 // in a COS_INPUT script, or F1 on the Mac's keyboard; B (Esc), or the same combination, closes it.
 // While it is open the game is paused (in the PLAY scene: the hit-stop pause timer of
 // dScnPly_ply_c, which stops the actors, the camera, messages, the environment and scene changes)
@@ -136,10 +136,15 @@ uint32_t readGamepads() {
         if (gp == nullptr) {
             continue;
         }
+#if defined(__SWITCH__)
+        // Minus alone: the SDL shim shows every controller as a Pro Controller, whose mapping gives
+        // Minus (BACK) to no game button.
+        bool combo = SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_BACK);
+#else
         const bool lt = SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFT_TRIGGER) > 16000;
         const bool rt = SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) > 16000;
+        // ZL+ZR+Minus: elsewhere BACK can be a game button (an NSO GameCube controller's Z).
         bool combo = lt && rt && SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_BACK);
-#if !defined(__SWITCH__)
         // A GameCube controller through SDL: L and R are the triggers, Z the right shoulder.
         combo = combo || (lt && rt && SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER));
 #endif
@@ -1074,8 +1079,8 @@ void drawMenu() {
     ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetTextLineHeightWithSpacing() -
                          ImGui::GetStyle().WindowPadding.y);
     ImGui::TextColored(kDim, "%s",
-                       kSwitch ? T("A: cambiar   B: cerrar   L/R: pestaña   ZL+ZR+Menos: cerrar",
-                                   "A: change   B: close   L/R: tab   ZL+ZR+Minus: close")
+                       kSwitch ? T("A: cambiar   B: cerrar   L/R: pestaña   Menos: cerrar",
+                                   "A: change   B: close   L/R: tab   Minus: close")
                                : T("A/Intro: cambiar   B/Esc: cerrar   L/R, Q/E: pestaña   F1: cerrar",
                                    "A/Enter: change   B/Esc: close   L/R, Q/E: tab   F1: close"));
     ImGui::End();
@@ -1376,7 +1381,7 @@ void menuInit() {
         smokeParse();
     }
     writef(STDERR_FILENO, "[cos] menu: %d settings; open with %s; settings file %s\n", pc_settings_count(),
-           kSwitch ? "ZL+ZR+Minus" : "F1 or L+R+Z", pc_settings_path());
+           kSwitch ? "Minus" : "F1 or L+R+Z", pc_settings_path());
 }
 
 bool menuOpen() {
