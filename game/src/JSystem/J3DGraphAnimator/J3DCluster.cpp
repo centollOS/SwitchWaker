@@ -265,6 +265,17 @@ int J3DSkinDeform::initMtxIndexArray(J3DModelData* modelData) {
     if (mNrmMtx == NULL)
         return J3DErrType_OutOfMemory;
 
+#if TARGET_PC
+    // A 0xFFFF entry in a matrix group's use table means "the matrix this slot held in an earlier
+    // group" (J3DShapeMtxMulti::load skips it and GX keeps the loaded one). The original reads that
+    // from useMtxIdxBuf, declared in the primitive loop below: on the GameCube it is the same stack
+    // slot every iteration, so the value carries over; in C++ a fresh array each iteration is
+    // indeterminate and clang reads garbage, giving vertices of later groups the wrong joint (the
+    // Great Deku Tree's face, CPU-skinned through dBgWDeform, drew twisted). Keep one buffer for
+    // the whole function, as the GameCube effectively did.
+    u16 useMtxIdxBuf[10] = {};
+#endif
+
     for (u16 i = 0; i < modelData->getShapeNum(); i++) {
         int size[4] = { 0, 1, 1, 2 };
 
@@ -328,7 +339,9 @@ int J3DSkinDeform::initMtxIndexArray(J3DModelData* modelData) {
 #endif
                 dl += 2;
 
+#if !TARGET_PC
                 u16 useMtxIdxBuf[10];
+#endif
                 for (int k = 0; k < vtxCount; k++) {
                     u8* src = &dl[vtxSize * k];
                     u8 pnmtxIdx = (u32)*(u8*)&src[pnmtxIdxOffs] / 3;
