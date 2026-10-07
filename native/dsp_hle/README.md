@@ -8,7 +8,7 @@ and compile Dolphin's DSP HLE sources from RecompCore (`native/cmake/dsp_hle.cma
 
 **Binaries built with it are GPL.** The build links this component (today every build does: there
 is no build option without it yet, since the game's audio code needs a DSP) into the Mac
-executable (`build/native-mac/centollos`) and the Switch NRO (`centollos.nro`); whoever
+executable (`build/native-mac/centollos`) and the Switch NRO (`switchwaker.nro`); whoever
 distributes such a binary must do so under GPL-2.0-or-later terms, with its corresponding source.
 The rest of the repository stays under its own licenses (MIT for the project's code, CC0-1.0 for
 `game/`); the GPL applies to this folder and to the combined binaries.

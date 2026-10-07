@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Build the HOME-menu forwarder: an NSP that installs a "centollOS" icon on the
-# Switch HOME screen and starts sdmc:/switch/centollos/centollos.nro as an application
+# Build the HOME-menu forwarder: an NSP that installs a "SwitchWaker" icon on the
+# Switch HOME screen and starts sdmc:/switch/switchwaker/switchwaker.nro as an application
 # (full memory, the log says "application (title mode)"), without hbmenu.
 #
 #   scripts/switch/build_forwarder.sh [--keys PATH] [--no-verify]
@@ -10,7 +10,7 @@
 #                 and this script checks that no key value reached its logs.
 #   --no-verify   skip the offline hactool check of the NSP
 #
-# Output: build/forwarder/centollos_forwarder.nsp (switch/forwarder/INSTALL.md: installing it).
+# Output: build/forwarder/switchwaker_forwarder.nsp (switch/forwarder/INSTALL.md: installing it).
 #
 # How it works (all built from source in the devkitPro container of build_native.sh):
 #   exefs    nx-hbloader v2.4.5 (switchbrew, pinned below) with switch/forwarder/
@@ -18,10 +18,10 @@
 #            of romfs:/nextArgv (the SAK / nsp-forwarder convention), and goes back to the HOME menu
 #            when the NRO returns instead of starting hbmenu. main.npdm is hbloader's hbl.json with
 #            our title ID and application_type 1 (application): pool 0, the application's memory.
-#   romfs    nextNroPath and nextArgv = sdmc:/switch/centollos/centollos.nro. argv[0] is
+#   romfs    nextNroPath and nextArgv = sdmc:/switch/switchwaker/switchwaker.nro. argv[0] is
 #            the NRO's path, as hbmenu passes it (libnx sets the working directory from it; the
 #            game's data dir is the fixed COS_SWITCH_ROOT, switch/native/source/cos_switch.h).
-#   control  control.nacp from switch/forwarder/make_nacp.py ("centollOS",
+#   control  control.nacp from switch/forwarder/make_nacp.py ("SwitchWaker",
 #            "centollOS contributors", the version from git describe) and switch/native/icon/icon.jpg
 #            (scripts/switch/make_icon.py) in every language slot.
 #   pack     hacBrewPack v3.05 (pinned below), no logo section.
@@ -37,8 +37,8 @@ image=${COS_SWITCH_NATIVE_IMAGE:-localhost/centollos-switch-native-build:2026-10
 
 title_id=${COS_FORWARDER_TITLE_ID:-01ff43454e540000}
 title_id=$(printf '%s' "${title_id#0x}" | tr 'A-F' 'a-f')
-nro_path=sdmc:/switch/centollos/centollos.nro
-name="centollOS"
+nro_path=sdmc:/switch/switchwaker/switchwaker.nro
+name="SwitchWaker"
 publisher="centollOS contributors"
 hbloader_url=https://github.com/switchbrew/nx-hbloader.git
 hbloader_rev=82b95122c5ae8dc059bf23893ba7623c72c86773  # v2.4.5
@@ -107,7 +107,7 @@ python3 - <<EOF
 import json
 d = json.load(open("hbl.json"))
 tid = "0x" + "$TITLE_ID"
-d.update(name="centollos_fwd", title_id=tid, title_id_range_min=tid, title_id_range_max=tid)
+d.update(name="switchwaker_fwd", title_id=tid, title_id_range_min=tid, title_id_range_max=tid)
 for cap in d["kernel_capabilities"]:
     if cap["type"] == "application_type":
         cap["value"] = 1  # application (hbl.json: 2, applet)
@@ -172,7 +172,7 @@ if grep -F -q -i -f <(grep -E -o '=[[:space:]]*[0-9A-Fa-f]{16,}' "$keys" | tr -d
 fi
 printf '%s\n' "$log"
 
-nsp=$out/centollos_forwarder.nsp
+nsp=$out/switchwaker_forwarder.nsp
 cp "$pack/nsp/$title_id.nsp" "$nsp"
 
 if [[ $verify == 1 ]]; then

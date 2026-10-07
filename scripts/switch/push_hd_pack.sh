@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copies a converted HD texture pack (scripts/hd/build_hd_pack.sh) to the Switch's SD card over
 # USB (MTP), where the native port looks for it by default:
-#   sdmc:/switch/centollos/native/user/hd_textures/{index.bin,data00.bin,...}
+#   sdmc:/switch/switchwaker/native/user/hd_textures/{index.bin,data00.bin,...}
 #
 #   scripts/switch/push_hd_pack.sh [PACK_DIR] [--verify]      (default PACK_DIR: build/hd-pack-512)
 #
@@ -25,7 +25,7 @@ for arg in "$@"; do
         *) pack=$arg ;;
     esac
 done
-remote=switch/centollos/native/user/hd_textures
+remote=switch/switchwaker/native/user/hd_textures
 [[ -s $pack/index.bin && -s $pack/data00.bin ]] || { echo "push_hd_pack: no pack in $pack" >&2; exit 1; }
 count=$(python3 -c "import struct,sys; print(struct.unpack_from('<I', open(sys.argv[1],'rb').read(), 16)[0])" "$pack/index.bin")
 

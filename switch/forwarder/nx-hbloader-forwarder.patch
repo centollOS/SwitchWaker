@@ -13,7 +13,7 @@ index 78e4502..55a282f 100644
 +// without chaining another one (envSetNextLoad), the process ends and the HOME menu comes back
 +// instead of hbmenu.
 +#ifndef FORWARDER_DEFAULT_NRO
-+#define FORWARDER_DEFAULT_NRO "sdmc:/switch/centollos/centollos.nro"
++#define FORWARDER_DEFAULT_NRO "sdmc:/switch/switchwaker/switchwaker.nro"
 +#endif
  
  const char g_noticeText[] =

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Draw centollOS's 256x256 icon (NRO and HOME-menu forwarder): original art.
+"""Draw SwitchWaker's 256x256 icon (NRO and HOME-menu forwarder): original art.
 
     uv run --with pillow scripts/switch/make_icon.py [OUTPUT.jpg]
 
-A spider crab (a "centollo") on a rock under a deep-sea gradient, with bubbles, and "centollOS"
+A spider crab (a "centollo") on a rock under a deep-sea gradient, with bubbles, and "SwitchWaker"
 on a band below. Drawn from scratch with Pillow primitives, at 4x and downscaled for
 anti-aliasing. Deterministic: same Pillow, same bytes. The committed copy is
 switch/native/icon/icon.jpg (switch/native/CMakeLists.txt, scripts/switch/build_forwarder.sh);
@@ -115,7 +115,7 @@ def main():
         font = ImageFont.load_default(size=s(30))
     except TypeError:  # Pillow < 10.1: no scalable default font
         font = ImageFont.load_default()
-    text = "centollOS"
+    text = "SwitchWaker"
     box = d.textbbox((0, 0), text, font=font)
     tw, th = box[2] - box[0], box[3] - box[1]
     d.text(((W - tw) / 2 - box[0], s(231) - th / 2 - box[1]), text, font=font, fill=(240, 248, 255))

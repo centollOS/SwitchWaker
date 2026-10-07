@@ -8,12 +8,12 @@
 #   scripts/switch/push.sh --pipeline-cache [FILE.db]
 #
 # Enable USB file transfer on the console first (Horizon's own, haze or DBI).
-# Files go to sdmc:/switch/centollos/, are read back, and must match
+# Files go to sdmc:/switch/switchwaker/, are read back, and must match
 # the local SHA-256. --build runs scripts/switch/build_native.sh first. --logs
 # copies the native port's logs into build/switch-logs/native/. --disc copies
 # the player's disc image as GZLE01.iso (all the native port reads; skipped if
 # already on the console with the same size). `native` is the native port's NRO
-# (scripts/switch/build_native.sh), centollos.nro;
+# (scripts/switch/build_native.sh), switchwaker.nro;
 # --native-env copies a run options file as its native/env.txt. --pipeline-cache copies the
 # bundled pipeline cache (default native/data/initial_pipeline_cache.db, the committed one that
 # native/tools/gen_pipeline_cache.sh updates) as initial_pipeline_cache.db next to the NRO, where
@@ -24,7 +24,7 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
-remote_dir=switch/centollos
+remote_dir=switch/switchwaker
 tool_dir="$root/build/switch-tools"
 tool="$tool_dir/switch_mtp"
 source="$root/scripts/switch/switch_mtp.c"
@@ -87,7 +87,7 @@ fi
 if [[ ${1:-} == --logs ]]; then
     # The native port's logs (switch/native/source/cos_switch.cpp); status 3: no log written yet.
     mkdir -p "$root/build/switch-logs/native"
-    for log in centollos.log centollos.prev.log; do
+    for log in switchwaker.log switchwaker.prev.log; do
         status=0
         "$tool" pull "$remote_dir/native" "$log" "$root/build/switch-logs/native/$log" || status=$?
         [[ $status -eq 0 || $status -eq 3 ]] || exit "$status"
@@ -106,7 +106,7 @@ done
 
 for target in "$@"; do
     case $target in
-        native) script=build_native.sh nro=build/switch-native/centollos.nro ;;
+        native) script=build_native.sh nro=build/switch-native/switchwaker.nro ;;
         *.nro) script='' nro=$target ;;
         *) echo "push: unknown target $target" >&2; exit 2 ;;
     esac

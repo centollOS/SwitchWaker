@@ -14,9 +14,9 @@ extern "C" {
 
 /* The native port's directory on the SD card, without the "sdmc:" device: sqlite (Aurora's
  * caches) treats a path that does not start with '/' as relative. */
-#define COS_SWITCH_ROOT "/switch/centollos/native"
+#define COS_SWITCH_ROOT "/switch/switchwaker/native"
 /* The disc image (scripts/switch/push.sh --disc). */
-#define COS_SWITCH_DEFAULT_DISC "/switch/centollos/GZLE01.iso"
+#define COS_SWITCH_DEFAULT_DISC "/switch/switchwaker/GZLE01.iso"
 
 /* Ends the process with `code`, from any thread: flushes the logs to the SD card and the USB
  * host, then exits the process (svcExitProcess: the threads the game started cannot be stopped,
@@ -26,7 +26,7 @@ __attribute__((noreturn)) void cos_switch_exit(int code);
 /* Writes every queued log byte to the SD card (and gives the USB host up to a second). */
 void cos_switch_flush_logs(void);
 
-/* Load address of the NRO: an address minus this is the offset addr2line takes with centollos.elf. */
+/* Load address of the NRO: an address minus this is the offset addr2line takes with switchwaker.elf. */
 uintptr_t cos_switch_image_base(void);
 
 /* Kernel thread ID of the calling thread. */
@@ -159,7 +159,7 @@ int cos_switch_set_gpu_profile(const char* profile);
 void cos_switch_thread_cpu_ns(uint64_t out[COS_SWITCH_THREAD_ROLES]);
 /* "render#3 c2/0x4 27.6, other#5 c1/0x7 9.1 (fn 0x1234), ..." into out: every thread that used at
  * least 0.3 ms of CPU per frame since the last call (frames = game frames since then), with its
- * preferred core, affinity mask and, for unnamed threads, its entry point (offset in centollos.elf). */
+ * preferred core, affinity mask and, for unnamed threads, its entry point (offset in switchwaker.elf). */
 int cos_switch_thread_table(char* out, size_t size, double frames);
 
 #ifdef __cplusplus

@@ -1,8 +1,8 @@
 # HOME-screen icon (forwarder NSP)
 
-`build/forwarder/centollos_forwarder.nsp` installs the "centollOS" icon on the HOME screen.
-Opening it starts `sdmc:/switch/centollos/centollos.nro` as an application, with all the memory:
-there is no need to open hbmenu by holding R over a game any more. `centollos.log` should then
+`build/forwarder/switchwaker_forwarder.nsp` installs the "SwitchWaker" icon on the HOME screen.
+Opening it starts `sdmc:/switch/switchwaker/switchwaker.nro` as an application, with all the memory:
+there is no need to open hbmenu by holding R over a game any more. `switchwaker.log` should then
 show `application (title mode)`.
 
 It is built with `scripts/switch/build_forwarder.sh` (keys from `~/.switch/prod.keys` by default;
@@ -13,14 +13,14 @@ they are never copied into the repository). Title ID: `01FF43454E540000`.
 - Atmosphère with sigpatches up to date for your firmware (the NSP does not carry the console's
   official signature). If installing fails over the signature, or the icon shows an error when
   opened, update the sigpatches (including the loader/ACID ones).
-- The NRO **must** stay at `sdmc:/switch/centollos/centollos.nro`. The forwarder only contains a
+- The NRO **must** stay at `sdmc:/switch/switchwaker/switchwaker.nro`. The forwarder only contains a
   loader: if you move or rename the NRO, the icon will show an error when opened. To update the
   game, replace the NRO at that path; the NSP does not need reinstalling (only when the icon, the
   name or the displayed version change).
 
 ## Install with DBI (USB/MTP)
 
-1. Copy `centollos_forwarder.nsp` to the computer.
+1. Copy `switchwaker_forwarder.nsp` to the computer.
 2. On the Switch, open DBI and choose **Run MTP responder**.
 3. Connect the console over USB. An MTP device shows up on the computer: open
    **"SD Card install"** (or "NAND install") and drag the `.nsp` into it.
@@ -45,11 +45,11 @@ SD card is not touched. Then install this one.
 
 ## Uninstall
 
-- From HOME: System Settings → Data Management → Manage Software → "centollOS" → **Delete
+- From HOME: System Settings → Data Management → Manage Software → "SwitchWaker" → **Delete
   Software**. Or select the icon, press + (Options) → Data Management → Delete Software.
 - Or from DBI/Goldleaf: list of installed titles → `01FF43454E540000` → delete.
 
-Uninstalling the icon does not touch the NRO, the ISO or the data in `sdmc:/switch/centollos/`.
+Uninstalling the icon does not touch the NRO, the ISO or the data in `sdmc:/switch/switchwaker/`.
 
 ## Warning: ban risk
 

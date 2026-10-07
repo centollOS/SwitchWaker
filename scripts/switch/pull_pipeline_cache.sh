@@ -5,7 +5,7 @@
 #
 #   scripts/switch/pull_pipeline_cache.sh [OUT]
 #
-# Copies sdmc:/switch/centollos/native/user/cache/pipeline_cache.db and, if there, its
+# Copies sdmc:/switch/switchwaker/native/user/cache/pipeline_cache.db and, if there, its
 # pipeline_cache.db-journal (the Switch build keeps a PERSIST rollback journal next to it: Aurora
 # Switch patch 0006) and -wal, into a staging directory under the same names, then opens the copy
 # with sqlite3 read-write: a journal whose header was zeroed at the last commit is ignored, a hot one
@@ -23,7 +23,7 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
-remote_dir=switch/centollos/native/user/cache
+remote_dir=switch/switchwaker/native/user/cache
 name=pipeline_cache.db
 tool_dir="$root/build/switch-tools"
 tool="$tool_dir/switch_mtp"

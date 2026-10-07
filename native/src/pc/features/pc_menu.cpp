@@ -500,7 +500,7 @@ const PcSettingDesc kBuiltins[] = {
      "Automática: solo con la caché fría (primer arranque); prioritarios, siempre o nunca.",
      PC_SETTING_TAB_PERFORMANCE, PC_SETTING_RESTART, CHOICES(kPrecompileScreen), "auto", nullptr, nullptr, 50},
     {"COS_PERF_EVERY", "Intervalo del registro perf",
-     "Cada cuántos cuadros se escribe una línea [cos] perf en el registro (centollos.log).",
+     "Cada cuántos cuadros se escribe una línea [cos] perf en el registro (switchwaker.log).",
      PC_SETTING_TAB_PERFORMANCE, 0, CHOICES(kPerfEvery), "0", applyPerfEvery, nullptr, 60},
     // Depuración
     {"COS_GPU_GROUPS", "Temporizadores de GPU por grupo",

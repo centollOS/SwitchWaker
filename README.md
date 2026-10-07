@@ -77,7 +77,7 @@ copied into an image.
 
 ```sh
 scripts/docker/build.sh linux  --disc /path/to/GZLE01.iso   # build/native-linux/centollos
-scripts/docker/build.sh switch --disc /path/to/GZLE01.iso   # build/switch-native/centollos.nro
+scripts/docker/build.sh switch --disc /path/to/GZLE01.iso   # build/switch-native/switchwaker.nro
 scripts/docker/build.sh all    --disc /path/to/GZLE01.iso --test   # both, plus headless checks
 ```
 
@@ -109,24 +109,24 @@ loaded at run time instead, which would allow CI builds of the game and binary r
 ## Build for the Switch
 
 On top of the above: Docker Desktop or Podman. `scripts/switch/build_native.sh` produces
-`build/switch-native/centollos.nro` (Mesa, Dawn and Aurora are built in a devkitPro container).
+`build/switch-native/switchwaker.nro` (Mesa, Dawn and Aurora are built in a devkitPro container).
 Full guide: [docs/SWITCH_BUILD.md](docs/SWITCH_BUILD.md).
 
 ## Install on the Switch
 
-- Copy `centollos.nro` to `sdmc:/switch/centollos/` and your disc as
-  `sdmc:/switch/centollos/GZLE01.iso` (`scripts/switch/push.sh` does it over USB/MTP).
+- Copy `switchwaker.nro` to `sdmc:/switch/switchwaker/` and your disc as
+  `sdmc:/switch/switchwaker/GZLE01.iso` (`scripts/switch/push.sh` does it over USB/MTP).
 - Open it from the Homebrew Menu in title mode (hold **R** while opening an installed game).
 - Optional: a HOME-screen icon through the forwarder (`scripts/switch/build_forwarder.sh`, guide in
   [switch/forwarder/INSTALL.md](switch/forwarder/INSTALL.md)).
 - If you used this port's earlier SD folder, move its data (save, settings, caches, HD textures) to
-  `sdmc:/switch/centollos/`; the old path is no longer read.
+  `sdmc:/switch/switchwaker/`; the old path is no longer read.
 
 ## Options
 
 - In-game options menu: **ZL+ZR+Minus** on the Switch, **F1** (or L+R+Z) on the Mac and Linux. Saved to
   `native/user/settings.ini`.
-- `COS_*` variables (environment on the Mac and Linux, `sdmc:/switch/centollos/native/env.txt` on the
+- `COS_*` variables (environment on the Mac and Linux, `sdmc:/switch/switchwaker/native/env.txt` on the
   Switch): [switch/native/env.example.txt](switch/native/env.example.txt) and
   [native/README.md](native/README.md).
 - HD textures (optional, a Dolphin-format pack you supply): [docs/HD_TEXTURES.md](docs/HD_TEXTURES.md).

@@ -22,7 +22,7 @@
 //   leaves it where the default put it): during the loading screen and the warm-up the two would
 //   otherwise take turns on one core, as Horizon does not time-slice equal priorities;
 // - the thread table of the perf-switch lines (cos_switch_thread_table): each busy thread's role,
-//   preferred core, affinity mask, CPU time and entry point (an offset for addr2line with centollos.elf).
+//   preferred core, affinity mask, CPU time and entry point (an offset for addr2line with switchwaker.elf).
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdio.h>

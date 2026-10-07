@@ -497,7 +497,7 @@ open the PLAY scene is paused (hit-stop pause timer) and the game gets no pad in
   sea room on the boat; PLAY scene only), a screenshot (`shot-<frame>.png` in `COS_RUN_DIR`,
   without the menu), reload the settings file.
 - Values are saved to `user/settings.ini` next to the executable (Switch:
-  `/switch/centollos/native/user/settings.ini`; `COS_SETTINGS=<path>` names another file,
+  `/switch/switchwaker/native/user/settings.ini`; `COS_SETTINGS=<path>` names another file,
   and `run.sh` gives every run its own `<run dir>/settings.ini`). Lines `NAME=value`, or
   `NAME@handheld=` / `NAME@docked=` for the per-mode rows (internal and dynamic resolution, mist,
   sky): the Switch applies the other mode's values when docked or undocked; the Mac is handheld
@@ -535,7 +535,7 @@ recipe in `native/CMakeLists.txt`) and `COS_HEAP_CHECK=1` to check every JKR hea
 
 ## The Switch (phase 7)
 
-`scripts/switch/build_native.sh` builds this tree as a Switch NRO, `build/switch-native/centollos.nro`,
+`scripts/switch/build_native.sh` builds this tree as a Switch NRO, `build/switch-native/switchwaker.nro`,
 in the translated port's devkitPro container, with the same asset headers and Aurora checkout as the
 Mac build: docs/SWITCH_BUILD.md, "Native port", has the build, the copy to the console, the run
 options (`COS_*` from an `env.txt` on the SD card) and the crash reports. The Switch build lives in

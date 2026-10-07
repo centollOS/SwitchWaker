@@ -5,9 +5,9 @@
 #                                  [--dawn-src DIR] [--mesa DIR | --stock-mesa] [--jobs N]
 #                                  [--target TARGET]
 #
-# Output: build/switch-native/centollos.nro, next to it the bundled pipeline cache
+# Output: build/switch-native/switchwaker.nro, next to it the bundled pipeline cache
 # initial_pipeline_cache.db (a copy of native/data/'s), and, for addr2line,
-# build/switch-native/centollos.elf.
+# build/switch-native/switchwaker.elf.
 # Everything is compiled in a container (Podman or Docker, see container.sh) from the pinned
 # devkitPro image plus clang 19 (Containerfile.native): devkitA64's GCC for Aurora, Dawn, the SDK
 # and libnx, clang for the game units (switch/native/clang-launcher.sh).
@@ -136,21 +136,21 @@ set -euo pipefail
 export PATH=/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin:$PATH
 cmake -S /work/switch/native -B /work/build/switch-native -G Ninja \
     -DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Switch.cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-    -DDKP_USE_DOUBLE_OBJECT_FILE_EXTENSIONS=ON \
+    -DDKP_USE_DOUBLE_OBJECT_FILE_EXTENSIONS=ON -DCOS_SWITCH_NRO_NAME=switchwaker \
     -DCOS_SWITCH_AURORA_SOURCE=/inputs/aurora -DCOS_ASSETS_DIR=/inputs/assets \
     -DCOS_RECOMPCORE_DIR=/inputs/recompcore $DAWN_FLAG $MESA_FLAG >/dev/null
 cmake --build /work/build/switch-native --target "$TARGET" --parallel "$JOBS"
 '
 
 [[ $target == cos_nro ]] || exit 0
-nro="$root/build/switch-native/centollos.nro"
+nro="$root/build/switch-native/switchwaker.nro"
 if [[ ! -s $nro ]] || [[ $(od -An -tc -j 16 -N4 "$nro" | tr -d ' \n') != NRO0 ]]; then
     echo "build_native: no valid NRO at $nro" >&2
     exit 1
 fi
 shasum -a 256 "$nro" 2>/dev/null || sha256sum "$nro"
-# The bundled pipeline cache goes next to the NRO (sdmc:/switch/centollos/ on the console): without
+# The bundled pipeline cache goes next to the NRO (sdmc:/switch/switchwaker/ on the console): without
 # it there is no warm-up and no "Preparing shaders" screen (docs/SWITCH_BUILD.md).
 cp -f "$root/native/data/initial_pipeline_cache.db" "$root/build/switch-native/initial_pipeline_cache.db"
 printf 'Built %s (%s bytes); symbols: %s\n' "$nro" "$(wc -c <"$nro" | tr -d ' ')" \
-    "$root/build/switch-native/centollos.elf"
+    "$root/build/switch-native/switchwaker.elf"

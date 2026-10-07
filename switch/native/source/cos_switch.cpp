@@ -3,7 +3,7 @@
 // Logs. stdout and stderr (the harness's "[cos] ..." lines, OSReport, Aurora's log) go, through a
 // devoptab tee as in the translated port (switch/host/source/switch_main.c), to
 //   - the live USB log (switch/source/common/usb_log.c; scripts/switch/usb_log.py on the computer);
-//   - COS_SWITCH_ROOT/centollos.log on the SD card (the previous run's is kept as centollos.prev.log), written
+//   - COS_SWITCH_ROOT/switchwaker.log on the SD card (the previous run's is kept as switchwaker.prev.log), written
 //     by a thread of its own so a game thread never waits on the SD card. A crash or an exit
 //     writes what is still queued before the process ends.
 //
@@ -22,7 +22,7 @@
 // for every variable env.txt does not set.
 //
 // Crash report: libnx's user exception handler prints the exception, the registers, the thread,
-// the NRO's load address and a frame-pointer backtrace as offsets into centollos.elf (for addr2line),
+// the NRO's load address and a frame-pointer backtrace as offsets into switchwaker.elf (for addr2line),
 // then the harness's state line (scene, frame, last resource), writes the logs out and returns the
 // exception to the kernel unhandled, so Atmosphère still writes its crash report.
 // abort() (Aurora's fatal log and asserts, newlib's assert, std::terminate) is wrapped
@@ -46,8 +46,8 @@ extern "C" void pc_settings_load_early(void); // native/src/pc/features/pc_setti
 
 namespace {
 
-constexpr const char* kLogPath = COS_SWITCH_ROOT "/centollos.log";
-constexpr const char* kPrevLogPath = COS_SWITCH_ROOT "/centollos.prev.log";
+constexpr const char* kLogPath = COS_SWITCH_ROOT "/switchwaker.log";
+constexpr const char* kPrevLogPath = COS_SWITCH_ROOT "/switchwaker.prev.log";
 constexpr size_t kRingSize = 1u << 20;
 
 // ---- SD card log ---------------------------------------------------------------------------------
@@ -202,7 +202,7 @@ void sayf(const char* format, ...) {
 
 void startLogs() {
     mkdir("/switch", 0777);
-    mkdir("/switch/centollos", 0777);
+    mkdir("/switch/switchwaker", 0777);
     mkdir(COS_SWITCH_ROOT, 0777);
     remove(kPrevLogPath);
     rename(kLogPath, kPrevLogPath);
@@ -455,7 +455,7 @@ void reportSystem() {
     const AppletType applet = appletGetAppletType();
     char mode[128];
     cos_switch_describe_mode(mode, sizeof(mode));
-    sayf("[switch] centollOS: %s; %s; memory %llu MiB, %llu MiB used at start; core mask 0x%llx; "
+    sayf("[switch] SwitchWaker: %s; %s; memory %llu MiB, %llu MiB used at start; core mask 0x%llx; "
          "image at 0x%llx\n",
          appletTypeName(applet), mode, (unsigned long long)(total >> 20), (unsigned long long)(used >> 20),
          (unsigned long long)cores, (unsigned long long)cos_switch_image_base());
@@ -490,9 +490,9 @@ const char* exceptionName(u32 desc) {
 
 void writeAddress(const char* label, uintptr_t addr) {
     const uintptr_t base = cos_switch_image_base();
-    // The NRO is a few hundred MiB at most; anything else is not in centollos.elf.
+    // The NRO is a few hundred MiB at most; anything else is not in switchwaker.elf.
     if (addr >= base && addr - base < (1ull << 30)) {
-        sayf("%s0x%llx (centollos.elf+0x%llx)", label, (unsigned long long)addr, (unsigned long long)(addr - base));
+        sayf("%s0x%llx (switchwaker.elf+0x%llx)", label, (unsigned long long)addr, (unsigned long long)(addr - base));
     } else {
         sayf("%s0x%llx", label, (unsigned long long)addr);
     }
@@ -530,7 +530,7 @@ void crashReport(ThreadExceptionDump* ctx) {
         sayf("%sx%d=0x%llx%s", (r % 4) == 0 ? "[cos]   " : " ", r, (unsigned long long)ctx->cpu_gprs[r].x,
              (r % 4) == 3 || r == 28 ? "\n" : "");
     }
-    sayf("[cos] image base=0x%llx: aarch64-none-elf-addr2line -f -C -i -e centollos.elf <offset>\n",
+    sayf("[cos] image base=0x%llx: aarch64-none-elf-addr2line -f -C -i -e switchwaker.elf <offset>\n",
          (unsigned long long)cos_switch_image_base());
     sayf("[cos] backtrace (pc, lr, then the frame records' return addresses as call sites):\n");
     writeAddress("[cos]   #0 ", ctx->pc.x);
@@ -580,7 +580,7 @@ __attribute__((noreturn)) void __wrap_abort(void) {
         __real_abort();
     }
     sayf("\n[cos] ABORT (abort() called) on thread %llu\n", (unsigned long long)cos_switch_thread_id());
-    sayf("[cos] image base=0x%llx: aarch64-none-elf-addr2line -f -C -i -e centollos.elf <offset>\n",
+    sayf("[cos] image base=0x%llx: aarch64-none-elf-addr2line -f -C -i -e switchwaker.elf <offset>\n",
          (unsigned long long)cos_switch_image_base());
     sayf("[cos] backtrace (call sites):\n");
     writeBacktrace((uintptr_t)__builtin_frame_address(0), 0);
@@ -593,7 +593,7 @@ __attribute__((noreturn)) void __wrap_abort(void) {
 
 void cos_switch_start(int argc, char** argv) {
     startLogs();
-    sayf("[switch] centollOS, native port (phase 7); argv[0]=%s\n",
+    sayf("[switch] SwitchWaker, native port (phase 7); argv[0]=%s\n",
          argc > 0 && argv != nullptr && argv[0] != nullptr ? argv[0] : "-");
     reportSystem();
     loadEnvFile();

@@ -12,7 +12,7 @@
  * COS_HD_PACK=<dir>       the pack: a directory with index.bin + dataNN.bin written by
  *                         native/tools/hd_pack (cos_hd_pack), or a Dolphin texture directory of
  *                         loose tex1_*.dds/.png files (e.g. a pack's GZL folder). Default:
- *                         <user path>/hd_textures (Switch: sdmc:/switch/centollos/native/
+ *                         <user path>/hd_textures (Switch: sdmc:/switch/switchwaker/native/
  *                         user/hd_textures).
  * COS_HD_BUDGET_MB=<n>    GPU memory the replacements may hold (default 512 on the Switch, 1024
  *                         elsewhere). Textures bound in the last 60 frames are never evicted; a

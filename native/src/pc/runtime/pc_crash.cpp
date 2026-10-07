@@ -15,7 +15,7 @@
 // On the Switch (phase 7) there are no signals: libnx's exception handler in switch/native/source
 // writes the crash report and calls writeState through cos_switch_set_crash_state_writer; pc_panic
 // and the frame walk read memory through svcQueryMemory, and frames are printed as offsets into
-// centollos.elf for addr2line (there is no backtrace_symbols_fd).
+// switchwaker.elf for addr2line (there is no backtrace_symbols_fd).
 // No Dusklight code: borealis::crash is not available there.
 #include "pc_internal.h"
 
@@ -177,8 +177,8 @@ void writeImageBase(int fd) {
            base.name != nullptr && base.name[0] != '\0' ? base.name : "(main)",
            (unsigned long long)base.addr);
 #elif defined(__SWITCH__)
-    // The frames below are printed as offsets into centollos.elf, the ELF next to the NRO.
-    writef(fd, "[cos] image base=0x%llx: aarch64-none-elf-addr2line -f -C -i -e centollos.elf <offset>\n",
+    // The frames below are printed as offsets into switchwaker.elf, the ELF next to the NRO.
+    writef(fd, "[cos] image base=0x%llx: aarch64-none-elf-addr2line -f -C -i -e switchwaker.elf <offset>\n",
            (unsigned long long)cos_switch_image_base());
 #else
     (void)fd;
@@ -208,7 +208,7 @@ void writeFrames(int fd, void** frames, int n, int exact) {
     for (int i = 0; i < n; i++) {
         const uintptr_t a = (uintptr_t)sites[i];
         if (a >= base && a - base < (1ull << 30)) {
-            writef(fd, "[cos]   #%d centollos.elf+0x%llx\n", i, (unsigned long long)(a - base));
+            writef(fd, "[cos]   #%d switchwaker.elf+0x%llx\n", i, (unsigned long long)(a - base));
         } else {
             writef(fd, "[cos]   #%d 0x%llx\n", i, (unsigned long long)a);
         }

@@ -8,7 +8,7 @@
  *   1. the environment at start: on the Switch the lines of env.txt, on the Mac the process
  *      environment (test kits and run.sh keep working unchanged). Such a setting is locked:
  *      the menu shows it with a note and does not change it.
- *   2. the settings file: <user dir>/settings.ini (the Switch: /switch/centollos/native/
+ *   2. the settings file: <user dir>/settings.ini (the Switch: /switch/switchwaker/native/
  *      user/settings.ini on the SD card; the Mac: user/settings.ini next to the executable;
  *      COS_SETTINGS=<path> names another file, run.sh gives each run its own). Lines
  *      NAME=value, or NAME@handheld=value / NAME@docked=value for a setting with one value per

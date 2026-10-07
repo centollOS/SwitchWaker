@@ -20,7 +20,7 @@ console and read its logs. The Mac build comes first: the Switch build reuses it
   cable, and the console's **USB file transfer** (Horizon's own, or haze/DBI).
 
 
-`centollos.nro` is the game built from its decompilation (`native/`) on Aurora, with Dawn's
+`switchwaker.nro` is the game built from its decompilation (`native/`) on Aurora, with Dawn's
 OpenGL ES backend over the Switch's Mesa and an SDL 3 shim on libnx (plan: phase 7 of
 [NATIVE_PORT_PLAN.md](NATIVE_PORT_PLAN.md)). It reads only the disc image from the SD card: the
 game's code is compiled in, and the asset headers are compiled in at build time, from the same
@@ -33,7 +33,7 @@ headers in `build/native-mac/assets/GZLE01`, `ref/recompcore`; [native/README.md
 plus Docker Desktop or Podman:
 
 ```sh
-scripts/switch/build_native.sh       # build/switch-native/centollos.nro and centollos.elf
+scripts/switch/build_native.sh       # build/switch-native/switchwaker.nro and switchwaker.elf
 ```
 
 - It builds `localhost/centollos-switch-native-build:2026-10-03` the first time
@@ -76,7 +76,7 @@ scripts/switch/build_native.sh       # build/switch-native/centollos.nro and cen
   cached code against a fresh translation, and the GLSL cache and program binaries through the GL
   API). `build_native.sh --mesa DIR` links another prefix, `--stock-mesa` devkitPro's package from
   the image (no shader cache). libdrm_nouveau is the package's either way.
-- Output: `build/switch-native/centollos.nro` (about 21 MB) and `build/switch-native/centollos.elf`, the
+- Output: `build/switch-native/switchwaker.nro` (about 21 MB) and `build/switch-native/switchwaker.elf`, the
   same program with its symbols, for `addr2line`. Keep the ELF of the NRO you test.
 
 ## Copy to the console
@@ -92,12 +92,12 @@ SD card layout:
 
 | Path on the SD card | Contents |
 |---|---|
-| `switch/centollos/centollos.nro` | the app: "centollOS" in the Homebrew Menu |
-| `switch/centollos/GZLE01.iso` | your disc image |
-| `switch/centollos/initial_pipeline_cache.db` | the pipelines to precompile at boot (`native/data/`, committed; `build_native.sh` puts a copy next to the NRO). Without it there is no warm-up and no "Preparing shaders" screen: the opening cutscene starts at once and every pipeline is built when first drawn |
-| `switch/centollos/native/env.txt` | optional run options |
-| `switch/centollos/native/centollos.log`, `centollos.prev.log` | this run's log and the previous one's |
-| `switch/centollos/native/user/` | memory card (`USA/Card A`), Aurora's caches |
+| `switch/switchwaker/switchwaker.nro` | the app: "centollOS" in the Homebrew Menu |
+| `switch/switchwaker/GZLE01.iso` | your disc image |
+| `switch/switchwaker/initial_pipeline_cache.db` | the pipelines to precompile at boot (`native/data/`, committed; `build_native.sh` puts a copy next to the NRO). Without it there is no warm-up and no "Preparing shaders" screen: the opening cutscene starts at once and every pipeline is built when first drawn |
+| `switch/switchwaker/native/env.txt` | optional run options |
+| `switch/switchwaker/native/switchwaker.log`, `switchwaker.prev.log` | this run's log and the previous one's |
+| `switch/switchwaker/native/user/` | memory card (`USA/Card A`), Aurora's caches |
 
 ## Run
 
@@ -109,7 +109,7 @@ build/switch-logs/native-live.log` shows the log live.
 Run options come from `native/env.txt`, one `NAME=value` per line, with `#` comments
 ([switch/native/env.example.txt](../switch/native/env.example.txt)); they are the Mac's `COS_*`
 variables ([native/README.md](../native/README.md), "Running centollos"). Without the file:
-`COS_DISC=/switch/centollos/GZLE01.iso`, `COS_RUN_DIR=/switch/centollos/native`,
+`COS_DISC=/switch/switchwaker/GZLE01.iso`, `COS_RUN_DIR=/switch/switchwaker/native`,
 `COS_PERF_EVERY=60`, `COS_HITCH_MS=50`, `COS_STALL_S=90`, `COS_ASPECT=16:9` (the widescreen
 option on the 1280x720 screen; `COS_ASPECT=4:3` gives the GameCube picture, pillarboxed) and
 `COS_FB_SCALE=1.5` (the internal resolution, see below).
@@ -137,12 +137,12 @@ run decides.
 What the log shows, in order (the same `[cos]` lines as on the Mac; values vary):
 
 ```
-[switch] centollOS, native port (phase 7); argv[0]=sdmc:/switch/centollos/centollos.nro
+[switch] centollOS, native port (phase 7); argv[0]=sdmc:/switch/switchwaker/switchwaker.nro
 [switch] centollOS: application (title mode); memory 3xxx MiB, ... core mask 0x7; image at 0x...
-[switch] logs: /switch/centollos/native/centollos.log open, USB live log started
+[switch] logs: /switch/switchwaker/native/switchwaker.log open, USB live log started
 [cos] harness: smoke=- milestone=- timeout=0s stall=90s ...
 [cos] perf: game-thread frame times every 60 frames (COS_PERF_EVERY)
-[cos] disc: /switch/centollos/GZLE01.iso GZLE01 revision 0, 1459978240 bytes
+[cos] disc: /switch/switchwaker/GZLE01.iso GZLE01 revision 0, 1459978240 bytes
 [info] [aurora::gpu] Attempting to initialize OpenGLES          <- Dawn on Mesa (NV120)
 [cos] aurora: backend=opengles window=1280x720 ...
 [cos] dvd: GZLE01 version 0 disc 0                               <- the disc is read through nod_gcn
@@ -516,7 +516,7 @@ Besides that, the port compiles fewer programs and compiles them before they are
 The log shows the warm-up (`COS_PRECOMPILE_LOG=0` hides the progress lines; values vary):
 
 ```
-[info] [aurora::gfx::pipeline_cache] Seeded pipeline cache from '/switch/centollos/initial_pipeline_cache.db' (R rows merged, 0 rows skipped)
+[info] [aurora::gfx::pipeline_cache] Seeded pipeline cache from '/switch/switchwaker/initial_pipeline_cache.db' (R rows merged, 0 rows skipped)
 [info] [aurora::gfx::pipeline_cache] Bundled pipeline cache marks 176 pipelines as priority 0
 [cos] precompile: M pipelines queued from the pipeline cache, P of them priority (boot: the warm-up runs until the first PLAY scene; COS_PRECOMPILE_SCREEN=auto (...))
 [cos] precompile screen auto: K builds in T s, X ms each (COS_PRECOMPILE_SLOW_MS=25): shader cache cold; slow work about S s (> COS_PRECOMPILE_SCREEN_MIN_S=3.0): loading screen until the whole warm-up is built, L of M pipelines left, about E s
@@ -551,7 +551,7 @@ draws no loading screen or indicator unless `COS_PRECOMPILE` is set (native/READ
 
 A pipeline the bundled list does not have still compiles when first drawn (a 150-640 ms hitch:
 bomb explosions on Dragon Roost, for one). The console's own cache,
-`switch/centollos/native/user/cache/pipeline_cache.db`, records every pipeline used in play, so
+`switch/switchwaker/native/user/cache/pipeline_cache.db`, records every pipeline used in play, so
 after playing, with USB file transfer on and the app closed:
 
 ```sh
@@ -583,7 +583,7 @@ SD card, so a pipeline built once is not compiled again on later runs:
   with dladdr's build-id: none of that exists on Horizon (and thousands of small files open slowly
   on the SD card's FAT32/exFAT).
 - **Patch 0003** keeps Mesa's `disk_cache.h` API in one append-only file,
-  `switch/centollos/native/user/cache/mesa_shader_cache.bin` (`MESA_SHADER_CACHE_DIR`, set by
+  `switch/switchwaker/native/user/cache/mesa_shader_cache.bin` (`MESA_SHADER_CACHE_DIR`, set by
   the port before EGL starts): a header with the sha1 of the driver keys, then records (key, size,
   CRC-32, payload) written with one `write()` each; payloads are read when asked for and their CRC
   checked. Beside it, `mesa_shader_cache.idx` lists the records (key, size, offset; 40 bytes and a
@@ -632,7 +632,7 @@ SD card, so a pipeline built once is not compiled again on later runs:
   vary):
 
   ```
-  [switch] shader cache: MESA_SHADER_CACHE_DIR=/switch/centollos/native/user/cache
+  [switch] shader cache: MESA_SHADER_CACHE_DIR=/switch/switchwaker/native/user/cache
   [switch] shader cache: /switch/.../user/cache/mesa_shader_cache.bin: N entries, M MiB, opened in T ms; index: R records in one read; U unused for 5+ runs; run B (max 256 MiB)
   [switch] shader cache: compacted /switch/.../mesa_shader_cache.bin in T ms: K of N entries kept, U unused for 5+ runs dropped, M MiB -> M' MiB (run B)   <- at most once a run
   [switch] shader compile: compiles C (D deferred) X ms; links L (F from cache) Y ms = glsl G + st S; nvc0 T (H from cache) Z ms; binaries loaded B (R refused) W ms, saved V W ms; cache gets ... puts ...; dawn binaries: formats 1, hits h, misses m, refused r, stored s (M MiB)
@@ -665,16 +665,16 @@ and in a crash report, `[switch] memory: used N MiB of M MiB` shows the process'
 ## Crashes
 
 - **The log.** A crash prints `[cos] CRASH <kind> esr=... far=...`, the registers, and a backtrace
-  with every address also given as `centollos.elf+0x<offset>` (the offset from the start of the NRO's
+  with every address also given as `switchwaker.elf+0x<offset>` (the offset from the start of the NRO's
   text mapping, which `[cos] image base=0x...` and the start banner's `image at 0x...` print);
   then the harness's state line (scene, frame, last resource). `abort()` (Aurora's fatal errors, asserts) prints `[cos] ABORT` with a
   backtrace the same way, and an `OSPanic` `[cos] PANIC` (exit 12). Get the log with
-  `scripts/switch/push.sh --logs` (to `build/switch-logs/native/centollos.log`), or from the live USB log.
+  `scripts/switch/push.sh --logs` (to `build/switch-logs/native/switchwaker.log`), or from the live USB log.
   Resolve the offsets with the ELF of the same build:
 
   ```sh
   docker run --rm -v "$PWD/build/switch-native:/b" localhost/centollos-switch-native-build:2026-10-03 \
-      /opt/devkitpro/devkitA64/bin/aarch64-none-elf-addr2line -f -C -i -e /b/centollos.elf 0x<offset> ...
+      /opt/devkitpro/devkitA64/bin/aarch64-none-elf-addr2line -f -C -i -e /b/switchwaker.elf 0x<offset> ...
   ```
 
 - **Atmosphère's report.** After the log, the crash goes on to Atmosphère, which writes
@@ -685,7 +685,7 @@ and in a crash report, `[switch] memory: used N MiB of M MiB` shows the process'
 
 ## If something goes wrong
 
-- Nothing in the log at all: check that `switch/centollos/native/` exists afterwards (the
+- Nothing in the log at all: check that `switch/switchwaker/native/` exists afterwards (the
   app creates it); start from title mode.
 - `[cos] DISC: cannot open COS_DISC=...` (exit 14): the disc image is missing; `push.sh --disc`.
 - The app closes right after `Attempting to initialize OpenGLES`: Dawn or Mesa failed; the Atmosphère
@@ -693,7 +693,7 @@ and in a crash report, `[switch] memory: used N MiB of M MiB` shows the process'
 - `[cos] STALL: frame counter frozen` (exit 11): no game frame for 90 seconds (`COS_STALL_S`).
 - Every run aborts at the same point right after start-up, after one that aborted in a shader:
   Aurora recompiles its cached pipelines at start-up (as on the Mac, phase 6 render issues); delete
-  `switch/centollos/native/user/cache/`.
+  `switch/switchwaker/native/user/cache/`.
 - `GPU cache ... is damaged` or `... could not be opened ...; deleted it`: once, after a run that was
   killed while an older build (journal in memory) was writing, is expected; the cache starts empty
   and fills again. If it comes back after runs closed with HOME on this build, note the

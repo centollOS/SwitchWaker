@@ -6,7 +6,7 @@
 #
 #   linux    build/native-linux/centollos: the native Linux binary (Vulkan, OpenGL fallback),
 #            for the container's architecture (the host's: x86_64 or aarch64; see --platform)
-#   switch   build/switch-native/centollos.nro: the Switch homebrew (scripts/switch/build_native.sh)
+#   switch   build/switch-native/switchwaker.nro: the Switch homebrew (scripts/switch/build_native.sh)
 #   all      both (default)
 #
 # Options:

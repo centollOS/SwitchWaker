@@ -74,7 +74,7 @@ folder works too: `COS_HD_PACK=".../GZL"`, but it uses up to 10x the memory sinc
 size cap and few mips).
 
 Switch: `scripts/switch/push_hd_pack.sh build/hd-pack-512` copies the pack by file name into
-`sdmc:/switch/centollos/native/user/hd_textures/` (data first, `index.bin` last and read
+`sdmc:/switch/switchwaker/native/user/hd_textures/` (data first, `index.bin` last and read
 back), then `COS_HD_TEXTURES=1` in `native/env.txt`.
 
 | variable | default | |

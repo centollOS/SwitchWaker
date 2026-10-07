@@ -84,7 +84,7 @@
 # a build without it had no "Preparing shaders" screen). --merge-only on a fresh clone starts
 # from that committed file. scripts/switch/build_native.sh puts it next to the NRO and
 # scripts/switch/push.sh pushes it with the NRO (where Aurora looks for it:
-# sdmc:/switch/centollos/initial_pipeline_cache.db). On the Mac nothing reads it unless it is
+# sdmc:/switch/switchwaker/initial_pipeline_cache.db). On the Mac nothing reads it unless it is
 # copied next to build/native-mac/centollos (Aurora's resources path).
 set -u
 

@@ -280,11 +280,11 @@ target_link_options(centollos PRIVATE "LINKER:--wrap=nouveau_pushbuf_space" "LIN
         "LINKER:--wrap=nvGpuChannelKickoff" "LINKER:--wrap=nvGpuChannelAppendEntry")
 # abort() writes the logs out and a backtrace first (source/cos_switch.cpp).
 target_link_options(centollos PRIVATE "LINKER:--wrap=abort")
-set_target_properties(centollos PROPERTIES OUTPUT_NAME "centollos" SUFFIX ".elf")
+set_target_properties(centollos PROPERTIES OUTPUT_NAME "switchwaker" SUFFIX ".elf")
 
-set(COS_SWITCH_NRO_NAME "centollos" CACHE STRING "File name of the NRO (without .nro)")
+set(COS_SWITCH_NRO_NAME "switchwaker" CACHE STRING "File name of the NRO (without .nro)")
 nx_generate_nacp(cos_native.nacp
-        NAME "centollOS" AUTHOR "centollOS contributors" VERSION "0.1.0")
+        NAME "SwitchWaker" AUTHOR "centollOS contributors" VERSION "0.1.0")
 nx_create_nro(cos_nro
         TARGET centollos
         OUTPUT "${CMAKE_BINARY_DIR}/${COS_SWITCH_NRO_NAME}.nro"

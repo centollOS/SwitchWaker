@@ -1,6 +1,6 @@
 # Continuous integration WITHOUT the game disc.
 #
-# The full game (centollos, centollos.nro) cannot be built here: the build compiles headers that
+# The full game (centollos, switchwaker.nro) cannot be built here: the build compiles headers that
 # native/tools/gen_assets.sh generates from the player's own disc, and no disc (or anything
 # derived from one) may ever be put into CI. docs/RUNTIME_ASSETS.md describes what it would take
 # to lift that. What this workflow does instead:

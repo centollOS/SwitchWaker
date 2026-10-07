@@ -13,7 +13,7 @@
 
 #include "sdl3_shim.h"
 
-#define DATA_ROOT "/switch/centollos/"
+#define DATA_ROOT "/switch/switchwaker/"
 
 struct SDL_IOStream {
     FILE* file;
