@@ -46,7 +46,7 @@ uncompressed .iso (not RVZ, GCZ, CISO or NKit; Dolphin can convert: right-click 
 fi
 
 step 2 "building the Switch homebrew (an hour or more the first time, minutes later)"
-"$root/scripts/docker/build.sh" switch --disc "$disc" "${build_args[@]}" || fail "the build failed (see above)"
+"$root/scripts/docker/build.sh" switch --disc "$disc" ${build_args[@]+"${build_args[@]}"} || fail "the build failed (see above)"
 nro=$root/build/switch-native/switchwaker.nro
 db=$root/build/switch-native/initial_pipeline_cache.db
 [[ -f $nro ]] || fail "the build made no $nro"
