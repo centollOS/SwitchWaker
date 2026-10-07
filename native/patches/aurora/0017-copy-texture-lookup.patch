@@ -1,0 +1,32 @@
+diff --git a/lib/gx/gx.hpp b/lib/gx/gx.hpp
+index 9e85609..5fd0a45 100644
+--- a/lib/gx/gx.hpp
++++ b/lib/gx/gx.hpp
+@@ -439,6 +439,11 @@ void set_viewport_policy(AuroraViewportPolicy policy) noexcept;
+ void clear_static_texture_cache() noexcept;
+ void clear_copy_texture_cache() noexcept;
+ void evict_copy_texture(const void* dest) noexcept;
++// The copy texture GXCopyTex made for dest (null without one). For code compiled outside Aurora
++// (SwitchWaker patch 0017): GXState's layout depends on the compiler (math.hpp's Vec4 and Mat4x4 use
++// GCC's vector extensions, 16-byte aligned, and plain arrays under clang), so a unit built by
++// another compiler than Aurora's must not read g_gxState's fields itself.
++gfx::TextureHandle find_copy_texture(const void* dest) noexcept;
+ void evict_texture_object(u32 texObjId) noexcept;
+ void evict_tlut_object(u32 tlutObjId) noexcept;
+ Vec2<uint32_t> logical_fb_size() noexcept;
+diff --git a/lib/gx/texture.cpp b/lib/gx/texture.cpp
+index 2784eea..f6a4216 100644
+--- a/lib/gx/texture.cpp
++++ b/lib/gx/texture.cpp
+@@ -954,6 +954,11 @@ void clear_copy_texture_cache() noexcept {
+ 
+ void clear_static_texture_cache() noexcept { s_pendingCacheClears.fetch_add(1, std::memory_order_release); }
+ 
++gfx::TextureHandle find_copy_texture(const void* dest) noexcept {
++  const auto it = g_gxState.copyTextures.find(dest);
++  return it != g_gxState.copyTextures.end() ? it->second.handle : gfx::TextureHandle{};
++}
++
+ void evict_copy_texture(const void* dest) noexcept {
+   absl::flat_hash_set<const void*> sourceIdentities;
+   if (const auto it = g_gxState.copyTextures.find(dest); it != g_gxState.copyTextures.end()) {

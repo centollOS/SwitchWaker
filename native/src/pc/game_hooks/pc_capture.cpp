@@ -179,15 +179,17 @@ bool pc_gph_capture_ready(void* dest, u32 width, u32 height, int format) {
 namespace {
 
 // The copy texture GXCopyTex made for dest, as 8-bit RGBA rows at the EFB's scale. False (logged)
-// without one or if the readback failed.
+// without one or if the readback failed. The lookup is Aurora's (find_copy_texture, Aurora patch
+// 0017): never read g_gxState here. On the Switch this unit is built by clang and Aurora by GCC,
+// whose GXState differ (math.hpp's Vec4 uses GCC vector extensions): the copyTextures field was 80
+// bytes off and the picto box crashed reading it (bug B38).
 bool readCopy(const void* dest, const char* what, std::vector<uint8_t>& rgba, uint32_t& srcWidth,
               uint32_t& srcHeight) {
-    const auto it = aurora::gx::g_gxState.copyTextures.find(dest);
-    if (it == aurora::gx::g_gxState.copyTextures.end() || !it->second.handle) {
+    const aurora::gfx::TextureHandle handle = aurora::gx::find_copy_texture(dest);
+    if (!handle) {
         pc::writef(STDERR_FILENO, "[cos] %s: no copy texture for %p\n", what, dest);
         return false;
     }
-    const aurora::gfx::TextureHandle handle = it->second.handle;
     bool ok = false;
     aurora::gfx::render_worker::enqueue_work([&] { ok = readTexture(handle, rgba, srcWidth, srcHeight); });
     aurora::gfx::render_worker::synchronize();
