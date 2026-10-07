@@ -155,6 +155,10 @@ loaded at run time instead, which would allow CI builds of the game and binary r
 
 ## Build for the Switch
 
+**For players, the short way** (step-by-step guide: [INSTALL.md](INSTALL.md)):
+`scripts/switch/make_sd.sh --disc /path/to/GZLE01.iso` checks the disc, builds the NRO in containers
+and lays out `build/sd/switch/switchwaker/` (NRO, pipeline cache, a copy of the disc) for the SD card.
+
 On top of the above: Docker Desktop or Podman. `scripts/switch/build_native.sh` produces
 `build/switch-native/switchwaker.nro` (Mesa, Dawn and Aurora are built in a devkitPro container).
 Full guide: [docs/SWITCH_BUILD.md](docs/SWITCH_BUILD.md).
