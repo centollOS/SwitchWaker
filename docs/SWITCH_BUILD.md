@@ -117,7 +117,9 @@ option on the 1280x720 screen; `COS_ASPECT=4:3` gives the GameCube picture, pill
 `COS_FB_SCALE=1.5` (the internal resolution, see below). The defaults are for players: no
 frame-rate panel and no perf or hitch lines in the log. For a measuring run put
 `COS_PERF_EVERY=60`, `COS_HITCH_MS=50` and `COS_FPS_OVERLAY=1` in `env.txt` (the lines below
-assume them).
+assume them). `scripts/switch/perf_scenes.py centollos.log` summarises such a log per scene
+(`stage:room`) and classifies each 60-frame window as GPU-, render-worker-, game-bound, compile or
+paced ([DEKO3D_MIGRATION_PLAN.md](DEKO3D_MIGRATION_PLAN.md) sections 2.3 and 2.4).
 
 Options menu: **Minus (−)** opens it in game (B closes it; the game pauses meanwhile). It changes
 most of these options at run time and saves them to `native/user/settings.ini` on the SD card, with
