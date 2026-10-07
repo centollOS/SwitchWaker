@@ -312,8 +312,10 @@ Tint options, from the GL path's `ShaderModuleGL.cpp:437-458` with changes:
 | bindings | Tint `GenerateBindings` + Dawn's remap | fixed table: `vbuf`/`abuf` -> SSBO 0/1; `ubuf` -> UBO 0; textures `@binding(2i)` -> combined samplers i; immediates -> UBO 15; `disable_robustness` as today |
 
 The post-pass (C++, ~150 lines, the HD `glsl_convert.cpp` pattern, host and Switch) rewrites two
-things uam refuses. Verified on 2026-10-08 with the host uam 1.1.0 build in `~/Documents/uam-proto`
-(docker image `uam-host`) on GLSL shaped like Tint's desktop output:
+things uam refuses (phase 1 found that the immediates come out as an array and that dual-source
+blending needs a third rewrite: see "Phase 1 results" in section 5). Verified on 2026-10-08 with the
+host uam 1.1.0 build in `~/Documents/uam-proto` (docker image `uam-host`) on GLSL shaped like Tint's
+desktop output:
 
 | Input | uam result |
 |---|---|
@@ -420,6 +422,106 @@ Verification (Mac): 100 % of the 3055 configs compile in both stages; the report
 warning; the GLSL of a sample of 20 pipelines reviewed by hand for the semantics of 3.3; a
 `dksh_cache dump` of a shader disassembled with `uam`'s own tooling is sane; determinism (two runs,
 identical bytes: HD's uam patch 6). Nothing on the console.
+
+### Phase 1 results (2026-10-08, `dev`)
+
+Built: `switch/uam/` (HD's uam with patches 1-7; `uamlib` builds on the host in the tool's Debian
+13 container and with devkitA64 in the Switch build image: 180/180 objects, not linked into an NRO
+yet); `switch/deko/shader_translate.{h,cpp}` (Tint options of 3.3 + post-pass, for the host tool
+now and the NRO's misses later) and `switch/deko/dksh_file.{h,cpp}` (the cache format below);
+`native/tools/dksh_cache/` (`build.sh` builds Tint from a copy of the Switch build's Dawn source
+plus `switch/dawn/patches/dawn-switch-tint-position-y-up.patch`, Aurora's `gx/shader.cpp` and
+`shader_info.cpp` from the NRO's patched copy, and uamlib, then runs the tool);
+`fixed_wgsl.py` (the fixed shaders' WGSL out of Aurora and ImGui); `scripts/switch/perf_scenes.py`.
+Outputs stay in `build/` (`build/dksh/initial_dksh_cache.bin`, `.report.txt`, `.fixed.inc`, and
+the GLSL of every shader in `.work/glsl/`).
+
+**Cache format** `SWDK` v1 (WDK1's shape): header {magic, version, compiler id = FNV of uam's
+name + patch set, `kTranslateRevision`, `GXPipelineConfigVersion` 13 and the format version};
+appendable records {kind, size, CRC32}: shader (stage, XXH3 of the GLSL uam compiled, DKSH),
+module (Aurora's shader hash `xxh3(dstAlphaMode, xxh3(normalAttachment, xxh3(ShaderConfig)))` ->
+vertex and fragment GLSL hashes) and named (fixed shaders, with their slot table). Keying the
+DKSH by the GLSL hash stores a vertex shader shared by many modules once.
+
+**Numbers** (`native/tools/dksh_cache/build.sh build native/data/initial_pipeline_cache.db ...`,
+M-series Mac, arm64 container, 10 processes):
+
+| | measured |
+|---|---|
+| input | 3055 GX configs (v13, every row's hash re-checked against its blob) |
+| modules `create_pipeline` needs | 3055: 3046 None, 9 Replace (destination alpha without source alpha), 0 DualSource / alpha prepass; 1847 distinct |
+| GLSL after Tint + post-pass | 1844 distinct (765 vertex, 1079 fragment) from 3694 module stages; Tint + post-pass 1.7 ms mean per stage (p99 2.6) |
+| fixed shaders | 28 modules, 55 entry points (clear colour/depth, 14 copy conversions + blit, Z8, Z16, depth snapshot and its MS variant, 3 palette conversions, present resample, XFB copy, ImGui), 36 distinct DKSH |
+| uam | **1880 / 1880 compiled** (773 vertex, 1107 fragment, GX + fixed): **3055 / 3055 configs** have every module in both stages, 55 / 55 fixed entry points; no failure, **no uam warning** (log captured per shader; the uam CLI prints nothing either) |
+| uam per shader (host) | vertex mean 14.3 ms (p50 14.2, p90 21.4, p99 27.2, max 33.6); fragment mean 2.7 ms (p50 2.3, p90 4.7, p99 7.7, max 12.4) |
+| wall | 9.4 s for the whole run (uam 1.9 s over 10 processes); 86 s for the first tool build (Tint, uamlib) |
+| bytes | DKSH 6,236,160 (5.95 MiB, mean 3.3 KB, max 12 KB); the file 6.04 MiB; 18 % of the 32 MiB code block |
+| DKSH headers (`dksh_cache dump`) | 1880 sane (magic, sizes, one program of the right type); GPRs vertex 5-35, fragment 4-23; no scratch memory |
+| determinism | identical bytes over runs with 10, 4 and 3 processes and after a from-scratch tool build; every GX DKSH identical to the uam CLI's (one process per shader) |
+
+The plan expected ~6.6k DKSH and 20-25 MB: deduplication by GLSL leaves 1880 and 6 MiB, and the
+boot load and the miss rate's code-memory headroom are correspondingly better.
+
+**What uam refused, and the fixes** (all in the post-pass, `kTranslateRevision` 1):
+
+1. Sampler bindings (as 3.3 says): `layout(binding = i)` added; GX texture map i is slot i.
+2. Immediates: this Tint emits `layout(location = 0) uniform uint tint_immediates[16];`, not a
+   struct, and indexes it with constants (`tint_immediates[5u]`). uam: "uniform 'tint_immediates'
+   in driver constbuf (c[0x1][0x000]) not supported" on the first run (all 765 vertex and the 456
+   fragment shaders that read immediates). A `uint[16]` in a std140 block would have a 16-byte
+   stride, so the block at slot 15 is `uvec4 tint_immediates_v[4]` (64 bytes, Aurora's
+   `DrawImmediateData` as is) and each `tint_immediates[N]` becomes `tint_immediates_v[N/4].xyzw[N%4]`;
+   a non-constant index fails the translation on purpose (uam would read `.x`).
+3. Dual-source blending: Tint writes `#extension GL_EXT_blend_func_extended: require` also for
+   desktop GLSL; uam: "extension `GL_EXT_blend_func_extended' unsupported in fragment shader".
+   The line is dropped (`layout(location = 0, index = 1)` is core GLSL); the
+   `--dual-source-probe 100` run compiles 100 / 100 DualSource fragment shaders, TGSI shows the
+   second output as `COLOR[1]`. No config of today's database needs dual source (or the alpha
+   prepass), so this only matters for future rows; whether the blend unit takes `COLOR[1]` as
+   source 1 is a phase 3 console check before `g_dualSourceBlendingSupported` is set on deko3d.
+
+**Semantics review** (20 modules sampled every 92nd of `modules.tsv`, plus greps over all 1844 GX
+shaders and the TGSI of each from the uam CLI):
+
+- Integer division: 181 vertex shaders divide (`tint_div_u32`: matrix index / 3, byte offset / 4);
+  after inlining every one of the 15,397 TGSI `UDIV` has an immediate divisor, which nv50 lowers
+  exactly (multiply-high), so uam's float fallback for variable divisors never applies; no
+  modulo, none in fragment shaders.
+- Dynamic component index into a UBO vector: none. Dynamic indices are array indices only
+  (`postex_mtx[in_pnmtxidx]`, `nrm_mtx[in_pnmtxidx]` in all 765 vertex shaders, `lights[i]` in 305),
+  which uam addresses indirectly; `ind_mtx[k][j]` and all immediates indices are constants.
+- `textureSampleBias`: every GX sample (1881) is `texture(s, uv, clamp(bias, -16.0, 15.99))`,
+  TGSI `TXB`: same meaning as WebGPU.
+- `isampler2D`: none in GX shaders; the palette conversion's `isampler2D` + `texelFetch` compiles.
+- Depth loads: the Z8/Z16 conversions and the depth snapshot read `sampler2D` / `sampler2DMS`
+  with `texelFetch(...).x`; deko3d returns (D, D, D, 1), so `.x` is right (3.3, risk 9).
+- Position: every vertex shader ends `gl_Position = vec4(p.x, p.y, p.z, p.w)` (no y negation, no
+  `2z - w`). `gl_VertexID` (all vertex shaders, vertex pulling) and `gl_InstanceID` (3, line and
+  point expansion) match WebGPU's indices only with first vertex / first instance 0, which is how
+  Aurora draws: keep it so in phase 3.
+- `gl_FragCoord`: 456 fragment shaders with range fog read `abuf[imm.fog_range_base + u32(frag.x)]`
+  and fog reads `frag.z`; with the upper-left origin and depth [0, 1] these are WebGPU's values.
+  Phase 3 consequence: the fragment stage needs SSBO 1 (`abuf`) and the immediates UBO 15 bound,
+  not only the vertex stage.
+- The vertex shaders' bounds checks use `vbuf.length()` / `abuf.length()`: bind the real range
+  sizes with `dkCmdBufBindStorageBuffer`, not the whole ring.
+- Varyings: `layout(location = N)` on both sides, no `flat`, no name matching needed.
+
+**Slot table for phase 3** (both stages unless noted): SSBO 0 `vbuf` (vertex), SSBO 1 `abuf`
+(vertex; fragment with range fog), UBO 0 `ubuf`, UBO 15 immediates (64 bytes,
+`dkCmdBufPushConstants`), combined samplers 0-7 = GX texture maps 0-7. Fixed shaders use the slots
+in their named records (also printed in the report and in the `.fixed.inc` table).
+
+**Phase 0 numbers from the existing logs** (`perf_scenes.py`, by-product): the 2026-10-04/06 logs
+give table 1.2's medians (12 play windows under 29 fps: 10 compile hitches, 2 worker-bound); the
+2026-10-07 logs (`build/console-logs/20261007-1043`) give Dragon Roost Cavern (`M_NewD2:0`, 16
+windows) a worker CPU median of 19.6 ms at 1145 draws, above the 18 ms GO threshold of 2.4. The
+measuring session of section 2 still decides.
+
+Remaining for later phases: the NRO side of everything above (uamlib, Tint alone, the translate and
+file code in the deko3d NRO; `build_native.sh` running `dksh_cache` and pushing the file; the
+loader), the `.fixed.inc` table embedded where phases 2-3 draw the fixed passes, and the console
+checks of dual source and of the conventions (phase 2's test pattern).
 
 ### Phase 2: device, present, overlay (3-5 days)
 
@@ -576,6 +678,9 @@ Each with a recommendation; "ask" marks a decision for the user.
    and depth texture loads on every generated shader. Phase 1 compiles all of them on the Mac and
    phase 3's captures compare the pixels. Fallbacks: ES 3.2 output (uam accepted it), the alpha
    prepass instead of dual-source, Aurora emitting GLSL (c1) as the last resort.
+   Phase 1 (section 5, "Phase 1 results"): every shader of the database and every fixed shader
+   compiles with three post-pass rewrites and no uam warning; the open items are console checks
+   (dual-source output, the conventions).
 2. **Misses on one uam thread** (70 ms mean, 430 ms p99). The committed bundle has every pipeline
    the Mac sweeps and the console play so far have seen (3056); HD's harvest covered 96.2 % of a
    console's shaders. Phase 3 measures the route's miss rate; the skip-until-ready behaviour means
@@ -588,6 +693,8 @@ Each with a recommendation; "ask" marks a decision for the user.
    data, so it can be shipped. Recommendation: do not commit it; `build_native.sh` generates it
    in the container in ~2 minutes and caches it in `build/`; CI could build it without a disc. Ask:
    generate at build time (recommended) or commit ~20 MB that changes with every shader change?
+   Phase 1 measured 6.0 MiB (1880 DKSH after deduplication), generated in ~10 s once the tool is
+   built (~90 s the first time, in its container).
 4. **deko3d 0.5.0 defects** found by HD: BC images whose level 0 is 6-8 block rows tall overlap mip
    1 (hits only the HD pack path here: Aurora decodes CMPR to RGBA8), fixed by
    `image_tile_size_fix`; `dkCmdBufCopyImage` ignores `srcRect->z`; LOD clamp order; release
