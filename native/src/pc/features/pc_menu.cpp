@@ -209,7 +209,6 @@ const Warp kMainWarps[] = {
     {"sea", 4, 0, "Isla del Vendaval (Gale)"},
     {"kaze", 15, 15, "Templo del Viento"},
     {"GanonK", 0, 0, "Torre de Ganon"},
-    {"A_mori", 0, 0, "Bosque (A_mori, prueba de niebla)"},
 };
 
 // Every stage of the disc with the start native/tools/boot_sweep.py --list picks.
@@ -217,7 +216,6 @@ const Warp kAllWarps[] = {
 #define W(s, r, p) {s, r, p, nullptr},
     W("ADMumi", 0, 100)
     W("A_R00", 0, 0)
-    W("A_mori", 0, 0)
     W("A_nami", 0, 0)
     W("A_umikz", 0, 0)
     W("Abesso", 0, 0)
