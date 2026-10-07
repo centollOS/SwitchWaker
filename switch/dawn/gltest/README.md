@@ -26,6 +26,6 @@ what changed.
   shaders are Aurora's generated WGSL; to collect them, make Aurora write each shader it builds
   to a file (a local, uncommitted edit of `lib/gx/shader.cpp`'s `build_shader_source` in
   `build/native-mac/_deps/aurora-patched-src`: write `shaderSource` to
-  `$AURORA_DUMP_WGSL/<hash>.wgsl`), rebuild `centollos`, and run outset-control with
+  `$AURORA_DUMP_WGSL/<hash>.wgsl`), rebuild `switchwaker`, and run outset-control with
   `COS_PRECOMPILE=all` and the bundled `initial_pipeline_cache.db` next to the executable (823
   shaders on 2026-10-04); undo the edit afterwards.

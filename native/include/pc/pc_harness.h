@@ -1,6 +1,6 @@
 /*
- * pc_harness.h - the run harness of the native executable centollos (docs/NATIVE_PORT_PHASE4_6.md,
- * step 6.0). Implemented in native/src/pc (README.md there), linked into centollos (and into the
+ * pc_harness.h - the run harness of the native executable switchwaker (docs/NATIVE_PORT_PHASE4_6.md,
+ * step 6.0). Implemented in native/src/pc (README.md there), linked into switchwaker (and into the
  * link census bundle) as the static library cos_pc. Only TARGET_PC code calls it.
  *
  * Environment (read once by pc_harness_init):

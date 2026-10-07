@@ -40,7 +40,7 @@ and certifies the [Developer Certificate of Origin 1.1](https://developercertifi
 ## No game data
 
 Never commit anything derived from the disc: disc images, `main.dol`, RELs, extracted or generated
-assets, screenshots of the game, pipeline caches made from it, or builds (`.nro`, `centollos`). Generated
+assets, screenshots of the game, pipeline caches made from it, or builds (`.nro`, `switchwaker`). Generated
 files stay under `build/` and fetched sources under `ref/`, both ignored by git.
 
 ## Checks
@@ -54,4 +54,4 @@ In the project's own files, names and commit messages, refer to the game as "the
 disc ID, `GZLE01`), never by its title or by trademarks of its publisher. The game's own
 identifiers (function, file and stage names the code has to use) are fine where the code needs
 them, and nothing inside `game/` is renamed. Prefixes: `cos_`/`COS_` for code, CMake and
-environment variables; `centollos` for files, directories and binaries.
+environment variables; `switchwaker` for files, directories and binaries.

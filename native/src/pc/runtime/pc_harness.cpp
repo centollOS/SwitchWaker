@@ -1,4 +1,4 @@
-// Run harness of the native executable centollos: environment, start-up order and exit
+// Run harness of the native executable switchwaker: environment, start-up order and exit
 // (docs/NATIVE_PORT_PHASE4_6.md, step 6.0). Public API in native/include/pc/pc_harness.h.
 #include "pc_internal.h"
 #include "pc/pc_settings.h"

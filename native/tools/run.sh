@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Run the native executable centollos to a milestone or through a smoke test, with a timeout, and keep
+# Run the native executable switchwaker to a milestone or through a smoke test, with a timeout, and keep
 # what the run left in build/native-mac/runs/<target>-<timestamp>/ (docs/NATIVE_PORT_PHASE4_6.md,
 # step 6.0 and "The crash-to-fix loop").
 #
-#   native/tools/run.sh <target> [options] [-- extra arguments for centollos]
+#   native/tools/run.sh <target> [options] [-- extra arguments for switchwaker]
 #
 # <target> is a milestone (static-init, aurora-up, heaps, ... see COS_MILESTONE) or a smoke test
 # (crash-test, ... see COS_SMOKE). static-init is milestone M0 and runs the static-init smoke test.
@@ -72,8 +72,8 @@
 #                    allocations exits 1 (bug B13: a heap too small that the game survives)
 #   --env N=V        export the COS_* variable N with value V for the run (a regress_targets.txt
 #                    line can set one so), e.g. --env COS_ITEM_SWEEP=0x22,0x38
-#   --build          run `ninja -C build/native-mac centollos` first
-#   --exe PATH       the executable (default build/native-mac/centollos)
+#   --build          run `ninja -C build/native-mac switchwaker` first
+#   --exe PATH       the executable (default build/native-mac/switchwaker)
 #   --run-dir DIR    put the run in DIR (created; must not exist yet) instead of
 #                    build/native-mac/runs/<target>-<timestamp>
 #   --quiet          do not print the tail of the log on failure
@@ -85,7 +85,7 @@
 # build/native-mac/user/cache: its pipeline_cache.db then lists only the pipelines this run used
 # (native/tools/gen_pipeline_cache.sh).
 #
-# Exit codes (those of centollos): 0 reached, 1 smoke check failed, 2 usage, 10 timeout, 11 stall,
+# Exit codes (those of switchwaker): 0 reached, 1 smoke check failed, 2 usage, 10 timeout, 11 stall,
 # 12 panic, 13 signal, 14 disc problem. If the process does not end within the timeout plus a
 # grace period it is killed and the run counts as a stall (11); a process killed by a signal the
 # crash handler could not catch counts as 13.
@@ -106,7 +106,7 @@ set -u
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$script_dir/../.." && pwd)"
 # COS_BUILD_DIR: another build directory (e.g. build/native-linux), relative to the repository or
-# absolute; its centollos, runs/ and disc manifest are used instead of build/native-mac's.
+# absolute; its switchwaker, runs/ and disc manifest are used instead of build/native-mac's.
 build="${COS_BUILD_DIR:-$repo/build/native-mac}"
 case "$build" in /*) ;; *) build="$repo/$build" ;; esac
 
@@ -147,7 +147,7 @@ aspect="${COS_ASPECT:-}"
 heap_check="${COS_HEAP_CHECK:-}"
 sound=0
 do_build=0
-exe="$build/centollos"
+exe="$build/switchwaker"
 quiet=0
 run_dir_opt=""
 extra=()
@@ -198,16 +198,16 @@ if [ "$needs_disc" = 1 ] && [ -z "$disc" ]; then
 fi
 
 if [ "$do_build" = 1 ]; then
-    ninja -C "$build" centollos >/dev/null || { echo "run: build failed" >&2; exit 2; }
+    ninja -C "$build" switchwaker >/dev/null || { echo "run: build failed" >&2; exit 2; }
 fi
-[ -x "$exe" ] || { echo "run: $exe not built (ninja -C build/native-mac centollos)" >&2; exit 2; }
+[ -x "$exe" ] || { echo "run: $exe not built (ninja -C build/native-mac switchwaker)" >&2; exit 2; }
 
 runs="$build/runs"
 mkdir -p "$runs"
 
 # --- disc: SHA-1 of the image and of main.dol on first use (decision H9) -----------------------
 # Only when the target boots the game: a smoke test that runs before the disc check needs none.
-# A missing file is left to centollos, which exits 14 with its own message.
+# A missing file is left to switchwaker, which exits 14 with its own message.
 if [ "$needs_disc" = 1 ] && [ -f "$disc" ]; then
     python3 "$disc_manifest" --verify --quiet --disc "$disc" || exit 14
 fi
@@ -316,7 +316,7 @@ elapsed=$(( $(date +%s) - start ))
 if [ "$killed" = 1 ]; then
     rc=11
 elif [ "$rc" -gt 128 ]; then
-    echo "run: centollos died of signal $((rc - 128)) without the crash handler" >> "$run_dir/run.log"
+    echo "run: switchwaker died of signal $((rc - 128)) without the crash handler" >> "$run_dir/run.log"
     rc=13
 fi
 

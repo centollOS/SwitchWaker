@@ -224,13 +224,13 @@ bool readPixels(unsigned int frame, std::vector<uint8_t>& rgb, uint32_t& outWidt
     const uint32_t bytesPerRow = (width * 4 + 255) & ~255u;
     const uint64_t size = (uint64_t)bytesPerRow * height;
     const wgpu::BufferDescriptor bufferDescriptor{
-        .label = "centollos shot readback",
+        .label = "switchwaker shot readback",
         .usage = wgpu::BufferUsage::MapRead | wgpu::BufferUsage::CopyDst,
         .size = size,
     };
     wgpu::Buffer buffer = gpu::g_device.CreateBuffer(&bufferDescriptor);
 
-    const wgpu::CommandEncoderDescriptor encoderDescriptor{.label = "centollos shot"};
+    const wgpu::CommandEncoderDescriptor encoderDescriptor{.label = "switchwaker shot"};
     wgpu::CommandEncoder encoder = gpu::g_device.CreateCommandEncoder(&encoderDescriptor);
     const wgpu::TexelCopyTextureInfo src{
         .texture = source.texture,

@@ -85,7 +85,7 @@
 # from that committed file. scripts/switch/build_native.sh puts it next to the NRO and
 # scripts/switch/push.sh pushes it with the NRO (where Aurora looks for it:
 # sdmc:/switch/switchwaker/initial_pipeline_cache.db). On the Mac nothing reads it unless it is
-# copied next to build/native-mac/centollos (Aurora's resources path).
+# copied next to build/native-mac/switchwaker (Aurora's resources path).
 set -u
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -231,7 +231,7 @@ if [ "$merge_only" = 1 ]; then
     next_tier=$(( $(sqlite3 "$tmp" 'SELECT COALESCE(MAX(first_frame_used) / 10000000, -1) FROM pipeline_cache') + 1 ))
 else
 if [ "$do_build" = 1 ]; then
-    ninja -C "$build" centollos > /dev/null || { echo "gen_pipeline_cache: build failed" >&2; exit 2; }
+    ninja -C "$build" switchwaker > /dev/null || { echo "gen_pipeline_cache: build failed" >&2; exit 2; }
 fi
 
 runs="$out/runs-$stamp"

@@ -58,7 +58,7 @@ census_target=""
 
 if [ "$do_build" = 1 ]; then
     # shellcheck disable=SC2086
-    if ninja -C "$build" all centollos cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check \
+    if ninja -C "$build" all switchwaker cos_sdk_smoke cos_pc_tests cos_layout_check cos_sdk_shadow_check \
         $census_target > "$out/build.log" 2>&1; then
         report build ok ""
     else
@@ -79,7 +79,7 @@ if [ "$census" = 1 ]; then
         "$build/link_census_unresolved.txt"
 fi
 # symbol_census.py reads Mach-O objects with nm -m and otool: Mac only. On Linux the strict link
-# of centollos (ld.lld or GNU ld, no duplicate strong definitions allowed) covers the same check.
+# of switchwaker (ld.lld or GNU ld, no duplicate strong definitions allowed) covers the same check.
 if [ "$census" = 1 ]; then
     check symbol_dups python3 "$script_dir/symbol_census.py" --all --dups
 fi
@@ -104,13 +104,13 @@ fi
 
 # --- game runs ------------------------------------------------------------------------------------
 # regress_targets.txt: "<target> <expected exit> [extra run.sh options]"; # starts a comment.
-# The special target no-disc runs centollos with COS_DISC=/nonexistent.
+# The special target no-disc runs switchwaker with COS_DISC=/nonexistent.
 run_one() { # line
     local target expect opts rc
     read -r target expect opts <<< "$1"
     local log="$out/run-$target-$(echo "$opts" | tr -c 'a-z0-9' '_').log"
     if [ "$target" = no-disc ]; then
-        COS_DISC=/nonexistent "$build/centollos" > "$log" 2>&1
+        COS_DISC=/nonexistent "$build/switchwaker" > "$log" 2>&1
         rc=$?
     else
         local pace="--uncapped"
@@ -135,7 +135,7 @@ while read -r status rest; do
     if [ "$status" = ok ]; then report "run:$name" ok "${rest#"$name"}"; else report "run:$name" FAIL "${rest#"$name"}"; fi
 done < <(sort -k2 "$out/runs.txt")
 
-pkill -f "$build/centollos" 2>/dev/null
+pkill -f "$build/switchwaker" 2>/dev/null
 echo
 if [ "$fail" = 0 ]; then
     echo "regress: all checks passed"

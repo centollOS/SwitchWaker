@@ -63,8 +63,8 @@ endif ()
 #       -DFETCHCONTENT_SOURCE_DIR_AURORA=$PWD/build/aurora-3227d76 \
 #       -DCOS_ASSETS_DIR=$PWD/build/native-mac/assets/GZLE01 \
 #       (plus the FETCHCONTENT_SOURCE_DIR_* of native/sdk/README.md, "ThreadSanitizer run")
-#   ninja -C build/native-mac-asan -j4 centollos
-#   native/tools/run.sh <target> --exe build/native-mac-asan/centollos
+#   ninja -C build/native-mac-asan -j4 switchwaker
+#   native/tools/run.sh <target> --exe build/native-mac-asan/switchwaker
 # Xcode 26's Apple clang 17 ASan runtime deadlocks in its own initialisation on macOS 26.6 (even
 # for an empty program: AsanInitInternal -> get_dyld_hdr -> malloc -> AsanInitFromRtl spins), so
 # the variant is built with the Command Line Tools clang (21), as the TSan build is.
@@ -123,7 +123,7 @@ include(cmake/sdk.cmake)
 include(cmake/sdk_gf.cmake)
 # Link census (phase 2): `ninja cos_link_census` lists what the non-REL units still need.
 include(cmake/census.cmake)
-# The game executable (phase 3, step 3.8): `ninja centollos` links every module, cos_sdk and Aurora.
+# The game executable (phase 3, step 3.8): `ninja switchwaker` links every module, cos_sdk and Aurora.
 include(cmake/executable.cmake)
 # Layout check (phase 4, step 4.0c): `ninja cos_layout_check` asserts the GameCube offsets of the
 # disc-mapped structs (check/layout_headers.txt) on the host, minus check/layout_xfail.txt.

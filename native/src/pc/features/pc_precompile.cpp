@@ -72,7 +72,7 @@
 // On the Mac nothing changes unless COS_PRECOMPILE is set (Aurora there is unpatched: its warm-up
 // always runs to the end in order of first use, so `off` only hides the indicator). With it set the
 // loading screen and indicator are drawn as on the Switch, to try them; `boot` there waits until
-// as many pipelines were built since start as the bundled file next to build/native-mac/centollos marks
+// as many pipelines were built since start as the bundled file next to build/native-mac/switchwaker marks
 // priority 0 (an approximation: the Mac does not sort them first).
 //
 // COS_PRECOMPILE_LOG (default on on the Switch, off elsewhere): "[cos] precompile N/M pipelines"

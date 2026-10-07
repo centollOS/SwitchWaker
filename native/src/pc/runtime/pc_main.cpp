@@ -1,4 +1,4 @@
-// Aurora bring-up of the native executable centollos (docs/NATIVE_PORT_PHASE4_6.md, step 6.1): called by
+// Aurora bring-up of the native executable switchwaker (docs/NATIVE_PORT_PHASE4_6.md, step 6.1): called by
 // m_Do_main.cpp's main (TARGET_PC) right after pc_harness_init, before any of the game's own code.
 //
 // - aurora_initialize: window and WebGPU device; MEM1 256 MiB (decision H5) and ARAM 16 MiB, which
@@ -216,7 +216,7 @@ void pc_aurora_init(int argc, char* argv[]) {
     makeUserPaths(argc > 0 ? argv[0] : nullptr);
 
     AuroraConfig config{};
-    config.appName = "centollos";
+    config.appName = "SwitchWaker";
     config.userPath = sUserPath;
     config.cachePath = sCachePath;
     config.desiredBackend = desiredBackend();

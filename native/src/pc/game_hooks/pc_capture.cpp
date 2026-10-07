@@ -57,12 +57,12 @@ bool readTexture(const aurora::gfx::TextureHandle& handle, std::vector<uint8_t>&
     const uint32_t bytesPerRow = (width * 4 + 255) & ~255u;
     const uint64_t size = (uint64_t)bytesPerRow * height;
     const wgpu::BufferDescriptor bufferDescriptor{
-        .label = "centollos capture readback",
+        .label = "switchwaker capture readback",
         .usage = wgpu::BufferUsage::MapRead | wgpu::BufferUsage::CopyDst,
         .size = size,
     };
     wgpu::Buffer buffer = gpu::g_device.CreateBuffer(&bufferDescriptor);
-    const wgpu::CommandEncoderDescriptor encoderDescriptor{.label = "centollos capture"};
+    const wgpu::CommandEncoderDescriptor encoderDescriptor{.label = "switchwaker capture"};
     wgpu::CommandEncoder encoder = gpu::g_device.CreateCommandEncoder(&encoderDescriptor);
     const wgpu::TexelCopyTextureInfo src{
         .texture = handle->texture,

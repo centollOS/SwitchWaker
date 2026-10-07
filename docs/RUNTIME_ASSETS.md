@@ -61,7 +61,7 @@ contents, and fill the arrays from the player's disc when the program starts.
    with both.
 
 4. **Consequences**. With `COS_RUNTIME_ASSETS=ON` the build needs no disc: CI builds and tests
-   the real binaries (smoke tests that need no disc), and releases can ship `centollos` (Mac,
+   the real binaries (smoke tests that need no disc), and releases can ship `switchwaker` (Mac,
    Linux) and `switchwaker.nro` (Switch); players still supply the disc to run them, which they do
    already. The binaries stay GPL-2.0-or-later (Dolphin's DSP HLE), with source available.
 

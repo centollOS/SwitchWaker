@@ -8,7 +8,7 @@ native/tools/disc_manifest.py writes), picks a start for each from the stage dat
 one with `run.sh run --stage <stage>:<room>:<point> --frames N --uncapped --audio on`, several
 at a time. Each stage's run lands in <sweep dir>/<stage>/ (the usual run.sh run directory);
 the report is <sweep dir>/boot_sweep.txt. Exit 0 only if every stage reached its last frame
-(exit 0 of centollos); 1 otherwise; 2 usage; 14 disc problem.
+(exit 0 of switchwaker); 1 otherwise; 2 usage; 14 disc problem.
 
 The start, from the stage data only (nothing is hard-coded per stage):
   - the spawn points are the PLYR records the game would use (dStage_playerInit): those of
@@ -36,7 +36,7 @@ Options:
   --env NAME=VAL  an environment variable for every run (repeatable), e.g. COS_FX_SWEEP=scene
   --list          print the chosen starts and exit (no runs)
   --disc PATH     the GZLE01 .iso (default COS_DISC)
-  --exe PATH      the executable (default build/native-mac/centollos)
+  --exe PATH      the executable (default build/native-mac/switchwaker)
   --out DIR       the sweep directory (default build/native-mac/runs/boot-sweep-<timestamp>)
 
 Report columns (tab-separated, one line per stage, after a header):
@@ -236,14 +236,14 @@ SKIP_FRAME = re.compile(r"^(pc_|OSPanic|OSReport|cos_switch_|JUTAssertion|JUTExc
 
 
 def game_frames(text, count=2):
-    """The first symbolised centollos frames of the first atos block that are not the harness itself,
+    """The first symbolised switchwaker frames of the first atos block that are not the harness itself,
     joined with " <- " (callee first)."""
     m = re.search(r"^\[run\] atos .*\n((?:.*\n)*?)--$", text, re.M)
     if not m:
         return None
     frames = []
     for line in m.group(1).splitlines():
-        fm = re.match(r"^(.*?) \(in centollos[^)]*\)(?: \((.*?)\))?", line)
+        fm = re.match(r"^(.*?) \(in switchwaker[^)]*\)(?: \((.*?)\))?", line)
         if not fm:
             continue
         func = fm.group(1)

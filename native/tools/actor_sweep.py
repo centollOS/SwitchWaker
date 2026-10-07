@@ -23,7 +23,7 @@ Options:
   --timeout S     run.sh --timeout per run (default 300)
   --max-runs N    stop after N runs (default 200)
   --disc PATH     the GZLE01 .iso (default COS_DISC)
-  --exe PATH      the executable (default build/native-mac/centollos)
+  --exe PATH      the executable (default build/native-mac/switchwaker)
   --out DIR       the sweep directory (default build/native-mac/runs/actor-sweeps-<timestamp>)
 Nothing here is meant for git.
 """

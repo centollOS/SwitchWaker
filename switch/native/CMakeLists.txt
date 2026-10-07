@@ -267,26 +267,26 @@ target_include_directories(cos_pc PRIVATE "${COS_SWITCH_DIR}/source")
 target_link_libraries(cos_pc PRIVATE cos_switch_platform)
 
 # ---- The NRO ---------------------------------------------------------------------------------------------
-if (NOT TARGET centollos)
-    message(FATAL_ERROR "native/ did not define the executable centollos (modules or cos_sdk missing)")
+if (NOT TARGET switchwaker)
+    message(FATAL_ERROR "native/ did not define the executable switchwaker (modules or cos_sdk missing)")
 endif ()
-target_link_libraries(centollos PRIVATE cos_switch_platform ${COS_SWITCH_GL_LIBS})
+target_link_libraries(switchwaker PRIVATE cos_switch_platform ${COS_SWITCH_GL_LIBS})
 # Every thread gets a stack Dawn's shader compiler fits in and runs on the application cores
 # (source/thread_wrap.c).
-target_link_options(centollos PRIVATE "LINKER:--wrap=pthread_create")
+target_link_options(switchwaker PRIVATE "LINKER:--wrap=pthread_create")
 # Mesa's and libdrm_nouveau's push-buffer space, GPU waits and submissions, timed per thread for
 # the perf-switch lines (source/nv_wrap.c).
-target_link_options(centollos PRIVATE "LINKER:--wrap=nouveau_pushbuf_space" "LINKER:--wrap=nvFenceWait"
+target_link_options(switchwaker PRIVATE "LINKER:--wrap=nouveau_pushbuf_space" "LINKER:--wrap=nvFenceWait"
         "LINKER:--wrap=nvGpuChannelKickoff" "LINKER:--wrap=nvGpuChannelAppendEntry")
 # abort() writes the logs out and a backtrace first (source/cos_switch.cpp).
-target_link_options(centollos PRIVATE "LINKER:--wrap=abort")
-set_target_properties(centollos PROPERTIES OUTPUT_NAME "switchwaker" SUFFIX ".elf")
+target_link_options(switchwaker PRIVATE "LINKER:--wrap=abort")
+set_target_properties(switchwaker PROPERTIES OUTPUT_NAME "switchwaker" SUFFIX ".elf")
 
 set(COS_SWITCH_NRO_NAME "switchwaker" CACHE STRING "File name of the NRO (without .nro)")
 nx_generate_nacp(cos_native.nacp
         NAME "SwitchWaker" AUTHOR "centollOS contributors" VERSION "0.1.0")
 nx_create_nro(cos_nro
-        TARGET centollos
+        TARGET switchwaker
         OUTPUT "${CMAKE_BINARY_DIR}/${COS_SWITCH_NRO_NAME}.nro"
         NACP cos_native.nacp
         # Original art drawn by scripts/switch/make_icon.py; the HOME-menu forwarder uses it too

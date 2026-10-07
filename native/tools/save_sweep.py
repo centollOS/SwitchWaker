@@ -116,7 +116,7 @@ Options:
   --timeout S   run.sh --timeout per run (default 600; the items case gets 30 s an item more)
   --items LIST  the items case's COS_ITEM_SWEEP (default %s)
   --disc PATH   the GZLE01 .iso (default COS_DISC)
-  --exe PATH    the executable (default build/native-mac/centollos)
+  --exe PATH    the executable (default build/native-mac/switchwaker)
   --out DIR     the sweep directory (default build/native-mac/runs/save-sweeps-<timestamp>)
 Nothing here is meant for git.""" % DEFAULT_ITEMS)
         return 0

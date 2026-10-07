@@ -1,7 +1,7 @@
-# native/src/pc: the host side of centollos
+# native/src/pc: the host side of switchwaker
 
 Everything here goes into the static library `cos_pc` (`native/cmake/executable.cmake` globs
-`pc_*.cpp` recursively), linked into `centollos` and the link census. Public headers are in
+`pc_*.cpp` recursively), linked into `switchwaker` and the link census. Public headers are in
 `native/include/pc/`; `pc_internal.h` (here) is the state the files share, found by every file
 through `cos_pc`'s include path. Files keep their `pc_` names wherever they are, so a file name in
 a comment or a log still finds the file.

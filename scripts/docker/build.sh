@@ -4,7 +4,7 @@
 #
 #   scripts/docker/build.sh [linux|switch|all] --disc /path/to/GZLE01.iso [options]
 #
-#   linux    build/native-linux/centollos: the native Linux binary (Vulkan, OpenGL fallback),
+#   linux    build/native-linux/switchwaker: the native Linux binary (Vulkan, OpenGL fallback),
 #            for the container's architecture (the host's: x86_64 or aarch64; see --platform)
 #   switch   build/switch-native/switchwaker.nro: the Switch homebrew (scripts/switch/build_native.sh)
 #   all      both (default)
@@ -146,8 +146,8 @@ if [[ $what == linux || $what == all ]]; then
     # configure outside this script would name a path the container does not have.
     run_linux -- "cmake -S native -B $bdir -G Ninja -UFETCHCONTENT_SOURCE_DIR_AURORA \
             -DCOS_ASSETS_DIR=/work/build/assets/GZLE01 -DCOS_RECOMPCORE_DIR=/work/ref/recompcore >/dev/null &&
-        ninja -C $bdir -j $jobs centollos cos_sdk_smoke cos_pc_tests"
-    file "$root/$bdir/centollos" 2>/dev/null || ls -l "$root/$bdir/centollos"
+        ninja -C $bdir -j $jobs switchwaker cos_sdk_smoke cos_pc_tests"
+    file "$root/$bdir/switchwaker" 2>/dev/null || ls -l "$root/$bdir/switchwaker"
 
     if [[ $do_test == 1 ]]; then
         targets=${COS_TEST_TARGETS:-static-init disc-ls title}

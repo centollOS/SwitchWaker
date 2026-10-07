@@ -22,13 +22,13 @@ Requirements: Xcode command line tools, `brew install cmake ninja python` (Pytho
 and the network the first time.
 
 ```sh
-git clone https://github.com/centollOS/SwitchWaker centollos && cd centollos
+git clone https://github.com/centollOS/SwitchWaker switchwaker && cd switchwaker
 export COS_DISC=/path/to/GZLE01.iso          # every script and the game read the disc from here
 native/tools/fetch_recompcore.sh             # ref/recompcore: Dolphin's DSP HLE (audio)
 native/tools/gen_assets.sh                   # build/native-mac/assets/GZLE01: headers from your disc
 cmake -S native -B build/native-mac -G Ninja
-ninja -C build/native-mac centollos          # build/native-mac/centollos
-build/native-mac/centollos                   # a 960x720 window
+ninja -C build/native-mac switchwaker          # build/native-mac/switchwaker
+build/native-mac/switchwaker                   # a 960x720 window
 ```
 
 Details, run options and tests: [native/README.md](native/README.md). Full regression:
@@ -52,13 +52,13 @@ sudo apt install clang lld cmake ninja-build pkg-config python3 git zlib1g-dev \
 Then, as on the Mac but in `build/native-linux`:
 
 ```sh
-git clone https://github.com/centollOS/SwitchWaker centollos && cd centollos
+git clone https://github.com/centollOS/SwitchWaker switchwaker && cd switchwaker
 export COS_DISC=/path/to/GZLE01.iso
 native/tools/fetch_recompcore.sh
 native/tools/gen_assets.sh --out build/native-linux/assets/GZLE01
 CC=clang CXX=clang++ cmake -S native -B build/native-linux -G Ninja
-ninja -C build/native-linux centollos        # build/native-linux/centollos
-build/native-linux/centollos
+ninja -C build/native-linux switchwaker        # build/native-linux/switchwaker
+build/native-linux/switchwaker
 ```
 
 Aurora draws with Vulkan, then OpenGL ES, then nothing (null) if neither works; `COS_BACKEND=opengl`
@@ -76,7 +76,7 @@ host needs only bash, git and Docker or Podman; the disc is bind-mounted read-on
 copied into an image.
 
 ```sh
-scripts/docker/build.sh linux  --disc /path/to/GZLE01.iso   # build/native-linux/centollos
+scripts/docker/build.sh linux  --disc /path/to/GZLE01.iso   # build/native-linux/switchwaker
 scripts/docker/build.sh switch --disc /path/to/GZLE01.iso   # build/switch-native/switchwaker.nro
 scripts/docker/build.sh all    --disc /path/to/GZLE01.iso --test   # both, plus headless checks
 ```
@@ -89,7 +89,7 @@ repository's ignored `build/` and `ref/` folders (Aurora and its packages in
 `ref/recompcore`, Mesa in `build/switch-mesa/downloads`, Dawn's sources in `build/switch-native/_deps`)
 and in the engine's image cache; the first Switch build takes an hour or more, later ones minutes.
 `scripts/docker/build.sh --help` lists every option. On Windows, keep the clone inside the WSL file
-system (for example `~/centollos`), not under `/mnt/c`: builds there are much slower.
+system (for example `~/switchwaker`), not under `/mnt/c`: builds there are much slower.
 
 ## Windows (status)
 

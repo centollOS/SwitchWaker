@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rerun the native executable centollos under lldb in batch mode and print every thread's backtrace,
+# Rerun the native executable switchwaker under lldb in batch mode and print every thread's backtrace,
 # the frame variables and the registers at the crash (docs/NATIVE_PORT_PHASE4_6.md, step 6.0,
 # "The crash-to-fix loop"). The COS_* environment is inherited by the inferior, so rerun with the
 # variables of the failing run (its env.txt):
@@ -19,7 +19,7 @@ set -u
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$script_dir/../.." && pwd)"
 build="$repo/build/native-mac"
-exe="$build/centollos"
+exe="$build/switchwaker"
 timeout_s=240
 force=0
 extra=()

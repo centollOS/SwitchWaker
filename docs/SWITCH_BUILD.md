@@ -55,7 +55,7 @@ scripts/switch/build_native.sh       # build/switch-native/switchwaker.nro and s
   probe (`build/switch-dawn-probe/_deps/dawn-src`) is reused when it is there.
 - nod (Aurora's disc reader, written in Rust) has no libnx target: `switch/native/nod` reads plain
   GameCube `.iso` images behind nod's C API. On the Mac it gives the same file system table, metadata
-  and file contents as nod for GZLE01, and a Mac `centollos` linked with it passes `disc-ls`, `arc-sweep`,
+  and file contents as nod for GZLE01, and a Mac `switchwaker` linked with it passes `disc-ls`, `arc-sweep`,
   `stage-sweep`, `j3d-sweep` and `opening`.
 - The first build fetches Dawn's dependencies (unless the probe's source is there), SDL 3's headers,
   ImGui, Tracy, fmt, xxhash and sqlite, and compiles Dawn and the game: about 40 minutes with 4 jobs
@@ -108,7 +108,7 @@ build/switch-logs/native-live.log` shows the log live.
 
 Run options come from `native/env.txt`, one `NAME=value` per line, with `#` comments
 ([switch/native/env.example.txt](../switch/native/env.example.txt)); they are the Mac's `COS_*`
-variables ([native/README.md](../native/README.md), "Running centollos"). Without the file:
+variables ([native/README.md](../native/README.md), "Running switchwaker"). Without the file:
 `COS_DISC=/switch/switchwaker/GZLE01.iso`, `COS_RUN_DIR=/switch/switchwaker/native`,
 `COS_PERF_EVERY=60`, `COS_HITCH_MS=50`, `COS_STALL_S=90`, `COS_ASPECT=16:9` (the widescreen
 option on the 1280x720 screen; `COS_ASPECT=4:3` gives the GameCube picture, pillarboxed) and
@@ -543,7 +543,7 @@ loading screen and the warm-up builds behind the logos; the warm-up is kept
 (it creates Dawn's pipeline objects, which a first draw would otherwise create) and, once the
 cache's hit rate is confirmed on the console, `full` costs little more than `boot`. The game's frame counter does not move during the loading screen; the stall watchdog
 (`COS_STALL_S`) counts its frames instead. On the Mac the same file is read only if it is copied
-next to `build/native-mac/centollos`; there the whole warm-up of 995 pipelines took 83 s of the compile
+next to `build/native-mac/switchwaker`; there the whole warm-up of 995 pipelines took 83 s of the compile
 thread with a warm Dawn cache, and frames captured with and without it are identical. The Mac
 draws no loading screen or indicator unless `COS_PRECOMPILE` is set (native/README.md).
 

@@ -155,12 +155,12 @@ int collectFrames(uintptr_t pc, uintptr_t lr, uintptr_t fp, void** frames, int m
 
 void writeImageBase(int fd) {
 #if defined(__APPLE__)
-    // Image 0 is the executable: atos -o centollos -l <load> <addresses> symbolises the frames.
+    // Image 0 is the executable: atos -o switchwaker -l <load> <addresses> symbolises the frames.
     const struct mach_header* header = _dyld_get_image_header(0);
     writef(fd, "[cos] image %s load=0x%llx slide=0x%llx\n", _dyld_get_image_name(0),
            (unsigned long long)(uintptr_t)header, (unsigned long long)_dyld_get_image_vmaddr_slide(0));
 #elif defined(__linux__)
-    // The executable's load address (PIE): addr2line -f -C -i -e centollos <address - load>.
+    // The executable's load address (PIE): addr2line -f -C -i -e switchwaker <address - load>.
     struct Base {
         uintptr_t addr = 0;
         const char* name = nullptr;
@@ -173,7 +173,7 @@ void writeImageBase(int fd) {
             return 1; // the first object is the executable
         },
         &base);
-    writef(fd, "[cos] image %s load=0x%llx: addr2line -f -C -i -e centollos <address - load>\n",
+    writef(fd, "[cos] image %s load=0x%llx: addr2line -f -C -i -e switchwaker <address - load>\n",
            base.name != nullptr && base.name[0] != '\0' ? base.name : "(main)",
            (unsigned long long)base.addr);
 #elif defined(__SWITCH__)

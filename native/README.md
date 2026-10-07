@@ -51,7 +51,7 @@ native/tools/gen_assets.sh                     # build/native-mac/assets/GZLE01:
 
 ```sh
 cmake -S native -B build/native-mac -G Ninja
-ninja -C build/native-mac -j4 centollos              # build/native-mac/centollos
+ninja -C build/native-mac -j4 switchwaker              # build/native-mac/switchwaker
 ```
 
 **Run**
@@ -61,11 +61,11 @@ native/tools/run.sh logo-res               # milestone check: "logo-res: exit 0 
 native/tools/run.sh run --frames 1500 --shot 1500
 #   boots for 1500 game frames (~45 s) and saves the title screen as
 #   build/native-mac/runs/run-<timestamp>/shot-001500.png
-build/native-mac/centollos                           # interactive: a 960x720 window; Ctrl-C in the terminal quits
+build/native-mac/switchwaker                           # interactive: a 960x720 window; Ctrl-C in the terminal quits
 ```
 
 `run.sh` opens a window too; each run keeps its log in `build/native-mac/runs/` (see "Running
-`centollos` (phase 6)" for its options and exit codes). Without `COS_DISC` (or `--disc PATH`) a run that
+`switchwaker` (phase 6)" for its options and exit codes). Without `COS_DISC` (or `--disc PATH`) a run that
 boots the game stops with exit 14.
 
 **Controls.** Port 0 is Aurora's SDL gamepad: connect a controller (Xbox, PlayStation, Switch
@@ -88,7 +88,7 @@ definitions, assume an arm64 Mac in places). The Switch is phase 7 of `docs/NATI
 
 Phase 1 of `docs/NATIVE_PORT_PLAN.md`: every game unit compiles to an object with Apple clang
 (arm64, C++20 / C11) under `TARGET_PC`, against the host C and C++ libraries instead of
-Metrowerks' MSL. Phase 3 links them into one executable (see "The executable `centollos` (phase 3)"
+Metrowerks' MSL. Phase 3 links them into one executable (see "The executable `switchwaker` (phase 3)"
 below). Since step 2.8 of `docs/NATIVE_PORT_PHASE2_3.md` the game compiles against Aurora's SDK
 headers (see "Aurora (phase 2)" below), so every configure brings in Aurora.
 
@@ -318,7 +318,7 @@ native/tools/symbol_census.py --all --dups      # the step 3.2 check
 The REL list is regenerated with
 `native/tools/link_census.py rel-units --configure <decomp>/configure.py --out native/cmake/rel_units.txt --game-src game/src`.
 
-## The executable `centollos` (phase 3)
+## The executable `switchwaker` (phase 3)
 
 Phase 3 of `docs/NATIVE_PORT_PHASE2_3.md` links the main.dol units, the 415 REL actors and
 `f_pc_profile_lst` statically into one executable, following Dusklight's `c_dylink`. It is a
@@ -329,13 +329,13 @@ phase 6).
 ```sh
 cmake -S native -B build/native-mac -G Ninja      # all modules are on by default
 ninja -C build/native-mac -k 0 cos_modules         # 914 objects: 424 main.dol, 416 REL, 74 audio
-ninja -C build/native-mac centollos                      # build/native-mac/centollos (not part of `all`)
-COS_SMOKE=static-init build/native-mac/centollos; echo $?
+ninja -C build/native-mac switchwaker                      # build/native-mac/switchwaker (not part of `all`)
+COS_SMOKE=static-init build/native-mac/switchwaker; echo $?
 #   static-init: 502 of 502 profile slots filled, 0 error(s)
 #   0
 ```
 
-- `native/cmake/executable.cmake` defines `centollos`. Its only source is a generated empty unit; the
+- `native/cmake/executable.cmake` defines `switchwaker`. Its only source is a generated empty unit; the
   objects of every module (nothing is recompiled) go in through
   `build/native-mac/cos_exe/objects.rsp` in this order: the main.dol units, then the REL units of
   `native/cmake/rel_units.txt` (`f_pc_profile_lst` first), then `audio`. ld64 runs static
@@ -343,7 +343,7 @@ COS_SMOKE=static-init build/native-mac/centollos; echo $?
   REL's `_prolog` did after boot. It links `cos_sdk` (which carries `COS_AURORA_LIBS`) and
   `aurora::main`, which owns the process entry point and calls the game's `main` (renamed
   `aurora_main` by `<aurora/main.h>` in `m_Do_main.cpp`). There is no
-  `-undefined dynamic_lookup`: `nm -u build/native-mac/centollos` lists only system, framework and
+  `-undefined dynamic_lookup`: `nm -u build/native-mac/switchwaker` lists only system, framework and
   Homebrew library symbols. The target is skipped when `cos_sdk` or any module is not enabled.
 - The REL loader is replaced under `TARGET_PC`: `c_dylink.cpp`'s name table is empty and
   `cDyl_Link`/`cDyl_LinkASync` report the module as linked; `DynamicLink.cpp` keeps the class
@@ -356,7 +356,7 @@ COS_SMOKE=static-init build/native-mac/centollos; echo $?
   proves every static constructor (main.dol, REL, audio and Aurora) ran, and it checks the profile
   list (`g_fpcPf_ProfileList_p`, the NULL terminator, `mProcName == i`, `fpcPf_Get(i)`). It leaves
   with `_Exit`, without the game's static destructors. Since step 6.0 it lives in the run harness
-  (`native/src/pc/harness/pc_smoke.cpp`, see "Running `centollos` (phase 6)" below). Running `centollos` without
+  (`native/src/pc/harness/pc_smoke.cpp`, see "Running `switchwaker` (phase 6)" below). Running `switchwaker` without
   `COS_SMOKE` enters the game's `main`, which is not expected to work before phases 4 to 6.
 - `native/check/expected_unresolved_phase2.txt` and the symbol census stay the link checks: the
   census over every object reports 0 duplicate strong definitions, 0 weak data size mismatches, 0
@@ -381,21 +381,21 @@ COS_SMOKE=static-init build/native-mac/centollos; echo $?
 | `cos_sdk_smoke_tsan` | no | The same under ThreadSanitizer |
 | `cos_link_census` | no | Links the main.dol units with `-undefined dynamic_lookup` and lists what they still need |
 | `cos_symbol_census` | no | `symbol_census.py --all` over every object, to `build/native-mac/symbol_census.txt` |
-| `cos_pc` | yes | The run harness (`native/src/pc/**/pc_*.cpp`, see `native/src/pc/README.md`), linked into `centollos` and the link census |
-| `centollos` | no | The game executable |
+| `cos_pc` | yes | The run harness (`native/src/pc/**/pc_*.cpp`, see `native/src/pc/README.md`), linked into `switchwaker` and the link census |
+| `switchwaker` | no | The game executable |
 | `cos_layout_check` | no | The GameCube offsets of the disc-mapped structs (`native/check/layout_headers.txt`) hold on the host, minus `layout_xfail.txt`, and the decomp's offset comments hold for the GameCube (`native/tools/layout_check.py`, step 4.0c) |
 
 Full check after a change, from a clean build directory:
 
 ```sh
-ninja -C build/native-mac -k 0 all cos_sdk_shadow_check cos_link_census cos_symbol_census centollos cos_layout_check
+ninja -C build/native-mac -k 0 all cos_sdk_shadow_check cos_link_census cos_symbol_census switchwaker cos_layout_check
 build/native-mac/cos_sdk_smoke
 diff -u native/check/expected_unresolved_phase2.txt build/native-mac/link_census_unresolved.txt
 native/tools/symbol_census.py --all --dups
 native/tools/run.sh static-init
 ```
 
-## Running `centollos` (phase 6)
+## Running `switchwaker` (phase 6)
 
 Step 6.0 of `docs/NATIVE_PORT_PHASE4_6.md`: a run harness in `native/src/pc` (the static library
 `cos_pc`, globbed by `native/cmake/executable.cmake`; API in `native/include/pc/pc_harness.h`).
@@ -406,7 +406,7 @@ then checks the disc.
 ```sh
 native/tools/run.sh static-init               # milestone M0 -> exit 0
 native/tools/run.sh <milestone|smoke> [--timeout 180] [--stall 30] [--trace res,scene] ...
-COS_DISC=/nonexistent build/native-mac/centollos; echo $?   # 14
+COS_DISC=/nonexistent build/native-mac/switchwaker; echo $?   # 14
 ```
 
 | Variable | Meaning |
@@ -430,7 +430,7 @@ COS_DISC=/nonexistent build/native-mac/centollos; echo $?   # 14
 | `COS_CACHE_DIR` | Aurora's caches (`pipeline_cache.db`, `dawn_cache.db`) in this directory instead of `<directory of the executable>/user/cache` (its parent must exist; not on the Switch). `run.sh` sets it to `<run dir>/cache` when `COS_CACHE_PER_RUN=1` (`native/tools/gen_pipeline_cache.sh` records each run's pipelines that way) |
 | `COS_PRECOMPILE_LOG` | `1`: `[cos] precompile N/M pipelines` once a second while Aurora's start-up pipeline warm-up (every pipeline its cache knows, plus the bundled `initial_pipeline_cache.db` next to the executable if there is one) runs, `[cos] precompile loading screen N/M ...` while the loading screen is up, and `[cos] precompile done: ...` at its end (0/unset: off; the Switch sets 1) |
 | `COS_PRECOMPILE_SCREEN` | when `COS_PRECOMPILE=boot` or `full` shows its loading screen (docs/SWITCH_BUILD.md, "Pipeline precompile"): `auto` (default) for the whole warm-up when its slow work would take more than `COS_PRECOMPILE_SCREEN_MIN_S` (default 3) s: every pipeline left if the first builds (up to 8, at most 0.3 s) average more than `COS_PRECOMPILE_SLOW_MS` (default 25) ms (a cold shader cache), else those past the point where the last warm-up stopped (`<cache>/precompile_state.txt`: `complete`, or `partial` N of M; no record counts as none built); the screen shows "N/M, ~X s" (Spanish or English after the console's language or `LANG`; `COS_LANG=es\|en` overrides) and builds back to back; otherwise the game starts at once and the warm-up builds behind the logos (Switch: if the builds turn slow during the logo scene and the slow work left passes the same limit, the screen comes up there); `priority` the earlier auto (the screen for the priority set when the first builds are slow); `always` the priority set's screen whenever it is not built; `never` none. One `[cos] precompile screen` line logs the choice with the counts and the estimate |
-| `COS_PRECOMPILE` | the Switch's boot warm-up (docs/SWITCH_BUILD.md, "Pipeline precompile"): `boot` (Switch default) a "Preparing shaders" loading screen (Aurora's ImGui) before the game starts when `COS_PRECOMPILE_SCREEN` calls for one (`auto`: until every queued pipeline is built; `priority`/`always`: until the pipelines the bundled cache marks priority 0, the boot path, are built), then the rest are built behind the logos and menus with "Shaders N/M" in the bottom-right corner until the game first enters its PLAY scene, where the warm-up ends; `full` the loading screen until every known pipeline is built; `all` no loading screen, every known pipeline built (indicator until done); `off` none. On the Mac unset changes nothing (Aurora's warm-up runs to the end, nothing drawn); set, the loading screen and indicator are drawn to try them (`boot` waits for as many pipelines as the bundled file next to `centollos` marks priority 0; `off` only hides them) |
+| `COS_PRECOMPILE` | the Switch's boot warm-up (docs/SWITCH_BUILD.md, "Pipeline precompile"): `boot` (Switch default) a "Preparing shaders" loading screen (Aurora's ImGui) before the game starts when `COS_PRECOMPILE_SCREEN` calls for one (`auto`: until every queued pipeline is built; `priority`/`always`: until the pipelines the bundled cache marks priority 0, the boot path, are built), then the rest are built behind the logos and menus with "Shaders N/M" in the bottom-right corner until the game first enters its PLAY scene, where the warm-up ends; `full` the loading screen until every known pipeline is built; `all` no loading screen, every known pipeline built (indicator until done); `off` none. On the Mac unset changes nothing (Aurora's warm-up runs to the end, nothing drawn); set, the loading screen and indicator are drawn to try them (`boot` waits for as many pipelines as the bundled file next to `switchwaker` marks priority 0; `off` only hides them) |
 | `COS_PERF` | a file that gets one CSV row per game frame (step 6.7; `run.sh --perf perf.csv` puts it in the run directory); see "Performance instrumentation" |
 | `COS_RUN_DIR` | where `backtrace.txt` and `stall.txt` go (set by `run.sh`) |
 | `COS_ASPECT` | `4:3` (default on the Mac), `16:9` (default on the Switch) or `16:10`: the widescreen option, the community 16:9 Gecko code done in C (wider view and culling, HUD at the screen edges) with Aurora presenting the picture at that aspect ([docs/WIDESCREEN.md](../docs/WIDESCREEN.md)) |
@@ -454,7 +454,7 @@ directly. The game thread (the process main thread) runs at QoS USER_INTERACTIVE
 as `[cos] game thread: QoS`. The benchmark variant is a build directory of its own:
 `cmake -S native -B build/native-mac-perf -G Ninja -DCOS_PERF_BUILD=ON` (Release at `-O2`, every
 target at `-march=armv8-a`, generic ARMv8.0 like the A57, Tracy off; it logs
-`[cos] perf: COS_PERF_BUILD variant`), run with `run.sh --exe build/native-mac-perf/centollos`.
+`[cos] perf: COS_PERF_BUILD variant`), run with `run.sh --exe build/native-mac-perf/switchwaker`.
 
 Exit codes: 0 reached, 1 smoke check failed, 2 usage error, 10 timeout, 11 stall, 12 panic
 (`OSPanic`, which `JUT_ASSERT` ends in), 13 signal, 14 disc problem. Milestones are logged as
@@ -530,7 +530,7 @@ TSV report in its output directory and goes on after a fault from the next case.
 | `native/tools/combat_sweep.py` | every enemy fought with a driven pad (`enemies`, `--home` in its own room), every boss, mini-boss and minigame room (`rooms`); `pipelines` lists the pipelines each case adds |
 
 The fx and model/screen sweeps are the `fx-sweep` and `res-sweep` smoke tests (`COS_FX_SWEEP`,
-`COS_RES_SWEEP` above). Any of these takes `--exe build/native-mac-asan/centollos` (the ASan build,
+`COS_RES_SWEEP` above). Any of these takes `--exe build/native-mac-asan/switchwaker` (the ASan build,
 recipe in `native/CMakeLists.txt`) and `COS_HEAP_CHECK=1` to check every JKR heap each frame.
 
 ## The Switch (phase 7)

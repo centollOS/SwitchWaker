@@ -34,7 +34,7 @@ Options:
                   rerun is reported "flaky" with its first signature
   --list          print the chosen specs and exit (no runs)
   --disc PATH     the GZLE01 .iso (default COS_DISC)
-  --exe PATH      the executable (default build/native-mac/centollos)
+  --exe PATH      the executable (default build/native-mac/switchwaker)
   --out DIR       the sweep directory (default build/room-sweep/<timestamp>)
 
 Each run lands in <sweep dir>/runs/<stage>_<room>_<point>/ (the usual run.sh run directory, its log
@@ -428,7 +428,7 @@ def main():
         f.write("%d stages, %d specs run (--points %s), %d frames uncapped, input %s, exe %s; "
                 "%d min.\n\n" % (len({s[0] for s in specs}), len(runnable), args.points,
                                  args.frames, os.path.basename(args.input) if args.input != "none"
-                                 else "none", args.exe or "build/native-mac/centollos",
+                                 else "none", args.exe or "build/native-mac/switchwaker",
                                  (time.time() - t0) / 60))
         f.write("Results: %s\n\n" % ", ".join("%s %d" % kv for kv in sorted(counts.items())))
         f.write("## Signatures\n\n| # | signature | result | specs |\n|---|---|---|---|\n")

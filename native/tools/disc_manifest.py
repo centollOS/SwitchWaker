@@ -160,7 +160,7 @@ MANIFEST_VERSION = 8
 EXIT_OK = 0
 EXIT_DIFFERENT = 1
 EXIT_USAGE = 2
-EXIT_DISC = 14  # as centollos and run.sh
+EXIT_DISC = 14  # as switchwaker and run.sh
 
 
 def u8(b, o):

@@ -46,7 +46,7 @@ Options:
   --heap-check N   run.sh --heap-check (default 30; 0 = off)
   --max-runs N     runs per stage at most (default 60)
   --disc PATH      the GZLE01 .iso (default COS_DISC)
-  --exe PATH       the executable (default build/native-mac/centollos)
+  --exe PATH       the executable (default build/native-mac/switchwaker)
   --out DIR        the sweep directory (default build/native-mac/runs/event-sweep-<timestamp>)
   --all-events     every event of every stage's list (default: see below)
   --common-min N   an event name in at least N stages' lists is a common one (default 13)

@@ -48,6 +48,6 @@ and depende3000, and the centollOS contributors.
 ## Binaries
 
 A build that includes `native/dsp_hle` (the default) links Dolphin's GPL-2.0-or-later code: the
-resulting `centollos` and `switchwaker.nro` are distributed under GPL-2.0-or-later terms, with their
+resulting `switchwaker` and `switchwaker.nro` are distributed under GPL-2.0-or-later terms, with their
 corresponding source. Builds contain code generated from the player's disc and are for the
 player's own use only.

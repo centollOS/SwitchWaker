@@ -69,7 +69,7 @@ larger ASTC blocks would save memory at a visible quality and encoding-time cost
 
 ## Running
 
-Mac: `COS_HD_TEXTURES=1 COS_HD_PACK=build/hd-pack-1024 build/native-mac/centollos ...` (a loose Dolphin
+Mac: `COS_HD_TEXTURES=1 COS_HD_PACK=build/hd-pack-1024 build/native-mac/switchwaker ...` (a loose Dolphin
 folder works too: `COS_HD_PACK=".../GZL"`, but it uses up to 10x the memory since the files have no
 size cap and few mips).
 

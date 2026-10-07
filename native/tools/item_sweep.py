@@ -29,7 +29,7 @@ Options:
   --uncapped      run.sh --uncapped (the fanfare still plays in real time)
   --max-runs N    stop after N runs (default 100)
   --disc PATH     the GZLE01 .iso (default COS_DISC)
-  --exe PATH      the executable (default build/native-mac/centollos)
+  --exe PATH      the executable (default build/native-mac/switchwaker)
   --out DIR       the sweep directory (default build/native-mac/runs/item-sweeps-<timestamp>)
   --rebuild DIR   write DIR/item_sweep.txt again from DIR's runs (no new run; the same --range)
 Nothing here is meant for git.
