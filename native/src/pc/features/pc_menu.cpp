@@ -506,11 +506,6 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertY, nullptr, 91,
      "Invert camera vertically",
      "The C stick tilts the camera the other way vertically."},
-    {"COS_SHADOW_OFFSCREEN", "Sombras en tiempo real",
-     "Dónde se dibujan las sombras de los personajes: fuera del EFB evita cortar la pasada principal.",
-     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kShadow), "0", applyShadow, nullptr, 60,
-     "Real-time shadows",
-     "Where character shadows are drawn: outside the EFB avoids splitting the main pass."},
     {"COS_ASPECT", "Relación de aspecto", "Imagen panorámica 16:9 o la 4:3 original de la GameCube.",
      PC_SETTING_TAB_GRAPHICS, PC_SETTING_RESTART, CHOICES(kAspect), kSwitch ? "16:9" : "4:3", nullptr, nullptr,
      70,
@@ -577,6 +572,11 @@ const PcSettingDesc kBuiltins[] = {
      "Live log over USB",
      "For development: sends the log over USB to scripts/switch/usb_log.py while you play. It holds "
      "the USB port (SysDVR over USB, for example, cannot use it); the log on the SD card is always written."},
+    {"COS_SHADOW_OFFSCREEN", "Sombras en tiempo real (prueba A/B)",
+     "Prueba de GPU: dónde se dibujan las sombras de los personajes; fuera del EFB evita cortar la pasada principal.",
+     PC_SETTING_TAB_DEBUG, 0, CHOICES(kShadow), "0", applyShadow, nullptr, 130,
+     "Real-time shadows (A/B test)",
+     "GPU test: where character shadows are drawn; outside the EFB avoids splitting the main pass."},
 };
 
 // ---- menu state ----------------------------------------------------------------------------------
