@@ -214,7 +214,6 @@ const Warp kMainWarps[] = {
     {"M_Dai", 0, 0, "Templo de la Tierra", "Earth Temple"},
     {"sea", 4, 0, "Isla del Vendaval (Gale)", "Gale Isle"},
     {"kaze", 15, 15, "Templo del Viento", "Wind Temple"},
-    {"GanonK", 0, 0, "Torre de Ganon", "Ganon's Tower"},
 };
 
 // Every stage of the disc with the start native/tools/boot_sweep.py --list picks.
@@ -261,7 +260,6 @@ const Warp kAllWarps[] = {
     W("GanonD", 0, 0)
     W("GanonE", 0, 0)
     W("GanonJ", 1, 0)
-    W("GanonK", 0, 0)
     W("GanonL", 0, 0)
     W("GanonM", 0, 0)
     W("GanonN", 0, 0)
