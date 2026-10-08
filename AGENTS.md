@@ -18,8 +18,10 @@ The console runs a TCP debug server (port 6543) when the options menu (Minus) ha
 scripts/switch/build_native.sh && scripts/switch/switchwaker_debug.py deploy
 ```
 
-`deploy` uploads `build/switch-native/switchwaker.nro`, checks its CRC32, restarts the game and waits until it
-answers. The restart (`reload`) needs the game started from the HOME-menu forwarder; from hbmenu,
+`deploy` uploads `build/switch-native/switchwaker.nro` (the deko3d NRO, the default renderer) with the
+`initial_pipeline_cache.db` and `initial_dksh_cache.bin` built next to it, checks each CRC32, restarts the game
+and waits until it answers. The GL NRO (`build_native.sh --renderer gl`) lives in `sdmc:/switch/switchwaker_gl/`,
+which the forwarder does not start. The restart (`reload`) needs the game started from the HOME-menu forwarder; from hbmenu,
 `deploy --no-reload`, then ask the user to start it again. Building: [docs/SWITCH_BUILD.md](docs/SWITCH_BUILD.md).
 
 ## Debug

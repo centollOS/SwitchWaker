@@ -17,9 +17,10 @@
 #   - the game units compile with clang 19 (clang-launcher.sh), as on the Mac; Aurora, Dawn, the
 #     SDK and libnx stay on devkitA64's GCC;
 #   - source/: the harness's Switch platform layer (logs, run options, crash report, threads).
-# Two renderers (COS_SWITCH_RENDERER, docs/DEKO3D_MIGRATION_PLAN.md): gl, the default, is Dawn's
-# OpenGL ES backend on Mesa (switchwaker.nro); deko3d is switch/deko (switchwaker_dk.nro, its own SD
-# folder /switch/switchwaker_dk/ with its bundled caches, the data in /switch/switchwaker/ shared).
+# Two renderers (COS_SWITCH_RENDERER, docs/DEKO3D_MIGRATION_PLAN.md): deko3d, the default since phase 6,
+# is switch/deko (switchwaker.nro in /switch/switchwaker/ with its bundled caches); gl is Dawn's OpenGL ES
+# backend on Mesa (switchwaker_gl.nro, its own SD folder /switch/switchwaker_gl/ with its bundled pipeline
+# cache). Both share the data in /switch/switchwaker/ (disc, native/: saves, settings, caches, logs).
 cmake_minimum_required(VERSION 3.28)
 project(cos_switch LANGUAGES C CXX)
 
@@ -34,8 +35,8 @@ if (NOT EXISTS "${COS_SWITCH_AURORA_SOURCE}/cmake/aurora_core.cmake")
     message(FATAL_ERROR "Set COS_SWITCH_AURORA_SOURCE to a checkout of Aurora at native/'s pin")
 endif ()
 
-set(COS_SWITCH_RENDERER "gl" CACHE STRING
-        "Switch renderer: gl (Dawn's OpenGL ES on Mesa, switchwaker.nro) or deko3d (switch/deko, switchwaker_dk.nro)")
+set(COS_SWITCH_RENDERER "deko3d" CACHE STRING
+        "Switch renderer: deko3d (switch/deko, switchwaker.nro) or gl (Dawn's OpenGL ES on Mesa, switchwaker_gl.nro)")
 set_property(CACHE COS_SWITCH_RENDERER PROPERTY STRINGS gl deko3d)
 if (NOT COS_SWITCH_RENDERER MATCHES "^(gl|deko3d)$")
     message(FATAL_ERROR "COS_SWITCH_RENDERER is gl or deko3d, not ${COS_SWITCH_RENDERER}")
@@ -45,9 +46,11 @@ endif ()
 # 2359-xxxx result. Off by default (SwitchWakerHD's CMakeLists.txt WWHD_DEKO3D_DEBUG_LIB).
 option(COS_DK_DEBUG_LIB "deko3d build: link the debug library libdeko3dd" OFF)
 if (COS_SWITCH_RENDERER STREQUAL "deko3d")
-    set(_nro_default switchwaker_dk)
-else ()
     set(_nro_default switchwaker)
+    set(_nro_dir "/switch/switchwaker")
+else ()
+    set(_nro_default switchwaker_gl)
+    set(_nro_dir "/switch/switchwaker_gl")
 endif ()
 set(COS_SWITCH_NRO_NAME "${_nro_default}" CACHE STRING "File name of the NRO and its ELF (without .nro)")
 message(STATUS "Switch renderer: ${COS_SWITCH_RENDERER} (${COS_SWITCH_NRO_NAME}.nro)")
@@ -300,7 +303,7 @@ target_link_libraries(cos_pc PRIVATE cos_switch_platform)
 # goes (plan phase 6).
 if (COS_SWITCH_RENDERER STREQUAL "deko3d")
     set(_dk_dir "${COS_REPO_ROOT}/switch/deko")
-    set(_dk_nro_dir "/switch/switchwaker_dk")
+    set(_dk_nro_dir "${_nro_dir}")
     # The renderer's own shaders (ImGui, the 3x5 text): GLSL compiled by devkitPro's uam at build time and
     # embedded (bin2s), named <name>_vsh.glsl / <name>_fsh.glsl. The test pattern's shaders are WGSL
     # compiled offline into the DKSH cache (shaders/dk_test_pattern.wgsl, native/tools/dksh_cache).
@@ -360,12 +363,18 @@ if (COS_SWITCH_RENDERER STREQUAL "deko3d")
             "${_dk_dir}/aurora/dk_present.cpp")
     target_include_directories(aurora_gx PRIVATE "${_dk_dir}" "${_dk_dir}/aurora" "${COS_SWITCH_AURORA_DIR}/lib")
     # The NRO's own folder: SDL_GetBasePath (the bundled pipeline cache) and the DKSH cache next to it; the
-    # log is COS_SWITCH_ROOT/switchwaker_dk.log (source/cos_switch.h).
+    # logs are COS_SWITCH_ROOT/logs/<NRO name>_<date>_<time>.log (source/cos_switch.cpp).
     target_compile_definitions(SDL3-static PRIVATE "COS_SWITCH_NRO_DIR=\"${_dk_nro_dir}\"")
     target_compile_definitions(cos_switch_platform PUBLIC COS_SWITCH_DEKO3D=1
             "COS_SWITCH_NRO_NAME=\"${COS_SWITCH_NRO_NAME}\"")
     target_include_directories(cos_switch_platform PUBLIC "${_dk_dir}")
     message(STATUS "deko3d: ${_dk_lib}, NRO folder ${_dk_nro_dir}")
+else ()
+    # The GL NRO's own folder (phase 6): SDL_GetBasePath, where Aurora finds its bundled pipeline cache;
+    # its logs are COS_SWITCH_ROOT/logs/switchwaker_gl_<date>_<time>.log.
+    target_compile_definitions(SDL3-static PRIVATE "COS_SWITCH_NRO_DIR=\"${_nro_dir}\"")
+    target_compile_definitions(cos_switch_platform PUBLIC "COS_SWITCH_NRO_NAME=\"${COS_SWITCH_NRO_NAME}\"")
+    message(STATUS "GL: NRO folder ${_nro_dir}")
 endif ()
 
 # ---- The NRO ---------------------------------------------------------------------------------------------
@@ -396,9 +405,9 @@ set(COS_SWITCH_VERSION "0.0.0" CACHE STRING "NRO display version (NACP, at most 
 if (COS_SWITCH_RENDERER STREQUAL "deko3d" AND COS_DK_DEBUG_LIB)
     set(_nacp_name "SwitchWaker (deko3d debug)")
 elseif (COS_SWITCH_RENDERER STREQUAL "deko3d")
-    set(_nacp_name "SwitchWaker (deko3d)")
-else ()
     set(_nacp_name "SwitchWaker")
+else ()
+    set(_nacp_name "SwitchWaker (GL)")
 endif ()
 nx_generate_nacp(cos_native.nacp
         NAME "${_nacp_name}" AUTHOR "SwitchWaker contributors" VERSION "${COS_SWITCH_VERSION}")

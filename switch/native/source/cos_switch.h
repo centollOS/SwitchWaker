@@ -17,9 +17,10 @@ extern "C" {
 #define COS_SWITCH_ROOT "/switch/switchwaker/native"
 /* The disc image (scripts/switch/push.sh --disc). */
 #define COS_SWITCH_DEFAULT_DISC "/switch/switchwaker/GZLE01.iso"
-/* The NRO's name: its log (COS_SWITCH_ROOT/<name>.log) and its symbols (<name>.elf). The deko3d
- * build (COS_SWITCH_RENDERER=deko3d) is switchwaker_dk and lives in /switch/switchwaker_dk/ with its
- * bundled caches; both share the data above (disc, saves, settings and its [dev] section, Aurora's caches). */
+/* The NRO's name: its logs (COS_SWITCH_ROOT/logs/<name>_<date>_<time>.log) and its symbols (<name>.elf).
+ * The deko3d build (the default) is switchwaker in /switch/switchwaker/ with its bundled caches; the GL
+ * build is switchwaker_gl in /switch/switchwaker_gl/; both share the data above (disc, saves, settings
+ * and its [dev] section, Aurora's caches). */
 #ifndef COS_SWITCH_NRO_NAME
 #define COS_SWITCH_NRO_NAME "switchwaker"
 #endif

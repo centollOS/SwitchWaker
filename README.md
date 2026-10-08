@@ -225,25 +225,24 @@ every shader is then built the first time it is drawn, and the game stutters for
   build it with `scripts/switch/build_forwarder.sh` and install `switchwaker_forwarder.nsp` with
   DBI ([switch/forwarder/INSTALL.md](switch/forwarder/INSTALL.md)).
 
-### The first start: preparing shaders
+### The first start: shaders
 
-The first start shows **"Preparing shaders (first start only)"** with a progress bar and the time
-left: the console compiles the graphics pipelines of the bundled list (about 3,000) so that the game
-does not stutter later. It takes **roughly 8 to 10 minutes** on a typical microSD (much longer on
-a slow card) and happens **only once**: later starts take a few seconds. A new version of the game
-may prepare a few new shaders again.
+The Switch renderer is deko3d (since phase 6 of [docs/DEKO3D_MIGRATION_PLAN.md](docs/DEKO3D_MIGRATION_PLAN.md)):
+the compiled shaders of every bundled pipeline come next to the NRO in `initial_dksh_cache.bin`, so
+**there is no shader preparation**: the game starts in seconds, the first time too. A shader the file
+lacks (a new effect, a mod) is compiled once in the background and kept in
+`native/user/cache/dksh_local.bin`; its draw is skipped for a moment meanwhile.
 
-- **Do not close the game (HOME → Close) while it is preparing shaders.** If it was interrupted,
-  the next start resumes where it stopped, but closing it mid-write can damage the shader
-  cache. If the game then fails to start or stutters again on every start, delete
-  `native/user/cache/` and let it prepare once more.
-- The text follows the console's language (Spanish or English).
+The previous renderer, OpenGL ES on Mesa, is still built for two releases as `switchwaker_gl.nro`
+(`scripts/switch/build_native.sh --renderer gl`, its own folder `sdmc:/switch/switchwaker_gl/`, "SwitchWaker (GL)"
+in the Homebrew Menu, the same disc, saves and settings). Its first start prepares the shaders once
+("Preparing shaders (first start only)", about 8 to 10 minutes; do not close the game meanwhile).
 
 ### Saves, settings and updates
 
 - Saves (the memory card): `sdmc:/switch/switchwaker/native/user/USA/Card A`. Back up this folder.
 - Settings from the options menu: `native/user/settings.ini`.
-- To update, replace `switchwaker.nro` (and `initial_pipeline_cache.db` if it changed). Saves,
+- To update, replace `switchwaker.nro`, `initial_pipeline_cache.db` and `initial_dksh_cache.bin`. Saves,
   settings and caches stay.
 - Logs, if something goes wrong: `native/logs/`, one file per session named by its date and time
   (`switchwaker_<date>_<time>.log`); the newest is this run. Only the 10 most recent sessions are kept.

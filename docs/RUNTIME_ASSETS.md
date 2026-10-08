@@ -77,7 +77,7 @@ native/tools/gen_assets.sh --stubs --decomp build/decomp --out build/assets-stub
 cmake -S native -B build/native-mac-ra -G Ninja -DCOS_RUNTIME_ASSETS=ON \
     -DCOS_ASSETS_DIR=$PWD/build/assets-stubs/GZLE01
 ninja -C build/native-mac-ra switchwaker
-scripts/switch/build_native.sh --renderer deko3d --runtime-assets   # the NRO (also the GL one)
+scripts/switch/build_native.sh --runtime-assets   # the NRO (deko3d; --renderer gl too)
 ```
 
 What differs from the proposal:

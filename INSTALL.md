@@ -39,7 +39,8 @@ At the end the folder `build/sd/` holds:
 ```
 build/sd/switch/switchwaker/
 ├── switchwaker.nro                the game
-├── initial_pipeline_cache.db      the list of shaders to prepare on the first start
+├── initial_pipeline_cache.db      the list of graphics pipelines the game uses
+├── initial_dksh_cache.bin         their shaders, compiled for the Switch's GPU
 └── GZLE01.iso                     a copy of your disc (the game reads it on the console)
 ```
 
@@ -55,18 +56,15 @@ hekate (*Tools → USB Tools → SD Card*).
   **SwitchWaker**. From the album (applet mode) the game does not get enough memory.
 - Optional: a HOME-screen icon that always starts it the right way (you build it with your own console
   keys): [switch/forwarder/INSTALL.md](switch/forwarder/INSTALL.md).
-- **The first start prepares the shaders once** ("Preparing shaders (first start only)", with a progress
-  bar): about 8 to 10 minutes on a typical microSD. **Do not close the game meanwhile.** Later starts take
-  a few seconds.
+- The shaders come prebuilt: the first start takes a few seconds, like every later one.
 - **Minus (−)** opens the options menu (in Spanish or English, following the console's language):
   graphics, performance, controls, debug. Settings are saved on the card.
 
 ## Updating
 
 Build the new release the same way, with `--no-disc` (your disc is already on the card), and copy
-`switchwaker.nro` and `initial_pipeline_cache.db` over the old ones. Saves
-(`native/user/USA/Card A`), settings and the prepared shaders stay; a new version may prepare a few new
-shaders on its first start.
+`switchwaker.nro`, `initial_pipeline_cache.db` and `initial_dksh_cache.bin` over the old ones. Saves
+(`native/user/USA/Card A`) and settings stay.
 
 ## Problems
 
@@ -75,5 +73,5 @@ shaders on its first start.
 | `this is not the disc the port is built for` | The image is not GZLE01 revision 0 or is compressed: use the USA disc, converted to an uncompressed ISO |
 | Docker errors | Docker Desktop must be running (on Windows, with its WSL integration on) |
 | The game closes at once or says it is out of memory | Start it in title mode (hold R), not from the album |
-| It stutters on every start or fails after the shader preparation was interrupted | Delete `sdmc:/switch/switchwaker/native/user/cache/` and let it prepare once more |
+| It fails to start after an update, or keeps stuttering | Delete `sdmc:/switch/switchwaker/native/user/cache/` (the local caches; they are rebuilt) |
 | Something else | The session logs in `sdmc:/switch/switchwaker/native/logs/` (the newest file is the last run) say what happened; include them in a report (they contain no game data) |

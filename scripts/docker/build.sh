@@ -17,8 +17,9 @@
 #                     host's; the other one runs emulated and is several times slower). The
 #                     build directory is then build/native-linux-<arch>.
 #   --engine E        docker or podman (default: Podman if installed, else Docker)
-#   --renderer R      switch: gl (default, switchwaker.nro) or deko3d (build/switch-native-dk/
-#                     switchwaker_dk.nro and its DKSH cache; docs/DEKO3D_MIGRATION_PLAN.md)
+#   --renderer R      switch: deko3d (default, switchwaker.nro and its DKSH cache) or gl
+#                     (build/switch-native-gl/switchwaker_gl.nro, OpenGL ES on Mesa;
+#                     docs/DEKO3D_MIGRATION_PLAN.md)
 #   --test            after building, run the headless checks in the container: cos_sdk_smoke,
 #                     cos_pc_tests and the static-init, disc-ls and title smoke runs (software
 #                     Vulkan under Xvfb; COS_TEST_TARGETS="..." to choose others)
@@ -31,7 +32,7 @@
 #   2. RecompCore (Dolphin's DSP HLE, native/tools/fetch_recompcore.sh) into ref/recompcore;
 #   3. linux: cmake + ninja in the image of scripts/docker/Containerfile.linux;
 #      switch: Aurora at native/'s pin into build/aurora-3227d76 if missing, then
-#      scripts/switch/build_native.sh (devkitPro image, Mesa and Dawn built in containers).
+#      scripts/switch/build_native.sh (devkitPro image, Dawn and, for the GL NRO, Mesa built in containers).
 #
 # Downloads are kept between runs, under the repository's ignored directories:
 #   build/native-linux*/_deps        Aurora, Dawn (prebuilt package), nod (prebuilt), SDL 3, ...
@@ -57,7 +58,7 @@ platform=""
 engine=""
 do_test=0
 do_regress=0
-renderer=gl
+renderer=deko3d
 while [[ $# -gt 0 ]]; do
     case $1 in
         linux|switch|all) what=$1; shift ;;
