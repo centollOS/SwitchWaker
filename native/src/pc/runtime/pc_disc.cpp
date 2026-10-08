@@ -8,22 +8,55 @@
 #include "pc_internal.h"
 
 #include <cerrno>
+#include <cstdarg>
+#include <cstdio>
 #include <cstring>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#if defined(__SWITCH__)
+#include "cos_switch.h"
+#endif
+
 namespace pc {
+
+namespace {
+char sDiscError[512];
+}
+
+void discMessage(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(sDiscError, sizeof sDiscError, fmt, ap);
+    va_end(ap);
+    writef(STDERR_FILENO, "[cos] DISC: %s\n", sDiscError);
+}
+
+void exitDisc() {
+#if defined(__SWITCH__)
+    char text[1024];
+    snprintf(text, sizeof text,
+             "SwitchWaker needs your own disc of The Wind Waker (USA, GZLE01, revision 0) as an uncompressed "
+             "image at sdmc:/switch/switchwaker/GZLE01.iso.\n\n%s\n\n"
+             "SwitchWaker necesita tu propio disco de The Wind Waker (EE. UU., GZLE01, revision 0) como "
+             "imagen sin comprimir en sdmc:/switch/switchwaker/GZLE01.iso.",
+             sDiscError);
+    cos_switch_show_error(text);
+#endif
+    pc_exit(PC_EXIT_DISC);
+    __builtin_unreachable();
+}
 
 int checkDisc() {
     const char* path = gConfig.disc;
     if (path == nullptr) {
-        writef(STDERR_FILENO, "[cos] DISC: COS_DISC is not set (path of the GZLE01 .iso)\n");
+        discMessage("COS_DISC is not set (path of the GZLE01 .iso)");
         return PC_EXIT_DISC;
     }
     int fd = open(path, O_RDONLY | O_CLOEXEC);
     if (fd < 0) {
-        writef(STDERR_FILENO, "[cos] DISC: cannot open COS_DISC=%s: %s\n", path, strerror(errno));
+        discMessage("cannot open COS_DISC=%s: %s", path, strerror(errno));
         return PC_EXIT_DISC;
     }
     struct stat st;
@@ -39,19 +72,17 @@ int checkDisc() {
     }
     close(fd);
     if (got != (ssize_t)sizeof(header)) {
-        writef(STDERR_FILENO, "[cos] DISC: %s is not a regular file with a disc header\n", path);
+        discMessage("%s is not a regular file with a disc header", path);
         return PC_EXIT_DISC;
     }
     if (memcmp(header, "CISO", 4) == 0) {
-        writef(STDERR_FILENO, "[cos] DISC: %s is a CISO image; the supported disc is the plain .iso "
-                              "(decision H9)\n", path);
+        discMessage("%s is a CISO image; convert it to a plain .iso (decision H9)", path);
         return PC_EXIT_DISC;
     }
     const uint32_t magic = ((uint32_t)header[0x1C] << 24) | ((uint32_t)header[0x1D] << 16) |
                            ((uint32_t)header[0x1E] << 8) | (uint32_t)header[0x1F];
     if (magic != 0xC2339F3Du) {
-        writef(STDERR_FILENO, "[cos] DISC: %s has no GameCube disc magic (0x%08x at 0x1C)\n", path,
-               magic);
+        discMessage("%s is not a GameCube disc image (magic 0x%08x at 0x1C; compressed?)", path, magic);
         return PC_EXIT_DISC;
     }
     char id[7];
@@ -61,8 +92,7 @@ int checkDisc() {
     id[6] = '\0';
     const unsigned int version = header[7];
     if (strcmp(id, "GZLE01") != 0 || version != 0) {
-        writef(STDERR_FILENO, "[cos] DISC: %s is %s revision %u; the supported disc is GZLE01 "
-                              "revision 0\n", path, id, version);
+        discMessage("%s is %s revision %u; the supported disc is GZLE01 revision 0", path, id, version);
         return PC_EXIT_DISC;
     }
     writef(STDERR_FILENO, "[cos] disc: %s GZLE01 revision 0, %lld bytes\n", path,

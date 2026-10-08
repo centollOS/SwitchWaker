@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Package a SwitchWaker release: the source of a git tag (or commit) as a zip, with INSTALL.md at its top,
-# checked by scripts/release/guard.py (nothing from the disc, no build of the game, no keys). There is no
-# NRO in it: every build carries code generated from the disc, so players build their own
-# (scripts/switch/make_sd.sh).
+# checked by scripts/release/guard.py (nothing from the disc, no build of the game, no keys). The Switch
+# download (the NROs built without the disc, docs/RUNTIME_ASSETS.md) is scripts/release/package_switch.sh.
 #   scripts/release/package_release.sh v0.1.3    -> build/release/SwitchWaker-v0.1.3.zip and .sha256
 set -euo pipefail
 cd "$(dirname "$0")/../.."

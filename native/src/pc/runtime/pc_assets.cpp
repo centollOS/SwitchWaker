@@ -89,9 +89,8 @@ void discError(const char* fmt, ...) {
     va_start(ap, fmt);
     vsnprintf(text, sizeof text, fmt, ap);
     va_end(ap);
-    pc::writef(STDERR_FILENO, "[cos] DISC: %s (the game's data arrays come from the GZLE01 revision 0 disc)\n", text);
-    pc_exit(PC_EXIT_DISC);
-    __builtin_unreachable();
+    pc::discMessage("%s (the game's data arrays come from the GZLE01 revision 0 disc)", text);
+    pc::exitDisc();
 }
 
 // ---- SHA-1 (FIPS 180-1), to check main.dol and the RELs against the decompilation's hashes

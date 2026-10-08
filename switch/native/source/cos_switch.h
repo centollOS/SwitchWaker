@@ -33,6 +33,11 @@ __attribute__((noreturn)) void cos_switch_exit(int code);
 /* Writes every queued log byte to the SD card (and gives the USB host up to a second). */
 void cos_switch_flush_logs(void);
 
+/* Shows `text` in the system's error applet and returns when the player closes it: a message the
+ * player must see (no disc, another revision) before the process ends. Title mode only (an applet
+ * cannot start another one); otherwise nothing is shown. */
+void cos_switch_show_error(const char* text);
+
 /* Load address of the NRO: an address minus this is the offset addr2line takes with switchwaker.elf. */
 uintptr_t cos_switch_image_base(void);
 

@@ -708,6 +708,19 @@ void cos_switch_flush_logs(void) {
     }
 }
 
+void cos_switch_show_error(const char* text) {
+    if (appletGetAppletType() != AppletType_Application) {
+        sayf("[switch] error message not shown (needs title mode): %s\n", text);
+        return;
+    }
+    ErrorApplicationConfig c;
+    // the short dialog and the details page show the same text
+    if (R_SUCCEEDED(errorApplicationCreate(&c, text, text))) {
+        const Result rc = errorApplicationShow(&c);
+        sayf("[switch] error message shown (rc 0x%x)\n", rc);
+    }
+}
+
 void cos_switch_exit(int code) {
     static std::atomic<bool> sExiting{false};
     bool expected = false;
