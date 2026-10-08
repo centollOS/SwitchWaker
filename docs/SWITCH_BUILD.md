@@ -102,11 +102,11 @@ SD card layout:
 ## The deko3d NRO (experimental)
 
 A second NRO draws with deko3d, the Switch's own GPU API, instead of Dawn's OpenGL ES backend on
-Mesa ([DEKO3D_MIGRATION_PLAN.md](DEKO3D_MIGRATION_PLAN.md)). It is phase 2 of that plan: the device,
-the swapchain, the present pass and ImGui are deko3d's (the options menu on Minus, the "Preparing
-shaders" screen and the FPS panel draw as in the GL NRO), the game runs behind them, but Aurora's GX
-frame is still encoded against Dawn's Null device, so **no game picture yet** (black, with a note in
-the corner). The GL NRO stays the one to play with until phase 6.
+Mesa ([DEKO3D_MIGRATION_PLAN.md](DEKO3D_MIGRATION_PLAN.md)). It is phase 3 of that plan, not yet run
+on a console: Aurora's frames are recorded into deko3d (`switch/deko/aurora`), the shaders come from
+the DKSH caches (a pipeline they lack is compiled on the console by uam, its draws skipped
+meanwhile), and the present, the options menu, the "Preparing shaders" screen and the FPS panel are
+deko3d's. The GL NRO stays the one to play with until the console says otherwise (phase 6).
 
 ```sh
 scripts/switch/build_native.sh --renderer deko3d   # build/switch-native-dk/switchwaker_dk.nro (+ .elf)
@@ -127,7 +127,9 @@ scripts/switch/push.sh deko3d                      # to sdmc:/switch/switchwaker
   about 10 s once the tool is built, report and GLSL in `build/dksh/`), then read back by
   `dksh_cache check` as the NRO reads it. It is derived from the committed database by Aurora's
   shader generator, Tint and uam: never committed, rebuilt with each NRO. The NRO loads it whole at
-  start (`[dk] shader cache:` line); phase 2 only draws the test pattern's shaders from it.
+  start (`[dk] shader cache:` line). Pipelines it lacks are compiled on the console (Tint and uam
+  in the NRO, one worker thread) and kept in `switch/switchwaker/native/user/cache/dksh_local.bin`
+  for the next start.
 - Layout: the deko3d NRO has its own folder (the Homebrew Menu shows one NRO per folder) with what
   belongs to the build, and uses the GL NRO's folder for everything else, so the 1.4 GB disc image
   is not copied twice:
@@ -143,10 +145,16 @@ scripts/switch/push.sh deko3d                      # to sdmc:/switch/switchwaker
 - Run options of its own: `COS_DK_TEST_PATTERN=1` draws a test pattern of deko3d's conventions
   under the menu (four coloured corners, two depth-tested squares, a depth-range check, a textured
   square with texture row 0 marked, a counter-clockwise and a clockwise triangle under back-face
-  culling; the legend says what each must look like); `COS_DK_ZCULL=1` gives the queue zcull (off
-  by default). Its log has `[dk]` lines: the set-up (memory blocks, swapchain, `set-up cost: N MiB
-  of heap`), the shader cache, the first present and every 30 s the presents, command and stream
-  memory and the heap.
+  culling; the legend says what each must look like) instead of the game's picture; `COS_DK_ZCULL=1`
+  gives the queue zcull (off by default); `COS_DK_FLIP_Y`, `COS_DK_FLIP_FRONT`, `COS_DK_FLIP_TEXTURE`,
+  `COS_DK_FLIP_PRESENT` (=1) turn each convention around if the console shows it wrong (logged as
+  `[dk] conventions:`); `COS_DK_SHADER_BUDGET` (64 compiled shaders loaded per frame, 0 = no limit),
+  `COS_DK_SUBMIT_DRAWS` (256), `COS_DK_DUAL_SOURCE=1`, `COS_DK_GPU_TIMERS=0`, `COS_DK_COMPRESSION=1`
+  (hardware compression on colour targets). Its log has `[dk]` lines: the set-up (memory blocks, swapchain, `set-up cost: N MiB
+  of heap`), the shader cache, the first present and every 30 s the presents, submits, command and
+  stream memory, image heap and blocks, descriptors and the heap; `[cos] shaders:` every 15 s
+  (loaded, pending, failed, compiled, draws skipped, code memory); the perf-switch lines carry the
+  encoder's counters and the GPU timestamps.
 - `scripts/switch/make_sd.sh --deko3d` writes `switch/switchwaker_dk/` next to the GL folder.
 
 ## Run

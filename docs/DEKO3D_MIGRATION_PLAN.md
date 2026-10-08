@@ -627,6 +627,98 @@ NRO's of the same `COS_BOOT_STAGE` + `COS_INPUT` script (mean absolute differenc
 the route of 2.2 with the perf lines, same env, both NROs. Mac: `native/tools/regress.sh` unchanged
 (the Mac path is untouched); the host tool regenerates the cache for the new NRO.
 
+### Phase 3 results (2026-10-08, `dev`; Mac side, console sessions pending)
+
+Built: Aurora Switch patch 0014 (`AURORA_GFX_DEKO3D`, a public define of the deko3d build now) and
+`switch/deko/aurora/` (compiled into Aurora's gx library): the deko3d NRO records Aurora's frames
+into deko3d. NRO `build/switch-native-dk/switchwaker_dk.nro`, 18.1 MB (16.2 in phase 2: + uamlib and
+Tint's GLSL writer); the DKSH cache is unchanged (`initial_dksh_cache.bin` sha256 `5725e914`, 1882
+DKSH; patch 0014 changes no shader).
+
+How it is put together, and where it departs from the deliverables above:
+
+- **Dawn's Null device stays Aurora's object model.** Instead of replacing `wgpu::Texture` & co. in
+  Aurora's ~50 files, every texture, view, sampler and bind group Aurora creates gets a deko3d
+  shadow through the linker's `--wrap` of the 12 WebGPU C functions that create them and count
+  their references (`dk_objects.cpp`): a `DkImage` in the image heap (every WebGPU format, BC1-7 and
+  ASTC for the HD packs, `image_tile_size_fix` on all), a `DkImageView` (levels, format, swizzle:
+  the R8/RG8 PC formats) with an image descriptor once sampled, a `DkSampler` (descriptor slots by
+  key with an LRU), the bind group's entries. The shadows mirror Dawn's lifetimes (a view holds its
+  texture, a bind group its views and samplers); frees wait for the GPU. Aurora's recording, caches,
+  uniform packing and pipeline cache are untouched; only `encode_op`, the staging buffers, the
+  frame start/end items and pipeline creation take the deko3d path.
+- **Frame data.** Aurora's staging slots are deko3d blocks (3 x 63 MiB, one more than the frame
+  slots instead of 5) that the FIFO thread writes and the GPU reads in place, at `encoding.cpp`'s
+  offsets: storage buffers 0 (`vbuf`) and 1 (`abuf`, also the fragment stage) bound once per frame
+  with their regions' sizes (5 and 8 MiB, as WebGPU's whole-buffer bindings: the `length()` checks
+  see the same), uniform buffer 0 at each draw's dynamic offset (3840 bytes, both stages), the
+  immediates in uniform buffer 15 (both stages) by `dkCmdBufPushConstants`, u16 indices at the draw's
+  offset. A slot is "mapped" again once the GPU has finished its frame (`frames_completed`, polled
+  under the fence lock). The Null device's shared buffers shrink to 64 KiB, so the 5 x 63 + 39 MiB of
+  heap the Null device held in phase 2 are gone; the renderer's own stream ring is 3 x 8 MiB.
+- **Passes and draws** (`dk_encode.cpp`): render targets from the views' shadows, load-op clears
+  (`dkCmdBufClearColorFloat`, `ClearDepthStencil`), viewport (reversed Z as `encoding.cpp`),
+  scissor clamped to the target, blend constant, a state cache (shaders, the five state blocks,
+  depth bias, viewport, scissor, uniform offset, texture handles, index buffer, immediates), GX
+  draws (`dkCmdBufDraw` / `DrawIndexed` with first vertex/instance 0, instanced for lines and
+  points, the alpha prepass) and the partial-clear draws; a `Fragments` barrier with a texture
+  cache invalidate at every pass end; uploads per level (`dkCmdBufCopyBufferToImage` from the
+  staging, rows of 256 bytes; oversized ones from blocks of their own) and copies on the copy engine
+  between `Full` barriers (also before a frame's first transfer); EFB copies as `encoding.cpp`
+  decides them (`dkCmdBufCopyImage`, or the conversion / blit draw with `tex_copy_conv_<fmt>` from
+  the cache's named records), pass snapshots, depth snapshots and the palette conversions before
+  their pass. The list goes to the GPU every `COS_DK_SUBMIT_DRAWS` draws (256). The depth peek and
+  the draw census are not ported (plan 3.1); a runtime-registered draw type or encoder task is
+  logged once and skipped (the game registers none).
+- **Pipelines** (`dk_pipeline.cpp`) are built on Aurora's compile thread: the module's two DKSH from
+  the caches by the module records, else WGSL (`gx::build_shader_source`) -> Tint -> post-pass ->
+  the uam worker, the compile thread waiting (so a miss costs the compile thread 70-430 ms, never
+  the render worker, and the warm-up's slow-build detector and the loading screen see real build
+  times: section 6's gate without code of its own); the GX fixed state is `gx::pipeline_state_desc`,
+  `build_pipeline`'s values. Dual-source blending only with `COS_DK_DUAL_SOURCE=1` (the alpha prepass
+  otherwise) until the console shows uam's `COLOR[1]` reaches the blender; no config of today's
+  database needs either.
+- **Shaders at run time** (`switch/deko/shaders.cpp`): the DKSH registry by (stage, GLSL hash),
+  filled from `initial_dksh_cache.bin` and `native/user/cache/dksh_local.bin` at start; one uam
+  worker (8 MiB stack, priority 0x3B, kept off the render worker's core like the compile thread),
+  every compile appended to `dksh_local.bin`, failures dumped as `shaderfail_<hash>_<vs|fs>.glsl`
+  (16 at most); a draw whose shader is not loaded is skipped and counted (pop-in), at most
+  `COS_DK_SHADER_BUDGET` (64) compiled shaders loaded per frame; `[cos] shaders:` every 15 s with the
+  log writer's memory line (not per perf window: that line lives in the platform layer).
+- **Present** (`dk_present.cpp`): the EFB resampled to the shown size (`present_resample`, area or
+  bilinear as the menu says), then drawn with `xfb_copy` in `calculate_present_viewport`'s fitted
+  viewport, under ImGui.
+- **Readback.** `aurora_switch_dk_read_texture` (copy engine into CPU-visible memory, its own command
+  buffer, a fence wait); `pc_capture.cpp` and `pc_shot.cpp` call it under `COS_SWITCH_DEKO3D` only.
+  Deviation from the deliverable: the GL NRO and the Mac keep their inline WebGPU readback instead
+  of one shared `gfx::read_texture`, because moving it would change the GL NRO's code, which this
+  phase keeps byte-identical; the switch to one function belongs with phase 6.
+- **GPU timestamps** every frame (`COS_DK_GPU_TIMERS=0` turns them off): at the frame start, every
+  pass end, copy, present and after ImGui, read when the slot comes round, the timer factor measured
+  against the CPU clock (SwitchWakerHD's GpuClock); they fill the `perf-switch gpu per frame` line,
+  and the encoder's counters the `dawn gl per frame` line's passes, draws, pipelines, texture binds.
+- **Conventions**, all switchable from `env.txt` and logged at start (`[dk] conventions:`), since the
+  phase 2 photo has not been taken: `COS_DK_FLIP_Y=1` (game passes drawn with clip-space y negated:
+  a viewport swizzle), `COS_DK_FLIP_FRONT=1` (Aurora's front face inverted), `COS_DK_FLIP_TEXTURE=1`
+  (uploads written bottom row first), `COS_DK_FLIP_PRESENT=1` (the shown picture flipped). Defaults
+  0: WebGPU's clip space and facing unchanged, `FrontFace::CW` -> `DkFrontFace_CW`.
+- **Build.** `build_native.sh --renderer deko3d` gives the NRO a Dawn source of its own
+  (`build/dawn-src-deko3d`, an APFS clone of the shared one plus `dawn-switch-tint-position-y-up.patch`)
+  so that Tint in the NRO has the y option and the GL NRO's Dawn stays as it is; `dksh_cache check`
+  also checks that every fixed shader the NRO draws with is in the cache.
+
+Mac-side checks: the deko3d NRO builds and links (uamlib, Tint, the wrapped functions; no EGL
+symbol left); `dksh_cache build` translated and compiled every module (1880 / 1880, as phase 1:
+the NRO's miss path runs the same functions); `dksh_cache check` OK with the 57 named shaders; the
+GL NRO rebuilt from this tree has `.text` and `.data` byte-identical to the phase 2 baseline
+(`.rodata`: `__DATE__`/`__TIME__` only); `native/tools/regress.sh` all checks passed. Nothing has
+run on the console: the session note is `build/deko3d-phase3-prueba.md` (not committed), and it also
+covers phase 2's pattern photo.
+
+Left for the console sessions and after: the conventions (the photo), every rendering check of the
+verification list above, the dual-source check, the memory figures (`[dk] set-up cost`, `blocks`
+in the 30 s line), the per-draw CPU of the go/no-go table, zcull and lazy barriers (phase 5).
+
 ### Go/no-go checkpoint (end of phase 3)
 
 Continue if, on the route of 2.2 against the GL NRO of the same commit:
