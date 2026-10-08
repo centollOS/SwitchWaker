@@ -101,6 +101,34 @@ Pipe* new_pipe() {
     return p;
 }
 
+// deko3d programs FuncAlphaDst from dstColorBlendFactor (devkitPro/deko3d#29). When the destination factors differ
+// and the scene target writes both RGB and alpha, the draw is split: this pipe writes RGB only, then p->alphaPass
+// writes alpha only with the colour factors set to the alpha ones (the bug is harmless when they are equal). The
+// RGB pass runs first, so colour factors that read the destination alpha still see the value before the draw. The
+// alpha pass does not write depth and, after a pass that does, tests Equal (same shaders, same depth). In GX
+// draws this is the destination alpha constant (alpha ConstAlpha / Zero) with additive colour: ~2 draws a frame.
+void split_alpha(Pipe* p) {
+    DkBlendState& b = p->blend;
+    if (b.dstColorBlendFactor == b.dstAlphaBlendFactor) return;
+    const uint32_t shift = SceneColorAttachmentIndex * 4;
+    const uint32_t mask = (p->colorWrite.masks >> shift) & 0xF;
+    if (!(mask & DkColorMask_A)) return;
+    if (!(mask & DkColorMask_RGB)) {
+        b.dstColorBlendFactor = b.dstAlphaBlendFactor;  // alpha only: one draw suffices
+        return;
+    }
+    Pipe* a = new Pipe(*p);
+    a->blend.colorBlendOp = b.alphaBlendOp;
+    a->blend.srcColorBlendFactor = b.srcAlphaBlendFactor;
+    a->blend.dstColorBlendFactor = b.dstAlphaBlendFactor;
+    for (uint32_t i = 0; i < 8; i++) dkColorWriteStateSetMask(&a->colorWrite, i, 0);
+    dkColorWriteStateSetMask(&a->colorWrite, SceneColorAttachmentIndex, DkColorMask_A);
+    if (a->depthStencil.depthWriteEnable) a->depthStencil.depthCompareOp = DkCompareOp_Equal;
+    a->depthStencil.depthWriteEnable = false;
+    dkColorWriteStateSetMask(&p->colorWrite, SceneColorAttachmentIndex, mask & DkColorMask_RGB);
+    p->alphaPass = a;
+}
+
 void set_blend(Pipe* p, const wgpu::BlendState& b) {
     dkBlendStateSetOps(&p->blend, blend_op(b.color.operation), blend_op(b.alpha.operation));
     dkBlendStateSetFactors(&p->blend, blend_factor(b.color.srcFactor, false), blend_factor(b.color.dstFactor, false),
@@ -277,9 +305,14 @@ const void* build_gx_pipeline(const gx::PipelineConfig& config, const RenderTarg
     for (uint32_t i = 0; i < d.colorCount && i < 8; i++)
         dkColorWriteStateSetMask(&p->colorWrite, i, uint32_t(d.writeMasks[i]) & 0xF);
     set_blend(p, d.blend);
+    split_alpha(p);
     {
         std::lock_guard<std::mutex> lock(g_statsMutex);
         g_stats.gx++;
+        if (p->alphaPass && g_stats.alphaSplits++ < 16)
+            dklog("pipelines: module %016llx: colour and alpha destination factors differ (%d/%d), alpha drawn in a "
+                  "second pass (deko3d#29)", (unsigned long long)moduleHash, int(p->blend.dstColorBlendFactor),
+                  int(p->blend.dstAlphaBlendFactor));
         if (!miss) g_stats.cacheHits++;
     }
     return p;

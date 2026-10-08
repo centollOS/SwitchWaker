@@ -21,6 +21,9 @@ struct Pipe {
     DkDepthStencilState depthStencil{};
     float depthBias[3] = {};  // dkCmdBufSetDepthBias: constant, clamp, slope
     uint64_t moduleHash = 0;  // Aurora's shader hash (0: a fixed shader)
+    // deko3d 0.5.0 blends alpha with the colour's destination factor (dkCmdBufBindBlendStates, devkitPro/deko3d#29):
+    // a state whose two destination factors differ draws RGB here and its alpha in this second pass (split_alpha)
+    const Pipe* alphaPass = nullptr;
 };
 
 // Render worker: both stages are loaded (a compiled one is loaded now if the frame's budget allows);
@@ -40,7 +43,7 @@ FixedShader fixed_shader(const char* module, const char* vsEntry = "vs_main", co
 bool dual_source_blending();
 
 struct PipelineStats {
-    uint64_t gx = 0, clear = 0, cacheHits = 0, misses = 0, translateFailures = 0, compileFailures = 0;
+    uint64_t gx = 0, alphaSplits = 0, clear = 0, cacheHits = 0, misses = 0, translateFailures = 0, compileFailures = 0;
     uint64_t translateNs = 0, waitNs = 0;
 };
 PipelineStats pipeline_stats();
