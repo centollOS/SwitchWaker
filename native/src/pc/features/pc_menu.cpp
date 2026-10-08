@@ -29,6 +29,7 @@
 #include "pc/pc_settings.h"
 #include "pc/pc_dynres.h"
 #include "pc/pc_gpu_opts.h"
+#include "pc/pc_hd_textures.h"
 
 #include "pc_internal.h"
 
@@ -435,6 +436,8 @@ void applyOverlayDetail(const char*, const char* v, void*) {
 }
 void applyPerfEvery(const char*, const char* v, void*) { perfSetEvery((unsigned int)atoi(v)); }
 void applyPerfLog(const char*, const char* v, void*) { gConfig.perfLog = strcmp(v, "0") != 0; }
+void applyHitch(const char*, const char* v, void*) { perfSetHitch((unsigned int)atoi(v)); }
+void applyHdStats(const char*, const char* v, void*) { pc_hd_textures_set_stats_every((unsigned int)atoi(v)); }
 void applyGpuGroups(const char*, const char* v, void*) { pc_gpu_groups_set(atoi(v)); }
 
 #define CHOICES(name) name, (int)(sizeof(name) / sizeof(name[0]))
@@ -470,6 +473,12 @@ const PcSettingChoice kPerfEvery[] = {
 const PcSettingChoice kGpuGroups[] = {{"0", "Desactivados", "Off"}, {"1", "Por grupo", "Per group"},
                                       {"2", "Por material J3D", "Per J3D material"}};
 const PcSettingChoice kShowHide[] = {{"1", "Mostrar", "Show"}, {"0", "Ocultar", "Hide"}};
+const PcSettingChoice kHitch[] = {{"0", "Desactivadas", "Off"}, {"33", "Más de 33 ms", "Over 33 ms"},
+                                  {"40", "Más de 40 ms", "Over 40 ms"}, {"50", "Más de 50 ms", "Over 50 ms"},
+                                  {"100", "Más de 100 ms", "Over 100 ms"}};
+const PcSettingChoice kHdStats[] = {{"0", "Desactivadas", "Off"}, {"150", "Cada 150 cuadros", "Every 150 frames"},
+                                    {"300", "Cada 300 cuadros", "Every 300 frames"},
+                                    {"600", "Cada 600 cuadros", "Every 600 frames"}};
 
 const PcSettingDesc kBuiltins[] = {
     // Gráficos
@@ -555,6 +564,11 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_DEBUG, 0, CHOICES(kPerfEvery), "0", applyPerfEvery, nullptr, 105,
      "Perf log interval",
      "How many frames between [cos] perf lines in the log (native/logs/)."},
+    {"COS_HITCH_MS", "Líneas de tirones (hitch)",
+     "Escribe una línea [cos] hitch en el registro por cada cuadro del juego que tarde más que esto.",
+     PC_SETTING_TAB_DEBUG, 0, CHOICES(kHitch), "0", applyHitch, nullptr, 107,
+     "Hitch lines",
+     "Writes a [cos] hitch line to the log for every game frame that takes longer than this."},
     {"COS_GPU_GROUPS", "Temporizadores de GPU por grupo",
      "Mide la GPU por grupo de dibujo (cielo, fondo, opacos, partículas...) en las líneas perf-switch.",
      PC_SETTING_TAB_DEBUG, 0, CHOICES(kGpuGroups), "0", applyGpuGroups, nullptr, 100,
@@ -566,6 +580,11 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_DEBUG, 0, CHOICES(kShowHide), "1", applyPerfLog, nullptr, 110,
      "Perf lines in the log",
      "Hides or shows the [cos] perf and perf-switch lines (measuring goes on)."},
+    {"COS_HD_STATS_EVERY", "Estadísticas de texturas HD",
+     "Cada cuántos cuadros se escribe una línea [cos] hd-textures (aciertos, cargas, MiB) con las texturas HD activas.",
+     PC_SETTING_TAB_DEBUG, 0, CHOICES(kHdStats), kSwitch ? "0" : "300", applyHdStats, nullptr, 112,
+     "HD texture stats",
+     "How many frames between [cos] hd-textures lines (hits, loads, MiB) while HD textures are on."},
     {"COS_USB_LOG", "Registro en directo por USB",
      "Para desarrollo: envía el registro por USB a scripts/switch/usb_log.py mientras juegas. Ocupa el "
      "puerto USB (por ejemplo, SysDVR por USB no podrá usarlo); el registro en la tarjeta SD se escribe siempre.",
@@ -573,6 +592,13 @@ const PcSettingDesc kBuiltins[] = {
      "Live log over USB",
      "For development: sends the log over USB to scripts/switch/usb_log.py while you play. It holds "
      "the USB port (SysDVR over USB, for example, cannot use it); the log on the SD card is always written."},
+    {"COS_DEBUG_SERVER", "Servidor de depuración (red)",
+     "Solo para desarrollo: abre un puerto en la red local, sin contraseña, para scripts/switch/"
+     "switchwaker_debug.py (registro, capturas, warps, archivos). Ver docs/DEBUG_SERVER.md.",
+     PC_SETTING_TAB_DEBUG, PC_SETTING_RESTART | PC_SETTING_SWITCH_ONLY, CHOICES(kOnOff), "0", nullptr, nullptr, 125,
+     "Debug server (network)",
+     "For development only: opens a port on the local network, without a password, for scripts/switch/"
+     "switchwaker_debug.py (log, screenshots, warps, files). See docs/DEBUG_SERVER.md."},
     {"COS_SHADOW_OFFSCREEN", "Sombras en tiempo real (prueba A/B)",
      "Prueba de GPU: dónde se dibujan las sombras de los personajes; fuera del EFB evita cortar la pasada principal.",
      PC_SETTING_TAB_DEBUG, 0, CHOICES(kShadow), "0", applyShadow, nullptr, 130,

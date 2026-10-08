@@ -372,6 +372,8 @@ void perfOpen();
 void perfFlush();
 // pc_frame.cpp: COS_PERF_EVERY changed at run time (options menu); 0 stops the perf lines.
 void perfSetEvery(unsigned int every);
+// pc_frame.cpp: COS_HITCH_MS changed at run time (options menu); 0 stops the hitch lines.
+void perfSetHitch(unsigned int ms);
 
 // pc_frame.cpp: "[cos] pacing: frames= wall= requested= ..." since the frame loop started (nothing
 // before it).

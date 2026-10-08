@@ -84,7 +84,7 @@ back), then `COS_HD_TEXTURES=1` in `native/env.txt`.
 | `COS_HD_BUDGET_MB` | 512 Switch, 1024 else | GPU memory for replacements |
 | `COS_HD_PUBLISH_MB` | 4 Switch, 12 else | uploads per frame |
 | `COS_HD_WORKERS` | 1 Switch, auto else | loader threads |
-| `COS_HD_STATS_EVERY` | 300 | `[cos] hd-textures` line: lookups hit/miss, loads, MiB, load ms avg/max, SD reads, published, cache MiB, evictions, over-budget, pending |
+| `COS_HD_STATS_EVERY` | 0 Switch, 300 else (menu *Estadísticas de texturas HD*) | `[cos] hd-textures` line: lookups hit/miss, loads, MiB, load ms avg/max, SD reads, published, cache MiB, evictions, over-budget, pending |
 | `COS_HD_CENSUS` | | file: the Dolphin name of every distinct static texture resolved (works with HD off) |
 | `COS_HD_TOGGLE_FRAMES` | | `a,b,...`: flip the setting at those frames (toggle checks) |
 | `COS_HD_MAX_SIZE` | `auto` | per mode (menu *Tamaño máx. texturas HD*): `auto` (512 handheld, 1024 docked), `256`, `512`, `1024`, `full` |

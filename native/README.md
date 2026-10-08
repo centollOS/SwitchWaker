@@ -496,8 +496,10 @@ open the PLAY scene is paused (hit-stop pause timer) and the game gets no pad in
   preset of `COS_BOOT_PRESET=sailing` on the file being played, in memory only, then to Windfall's
   sea room on the boat; PLAY scene only), a screenshot (`shot-<frame>.png` in `COS_RUN_DIR`,
   without the menu), reload the settings file; and the rows for developers: the perf log interval
-  and lines (`COS_PERF_EVERY`, `COS_PERF_LOG`), the GPU timers per group (`COS_GPU_GROUPS`), the USB
-  live log (`COS_USB_LOG`, Switch) and the real-time shadow A/B test (`COS_SHADOW_OFFSCREEN`).
+  and lines (`COS_PERF_EVERY`, `COS_PERF_LOG`), the hitch lines (`COS_HITCH_MS`), the HD texture
+  stats lines (`COS_HD_STATS_EVERY`), the GPU timers per group (`COS_GPU_GROUPS`), the USB live log
+  (`COS_USB_LOG`, Switch), the debug server (`COS_DEBUG_SERVER`, Switch, at the next start) and the
+  real-time shadow A/B test (`COS_SHADOW_OFFSCREEN`).
   Gráficos and Rendimiento keep the options meant for players.
 - Values are saved to `user/settings.ini` next to the executable (Switch:
   `/switch/switchwaker/native/user/settings.ini`; `COS_SETTINGS=<path>` names another file,

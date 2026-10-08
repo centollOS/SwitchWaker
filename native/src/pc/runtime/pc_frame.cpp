@@ -888,6 +888,17 @@ void perfSetEvery(unsigned int every) {
     writef(STDERR_FILENO, "[cos] perf: game-thread frame times every %u frames (options menu)\n", every);
 }
 
+void perfSetHitch(unsigned int ms) {
+    if (ms == gConfig.hitchMs) {
+        return;
+    }
+    gConfig.hitchMs = ms;
+    if (ms != 0) {
+        sPerfOn = true;
+    }
+    writef(STDERR_FILENO, "[cos] perf: hitch lines for frames over %u ms (options menu; 0: none)\n", ms);
+}
+
 void perfFlush() {
     if (sCsvFd < 0 || sCsvFlushing.test_and_set(std::memory_order_acquire)) {
         return;
