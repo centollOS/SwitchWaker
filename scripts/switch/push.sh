@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copy the native port's NRO and its inputs to the console over USB (MTP) and pull back its logs.
 #
-#   scripts/switch/push.sh [--build] [--no-pipeline-cache] [native|FILE.nro]...   (default: native)
+#   scripts/switch/push.sh [--build] [--no-pipeline-cache] [native|deko3d|FILE.nro]...   (default: native)
 #   scripts/switch/push.sh --logs
 #   scripts/switch/push.sh --disc DISC.iso
 #   scripts/switch/push.sh --native-env ENV.txt
@@ -13,7 +13,11 @@
 # copies the native port's logs into build/switch-logs/native/. --disc copies
 # the player's disc image as GZLE01.iso (all the native port reads; skipped if
 # already on the console with the same size). `native` is the native port's NRO
-# (scripts/switch/build_native.sh), switchwaker.nro;
+# (scripts/switch/build_native.sh), switchwaker.nro; `deko3d` the deko3d NRO
+# (build_native.sh --renderer deko3d), switchwaker_dk.nro, which goes to sdmc:/switch/switchwaker_dk/
+# with its own initial_pipeline_cache.db and initial_dksh_cache.bin (the DKSH cache built next to it;
+# it reads the disc, env.txt and native/ of sdmc:/switch/switchwaker/, and logs to
+# native/switchwaker_dk.log);
 # --native-env copies a run options file as its native/env.txt. --pipeline-cache copies the
 # bundled pipeline cache (default native/data/initial_pipeline_cache.db, the committed one that
 # native/tools/gen_pipeline_cache.sh updates) as initial_pipeline_cache.db next to the NRO, where
@@ -59,24 +63,28 @@ if [[ ${1:-} == --native-env ]]; then
 fi
 
 bundled_db="$root/native/data/initial_pipeline_cache.db"
-push_pipeline_cache() { # FILE.db
-    local db=$1 staging want got
-    if [[ ! -s $db ]]; then
-        echo "push: $db is missing" >&2
+# FILE as NAME in DIR on the console, read back and compared
+push_verified() { # FILE NAME DIR
+    local file=$1 name=$2 dir=$3 staging want got
+    if [[ ! -s $file ]]; then
+        echo "push: $file is missing" >&2
         exit 1
     fi
     staging=$(mktemp -d)
-    # Aurora looks for this exact name in its resources path (the NRO's directory).
-    cp "$db" "$staging/initial_pipeline_cache.db"
-    "$tool" push "$staging/initial_pipeline_cache.db" "$remote_dir" "$staging/readback.db"
-    want=$(shasum -a 256 "$db" | cut -d' ' -f1)
-    got=$(shasum -a 256 "$staging/readback.db" | cut -d' ' -f1)
+    cp "$file" "$staging/$name"
+    "$tool" push "$staging/$name" "$dir" "$staging/readback"
+    want=$(shasum -a 256 "$file" | cut -d' ' -f1)
+    got=$(shasum -a 256 "$staging/readback" | cut -d' ' -f1)
     rm -rf "$staging"
     if [[ $want != "$got" ]]; then
-        echo "push: read-back of initial_pipeline_cache.db does not match ($got != $want)" >&2
+        echo "push: read-back of $name does not match ($got != $want)" >&2
         exit 1
     fi
-    echo "verified initial_pipeline_cache.db $want"
+    echo "verified $dir/$name $want"
+}
+push_pipeline_cache() { # FILE.db [DIR]
+    # Aurora looks for this exact name in its resources path (the NRO's directory).
+    push_verified "$1" initial_pipeline_cache.db "${2:-$remote_dir}"
 }
 
 if [[ ${1:-} == --pipeline-cache ]]; then
@@ -87,7 +95,7 @@ fi
 if [[ ${1:-} == --logs ]]; then
     # The native port's logs (switch/native/source/cos_switch.cpp); status 3: no log written yet.
     mkdir -p "$root/build/switch-logs/native"
-    for log in switchwaker.log switchwaker.prev.log; do
+    for log in switchwaker.log switchwaker.prev.log switchwaker_dk.log switchwaker_dk.prev.log; do
         status=0
         "$tool" pull "$remote_dir/native" "$log" "$root/build/switch-logs/native/$log" || status=$?
         [[ $status -eq 0 || $status -eq 3 ]] || exit "$status"
@@ -105,14 +113,17 @@ done
 [[ $# -gt 0 ]] || set -- native
 
 for target in "$@"; do
+    dest=$remote_dir dksh=''
     case $target in
-        native) script=build_native.sh nro=build/switch-native/switchwaker.nro ;;
-        *.nro) script='' nro=$target ;;
+        native) script=build_native.sh build_args=() nro=build/switch-native/switchwaker.nro ;;
+        deko3d) script=build_native.sh build_args=(--renderer deko3d) nro=build/switch-native-dk/switchwaker_dk.nro
+                dest=switch/switchwaker_dk dksh=build/switch-native-dk/initial_dksh_cache.bin ;;
+        *.nro) script='' build_args=() nro=$target ;;
         *) echo "push: unknown target $target" >&2; exit 2 ;;
     esac
     [[ $nro == /* ]] || nro="$root/$nro"
     if [[ $build -eq 1 && -n $script ]]; then
-        bash "$root/scripts/switch/$script"
+        bash "$root/scripts/switch/$script" ${build_args[@]+"${build_args[@]}"}
     fi
     if [[ ! -s $nro ]]; then
         echo "push: $nro is missing; build it or pass --build" >&2
@@ -121,7 +132,7 @@ for target in "$@"; do
 
     copy=$(mktemp)
     trap 'rm -f "$copy"' EXIT
-    "$tool" push "$nro" "$remote_dir" "$copy"
+    "$tool" push "$nro" "$dest" "$copy"
     want=$(shasum -a 256 "$nro" | cut -d' ' -f1)
     got=$(shasum -a 256 "$copy" | cut -d' ' -f1)
     rm -f "$copy"
@@ -129,6 +140,10 @@ for target in "$@"; do
         echo "push: read-back of $(basename "$nro") does not match ($got != $want)" >&2
         exit 1
     fi
-    echo "verified $(basename "$nro") $want"
+    echo "verified $dest/$(basename "$nro") $want"
+    if [[ $with_db -eq 1 ]]; then
+        push_pipeline_cache "$bundled_db" "$dest"
+        # the deko3d NRO's DKSH cache (build_native.sh --renderer deko3d builds it next to the NRO)
+        [[ -z $dksh ]] || push_verified "$root/$dksh" initial_dksh_cache.bin "$dest"
+    fi
 done
-[[ $with_db -eq 0 ]] || push_pipeline_cache "$bundled_db"
