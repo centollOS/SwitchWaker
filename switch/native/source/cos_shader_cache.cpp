@@ -27,6 +27,9 @@
 #if defined(COS_SWITCH_MESA_STATS)
 #include <mesa_switch.h>
 #endif
+#if defined(COS_SWITCH_DEKO3D)
+#include "dk_aurora.h"
+#endif
 
 #include "cos_switch.h"
 
@@ -80,10 +83,11 @@ int cos_switch_shader_cache_report(char* out, size_t size, int force) {
     int n = 0;
     out[0] = '\0';
 #if defined(COS_SWITCH_DEKO3D)
-    // the deko3d NRO has no Mesa and no Dawn GL programs (its "[dk] shader cache:" line, switch/deko)
-    (void)size;
+    // the deko3d NRO has no Mesa and no Dawn GL programs: its DKSH registry's line instead
+    // ("[cos] shaders:", switch/deko/shaders.cpp)
     (void)force;
-    return n;
+    (void)n;
+    return aurora_switch_dk_shaders_report(out, size);
 #endif
 #if defined(COS_SWITCH_MESA_STATS)
     const char* status = mesa_switch_shader_cache_status();

@@ -3,11 +3,13 @@
 // Adapted from SwitchWakerHD (https://github.com/centollOS/SwitchWakerHD) at df8fbde:
 // runtime/src/gfx/deko/backend.cpp (device, queue, swapchain, present, frame fences, debug callback,
 // queue checks, the set-up cost and the statistics).
-// The deko3d device and the present pass (dk.h, dk_aurora.h). Phase 2 of
-// docs/DEKO3D_MIGRATION_PLAN.md: Aurora still records every frame but encodes it against Dawn's Null
-// device, so the window shows no game picture yet; every present clears the swapchain image, draws
-// the test pattern with COS_DK_TEST_PATTERN=1, then ImGui (the options menu, the loading screen, the
-// FPS panel), submits and presents. One render thread (Aurora's render worker) records and submits.
+// The deko3d device, the frame's command recording and the present pass (dk.h, dk_aurora.h;
+// docs/DEKO3D_MIGRATION_PLAN.md phases 2-3). Aurora's render worker opens a frame at Aurora's frame
+// start (frame_open: the slot's fence, the descriptor sets, ImGui's texture uploads), records the
+// frame's passes into it (switch/deko/aurora), submits along the way, and presents: the swapchain
+// image cleared, the game's picture (the picture callback: Aurora's EFB resampled and fitted) or the
+// test pattern with COS_DK_TEST_PATTERN=1, then ImGui (the options menu, the loading screen, the FPS
+// panel), the fence, the submit and the present. One render thread records and submits.
 #include <switch.h>
 #include <unistd.h>
 
@@ -30,6 +32,7 @@ extern "C" void cos_switch_flush_logs(void);  // switch/native/source/cos_switch
 namespace swdk {
 
 Renderer R;
+Conventions C;
 
 namespace {
 
@@ -134,12 +137,14 @@ void init_swapchain() {
           R.width, R.height, nw, nh);
 }
 
-// ---- statistics every 30 s: presents and where their time went, command and stream memory per frame,
-// the image heap, shader code, descriptors, the heap
+// ---- statistics every 30 s: presents and where their time went, submits, command and stream memory per
+// frame, the image heap, blocks, shader code, descriptors, the heap
 struct Times {
     uint64_t presents = 0, fenceNs = 0, acquireNs = 0, recordNs = 0, submitNs = 0, maxNs = 0;
     uint64_t start = 0;
 } g_times;
+SubmitStats g_submits;
+uint64_t g_submitsAtStats = 0;
 
 void frame_stats(uint64_t presentNs) {
     g_times.presents++;
@@ -151,75 +156,161 @@ void frame_stats(uint64_t presentNs) {
     const MemoryStats m = memory_stats_take();
     const DescriptorStats d = descriptor_stats();
     dklog("frames %llu-%llu: %.1f presents/s; per present: frame fence %.2f ms, acquire %.2f ms, record %.2f ms, "
-          "submit+present %.2f ms, longest %.2f ms; command memory max %llu KiB/frame (%llu overflows), stream max %llu "
-          "KiB/frame (%llu full); image heap %llu KiB in %llu chunks, shader code %llu KiB; descriptors written: %llu "
-          "images, %llu samplers; ImGui textures %u; deko3d messages %d; heap never used %zu MiB",
+          "submit+present %.2f ms, longest %.2f ms, %.1f submits; command memory max %llu KiB/frame (%llu "
+          "overflows), stream max %llu KiB/frame (%llu full); image heap %llu KiB in %llu chunks, blocks %llu KiB, "
+          "shader code %llu KiB; descriptors: %u images, %u samplers in use, written %llu images, %llu samplers "
+          "(%llu sampler evictions); ImGui textures %u; deko3d messages %d; heap never used %zu MiB",
           (unsigned long long)(R.frame - g_times.presents + 1), (unsigned long long)R.frame,
           n * 1e9 / double(now - g_times.start), double(g_times.fenceNs) / n / 1e6, double(g_times.acquireNs) / n / 1e6,
           double(g_times.recordNs) / n / 1e6, double(g_times.submitNs) / n / 1e6, double(g_times.maxNs) / 1e6,
-          (unsigned long long)(m.cmdBytesMax >> 10), (unsigned long long)m.cmdOverflows,
-          (unsigned long long)(m.streamBytesMax >> 10), (unsigned long long)m.streamFull,
-          (unsigned long long)(m.imageBytes >> 10), (unsigned long long)m.imageChunks,
-          (unsigned long long)(m.codeBytes >> 10), (unsigned long long)d.imageWrites,
-          (unsigned long long)d.samplerWrites, overlay_textures(), g_debugMessages, heap_never_used_mib());
+          double(g_submits.submits - g_submitsAtStats) / n, (unsigned long long)(m.cmdBytesMax >> 10),
+          (unsigned long long)m.cmdOverflows, (unsigned long long)(m.streamBytesMax >> 10),
+          (unsigned long long)m.streamFull, (unsigned long long)(m.imageBytes >> 10),
+          (unsigned long long)m.imageChunks, (unsigned long long)(m.blockBytes >> 10),
+          (unsigned long long)(m.codeBytes >> 10), d.imagesUsed, d.samplersUsed, (unsigned long long)d.imageWrites,
+          (unsigned long long)d.samplerWrites, (unsigned long long)d.samplerEvictions, overlay_textures(),
+          g_debugMessages, heap_never_used_mib());
+    g_submitsAtStats = g_submits.submits;
     g_times = Times{};
     g_times.start = now;
 }
 
-void present(const ImDrawData* ui) {
+// a 1x1 black texture in kEmptyImage: what a draw samples where its view is missing (the first frame)
+bool g_emptyReady = false;
+DkImage g_empty;
+ImageAlloc g_emptyMem;
+void empty_image_init() {
+    if (g_emptyReady) return;
+    DkImageLayoutMaker m;
+    dkImageLayoutMakerDefaults(&m, R.device);
+    m.format = DkImageFormat_RGBA8_Unorm;
+    m.dimensions[0] = 1;
+    m.dimensions[1] = 1;
+    DkImageLayout layout;
+    dkImageLayoutInitialize(&layout, &m);
+    StreamAlloc s = stream_alloc(4, DK_IMAGE_LINEAR_STRIDE_ALIGNMENT);
+    if (!s) return;
+    g_emptyMem = image_alloc(uint32_t(dkImageLayoutGetSize(&layout)), dkImageLayoutGetAlignment(&layout));
+    dkImageInitialize(&g_empty, &layout, g_emptyMem.block, g_emptyMem.offset);
+    memset(s.cpu, 0, 4);
+    static_cast<uint8_t*>(s.cpu)[3] = 0xFF;
+    DkImageView view;
+    dkImageViewDefaults(&view, &g_empty);
+    const DkCopyBuf src = {s.gpu, 0, 0};
+    const DkImageRect r = {0, 0, 0, 1, 1, 1};
+    dkCmdBufCopyBufferToImage(R.cmd, &src, &view, &r, 0);
+    dkCmdBufBarrier(R.cmd, DkBarrier_Full, DkInvalidateFlags_Image);
+    write_image_descriptor(kEmptyImage, g_empty);
+    g_emptyReady = true;
+}
+
+uint64_t g_frameOpenNs = 0;
+PictureFn g_picture = nullptr;
+void* g_pictureUser = nullptr;
+
+// the commands recorded so far to the GPU (the fences they signal are written under fence_mutex)
+void submit_list() {
+    check_queue("a submit");
+    const DkCmdList list = dkCmdBufFinishList(R.cmd);
+    std::lock_guard<std::mutex> lock(fence_mutex());
+    dkQueueSubmitCommands(R.queue, list);
+    g_submits.submits++;
+}
+
+}  // namespace
+
+void frame_open() {
+    if (R.frameOpen) return;
     const uint64_t frame = R.frame + 1;
     const uint64_t t0 = now_ns();
     check_queue("the frame fence");
     frame_begin(frame);
-    const uint64_t t1 = now_ns();
+    g_times.fenceNs += now_ns() - t0;
+    g_frameOpenNs = now_ns();
     descriptors_frame_start();
+    empty_image_init();
     overlay_upload_pending();
     if (g_testPattern) pattern_init();
+    shaders_frame_start();
+    R.frameOpen = true;
+}
+
+void submit(const char* why) {
+    (void)why;
+    if (!R.frameOpen) return;
+    submit_list();
+}
+
+SubmitStats submit_stats() { return g_submits; }
+
+void frame_present(const ImDrawData* ui, PictureFn picture, void* user) {
+    frame_open();
+    const uint64_t frame = R.frame + 1;
+    const uint64_t t1 = now_ns();
     int slot;
     {
         check_queue("acquiring a swapchain image");
         slot = dkQueueAcquireImage(R.queue, g_swapchain);
     }
     const uint64_t t2 = now_ns();
+    if (picture && !g_testPattern) picture(user, 0);
     DkImageView color, depth;
     dkImageViewDefaults(&color, &g_swapImages[slot]);
     dkImageViewDefaults(&depth, &g_depth);
     const DkImageView* colors[] = {&color};
     dkCmdBufBindRenderTargets(R.cmd, colors, 1, &depth);
+    static const DkViewportSwizzle kIdentity = {DkSwizzle_PositiveX, DkSwizzle_PositiveY, DkSwizzle_PositiveZ,
+                                                DkSwizzle_PositiveW};
+    dkCmdBufSetViewportSwizzles(R.cmd, 0, &kIdentity, 1);  // (the game's passes may have flipped y: C.flipY)
     set_view(0, 0, R.width, R.height);
     dkCmdBufClearColorFloat(R.cmd, 0, DkColorMask_RGBA, 0.0f, 0.0f, 0.0f, 1.0f);
     dkCmdBufClearDepthStencil(R.cmd, true, 1.0f, 0xFF, 0);
     if (g_testPattern) {
         pattern_draw();
-    } else {
-        // phase 2 has no game picture: say so in a corner, small
-        static const float fg[4] = {0.55f, 0.55f, 0.55f, 1}, bg[4] = {0, 0, 0, 0};
-        static const char* const lines[] = {"DEKO3D PHASE 2: NO GAME PICTURE YET (COS_DK_TEST_PATTERN=1: TEST PATTERN)"};
-        draw_text(16, int(R.height) - 32, 2, lines, 1, fg, bg);
+    } else if (picture) {
+        picture(user, 1);
+        dkCmdBufSetViewportSwizzles(R.cmd, 0, &kIdentity, 1);  // (C.flipPresent)
+        set_view(0, 0, R.width, R.height);
     }
     overlay_draw(ui);
+    if (picture && !g_testPattern) picture(user, 2);  // (after ImGui: its GPU time)
     frame_end();
     const uint64_t t3 = now_ns();
-    check_queue("the submit");
-    dkQueueSubmitCommands(R.queue, dkCmdBufFinishList(R.cmd));
+    submit_list();
     check_queue("the present");
     dkQueuePresentImage(R.queue, g_swapchain, slot);
     const uint64_t t4 = now_ns();
     R.frame = frame;
+    R.frameOpen = false;
+    g_submits.frames++;
     if (frame == 1) {
-        dklog("first present: frame fence %.2f ms, acquire %.2f ms, record %.2f ms, submit+present %.2f ms; heap "
-              "never used %zu MiB",
-              double(t1 - t0) / 1e6, double(t2 - t1) / 1e6, double(t3 - t2) / 1e6, double(t4 - t3) / 1e6,
-              heap_never_used_mib());
+        dklog("first present: acquire %.2f ms, record %.2f ms, submit+present %.2f ms; heap never used %zu MiB",
+              double(t2 - t1) / 1e6, double(t3 - t2) / 1e6, double(t4 - t3) / 1e6, heap_never_used_mib());
     }
-    g_times.fenceNs += t1 - t0;
     g_times.acquireNs += t2 - t1;
-    g_times.recordNs += t3 - t2;
+    g_times.recordNs += (t1 - g_frameOpenNs) + (t3 - t2);
     g_times.submitNs += t4 - t3;
-    frame_stats(t4 - t0);
+    frame_stats(t4 - g_frameOpenNs);
 }
 
-}  // namespace
+void set_picture(PictureFn picture, void* user) {
+    g_picture = picture;
+    g_pictureUser = user;
+}
+
+bool env_flag(const char* name, bool def) {
+    const char* e = getenv(name);
+    if (!e || !*e) return def;
+    return *e != '0';
+}
+
+long env_long(const char* name, long def) {
+    const char* e = getenv(name);
+    if (!e || !*e) return def;
+    char* end = nullptr;
+    const long v = strtol(e, &end, 0);
+    return end && end != e ? v : def;
+}
 
 void dklog(const char* format, ...) {
     char line[1024];
@@ -291,7 +382,7 @@ extern "C" void aurora_switch_dk_init(uint32_t gxConfigVersion) {
     const uint64_t t0 = now_ns();
     const size_t heapBefore = heap_never_used_mib();
     const AppletType applet = appletGetAppletType();
-    dklog("deko3d renderer (docs/DEKO3D_MIGRATION_PLAN.md phase 2): %s library; heap never used before the set-up "
+    dklog("deko3d renderer (docs/DEKO3D_MIGRATION_PLAN.md phase 3): %s library; heap never used before the set-up "
           "%zu MiB",
           kDebugLib ? "debug (libdeko3dd: every call checked)" : "release", heapBefore);
     if (applet != AppletType_Application && applet != AppletType_SystemApplication) {
@@ -323,14 +414,27 @@ extern "C" void aurora_switch_dk_init(uint32_t gxConfigVersion) {
     dklog("queue created: graphics, command memory %u KiB, zcull %s", qm.commandMemorySize >> 10,
           R.zcull ? "ON (COS_DK_ZCULL=1)" : "off (COS_DK_ZCULL=1 turns it on)");
 
+    C.flipY = env_flag("COS_DK_FLIP_Y", false);
+    C.flipFront = env_flag("COS_DK_FLIP_FRONT", false);
+    C.flipTexture = env_flag("COS_DK_FLIP_TEXTURE", false);
+    C.flipPresent = env_flag("COS_DK_FLIP_PRESENT", false);
+    dklog("conventions: clip-space y %s (COS_DK_FLIP_Y=%d), Aurora's front face %s (COS_DK_FLIP_FRONT=%d), "
+          "texture uploads %s (COS_DK_FLIP_TEXTURE=%d), present %s (COS_DK_FLIP_PRESENT=%d); the plan's defaults "
+          "are all 0 (WebGPU's conventions as they are)",
+          C.flipY ? "NEGATED by a viewport swizzle" : "as WebGPU's (up)", int(C.flipY),
+          C.flipFront ? "INVERTED" : "as it is (CW -> DkFrontFace_CW)", int(C.flipFront),
+          C.flipTexture ? "FLIPPED (bottom row first)" : "row 0 first", int(C.flipTexture),
+          C.flipPresent ? "FLIPPED vertically" : "upright", int(C.flipPresent));
+
     memory_init();
     load_builtin_shaders();
     init_swapchain();
     g_testPattern = pattern_enabled();
-    dklog("present: %s", g_testPattern ? "the TEST PATTERN (COS_DK_TEST_PATTERN=1) under ImGui"
-                                       : "black (no game picture in phase 2) under ImGui; COS_DK_TEST_PATTERN=1 "
-                                         "shows the test pattern");
+    dklog("present: %s", g_testPattern ? "the TEST PATTERN (COS_DK_TEST_PATTERN=1) under ImGui, instead of the game"
+                                       : "the game's picture (the EFB resampled, fitted) under ImGui; "
+                                         "COS_DK_TEST_PATTERN=1 shows the test pattern instead");
     shader_cache_init(gxConfigVersion);
+    shaders_init(gxConfigVersion);
     g_heapAfterSetup = heap_never_used_mib();
     dklog("set-up cost: %zu MiB of heap (never used: %zu MiB before, %zu MiB after), %.0f ms",
           heapBefore > g_heapAfterSetup ? heapBefore - g_heapAfterSetup : 0, heapBefore, g_heapAfterSetup,
@@ -338,7 +442,7 @@ extern "C" void aurora_switch_dk_init(uint32_t gxConfigVersion) {
     log_flush();
 }
 
-extern "C" void aurora_switch_dk_present(const ImDrawData* ui) { present(ui); }
+extern "C" void aurora_switch_dk_present(const ImDrawData* ui) { frame_present(ui, g_picture, g_pictureUser); }
 
 extern "C" void aurora_switch_dk_shutdown(void) {
     if (R.queue == nullptr) return;

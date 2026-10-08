@@ -3,8 +3,9 @@
 // next to the NRO (COS_SWITCH_NRO_DIR) by scripts/switch/build_native.sh, push.sh and make_sd.sh, is
 // read whole, its compiler id checked against this build's (a stale file is ignored as a whole), and
 // every compiled shader is copied into the code block and initialized. One "[dk] shader cache:" line
-// says what came in and how long it took. Phase 2 draws only the test pattern's shaders from it;
-// phase 3 looks Aurora's pipelines up by module hash (the module records, kept here already).
+// says what came in and how long it took. The shaders go into the registry of shaders.cpp (by stage
+// and GLSL hash, Ready), the module records map Aurora's shader hashes to them, and the named records
+// are the fixed shaders (clear, copy conversions, palette conversions, present, the test pattern).
 #include "dk.h"
 
 #include "dksh_file.h"
@@ -23,11 +24,6 @@ namespace {
 
 constexpr const char* kCachePath = COS_SWITCH_NRO_DIR "/initial_dksh_cache.bin";
 
-std::unordered_map<uint64_t, DkShader> g_shaders[2];  // [vertex, fragment] by GLSL hash
-struct ModuleShaders {
-    uint64_t vertex, fragment;
-};
-std::unordered_map<uint64_t, ModuleShaders> g_modules;  // Aurora's shader hash -> its GLSL hashes
 std::unordered_map<std::string, NamedShader> g_named;
 char g_status[160] = "not loaded";
 
@@ -79,20 +75,19 @@ void shader_cache_init(uint32_t gxConfigVersion) {
     const uint32_t codeBefore = code_used();
     for (const DkshShaderRecord& r : file.shaders) {
         if (r.dksh.empty()) continue;
-        auto& map = g_shaders[r.stage == ShaderStage::Vertex ? 0 : 1];
-        DkShader shader;
-        if (map.count(r.glslHash) == 0 && code_load(shader, r.dksh.data(), uint32_t(r.dksh.size()), "cached DKSH")) {
-            map.emplace(r.glslHash, shader);
+        ShaderEntry* e = shader_entry(r.stage, r.glslHash);
+        if (e->state.load() != ShaderState::Ready &&
+            code_load(e->shader, r.dksh.data(), uint32_t(r.dksh.size()), "cached DKSH")) {
+            e->state.store(ShaderState::Ready);
             loaded++;
         } else {
             refused++;
         }
     }
-    for (const DkshModuleRecord& m : file.modules) g_modules[m.moduleHash] = {m.vertexGlslHash, m.fragmentGlslHash};
+    for (const DkshModuleRecord& m : file.modules) shader_module_add(m.moduleHash, m.vertexGlslHash, m.fragmentGlslHash);
     for (const DkshNamedRecord& n : file.named) {
-        auto& map = g_shaders[n.stage == ShaderStage::Vertex ? 0 : 1];
-        auto it = map.find(n.glslHash);
-        if (it != map.end()) g_named[n.name] = NamedShader{it->second, n.bindings};
+        ShaderEntry* e = shader_entry(n.stage, n.glslHash);
+        if (e->state.load() == ShaderState::Ready) g_named[n.name] = NamedShader{e->shader, n.bindings, e};
     }
     const uint64_t t2 = now_ns();
     dklog("shader cache: %s: %.2f MiB read in %.0f ms; %s; %zu loaded into code memory in %.0f ms (%u KiB, %.0f%% of "

@@ -287,10 +287,12 @@ target_link_libraries(cos_switch_main PUBLIC cos_switch_platform)
 target_include_directories(cos_pc PRIVATE "${COS_SWITCH_DIR}/source")
 target_link_libraries(cos_pc PRIVATE cos_switch_platform)
 
-# ---- The deko3d renderer (switch/deko; docs/DEKO3D_MIGRATION_PLAN.md phase 2) ---------------------------
-# Aurora with AURORA_GFX_DEKO3D (aurora/patches/0013) records against Dawn's Null device and calls
-# switch/deko/dk_aurora.h for the device, the swapchain, the present pass and ImGui. Dawn keeps its GL
-# backend (Mesa stays linked, unused) until the GL path goes (plan phase 6).
+# ---- The deko3d renderer (switch/deko; docs/DEKO3D_MIGRATION_PLAN.md phases 2-3) -------------------------
+# Aurora with AURORA_GFX_DEKO3D (aurora/patches/0013-0014) records its frames as for WebGPU, keeps Dawn's
+# Null device as its object model, and switch/deko records them into deko3d (switch/deko/aurora, compiled
+# into Aurora's gx library), presents and compiles the shaders its DKSH caches lack (uamlib and Tint in
+# the NRO). Dawn keeps its GL backend compiled (Mesa stays out: nothing references EGL) until the GL path
+# goes (plan phase 6).
 if (COS_SWITCH_RENDERER STREQUAL "deko3d")
     set(_dk_dir "${COS_REPO_ROOT}/switch/deko")
     set(_dk_nro_dir "/switch/switchwaker_dk")
@@ -312,6 +314,9 @@ if (COS_SWITCH_RENDERER STREQUAL "deko3d")
         list(APPEND _dk_dksh cos_dksh_${_name})
     endforeach ()
     dkp_add_embedded_binary_library(cos_switch_deko_shaders ${_dk_dksh})
+    # uam (devkitPro's deko3d shader compiler with SwitchWakerHD's patches, switch/uam) for the shaders the
+    # DKSH caches lack, on one worker thread (switch/deko/shaders.cpp)
+    add_subdirectory("${COS_REPO_ROOT}/switch/uam" "${CMAKE_BINARY_DIR}/uam" EXCLUDE_FROM_ALL)
     add_library(cos_switch_deko STATIC
             "${_dk_dir}/device.cpp"
             "${_dk_dir}/memory.cpp"
@@ -319,25 +324,42 @@ if (COS_SWITCH_RENDERER STREQUAL "deko3d")
             "${_dk_dir}/overlay.cpp"
             "${_dk_dir}/pattern.cpp"
             "${_dk_dir}/shader_cache.cpp"
+            "${_dk_dir}/shaders.cpp"
+            "${_dk_dir}/shader_translate.cpp"
             "${_dk_dir}/dksh_file.cpp")
     target_include_directories(cos_switch_deko PUBLIC "${_dk_dir}")
+    set_target_properties(cos_switch_deko PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)  # (Tint's headers)
+    # Tint's WGSL reader and GLSL writer from the Dawn build (build_native.sh gives the deko3d NRO a Dawn
+    # source with dawn-switch-tint-position-y-up.patch, whose option shader_translate.cpp sets)
+    target_include_directories(cos_switch_deko PRIVATE "${dawn_SOURCE_DIR}" "${dawn_SOURCE_DIR}/include")
     target_compile_definitions(cos_switch_deko PRIVATE "COS_SWITCH_NRO_DIR=\"${_dk_nro_dir}\""
+            "COS_SWITCH_DATA_DIR=\"/switch/switchwaker/native\""
             $<$<BOOL:${COS_DK_DEBUG_LIB}>:COS_DK_DEBUG_LIB=1>)
     if (COS_DK_DEBUG_LIB)
         set(_dk_lib deko3dd)
     else ()
         set(_dk_lib deko3d)
     endif ()
-    target_link_libraries(cos_switch_deko PRIVATE cos_switch_deko_shaders imgui ZLIB::ZLIB xxHash::xxhash
+    target_link_libraries(cos_switch_deko PRIVATE cos_switch_deko_shaders imgui ZLIB::ZLIB xxHash::xxhash uamlib
+            tint_api tint_lang_glsl_writer tint_lang_wgsl_reader tint_lang_wgsl_inspector
             PUBLIC ${_dk_lib} nx)
-    target_compile_definitions(aurora_core PRIVATE AURORA_GFX_DEKO3D=1)
+    # Every unit sees the define (the structs it changes are shared with the game's units).
+    target_compile_definitions(aurora_core PUBLIC AURORA_GFX_DEKO3D=1)
     target_include_directories(aurora_core PRIVATE "${_dk_dir}")
     target_link_libraries(aurora_core PUBLIC cos_switch_deko)
+    # The recording of Aurora's frames: inside Aurora's gx library, with its internal headers.
+    target_sources(aurora_gx PRIVATE
+            "${_dk_dir}/aurora/dk_objects.cpp"
+            "${_dk_dir}/aurora/dk_pipeline.cpp"
+            "${_dk_dir}/aurora/dk_encode.cpp"
+            "${_dk_dir}/aurora/dk_present.cpp")
+    target_include_directories(aurora_gx PRIVATE "${_dk_dir}" "${_dk_dir}/aurora" "${COS_SWITCH_AURORA_DIR}/lib")
     # The NRO's own folder: SDL_GetBasePath (the bundled pipeline cache) and the DKSH cache next to it; the
     # log is COS_SWITCH_ROOT/switchwaker_dk.log (source/cos_switch.h).
     target_compile_definitions(SDL3-static PRIVATE "COS_SWITCH_NRO_DIR=\"${_dk_nro_dir}\"")
     target_compile_definitions(cos_switch_platform PUBLIC COS_SWITCH_DEKO3D=1
             "COS_SWITCH_NRO_NAME=\"${COS_SWITCH_NRO_NAME}\"")
+    target_include_directories(cos_switch_platform PUBLIC "${_dk_dir}")
     message(STATUS "deko3d: ${_dk_lib}, NRO folder ${_dk_nro_dir}")
 endif ()
 
@@ -355,6 +377,14 @@ target_link_options(switchwaker PRIVATE "LINKER:--wrap=nouveau_pushbuf_space" "L
         "LINKER:--wrap=nvGpuChannelKickoff" "LINKER:--wrap=nvGpuChannelAppendEntry")
 # abort() writes the logs out and a backtrace first (source/cos_switch.cpp).
 target_link_options(switchwaker PRIVATE "LINKER:--wrap=abort")
+if (COS_SWITCH_RENDERER STREQUAL "deko3d")
+    # The shadows of Aurora's WebGPU textures, views, samplers and bind groups (switch/deko/aurora/dk_objects.cpp).
+    foreach (_fn wgpuDeviceCreateTexture wgpuTextureAddRef wgpuTextureRelease wgpuTextureCreateView
+            wgpuTextureViewAddRef wgpuTextureViewRelease wgpuDeviceCreateSampler wgpuSamplerAddRef wgpuSamplerRelease
+            wgpuDeviceCreateBindGroup wgpuBindGroupAddRef wgpuBindGroupRelease)
+        target_link_options(switchwaker PRIVATE "LINKER:--wrap=${_fn}")
+    endforeach ()
+endif ()
 set_target_properties(switchwaker PROPERTIES OUTPUT_NAME "${COS_SWITCH_NRO_NAME}" SUFFIX ".elf")
 # The version the Homebrew Menu shows: scripts/switch/build_native.sh passes git describe's (the tag).
 set(COS_SWITCH_VERSION "0.0.0" CACHE STRING "NRO display version (NACP, at most 15 bytes)")
