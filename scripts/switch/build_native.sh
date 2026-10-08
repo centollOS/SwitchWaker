@@ -1,13 +1,23 @@
 #!/usr/bin/env bash
 # Build the native port (native/: the decompiled game on Aurora) as a Switch NRO.
 #
-#   scripts/switch/build_native.sh [--aurora DIR] [--assets DIR] [--recompcore DIR]
-#                                  [--dawn-src DIR] [--mesa DIR | --stock-mesa] [--jobs N]
-#                                  [--target TARGET]
+#   scripts/switch/build_native.sh [--renderer gl|deko3d] [--dk-debug-lib] [--aurora DIR]
+#                                  [--assets DIR] [--recompcore DIR] [--dawn-src DIR]
+#                                  [--mesa DIR | --stock-mesa] [--jobs N] [--target TARGET]
 #
 # Output: build/switch-native/switchwaker.nro, next to it the bundled pipeline cache
 # initial_pipeline_cache.db (a copy of native/data/'s), and, for addr2line,
 # build/switch-native/switchwaker.elf.
+#
+# --renderer deko3d (docs/DEKO3D_MIGRATION_PLAN.md, phase 2 on): the deko3d NRO instead,
+# build/switch-native-dk/switchwaker_dk.nro (+ .elf), "SwitchWaker (deko3d)" in the Homebrew Menu,
+# for sdmc:/switch/switchwaker_dk/; next to it the same initial_pipeline_cache.db and
+# initial_dksh_cache.bin, the DKSH of every pipeline of that database, built first by
+# native/tools/dksh_cache (its own Debian container; build/dksh/ keeps its report and work files)
+# and checked (`dksh_cache check`). The container builds in /work/build/switch-native either way:
+# build/switch-native-dk is mounted there, so a copy of a GL build tree (cp -cR on APFS) is a
+# valid head start. --dk-debug-lib links libdeko3dd (every deko3d call checked; "SwitchWaker
+# (deko3d debug)"). The GL NRO (the default, --renderer gl) is unchanged.
 # Everything is compiled in a container (Podman or Docker, see container.sh) from the pinned
 # devkitPro image plus clang 19 (Containerfile.native): devkitA64's GCC for Aurora, Dawn, the SDK
 # and libnx, clang for the game units (switch/native/clang-launcher.sh).
@@ -40,10 +50,12 @@ root=$(cd "$(dirname "$0")/../.." && pwd)
 source "$root/scripts/switch/container.sh"
 image=${COS_SWITCH_NATIVE_IMAGE:-localhost/centollos-switch-native-build:2026-10-03}
 
-aurora="" assets="" recompcore="" dawn_src="" mesa="" stock_mesa=0 target=cos_nro
+aurora="" assets="" recompcore="" dawn_src="" mesa="" stock_mesa=0 target=cos_nro renderer=gl dk_debug=OFF
 jobs=${SWITCH_BUILD_JOBS:-4}
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --renderer) renderer=$2; shift 2 ;;
+        --dk-debug-lib) dk_debug=ON; shift ;;
         --aurora) aurora=$2; shift 2 ;;
         --assets) assets=$2; shift 2 ;;
         --recompcore) recompcore=$2; shift 2 ;;
@@ -52,10 +64,16 @@ while [[ $# -gt 0 ]]; do
         --stock-mesa) stock_mesa=1; shift ;;
         --jobs) jobs=$2; shift 2 ;;
         --target) target=$2; shift 2 ;;
-        -h|--help) sed -n '2,36p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,46p' "$0"; exit 0 ;;
         *) echo "build_native: unknown option $1" >&2; exit 2 ;;
     esac
 done
+
+case $renderer in
+    gl) build_dir=build/switch-native nro_name=switchwaker ;;
+    deko3d) build_dir=build/switch-native-dk nro_name=switchwaker_dk ;;
+    *) echo "build_native: --renderer is gl or deko3d, not $renderer" >&2; exit 2 ;;
+esac
 
 # The main checkout, when this is a git worktree (its build/ and ref/ hold the shared inputs).
 main_root=$root
@@ -113,6 +131,11 @@ if ! container_image_exists "$engine" "$image"; then
 fi
 
 mounts=(-v "$aurora:/inputs/aurora:ro" -v "$assets:/inputs/assets:ro" -v "$recompcore:/inputs/recompcore:ro")
+if [[ $renderer == deko3d ]]; then
+    # the deko3d tree at the container path of the GL one (see the header)
+    mkdir -p "$root/$build_dir"
+    mounts+=(-v "$root/$build_dir:/work/build/switch-native")
+fi
 mesa_flag=-DCOS_SWITCH_MESA_DIR=
 if [[ $stock_mesa == 0 ]]; then
     if [[ ! -f $mesa/lib/libEGL.a ]]; then
@@ -137,30 +160,52 @@ if [[ ${#version} -gt 15 ]]; then
     version=${version:0:15}
 fi
 
-echo "build_native: version=$version aurora=$aurora assets=$assets recompcore=$recompcore dawn-src=${dawn_src:-fetch} mesa=${mesa:-devkitPro switch-mesa}"
+label=$renderer
+[[ $renderer == deko3d && $dk_debug == ON ]] && label="deko3d (libdeko3dd)"
+echo "build_native: renderer=$label version=$version aurora=$aurora assets=$assets recompcore=$recompcore dawn-src=${dawn_src:-fetch} mesa=${mesa:-devkitPro switch-mesa}"
 
 container_run "$engine" "$root" "${mounts[@]}" -e JOBS="$jobs" -e TARGET="$target" \
-    -e DAWN_FLAG="$dawn_flag" -e MESA_FLAG="$mesa_flag" -e VERSION="$version" "$image" bash -lc '
+    -e DAWN_FLAG="$dawn_flag" -e MESA_FLAG="$mesa_flag" -e VERSION="$version" \
+    -e RENDERER="$renderer" -e NRO_NAME="$nro_name" -e DK_DEBUG="$dk_debug" "$image" bash -lc '
 set -euo pipefail
 export PATH=/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin:$PATH
 cmake -S /work/switch/native -B /work/build/switch-native -G Ninja \
     -DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Switch.cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-    -DDKP_USE_DOUBLE_OBJECT_FILE_EXTENSIONS=ON -DCOS_SWITCH_NRO_NAME=switchwaker \
-    -DCOS_SWITCH_VERSION="$VERSION" \
+    -DDKP_USE_DOUBLE_OBJECT_FILE_EXTENSIONS=ON -DCOS_SWITCH_RENDERER="$RENDERER" \
+    -DCOS_SWITCH_NRO_NAME="$NRO_NAME" -DCOS_DK_DEBUG_LIB="$DK_DEBUG" -DCOS_SWITCH_VERSION="$VERSION" \
     -DCOS_SWITCH_AURORA_SOURCE=/inputs/aurora -DCOS_ASSETS_DIR=/inputs/assets \
     -DCOS_RECOMPCORE_DIR=/inputs/recompcore $DAWN_FLAG $MESA_FLAG >/dev/null
 cmake --build /work/build/switch-native --target "$TARGET" --parallel "$JOBS"
 '
 
 [[ $target == cos_nro ]] || exit 0
-nro="$root/build/switch-native/switchwaker.nro"
+out="$root/$build_dir"
+nro="$out/$nro_name.nro"
 if [[ ! -s $nro ]] || [[ $(od -An -tc -j 16 -N4 "$nro" | tr -d ' \n') != NRO0 ]]; then
     echo "build_native: no valid NRO at $nro" >&2
     exit 1
 fi
-shasum -a 256 "$nro" 2>/dev/null || sha256sum "$nro"
 # The bundled pipeline cache goes next to the NRO (sdmc:/switch/switchwaker/ on the console): without
 # it there is no warm-up and no "Preparing shaders" screen (docs/SWITCH_BUILD.md).
-cp -f "$root/native/data/initial_pipeline_cache.db" "$root/build/switch-native/initial_pipeline_cache.db"
-printf 'Built %s (%s bytes); symbols: %s\n' "$nro" "$(wc -c <"$nro" | tr -d ' ')" \
-    "$root/build/switch-native/switchwaker.elf"
+cp -f "$root/native/data/initial_pipeline_cache.db" "$out/initial_pipeline_cache.db"
+if [[ $renderer == deko3d ]]; then
+    # The DKSH of every pipeline of that database (docs/DEKO3D_MIGRATION_PLAN.md section 6): generated,
+    # never committed; the NRO loads it at start ("[dk] shader cache:"). check reads it back as the
+    # NRO's loader does and prints the same summary.
+    mkdir -p "$root/build/dksh"
+    "$root/native/tools/dksh_cache/build.sh" --jobs "$jobs" build native/data/initial_pipeline_cache.db \
+        build/dksh/initial_dksh_cache.bin >"$root/build/dksh/build.log" 2>&1 || {
+        tail -n 40 "$root/build/dksh/build.log" >&2
+        echo "build_native: native/tools/dksh_cache failed (build/dksh/build.log)" >&2
+        exit 1
+    }
+    grep -E "^(GX configs|uam:|modules with|fixed shaders|DKSH:|read back)" "$root/build/dksh/initial_dksh_cache.bin.report.txt" || true
+    "$root/native/tools/dksh_cache/build.sh" check build/dksh/initial_dksh_cache.bin
+    cp -f "$root/build/dksh/initial_dksh_cache.bin" "$out/initial_dksh_cache.bin"
+fi
+shasum -a 256 "$nro" 2>/dev/null || sha256sum "$nro"
+printf 'Built %s (%s bytes); symbols: %s\n' "$nro" "$(wc -c <"$nro" | tr -d ' ')" "$out/$nro_name.elf"
+if [[ $renderer == deko3d ]]; then
+    printf 'For sdmc:/switch/switchwaker_dk/: %s, %s, %s (the disc and native/ stay in sdmc:/switch/switchwaker/)\n' \
+        "$nro_name.nro" initial_pipeline_cache.db initial_dksh_cache.bin
+fi

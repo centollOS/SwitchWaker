@@ -4,7 +4,8 @@
 // devoptab tee as in the translated port (switch/host/source/switch_main.c), to
 //   - the live USB log (switch/source/common/usb_log.c; scripts/switch/usb_log.py on the computer),
 //     only with COS_USB_LOG=1 (off by default: it holds the USB port for the whole run);
-//   - COS_SWITCH_ROOT/switchwaker.log on the SD card (the previous run's is kept as switchwaker.prev.log), written
+//   - COS_SWITCH_ROOT/switchwaker.log on the SD card (the previous run's is kept as switchwaker.prev.log;
+//     the deko3d NRO's are switchwaker_dk.log and switchwaker_dk.prev.log, COS_SWITCH_NRO_NAME), written
 //     by a thread of its own so a game thread never waits on the SD card. A crash or an exit
 //     writes what is still queued before the process ends.
 //
@@ -49,8 +50,8 @@ extern "C" void pc_settings_load_early(void); // native/src/pc/features/pc_setti
 
 namespace {
 
-constexpr const char* kLogPath = COS_SWITCH_ROOT "/switchwaker.log";
-constexpr const char* kPrevLogPath = COS_SWITCH_ROOT "/switchwaker.prev.log";
+constexpr const char* kLogPath = COS_SWITCH_ROOT "/" COS_SWITCH_NRO_NAME ".log";
+constexpr const char* kPrevLogPath = COS_SWITCH_ROOT "/" COS_SWITCH_NRO_NAME ".prev.log";
 constexpr size_t kRingSize = 1u << 20;
 
 // ---- SD card log ---------------------------------------------------------------------------------
@@ -495,7 +496,7 @@ void writeAddress(const char* label, uintptr_t addr) {
     const uintptr_t base = cos_switch_image_base();
     // The NRO is a few hundred MiB at most; anything else is not in switchwaker.elf.
     if (addr >= base && addr - base < (1ull << 30)) {
-        sayf("%s0x%llx (switchwaker.elf+0x%llx)", label, (unsigned long long)addr, (unsigned long long)(addr - base));
+        sayf("%s0x%llx (" COS_SWITCH_NRO_NAME ".elf+0x%llx)", label, (unsigned long long)addr, (unsigned long long)(addr - base));
     } else {
         sayf("%s0x%llx", label, (unsigned long long)addr);
     }
@@ -533,7 +534,7 @@ void crashReport(ThreadExceptionDump* ctx) {
         sayf("%sx%d=0x%llx%s", (r % 4) == 0 ? "[cos]   " : " ", r, (unsigned long long)ctx->cpu_gprs[r].x,
              (r % 4) == 3 || r == 28 ? "\n" : "");
     }
-    sayf("[cos] image base=0x%llx: aarch64-none-elf-addr2line -f -C -i -e switchwaker.elf <offset>\n",
+    sayf("[cos] image base=0x%llx: aarch64-none-elf-addr2line -f -C -i -e " COS_SWITCH_NRO_NAME ".elf <offset>\n",
          (unsigned long long)cos_switch_image_base());
     sayf("[cos] backtrace (pc, lr, then the frame records' return addresses as call sites):\n");
     writeAddress("[cos]   #0 ", ctx->pc.x);
@@ -583,7 +584,7 @@ __attribute__((noreturn)) void __wrap_abort(void) {
         __real_abort();
     }
     sayf("\n[cos] ABORT (abort() called) on thread %llu\n", (unsigned long long)cos_switch_thread_id());
-    sayf("[cos] image base=0x%llx: aarch64-none-elf-addr2line -f -C -i -e switchwaker.elf <offset>\n",
+    sayf("[cos] image base=0x%llx: aarch64-none-elf-addr2line -f -C -i -e " COS_SWITCH_NRO_NAME ".elf <offset>\n",
          (unsigned long long)cos_switch_image_base());
     sayf("[cos] backtrace (call sites):\n");
     writeBacktrace((uintptr_t)__builtin_frame_address(0), 0);
@@ -628,11 +629,16 @@ void cos_switch_start(int argc, char** argv) {
     char mode[160];
     cos_switch_describe_mode(mode, sizeof(mode));
     sayf("[switch] clocks after the gpu profile: %s\n", mode);
+#if defined(COS_SWITCH_DEKO3D)
+    // The deko3d NRO starts no EGL: no Mesa shader cache (its shaders are the DKSH cache, switch/deko).
+    sayf("[switch] renderer: deko3d (switch/deko); Mesa's shader cache unused\n");
+#else
     // Before Aurora starts EGL, which creates Mesa's shader cache (cos_shader_cache.cpp).
     char note[640];
     if (cos_switch_shader_cache_setup(note, sizeof(note)) > 0) {
         sayf("%s", note);
     }
+#endif
 }
 
 void cos_switch_flush_logs(void) {

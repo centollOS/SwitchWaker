@@ -79,6 +79,12 @@ int cos_switch_shader_cache_setup(char* note, size_t size) {
 int cos_switch_shader_cache_report(char* out, size_t size, int force) {
     int n = 0;
     out[0] = '\0';
+#if defined(COS_SWITCH_DEKO3D)
+    // the deko3d NRO has no Mesa and no Dawn GL programs (its "[dk] shader cache:" line, switch/deko)
+    (void)size;
+    (void)force;
+    return n;
+#endif
 #if defined(COS_SWITCH_MESA_STATS)
     const char* status = mesa_switch_shader_cache_status();
     // Mesa writes its status when it creates the cache (eglInitialize); before that the default.
