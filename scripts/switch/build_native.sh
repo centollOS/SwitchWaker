@@ -147,7 +147,27 @@ if [[ $stock_mesa == 0 ]]; then
     mesa_flag=-DCOS_SWITCH_MESA_DIR=/inputs/mesa
 fi
 dawn_flag=""
-if [[ -n $dawn_src && -f $dawn_src/CMakeLists.txt ]]; then
+if [[ -n $dawn_src && -f $dawn_src/CMakeLists.txt && $renderer == deko3d ]]; then
+    # The deko3d NRO compiles WGSL -> GLSL with Tint for the pipelines its DKSH cache lacks, with the
+    # option of dawn-switch-tint-position-y-up.patch, which the GL NRO's Dawn must not get (it changes
+    # the key of Dawn's GLSL program cache). Its Dawn source is a copy of the shared one (an APFS
+    # clone, timestamps kept, so the build tree stays incremental) with that patch, mounted at the same
+    # container path: build/dawn-src-deko3d of this checkout, made once and patched when needed.
+    dk_dawn=$root/build/dawn-src-deko3d
+    if [[ ! -f $dk_dawn/CMakeLists.txt ]]; then
+        echo "build_native: copying $dawn_src to $dk_dawn (the deko3d NRO's Dawn source)"
+        mkdir -p "$root/build"
+        rm -rf "$dk_dawn.partial"
+        cp -cRp "$dawn_src" "$dk_dawn.partial" 2>/dev/null || cp -Rp "$dawn_src" "$dk_dawn.partial"
+        mv "$dk_dawn.partial" "$dk_dawn"
+    fi
+    y_patch=$root/switch/dawn/patches/dawn-switch-tint-position-y-up.patch
+    if ! grep -q disable_position_y_negation "$dk_dawn/src/tint/lang/glsl/writer/common/options.h"; then
+        patch -d "$dk_dawn" -p1 --forward --quiet <"$y_patch"
+    fi
+    mounts+=(-v "$dk_dawn:/inputs/dawn-src")
+    dawn_flag=-DFETCHCONTENT_SOURCE_DIR_DAWN=/inputs/dawn-src
+elif [[ -n $dawn_src && -f $dawn_src/CMakeLists.txt ]]; then
     mounts+=(-v "$(cd "$dawn_src" && pwd):/inputs/dawn-src")
     dawn_flag=-DFETCHCONTENT_SOURCE_DIR_DAWN=/inputs/dawn-src
 fi
@@ -200,7 +220,14 @@ if [[ $renderer == deko3d ]]; then
         exit 1
     }
     grep -E "^(GX configs|uam:|modules with|fixed shaders|DKSH:|read back)" "$root/build/dksh/initial_dksh_cache.bin.report.txt" || true
-    "$root/native/tools/dksh_cache/build.sh" check build/dksh/initial_dksh_cache.bin
+    # every fixed shader the NRO draws with (switch/deko/aurora: clears, EFB copy conversions, palette
+    # conversions, depth snapshots, the present) and the test pattern's
+    fixed=(dk_test_pattern clear_color clear_depth present_resample tex_copy_conv_blit tex_copy_conv_depth_snapshot)
+    for f in i4 i8 ia4 ia8 rgb565 r4 ra4 ra8 a8 r8 g8 b8 rg8 gb8 z8 z16; do fixed+=("tex_copy_conv_$f"); done
+    for f in direct fromfloat8 fromfloat4; do fixed+=("tex_palette_conv_$f"); done
+    names=(xfb_copy.vs_main xfb_copy.fs_opaque)
+    for f in "${fixed[@]}"; do names+=("$f.vs_main" "$f.fs_main"); done
+    "$root/native/tools/dksh_cache/build.sh" check build/dksh/initial_dksh_cache.bin "${names[@]}"
     cp -f "$root/build/dksh/initial_dksh_cache.bin" "$out/initial_dksh_cache.bin"
 fi
 shasum -a 256 "$nro" 2>/dev/null || sha256sum "$nro"
