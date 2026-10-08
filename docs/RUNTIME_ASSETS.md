@@ -1,7 +1,9 @@
 # Loading the disc-derived data at run time (design note)
 
-Status: proposal, not implemented. Written 2026-10-05. **Agreed 2026-10-08** as the way to make
-installing easier (see [Player distribution](#player-distribution-agreed-2026-10-08)).
+Status: **implemented 2026-10-09** (steps 1-3 below, and the Switch build); written 2026-10-05 as a
+proposal, agreed 2026-10-08 as the way to make installing easier (see
+[Player distribution](#player-distribution-agreed-2026-10-08)). What was built and how it was checked:
+[Implementation](#implementation-2026-10-09).
 
 ## Why the build needs the disc today
 
@@ -65,6 +67,29 @@ contents, and fill the arrays from the player's disc when the program starts.
    the real binaries (smoke tests that need no disc), and releases can ship `switchwaker` (Mac,
    Linux) and `switchwaker.nro` (Switch); players still supply the disc to run them, which they do
    already. The binaries stay GPL-2.0-or-later (Dolphin's DSP HLE), with source available.
+
+## Implementation (2026-10-09)
+
+Build without a disc:
+
+```sh
+native/tools/gen_assets.sh --stubs --decomp build/decomp --out build/assets-stubs/GZLE01   # PyYAML
+cmake -S native -B build/native-mac-ra -G Ninja -DCOS_RUNTIME_ASSETS=ON \
+    -DCOS_ASSETS_DIR=$PWD/build/assets-stubs/GZLE01
+ninja -C build/native-mac-ra switchwaker
+scripts/switch/build_native.sh --renderer deko3d --runtime-assets   # the NRO (also the GL one)
+```
+
+What differs from the proposal:
+
+| Part | As built |
+|---|---|
+| Stubs | `native/tools/gen_asset_stubs.py` (called by `gen_assets.sh --stubs`). The declaration is derived from `symbols.txt` (`scope`, `align`, the section) and `config.yml` (`custom_type`, `custom_data.scope`, `rename`, the `name!.section:addr` form of non-unique names); a check against the disc's headers found all 163 declarations identical (type, name, linkage, alignment, size). The three `.rodata` arrays (`black_tex`, `font_data`, `msg_data`) lose `const` (they are written at start-up) and become `static`, the linkage `const` gave them. `matDL` headers stay macros of the texture name (the texture address in the display list is rewritten by `mDoLib_loadDLTexImage` before each draw on PC, so the disc's bytes serve as they are). |
+| Registration | Not a static-initialiser table: several headers are included inside function bodies (`m_Do_graphic.cpp`, `d_drawlist.cpp`, `m_Do_ext.cpp`) or namespaces. `COS_ASSET_FILL` defines a `static const bool` initialised by `cos_asset_fill(array, size, id)`: at namespace scope it runs during static initialisation and records the array; inside a function it runs on the first call, after the loader, and copies at once. `cos_asset_fill` is declared in `native/include/pc/cos_pc_config.h` (included first in every unit), since a declaration inside a function or namespace would name another function. |
+| Loader | `native/src/pc/runtime/pc_assets.cpp`, from `pc_aurora_init` right after `aurora_dvd_open` and the disc ID check, before `OSInit`. main.dol through Aurora's `DVDGetDOLLocation`, the RELs through `DVDOpen`/`DVDReadPrio` (Yaz0 and RARC readers of its own; dtk's archive paths start with the root node's name). Each main.dol and REL is checked against the SHA-1 the decomp's `config.yml` records for it (a SHA-1 of the file, not of game data); a mismatch exits `PC_EXIT_DISC` with a `[cos] DISC:` line. The table orders a module's arrays together, so each REL is read once. `Vec`/`cXy` floats are byte-swapped; raw arrays and `GXColor` are copied as they are. |
+| Verification | `COS_SMOKE=assets` writes every array (after conversion) to `<run>/assets/` and exits; `native/tools/check_runtime_assets.py` compares them with dtk's own split of the same disc (`build/decomp/build/GZLE01/bin/assets/*.bin`, the converters' input), swapping the float arrays: **163 of 163 identical**. Then `COS_BUILD_DIR=build/native-mac-ra native/tools/regress.sh`: **all checks passed** (every smoke and run target of `regress_targets.txt`, sailing, shore foam, telescope, saves, the sweeps). Screenshots cannot be compared byte for byte: two runs of the same build already differ (11.7 % of the pixels at frame 1200, `--uncapped`). |
+| CMake | `COS_RUNTIME_ASSETS` (`GameConfig.cmake`) only adds the define to `cos_pc` (the loader); the stubs need none, so switching a build directory between the two modes recompiles only the 23 units that include assets/ headers and the harness. Configuring with the wrong kind of headers for the option is an error. |
+| CI | The `linux` job also builds `switchwaker` from stubs (`python3-yaml` added to the Linux image). |
 
 ## What stays out of scope
 

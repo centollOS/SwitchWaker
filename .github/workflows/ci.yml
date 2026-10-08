@@ -1,14 +1,14 @@
 # Continuous integration WITHOUT the game disc.
 #
-# The full game (switchwaker, switchwaker.nro) cannot be built here: the build compiles headers that
-# native/tools/gen_assets.sh generates from the player's own disc, and no disc (or anything
-# derived from one) may ever be put into CI. docs/RUNTIME_ASSETS.md describes what it would take
-# to lift that. What this workflow does instead:
+# No disc (or anything derived from one) may ever be put into CI. The game builds without one in
+# the runtime-assets mode (docs/RUNTIME_ASSETS.md): stub assets/ headers from the decomp's config,
+# the arrays read from the player's disc at start-up. What this workflow does:
 #   lint          shell scripts (shellcheck, errors only), Python tools (byte-compile)
 #   linux         the Linux build image (scripts/docker/Containerfile.linux), then Aurora, cos_sdk,
 #                 the run harness and the header checks built with clang on x86_64 and aarch64
 #                 (with the decomp's resource index enums only: gen_assets.sh --res-only), and
-#                 the unit tests cos_sdk_smoke and cos_pc_tests run
+#                 the unit tests cos_sdk_smoke and cos_pc_tests run; then the game executable
+#                 switchwaker itself with COS_RUNTIME_ASSETS=ON (gen_assets.sh --stubs)
 #   switch-image  the Switch build images (scripts/switch/Containerfile.native and .mesa), built
 #                 and kept in the GitHub Actions cache, so a later job (or a fork) starts warm
 # Downloads (Aurora, Dawn and nod packages, SDL 3 ...) are cached across runs with actions/cache;
@@ -88,6 +88,16 @@ jobs:
                 cos_sdk_shadow_check
             build/ci-linux/cos_sdk_smoke
             build/ci-linux/cos_pc_tests'
+      - name: Build the game (runtime assets, no disc)
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/work" -w /work \
+              centollos-linux-build:ci bash -c '
+            set -e
+            # Stub assets/ headers: names, sizes and the disc locations of the arrays, no game data.
+            native/tools/gen_assets.sh --stubs --decomp /work/build/decomp-ci --out /work/build/ci-stubs/GZLE01
+            cmake -S native -B build/ci-linux-game -G Ninja -DCOS_RUNTIME_ASSETS=ON \
+                -DCOS_ASSETS_DIR=/work/build/ci-stubs/GZLE01
+            ninja -C build/ci-linux-game switchwaker'
 
   switch-image:
     runs-on: ubuntu-24.04
