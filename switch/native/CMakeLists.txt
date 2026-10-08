@@ -375,7 +375,7 @@ endif ()
 target_link_libraries(switchwaker PRIVATE cos_switch_platform ${COS_SWITCH_GL_LIBS})
 # Every thread gets a stack Dawn's shader compiler fits in and runs on the application cores
 # (source/thread_wrap.c).
-target_link_options(switchwaker PRIVATE "LINKER:--wrap=pthread_create")
+target_link_options(switchwaker PRIVATE "LINKER:--wrap=pthread_create" "LINKER:--wrap=pthread_detach")
 # Mesa's and libdrm_nouveau's push-buffer space, GPU waits and submissions, timed per thread for
 # the perf-switch lines (source/nv_wrap.c).
 target_link_options(switchwaker PRIVATE "LINKER:--wrap=nouveau_pushbuf_space" "LINKER:--wrap=nvFenceWait"

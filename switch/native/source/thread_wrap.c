@@ -1,4 +1,15 @@
-// Every pthread of the native port on the Switch (the NRO links with -Wl,--wrap=pthread_create):
+// Every pthread of the native port on the Switch (the NRO links with -Wl,--wrap=pthread_create and
+// --wrap=pthread_detach):
+//
+// - detached threads are reaped: libnx does not implement pthread_detach (newlib.c's
+//   __syscall_thread_detach), so a detached pthread that ends keeps its stack (at least 4 MiB, below)
+//   and its kernel thread object for good, and once the process's thread limit is reached
+//   pthread_create fails with ENOMEM. The SDK's OSThread makes every game thread detached, and the
+//   game makes one per picto box photo (m_Do_graphic.cpp's capture thread): the crash after a photo
+//   in a long session. pthread_detach hands the thread to a reaper thread, which joins it once its
+//   handle signals (the thread ended). Only pthread_detach counts: newlib's pthread_create ignores
+//   the attribute's detach state, and its PTHREAD_CREATE_DETACHED is 0, the value of every fresh
+//   attribute, so the attribute cannot tell a detached thread from a joinable one;
 //
 // - a stack of at least 4 MiB, page-aligned: libnx gives a pthread 128 KiB by default, which
 //   Tint (Dawn's shader compiler) overflows, and refuses a size that is not a multiple of 4 KiB
@@ -17,6 +28,7 @@
 //   preferred core, affinity mask, CPU time and entry point (an offset for addr2line with switchwaker.elf).
 #include <pthread.h>
 #include <stdatomic.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,6 +40,8 @@
 #define THREAD_PRIORITY 0x2C
 
 int __real_pthread_create(pthread_t* thread, const pthread_attr_t* attr, void* (*start)(void*), void* arg);
+int __real_pthread_detach(pthread_t thread);
+int __wrap_pthread_create(pthread_t* thread, const pthread_attr_t* attr, void* (*start)(void*), void* arg);
 
 static atomic_int g_next_core = 1;
 static atomic_int g_forced_core = -1; // cos_switch_next_thread_core: the next thread only
@@ -212,6 +226,145 @@ static u32 application_core_mask(void) {
     return mask;
 }
 
+// ---- reaper of detached threads -------------------------------------------------------------------
+// newlib's pthread_t is libnx's struct __pthread_t*, whose first member is the libnx Thread.
+#define MAX_REAP 64 // svcWaitSynchronization's limit
+
+static Mutex g_reap_lock;
+static pthread_t g_reap[MAX_REAP];
+static int g_reap_count;
+static atomic_uint g_reaped;
+static atomic_int g_reaper_started;
+
+static Handle thread_handle(pthread_t t) { return ((const Thread*)t)->handle; }
+
+// The process's threads in use and its limit (kernel resource limit), -1 if unknown.
+static void thread_limit(s64* used, s64* limit) {
+    *used = *limit = -1;
+    u64 rl = 0;
+    if (R_FAILED(svcGetInfo(&rl, InfoType_ResourceLimit, INVALID_HANDLE, 0)) || rl == 0)
+        return;
+    svcGetResourceLimitCurrentValue(used, (Handle)rl, LimitableResource_Threads);
+    svcGetResourceLimitLimitValue(limit, (Handle)rl, LimitableResource_Threads);
+    svcCloseHandle((Handle)rl);
+}
+
+static void* reaper(void* unused) {
+    (void)unused;
+    for (;;) {
+        Handle handles[MAX_REAP];
+        pthread_t threads[MAX_REAP];
+        mutexLock(&g_reap_lock);
+        const int n = g_reap_count;
+        for (int i = 0; i < n; i++) {
+            threads[i] = g_reap[i];
+            handles[i] = thread_handle(g_reap[i]);
+        }
+        mutexUnlock(&g_reap_lock);
+        if (n == 0) {
+            svcSleepThread(100000000ull);
+            continue;
+        }
+        s32 index = -1;
+        // 100 ms: new threads to watch are picked up at the next round
+        const Result rc = svcWaitSynchronization(&index, handles, n, 100000000ull);
+        if (R_VALUE(rc) == KERNELRESULT(InvalidHandle)) {
+            // a thread that is no longer one (it should not happen): dropped, so the others are still reaped
+            for (int i = 0; i < n; i++) {
+                s32 one = -1;
+                if (R_VALUE(svcWaitSynchronization(&one, &handles[i], 1, 0)) != KERNELRESULT(InvalidHandle))
+                    continue;
+                fprintf(stderr, "[switch] reaper: pthread %p has no valid handle (0x%x): dropped\n", (void*)threads[i],
+                        (unsigned)handles[i]);
+                mutexLock(&g_reap_lock);
+                for (int j = 0; j < g_reap_count; j++) {
+                    if (g_reap[j] == threads[i]) {
+                        g_reap[j] = g_reap[--g_reap_count];
+                        break;
+                    }
+                }
+                mutexUnlock(&g_reap_lock);
+            }
+            continue;
+        }
+        if (R_FAILED(rc) || index < 0 || index >= n)
+            continue;
+        const pthread_t done = threads[index];
+        mutexLock(&g_reap_lock);
+        for (int i = 0; i < g_reap_count; i++) {
+            if (g_reap[i] == done) {
+                g_reap[i] = g_reap[--g_reap_count];
+                break;
+            }
+        }
+        mutexUnlock(&g_reap_lock);
+        // the registry keeps the thread's CPU time; its handle is closed below and may be reused
+        const int count = atomic_load(&g_thread_count);
+        for (int i = 0; i < count; i++) {
+            if (g_threads[i].handle == handles[index]) {
+                u64 ticks = 0;
+                if (R_SUCCEEDED(svcGetInfo(&ticks, InfoType_ThreadTickCount, handles[index], UINT64_MAX)))
+                    atomic_store(&g_threads[i].ticks, ticks);
+                g_threads[i].handle = INVALID_HANDLE;
+            }
+        }
+        pthread_join(done, NULL); // the thread has ended: frees its stack and closes its handle
+        const unsigned reaped = atomic_fetch_add(&g_reaped, 1) + 1;
+        if (reaped <= 8 || reaped % 16 == 0) {
+            s64 used, limit;
+            thread_limit(&used, &limit);
+            fprintf(stderr, "[switch] ended detached thread joined (%u so far); threads in use %lld of %lld\n",
+                    reaped, (long long)used, (long long)limit);
+        }
+    }
+    return NULL;
+}
+
+// false: the list is full (the thread is then left detached, as before)
+static bool reap_add(pthread_t t) {
+    if (atomic_exchange(&g_reaper_started, 1) == 0) {
+        pthread_t r;
+        if (__wrap_pthread_create(&r, NULL, reaper, NULL) != 0)
+            fprintf(stderr, "[switch] the reaper of detached threads could not start\n");
+    }
+    mutexLock(&g_reap_lock);
+    for (int i = 0; i < g_reap_count; i++) {
+        if (g_reap[i] == t) { // detached twice
+            mutexUnlock(&g_reap_lock);
+            return true;
+        }
+    }
+    const bool ok = g_reap_count < MAX_REAP;
+    if (ok)
+        g_reap[g_reap_count++] = t;
+    mutexUnlock(&g_reap_lock);
+    if (!ok) {
+        fprintf(stderr, "[switch] %d detached threads already wait to be joined: one more is left as it is\n",
+                MAX_REAP);
+        static int dumped;
+        if (!dumped++) {
+            mutexLock(&g_reap_lock);
+            for (int i = 0; i < g_reap_count; i++) {
+                const Handle h = thread_handle(g_reap[i]);
+                uintptr_t fn = 0;
+                for (int j = 0; j < atomic_load(&g_thread_count); j++)
+                    if (g_threads[j].handle == h)
+                        fn = atomic_load(&g_threads[j].start);
+                fprintf(stderr, "[switch]   waiting %d: pthread %p handle 0x%x fn 0x%llx\n", i, (void*)g_reap[i],
+                        (unsigned)h, (unsigned long long)(fn ? fn - cos_switch_image_base() : 0));
+            }
+            mutexUnlock(&g_reap_lock);
+        }
+    }
+    return ok;
+}
+
+int __wrap_pthread_detach(pthread_t thread) {
+    if (reap_add(thread))
+        return 0;
+    return __real_pthread_detach(thread);
+}
+
 static void* trampoline(void* raw) {
     struct Trampoline t = *(struct Trampoline*)raw;
     free(raw);
@@ -261,10 +414,15 @@ int __wrap_pthread_create(pthread_t* thread, const pthread_attr_t* attr, void* (
         t->core = 1 + (atomic_fetch_add(&g_next_core, 1) - 1) % 2;
     }
     const int result = __real_pthread_create(thread, &sized, trampoline, t);
-    if (result != 0)
+    if (result != 0) {
         free(t);
-    else
+        s64 used, limit;
+        thread_limit(&used, &limit);
+        fprintf(stderr, "[switch] pthread_create failed (%d) after %u threads, %u joined; threads in use %lld of %lld\n",
+                result, atomic_load(&g_created), atomic_load(&g_reaped), (long long)used, (long long)limit);
+    } else {
         atomic_fetch_add(&g_created, 1);
+    }
     if (attr == NULL)
         pthread_attr_destroy(&sized);
     return result;
