@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <atomic>
 #include <mutex>
 #include <utility>
 #include <vector>
@@ -413,6 +414,10 @@ void sched_report() {
           shader_sched(), kSched[shader_sched()], (unsigned long long)g_schedModules, (unsigned long long)g_schedWords);
 }
 
+static std::atomic<bool> g_codeWritten{false};
+
+bool code_take_written() { return g_codeWritten.exchange(false, std::memory_order_acq_rel); }
+
 bool code_load(DkShader& shader, const void* dksh, uint32_t size, const char* name) {
     std::lock_guard<std::mutex> lock(g_codeMutex);
     const uint32_t at = align_up(g_codeUsed, DK_SHADER_CODE_ALIGNMENT);
@@ -433,6 +438,7 @@ bool code_load(DkShader& shader, const void* dksh, uint32_t size, const char* na
     }
     g_codeUsed = at + size;
     g_stats.codeBytes = g_codeUsed;
+    g_codeWritten.store(true, std::memory_order_release);
     return true;
 }
 

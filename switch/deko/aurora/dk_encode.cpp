@@ -200,6 +200,7 @@ void bind_pipe(const Pipe* p) {
     const DkShader* vs = &p->vs->shader;
     const DkShader* fs = &p->fs->shader;
     if (vs != g_cache.vs || fs != g_cache.fs) {
+        if (swdk::code_take_written()) dkCmdBufBarrier(R.cmd, DkBarrier_None, DkInvalidateFlags_Shader);
         const DkShader* sh[] = {vs, fs};
         dkCmdBufBindShaders(R.cmd, DkStageFlag_GraphicsMask, sh, 2);
         g_cache.vs = vs;
