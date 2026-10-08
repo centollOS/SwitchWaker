@@ -2,7 +2,7 @@
 # Generate the asset headers the game units include ("assets/...", "res/Object/...") from the
 # player's disc, the way the decompilation's own build does (native/README.md, "Asset headers").
 #
-#   native/tools/gen_assets.sh [--disc PATH] [--decomp DIR] [--out DIR] [--res-only]
+#   native/tools/gen_assets.sh [--disc PATH] [--decomp DIR] [--out DIR] [--res-only | --stubs]
 #
 #   --disc PATH    the GZLE01 revision 0 disc image (default: $COS_DISC)
 #   --decomp DIR   where the decompilation is checked out and run (default: build/decomp)
@@ -11,6 +11,9 @@
 #   --res-only     no disc: only the decomp's resource index enums (res/), which hold no game data.
 #                  Enough for the units that do not include assets/ headers (cos_sdk, the run
 #                  harness, cos_pc_tests): what CI builds without a disc (.github/workflows/ci.yml)
+#   --stubs        no disc: --res-only plus stub assets/ headers (native/tools/gen_asset_stubs.py,
+#                  docs/RUNTIME_ASSETS.md) for a COS_RUNTIME_ASSETS=ON build, which reads the
+#                  arrays from the disc at start-up. Needs PyYAML
 #
 # Steps: a shallow checkout of the decompilation game/ was imported from, at the commit it was
 # imported from (both read from game/UPSTREAM), the disc linked into its orig/GZLE01/, `python configure.py`, then only the
@@ -33,6 +36,7 @@ decomp_pin="$(sed -n 's/^commit=//p' "$repo/game/UPSTREAM")"
 [ -n "$decomp_url" ] && [ -n "$decomp_pin" ] || { echo "gen_assets: game/UPSTREAM lacks url= or commit=" >&2; exit 2; }
 disc="${COS_DISC:-}"
 res_only=0
+stubs=0
 decomp="$repo/build/decomp"
 out="$repo/build/native-mac/assets/$version"
 
@@ -46,6 +50,7 @@ while [ $# -gt 0 ]; do
         --decomp) decomp="$2"; shift 2 ;;
         --out) out="$2"; shift 2 ;;
         --res-only) res_only=1; shift ;;
+        --stubs) res_only=1; stubs=1; shift ;;
         -h|--help) usage ;;
         *) echo "gen_assets: unknown option $1" >&2; usage ;;
     esac
@@ -95,6 +100,11 @@ if [ "$res_only" = 1 ]; then
     rm -rf "$out"
     mkdir -p "$out"
     cp -R "$decomp/assets/$version/res" "$out/"
+    if [ "$stubs" = 1 ]; then
+        "$python" "$script_dir/gen_asset_stubs.py" --decomp "$decomp" --out "$out"
+        echo "gen_assets: resource index headers and stub assets/ headers in $out (--stubs, no disc)"
+        exit 0
+    fi
     echo "gen_assets: $(find "$out" -type f | wc -l | tr -d ' ') resource index headers in $out (--res-only, no disc)"
     exit 0
 fi

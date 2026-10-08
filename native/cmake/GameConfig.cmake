@@ -17,6 +17,22 @@ set(COS_GAME_COMPILE_DEFS
         VERSION=${COS_VERSION}
         NDEBUG=1)
 
+# docs/RUNTIME_ASSETS.md: compile against the stub assets/ headers of `gen_assets.sh --stubs` (no
+# game data, no disc needed) and fill those arrays from the player's disc at start-up
+# (native/src/pc/runtime/pc_assets.cpp). COS_ASSETS_DIR must then hold the stubs.
+option(COS_RUNTIME_ASSETS "Asset arrays read from the disc at start-up instead of compiled in" OFF)
+if (COS_RUNTIME_ASSETS)
+    # (only cos_pc, the loader, sees COS_RUNTIME_ASSETS=1: executable.cmake; the stubs need no define)
+    if (EXISTS "${COS_ASSETS_DIR}/include/assets" AND NOT EXISTS "${COS_ASSETS_DIR}/include/assets/cos_assets.h")
+        message(FATAL_ERROR "COS_RUNTIME_ASSETS=ON but ${COS_ASSETS_DIR} holds the headers generated from "
+                "the disc: point COS_ASSETS_DIR at the output of native/tools/gen_assets.sh --stubs")
+    endif ()
+    message(STATUS "cos_native: runtime assets (COS_RUNTIME_ASSETS): stub headers from ${COS_ASSETS_DIR}")
+elseif (EXISTS "${COS_ASSETS_DIR}/include/assets/cos_assets.h")
+    message(FATAL_ERROR "${COS_ASSETS_DIR} holds stub asset headers (gen_assets.sh --stubs): "
+            "configure with -DCOS_RUNTIME_ASSETS=ON, or point COS_ASSETS_DIR at the disc's headers")
+endif ()
+
 # Same order as configure.py's -i list, minus the MSL/Runtime/MetroTRK directories: the host C
 # and C++ libraries replace MSL. native/include/pc/msl holds thin shims for the MSL-only header
 # names the game includes (algorithm.h, new.h...).

@@ -287,6 +287,8 @@ void pc_aurora_init(int argc, char* argv[]) {
     }
     writef(STDERR_FILENO, "[cos] dvd: %.4s%.2s version %u disc %u\n", id->gameName, id->company,
            (unsigned int)id->gameVersion, (unsigned int)id->diskNumber);
+    // COS_RUNTIME_ASSETS: the game's data arrays from main.dol and the RELs, before any game code.
+    loadAssets();
 
     // On the GameCube __start ran OSInit before main; here MEM1 (mem1Size) must be configured first.
     OSInit();

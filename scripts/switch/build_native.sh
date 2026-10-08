@@ -2,7 +2,7 @@
 # Build the native port (native/: the decompiled game on Aurora) as a Switch NRO.
 #
 #   scripts/switch/build_native.sh [--renderer gl|deko3d] [--dk-debug-lib] [--aurora DIR]
-#                                  [--assets DIR] [--recompcore DIR] [--dawn-src DIR]
+#                                  [--assets DIR | --runtime-assets] [--recompcore DIR] [--dawn-src DIR]
 #                                  [--mesa DIR | --stock-mesa] [--jobs N] [--target TARGET]
 #
 # Output: build/switch-native/switchwaker.nro, next to it the bundled pipeline cache
@@ -27,7 +27,13 @@
 #   --aurora DIR      Aurora at native/'s pin 3227d76 (build/aurora-3227d76:
 #                     git -C ref/aurora worktree add --detach build/aurora-3227d76 3227d76)
 #   --assets DIR      the asset headers generated from the player's disc, as for the Mac build
-#                     (build/native-mac/assets/GZLE01; native/README.md, "Asset headers")
+#                     (build/native-mac/assets/GZLE01; native/README.md, "Asset headers"); a
+#                     directory of stub headers (gen_assets.sh --stubs) builds with
+#                     COS_RUNTIME_ASSETS=ON
+#   --runtime-assets  no disc needed (docs/RUNTIME_ASSETS.md): the stub headers of
+#                     native/tools/gen_assets.sh --stubs (into build/assets-stubs/GZLE01), and an NRO
+#                     that reads the game's data arrays from the player's disc at start-up: the NRO
+#                     that can be published
 #   --recompcore DIR  RecompCore (ref/recompcore), for Dolphin's DSP HLE (native/tools/fetch_recompcore.sh)
 #   --dawn-src DIR    a Dawn source tree to use as is (the Horizon patches are applied to it if
 #                     missing). Default: build/switch-dawn-src/<key>, a copy of the unpatched source
@@ -56,7 +62,7 @@ root=$(cd "$(dirname "$0")/../.." && pwd)
 source "$root/scripts/switch/container.sh"
 image=${COS_SWITCH_NATIVE_IMAGE:-localhost/centollos-switch-native-build:2026-10-03}
 
-aurora="" assets="" recompcore="" dawn_src="" mesa="" stock_mesa=0 target=cos_nro renderer=gl dk_debug=OFF
+aurora="" assets="" runtime_assets=0 recompcore="" dawn_src="" mesa="" stock_mesa=0 target=cos_nro renderer=gl dk_debug=OFF
 jobs=${SWITCH_BUILD_JOBS:-4}
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -64,6 +70,7 @@ while [[ $# -gt 0 ]]; do
         --dk-debug-lib) dk_debug=ON; shift ;;
         --aurora) aurora=$2; shift 2 ;;
         --assets) assets=$2; shift 2 ;;
+        --runtime-assets) runtime_assets=1; shift ;;
         --recompcore) recompcore=$2; shift 2 ;;
         --dawn-src) dawn_src=$2; shift 2 ;;
         --mesa) mesa=$2; shift 2 ;;
@@ -137,6 +144,11 @@ prepare_dawn_src() {
 }
 
 aurora=${aurora:-$(first_existing "$root/build/aurora-3227d76" "$main_root/build/aurora-3227d76" || true)}
+if [[ $runtime_assets == 1 ]]; then
+    assets=$root/build/assets-stubs/GZLE01
+    decomp=$(first_existing "$root/build/decomp" "$main_root/build/decomp" || echo "$root/build/decomp")
+    "$root/native/tools/gen_assets.sh" --stubs --decomp "$decomp" --out "$assets"
+fi
 assets=${assets:-$(first_existing "$root/build/native-mac/assets/GZLE01" \
                                   "$main_root/build/native-mac/assets/GZLE01" || true)}
 recompcore=${recompcore:-$(first_existing "$root/ref/recompcore" "$main_root/ref/recompcore" || true)}
@@ -166,6 +178,9 @@ if [[ ! -f $recompcore/Source/Core/Core/HW/DSPHLE/UCodes/UCodes.cpp ]]; then
 fi
 aurora=$(cd "$aurora" && pwd)
 assets=$(cd "$assets" && pwd)
+# stub headers (gen_assets.sh --stubs): the arrays come from the disc at start-up
+runtime_flag=-DCOS_RUNTIME_ASSETS=OFF
+[[ -f $assets/include/assets/cos_assets.h ]] && runtime_flag=-DCOS_RUNTIME_ASSETS=ON
 recompcore=$(cd "$recompcore" && pwd)
 
 engine=$(container_engine)
@@ -233,7 +248,7 @@ label=$renderer
 echo "build_native: renderer=$label version=$version aurora=$aurora assets=$assets recompcore=$recompcore dawn-src=${dawn_src:-fetch} mesa=${mesa:-devkitPro switch-mesa}"
 
 container_run "$engine" "$root" "${mounts[@]}" -e JOBS="$jobs" -e TARGET="$target" \
-    -e DAWN_FLAG="$dawn_flag" -e MESA_FLAG="$mesa_flag" -e VERSION="$version" \
+    -e DAWN_FLAG="$dawn_flag" -e MESA_FLAG="$mesa_flag" -e RUNTIME_FLAG="$runtime_flag" -e VERSION="$version" \
     -e RENDERER="$renderer" -e NRO_NAME="$nro_name" -e DK_DEBUG="$dk_debug" "$image" bash -lc '
 set -euo pipefail
 export PATH=/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin:$PATH
@@ -242,7 +257,7 @@ cmake -S /work/switch/native -B /work/build/switch-native -G Ninja \
     -DDKP_USE_DOUBLE_OBJECT_FILE_EXTENSIONS=ON -DCOS_SWITCH_RENDERER="$RENDERER" \
     -DCOS_SWITCH_NRO_NAME="$NRO_NAME" -DCOS_DK_DEBUG_LIB="$DK_DEBUG" -DCOS_SWITCH_VERSION="$VERSION" \
     -DCOS_SWITCH_AURORA_SOURCE=/inputs/aurora -DCOS_ASSETS_DIR=/inputs/assets \
-    -DCOS_RECOMPCORE_DIR=/inputs/recompcore $DAWN_FLAG $MESA_FLAG >/dev/null
+    -DCOS_RECOMPCORE_DIR=/inputs/recompcore $DAWN_FLAG $MESA_FLAG $RUNTIME_FLAG >/dev/null
 cmake --build /work/build/switch-native --target "$TARGET" --parallel "$JOBS"
 '
 

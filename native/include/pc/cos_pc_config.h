@@ -153,6 +153,15 @@ struct __tag_va_List {
     va_list list;
 };
 } // namespace std
+
+/* ---- runtime assets (docs/RUNTIME_ASSETS.md) ------------------------------------------------ */
+/*
+ * The stub assets/ headers of a COS_RUNTIME_ASSETS build call this (COS_ASSET_FILL). Declared here,
+ * at global scope in every unit, because several of those headers are included inside a function
+ * body or a namespace, where a declaration of their own would name another function.
+ * native/src/pc/runtime/pc_assets.cpp.
+ */
+bool cos_asset_fill(void* array, unsigned int size, unsigned int id);
 #endif
 
 #endif /* COS_PC_CONFIG_H */

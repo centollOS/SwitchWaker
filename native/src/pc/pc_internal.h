@@ -93,6 +93,11 @@ void dumpAllThreads(int fd);
 // PC_EXIT_DISC.
 int checkDisc();
 
+// pc_assets.cpp (docs/RUNTIME_ASSETS.md): with COS_RUNTIME_ASSETS, reads the game's data arrays from
+// the disc and fills them (pc_main.cpp, after aurora_dvd_open, before OSInit); exits PC_EXIT_DISC if
+// the disc's main.dol or RELs are not GZLE01 revision 0's. COS_SMOKE=assets dumps them and exits.
+void loadAssets();
+
 // pc_smoke.cpp: runs COS_SMOKE if it is a test that runs before the SDK (it never returns then);
 // exits PC_EXIT_USAGE for an unknown name; returns for no COS_SMOKE.
 void runEarlySmoke();
