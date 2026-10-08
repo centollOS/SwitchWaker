@@ -17,8 +17,9 @@ server (`scripts/switch/switchwaker_debug.py`: `deploy`, `warp N` then `press A`
 `shot`, `lastlog`); the deko3d NRO is deployed as `sdmc:/switch/switchwaker/switchwaker.nro` (the
 forwarder loads that path), its caches in `sdmc:/switch/switchwaker_dk/`.
 
-Still open before phase 6: the correctness rows of the checkpoint (shore-foam and picto-box smokes, 30
-minutes of play), then phases 4 (parity: HD textures, dynamic resolution, docked, captures) and 5.
+Correctness rows of the checkpoint: shore foam checked by the user on the console (2026-10-09); picto
+box: 39 photos in one session after the thread-reaping fix (955e16a: the crash after many photos was
+leaked detached threads, renderer-independent). Still open before phase 6: 30 minutes of play, then phases 4 (parity: HD textures, dynamic resolution, docked, captures) and 5.
 Upstream reports: devkitPro/deko3d#29 (alpha destination factor, worked around here), devkitPro/uam#7
 (our uam patch 8) and #8 (patch 6); the workaround and the patches can go when they are merged.
 
