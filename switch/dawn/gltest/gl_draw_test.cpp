@@ -2,9 +2,8 @@
 // Linux's Mesa (llvmpipe) through Dawn's OpenGL ES backend: draws shaped like Aurora's GX draws
 // (a storage buffer of vertices, one uniform buffer at a dynamic offset per draw, 64 bytes of
 // immediates per draw, pipeline switches between different blend/depth/cull/mask states and
-// uniform layouts, two render passes) and compares every pixel with a CPU reference. The Switch
-// toggles (COS_SWITCH_GL_*) are read by Dawn from the environment, so the same binary runs each
-// variant: `run.sh` runs it with each toggle off and on.
+// uniform layouts, two render passes) and compares every pixel with a CPU reference, with the
+// Switch patches' uniform window and pipeline state cache (always on since they shipped).
 #include <dawn/webgpu_cpp.h>
 
 #include "gltest_common.h"
@@ -216,11 +215,6 @@ int main(int argc, char** argv) {
         return 1;
     }
     wgpu::Device& device = ctx.device;
-    const char* toggleNames[] = {"COS_SWITCH_GL_UBO_WINDOW", "COS_SWITCH_GL_STATE_CACHE"};
-    for (const char* n : toggleNames) {
-        const char* v = getenv(n);
-        printf("%s=%s\n", n, v != nullptr ? v : "(unset)");
-    }
 
     // Bind group layouts as Aurora's GX pipelines have them.
     wgpu::BindGroupLayoutEntry staticEntry{};

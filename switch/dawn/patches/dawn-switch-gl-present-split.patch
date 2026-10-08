@@ -1,6 +1,6 @@
 --- a/src/dawn/native/opengl/SwapChainEGL.cpp
 +++ b/src/dawn/native/opengl/SwapChainEGL.cpp
-@@ -27,6 +27,11 @@
+@@ -27,6 +27,10 @@
  
  #include "src/dawn/native/opengl/SwapChainEGL.h"
  
@@ -8,26 +8,11 @@
 +#include "src/dawn/native/opengl/SwitchStatsGL.h"
 +#endif
 +
-+#include <cstdlib>
  #include <utility>
  
  #include "src/dawn/native/Surface.h"
-@@ -92,6 +97,13 @@
-     }
- 
-     EGLint swapInterval = GetPresentMode() == wgpu::PresentMode::Immediate ? 0 : 1;
-+#if DAWN_PLATFORM_IS(SWITCH)
-+    // COS_SWITCH_SWAP_INTERVAL=0|1 overrides the present mode's interval (A/B of the NWindow's
-+    // queueing; dawn-switch-gl-present-split.patch).
-+    if (const char* env = std::getenv("COS_SWITCH_SWAP_INTERVAL"); env != nullptr && env[0] != '\0') {
-+        swapInterval = std::atoi(env);
-+    }
-+#endif
-     display->egl->SwapInterval(display->GetDisplay(), swapInterval);
- 
-     return {};
-@@ -125,6 +137,9 @@
- #endif
+@@ -116,6 +120,9 @@ MaybeError SwapChainEGL::PresentImpl() {
+                           "getting surface height"));
  
          const OpenGLFunctions& gl = device->GetGL(/*makeCurrent=*/false);
 +#if DAWN_PLATFORM_IS(SWITCH)
@@ -36,7 +21,7 @@
  
          GLuint readFbo = 0;
          DAWN_GL_TRY(gl, GenFramebuffers(1, &readFbo));
-@@ -139,7 +154,17 @@
+@@ -130,7 +137,17 @@ MaybeError SwapChainEGL::PresentImpl() {
  
          DAWN_GL_TRY(gl, DeleteFramebuffers(1, &readFbo));
  
@@ -56,7 +41,7 @@
  
 --- a/src/dawn/native/opengl/SwitchStatsGL.h
 +++ b/src/dawn/native/opengl/SwitchStatsGL.h
-@@ -109,6 +109,12 @@
+@@ -109,6 +109,12 @@ enum Counter : int {
      kPipelineBuilds,
      kPipelineTranslateNs,
      kPipelineContextNs,

@@ -10,17 +10,9 @@
 //   see cos_switch_main.cpp), may run on any core the process has among 0-2, and gets 0x2C;
 // - a registry of the threads' kernel handles, for their CPU time (svcGetInfo ThreadTickCount)
 //   per role in the perf-switch and hitch lines (cos_switch_thread_role, cos_switch_thread_cpu_ns);
-// - COS_SWITCH_CORES=pinned (env.txt; off by default): when the render worker, JAudio's audio
-//   thread and the game's DVD thread name their role, the render worker is pinned to core 2 alone
-//   and the audio and DVD threads to core 1, so the worker never waits behind them (Horizon does not
-//   time-slice threads of equal priority). The other threads keep the default above;
-// - COS_SWITCH_CORES=isolate: the render worker alone on core 2 and every other thread (the game's
-//   included, which keeps core 0 as its preferred core) on cores 0-1, applied to the threads that
-//   exist when the render worker names itself and to every thread created later;
 // - Aurora's pipeline compile thread (COS_SWITCH_THREAD_COMPILE, named by Aurora's Switch patch
-//   0010) never shares the render worker's core (COS_SWITCH_COMPILE_CORE=auto, the default; =off
-//   leaves it where the default put it): during the loading screen and the warm-up the two would
-//   otherwise take turns on one core, as Horizon does not time-slice equal priorities;
+//   0010) never shares the render worker's core: during the loading screen and the warm-up the two
+//   would otherwise take turns on one core, as Horizon does not time-slice equal priorities;
 // - the thread table of the perf-switch lines (cos_switch_thread_table): each busy thread's role,
 //   preferred core, affinity mask, CPU time and entry point (an offset for addr2line with switchwaker.elf).
 #include <pthread.h>
@@ -58,15 +50,6 @@ struct ThreadEntry {
 static _Thread_local int t_role = COS_SWITCH_THREAD_OTHER;
 int cos_switch_thread_is_render(void) { return t_role == COS_SWITCH_THREAD_RENDER; }
 
-// COS_SWITCH_CORES: 0 default (spread), 1 pinned, 2 isolate.
-static int cores_policy(void) {
-    static int policy = -1;
-    if (policy < 0) {
-        const char* v = getenv("COS_SWITCH_CORES");
-        policy = v == NULL ? 0 : strcmp(v, "pinned") == 0 ? 1 : strcmp(v, "isolate") == 0 ? 2 : 0;
-    }
-    return policy;
-}
 // The render worker's preferred core once it named itself (-1 before).
 static atomic_int g_render_core = -1;
 static u32 application_core_mask(void);
@@ -98,18 +81,6 @@ static struct ThreadEntry* find_or_add_current(void) {
     return entry;
 }
 
-// COS_SWITCH_CORES=pinned: the core of a thread of this role, or -1 to leave it as it is.
-static int pinned_core(int role) {
-    if (cores_policy() != 1)
-        return -1;
-    switch (role) {
-    case COS_SWITCH_THREAD_RENDER: return 2;
-    case COS_SWITCH_THREAD_AUDIO:
-    case COS_SWITCH_THREAD_DVD: return 1;
-    default: return -1;
-    }
-}
-
 static const char* role_name(int role) {
     switch (role) {
     case COS_SWITCH_THREAD_GAME: return "game";
@@ -135,16 +106,10 @@ static Result set_mask(Handle handle, u32 mask, u32 prefer_mask) {
     return svcSetThreadCoreMask(handle, ideal, mask);
 }
 
-// COS_SWITCH_COMPILE_CORE=auto (default): the compile thread on the application's cores except the
-// render worker's, preferring core 1 or 2.
+// The compile thread on the application's cores except the render worker's, preferring core 1 or 2.
 static void place_compile_thread(Handle handle) {
-    static int on = -1;
-    if (on < 0) {
-        const char* v = getenv("COS_SWITCH_COMPILE_CORE");
-        on = v == NULL || strcmp(v, "off") != 0;
-    }
     const int render = atomic_load(&g_render_core);
-    if (!on || render < 0 || cores_policy() == 2)
+    if (render < 0)
         return;
     const u32 mask = application_core_mask() & ~(1u << render);
     const Result rc = set_mask(handle, mask, 0x6);
@@ -157,35 +122,10 @@ void cos_switch_thread_role(int role) {
     if (entry != NULL)
         atomic_store(&entry->role, role);
     t_role = role;
-    const int core = pinned_core(role);
-    if (core >= 0 && (application_core_mask() & (1u << core)) != 0) {
-        const Result rc = svcSetThreadCoreMask(CUR_THREAD_HANDLE, core, 1u << core);
-        fprintf(stderr, "[switch] COS_SWITCH_CORES=pinned: %s thread on core %d only%s\n",
-                role == COS_SWITCH_THREAD_RENDER  ? "render worker"
-                : role == COS_SWITCH_THREAD_AUDIO ? "audio"
-                                                  : "dvd",
-                core, R_SUCCEEDED(rc) ? "" : " (refused)");
-    }
     if (role == COS_SWITCH_THREAD_RENDER) {
         s32 ideal = -1;
         u64 mask = 0;
         svcGetThreadCoreMask(&ideal, &mask, CUR_THREAD_HANDLE);
-        if (cores_policy() == 2 && (application_core_mask() & 0x4) != 0) {
-            // isolate: the worker alone on core 2, every other thread (now and later) on 0-1.
-            svcSetThreadCoreMask(CUR_THREAD_HANDLE, 2, 0x4);
-            ideal = 2;
-            const int count = atomic_load(&g_thread_count);
-            int moved = 0;
-            for (int i = 0; i < count; i++) {
-                struct ThreadEntry* e = &g_threads[i];
-                if (e == entry)
-                    continue;
-                if (R_SUCCEEDED(set_mask(e->handle, 0x3, 0x2)))
-                    moved++;
-            }
-            fprintf(stderr, "[switch] COS_SWITCH_CORES=isolate: render worker alone on core 2, %d other threads on "
-                            "cores 0-1\n", moved);
-        }
         atomic_store(&g_render_core, ideal);
         // A compile thread that named itself first.
         const int count = atomic_load(&g_thread_count);
@@ -275,14 +215,8 @@ static u32 application_core_mask(void) {
 static void* trampoline(void* raw) {
     struct Trampoline t = *(struct Trampoline*)raw;
     free(raw);
-    u32 mask = application_core_mask();
+    const u32 mask = application_core_mask();
     int core = t.core;
-    if (cores_policy() == 2 && atomic_load(&g_render_core) >= 0 && (mask & 0x3) != 0) {
-        // isolate, after the render worker took core 2: cores 0-1 only.
-        mask &= 0x3;
-        if (core == 2)
-            core = 1;
-    }
     if ((mask & (1u << core)) == 0)
         core = __builtin_ctz(mask);
     svcSetThreadCoreMask(CUR_THREAD_HANDLE, core, mask);

@@ -8,27 +8,27 @@
  
  #include <utility>
  
-@@ -213,6 +214,17 @@
-         DAWN_GL_TRY(gl, Enable(GL_FRAMEBUFFER_SRGB));
+@@ -214,6 +215,17 @@ MaybeError Device::Initialize(const UnpackedPtr<DeviceDescriptor>& descriptor) {
      }
      DAWN_GL_TRY(gl, Enable(GL_SAMPLE_MASK));
-+
+ 
 +    // Switch: clip z to [0, w] as WebGPU does. Without it every vertex shader remaps z to GL's
 +    // [-w, w] (2 * z - w), which rounds z to about 2^-24 of w and makes decals a unit or two
 +    // above another surface lose the depth test at a distance (bug B7: Outset's shore foam).
-+    if (switch_clip_control::Enabled() && gl.ClipControlZeroToOne != nullptr) {
++    if (gl.ClipControlZeroToOne != nullptr) {
 +        for (int i = 0; i < 16 && gl.GetError() != GL_NO_ERROR; i++) {
 +        }
 +        gl.ClipControlZeroToOne(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 +        mDepthZeroToOne = gl.GetError() == GL_NO_ERROR;
 +    }
 +    switch_clip_control::Log(mDepthZeroToOne, gl.ClipControlZeroToOne != nullptr);
- 
++
      Ref<Queue> queue;
      DAWN_TRY_ASSIGN(queue, Queue::Create(this, &descriptor->defaultQueue));
+     if (HasAnisotropicFiltering(gl)) {
 --- a/src/dawn/native/opengl/DeviceGL.h
 +++ b/src/dawn/native/opengl/DeviceGL.h
-@@ -278,6 +278,10 @@
+@@ -278,6 +278,10 @@ class Device final : public DeviceBase {
      const Buffer* GetInternalTextureBuiltinsUniformBuffer() const;
      const Buffer* GetInternalArrayLengthUniformBuffer() const;
  
@@ -39,7 +39,7 @@
    private:
      Device(AdapterBase* adapter,
             const UnpackedPtr<DeviceDescriptor>& descriptor,
-@@ -339,6 +343,7 @@
+@@ -339,6 +343,7 @@ class Device final : public DeviceBase {
      std::unique_ptr<ContextEGL> mContext;
      std::unique_ptr<ContextEGL> mPipelineContext;
      int mMaxTextureMaxAnisotropy = 0;
@@ -49,7 +49,7 @@
      // certain texture builtins.
 --- a/src/dawn/native/opengl/OpenGLFunctions.cpp
 +++ b/src/dawn/native/opengl/OpenGLFunctions.cpp
-@@ -56,6 +56,14 @@
+@@ -56,6 +56,14 @@ MaybeError OpenGLFunctions::Initialize(GLGetProcProc getProc) {
          }
      }
  
@@ -75,7 +75,7 @@
  
  struct OpenGLFunctions : OpenGLFunctionsBase {
    public:
-@@ -55,6 +57,8 @@
+@@ -55,6 +57,8 @@ struct OpenGLFunctions : OpenGLFunctionsBase {
      bool SupportsParallelShaderCompile() const;
  
      MaxShaderCompilerThreadsKHRProc MaxShaderCompilerThreadsKHR = nullptr;
@@ -86,7 +86,7 @@
      OpenGLVersion mVersion;
 --- a/src/dawn/native/opengl/ShaderModuleGL.cpp
 +++ b/src/dawn/native/opengl/ShaderModuleGL.cpp
-@@ -442,6 +442,7 @@
+@@ -442,6 +442,7 @@ ResultOrError<TranslatedShader> ShaderModule::TranslateToGLSL(
      };
  
      req.tintOptions.disable_robustness = !GetDevice()->IsRobustnessEnabled();
@@ -94,21 +94,62 @@
      req.tintOptions.disable_workgroup_init =
          GetDevice()->IsToggleEnabled(Toggle::DisableWorkgroupInit);
  
+--- /dev/null
++++ b/src/dawn/native/opengl/SwitchClipControlGL.h
+@@ -0,0 +1,38 @@
++// Switch (centollOS, bug B7): depth clipping in WebGPU's [0, w] range.
++//
++// Dawn's GL backend kept GL's default [-w, w] clip range for z and had Tint rewrite every vertex
++// shader's gl_Position.z as 2 * z - w. With Aurora's reversed Z and a near plane of 1, z is about
++// 1 while w is the distance (thousands of units), so the subtraction rounds z to about 2^-24 of w:
++// the depth buffer then resolves no better than a 24-bit one, with rounding noise that changes as
++// the camera moves. Decals a unit above another surface (Outset's shore foam) lost the depth test
++// in patches that flickered. With glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE) (GL 4.5,
++// GL_ARB_clip_control, GLES GL_EXT_clip_control; Mesa exposes it on nouveau) z is clipped and
++// mapped as WebGPU specifies and the shaders keep it unchanged (Tint option depth_zero_to_one):
++// the same depth values as before, at full float precision, as on Metal, Vulkan and D3D.
++//
++// Without the entry point, or if the call fails, the old remap is used. One "[dawn]" line logs
++// the choice.
++#ifndef SRC_DAWN_NATIVE_OPENGL_SWITCHCLIPCONTROLGL_H_
++#define SRC_DAWN_NATIVE_OPENGL_SWITCHCLIPCONTROLGL_H_
++
++#include <cstdio>
++
++#ifndef GL_LOWER_LEFT
++#define GL_LOWER_LEFT 0x8CA1
++#endif
++#ifndef GL_ZERO_TO_ONE
++#define GL_ZERO_TO_ONE 0x935F
++#endif
++
++namespace dawn::native::opengl::switch_clip_control {
++
++inline void Log(bool zeroToOne, bool available) {
++    std::fprintf(stderr, "[dawn] clip control: %s\n",
++                 zeroToOne   ? "z clipped to [0, w] (glClipControl ZERO_TO_ONE), no 2z - w remap"
++                 : available ? "glClipControl failed, 2z - w remap"
++                             : "no glClipControl in this context, 2z - w remap");
++}
++
++}  // namespace dawn::native::opengl::switch_clip_control
++
++#endif  // SRC_DAWN_NATIVE_OPENGL_SWITCHCLIPCONTROLGL_H_
 --- a/src/tint/lang/glsl/writer/common/options.h
 +++ b/src/tint/lang/glsl/writer/common/options.h
-@@ -218,6 +218,11 @@
- 
+@@ -219,6 +219,11 @@ struct Options {
      /// Switch: a uniform buffer binding read through a window (UniformWindowOptions).
      std::optional<UniformWindowOptions> uniform_window;
-+
+ 
 +    /// Switch: the GL context clips z to [0, w] (glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE)),
 +    /// as WebGPU does, so gl_Position.z is written unchanged instead of remapped to GL's [-w, w]
 +    /// range by 2 * z - w (which rounds z to about 2^-24 of w).
 +    bool depth_zero_to_one = false;
- 
++
      /// Vertex inputs to perform BGRA swizzle on.
      std::unordered_set<uint32_t> bgra_swizzle_locations;
-@@ -261,6 +266,7 @@
+ 
+@@ -261,6 +266,7 @@ struct Options {
                   first_instance_offset,
                   depth_range_offsets,
                   uniform_window,
@@ -118,7 +159,7 @@
                   array_length_from_uniform,
 --- a/src/tint/lang/glsl/writer/raise/raise.cc
 +++ b/src/tint/lang/glsl/writer/raise/raise.cc
-@@ -313,7 +313,8 @@
+@@ -313,7 +313,8 @@ Result<SuccessType> Raise(core::ir::Module& module, const Options& options) {
  
      TINT_CHECK_RESULT(raise::ShaderIO(
          module, raise::ShaderIOConfig{immediate_data_layout, options.depth_range_offsets,
@@ -130,7 +171,7 @@
      TINT_CHECK_RESULT(raise::OffsetFirstIndex(
 --- a/src/tint/lang/glsl/writer/raise/shader_io.cc
 +++ b/src/tint/lang/glsl/writer/raise/shader_io.cc
-@@ -275,11 +275,15 @@
+@@ -275,11 +275,15 @@ struct StateImpl : core::ir::transform::ShaderIOBackendState {
              auto* y = builder.Swizzle(ty.f32(), value, {1});
              auto* new_y = builder.Negation(y);
  
@@ -151,7 +192,7 @@
  
 --- a/src/tint/lang/glsl/writer/raise/shader_io.h
 +++ b/src/tint/lang/glsl/writer/raise/shader_io.h
-@@ -51,6 +51,9 @@
+@@ -51,6 +51,9 @@ struct ShaderIOConfig {
  
      /// locations of vertex input variables to apply BGRA swizzle to.
      std::unordered_set<uint32_t> bgra_swizzle_locations{};
@@ -161,55 +202,3 @@
  };
  
  /// ShaderIO is a transform that moves each entry point function's parameters and return value to
---- /dev/null
-+++ b/src/dawn/native/opengl/SwitchClipControlGL.h
-@@ -0,0 +1,49 @@
-+// Switch (centollOS, bug B7): depth clipping in WebGPU's [0, w] range.
-+//
-+// Dawn's GL backend kept GL's default [-w, w] clip range for z and had Tint rewrite every vertex
-+// shader's gl_Position.z as 2 * z - w. With Aurora's reversed Z and a near plane of 1, z is about
-+// 1 while w is the distance (thousands of units), so the subtraction rounds z to about 2^-24 of w:
-+// the depth buffer then resolves no better than a 24-bit one, with rounding noise that changes as
-+// the camera moves. Decals a unit above another surface (Outset's shore foam) lost the depth test
-+// in patches that flickered. With glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE) (GL 4.5,
-+// GL_ARB_clip_control, GLES GL_EXT_clip_control; Mesa exposes it on nouveau) z is clipped and
-+// mapped as WebGPU specifies and the shaders keep it unchanged (Tint option depth_zero_to_one):
-+// the same depth values as before, at full float precision, as on Metal, Vulkan and D3D.
-+//
-+// COS_SWITCH_GL_CLIP_CONTROL=0 at run time keeps the old remap (for A/B runs). Without the entry
-+// point, or if the call fails, the old remap is used as well. One "[dawn]" line logs the choice.
-+#ifndef SRC_DAWN_NATIVE_OPENGL_SWITCHCLIPCONTROLGL_H_
-+#define SRC_DAWN_NATIVE_OPENGL_SWITCHCLIPCONTROLGL_H_
-+
-+#include <cstdio>
-+#include <cstdlib>
-+#include <cstring>
-+
-+#ifndef GL_LOWER_LEFT
-+#define GL_LOWER_LEFT 0x8CA1
-+#endif
-+#ifndef GL_ZERO_TO_ONE
-+#define GL_ZERO_TO_ONE 0x935F
-+#endif
-+
-+namespace dawn::native::opengl::switch_clip_control {
-+
-+inline bool Enabled() {
-+    static const bool enabled = [] {
-+        const char* v = std::getenv("COS_SWITCH_GL_CLIP_CONTROL");
-+        return v == nullptr || v[0] == '\0' || std::strcmp(v, "0") != 0;
-+    }();
-+    return enabled;
-+}
-+
-+inline void Log(bool zeroToOne, bool available) {
-+    std::fprintf(stderr, "[dawn] COS_SWITCH_GL_CLIP_CONTROL: %s\n",
-+                 zeroToOne    ? "z clipped to [0, w] (glClipControl ZERO_TO_ONE), no 2z - w remap"
-+                 : !Enabled() ? "off (2z - w remap)"
-+                 : available  ? "glClipControl failed, 2z - w remap"
-+                              : "no glClipControl in this context, 2z - w remap");
-+}
-+
-+}  // namespace dawn::native::opengl::switch_clip_control
-+
-+#endif  // SRC_DAWN_NATIVE_OPENGL_SWITCHCLIPCONTROLGL_H_

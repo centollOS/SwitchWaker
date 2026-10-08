@@ -36,18 +36,14 @@ class camera_process_class;
 struct view_port_class;
 
 /* drawCloudShadow (d_kankyo_rain.cpp): draws the forest mist sprites, at a reduced resolution
-   with COS_MIST_LOWRES and both ways with COS_MIST_AB, or as the GameCube does. drawSprites draws
-   them with the current GX state; setupState sets the state drawCloudShadow set before them. */
-void pc_kyr_draw_mist(PcFnRef drawSprites, PcFnRef setupState);
+   with COS_MIST_LOWRES, or as the GameCube does. drawSprites draws them with the current GX
+   state. */
+void pc_kyr_draw_mist(PcFnRef drawSprites);
 
 /* mDoGph_Painter (m_Do_graphic.cpp), around the sky lists: COS_SKY_LOWRES draws them into a
-   smaller target (begin returns whether it did), end stretches the result back and, on a
-   COS_SKY_AB frame, redraws the sky the original way for the comparison copies. */
+   smaller target (begin returns whether it did), end stretches the result back. */
 bool pc_gph_sky_lowres_begin(camera_process_class* camera, view_port_class* viewport);
 void pc_gph_sky_lowres_end(camera_process_class* camera);
-
-/* mDoGph_Painter, after the 2D: COS_MIST_AB shows the A/B frame's copies over everything. */
-void pc_gph_mist_ab_show();
 
 /* dDlst_shadowControl_c::imageDraw (d_drawlist.cpp), COS_SHADOW_OFFSCREEN: opens the offscreen
    target the casters are drawn into, in place of the EFB's corner (closed by GXRestoreFrameBuffer). */

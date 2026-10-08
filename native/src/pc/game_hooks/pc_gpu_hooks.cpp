@@ -1,7 +1,6 @@
 // The GPU options' changes to the game's drawing (pc_gpu_opts.h; docs/SWITCH_PERF_STUDY.md),
 // moved out of game/ (step G3 of docs/GAME_CODE_ORGANIZATION.md): the forest mist of
-// drawCloudShadow (d_kankyo_rain.cpp), the sky and the A/B copies of mDoGph_Painter
-// (m_Do_graphic.cpp) and the shadow casters' offscreen target (d_drawlist.cpp). Declared in
+// drawCloudShadow (d_kankyo_rain.cpp), the sky of mDoGph_Painter (m_Do_graphic.cpp) and the shadow casters' offscreen target (d_drawlist.cpp). Declared in
 // native/include/pc/game_hooks.h; the game calls them under TARGET_PC.
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "pc/game_hooks.h"
@@ -14,14 +13,6 @@
 #include "JSystem/J3DGraphBase/J3DSys.h"
 
 // ---- drawCloudShadow (d_kankyo_rain.cpp) ------------------------------------------------------
-
-// The whole EFB (logical 640x480) into an RGBA8 copy texture named by buf.
-static void pcMistCopyEfb(void* buf) {
-    GXSetTexCopySrc(0, 0, 640, 480);
-    GXSetTexCopyDst(640, 480, GX_TF_RGBA8, GX_FALSE);
-    GXCopyTex(buf, GX_FALSE);
-    GXPixModeSync();
-}
 
 // Draws the RGBA8 copy texture named by buf over the current viewport: premultiplied over the EFB
 // (ONE, INV_SRC_ALPHA; colour only) when blend, else replacing colour and alpha (nearest texels).
@@ -83,10 +74,6 @@ static void pcMistDrawFullscreen(void* buf, GXBool blend, u32 w, u32 h) {
     GXSetCurrentMtx(GX_PNMTX0);
 }
 
-static void pcMistDrawFullscreen(void* buf, GXBool blend) {
-    pcMistDrawFullscreen(buf, blend, 640, 480);
-}
-
 // COS_MIST_LOWRES (pc_gpu_opts.h; docs/SWITCH_PERF_STUDY.md, section 8): the forest mist
 // ("moya", up to 100 camera-facing sprites drawn with no depth test, blended with
 // SRC_ALPHA/INV_SRC_ALPHA) costs 10-12 screens of blended fragments in A_mori at 1280x720. Drawn
@@ -137,7 +124,7 @@ static void drawCloudShadowLowres(PcFnRef drawSprites, void* buf, u32 w, u32 h, 
     dKy_GxFog_set();
 }
 
-void pc_kyr_draw_mist(PcFnRef drawSprites, PcFnRef setupState) {
+void pc_kyr_draw_mist(PcFnRef drawSprites) {
     view_port_class* pcViewport = dComIfGp_getCurrentViewport();
     unsigned int pcMistW = 0, pcMistH = 0;
     void* pcMistBuf = NULL;
@@ -149,25 +136,7 @@ void pc_kyr_draw_mist(PcFnRef drawSprites, PcFnRef setupState) {
         pcViewport != NULL && pcViewport->mXOrig == 0.0f && pcViewport->mYOrig == 0.0f &&
         pcViewport->mWidth == 640.0f && pcViewport->mHeight == 480.0f &&
         (pcMistBuf = pc_mist_lowres_target(&pcMistW, &pcMistH)) != NULL) {
-        if (pc_mist_ab_frame()) {
-            // COS_MIST_AB (pc_gpu_opts.h): both ways from the same scene, each copied for display
-            // in the next two frames, the original last so this frame goes on as usual.
-            pcMistCopyEfb(pc_mist_ab_buffer(0));
-            drawCloudShadowLowres(drawSprites, pcMistBuf, pcMistW, pcMistH, pcViewport);
-            pcMistCopyEfb(pc_mist_ab_buffer(2));
-            pcMistDrawFullscreen(pc_mist_ab_buffer(0), GX_FALSE);
-            dKy_GxFog_set();
-            GXSetBlendMode(GX_BM_BLEND, GX_BL_SRC_ALPHA, GX_BL_INV_SRC_ALPHA, GX_LO_SET);
-            GXSetAlphaCompare(GX_GREATER, 0, GX_AOP_OR, GX_GREATER, 0);
-            GXSetZMode(GX_FALSE, GX_LEQUAL, GX_FALSE);
-            GXSetColorUpdate(GX_TRUE);
-            GXSetAlphaUpdate(GX_TRUE);
-            setupState();
-            drawSprites();
-            pcMistCopyEfb(pc_mist_ab_buffer(1));
-        } else {
-            drawCloudShadowLowres(drawSprites, pcMistBuf, pcMistW, pcMistH, pcViewport);
-        }
+        drawCloudShadowLowres(drawSprites, pcMistBuf, pcMistW, pcMistH, pcViewport);
     } else {
         drawSprites();
     }
@@ -206,32 +175,10 @@ bool pc_gph_sky_lowres_begin(camera_process_class* camera, view_port_class* view
 
 void pc_gph_sky_lowres_end(camera_process_class* camera) {
     pc_sky_lowres_end();
-    if (pc_sky_ab_frame()) {
-        // COS_SKY_AB: keep this result, redraw the sky the original way from the same
-        // cleared EFB, keep that too (shown in the next two frames).
-        pc_ab_copy_efb(pc_mist_ab_buffer(2));
-        pc_sky_ab_restore();
-        GXSetProjection(camera->view.mProjMtx, GX_PERSPECTIVE);
-        j3dSys.reinitGX();
-        J3DShape::resetVcdVatCache();
-        dKy_setLight();
-        dComIfGd_drawOpaListSky();
-        dComIfGd_drawXluListSky();
-        pc_ab_copy_efb(pc_mist_ab_buffer(1));
-    }
     j3dSys.reinitGX();
     J3DShape::resetVcdVatCache();
     GXSetProjection(camera->view.mProjMtx, GX_PERSPECTIVE);
     dKy_setLight();
-}
-
-void pc_gph_mist_ab_show() {
-    // COS_MIST_AB (pc_gpu_opts.h): show the A/B frame's copies over everything.
-    if (void* abBuf = pc_mist_ab_show()) {
-        GXSetViewport(0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 1.0f);
-        GXSetScissor(0, 0, 640, 480);
-        pcMistDrawFullscreen(abBuf, GX_FALSE, 640, 480);
-    }
 }
 
 // ---- dDlst_shadowControl_c::imageDraw (d_drawlist.cpp) ----------------------------------------

@@ -319,8 +319,8 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
     const CosSwitchGfxStats& p = sSwPrev;
     snprintf(platform, sizeof(platform),
              "; switch: slot wait %.1f, staging wait %.1f, queue-full wait %.1f, worker busy %.1f "
-             "(encode %.1f, submit %.1f, present %.1f, events %.1f), gl fence wait %.1f, glFinish "
-             "%.1f, pipeline compile %.1f ms (%llu), dvd %llu reads %.1f KiB %.1f ms; dawn gl: %llu "
+             "(encode %.1f, submit %.1f, present %.1f, events %.1f), gl fence wait %.1f, "
+             "pipeline compile %.1f ms (%llu), dvd %llu reads %.1f KiB %.1f ms; dawn gl: %llu "
              "draws, %llu tex binds, %llu texparams, execute %.1f, other work %.1f, release %.1f ms "
              "(first pass %.1f: fbo %.1f, clears %.1f, replay %.1f; other passes %.1f; buffer "
              "copies %.1f, first %.1f; texture copies %.1f; tex uploads %llu in %.1f ms, %llu "
@@ -331,7 +331,7 @@ void hitchLine(unsigned int frame, const PerfFrame& f, const FrameEvents& ev, co
              msOf(now.queueFullWaitNs - p.queueFullWaitNs), msOf(now.workerBusyNs - p.workerBusyNs),
              msOf(now.workerEncodeNs - p.workerEncodeNs), msOf(now.workerSubmitNs - p.workerSubmitNs),
              msOf(now.workerPresentNs - p.workerPresentNs), msOf(now.workerEventsNs - p.workerEventsNs),
-             msOf(now.glWaitNs - p.glWaitNs), msOf(now.glFinishNs - p.glFinishNs),
+             msOf(now.glWaitNs - p.glWaitNs),
              msOf(now.pipelineCompileNs - p.pipelineCompileNs),
              (unsigned long long)(now.pipelineCompiles - p.pipelineCompiles),
              (unsigned long long)(now.dvdReads - p.dvdReads), (now.dvdBytes - p.dvdBytes) / 1024.0,
@@ -483,7 +483,7 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
            "[cos] perf-switch frames %u-%u: begin: events %.2f, slot wait %.2f, staging wait %.2f; "
            "queue-full wait %.2f; render worker %.2f ms/frame busy (encode %.2f, end_frame %.2f: "
            "unmap %.2f, acquire %.2f, submit %.2f, present %.2f; events %.2f), %.1f presents/s; "
-           "gl %llu fences (%llu in flight), %llu waits %.2f ms, %llu glFinish %.2f ms; pipelines "
+           "gl %llu fences (%llu in flight), %llu waits %.2f ms; pipelines "
            "%u created, %llu compiled in %.1f ms (longest so far %.1f ms), %u queued; tex upload "
            "%.1f KiB; dvd %llu reads %.1f KiB %.1f ms; res loads %u; scene %s\n"
            "[cos] perf-switch dawn gl per frame: %.1f passes, %.1f draws, %.1f pipelines, %.1f bind "
@@ -503,7 +503,6 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
            msOf(cur.workerEventsNs - w.workerEventsNs) / wf, wallS > 0 ? workerFrames / wallS : 0.0,
            (unsigned long long)(cur.glFences - w.glFences), (unsigned long long)cur.glFencesPending,
            (unsigned long long)(cur.glWaits - w.glWaits), msOf(cur.glWaitNs - w.glWaitNs),
-           (unsigned long long)(cur.glFinishes - w.glFinishes), msOf(cur.glFinishNs - w.glFinishNs),
            (unsigned int)(ev.createdPipelines - sSwWindowEvents.createdPipelines),
            (unsigned long long)(cur.pipelineCompiles - w.pipelineCompiles),
            msOf(cur.pipelineCompileNs - w.pipelineCompileNs), msOf(cur.pipelineCompileMaxNs),
@@ -584,9 +583,8 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
         const uint64_t gpuFrames = cur.gpuFrames - w.gpuFrames;
         if (cur.gpuTimerState != 1) {
             writef(STDERR_FILENO, "[cos] perf-switch gpu: %s\n",
-                   cur.gpuTimerState == 2   ? "no timer (the driver has no GL_EXT_disjoint_timer_query)"
-                   : cur.gpuTimerState == 3 ? "timer off (COS_SWITCH_GPU_TIMER=0)"
-                                            : "timer not started");
+                   cur.gpuTimerState == 2 ? "no timer (the driver has no GL_EXT_disjoint_timer_query)"
+                                          : "timer not started");
         } else if (gpuFrames == 0) {
             writef(STDERR_FILENO, "[cos] perf-switch gpu: no frame read back (%llu dropped, %llu disjoint)\n",
                    (unsigned long long)(cur.gpuDropped - w.gpuDropped),
@@ -603,17 +601,14 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
             writef(STDERR_FILENO,
                    "[cos] perf-switch gpu per frame (%llu read back): %.2f ms (p95 %.2f, max %.2f): "
                    "efb passes %.2f, tex copy conv %.2f, present %.2f, imgui %.2f, copies %.2f, other "
-                   "%.2f; first pass %.2f; %llu dropped, %llu disjoint; timer x%s\n",
+                   "%.2f; first pass %.2f; %llu dropped, %llu disjoint; timer x1.6276 (PTIMER)\n",
                    (unsigned long long)gpuFrames, gms(cur.gpuTotalNs, w.gpuTotalNs), msOf(p95Ns),
                    msOf(maxNs), gms(cur.gpuEfbNs, w.gpuEfbNs), gms(cur.gpuTexConvNs, w.gpuTexConvNs),
                    gms(cur.gpuPresentNs, w.gpuPresentNs), gms(cur.gpuImguiNs, w.gpuImguiNs),
                    gms(cur.gpuCopyNs, w.gpuCopyNs), gms(cur.gpuOtherNs, w.gpuOtherNs),
                    gms(cur.gpuFirstPassNs, w.gpuFirstPassNs),
                    (unsigned long long)(cur.gpuDropped - w.gpuDropped),
-                   (unsigned long long)(cur.gpuDisjoint - w.gpuDisjoint),
-                   // dawn-switch-gl-gpu-timer-scale.patch: Tegra PTIMER ticks to real time.
-                   getenv("COS_SWITCH_GPU_TIMER_SCALE") != nullptr ? getenv("COS_SWITCH_GPU_TIMER_SCALE")
-                                                                   : "1.6276 (PTIMER)");
+                   (unsigned long long)(cur.gpuDisjoint - w.gpuDisjoint));
         }
         sSwGpuFrameNs.clear();
         // Per group (dawn-switch-gl-gpu-groups.patch): the window's GPU time per frame of each
@@ -669,9 +664,7 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
                "[cos] perf-switch gl stall: first-pass clears %.2f ms per frame; deferred deletes "
                "%s: +%llu deferred, +%llu deleted, +%llu forced, %llu pending\n",
                firstPasses > 0 ? msOf(cur.glFirstPassClearNs - w.glFirstPassClearNs) / firstPasses : 0.0,
-               cur.glDeferDeleteState == 1   ? "on"
-               : cur.glDeferDeleteState == 2 ? "off (COS_SWITCH_GL_DEFER_DELETE=0)"
-                                             : "unused",
+               cur.glDeferDeleteState == 1 ? "on" : "unused",
                (unsigned long long)(cur.glDeferDeletes - w.glDeferDeletes),
                (unsigned long long)(cur.glDeferDeletesDone - w.glDeferDeletesDone),
                (unsigned long long)(cur.glDeferDeletesForced - w.glDeferDeletesForced),

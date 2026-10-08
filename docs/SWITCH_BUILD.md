@@ -251,7 +251,8 @@ EFB copy conversions and scaled blits ("TexCopyConv"), the present pass, the ImG
 copies; "first pass" is the first render pass of each frame alone. p95 and max are over the frames
 read back in the window. The present blit to the window surface (`eglSwapBuffers` side) is not
 included. If Mesa does not expose the extension the line says so (and the overlay shows "gpu no
-timer"); `COS_SWITCH_GPU_TIMER=0` in `env.txt` turns the queries off for an A/B run. The frame-rate
+timer"). The query results are scaled from the Tegra's PTIMER ticks to real time (x1.6276,
+`dawn-switch-gl-gpu-timer-scale.patch`). The frame-rate
 panel shows the same GPU ms per frame. If GPU ms per frame is about the frame time, the frame is
 GPU-bound and the internal resolution (`COS_FB_SCALE`) is the lever.
 The sixth line is each thread's CPU time per game frame from the kernel's per-thread tick count
@@ -277,37 +278,25 @@ so docked stays at the system's 768 MHz (no official docked configuration with C
 and nothing is re-applied. The previous handheld configuration is restored at exit and on a crash.
 Title mode only (apm is the application's service). Env files for the 720p target:
 `build/switch-envs/default720-460.txt` and `default720-384.txt`.
-`COS_SWITCH_GL_NO_ERROR=1` in `env.txt` makes Dawn ask for a `KHR_no_error` GL context
-(`switch/dawn/patches/dawn-switch-gl-no-error-context.patch`), in which Mesa skips the error
-checks of every GL call, draw and uniform validation included; `[dawn] COS_SWITCH_GL_NO_ERROR:` in
-the log says whether Mesa accepted it. It is an A/B option for the replay times: in such a context
-a GL error has undefined results.
 Depth uses WebGPU's [0, w] clip range in GL as well (on by default; bug B7,
 `switch/dawn/patches/dawn-switch-gl-clip-control.patch`, `SwitchClipControlGL.h`): Dawn sets
 `glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE)` (`GL_EXT_clip_control`, which the console's Mesa
 exposes) and Tint no longer rewrites each vertex's z as `2z - w` for GL's [-w, w] range. That
 rewrite rounded the depth to about 2^-24 of the distance (Aurora uses reversed Z with the game's
 near plane of 1), so decals a unit above another surface, such as Outset's shore foam, lost the
-depth test in patches that flickered as the camera moved. `[dawn] COS_SWITCH_GL_CLIP_CONTROL:` in
-the log says which path runs; `COS_SWITCH_GL_CLIP_CONTROL=0` in `env.txt` brings the rewrite back
-(A/B). The shaders change with it, so the first run after the update rebuilds them (cold shader
+depth test in patches that flickered as the camera moved. `[dawn] clip control:` in the log says
+which path runs (the rewrite remains only when the context has no `glClipControl`). The shaders
+change with it, so the first run after the update rebuilds them (cold shader
 cache). `COS_SMOKE=shore-foam` with `COS_BOOT_STAGE=sea:44:8` in `env.txt` runs the Mac's
 regression check of the foam on the console (`[cos] shore-foam:` lines; native/README.md).
-`COS_SWITCH_GL_FBO_CACHE=1` in `env.txt` (off by default; `switch/dawn/patches/dawn-switch-gl-fbo-cache.patch`,
-`SwitchFboCacheGL.h`) keeps each render pass's framebuffer object, keyed by its attachments (GL
-texture name, level, layer, attachment point), instead of `glGenFramebuffers`, one
-`glFramebufferTexture2D` per attachment, `glDrawBuffers` and `glDeleteFramebuffers` per pass; skips
-the pass's `glBindFramebuffer(GL_READ_FRAMEBUFFER, 0)`; and leaves out `glViewport`, `glScissor` and
-`glDepthRangef` calls that repeat what the pass already set. A texture drops its cached framebuffers
-before `glDeleteTextures` (GL names are reused). `[dawn] COS_SWITCH_GL_FBO_CACHE:` in the log
-confirms it; the "fbo" share of the `execute split` line is what it saves. The game-side GPU options
+The game-side GPU options
 `COS_SHADOW_OFFSCREEN` and `COS_DOF` are in `native/README.md` (`native/include/pc/pc_gpu_opts.h`).
 GL texture and buffer names are deleted only once the GPU has finished the work submitted before
 their Dawn object was destroyed (on by default; `switch/dawn/patches/dawn-switch-gl-deferred-delete.patch`,
 `SwitchDeferredDeleteGL.h`): libnx's `libdrm_nouveau` waits for the GPU when Mesa frees a busy
 buffer object, and Dawn frees its swapchain texture after every present, which made the next
 frame's first clear wait for the whole previous frame on the GPU (`docs/SWITCH_PERF_STUDY.md`,
-section 6). `COS_SWITCH_GL_DEFER_DELETE=0` deletes at once again (A/B). The
+section 6). The
 `[cos] perf-switch gl stall:` line shows the first render pass's clear time per frame (tens of us
 when nothing waits) and the deferred, deleted and pending names.
 
@@ -319,17 +308,13 @@ worker near the frame time means the worker, not the game thread, sets the frame
 GL queue has no EGL sync extension on the console's Mesa: it used to call `glFinish` after every
 submission (the CPU waited for the GPU each frame); it now puts a GLES sync object in
 (`switch/dawn/patches/dawn-switch-gl-fence-queue.patch`, the "gl ... fences" count) and polls it.
-`COS_SWITCH_GL_FINISH=1` in `env.txt` brings the `glFinish` back for comparison ("glFinish" count
-and time). `COS_SWITCH_CORES=pinned` in `env.txt` (off by default) pins Aurora's render worker to
-core 2 alone and JAudio's audio thread and the game's DVD thread to core 1 when they start
-(`switch/native/source/thread_wrap.c`; `[switch] COS_SWITCH_CORES=pinned:` lines in the log): by
-default every helper thread prefers core 1 or 2 in turn and Horizon does not time-slice threads of
-equal priority, so the worker can wait behind the audio mixer (compare the worker's CPU time in
-the `perf-switch cpu` line with and without it). Every game frame whose busy time is over `COS_HITCH_MS` (off by default; `COS_HITCH_MS=50` in
+Every helper thread prefers core 1 or 2 in turn (`switch/native/source/thread_wrap.c`) and Horizon
+does not time-slice threads of equal priority; Aurora's pipeline compile thread is kept off the
+render worker's core. Every game frame whose busy time is over `COS_HITCH_MS` (off by default; `COS_HITCH_MS=50` in
 `env.txt` sets the threshold) gets one `[cos] hitch frame N: busy ... ms (wall ...): events, begin_frame, cpd, aud, logic,
 painter, end_frame, other; pipelines +n (q queued), tex upload KiB, res loads +n last <path>,
 scene NAME (new); switch: slot wait, staging wait, queue-full wait, worker busy (encode, submit,
-present, events), gl fence wait, glFinish, pipeline compile ms (count), dvd reads; dawn gl: draws,
+present, events), gl fence wait, pipeline compile ms (count), dvd reads; dawn gl: draws,
 tex binds, texparams, execute, other work, release ms` line.
 
 Aurora's caches (`user/cache/dawn_cache.db`, `pipeline_cache.db`) are sqlite databases. History:

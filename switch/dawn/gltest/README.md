@@ -8,17 +8,17 @@ Performance numbers still come from the hardware.
 
     switch/dawn/gltest/run.sh build/dawn-src build/gltest
     GLTEST_WGSL=build/wgsl-dump switch/dawn/gltest/run.sh build/dawn-src build/gltest
-    switch/dawn/gltest/run.sh build/dawn-src build/gltest -- GLTEST_DUMP=1 COS_SWITCH_GL_UBO_WINDOW=1
+    switch/dawn/gltest/run.sh build/dawn-src build/gltest -- GLTEST_DUMP=1
 
-`build/dawn-src` is the Dawn tree the Switch build patched (`scripts/switch/build_native.sh
---dawn-src`); the first run builds Dawn in `build/gltest/build` (a few minutes), later runs only
+`build/dawn-src` is the Dawn tree the Switch build patched (`build/switch-dawn-src/<key>`, see
+`scripts/switch/build_native.sh --dawn-src`); the first run builds Dawn in `build/gltest/build` (a few minutes), later runs only
 what changed.
 
 - `gl_draw_test`: 1024 draws shaped like Aurora's GX draws (vertices from a storage buffer, one
   uniform record per draw at a dynamic offset, 64 bytes of immediates, pipeline switches between
   blend/mask/depth/cull states and two uniform layouts, two render passes, records near the
-  uniform buffer's end), compared pixel by pixel with a CPU reference. `run.sh` runs it with each
-  Switch GL toggle (`COS_SWITCH_GL_UBO_WINDOW`, `COS_SWITCH_GL_STATE_CACHE`) off and on.
+  uniform buffer's end), compared pixel by pixel with a CPU reference. The uniform window and the
+  pipeline state cache are always on (their run-time toggles were removed once they shipped).
   `GLTEST_DIAG=1` groups the mismatching cells by the pipelines drawn into them; `GLTEST_DUMP=1`
   prints the GLSL Dawn generates.
 - `gl_shader_test <dir>`: builds a render pipeline with Aurora's GX layout from every `.wgsl`

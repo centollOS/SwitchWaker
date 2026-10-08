@@ -93,7 +93,6 @@ back), then `COS_HD_TEXTURES=1` in `native/env.txt`.
 | `COS_HD_COST_TEXTURE_US` / `_LEVEL_US` / `_MIB_US` | 300/100/2000 Switch, 50/5/300 else | the estimate: per texture, per mip level, per MiB |
 | `COS_HD_REGISTER_US` | 2000 | game-thread time per frame for (un)registering after a toggle |
 | `COS_HD_RESCAN_KB` | 2048 Switch, 8192 else | static textures looked up again per frame after a toggle (0: no limit) |
-| `COS_SWITCH_GL_LEVEL_UPLOAD` | `1` | Switch: `0` restores Dawn's row-by-row compressed uploads (A/B) |
 
 ## Smooth toggling and loading (lane hd-smooth)
 
