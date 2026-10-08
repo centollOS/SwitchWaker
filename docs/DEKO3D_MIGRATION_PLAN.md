@@ -8,6 +8,32 @@ SwitchWakerHD `main`/`dev` df8fbde, whose Switch renderer moved from OpenGL/Mesa
 no code changed. "Measured" means a number read from a log, a document or an experiment run while
 writing this; "estimated" means a projection.
 
+## Resume here (state at the end of 2026-10-08)
+
+Phases 1, 2 and the Mac side of phase 3 are done on `dev` (92e7e53, pushed); nothing has run on the
+console yet. **Next session = one console session (handheld, title mode), in this order:**
+
+1. **Phase 0 baseline (GL).** NRO `main` v0.1.3 (`build/switch-native/switchwaker.nro` of the main
+   checkout, shows "0.1.3"; or the GL NRO of `dev`, same code) to `sdmc:/switch/switchwaker/`; append to
+   `native/env.txt` (back it up first): `COS_PERF_EVERY=60`, `COS_HITCH_MS=50`, `COS_FPS_OVERLAY=1`,
+   `COS_PERF_LOG=1`. Play the route of section 2.2 (~15 min). Classify with
+   `scripts/switch/perf_scenes.py <log>` (section 2.3/2.4). Existing logs already put Dragon Roost
+   Cavern's worker median at 19.6 ms, over the 18 ms go threshold.
+2. **Phase 2 pattern.** `build/lanes/dev/build/switch-native-dk/` -> `sdmc:/switch/switchwaker_dk/`
+   (`switchwaker_dk.nro` fefee1a0, `initial_dksh_cache.bin` 5725e914, `initial_pipeline_cache.db`);
+   it shares `GZLE01.iso` and `native/` with `switch/switchwaker/`, logs to
+   `native/switchwaker_dk.log`. `COS_DK_TEST_PATTERN=1`: photo (expected result: Phase 2 results).
+3. **Phase 3 first picture.** Without the pattern: title, file select, Outset, Dragon Roost Cavern,
+   Windfall, a picto box photo. Wrong orientation is fixed without a rebuild:
+   `COS_DK_FLIP_Y`, `COS_DK_FLIP_FRONT`, `COS_DK_FLIP_TEXTURE`, `COS_DK_FLIP_PRESENT` (logged as
+   `[dk] conventions:`). Then the route of 2.2 with the perf lines on both NROs for the checkpoint
+   below.
+
+Step-by-step note for the player-side of that session (Spanish, not in git):
+`build/lanes/dev/build/deko3d-phase3-prueba.md` (it also covers the phase 2 pattern). After the
+session: fix what it shows, set the conventions' defaults, run the end-of-phase-3 go/no-go, then
+phases 4-5.
+
 ## 0. Summary
 
 **What deko3d buys.** CPU on the render worker (no Dawn GL replay, no Mesa state validation per draw,
