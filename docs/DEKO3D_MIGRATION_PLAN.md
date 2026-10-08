@@ -29,7 +29,9 @@ Correctness rows of the checkpoint: shore foam checked by the user on the consol
 box: 39 photos in one session after the thread-reaping fix (955e16a: the crash after many photos was
 leaked detached threads, renderer-independent). Still open before phase 6: 30 minutes of play, then phases 4 (parity: HD textures, dynamic resolution, docked, captures) and 5.
 Upstream reports: devkitPro/deko3d#29 (alpha destination factor, worked around here), devkitPro/uam#7
-(our uam patch 8) and #8 (patch 6); the workaround and the patches can go when they are merged.
+(our uam patch 8) and #8 (patch 6) were closed unmerged by the maintainer on 2026-10-08 ("LLM-generated
+content removed"): devkitPro does not take LLM-written contributions, so the workaround and the uam patches
+stay here for good (a fix there would have to come from a person writing it themselves).
 
 ## 0. Summary
 
