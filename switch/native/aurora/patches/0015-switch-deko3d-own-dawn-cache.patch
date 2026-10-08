@@ -1,0 +1,28 @@
+Switch: the deko3d NRO keeps Dawn's blob cache in a file of its own (AURORA_GFX_DEKO3D)
+
+The deko3d NRO shares native/user/cache/ with the GL NRO (the pipeline list cache, pipeline_cache.db,
+is the same on purpose), but Dawn's blob cache, dawn_cache.db, holds the GL NRO's program binaries,
+and cache_prune deletes the rows a session did not use: one run of the deko3d NRO (Dawn's Null
+device, other keys) emptied it, and the GL NRO's next start rebuilt every program behind a ~2.5 min
+"Preparing shaders" screen (console, 2026-10-08). With AURORA_GFX_DEKO3D the file is
+dawn_cache_dk.db. Without it (the GL NRO, the Mac) nothing changes.
+
+Switch only (switch/native/aurora/patches); not for upstream.
+
+diff --git a/lib/webgpu/gpu_cache.cpp b/lib/webgpu/gpu_cache.cpp
+index 8ba35f6..6bafb95 100644
+--- a/lib/webgpu/gpu_cache.cpp
++++ b/lib/webgpu/gpu_cache.cpp
+@@ -39,7 +39,12 @@ constexpr int CACHE_SCHEMA = 2;
+ constexpr uint64_t VacuumPrunePercentThreshold = 25;
+ 
+ static std::filesystem::path cache_path() {
++#if defined(AURORA_GFX_DEKO3D)
++  // the GL NRO's file would be pruned to this NRO's keys
++  return io::fs_path_from_string(g_config.cachePath) / "dawn_cache_dk.db";
++#else
+   return io::fs_path_from_string(g_config.cachePath) / "dawn_cache.db";
++#endif
+ }
+ 
+ // Finalizes the statements and closes the connection (sqlite3_close refuses while statements are

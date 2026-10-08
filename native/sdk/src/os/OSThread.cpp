@@ -227,7 +227,10 @@ void LaunchLocked(OSThread* thread, const std::shared_ptr<HostThread>& host) {
 
     pthread_attr_t attr;
     pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    // Detached by pthread_detach after the create, not by the attribute: devkitPro's newlib ignores
+    // the attribute's detach state (and its PTHREAD_CREATE_DETACHED is 0, the value of a fresh
+    // attribute), and the Switch build reaps ended threads only through pthread_detach
+    // (switch/native/source/thread_wrap.c), as libnx frees nothing for a detached thread.
     const u8* base = thread->stackBase;
     const u8* end = thread->stackEnd;
     const u32 requested = (base != nullptr && end != nullptr && base > end)
@@ -245,6 +248,7 @@ void LaunchLocked(OSThread* thread, const std::shared_ptr<HostThread>& host) {
         Fatal("OSResumeThread(%p): pthread_create failed (%d: %s)", static_cast<void*>(thread),
               err, std::strerror(err));
     }
+    pthread_detach(handle);
 }
 
 // The GameCube's OSExitThread/OSCancelThread bookkeeping for a thread that ends.

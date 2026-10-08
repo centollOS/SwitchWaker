@@ -17,6 +17,12 @@ extern "C" {
 #define COS_SWITCH_ROOT "/switch/switchwaker/native"
 /* The disc image (scripts/switch/push.sh --disc). */
 #define COS_SWITCH_DEFAULT_DISC "/switch/switchwaker/GZLE01.iso"
+/* The NRO's name: its log (COS_SWITCH_ROOT/<name>.log) and its symbols (<name>.elf). The deko3d
+ * build (COS_SWITCH_RENDERER=deko3d) is switchwaker_dk and lives in /switch/switchwaker_dk/ with its
+ * bundled caches; both share the data above (disc, saves, settings and its [dev] section, Aurora's caches). */
+#ifndef COS_SWITCH_NRO_NAME
+#define COS_SWITCH_NRO_NAME "switchwaker"
+#endif
 
 /* Ends the process with `code`, from any thread: flushes the logs to the SD card and the USB
  * host, then exits the process (svcExitProcess: the threads the game started cannot be stopped,

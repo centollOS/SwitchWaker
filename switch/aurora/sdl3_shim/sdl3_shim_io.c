@@ -13,7 +13,13 @@
 
 #include "sdl3_shim.h"
 
+// The NRO's directory: SDL_GetBasePath, where Aurora finds the bundled pipeline cache next to the
+// NRO. The deko3d build (switch/native/CMakeLists.txt) passes its own, /switch/switchwaker_dk.
+#ifdef COS_SWITCH_NRO_DIR
+#define DATA_ROOT COS_SWITCH_NRO_DIR "/"
+#else
 #define DATA_ROOT "/switch/switchwaker/"
+#endif
 
 struct SDL_IOStream {
     FILE* file;

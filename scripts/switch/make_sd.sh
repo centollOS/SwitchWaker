@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SwitchWaker for players: build the Switch homebrew from your own disc and lay out an SD card folder.
 #
-#   scripts/switch/make_sd.sh --disc /path/to/GZLE01.iso [--out DIR] [--no-disc] [--jobs N] [--engine E]
+#   scripts/switch/make_sd.sh --disc /path/to/GZLE01.iso [--out DIR] [--no-disc] [--deko3d] [--jobs N] [--engine E]
 #
 # No game files, code or keys come with this repository or its releases. This script does every step on
 # your computer, in containers (the host needs bash, git, Python 3 and Docker or Podman):
@@ -11,6 +11,10 @@
 #   3. writes OUT/switch/switchwaker/ (default OUT: build/sd) with switchwaker.nro, the bundled
 #      initial_pipeline_cache.db and a copy of the disc as GZLE01.iso (--no-disc leaves the disc out,
 #      for an update when it is already on the card). Copy OUT's contents to the root of the SD card.
+#      --deko3d also builds the experimental deko3d renderer (docs/DEKO3D_MIGRATION_PLAN.md) and writes
+#      OUT/switch/switchwaker_dk/ (switchwaker_dk.nro, its initial_pipeline_cache.db and
+#      initial_dksh_cache.bin): "SwitchWaker (deko3d)" in the Homebrew Menu, reading the disc, settings
+#      and saves of switch/switchwaker/ (no second copy of the disc).
 #
 # What it makes contains code generated from the disc and the disc itself: for your own console only.
 set -euo pipefail
@@ -18,12 +22,14 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 disc=${COS_DISC:-}
 out=$root/build/sd
 copy_disc=1
+deko3d=0
 build_args=()
 while [[ $# -gt 0 ]]; do
     case $1 in
         --disc) disc=$2; shift 2 ;;
         --out) out=$2; shift 2 ;;
         --no-disc) copy_disc=0; shift ;;
+        --deko3d) deko3d=1; shift ;;
         --jobs|--engine) build_args+=("$1" "$2"); shift 2 ;;
         -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
         *) echo "make_sd: unknown option $1 (--help)" >&2; exit 2 ;;
@@ -60,6 +66,17 @@ cp "$db" "$dst/initial_pipeline_cache.db"
 if [[ $copy_disc == 1 ]]; then
     echo "  copying the disc ($(du -h "$disc" | cut -f1))"
     cp "$disc" "$dst/GZLE01.iso"
+fi
+if [[ $deko3d == 1 ]]; then
+    echo "  the deko3d renderer (switch/switchwaker_dk/)"
+    "$root/scripts/docker/build.sh" switch --renderer deko3d --disc "$disc" ${build_args[@]+"${build_args[@]}"} ||
+        fail "the deko3d build failed (see above)"
+    dk=$root/build/switch-native-dk
+    mkdir -p "$out/switch/switchwaker_dk"
+    for f in switchwaker_dk.nro initial_pipeline_cache.db initial_dksh_cache.bin; do
+        [[ -f $dk/$f ]] || fail "the deko3d build made no $dk/$f"
+        cp "$dk/$f" "$out/switch/switchwaker_dk/$f"
+    done
 fi
 cat <<EOF
 

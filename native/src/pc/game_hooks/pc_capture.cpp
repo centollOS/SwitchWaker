@@ -24,6 +24,10 @@
 #include <lib/gfx/render_worker.hpp>
 #include <lib/gx/gx.hpp>
 #include <lib/webgpu/gpu.hpp>
+#if defined(COS_SWITCH_DEKO3D)
+// the deko3d NRO reads textures back through its renderer (switch/deko/dk_aurora.h)
+#include "dk_aurora.h"
+#endif
 
 #include <algorithm>
 #include <cstring>
@@ -52,6 +56,28 @@ bool readTexture(const aurora::gfx::TextureHandle& handle, std::vector<uint8_t>&
         pc::writef(STDERR_FILENO, "[cos] capture: copy texture format %u not supported\n", (unsigned int)format);
         return false;
     }
+#if defined(COS_SWITCH_DEKO3D)
+    {
+        uint8_t* texels = nullptr;
+        uint32_t w = 0, h = 0, f = 0;
+        if (!aurora_switch_dk_read_texture(handle->texture.Get(), &texels, &w, &h, &f)) {
+            pc::writef(STDERR_FILENO, "[cos] capture: readback did not complete (deko3d)\n");
+            return false;
+        }
+        rgba.resize((size_t)w * h * 4);
+        for (size_t i = 0; i < (size_t)w * h; i++) {
+            const uint8_t* p = texels + i * 4;
+            uint8_t* o = rgba.data() + i * 4;
+            o[0] = p[bgra ? 2 : 0];
+            o[1] = p[1];
+            o[2] = p[bgra ? 0 : 2];
+            o[3] = p[3];
+        }
+        srcWidth = w;
+        srcHeight = h;
+        return true;
+    }
+#endif
     const uint32_t width = handle->size.width;
     const uint32_t height = handle->size.height;
     const uint32_t bytesPerRow = (width * 4 + 255) & ~255u;

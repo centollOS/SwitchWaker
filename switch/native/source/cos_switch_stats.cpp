@@ -13,6 +13,11 @@ extern "C" void dawn_switch_gl_queue_stats(uint64_t out[6]);
 extern "C" void dawn_switch_gl_cmd_stats(uint64_t* out, size_t count);
 // switch/native/nod/nod_gcn.cpp.
 extern "C" void cos_switch_nod_stats(uint64_t out[3]);
+#if defined(COS_SWITCH_DEKO3D)
+// The deko3d NRO: its encoder's and GPU timestamps' figures go into the same fields the perf lines read
+// (switch/deko/dk_aurora.h), in place of Dawn GL's, which stay zero there.
+#include "dk_aurora.h"
+#endif
 
 extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
     AuroraSwitchStats a{};
@@ -138,4 +143,31 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
         .nvKickNs = {nv[6], nv[14]},
         .nvPushWords = {nv[7], nv[15]},
     };
+#if defined(COS_SWITCH_DEKO3D)
+    uint64_t dk[AURORA_SWITCH_DK_STAT_COUNT] = {};
+    aurora_switch_dk_gfx_stats(dk, AURORA_SWITCH_DK_STAT_COUNT);
+    out->glPasses = dk[AURORA_SWITCH_DK_PASSES];
+    out->glDraws = dk[AURORA_SWITCH_DK_DRAWS];
+    out->glPipelines = dk[AURORA_SWITCH_DK_PIPELINE_BINDS];
+    out->glBindGroups = dk[AURORA_SWITCH_DK_UNIFORM_BINDS];
+    out->glTexBinds = dk[AURORA_SWITCH_DK_TEXTURE_BINDS];
+    out->glUniforms = dk[AURORA_SWITCH_DK_UNIFORM_BINDS];
+    out->glTexUploads = dk[AURORA_SWITCH_DK_UPLOADS];
+    out->glTexCopies = dk[AURORA_SWITCH_DK_COPIES] + dk[AURORA_SWITCH_DK_CONVERSIONS];
+    out->glExecuteNs = dk[AURORA_SWITCH_DK_ENCODE_NS];
+    out->glFlushItems = dk[AURORA_SWITCH_DK_SUBMITS];
+    out->gpuFrames = dk[AURORA_SWITCH_DK_GPU_FRAMES];
+    out->gpuTotalNs = dk[AURORA_SWITCH_DK_GPU_TOTAL_NS];
+    out->gpuEfbNs = dk[AURORA_SWITCH_DK_GPU_EFB_NS];
+    out->gpuTexConvNs = dk[AURORA_SWITCH_DK_GPU_CONVERSION_NS];
+    out->gpuPresentNs = dk[AURORA_SWITCH_DK_GPU_PRESENT_NS];
+    out->gpuImguiNs = dk[AURORA_SWITCH_DK_GPU_IMGUI_NS];
+    out->gpuCopyNs = dk[AURORA_SWITCH_DK_GPU_COPY_NS];
+    out->gpuOtherNs = dk[AURORA_SWITCH_DK_GPU_OTHER_NS];
+    out->gpuFirstPassNs = 0;
+    out->gpuDisjoint = 0;
+    out->gpuDropped = dk[AURORA_SWITCH_DK_GPU_DROPPED];
+    // 1: timestamps read back (COS_DK_GPU_TIMERS=0 leaves gpuFrames at 0)
+    out->gpuTimerState = 1;
+#endif
 }

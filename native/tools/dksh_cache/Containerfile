@@ -1,0 +1,14 @@
+# Build image of native/tools/dksh_cache (build.sh): Debian 13 with clang, CMake, Ninja, Python 3
+# (Dawn's header generator), zlib and SQLite. uamlib (switch/uam), Tint (the Switch build's Dawn
+# source) and Aurora's shader generator are compiled inside it; nothing is downloaded at build time
+# except what the Dawn/Aurora configure steps already have in their source trees.
+FROM docker.io/library/debian:trixie-20250929-slim
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates git cmake ninja-build python3 clang lld patch \
+        zlib1g-dev libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV CC=clang CXX=clang++

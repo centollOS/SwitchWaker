@@ -1,0 +1,328 @@
+Switch: the deko3d NRO's device and present (AURORA_GFX_DEKO3D)
+
+docs/DEKO3D_MIGRATION_PLAN.md phase 2. With AURORA_GFX_DEKO3D (switch/native/CMakeLists.txt,
+COS_SWITCH_RENDERER=deko3d) Aurora keeps recording and encoding every frame, against Dawn's Null
+device (no GPU work, nothing drawn: the GX encoding is a no-op in this phase), and switch/deko owns
+the GPU through the C functions of switch/deko/dk_aurora.h:
+- webgpu::initialize: the Null backend, no WebGPU surface, the GL NRO's feature set (the Null device
+  offers every feature: CoreFeaturesAndLimits is left out so the pipeline configs match the GL
+  NRO's), then aurora_switch_dk_init (device, queue, memory, swapchain, DKSH cache); the frame
+  buffers are created without a surface; shutdown calls aurora_switch_dk_shutdown;
+- aurora.cpp: no SDL renderer for the Null backend, no surface checks in begin_frame; end_frame
+  submits the Null device's command buffer, then imgui::present_deko3d presents (timed as the
+  present in the perf-switch lines) instead of the surface acquire, the blit and the ImGui pass;
+- imgui.cpp: no imgui_impl_wgpu; the font atlas and aurora_imgui_add_texture go to
+  aurora_switch_dk_imgui_texture, the frozen draw data to aurora_switch_dk_present.
+Without AURORA_GFX_DEKO3D (the GL NRO, the Mac) nothing changes.
+
+Switch only (switch/native/aurora/patches); not for upstream.
+
+diff --git a/lib/aurora.cpp b/lib/aurora.cpp
+index ee705f1..317302c 100644
+--- a/lib/aurora.cpp
++++ b/lib/aurora.cpp
+@@ -166,7 +166,12 @@ AuroraInfo initialize(int argc, char* argv[], const AuroraConfig& config) noexce
+   AURORA_ASSERT(windowCreated, "Error creating window: {}", SDL_GetError());
+ 
+   // Initialize SDL_Renderer for ImGui when we can't use a Dawn backend
++#if defined(AURORA_GFX_DEKO3D)
++  // (the deko3d NRO: Dawn's Null device on purpose; ImGui is drawn by switch/deko)
++  if (false) {
++#else
+   if (webgpu::g_backendType == wgpu::BackendType::Null) {
++#endif
+     AURORA_ASSERT(window::create_renderer(), "Failed to initialize SDL renderer: {}", SDL_GetError());
+   }
+ #else
+@@ -248,12 +253,14 @@ bool begin_frame() noexcept {
+     if (window::is_paused()) {
+       return false;
+     }
++#if !defined(AURORA_GFX_DEKO3D)
+     if (!g_surface) {
+       webgpu::refresh_surface(true);
+       if (!g_surface) {
+         return false;
+       }
+     }
++#endif
+   }
+ 
+   imgui::new_frame(window::get_window_size());
+@@ -292,6 +299,31 @@ void end_frame() noexcept {
+   gfx::end_frame([rmlBindGroup = std::move(rmlBindGroup), rmlOverlay, viewport,
+                   imguiDrawData = std::move(imguiDrawData)](
+                      wgpu::CommandEncoder& encoder, std::vector<gfx::AfterSubmitCallback> afterSubmitCallbacks) {
++#if defined(AURORA_GFX_DEKO3D)
++    // The frame's WebGPU work goes to Dawn's Null device (no GPU work in phase 2); switch/deko
++    // presents: the window's image, the test pattern, ImGui (docs/DEKO3D_MIGRATION_PLAN.md).
++    (void)rmlOverlay;
++    (void)viewport;
++    {
++      const wgpu::CommandBufferDescriptor cmdBufDescriptor{.label = "Redraw command buffer"};
++      const auto buffer = encoder.Finish(&cmdBufDescriptor);
++      switch_stats::Scope statScope{switch_stats::counters().workerSubmitNs};
++      g_queue.Submit(1, &buffer);
++    }
++    {
++      switch_stats::Scope statScope{switch_stats::counters().workerPresentNs};
++      imgui::present_deko3d(imguiDrawData);
++    }
++    gfx::after_present();
++    gfx::switch_warmup_note_present();
++    for (auto& callback : afterSubmitCallbacks) {
++      if (callback) {
++        callback();
++      }
++    }
++    gfx::after_submit();
++    return;
++#endif
+     wgpu::Texture currentTexture;
+     wgpu::TextureView currentView;
+     auto surfaceStatus = wgpu::SurfaceGetCurrentTextureStatus::Error;
+diff --git a/lib/imgui.cpp b/lib/imgui.cpp
+index 3b1c007..0e1fad1 100644
+--- a/lib/imgui.cpp
++++ b/lib/imgui.cpp
+@@ -43,6 +43,11 @@ static void ImGui_ImplSDLRenderer3_RenderDrawData(ImDrawData*, SDL_Renderer*) {}
+ #include "backends/imgui_impl_sdlrenderer3.h"
+ #endif
+ #include "tracy/Tracy.hpp"
++#if defined(AURORA_GFX_DEKO3D)
++// ImGui's renderer is switch/deko's (overlay.cpp): textures through aurora_switch_dk_imgui_texture,
++// the draw data at present; imgui_impl_wgpu is not used.
++#include "dk_aurora.h"
++#endif
+ 
+ namespace aurora::imgui {
+ namespace {
+@@ -119,6 +124,12 @@ void initialize() noexcept {
+   if (g_useSdlRenderer) {
+     ImGui_ImplSDLRenderer3_Init(renderer);
+   } else {
++#if defined(AURORA_GFX_DEKO3D)
++    ImGuiIO& io = ImGui::GetIO();
++    io.BackendRendererName = "switchwaker_deko3d";
++    io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
++    return;
++#endif
+     ImGui_ImplWGPU_InitInfo info;
+     info.Device = webgpu::g_device.Get();
+     info.RenderTargetFormat = static_cast<WGPUTextureFormat>(webgpu::g_graphicsConfig.surfaceConfiguration.format);
+@@ -131,7 +142,9 @@ void shutdown() noexcept {
+   if (g_useSdlRenderer) {
+     ImGui_ImplSDLRenderer3_Shutdown();
+   } else {
++#if !defined(AURORA_GFX_DEKO3D)
+     ImGui_ImplWGPU_Shutdown();
++#endif
+   }
+   ImGui_ImplSDL3_Shutdown();
+   ImGui::DestroyContext();
+@@ -205,6 +218,19 @@ void new_frame(const AuroraWindowSize& size) noexcept {
+     ImGui_ImplSDLRenderer3_NewFrame();
+     g_scale = size.scale;
+   } else {
++#if defined(AURORA_GFX_DEKO3D)
++    // the font atlas (again after a scale change) as one RGBA8 texture for switch/deko
++    ImFontAtlas* fonts = ImGui::GetIO().Fonts;
++    if (g_scale != size.scale || !fonts->IsBuilt() || fonts->TexID == ImTextureID{}) {
++      g_scale = size.scale;
++      unsigned char* pixels = nullptr;
++      int width = 0;
++      int height = 0;
++      fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
++      fonts->SetTexID(static_cast<ImTextureID>(
++          aurora_switch_dk_imgui_texture(static_cast<uint32_t>(width), static_cast<uint32_t>(height), pixels)));
++    }
++#else
+     if (g_scale != size.scale) {
+       if (g_scale > 0.f) {
+         ImGui_ImplWGPU_CreateDeviceObjects();
+@@ -215,6 +241,7 @@ void new_frame(const AuroraWindowSize& size) noexcept {
+       ImGui_ImplWGPU_CreateDeviceObjects();
+     }
+     ImGui_ImplWGPU_NewFrame();
++#endif
+   }
+   ImGui_ImplSDL3_NewFrame();
+ 
+@@ -263,7 +290,18 @@ void render(const wgpu::RenderPassEncoder& pass, const DrawData& drawData) noexc
+   }
+ }
+ 
++#if defined(AURORA_GFX_DEKO3D)
++void present_deko3d(const DrawData& drawData) noexcept {
++  ZoneScoped;
++  const ImDrawData* data = drawData.m_impl ? &drawData.m_impl->drawData : nullptr;
++  aurora_switch_dk_present(data != nullptr && data->CmdListsCount > 0 ? data : nullptr);
++}
++#endif
++
+ ImTextureID add_texture(uint32_t width, uint32_t height, const uint8_t* data) noexcept {
++#if defined(AURORA_GFX_DEKO3D)
++  return static_cast<ImTextureID>(aurora_switch_dk_imgui_texture(width, height, data));
++#endif
+   if (SDL_Renderer* renderer = window::get_sdl_renderer()) {
+     SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, width, height);
+     SDL_UpdateTexture(texture, nullptr, data, width * 4);
+diff --git a/lib/imgui.hpp b/lib/imgui.hpp
+index a11a7f8..82e04af 100644
+--- a/lib/imgui.hpp
++++ b/lib/imgui.hpp
+@@ -25,6 +25,9 @@ private:
+ 
+   friend DrawData freeze() noexcept;
+   friend void render(const wgpu::RenderPassEncoder& pass, const DrawData& drawData) noexcept;
++#if defined(AURORA_GFX_DEKO3D)
++  friend void present_deko3d(const DrawData& drawData) noexcept;
++#endif
+ };
+ 
+ void create_context() noexcept;
+@@ -36,4 +39,8 @@ bool wants_capture_event(const SDL_Event& event) noexcept;
+ void new_frame(const AuroraWindowSize& size) noexcept;
+ DrawData freeze() noexcept;
+ void render(const wgpu::RenderPassEncoder& pass, const DrawData& drawData) noexcept;
++#if defined(AURORA_GFX_DEKO3D)
++// The deko3d NRO's present (switch/deko, aurora_switch_dk_present) with this frame's ImGui draw data.
++void present_deko3d(const DrawData& drawData) noexcept;
++#endif
+ } // namespace aurora::imgui
+diff --git a/lib/webgpu/gpu.cpp b/lib/webgpu/gpu.cpp
+index 9c96237..ad39c96 100644
+--- a/lib/webgpu/gpu.cpp
++++ b/lib/webgpu/gpu.cpp
+@@ -30,7 +30,12 @@
+ #include <dawn/native/DawnNative.h>
+ #endif
+ 
+-#if defined(__SWITCH__)
++#if defined(AURORA_GFX_DEKO3D)
++// The deko3d NRO (switch/deko, docs/DEKO3D_MIGRATION_PLAN.md phase 2): Aurora records and encodes
++// against Dawn's Null device, and switch/deko owns the GPU, the window and the present pass.
++#include "../gx/pipeline.hpp"
++#include "dk_aurora.h"
++#elif defined(__SWITCH__)
+ // Dawn's OpenGL ES backend on Mesa's EGL. Its window surface is libnx's NWindow, carried in the
+ // Android native window source (switch/dawn/patches/dawn-switch-nwindow-surface.patch).
+ #include <EGL/egl.h>
+@@ -764,7 +769,9 @@ static wgpu::BackendType to_wgpu_backend(AuroraBackend backend) {
+ static void release_surface_locked() noexcept { g_surface = {}; }
+ 
+ static bool create_surface() {
+-#if defined(__SWITCH__)
++#if defined(AURORA_GFX_DEKO3D)
++  return true; // no WebGPU surface: switch/deko presents to the window
++#elif defined(__SWITCH__)
+   {
+     window::SurfaceLock surfaceLock;
+     // The window needs its buffer size set before EGL draws to it, as libnx's framebuffer API does.
+@@ -833,7 +840,11 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+       return false;
+     }
+   }
+-#if defined(__SWITCH__)
++#if defined(AURORA_GFX_DEKO3D)
++  (void)auroraBackend;
++  // Dawn's Null device: the frame's WebGPU work costs no GPU time and draws nothing (phase 2)
++  const wgpu::BackendType backend = wgpu::BackendType::Null;
++#elif defined(__SWITCH__)
+   (void)auroraBackend;
+   const wgpu::BackendType backend = wgpu::BackendType::OpenGLES;
+ #else
+@@ -849,7 +860,7 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+     return false;
+   }
+   {
+-#if defined(__SWITCH__)
++#if defined(__SWITCH__) && !defined(AURORA_GFX_DEKO3D)
+     // Dawn finds Mesa's EGL through eglGetProcAddress (its dlopen path is patched out for Horizon)
+     // and uses the default display.
+     dawn::native::opengl::RequestAdapterOptionsGetGLProc glProc;
+@@ -857,7 +868,7 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+     glProc.display = EGL_NO_DISPLAY;
+ #endif
+     const wgpu::RequestAdapterOptions options{
+-#if defined(__SWITCH__)
++#if defined(__SWITCH__) && !defined(AURORA_GFX_DEKO3D)
+         .nextInChain = &glProc,
+ #endif
+         .featureLevel = wgpu::FeatureLevel::Compatibility,
+@@ -973,6 +984,14 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+     g_adapter.GetFeatures(&supportedFeatures);
+     for (size_t i = 0; i < supportedFeatures.featureCount; ++i) {
+       const auto feature = supportedFeatures.features[i];
++#if defined(AURORA_GFX_DEKO3D)
++      // The Null device offers every feature; take the set the GL NRO's adapter gives on the
++      // console (BC, ASTC, dual-source blending, component swizzle; not CoreFeaturesAndLimits), so
++      // Aurora builds the same pipeline configs and the shared pipeline cache stays one list.
++      if (feature == wgpu::FeatureName::CoreFeaturesAndLimits) {
++        continue;
++      }
++#endif
+       if (feature == wgpu::FeatureName::CoreFeaturesAndLimits || feature == wgpu::FeatureName::TextureCompressionBC ||
+           feature == wgpu::FeatureName::TextureCompressionASTC ||
+           feature == wgpu::FeatureName::TextureComponentSwizzle || feature == wgpu::FeatureName::DualSourceBlending) {
+@@ -1098,6 +1117,13 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+   }
+   g_queue = g_device.GetQueue();
+ 
++#if defined(AURORA_GFX_DEKO3D)
++  aurora_switch_dk_init(gx::GXPipelineConfigVersion);
++  // The window's format and pacing are deko3d's: RGBA8 images, swap interval 1.
++  const auto surfaceFormat = wgpu::TextureFormat::RGBA8Unorm;
++  g_vsyncEnabled.store(g_config.vsync, std::memory_order_release);
++  const auto presentMode = wgpu::PresentMode::Fifo;
++#else
+   const wgpu::Status status = g_surface.GetCapabilities(g_adapter, &g_surfaceCapabilities);
+   if (status != wgpu::Status::Success) {
+     Log.error("Failed to get surface capabilities: {}", magic_enum::enum_name(status));
+@@ -1114,6 +1140,7 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+   auto surfaceFormat = best_surface_format();
+   g_vsyncEnabled.store(g_config.vsync, std::memory_order_release);
+   auto presentMode = select_present_mode(g_surfaceCapabilities);
++#endif
+   Log.info("Using surface format {}, present mode {}", magic_enum::enum_name(surfaceFormat),
+            magic_enum::enum_name(presentMode));
+   const auto size = window::get_window_size();
+@@ -1141,6 +1168,9 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+ void shutdown() {
+   g_initialized = false;
+   gfx::gpu_synchronize();
++#if defined(AURORA_GFX_DEKO3D)
++  aurora_switch_dk_shutdown();
++#endif
+   gpu_prof::shutdown();
+   g_CopyBindGroupLayout = {};
+   g_CopyPipeline = {};
+@@ -1173,9 +1203,15 @@ void release_surface() noexcept {
+ 
+ static void resize_swapchain_internal(uint32_t width, uint32_t height, uint32_t nativeWidth, uint32_t nativeHeight,
+                                       bool force) {
++#if defined(AURORA_GFX_DEKO3D)
++  if (!g_device || width == 0 || height == 0 || nativeHeight == 0 || nativeWidth == 0) {
++    return;
++  }
++#else
+   if (!g_surface || !g_device || width == 0 || height == 0 || nativeHeight == 0 || nativeWidth == 0) {
+     return;
+   }
++#endif
+   const bool sizeChanged = g_graphicsConfig.surfaceConfiguration.width != nativeWidth ||
+                            g_graphicsConfig.surfaceConfiguration.height != nativeHeight ||
+                            g_frameBuffer.size.width != width || g_frameBuffer.size.height != height;
+@@ -1190,10 +1226,12 @@ static void resize_swapchain_internal(uint32_t width, uint32_t height, uint32_t
+   g_graphicsConfig.surfaceConfiguration.height = nativeHeight;
+   auto surfaceConfiguration = g_graphicsConfig.surfaceConfiguration;
+   surfaceConfiguration.device = g_device;
++#if !defined(AURORA_GFX_DEKO3D)
+   {
+     window::SurfaceLock surfaceLock;
+     g_surface.Configure(&surfaceConfiguration);
+   }
++#endif
+   g_frameBuffer = create_render_texture(width, height, true);
+   g_frameBufferResolved = create_render_texture(width, height, false);
+   g_depthBuffer = create_depth_texture(width, height);

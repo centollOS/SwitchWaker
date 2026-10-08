@@ -17,6 +17,8 @@ build reads them from the player's own disc.
 | `native/patches/aurora/`, `switch/native/aurora/patches/` | Patches to Aurora | same as Aurora (MIT) |
 | `switch/dawn/patches/` | Patches to Dawn (Horizon/OpenGL ES backend) | same as Dawn (BSD-3-Clause) |
 | `switch/mesa/patches/`, `switch/mesa/test/` | Patches to Mesa (devkitPro's switch-mesa recipe) and their tests | same as Mesa (MIT) |
+| `switch/uam/` | [uam](https://github.com/devkitPro/uam) 1.1.0 at `5a5afc2` (fincs, devkitPro), the deko3d shader compiler, as vendored by [SwitchWakerHD](https://github.com/centollOS/SwitchWakerHD) (`runtime/third_party/uam/` at `df8fbde`) with its patches 1-7, CMake build and `uam_api` (`switch/uam/PATCHES.md`) | zlib for uam's own files, MIT for `mesa-imported/` (from Mesa) (`switch/uam/LICENSE`); SwitchWakerHD lists its additions there under the same terms (SwitchWakerHD itself is MPL-2.0) |
+| `native/tools/dksh_cache/dksh_cache.cpp`, `switch/deko/dksh_file.{h,cpp}`, `switch/deko/{dk.h,device.cpp,memory.cpp,descriptors.cpp,overlay.cpp,pattern.cpp}`, `switch/deko/shaders/{imgui,text}_{vsh,fsh}.glsl` | Adapted from [SwitchWakerHD](https://github.com/centollOS/SwitchWakerHD) at `df8fbde` (`tools/switch/dksh_cache/dksh_cache.cpp`, `runtime/src/gfx/deko/{shader_files.{h,cpp},dk.h,backend.cpp,memory.cpp,descriptors.cpp,overlay_dk.cpp}`, `runtime/src/gfx/deko/shaders/`) | MPL-2.0 (header in each file; [mozilla.org/MPL/2.0](https://mozilla.org/MPL/2.0/)) |
 | `switch/forwarder/nx-hbloader-forwarder.patch` | Patch to nx-hbloader | same as nx-hbloader (ISC) |
 
 Everything else is the project's own code under the MIT license (`LICENSE`), copyright Pulpparty
@@ -38,6 +40,7 @@ and depende3000, and the SwitchWaker contributors.
 | [nod](https://github.com/encounter/nod) | Aurora's prebuilt package (Mac only; the Switch uses `switch/native/nod`) | disc reader | MIT OR Apache-2.0 (check) |
 | [RecompCore](https://github.com/elliotttate/RecompCore) (Dolphin) | `8ab24da` | Dolphin's DSP HLE sources (`native/tools/fetch_recompcore.sh`) | GPL-2.0-or-later |
 | [Mesa](https://mesa3d.org) | 20.1.0-rc3 via devkitPro's `switch-mesa` 20.1.0-5 recipe (`pacman-packages` `f103fe88`) | Switch EGL/GLES and nouveau driver | MIT |
+| [deko3d](https://github.com/devkitPro/deko3d) | 0.5.0-1 in the pinned devkitPro image (`libdeko3d.a`, `libdeko3dd.a`; uam 1.1.0-1 compiles the deko3d NRO's own GLSL) | the deko3d NRO's GPU API (`switch/deko`) | Zlib |
 | [libnx](https://github.com/switchbrew/libnx), [devkitA64](https://devkitpro.org) | pinned devkitPro image digest | Switch runtime and toolchain | ISC (libnx); toolchain runtime libraries under their own licenses |
 | [nx-hbloader](https://github.com/switchbrew/nx-hbloader) | v2.4.5 (`82b9512`) | HOME-menu forwarder (optional) | ISC |
 | [hacBrewPack](https://github.com/TooTallNate/hacBrewPack) | v3.05 (`745b16e`) | packs the forwarder NSP (build tool only, not shipped) | GPL-2.0 |
