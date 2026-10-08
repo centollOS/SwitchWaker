@@ -8,31 +8,19 @@ SwitchWakerHD `main`/`dev` df8fbde, whose Switch renderer moved from OpenGL/Mesa
 no code changed. "Measured" means a number read from a log, a document or an experiment run while
 writing this; "estimated" means a projection.
 
-## Resume here (state at the end of 2026-10-08)
+## Resume here (state at the end of 2026-10-08, evening)
 
-Phases 1, 2 and the Mac side of phase 3 are done on `dev` (92e7e53, pushed); nothing has run on the
-console yet. **Next session = one console session (handheld, title mode), in this order:**
+Phases 1-3 are done and **the go/no-go checkpoint of phase 3 passes on performance** (section "Phase 3
+console results"): deko3d runs the whole route at 30 fps, the render worker at 1.3-2.1 ms a frame
+against GL's 10-20 ms, the GPU 30-45 % lower, no compile screen. Console testing goes over the debug
+server (`scripts/switch/switchwaker_debug.py`: `deploy`, `warp N` then `press A` from the title,
+`shot`, `lastlog`); the deko3d NRO is deployed as `sdmc:/switch/switchwaker/switchwaker.nro` (the
+forwarder loads that path), its caches in `sdmc:/switch/switchwaker_dk/`.
 
-1. **Phase 0 baseline (GL).** NRO `main` v0.1.3 (`build/switch-native/switchwaker.nro` of the main
-   checkout, shows "0.1.3"; or the GL NRO of `dev`, same code) to `sdmc:/switch/switchwaker/`; append to
-   `native/env.txt` (back it up first): `COS_PERF_EVERY=60`, `COS_HITCH_MS=50`, `COS_FPS_OVERLAY=1`,
-   `COS_PERF_LOG=1`. Play the route of section 2.2 (~15 min). Classify with
-   `scripts/switch/perf_scenes.py <log>` (section 2.3/2.4). Existing logs already put Dragon Roost
-   Cavern's worker median at 19.6 ms, over the 18 ms go threshold.
-2. **Phase 2 pattern.** `build/lanes/dev/build/switch-native-dk/` -> `sdmc:/switch/switchwaker_dk/`
-   (`switchwaker_dk.nro` fefee1a0, `initial_dksh_cache.bin` 5725e914, `initial_pipeline_cache.db`);
-   it shares `GZLE01.iso` and `native/` with `switch/switchwaker/`, logs to
-   `native/switchwaker_dk.log`. `COS_DK_TEST_PATTERN=1`: photo (expected result: Phase 2 results).
-3. **Phase 3 first picture.** Without the pattern: title, file select, Outset, Dragon Roost Cavern,
-   Windfall, a picto box photo. Wrong orientation is fixed without a rebuild:
-   `COS_DK_FLIP_Y`, `COS_DK_FLIP_FRONT`, `COS_DK_FLIP_TEXTURE`, `COS_DK_FLIP_PRESENT` (logged as
-   `[dk] conventions:`). Then the route of 2.2 with the perf lines on both NROs for the checkpoint
-   below.
-
-Step-by-step note for the player-side of that session (Spanish, not in git):
-`build/lanes/dev/build/deko3d-phase3-prueba.md` (it also covers the phase 2 pattern). After the
-session: fix what it shows, set the conventions' defaults, run the end-of-phase-3 go/no-go, then
-phases 4-5.
+Still open before phase 6: the correctness rows of the checkpoint (shore-foam and picto-box smokes, 30
+minutes of play), then phases 4 (parity: HD textures, dynamic resolution, docked, captures) and 5.
+Upstream reports: devkitPro/deko3d#29 (alpha destination factor, worked around here), devkitPro/uam#7
+(our uam patch 8) and #8 (patch 6); the workaround and the patches can go when they are merged.
 
 ## 0. Summary
 
@@ -764,6 +752,49 @@ if the per-draw saving is under 30 % after the obvious fixes, if a convention
 mismatch (depth, orientation, dual-source) is still open after two extra weeks, or if uam leaks
 on the console (HD saw +24 KB per compile, ~31 MB over 1561 compiles, tolerable for the miss rate
 expected here; a leak per draw or per frame is not).
+
+### Phase 3 console results (2026-10-08, `dev`)
+
+**Bugs found on the console and fixed:**
+- Torch, lantern and firefly halos (light volumes, `dDlst_alphaModel`) as flickering 4x8 brown specks:
+  uam gave the last instruction of a block no stall before the next block's waits (Mesa stalls 2
+  there). uam patch 8 (`switch/uam/PATCHES.md`); found by bisecting with `COS_DK_SHADER_SCHED` (3 fixed
+  it, 2 did not) and `COS_DK_SKIP_MODULE`.
+- deko3d's `dkCmdBufBindBlendStates` programs the alpha destination factor from the colour one
+  (devkitPro/deko3d#29). Pipelines whose two destination factors differ (the destination alpha
+  constant: alpha `ConstAlpha / Zero` next to colour `One`, `InvSrcAlpha` or `InvDstAlpha`, 8+ modules
+  on the route, ~2 draws a frame in Dragon Roost Cavern) now draw RGB, then alpha alone
+  (`Pipe::alphaPass`, `dk_pipeline.cpp` `split_alpha`; logged per module). Vendoring a patched deko3d
+  was dropped: the image has no `dekodef`/`dekomme`, and MME macros generated from v0.5.0 could not be
+  checked against the packaged library.
+- Shader code loaded during a frame: the shader caches are now invalidated before the next shader
+  bind (`code_take_written`).
+- The deko3d NRO pruned GL's Dawn blob cache (2.5-minute shader screen on the next GL start): its own
+  `dawn_cache_dk.db` (Aurora patch 0015).
+
+Conventions: all `COS_DK_FLIP_*` = 0 (orientation, front face, textures and present right as built).
+Diagnostics kept as `[dev]` switches (`settings-dev.example.ini`): `COS_DK_TRACE_FRAME`,
+`COS_DK_SKIP_MODULE`, `COS_DK_DUMP_COLOR`/`DEPTH`, `COS_DK_WGSL_PATCH`, `COS_DK_SHADER_SCHED`.
+
+**A/B against GL** (handheld, CPU 1020 / GPU 460.8 MHz, the same warps of the Warp tab, ~45 s each:
+Outset, Windfall, Dragon Roost, Dragon Roost Cavern, Forest Haven, Tower of the Gods; deko3d dev
+b1437d9, GL `main` 71656e4; `perf_scenes.py`, 60-frame windows):
+
+| scene | draws | fps med (dk / GL) | GPU ms med (dk / GL) | worker CPU ms (dk / GL) | us/draw (dk / GL) |
+|---|---|---|---|---|---|
+| Outset `sea:44` | 1122 | 30.0 / 30.0 | 11.0 / 17.5 | 2.1 / 19.7 | 1.8 / 17.4 |
+| Windfall `sea:11` | 638 | 30.0 / 30.0 | 11.8 / 18.2 | 1.7 / 15.2 | 2.7 / 24.2 |
+| Dragon Roost `sea:13` | 833 | 30.0 / 30.0 | 11.7 / 20.8 | 1.9 / 18.2 | 2.3 / 21.4 |
+| Dragon Roost Cavern `M_NewD2:0` | 543 | 30.0 / 30.0 | 7.5 / 13.7 | 1.5 / 14.5 | 2.8 / 26.3 |
+| Forest Haven `sea:41` | 1073 | 30.0 / 30.0 | 12.1 / 19.9 | 2.0 / 19.3 | 1.9 / 17.8 |
+| Tower of the Gods `Siren:0` | 1046 | 30.0 / 30.0 | 12.7 / 21.0 | 2.1 / 19.7 | 2.0 / 18.6 |
+
+Shader warm-up: deko3d 3095/3095 pipelines in 1.1 s behind the game; GL 154.6 s behind a loading
+screen (its blob cache had been pruned, see above). No pipeline compiled during play on either. Heap
+root after init 123.2 MiB free on both. Pictures equal apart from the animation (Dragon Roost, Outset,
+Windfall, the Tower). Against the checkpoint table: worker CPU per draw ~10 % of GL's (threshold 70 %),
+fps equal, GPU lower instead of within +10 % (expected: no Dawn/Mesa validation, fewer passes'
+barriers), misses 0 %, heap equal.
 
 ### Phase 4: parity (1-2 weeks)
 
