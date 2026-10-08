@@ -1,6 +1,7 @@
 # Loading the disc-derived data at run time (design note)
 
-Status: proposal, not implemented. Written 2026-10-05.
+Status: proposal, not implemented. Written 2026-10-05. **Agreed 2026-10-08** as the way to make
+installing easier (see [Player distribution](#player-distribution-agreed-2026-10-08)).
 
 ## Why the build needs the disc today
 
@@ -87,3 +88,26 @@ Risks: a few assets may be referenced from static initialisers that run before t
 would read zeros; the `assets` smoke test plus a check that no registered array is read before
 the loader ran would catch it), and converter details (`matDL_dis.py`) that turn out not to be a
 pure byte copy.
+
+## Player distribution (agreed 2026-10-08)
+
+Players find the build of [INSTALL.md](../INSTALL.md) hard (Docker Desktop, WSL on Windows, a first
+build of an hour or more). Options weighed:
+
+| Option | Verdict |
+|---|---|
+| **Publish the NRO** once this design is in (the Dusklight model: Dusklight is a decompilation whose binary holds no game bytes and reads the disc at start-up; it compiles nothing on the device, only shaders on the first run, which SwitchWaker already does) | **Chosen** |
+| Build on the Switch at the first start | Rejected: Horizon has no C/C++ compiler for homebrew, and the A57 cores with ~3 GB in title mode would take hours for the whole game |
+| Self-contained builder per desktop system (exe / AppImage) | Not needed here once the NRO ships; it is the plan for SwitchWakerHD, whose NRO is the game's translated code and can never be published (its `docs/player-builder.md`) |
+| Prebuilt toolchain image on ghcr.io with the graphics libraries | Optional stopgap only, if players complain before this lands |
+
+What changes for players when it is done:
+
+- GitHub Releases ship `switchwaker.nro` and `initial_pipeline_cache.db` (plus the Mac/Linux
+  binaries), built by CI with `COS_RUNTIME_ASSETS=ON`.
+- Install = copy those files and their own `GZLE01.iso` (revision 0, uncompressed) to
+  `sdmc:/switch/switchwaker/`. No Docker, no build.
+- The loader must check the disc (GZLE01 rev 0) and show a clear message on the console when it is
+  missing, compressed or another revision, the checks `make_sd.sh` does today.
+- `make_sd.sh` stays for developers and for people who want to build from source.
+- INSTALL.md is rewritten around the download; the build moves to a "from source" section.
