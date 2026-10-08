@@ -37,7 +37,7 @@ namespace swdk {
 constexpr uint32_t kDkshFileVersion = 1;
 constexpr size_t kDkshFileHeaderSize = 16;
 // uam's identity: version, upstream commit and the patch set of switch/uam/PATCHES.md
-constexpr char kDkshCompilerName[] = "uam 1.1.0 (devkitPro/uam 5a5afc2) + SwitchWakerHD patches 1-7";
+constexpr char kDkshCompilerName[] = "uam 1.1.0 (devkitPro/uam 5a5afc2) + SwitchWakerHD patches 1-7 + SwitchWaker patch 8";
 
 // FNV-1a over the compiler name, kTranslateRevision, the GX pipeline config version and the format
 uint64_t dksh_compiler_id(uint32_t gxConfigVersion);
