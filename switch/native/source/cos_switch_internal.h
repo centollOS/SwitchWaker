@@ -12,7 +12,7 @@ void cos_switch_next_thread_core(int core);
 // thread_wrap.c: pthreads created so far.
 unsigned cos_switch_threads_created(void);
 
-// cos_switch.cpp: logs (tee of stdout/stderr to the SD card and USB), env.txt and the defaults,
+// cos_switch.cpp: logs (tee of stdout/stderr to the SD card and USB), the settings file and the defaults,
 // the system report and the crash handler. Called by main before anything else.
 void cos_switch_start(int argc, char** argv);
 
@@ -26,8 +26,8 @@ int cos_switch_shader_cache_report(char* out, size_t size, int force);
 // the application restarts (appletRestartProgram: the forwarder loads the NRO again). Returns only on failure.
 void cos_switch_restart(void);
 
-// cos_debug.cpp: the debug server (debug_server.h), started when env.txt has COS_DEBUG_SERVER=1 (or a port);
-// otherwise the log text kept since start is let go. Called by cos_switch_start once env.txt is read.
+// cos_debug.cpp: the debug server (debug_server.h), started when COS_DEBUG_SERVER is 1 (or a port; the menu row);
+// otherwise the log text kept since start is let go. Called by cos_switch_start once the settings file is read.
 void cos_switch_debug_start(void);
 // cos_debug.cpp, for the gamepad shim (switch/aurora/sdl3_shim/sdl3_shim_gamepad.c): the debug server's
 // presses added to the controller's buttons (HidNpadButton bits) and its sticks over the controller's

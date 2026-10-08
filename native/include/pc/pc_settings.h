@@ -3,17 +3,21 @@
  * options menu (native/src/pc/features/pc_settings.cpp, pc_menu.cpp; native/README.md, "Options menu").
  *
  * Every setting is named by the environment variable that already selects it (COS_FB_SCALE,
- * COS_DOF, ...), so the menu, the settings file, env.txt on the Switch and the environment on the
- * Mac all speak the same names. Where a value comes from, highest first:
- *   1. the environment at start: on the Switch the lines of env.txt, on the Mac the process
- *      environment (test kits and run.sh keep working unchanged). Such a setting is locked:
- *      the menu shows it with a note and does not change it.
+ * COS_DOF, ...), so the menu, the settings file and the environment on the Mac all speak the same
+ * names. Where a value comes from, highest first:
+ *   1. on the Mac and Linux, the process environment at start (test kits and run.sh keep working
+ *      unchanged). Such a setting is locked: the menu shows it with a note and does not change
+ *      it. The Switch has no such environment: nothing is locked there.
  *   2. the settings file: <user dir>/settings.ini (the Switch: /switch/switchwaker/native/
  *      user/settings.ini on the SD card; the Mac: user/settings.ini next to the executable;
  *      COS_SETTINGS=<path> names another file, run.sh gives each run its own). Lines
  *      NAME=value, or NAME@handheld=value / NAME@docked=value for a setting with one value per
  *      operation mode; '#' starts a comment.
  *   3. the platform default (the Switch's setDefault list in cos_switch.cpp, or the code's own).
+ * The file may end with a [dev] section: everything after a "[dev]" line, NAME=value lines of
+ * developer variables (COS_TRACE, COS_BOOT_STAGE, MESA_..., any variable the code reads) that
+ * have no row in the menu. They are set in the environment at start, after the menu's values; a
+ * menu setting there is ignored (with a log line). The menu writes the section back as it was.
  * pc_settings_load_early copies the file's values into the environment (setenv) before anything
  * reads it, so code that reads its variable once at start sees the file's value without knowing
  * about this file. Later changes do not touch the environment: they reach the code through the
@@ -94,7 +98,7 @@ const char* pc_settings_get_mode(const char* key, PcOperationMode mode);
    -1 if the key is unknown or locked. */
 int pc_settings_set_mode(const char* key, PcOperationMode mode, const char* value);
 int pc_settings_set(const char* key, const char* value); /* for the current mode */
-/* 1 if the environment fixed the value at start (env.txt / the Mac's environment). */
+/* 1 if the environment fixed the value at start (the Mac's and Linux's; never on the Switch). */
 int pc_settings_locked(const char* key);
 /* 1 if a PC_SETTING_RESTART setting now differs from the value this run started with. */
 int pc_settings_restart_pending(const char* key);
@@ -110,10 +114,17 @@ const char* pc_settings_mode_name(PcOperationMode mode);
    values of the new mode. */
 void pc_settings_poll_mode(void);
 
-/* Reads the settings file and copies its values into the environment for every variable the
-   environment does not set yet; remembers which ones it did set (locked). Once per process: the
-   Switch calls it between env.txt and its defaults, pc_harness_init calls it again (a no-op). */
+/* Reads the settings file and copies its values, then its [dev] variables, into the environment
+   for every variable the environment does not set yet; remembers which ones it did set (locked).
+   Once per process: the Switch calls it before its defaults, pc_harness_init calls it again (a
+   no-op). */
 void pc_settings_load_early(void);
+/* Moves an old run-options file (the Switch's native/env.txt: NAME=value lines, '#' comments) into
+   the settings file: a menu setting's line becomes that setting (one value for both modes), any
+   other variable a [dev] line; comments and blank lines are dropped. The file is then renamed to
+   oldPath (an older oldPath is replaced). Before pc_settings_load_early. 0: no such file, 1:
+   migrated, -1: the settings file could not be written (envPath is left in place). */
+int pc_settings_migrate_env_file(const char* envPath, const char* oldPath);
 /* Re-reads the file (menu: "Recargar ajustes") and applies what changed. */
 void pc_settings_reload(void);
 /* The settings file's path. */

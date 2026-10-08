@@ -390,6 +390,9 @@ void menuInit();
 // pc_menu.cpp: the options-menu smoke script asked for its own memory card ("#card run"); pc_main
 // then calls prepareRunCard before the game's CARDInit.
 bool menuSmokeWantsRunCard();
+// pc_menu.cpp: the key is one of the options menu's built-in settings (usable before the menu
+// registers them: pc_settings_load_early).
+bool menuBuiltinSetting(const char* key);
 void menuFrame();
 bool menuOpen();
 // pc_menu.cpp: after aurora_end_frame of game frame `frame` (the screenshot action, and

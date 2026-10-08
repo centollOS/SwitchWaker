@@ -687,8 +687,7 @@ PcOperationMode rowMode(const PcSettingDesc* d) {
 
 void cycle(const PcSettingDesc* d, int dir) {
     if (pc_settings_locked(d->key)) {
-        toast(std::string(settingLabel(d)) +
-              (kSwitch ? T(": fijado por env.txt", ": set in env.txt") : T(": fijado por el entorno", ": set by the environment")));
+        toast(std::string(settingLabel(d)) + T(": fijado por el entorno", ": set by the environment"));
         return;
     }
     if (d->choiceCount <= 0) {
@@ -913,8 +912,7 @@ std::string rowNote(const Row& r) {
     }
     const PcSettingDesc* d = r.desc;
     if (pc_settings_locked(d->key)) {
-        return kSwitch ? T("fijado por env.txt", "set in env.txt")
-                       : T("fijado por variable de entorno", "set by an environment variable");
+        return T("fijado por variable de entorno", "set by an environment variable");
     }
     if ((d->flags & PC_SETTING_SWITCH_ONLY) && !kSwitch) {
         return T("solo Switch", "Switch only");
@@ -957,10 +955,9 @@ std::string rowHelp(const Row& r) {
     const char* descHelp = settingHelp(r.desc);
     std::string help = descHelp != nullptr ? descHelp : "";
     if (pc_settings_locked(r.desc->key)) {
-        help += kSwitch ? T(" Fijado en env.txt: quítalo de allí para cambiarlo aquí.",
-                            " Set in env.txt: remove it there to change it here.")
-                        : T(" Fijado por una variable de entorno de esta ejecución.",
-                            " Set by an environment variable of this run.");
+        // Only the Mac's and Linux's process environment locks a setting (pc_settings.h).
+        help += T(" Fijado por una variable de entorno de esta ejecución.",
+                  " Set by an environment variable of this run.");
     }
     return help;
 }
@@ -1380,6 +1377,15 @@ void saveShot(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t widt
 }
 
 } // namespace
+
+bool menuBuiltinSetting(const char* key) {
+    for (const PcSettingDesc& d : kBuiltins) {
+        if (key != nullptr && strcmp(d.key, key) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
 
 bool menuSmokeWantsRunCard() {
     return sSmoke.on && sSmoke.runCard;

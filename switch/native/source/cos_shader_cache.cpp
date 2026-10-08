@@ -6,11 +6,11 @@
 // nvc0's machine code; with it on, Mesa also offers program binaries, which Dawn keeps in its own
 // blob cache (user/cache/dawn_cache.db) and loads instead of compiling.
 //
-// COS_SWITCH_SHADER_CACHE (env.txt): 1 (default) on; 0 off (MESA_SHADER_CACHE_DISABLE: no cache
+// COS_SWITCH_SHADER_CACHE (a [dev] line of user/settings.ini): 1 (default) on; 0 off (MESA_SHADER_CACHE_DISABLE: no cache
 // and no program binaries, as with devkitPro's Mesa); reset deletes the cache file (and its index,
 // mesa_shader_cache.idx) first. The
 // file is COS_SWITCH_ROOT/user/cache/mesa_shader_cache.bin unless MESA_SHADER_CACHE_DIR is set
-// (env.txt); deleting user/cache/ (docs: "If something goes wrong") clears it with Aurora's caches.
+// ([dev]); deleting user/cache/ (docs: "If something goes wrong") clears it with Aurora's caches.
 //
 // Log: "[switch] shader cache: <file>: N entries, ... MiB, opened in T ms" once Mesa has opened it
 // (or why it is off), and "[switch] shader compile: ..." with Mesa's compile counters and timers

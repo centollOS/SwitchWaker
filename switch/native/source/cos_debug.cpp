@@ -1,13 +1,15 @@
 // SwitchWaker's debug server commands (debug_server.h; docs/DEBUG_SERVER.md; client
-// scripts/switch/switchwaker_debug.py). COS_DEBUG_SERVER in env.txt (1: port 6543, or a port number) starts it
-// right after env.txt is read; it is off by default, and without it the log text kept since start is let go.
+// scripts/switch/switchwaker_debug.py). COS_DEBUG_SERVER (the options menu's Depuración > "Servidor de
+// depuración": 1, port 6543; a port number in user/settings.ini) starts it right after the settings file is
+// read, so a change applies at the next start; it is off by default, and without it the log text kept since
+// start is let go.
 //
 //   info               build, frame, stage, memory, applet type, address
 //   warps, warp ...    the options menu's travel list (pc_menu.cpp), applied by the game thread once a file is played
 //   shot [game]        PNG of the next frame (pc_shot.cpp): with the FPS panel and the menu, or the game alone
 //   reload             restart: the forwarder loads the NRO again (cos_switch_restart)
 //   quit               end the process (cos_switch_exit)
-// Paths of get / put / ls are relative to /switch/switchwaker (the NRO; native/ holds env.txt and logs/).
+// Paths of get / put / ls are relative to /switch/switchwaker (the NRO; native/ holds user/settings.ini and logs/).
 #include <arpa/inet.h>
 #include <switch.h>
 #include <unistd.h>

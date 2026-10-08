@@ -1,8 +1,10 @@
 // The settings file and registry of the options menu (native/include/pc/pc_settings.h).
 //
 // The file is a list of NAME=value lines (NAME@handheld=value / NAME@docked=value for per-mode
-// settings), rewritten whole after each change (to <path>.tmp, then renamed over the file, so a
-// crash or a HOME-kill mid-write leaves the old file). Values the environment fixed at start are
+// settings), then optionally a [dev] section of developer variables (NAME=value lines set in the
+// environment at start), rewritten whole after each change (to <path>.tmp, then renamed over the
+// file, so a crash or a HOME-kill mid-write leaves the old file); the [dev] section is written
+// back as it was read. On the Mac and Linux, values the process environment fixed at start are
 // locked: they are never written and the menu cannot change them.
 #include "pc/pc_settings.h"
 
@@ -55,6 +57,8 @@ struct State {
     std::set<std::string> fileSet;                 // variables pc_settings_load_early set
     std::map<std::string, Entry> entries;
     std::vector<std::string> order;                // registered keys, menu order
+    bool hasDev = false;                           // the file has a [dev] section
+    std::vector<std::string> devLines;             // its lines, as read (written back unchanged)
     bool orderDirty = false;
     PcOperationMode lastMode = PC_MODE_HANDHELD;
     bool haveLastMode = false;
@@ -104,7 +108,38 @@ void computePath() {
 #endif
 }
 
-// Parses the file into the entries' stored values (clearing the old ones first).
+// One line of f without its line break (false at the end of the file).
+bool readLine(FILE* f, std::string& out) {
+    out.clear();
+    char buf[512];
+    bool any = false;
+    while (fgets(buf, sizeof(buf), f) != nullptr) {
+        any = true;
+        out += buf;
+        if (!out.empty() && out.back() == '\n') {
+            break;
+        }
+    }
+    while (!out.empty() && (out.back() == '\n' || out.back() == '\r')) {
+        out.pop_back();
+    }
+    return any;
+}
+
+// A [dev] line's NAME=value (false for a blank line, a comment or a line without a name).
+bool devVariable(const std::string& line, std::string& name, std::string& value) {
+    const std::string l = trim(line);
+    const size_t eq = l.find('=');
+    if (l.empty() || l[0] == '#' || eq == std::string::npos || eq == 0) {
+        return false;
+    }
+    name = trim(l.substr(0, eq));
+    value = trim(l.substr(eq + 1));
+    return !name.empty();
+}
+
+// Parses the file into the entries' stored values and the [dev] lines (clearing the old ones
+// first).
 void readFile() {
     State& s = st();
     for (auto& [key, e] : s.entries) {
@@ -113,14 +148,24 @@ void readFile() {
             e.has[i] = false;
         }
     }
+    s.hasDev = false;
+    s.devLines.clear();
     FILE* f = fopen(s.path.c_str(), "r");
     if (f == nullptr) {
         return;
     }
-    char line[512];
+    std::string raw;
     unsigned int count = 0;
-    while (fgets(line, sizeof(line), f) != nullptr) {
-        std::string l = trim(line);
+    while (readLine(f, raw)) {
+        if (s.hasDev) {
+            s.devLines.push_back(raw); // [dev] runs to the end of the file
+            continue;
+        }
+        std::string l = trim(raw);
+        if (l == "[dev]") {
+            s.hasDev = true;
+            continue;
+        }
         if (l.empty() || l[0] == '#') {
             continue;
         }
@@ -151,7 +196,11 @@ void readFile() {
         count++;
     }
     fclose(f);
-    pc::writef(STDERR_FILENO, "[cos] settings: %u value(s) from %s\n", count, s.path.c_str());
+    while (s.hasDev && !s.devLines.empty() && trim(s.devLines.back()).empty()) {
+        s.devLines.pop_back(); // blank lines at the end (writeFile ends the file with a line break)
+    }
+    pc::writef(STDERR_FILENO, "[cos] settings: %u value(s)%s from %s\n", count,
+               s.hasDev ? " and a [dev] section" : "", s.path.c_str());
 }
 
 void makeParents(const std::string& path) {
@@ -174,8 +223,9 @@ bool writeFile() {
     }
     fputs("# Ajustes de SwitchWaker, escritos por el menú de opciones\n"
           "# (Menos en la Switch; F1 o L+R+Z en el Mac). Una línea NOMBRE=valor, o\n"
-          "# NOMBRE@handheld= / NOMBRE@docked= para los valores de cada modo. env.txt y las\n"
-          "# variables de entorno mandan sobre este archivo.\n",
+          "# NOMBRE@handheld= / NOMBRE@docked= para los valores de cada modo. Una sección [dev]\n"
+          "# al final guarda variables de desarrollo NOMBRE=valor (al arrancar); el menú la\n"
+          "# conserva tal cual. En el Mac, las variables de entorno mandan sobre este archivo.\n",
           f);
     for (const auto& [key, e] : s.entries) {
         for (int i = 0; i < kSlots; i++) {
@@ -187,6 +237,12 @@ bool writeFile() {
             } else {
                 fprintf(f, "%s@%s=%s\n", key.c_str(), kModeSuffix[i - 1], e.stored[i].c_str());
             }
+        }
+    }
+    if (s.hasDev) {
+        fputs("\n[dev]\n", f);
+        for (const std::string& line : s.devLines) {
+            fprintf(f, "%s\n", line.c_str());
         }
     }
     const bool ok = fflush(f) == 0;
@@ -211,6 +267,16 @@ Entry* find(const char* key) {
     }
     auto it = st().entries.find(key);
     return it != st().entries.end() ? &it->second : nullptr;
+}
+
+// A setting of the options menu (a built-in row or a registered one): its value lives in the
+// main part of the file, never in [dev].
+bool isMenuSetting(const std::string& key) {
+    if (pc::menuBuiltinSetting(key.c_str())) {
+        return true;
+    }
+    auto it = st().entries.find(key);
+    return it != st().entries.end() && it->second.registered;
 }
 
 bool isLocked(const char* key) {
@@ -314,6 +380,9 @@ void pc_settings_load_early(void) {
     }
     s.loaded = true;
     computePath();
+#if !defined(__SWITCH__)
+    // The process environment at start locks a setting (test kits and run.sh). The Switch has no
+    // such environment: everything there comes from this file (and the defaults after it).
     for (char** e = environ; e != nullptr && *e != nullptr; e++) {
         const char* eq = strchr(*e, '=');
         if (eq == nullptr) {
@@ -324,6 +393,7 @@ void pc_settings_load_early(void) {
             s.envAtStart[name] = eq + 1;
         }
     }
+#endif
     readFile();
     s.lastMode = queryMode();
     s.haveLastMode = true;
@@ -351,8 +421,91 @@ void pc_settings_load_early(void) {
         s.fileSet.insert(key);
         set++;
     }
-    pc::writef(STDERR_FILENO, "[cos] settings: mode %s; %u from the file, %u overridden by the environment\n",
-               kModeSuffix[s.lastMode], set, locked);
+    // The [dev] section: developer variables into the environment, read once at start like the
+    // rest. A menu setting there is ignored (the menu's own line is the one that counts).
+    unsigned int dev = 0;
+    for (const std::string& line : s.devLines) {
+        std::string name, value;
+        if (!devVariable(line, name, value)) {
+            continue;
+        }
+        if (name.find('@') != std::string::npos || isMenuSetting(name)) {
+            pc::writef(STDERR_FILENO, "[cos] settings: [dev] %s ignored: %s\n", name.c_str(),
+                       name.find('@') != std::string::npos ? "no per-mode values in [dev]"
+                                                           : "an options menu setting (set it in the menu)");
+            continue;
+        }
+        if (s.envAtStart.count(name) != 0) {
+            pc::writef(STDERR_FILENO, "[cos] settings: [dev] %s: the environment (%s) wins over the file (%s)\n",
+                       name.c_str(), s.envAtStart[name].c_str(), value.c_str());
+            continue;
+        }
+        setenv(name.c_str(), value.c_str(), 1);
+        pc::writef(STDERR_FILENO, "[cos] settings: [dev] %s=%s\n", name.c_str(), value.c_str());
+        dev++;
+    }
+    pc::writef(STDERR_FILENO, "[cos] settings: mode %s; %u from the file, %u overridden by the environment, %u [dev]\n",
+               kModeSuffix[s.lastMode], set, locked, dev);
+}
+
+int pc_settings_migrate_env_file(const char* envPath, const char* oldPath) {
+    FILE* f = fopen(envPath, "r");
+    if (f == nullptr) {
+        return 0;
+    }
+    State& s = st();
+    computePath();
+    readFile();
+    unsigned int menu = 0, dev = 0;
+    std::string raw;
+    while (readLine(f, raw)) {
+        std::string name, value;
+        if (!devVariable(raw, name, value)) {
+            continue; // comments and blank lines are dropped
+        }
+        if (isMenuSetting(name)) {
+            // As in env.txt, one value for both modes: per-mode lines of the file go.
+            Entry& e = s.entries[name];
+            for (int i = 0; i < kSlots; i++) {
+                e.stored[i].clear();
+                e.has[i] = false;
+            }
+            e.stored[0] = value;
+            e.has[0] = true;
+            pc::writef(STDERR_FILENO, "[cos] settings: env.txt %s=%s -> options menu setting\n", name.c_str(),
+                       value.c_str());
+            menu++;
+            continue;
+        }
+        bool replaced = false;
+        for (std::string& line : s.devLines) {
+            std::string n, v;
+            if (devVariable(line, n, v) && n == name) {
+                line = name + "=" + value;
+                replaced = true;
+            }
+        }
+        if (!replaced) {
+            s.devLines.push_back(name + "=" + value);
+        }
+        s.hasDev = true;
+        pc::writef(STDERR_FILENO, "[cos] settings: env.txt %s=%s -> [dev]\n", name.c_str(), value.c_str());
+        dev++;
+    }
+    fclose(f);
+    if (!writeFile()) {
+        pc::writef(STDERR_FILENO, "[cos] settings: env.txt not migrated (the settings file cannot be written)\n");
+        return -1;
+    }
+    remove(oldPath); // Horizon's rename does not replace an existing file
+    if (rename(envPath, oldPath) != 0) {
+        pc::writef(STDERR_FILENO, "[cos] settings: cannot rename %s to %s: %s\n", envPath, oldPath, strerror(errno));
+    }
+    pc::writef(STDERR_FILENO,
+               "[cos] settings: env.txt migrated to %s (%u options menu setting(s), %u [dev] variable(s)); "
+               "kept as %s\n",
+               s.path.c_str(), menu, dev, oldPath);
+    return 1;
 }
 
 void pc_settings_reload(void) {
@@ -362,6 +515,9 @@ void pc_settings_reload(void) {
         before[key] = valueFor(key.c_str(), s.lastMode);
     }
     readFile();
+    if (s.hasDev) {
+        pc::writef(STDERR_FILENO, "[cos] settings: [dev] is applied at start only (restart for its changes)\n");
+    }
     for (const std::string& key : s.order) {
         const std::string now = valueFor(key.c_str(), s.lastMode);
         if (now != before[key]) {

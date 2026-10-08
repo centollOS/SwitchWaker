@@ -10,23 +10,25 @@
 //     The switchwaker.log / switchwaker.prev.log of earlier builds move into logs/. Written by a thread of
 //     its own so a game thread never waits on the SD card. A crash or an exit writes what is still queued
 //     before the process ends;
-//   - the debug server's "log" streams (debug_server.h; COS_DEBUG_SERVER=1 in env.txt, cos_debug.cpp).
+//   - the debug server's "log" streams (debug_server.h; Depuración > "Servidor de depuración" in the
+//     options menu, COS_DEBUG_SERVER, cos_debug.cpp).
 //
 // Memory: the process's used and total memory at start, every 15 seconds (from the log writer
 // thread) and at exit: "[switch] memory: used N MiB of M MiB". The shader cache's lines
 // (cos_shader_cache.cpp) come with it while they change, and at exit.
 //
-// Run options: COS_SWITCH_ROOT/env.txt, one NAME=value per line (# comments), applied before the
-// Switch defaults (setenv without overwrite): COS_DISC (the shared GZLE01.iso), COS_RUN_DIR (the
-// native directory, for backtrace.txt), COS_STALL_S=90 and COS_ASPECT=16:9 (the console's 1280x720
-// screen; COS_ASPECT=4:3 in env.txt gives the GameCube picture, pillarboxed). The defaults are for
-// players: no perf or hitch lines, no frame-rate panel (COS_PERF_EVERY=60, COS_HITCH_MS=50 and
-// COS_FPS_OVERLAY=1 in env.txt for a measuring run).
+// Run options: the options menu's settings file, COS_SWITCH_ROOT/user/settings.ini
+// (native/include/pc/pc_settings.h): pc_settings_load_early copies its values, and the variables of
+// its [dev] section (developer options without a menu row), into the environment, then the Switch
+// defaults fill what is still unset (setenv without overwrite): COS_DISC (the shared GZLE01.iso),
+// COS_RUN_DIR (the native directory, for backtrace.txt), COS_STALL_S=90, COS_ASPECT=16:9 (the
+// console's 1280x720 screen) and COS_FB_SCALE=1.5. The defaults are for players: no perf or hitch
+// lines, no frame-rate panel, no debug server, no USB log (the menu's Depuración tab turns them on).
+// The native/env.txt of earlier builds is moved into the settings file once
+// (pc_settings_migrate_env_file) and kept as env.txt.old.
 // COS_SWITCH_GPU_PROFILE (460 by default, 384, default) picks the console's official handheld performance
 // configuration through apm (CPU 1020 MHz always); the previous one is restored at exit. The options
-// menu changes it at run time (cos_switch_set_gpu_profile). Between env.txt and the defaults,
-// pc_settings_load_early copies the menu's settings file (user/settings.ini) into the environment
-// for every variable env.txt does not set.
+// menu changes it at run time (cos_switch_set_gpu_profile).
 //
 // Crash report: libnx's user exception handler prints the exception, the registers, the thread,
 // the NRO's load address and a frame-pointer backtrace as offsets into switchwaker.elf (for addr2line),
@@ -56,6 +58,7 @@
 #include "usb_log.h"
 
 extern "C" void pc_settings_load_early(void); // native/src/pc/features/pc_settings.cpp
+extern "C" int pc_settings_migrate_env_file(const char* envPath, const char* oldPath);
 
 namespace {
 
@@ -293,26 +296,6 @@ void startLogs() {
 }
 
 // ---- run options ---------------------------------------------------------------------------------
-void loadEnvFile() {
-    FILE* file = fopen(COS_SWITCH_ROOT "/env.txt", "r");
-    if (file == nullptr) {
-        sayf("[switch] no %s/env.txt; Switch defaults only\n", COS_SWITCH_ROOT);
-        return;
-    }
-    char line[512];
-    while (fgets(line, sizeof(line), file) != nullptr) {
-        line[strcspn(line, "\r\n")] = '\0';
-        char* equals = strchr(line, '=');
-        if (line[0] == '#' || line[0] == '\0' || equals == nullptr) {
-            continue;
-        }
-        *equals = '\0';
-        setenv(line, equals + 1, 1);
-        sayf("[switch] env.txt: %s=%s\n", line, equals + 1);
-    }
-    fclose(file);
-}
-
 void setDefault(const char* name, const char* value) {
     if (getenv(name) == nullptr) {
         setenv(name, value, 0);
@@ -385,7 +368,7 @@ bool gApmChanged = false;
 bool gApmHaveSaved = false;
 u32 gApmSaved = 0;
 
-// Applies one COS_SWITCH_GPU_PROFILE value; at start (pc_settings and env.txt already applied) and
+// Applies one COS_SWITCH_GPU_PROFILE value; at start (the settings file already applied) and
 // from the options menu. True if a configuration was accepted or nothing had to be done.
 bool setGpuProfile(const char* profile) {
     if (profile == nullptr || profile[0] == '\0') {
@@ -665,17 +648,20 @@ void cos_switch_start(int argc, char** argv) {
     sayf("[switch] SwitchWaker, native port (phase 7); argv[0]=%s\n",
          argc > 0 && argv != nullptr && argv[0] != nullptr ? argv[0] : "-");
     reportSystem();
-    loadEnvFile();
-    // The options menu's settings file (native/include/pc/pc_settings.h): after env.txt, whose
-    // lines win over it, and before the Switch defaults below, which it overrides.
+    // The env.txt of earlier builds: its lines move into the settings file (menu settings as such,
+    // the rest into [dev]) before it is read, so they apply in this session already.
+    pc_settings_migrate_env_file(COS_SWITCH_ROOT "/env.txt", COS_SWITCH_ROOT "/env.txt.old");
+    // The options menu's settings file (native/include/pc/pc_settings.h), [dev] included: before
+    // the Switch defaults below, which it overrides.
     pc_settings_load_early();
-    // COS_DEBUG_SERVER (env.txt): the debug server for development (cos_debug.cpp), off by default
+    // COS_DEBUG_SERVER (Depuración > "Servidor de depuración", at the next start): the debug server
+    // for development (cos_debug.cpp), off by default.
     cos_switch_debug_start();
     // The USB live log (scripts/switch/usb_log.py) holds the console's USB port as 057e:3000 for
     // the whole run, so it is off by default (players: the port stays free, e.g. for SysDVR's USB
-    // mode); COS_USB_LOG=1 (env.txt, or Depuración > "Registro en directo por USB", at the next
-    // start) turns it on for development. The log file on the SD card is written either way.
-    // Started after env.txt and the settings file, so the lines before it are only in the file.
+    // mode); Depuración > "Registro en directo por USB" (COS_USB_LOG=1, at the next start) turns it
+    // on for development. The log file on the SD card is written either way. Started after the
+    // settings file, so the lines before it are only in the file.
     setDefault("COS_USB_LOG", "0");
     {
         const char* usb = getenv("COS_USB_LOG");
