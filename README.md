@@ -168,8 +168,8 @@ Full guide: [docs/SWITCH_BUILD.md](docs/SWITCH_BUILD.md).
 For development there is a debug server: from the computer, over the local network, you can
 deploy a new build and restart the game without touching the console, follow the log as it is
 written, take screenshots, press buttons and warp. It is **off by default**: players never need it
-and the game opens no network port unless `native/env.txt` holds the line `COS_DEBUG_SERVER=1`. It
-has no password, so use it only on your own network.
+and the game opens no network port unless it is turned on in the options menu (Depuración >
+"Servidor de depuración", at the next start). It has no password, so use it only on your own network.
 
 ```sh
 echo <console ip> > build/switch_host.txt                                  # once; the log prints the address
@@ -256,8 +256,9 @@ may prepare a few new shaders again.
   `native/user/settings.ini`.
 - Language: the options menu and the shader loading screen are in Spanish or English, following the
   console's language (on the Mac and Linux, `LANG`); `COS_LANG=es` or `COS_LANG=en` forces one.
-- `COS_*` variables (environment on the Mac and Linux, `sdmc:/switch/switchwaker/native/env.txt` on the
-  Switch): [switch/native/env.example.txt](switch/native/env.example.txt) and
+- `COS_*` variables (environment on the Mac and Linux; on the Switch the options menu, and for
+  developer variables the `[dev]` section of `native/user/settings.ini`):
+  [switch/native/settings-dev.example.ini](switch/native/settings-dev.example.ini) and
   [native/README.md](native/README.md).
 - HD textures (optional, a Dolphin-format pack you supply): [docs/HD_TEXTURES.md](docs/HD_TEXTURES.md).
 - 16:9 widescreen: [docs/WIDESCREEN.md](docs/WIDESCREEN.md).

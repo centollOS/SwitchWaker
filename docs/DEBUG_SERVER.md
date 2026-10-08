@@ -2,18 +2,31 @@
 
 A TCP port on the console for the development machine: the log as it is written, files on the SD card,
 controller presses, warps, screenshots, and a new build deployed and restarted without touching the console.
-It is off unless `env.txt` turns it on. There is no password, so use it only on your local network. It is
+It is off unless the options menu turns it on. There is no password, so use it only on your local network. It is
 the same server as SwitchWakerHD's (`docs/debug-server.md` there), with this port's commands.
 
 ## Turning it on
 
-In `sdmc:/switch/switchwaker/native/env.txt`:
+In the game's options menu (**Minus**): Depuración > **Servidor de depuración (red)** ("Debug server
+(network)"), *Activado*. It takes effect at the next start (quit and start the game again, or `reload` once
+the server runs). The menu saves it in `sdmc:/switch/switchwaker/native/user/settings.ini` as
+`COS_DEBUG_SERVER=1` (port 6543; a port number there instead uses that port). The `native/env.txt` of
+earlier builds is moved into that file at the first start of a newer build (`COS_DEBUG_SERVER=1` in it
+becomes the menu setting, so the server starts in that same session) and kept as `env.txt.old`.
 
-```
-COS_DEBUG_SERVER=1
+Other developer variables (those without a menu row: `COS_TRACE`, `COS_BOOT_STAGE`, `MESA_*`, ...) go in
+the `[dev]` section at the end of the same file
+([switch/native/settings-dev.example.ini](../switch/native/settings-dev.example.ini)); they are read at
+start. Over the server:
+
+```sh
+scripts/switch/switchwaker_debug.py get native/user/settings.ini build/settings.ini
+# edit build/settings.ini: add or change lines after "[dev]"
+scripts/switch/switchwaker_debug.py put build/settings.ini native/user/settings.ini
+scripts/switch/switchwaker_debug.py reload
 ```
 
-(`1` uses port 6543; any other number is the port to use.) At start the log says
+At start the log says
 `[switch] debug server listening on <ip>:6543`. A fixed address for the console (a DHCP reservation in the
 router) saves looking it up each time. On the Mac, tell the client where the console is, either with
 `export SWITCHWAKER_HOST=<ip>` or with the address on the first line of `build/switch_host.txt` (`build/` is
@@ -76,7 +89,8 @@ each with its own thread.
   same file as SwitchWakerHD's (`runtime/src/platform/`): keep the two copies the same. Its stand-in for
   testing on the Mac is `scripts/switch/debug_server_host_test.cpp`.
 - `switch/native/source/cos_debug.cpp`: this port's commands (`info`, `warps`, `warp`, `shot`, `reload`,
-  `quit`), the start from `env.txt` (`cos_switch_debug_start`, called by `cos_switch_start`), and the input
+  `quit`), the start from the settings file (`cos_switch_debug_start`, called by `cos_switch_start` after
+  `pc_settings_load_early`), and the input
   bridge.
 - The hooks:
   - `cos_switch.cpp` `queueBytes`: the log's text, kept from the first line (`keep_log`, let go by `drop_log`

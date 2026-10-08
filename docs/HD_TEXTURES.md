@@ -75,7 +75,7 @@ size cap and few mips).
 
 Switch: `scripts/switch/push_hd_pack.sh build/hd-pack-512` copies the pack by file name into
 `sdmc:/switch/switchwaker/native/user/hd_textures/` (data first, `index.bin` last and read
-back), then `COS_HD_TEXTURES=1` in `native/env.txt`.
+back), then turn it on in the options menu (Gráficos > *Texturas HD*).
 
 | variable | default | |
 |---|---|---|

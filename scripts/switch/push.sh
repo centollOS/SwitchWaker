@@ -3,7 +3,6 @@
 #
 #   scripts/switch/push.sh [--build] [--no-pipeline-cache] [native|FILE.nro]...   (default: native)
 #   scripts/switch/push.sh --disc DISC.iso
-#   scripts/switch/push.sh --native-env ENV.txt
 #   scripts/switch/push.sh --pipeline-cache [FILE.db]
 #
 # Enable USB file transfer on the console first (Horizon's own, haze or DBI).
@@ -13,7 +12,8 @@
 # the player's disc image as GZLE01.iso (all the native port reads; skipped if
 # already on the console with the same size). `native` is the native port's NRO
 # (scripts/switch/build_native.sh), switchwaker.nro;
-# --native-env copies a run options file as its native/env.txt. --pipeline-cache copies the
+# (Run options live in native/user/settings.ini, written by the in-game options menu; developer
+# variables go in its [dev] section: switch/native/settings-dev.example.ini.) --pipeline-cache copies the
 # bundled pipeline cache (default native/data/initial_pipeline_cache.db, the committed one that
 # native/tools/gen_pipeline_cache.sh updates) as initial_pipeline_cache.db next to the NRO, where
 # Aurora seeds its pipeline cache from at every start, and checks the read-back. Pushing an NRO
@@ -44,16 +44,6 @@ if [[ ${1:-} == --disc ]]; then
     trap 'rm -rf "$staging"' EXIT
     ln -s "$(cd "$(dirname "$disc")" && pwd)/$(basename "$disc")" "$staging/GZLE01.iso"
     "$tool" push-many "$remote_dir" "$staging/GZLE01.iso"
-    exit 0
-fi
-
-if [[ ${1:-} == --native-env ]]; then
-    env_file=${2:?usage: push.sh --native-env ENV.txt}
-    staging=$(mktemp -d)
-    trap 'rm -rf "$staging"' EXIT
-    cp "$env_file" "$staging/env.txt"
-    "$tool" push "$staging/env.txt" "$remote_dir/native"
-    echo "pushed $env_file as $remote_dir/native/env.txt"
     exit 0
 fi
 

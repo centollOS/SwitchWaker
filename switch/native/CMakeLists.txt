@@ -16,7 +16,7 @@
 #     disc images behind nod's C API, so Aurora's DVD library reads the .iso on the SD card;
 #   - the game units compile with clang 19 (clang-launcher.sh), as on the Mac; Aurora, Dawn, the
 #     SDK and libnx stay on devkitA64's GCC;
-#   - source/: the harness's Switch platform layer (logs, env.txt, crash report, threads).
+#   - source/: the harness's Switch platform layer (logs, run options, crash report, threads).
 cmake_minimum_required(VERSION 3.28)
 project(cos_switch LANGUAGES C CXX)
 
