@@ -718,6 +718,13 @@ void setOpen(bool open) {
     PADBlockInput(open);
     if (open) {
         m.opened++;
+        if (inPlay()) {
+            // The game is frozen while the menu is open, so a rumble running now would never get the
+            // game's stop (the pad keeps a rumble until told otherwise), and a warp from the menu ends
+            // the scene without it: the motor stops here, as the game's own pause screen does, and
+            // the vibration manager's state is reset to match (the game sends new rumbles after).
+            dComIfGp_getVibration().Kill();
+        }
         m.editMode = pc_settings_mode();
         m.scrollToRow = true;
         writef(STDERR_FILENO, "[cos] menu: open at frame %u (%s)\n", pc_frame_count(),
