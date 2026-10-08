@@ -28,6 +28,11 @@
 //   dksh_cache dump <file.bin> [dir]
 //       the file's records with each DKSH's program header (GPRs, code, constants, scratch); with
 //       dir, writes <hash>_vs.dksh / _fs.dksh and modules.tsv there
+//   dksh_cache check <file.bin> [name...]
+//       reads the file as the deko3d NRO's loader does (switch/deko/shader_cache.cpp: read_dksh_file,
+//       the compiler id, dksh_file_stats) and prints the same summary as its "[dk] shader cache:"
+//       line; exit status 0 only if the id matches, nothing is bad and every module and named record
+//       resolves, and each name given (default: the test pattern's two) is a named record
 //   dksh_cache compile-shard <work dir> <index> <count>   (internal: one uam process of build)
 #include <spawn.h>
 #include <sys/wait.h>
@@ -735,12 +740,38 @@ int dump(const fs::path& in, const fs::path& dir) {
     return bad ? 2 : 0;
 }
 
+// ---- check: the NRO's view of a file ---------------------------------------------------------------------
+int check(const fs::path& in, std::vector<std::string> names) {
+    if (names.empty()) names = {"dk_test_pattern.vs_main", "dk_test_pattern.fs_main"};
+    DkshFile f;
+    std::string err;
+    if (!read_dksh_file(read_file(in), &f, &err)) {
+        printf("%s: %s\n", in.c_str(), err.c_str());
+        return 2;
+    }
+    const DkshFileStats st = dksh_file_stats(f, dksh_compiler_id(dksh::gx_config_version()));
+    printf("%s: %s\n", in.c_str(), dksh_file_summary(st).c_str());
+    bool ok = st.idMatches && st.failed == 0 && st.badCrc == 0 && st.modulesComplete == st.modules &&
+              st.namedComplete == st.named;
+    for (const std::string& name : names) {
+        const DkshNamedRecord* found = nullptr;
+        for (const auto& n : f.named)
+            if (n.name == name) found = &n;
+        printf("  %-28s %s%s%s\n", name.c_str(), found ? "present" : "MISSING", found ? ": " : "",
+               found ? bindings_text(found->bindings).c_str() : "");
+        ok = ok && found;
+    }
+    printf("check: %s\n", ok ? "OK" : "FAILED");
+    return ok ? 0 : 2;
+}
+
 int usage() {
     fprintf(stderr,
             "usage: dksh_cache build <pipeline_cache.db> <out.bin> [--work DIR] [--jobs N] [--report FILE]\n"
             "                        [--dual-source-probe N] [--fixed DIR]\n"
             "       dksh_cache wgsl <out.bin> <file.wgsl>...\n"
-            "       dksh_cache dump <file.bin> [dir]\n");
+            "       dksh_cache dump <file.bin> [dir]\n"
+            "       dksh_cache check <file.bin> [name...]\n");
     return 1;
 }
 
@@ -770,5 +801,6 @@ int main(int argc, char** argv) {
         return fixed(argv[2], in);
     }
     if (cmd == "dump" && (argc == 3 || argc == 4)) return dump(argv[2], argc == 4 ? argv[3] : "");
+    if (cmd == "check" && argc >= 3) return check(argv[2], std::vector<std::string>(argv + 3, argv + argc));
     return usage();
 }

@@ -9,7 +9,8 @@ source> the Switch build's ImGui (build/switch-native/_deps/imgui-src; "-" to sk
 clear (colour, depth only), tex_copy_conv (blit, 14 colour formats, Z8, Z16, depth snapshot, the
 multisampled one), tex_palette_conv (direct, from 8-bit, from 4-bit), the XFB copy and the present
 resample of webgpu/gpu.cpp, and ImGui's two shaders. The text is read from the C++ raw strings and
-put together as the sources do; a source that changes shape makes this script fail loudly.
+put together as the sources do; a source that changes shape makes this script fail loudly. Also
+copied: the deko3d renderer's own WGSL, switch/deko/shaders/*.wgsl (the test pattern).
 """
 import os
 import re
@@ -89,6 +90,12 @@ def main():
         src = read(os.path.join(imgui, "backends", "imgui_impl_wgpu.cpp"))
         modules["imgui_vert"] = named_raw(src, "__shader_vert_wgsl")[0]
         modules["imgui_frag"] = named_raw(src, "__shader_frag_wgsl")[0]
+
+    # the deko3d renderer's own (switch/deko/shaders): compiled like the rest, loaded by name
+    own = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "switch", "deko", "shaders")
+    for entry in sorted(os.listdir(own)):
+        if entry.endswith(".wgsl"):
+            modules[entry[:-5]] = read(os.path.join(own, entry))
 
     for name, text in sorted(modules.items()):
         with open(os.path.join(out, name + ".wgsl"), "w", encoding="utf-8") as f:

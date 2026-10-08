@@ -7,7 +7,10 @@
 #include <zlib.h>
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
+#include <set>
+#include <utility>
 
 #define XXH_STATIC_LINKING_ONLY
 #include <xxhash.h>
@@ -139,6 +142,41 @@ bool read_dksh_file(const std::vector<uint8_t>& data, DkshFile* out, std::string
         // unknown kinds: skipped (a later version's additions)
     }
     return true;
+}
+
+DkshFileStats dksh_file_stats(const DkshFile& file, uint64_t expectedCompilerId) {
+    DkshFileStats s;
+    s.idMatches = file.compilerId == expectedCompilerId;
+    s.badCrc = file.badCrc;
+    std::set<std::pair<uint8_t, uint64_t>> compiled;
+    for (const DkshShaderRecord& r : file.shaders) {
+        if (r.dksh.empty()) {
+            s.failed++;
+            continue;
+        }
+        (r.stage == ShaderStage::Vertex ? s.vertex : s.fragment)++;
+        s.dkshBytes += r.dksh.size();
+        compiled.insert({uint8_t(r.stage), r.glslHash});
+    }
+    s.modules = file.modules.size();
+    for (const DkshModuleRecord& m : file.modules) {
+        s.modulesComplete += compiled.count({uint8_t(ShaderStage::Vertex), m.vertexGlslHash}) &&
+                             compiled.count({uint8_t(ShaderStage::Fragment), m.fragmentGlslHash});
+    }
+    s.named = file.named.size();
+    for (const DkshNamedRecord& n : file.named) s.namedComplete += compiled.count({uint8_t(n.stage), n.glslHash});
+    return s;
+}
+
+std::string dksh_file_summary(const DkshFileStats& s) {
+    char line[320];
+    snprintf(line, sizeof line,
+             "%zu shaders (%zu vertex, %zu fragment, %zu failed), %.2f MiB of DKSH; %zu / %zu modules and %zu / %zu "
+             "named shaders complete; compiler id %s; %zu bad CRC",
+             s.vertex + s.fragment + s.failed, s.vertex, s.fragment, s.failed, double(s.dkshBytes) / 1048576.0,
+             s.modulesComplete, s.modules, s.namedComplete, s.named, s.idMatches ? "matches" : "DIFFERS (stale file)",
+             s.badCrc);
+    return line;
 }
 
 uint64_t glsl_hash(const std::string& glsl) { return XXH3_64bits(glsl.data(), glsl.size()); }

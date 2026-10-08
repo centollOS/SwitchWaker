@@ -75,6 +75,20 @@ void append_record(std::vector<uint8_t>* out, const DkshNamedRecord& r);
 // whatever the compiler id (the caller compares it)
 bool read_dksh_file(const std::vector<uint8_t>& data, DkshFile* out, std::string* error);
 
+// What a file holds and whether its records resolve: every module's two stages and every named
+// record found among the compiled shader records. The deko3d NRO logs it at start ("[dk] shader
+// cache:"); `dksh_cache check` prints the same line on the host.
+struct DkshFileStats {
+    bool idMatches = false;
+    size_t vertex = 0, fragment = 0, failed = 0;  // shader records (failed: compiled to nothing)
+    uint64_t dkshBytes = 0;
+    size_t modules = 0, modulesComplete = 0;      // both stages present and compiled
+    size_t named = 0, namedComplete = 0;
+    size_t badCrc = 0;
+};
+DkshFileStats dksh_file_stats(const DkshFile& file, uint64_t expectedCompilerId);
+std::string dksh_file_summary(const DkshFileStats& s);
+
 // XXH3-64 of a GLSL text (the shader records' key)
 uint64_t glsl_hash(const std::string& glsl);
 
