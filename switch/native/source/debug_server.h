@@ -1,12 +1,12 @@
 // Debug server: a TCP port on the console for the development machine: the log as it is written, files on
 // the SD card (get, put, ls, rm), controller presses injected into the game's input, and the commands the
-// game adds (info, warp, screenshot, reload, quit). Off unless env.txt turns it on; only for the local
-// network: there is no password.
+// game adds (info, warp, screenshot, reload, quit). Off unless the settings menu turns it on (Debug, at the
+// next start); only for the local network: there is no password.
 //
 // This file and debug_server.cpp know nothing of the game and are the same in both ports (keep them so):
-//   SwitchWakerHD: runtime/src/platform/, commands in debug_switch.cpp, WWHD_DEBUG_SERVER, client
+//   SwitchWakerHD: runtime/src/platform/, commands in debug_switch.cpp, setting switchDebugServer, client
 //                  tools/switch/wwhd_debug.py, docs/debug-server.md
-//   SwitchWaker:   switch/native/source/, commands in cos_debug.cpp, COS_DEBUG_SERVER, client
+//   SwitchWaker:   switch/native/source/, commands in cos_debug.cpp, setting COS_DEBUG_SERVER, client
 //                  scripts/switch/switchwaker_debug.py, docs/DEBUG_SERVER.md
 // They build on the Switch (libnx sockets) and on POSIX hosts (debug_server_host_test.cpp next to the client).
 //

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Client of the SwitchWaker debug server (switch/native/source/debug_server.h, docs/DEBUG_SERVER.md).
 
-The console runs it when native/env.txt has COS_DEBUG_SERVER=1; its log says '[switch] debug server listening
-on <ip>:6543'. The console's address: --host, else SWITCHWAKER_HOST, else the first line of build/switch_host.txt.
+The console runs it when the options menu turns it on (Depuración > Servidor de depuración, at the next start); its
+log says '[switch] debug server listening on <ip>:6543'. The console's address: --host, else SWITCHWAKER_HOST, else the first line of build/switch_host.txt.
 
   switchwaker_debug.py info                      build, frame, stage, memory, address
   switchwaker_debug.py log [--all] [--save F] [--grep RE] [--seconds N]
@@ -35,7 +35,7 @@ REPO = Path(__file__).resolve().parents[2]
 DEFAULT_PORT = 6543
 # What differs between the two ports' copies of this client (SwitchWakerHD: tools/switch/wwhd_debug.py)
 PORT_NAME = "SwitchWaker"
-ENV_SWITCH = "COS_DEBUG_SERVER"         # the env.txt line that starts the server
+MENU_SWITCH = "Depuración > Servidor de depuración"  # the menu setting that starts the server
 ENV_HOST = "SWITCHWAKER_HOST"           # the console's address on this computer
 ENV_PORT = "SWITCHWAKER_DEBUG_PORT"
 DEFAULT_NRO = REPO / "build" / "switch-native" / "switchwaker.nro"
@@ -122,7 +122,7 @@ def connect(args, timeout=10.0):
     try:
         return Conn(args.host, args.port, timeout)
     except OSError as e:
-        sys.exit(f"cannot reach {args.host}:{args.port}: {e} (is {PORT_NAME} running with {ENV_SWITCH}=1 in env.txt?)")
+        sys.exit(f"cannot reach {args.host}:{args.port}: {e} (is {PORT_NAME} running with its debug server on? {MENU_SWITCH}, then restart)")
 
 
 def simple(args, *cmd, timeout=30.0):
