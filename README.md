@@ -149,18 +149,21 @@ an estimate: [docs/WINDOWS.md](docs/WINDOWS.md).
 `.github/workflows/ci.yml` checks what can be checked without a disc: scripts lint, Aurora, the SDK
 layer and the run harness built and unit-tested on Linux x86_64 and aarch64, and the Switch build
 images cached. It runs only when started by hand (Actions tab, "Run workflow"), to keep the
-private repository's Actions minutes for when CI can build the game. **Full builds of the game always need your disc**, because headers generated from it
-are compiled in; [docs/RUNTIME_ASSETS.md](docs/RUNTIME_ASSETS.md) describes how that data could be
-loaded at run time instead, which would allow CI builds of the game and binary releases.
+private repository's Actions minutes. The game itself builds without the disc in the runtime-assets
+mode ([docs/RUNTIME_ASSETS.md](docs/RUNTIME_ASSETS.md): `gen_assets.sh --stubs`, `-DCOS_RUNTIME_ASSETS=ON`;
+the data arrays are read from the player's disc at start-up), which the CI job also builds; the default
+build still compiles the headers generated from your disc.
 
 ## Build for the Switch
 
-**For players, the short way** (step-by-step guide: [INSTALL.md](INSTALL.md)):
-`scripts/switch/make_sd.sh --disc /path/to/GZLE01.iso` checks the disc, builds the NRO in containers
-and lays out `build/sd/switch/switchwaker/` (NRO, pipeline cache, a copy of the disc) for the SD card.
+**Players do not need to build**: the release download holds `switchwaker.nro` (built without the disc)
+and its caches; they add their own disc ([INSTALL.md](INSTALL.md)). To build it yourself,
+`scripts/switch/make_sd.sh --disc /path/to/GZLE01.iso` checks the disc, builds the NRO in containers and
+lays out `build/sd/switch/switchwaker/` (NRO, caches, a copy of the disc) for the SD card.
 
 On top of the above: Docker Desktop or Podman. `scripts/switch/build_native.sh` produces
-`build/switch-native/switchwaker.nro` (Mesa, Dawn and Aurora are built in a devkitPro container).
+`build/switch-native/switchwaker.nro` (the deko3d renderer; Dawn, Aurora and the shader cache are built in
+a devkitPro container; `--runtime-assets` builds it without the disc, `--renderer gl` the GL NRO).
 Full guide: [docs/SWITCH_BUILD.md](docs/SWITCH_BUILD.md).
 
 ### Debug server (developers)
@@ -187,8 +190,8 @@ protocol: [docs/DEBUG_SERVER.md](docs/DEBUG_SERVER.md). It is the same server as
 ### What you need
 
 - A Switch running custom firmware (Atmosphère) with the Homebrew Menu.
-- The NRO you built (`build/switch-native/switchwaker.nro`) and the bundled pipeline cache next to
-  it (`build/switch-native/initial_pipeline_cache.db`, copied there by the build).
+- The release download (`SwitchWaker-<version>-switch.zip`: `switchwaker.nro`, `initial_pipeline_cache.db`,
+  `initial_dksh_cache.bin`), or the same three files from your own build (`build/switch-native/`).
 - Your disc as an **uncompressed** `.iso` (not RVZ, GCZ, CISO or NKit), renamed to `GZLE01.iso`.
 - About 1.6 GB free on the SD card (the disc is 1.4 GB; the shader caches grow to a few dozen MB).
 
@@ -200,21 +203,22 @@ The SD card must end up like this (folder and file names exactly as shown):
 sdmc:/switch/switchwaker/
 ├── switchwaker.nro                the game
 ├── GZLE01.iso                     your disc
-├── initial_pipeline_cache.db      the list of shaders to prepare on the first start
+├── initial_pipeline_cache.db      the list of graphics pipelines the game uses
+├── initial_dksh_cache.bin         their shaders, compiled for the Switch's GPU
 └── native/                        created by the game: logs, saves, settings, caches
 ```
 
 Either way works:
 
 - **By hand**: put the SD card in the computer (or mount it over USB with hekate's
-  *Tools → USB Tools → SD Card* or similar) and copy the three files into `switch/switchwaker/`.
+  *Tools → USB Tools → SD Card* or similar) and copy the four files into `switch/switchwaker/`.
 - **Over USB (MTP)**, from the repository: `scripts/switch/push.sh --disc /path/to/GZLE01.iso`
-  once, then `scripts/switch/push.sh native` (the NRO and the pipeline cache) after every build.
+  once, then `scripts/switch/push.sh native` (the NRO and its caches) after every build.
   Every file is read back and checked. Needs `brew install libmtp` and USB file transfer enabled on
   the console (DBI, haze or similar). Details: [docs/SWITCH_BUILD.md](docs/SWITCH_BUILD.md).
 
-Without `initial_pipeline_cache.db` the game still runs, but there is no first-start preparation:
-every shader is then built the first time it is drawn, and the game stutters for a long while.
+Without `initial_dksh_cache.bin` the game still runs, but every shader is then compiled on the console
+the first time it is needed (its draws skipped meanwhile), and the first hours show missing effects.
 
 ### Start the game
 
