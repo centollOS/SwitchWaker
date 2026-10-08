@@ -99,6 +99,56 @@ SD card layout:
 | `switch/switchwaker/native/switchwaker.log`, `switchwaker.prev.log` | this run's log and the previous one's |
 | `switch/switchwaker/native/user/` | memory card (`USA/Card A`), Aurora's caches |
 
+## The deko3d NRO (experimental)
+
+A second NRO draws with deko3d, the Switch's own GPU API, instead of Dawn's OpenGL ES backend on
+Mesa ([DEKO3D_MIGRATION_PLAN.md](DEKO3D_MIGRATION_PLAN.md)). It is phase 2 of that plan: the device,
+the swapchain, the present pass and ImGui are deko3d's (the options menu on Minus, the "Preparing
+shaders" screen and the FPS panel draw as in the GL NRO), the game runs behind them, but Aurora's GX
+frame is still encoded against Dawn's Null device, so **no game picture yet** (black, with a note in
+the corner). The GL NRO stays the one to play with until phase 6.
+
+```sh
+scripts/switch/build_native.sh --renderer deko3d   # build/switch-native-dk/switchwaker_dk.nro (+ .elf)
+scripts/switch/push.sh deko3d                      # to sdmc:/switch/switchwaker_dk/, with its caches
+```
+
+- `COS_SWITCH_RENDERER=deko3d` (`switch/native/CMakeLists.txt`) builds `switch/deko` and Aurora
+  with `AURORA_GFX_DEKO3D` (`switch/native/aurora/patches/0013`); Dawn gets its Null backend, Mesa
+  stays linked but is never started. `--dk-debug-lib` links `libdeko3dd`, which checks every deko3d
+  call and logs a misuse before ending the process (the release library aborts with a bare
+  2359-xxxx); the Homebrew Menu then says "SwitchWaker (deko3d debug)".
+- The build tree is `build/switch-native-dk`, mounted at the GL tree's container path, so a copy of
+  a GL tree (`cp -cR build/switch-native build/switch-native-dk` on APFS) skips most of the first
+  build (Dawn recompiles once for its Null backend).
+- `initial_dksh_cache.bin` next to the NRO is the DKSH (deko3d's shader binaries) of every pipeline
+  of `native/data/initial_pipeline_cache.db` and of the renderer's fixed shaders, built at the end
+  of `build_native.sh --renderer deko3d` by `native/tools/dksh_cache` (its own Debian container;
+  about 10 s once the tool is built, report and GLSL in `build/dksh/`), then read back by
+  `dksh_cache check` as the NRO reads it. It is derived from the committed database by Aurora's
+  shader generator, Tint and uam: never committed, rebuilt with each NRO. The NRO loads it whole at
+  start (`[dk] shader cache:` line); phase 2 only draws the test pattern's shaders from it.
+- Layout: the deko3d NRO has its own folder (the Homebrew Menu shows one NRO per folder) with what
+  belongs to the build, and uses the GL NRO's folder for everything else, so the 1.4 GB disc image
+  is not copied twice:
+
+| Path on the SD card | Contents |
+|---|---|
+| `switch/switchwaker_dk/switchwaker_dk.nro` | "SwitchWaker (deko3d)" in the Homebrew Menu |
+| `switch/switchwaker_dk/initial_pipeline_cache.db` | the same bundled pipeline list as the GL NRO's (Aurora reads it next to the NRO) |
+| `switch/switchwaker_dk/initial_dksh_cache.bin` | the DKSH cache (about 6 MB) |
+| `switch/switchwaker/GZLE01.iso`, `switch/switchwaker/native/env.txt`, `native/user/` | shared with the GL NRO: the disc, the run options, saves, settings and Aurora's pipeline list cache |
+| `switch/switchwaker/native/switchwaker_dk.log`, `switchwaker_dk.prev.log` | the deko3d NRO's logs (`push.sh --logs` pulls them with the GL NRO's) |
+
+- Run options of its own: `COS_DK_TEST_PATTERN=1` draws a test pattern of deko3d's conventions
+  under the menu (four coloured corners, two depth-tested squares, a depth-range check, a textured
+  square with texture row 0 marked, a counter-clockwise and a clockwise triangle under back-face
+  culling; the legend says what each must look like); `COS_DK_ZCULL=1` gives the queue zcull (off
+  by default). Its log has `[dk]` lines: the set-up (memory blocks, swapchain, `set-up cost: N MiB
+  of heap`), the shader cache, the first present and every 30 s the presents, command and stream
+  memory and the heap.
+- `scripts/switch/make_sd.sh --deko3d` writes `switch/switchwaker_dk/` next to the GL folder.
+
 ## Run
 
 Start the Homebrew Menu in title mode (hold **R** while opening an installed game; an applet has far

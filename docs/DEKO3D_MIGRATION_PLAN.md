@@ -538,6 +538,69 @@ culling and texture origin (photo); the menu opens on Minus, the loading screen 
 runs behind it to Outset by sound at 30 fps; 10 minutes without a deko3d error; `[cos] heaps:` and
 the deko3d set-up cost logged. Mac: nothing new (the Mac build does not change).
 
+### Phase 2 results (2026-10-08, `dev`; console session pending)
+
+Built: `switch/deko/` (device, queue, memory, descriptors, swapchain and present, ImGui renderer, test
+pattern, DKSH cache loader; adapted from HD `runtime/src/gfx/deko/` under MPL-2.0 where lifted),
+Aurora Switch patch 0013 (`AURORA_GFX_DEKO3D`), `COS_SWITCH_RENDERER=gl|deko3d` and
+`build_native.sh --renderer deko3d [--dk-debug-lib]`, `push.sh deko3d`, `make_sd.sh --deko3d`,
+`dksh_cache check`. Mac-side checks: both NROs build; the GL NRO's `.text` and `.data` are
+byte-identical to the build before the change (`.rodata` differs in one unit's `__DATE__`/`__TIME__`
+only); `native/tools/regress.sh` all checks passed (the Mac build does not see any of it); the generated
+cache passes `dksh_cache check` (the loader's own parse and summary) with 1882 DKSH, 1847 / 1847
+modules and 57 / 57 named shaders.
+
+How it is put together, and where it departs from the deliverables above:
+
+- **"Encoding is a no-op" = Dawn's Null device.** Instead of `#if`s through `encoding.cpp`,
+  `frame.cpp` and the resource code, the deko3d build gives Dawn its Null backend and Aurora asks
+  for it (patch 0013): recording, uniform packing, pipeline creation (WGSL parsed by Tint, no GL),
+  staging maps and submits all run as on the GL NRO and cost no GPU time. The Null device offers
+  every feature; Aurora takes the GL adapter's set from the console logs (BC, ASTC, dual-source,
+  swizzle; not `CoreFeaturesAndLimits`) so the pipeline configs, and the shared
+  `pipeline_cache.db`, stay the GL NRO's. Its buffers live in the heap (the 5 x 63 MiB staging
+  buffers, under the Null device's 512 MiB cap), as Mesa's did. Phase 3 replaces the Null device
+  piece by piece behind the same patch.
+- **Mesa is out of the deko3d NRO.** Dawn's GL backend is still compiled, but with patch 0013
+  nothing references EGL, so the linker drops Mesa: 16.2 MB against the GL NRO's 21.6 MB.
+- **Folders.** The plan's `switchwaker_gl` folder belongs to phase 6; until then the GL NRO keeps
+  `sdmc:/switch/switchwaker/` and the deko3d NRO gets `sdmc:/switch/switchwaker_dk/` with what is
+  build-specific (`switchwaker_dk.nro`, its copy of `initial_pipeline_cache.db`,
+  `initial_dksh_cache.bin`: SDL's base path points there), while the disc, `native/env.txt`, saves,
+  settings and Aurora's caches are the GL NRO's (`COS_SWITCH_ROOT` unchanged), and its logs are
+  `native/switchwaker_dk.log` / `.prev.log` (`COS_SWITCH_NRO_NAME`). `docs/SWITCH_BUILD.md`, "The
+  deko3d NRO (experimental)", has the table.
+- **Memory.** Rings sized for Aurora (section 3.1), not HD's: command 3 x 4 MiB, stream 3 x 40 MiB,
+  texture staging 32 MiB (allocated now so the cost is phase 3's), code 32 MiB, descriptors
+  (8192 + 1024), queries, one 64 MiB image chunk (swapchain and pattern depth inside): about
+  260 MiB expected; logged as `[dk] set-up cost: N MiB of heap` (heap never used before and after,
+  HD's measure). The `[cos] heaps:` lines are the game's JKR heaps and come as before.
+- **Shaders.** ImGui and the legend's 3x5 font are GLSL compiled by the image's uam at build time and
+  embedded (HD's shaders), so the menu never depends on the cache file. The test pattern is WGSL
+  (`switch/deko/shaders/dk_test_pattern.wgsl`) compiled by `dksh_cache` like Aurora's shaders
+  (Tint with `disable_position_y_negation`, post-pass, uam) and drawn from the cache's named
+  records with vertex pulling from SSBO 0: the photo checks deko3d's conventions *through the
+  phase 3 shader path*. Without the cache file the pattern shows its legend only. The whole cache
+  (1882 DKSH, ~6 MiB) is loaded into the code block at start, one `[dk] shader cache:` line.
+- **Window.** 1280x720 in both modes (as the GL NRO); the docked 1080p swapchain is phase 4.
+
+What the console session must show (the note for the owner is `build/deko3d-phase2-prueba.md`):
+the pattern with red top left, green top right, blue bottom left, yellow bottom right; cyan in
+front of magenta; the gray square empty (z = -0.5 clipped); the textured square's red row at the
+top and green column at the left; the white counter-clockwise triangle drawn and the orange
+clockwise one culled (FrontFace::CCW -> `DkFrontFace_CCW`); the legend upright. If the corners or
+the texture come out flipped vertically, Tint's y handling or the device origin is wrong for phase
+3; if the triangles swap, Aurora's front face maps to `DkFrontFace_CW`. Then without the pattern:
+Minus opens the options menu, `COS_PRECOMPILE=full` + `COS_PRECOMPILE_SCREEN=always` shows the
+loading screen, the game plays to Outset by sound at 30 fps (FPS panel), 10 minutes without a
+`[dk]` error.
+
+Open for phase 3: the GX passes, draws, copies and textures on deko3d (replacing the Null device);
+uamlib and Tint alone in the NRO for misses (one uam worker at priority <= 0x3B,
+`swdk::kMaxThreadPriority`), the miss path with pop-in, `dksh_local.bin`; the fixed shaders drawn
+from the cache's named records (or the `.fixed.inc` table); the resample/present of the EFB with
+the aspect fit; the conventions this session's photo settles; GPU timestamps for the perf lines.
+
 ### Phase 3: first playable (2-3 weeks)
 
 Deliverables, in lanes that can run in parallel as HD's P2 did (interfaces first):
