@@ -741,7 +741,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
     # for a second. One call per mip level instead (padded rows packed on the CPU), plus upload and
     # texture creation counters.
     file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/CommandBufferGL.cpp" DAWN_OPENGL_COMMAND_BUFFER_TEXT)
-    if(NOT DAWN_OPENGL_COMMAND_BUFFER_TEXT MATCHES "SwitchLevelUploads")
+    if(NOT DAWN_OPENGL_COMMAND_BUFFER_TEXT MATCHES "kCompressedRepacks")
         execute_process(
             COMMAND "${PATCH_EXECUTABLE}" -p1 -i
                     "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-compressed-upload.patch"
