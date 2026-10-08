@@ -81,6 +81,6 @@ OverflowUpload overflow_upload(const uint8_t* data, uint32_t bytesPerRow, uint32
 // ---- readback (render worker): level 0 of a texture, tightly packed rows of 4-byte texels; false
 // (logged) if the texture is unknown or not 4 bytes per texel. Waits for the GPU.
 bool read_texture(WGPUTexture texture, std::vector<uint8_t>& pixels, uint32_t& width, uint32_t& height,
-                  wgpu::TextureFormat& format);
+                  wgpu::TextureFormat& format, uint32_t mip = 0);
 
 }  // namespace aurora::gfx::dk

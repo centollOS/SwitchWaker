@@ -351,6 +351,68 @@ void block_free_deferred(DkMemBlock b) {
     g_deferredBlocks.push_back(b);
 }
 
+// COS_DK_SHADER_SCHED (diagnostic, SwitchWakerHD's grass-speck bisection, bisect.cpp at 936f415): uam's Maxwell
+// scheduling words patched in every DKSH as it is loaded. 0 as compiled (default); 1 no dual issue (uam patch 7
+// already compiles none); 2 = 1 + every instruction waits on all six scoreboards (no read of a TEX/IPA/MUFU result
+// before it lands); 3 = 2 + stall 15 (slow). Logged by sched_report.
+struct DkshHeader {
+    uint32_t magic, header_sz, control_sz, code_sz, programs_off, num_programs;
+};
+struct DkshProgram {
+    uint32_t type, entrypoint, num_gprs, constbuf1_off, constbuf1_sz, per_warp_scratch_sz;
+};
+constexpr uint32_t kDkshMagic = 0x48534B44;
+constexpr uint32_t kSphSize = 0x50;  // the shader program header in front of a graphics program's code
+static uint64_t g_schedModules = 0, g_schedWords = 0;
+
+static int shader_sched() {
+    static const int v = int(std::clamp(env_long("COS_DK_SHADER_SCHED", 0), 0L, 3L));
+    return v;
+}
+
+static void sched_patch(uint8_t* p, uint32_t size) {
+    const int mode = shader_sched();
+    if (mode == 0 || size < sizeof(DkshHeader)) return;
+    DkshHeader h;
+    memcpy(&h, p, sizeof h);
+    if (h.magic != kDkshMagic || h.num_programs != 1 || h.programs_off + sizeof(DkshProgram) > h.control_sz ||
+        uint64_t(h.control_sz) + h.code_sz > size)
+        return;
+    DkshProgram prog;
+    memcpy(&prog, p + h.programs_off, sizeof prog);
+    if (prog.type == 5) return;  // compute
+    uint8_t* code = p + h.control_sz;
+    const uint32_t start = prog.entrypoint + kSphSize;
+    const uint32_t end = prog.constbuf1_sz ? prog.constbuf1_off : h.code_sz;
+    if (start % 32 || end > h.code_sz || start >= end) return;
+    g_schedModules++;
+    // one control qword per group of three instructions, 21 bits each
+    for (uint32_t at = start; at + 32 <= end; at += 32) {
+        uint64_t ctl;
+        memcpy(&ctl, code + at, 8);
+        uint64_t out = ctl;
+        for (int i = 0; i < 3; i++) {
+            uint64_t f = (ctl >> (21 * i)) & 0x1FFFFF;
+            if ((f & 15) == 0) f |= 1;                            // stall 0 = dual issue: stall 1 instead
+            if (mode >= 2) f |= uint64_t(0x3F) << 11;             // wait on every scoreboard
+            if (mode >= 3) f |= 15;
+            out = (out & ~(uint64_t(0x1FFFFF) << (21 * i))) | (f << (21 * i));
+        }
+        if (out != ctl) {
+            memcpy(code + at, &out, 8);
+            g_schedWords++;
+        }
+    }
+}
+
+void sched_report() {
+    static const char* const kSched[] = {"as compiled by uam", "no dual issue",
+                                         "no dual issue + every instruction waits on all scoreboards",
+                                         "no dual issue + all scoreboards + stall 15 (slow)"};
+    dklog("shader scheduling: COS_DK_SHADER_SCHED=%d (%s); %llu modules patched, %llu control words changed",
+          shader_sched(), kSched[shader_sched()], (unsigned long long)g_schedModules, (unsigned long long)g_schedWords);
+}
+
 bool code_load(DkShader& shader, const void* dksh, uint32_t size, const char* name) {
     std::lock_guard<std::mutex> lock(g_codeMutex);
     const uint32_t at = align_up(g_codeUsed, DK_SHADER_CODE_ALIGNMENT);
@@ -361,6 +423,7 @@ bool code_load(DkShader& shader, const void* dksh, uint32_t size, const char* na
     }
     uint8_t* const dst = static_cast<uint8_t*>(dkMemBlockGetCpuAddr(g_code)) + at;
     memcpy(dst, dksh, size);
+    sched_patch(dst, size);
     DkShaderMaker m;
     dkShaderMakerDefaults(&m, g_code, at);
     dkShaderInitialize(&shader, &m);

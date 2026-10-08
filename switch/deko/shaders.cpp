@@ -330,6 +330,7 @@ void shaders_init(uint32_t gxConfigVersion) {
     dklog("shaders: %llu loaded; misses compiled by the uam worker and appended to %s; load budget %u per frame "
           "(COS_DK_SHADER_BUDGET, 0 = no limit); a draw whose shader is not ready is skipped",
           (unsigned long long)g_loaded.load(), kLocalPath, g_budget);
+    sched_report();
 }
 
 ShaderTotals shader_totals() {

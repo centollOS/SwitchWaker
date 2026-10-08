@@ -264,6 +264,114 @@ void log_once(const char* what) {
     dklog("encoder: %s (not supported by the deko3d renderer yet; logged once)", what);
 }
 
+Tex* g_passDepth = nullptr;  // the current pass's depth target (COS_DK_DUMP_DEPTH)
+Tex* g_passColor = nullptr;  // its colour attachment 0 (COS_DK_DUMP_COLOR)
+
+// COS_DK_DUMP_COLOR=<module hex> (diagnostic): before the first draw of that module (from COS_DK_TRACE_FRAME on),
+// the pass's colour attachment 0 is written raw (RGBA8) to native/trace_color_<w>x<h>.raw
+void dump_color(uint64_t module) {
+    static const uint64_t want = [] {
+        const char* e = getenv("COS_DK_DUMP_COLOR");
+        return e && *e ? strtoull(e, nullptr, 16) : 0ull;
+    }();
+    static const long minFrame = swdk::env_long("COS_DK_TRACE_FRAME", 0);
+    // every draw of the module in the first frame that has one (from COS_DK_TRACE_FRAME on), up to 16 files
+    static long seen = 0;
+    static uint64_t frame = 0;
+    if (!want || module != want || !g_passColor || R.frame < uint64_t(std::max(minFrame, 0L))) return;
+    if (frame == 0) frame = R.frame;
+    if (R.frame != frame || seen >= 16) return;
+    const long nth = ++seen;
+    // what the pass drew so far: finished and out of the render target caches before the copy reads it
+    dkCmdBufBarrier(R.cmd, DkBarrier_Full, DkInvalidateFlags_Image | DkInvalidateFlags_L2Cache);
+    std::vector<uint8_t> px;
+    uint32_t w = 0, h = 0;
+    wgpu::TextureFormat fmt{};
+    if (!read_texture(g_passColor->handle, px, w, h, fmt)) return;
+    char path[160];
+    snprintf(path, sizeof path, "/switch/switchwaker/native/trace_color_%ux%u_%02ld.raw", w, h, nth);
+    if (FILE* f = fopen(path, "wb")) {
+        fwrite(px.data(), 1, px.size(), f);
+        fclose(f);
+        dklog("trace: colour target (%s) written to %s", g_passColor->label.c_str(), path);
+    }
+}
+
+// COS_DK_DUMP_DEPTH=<module hex> (diagnostic): before the first draw of that module, the pass's depth buffer is
+// written raw to native/trace_depth_<w>x<h>_<fmt>.raw
+void dump_depth(uint64_t module) {
+    static const uint64_t want = [] {
+        const char* e = getenv("COS_DK_DUMP_DEPTH");
+        return e && *e ? strtoull(e, nullptr, 16) : 0ull;
+    }();
+    static bool done = false;
+    static const long minFrame = swdk::env_long("COS_DK_TRACE_FRAME", 0);  // (not before that frame)
+    if (!want || done || module != want || !g_passDepth || R.frame < uint64_t(std::max(minFrame, 0L))) return;
+    done = true;
+    std::vector<uint8_t> px;
+    uint32_t w = 0, h = 0;
+    wgpu::TextureFormat fmt{};
+    if (!read_texture(g_passDepth->handle, px, w, h, fmt)) return;
+    char path[160];
+    snprintf(path, sizeof path, "/switch/switchwaker/native/trace_depth_%ux%u_%d.raw", w, h, int(g_passDepth->format));
+    if (FILE* f = fopen(path, "wb")) {
+        fwrite(px.data(), 1, px.size(), f);
+        fclose(f);
+        dklog("trace: depth buffer (%s) written to %s", g_passDepth->label.c_str(), path);
+    }
+}
+
+// COS_DK_TRACE_FRAME=N (diagnostic): every GX draw of frame N logged, one line each (module, blend, the units with
+// a real texture); COS_DK_SKIP_MODULE=<hex>[,<hex>...]: the draws of those modules are not drawn
+bool trace_frame_now() {
+    static const long n = swdk::env_long("COS_DK_TRACE_FRAME", 0);
+    static const bool dumpOnly = (getenv("COS_DK_DUMP_DEPTH") && *getenv("COS_DK_DUMP_DEPTH")) ||
+                                 (getenv("COS_DK_DUMP_COLOR") && *getenv("COS_DK_DUMP_COLOR"));
+    return n > 0 && !dumpOnly && R.frame == uint64_t(n);
+}
+bool skip_module(uint64_t module) {
+    static const std::vector<uint64_t> list = [] {
+        std::vector<uint64_t> v;
+        if (const char* e = getenv("COS_DK_SKIP_MODULE"); e && *e) {
+            for (const char* p = e; *p;) {
+                char* end = nullptr;
+                v.push_back(strtoull(p, &end, 16));
+                if (!end || end == p) break;
+                p = *end == ',' ? end + 1 : end;
+            }
+            dklog("encoder: COS_DK_SKIP_MODULE: %zu modules not drawn", v.size());
+        }
+        return v;
+    }();
+    return std::find(list.begin(), list.end(), module) != list.end();
+}
+void trace_draw(const gx::DrawData& d, const Pipe* main, BindGroup* g) {
+    static uint32_t index = 0;
+    char units[256];
+    size_t n = 0;
+    units[0] = 0;
+    if (g) {
+        for (const auto& e : g->entries) {
+            if (e.binding & 1 || e.binding / 2 >= 8 || !e.view || !e.view->tex) continue;
+            const Tex* t = e.view->tex;
+            if (t->width * t->height <= 1) continue;
+            n += size_t(snprintf(units + n, sizeof units - n, " u%u:%ux%u%s", e.binding / 2, t->width, t->height,
+                                 t->label == "Resolved Texture" ? "(copy)" : ""));
+            if (n >= sizeof units) break;
+        }
+    }
+    const DkBlendState& bl = main->blend;
+    const auto& rs = main->rasterizer;
+    dklog("trace frame %llu draw %u: module %016llx blend %d/%d/%d a %d/%d/%d mask 0x%x depth %d/%d op %d cull %d front %d "
+          "bias 0x%x %.2f/%.2f/%.2f clamp %d %u idx %u vtx%s",
+          (unsigned long long)R.frame, index++, (unsigned long long)main->moduleHash, int(bl.colorBlendOp),
+          int(bl.srcColorBlendFactor), int(bl.dstColorBlendFactor), int(bl.alphaBlendOp), int(bl.srcAlphaBlendFactor),
+          int(bl.dstAlphaBlendFactor), unsigned(main->colorWrite.masks & 0xF), int(main->depthStencil.depthTestEnable),
+          int(main->depthStencil.depthWriteEnable), int(main->depthStencil.depthCompareOp), int(rs.cullMode),
+          int(rs.frontFace), unsigned(rs.depthBiasEnableMask), main->depthBias[0], main->depthBias[1], main->depthBias[2],
+          int(rs.depthClampEnable), d.indexCount, d.vtxCount, units);
+}
+
 // ---- draws
 void draw_gx(const DrawCommand& cmd) {
     gx::DrawData d;
@@ -279,6 +387,13 @@ void draw_gx(const DrawCommand& cmd) {
         g_stats.skippedShader++;
         return;
     }
+    if (trace_frame_now()) {
+        WGPUBindGroup tg = d.bindGroups.textureBindGroup ? find_bind_group_raw(d.bindGroups.textureBindGroup) : nullptr;
+        trace_draw(d, main, tg ? find_bind_group(tg) : nullptr);
+    }
+    if (skip_module(main->moduleHash)) return;
+    dump_depth(main->moduleHash);
+    dump_color(main->moduleHash);
     ensure_globals();
     if (!g_cache.immValid || memcmp(g_cache.imm, &d.immediateData, sizeof d.immediateData) != 0) {
         dkCmdBufPushConstants(R.cmd, g_frame.immediates, kImmediatesSize, 0, sizeof d.immediateData, &d.immediateData);
@@ -559,11 +674,17 @@ void encode_pass(RenderPass& pass) {
     }
     DkImageView depth;
     const DkImageView* depthPtr = nullptr;
+    g_passDepth = nullptr;
+    g_passColor = nullptr;
+    if (count > 0) {
+        if (View* cv = find_view(pass.colorAttachments[0].view.Get())) g_passColor = cv->tex;
+    }
     if (pass.depthStencilView && (pass.hasDepth || pass.hasStencil)) {
         View* v = find_view(pass.depthStencilView.Get());
         if (v && v->tex->valid) {
             depth = target_view(v);
             depthPtr = &depth;
+            g_passDepth = v->tex;
         }
     }
     dkCmdBufBindRenderTargets(R.cmd, colorPtrs, count, depthPtr);

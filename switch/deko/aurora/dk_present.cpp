@@ -143,15 +143,16 @@ constexpr uint32_t kRbCmdSize = 64u << 10;
 void present_init() { swdk::set_picture(picture, nullptr); }
 
 bool read_texture(WGPUTexture texture, std::vector<uint8_t>& pixels, uint32_t& width, uint32_t& height,
-                  wgpu::TextureFormat& format) {
+                  wgpu::TextureFormat& format, uint32_t mip) {
     Tex* t = find_texture(texture);
     if (!t || !t->valid || t->compressed || t->blockBytes != 4) {
         dklog("readback: texture %p %s", static_cast<void*>(texture),
               !t ? "has no deko3d image" : "is not 4 bytes per texel");
         return false;
     }
-    width = t->width;
-    height = t->height;
+    if (mip >= t->mips) return false;
+    width = std::max(t->width >> mip, 1u);
+    height = std::max(t->height >> mip, 1u);
     format = static_cast<wgpu::TextureFormat>(t->wformat);
     const uint32_t rowBytes = width * 4;
     swdk::Block dst = swdk::block_create(rowBytes * height, "a readback");
@@ -168,7 +169,7 @@ bool read_texture(WGPUTexture texture, std::vector<uint8_t>& pixels, uint32_t& w
     dkCmdBufClear(g_rbCmd);
     dkCmdBufAddMemory(g_rbCmd, g_rbCmdMem, 0, kRbCmdSize);
     dkCmdBufBarrier(g_rbCmd, DkBarrier_Full, DkInvalidateFlags_Image | DkInvalidateFlags_L2Cache);
-    const DkImageView v = level_view(t, 0);
+    const DkImageView v = level_view(t, mip);
     const DkImageRect rect = {0, 0, 0, width, height, 1};
     const DkCopyBuf out = {dst.gpu, rowBytes, rowBytes * height};
     dkCmdBufCopyImageToBuffer(g_rbCmd, &v, &rect, &out, 0);

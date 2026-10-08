@@ -20,6 +20,9 @@
 #include "webgpu/gpu.hpp"
 
 #include <cstdio>
+#include <cstdlib>
+#include <utility>
+#include <vector>
 #include <mutex>
 #include <string>
 
@@ -116,6 +119,40 @@ int g_missLogs = 0;
 
 }  // namespace
 
+namespace {
+// COS_DK_WGSL_PATCH (diagnostic): "<module hex>:<find>=><replace>[|<find>=><replace>...]" rewrites that module's
+// WGSL before Tint and uam compile it here (the caches' entry is skipped), to test a shader variant on the console
+struct WgslPatch {
+    uint64_t module = 0;
+    std::vector<std::pair<std::string, std::string>> edits;
+};
+const WgslPatch& wgsl_patch() {
+    static const WgslPatch p = [] {
+        WgslPatch r;
+        const char* e = getenv("COS_DK_WGSL_PATCH");
+        if (!e || !*e) return r;
+        std::string s = e;
+        const size_t colon = s.find(':');
+        if (colon == std::string::npos) return r;
+        r.module = strtoull(s.substr(0, colon).c_str(), nullptr, 16);
+        std::string rest = s.substr(colon + 1);
+        size_t at = 0;
+        while (at <= rest.size()) {
+            const size_t bar = rest.find('|', at);
+            const std::string item = rest.substr(at, bar == std::string::npos ? std::string::npos : bar - at);
+            const size_t arrow = item.find("=>");
+            if (arrow != std::string::npos) r.edits.emplace_back(item.substr(0, arrow), item.substr(arrow + 2));
+            if (bar == std::string::npos) break;
+            at = bar + 1;
+        }
+        dklog("pipelines: COS_DK_WGSL_PATCH: module %016llx, %zu edits", (unsigned long long)r.module, r.edits.size());
+        return r;
+    }();
+    return p;
+}
+
+}  // namespace
+
 bool dual_source_blending() {
     static const bool on = [] {
         const bool env = swdk::env_flag("COS_DK_DUAL_SOURCE", false);
@@ -159,11 +196,23 @@ const void* build_gx_pipeline(const gx::PipelineConfig& config, const RenderTarg
         return s == ShaderState::Ready || s == ShaderState::Compiled || s == ShaderState::Queued;
     };
     bool miss = false;
-    if (!usable(vs) || !usable(fs)) {
+    const bool patched = wgsl_patch().module == moduleHash && moduleHash != 0;
+    if (patched || !usable(vs) || !usable(fs)) {
         // a miss: WGSL -> GLSL here, DKSH from the uam worker
         miss = true;
         const uint64_t t0 = swdk::now_ns();
-        const std::string wgsl = gx::build_shader_source(config.shaderConfig, mode, normalAttachment);
+        std::string wgsl = gx::build_shader_source(config.shaderConfig, mode, normalAttachment);
+        if (patched) {
+            int applied = 0;
+            for (const auto& [from, to] : wgsl_patch().edits) {
+                for (size_t at = wgsl.find(from); at != std::string::npos; at = wgsl.find(from, at + to.size())) {
+                    wgsl.replace(at, from.size(), to);
+                    applied++;
+                }
+            }
+            dklog("pipelines: COS_DK_WGSL_PATCH: module %016llx rewritten (%d replacements)",
+                  (unsigned long long)moduleHash, applied);
+        }
         swdk::TranslateResult tv, tf;
         {
             std::lock_guard<std::mutex> lock(g_translateMutex);

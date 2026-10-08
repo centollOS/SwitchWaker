@@ -95,6 +95,8 @@ void block_free_deferred(DkMemBlock b);  // any thread: destroyed as image_free_
 // Copies DKSH into the code block and initializes the shader; false (logged) if full or invalid.
 // Thread-safe.
 bool code_load(DkShader& shader, const void* dksh, uint32_t size, const char* name);
+// the "[dk] shader scheduling:" line: COS_DK_SHADER_SCHED (diagnostic, memory.cpp) and what it patched
+void sched_report();
 uint32_t code_used();
 DkGpuAddr image_descriptors();
 DkGpuAddr sampler_descriptors();
