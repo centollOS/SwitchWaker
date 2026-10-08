@@ -42,7 +42,7 @@ DEFAULT_NRO = REPO / "build" / "switch-native" / "switchwaker.nro"
 BUILD_HINT = "scripts/switch/build_native.sh"
 REMOTE_NRO = "switchwaker.nro"          # relative to the server's root, sdmc:/switch/switchwaker
 REMOTE_LOGS = "native/logs"
-SESSION_LOG = r"switchwaker_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d\.log"
+SESSION_LOG = r"switchwaker(?:_dk)?_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d\.log"
 
 
 class ServerError(Exception):
@@ -268,8 +268,9 @@ def remote_ls(args, path):
 
 def cmd_lastlog(args):
     # session logs are named by their start time (<name>_<date>_<time>.log); other names are older builds'
-    logs = sorted(name for kind, _, name in remote_ls(args, REMOTE_LOGS)
-                  if kind == "f" and re.fullmatch(SESSION_LOG, name))
+    logs = sorted((name for kind, _, name in remote_ls(args, REMOTE_LOGS)
+                   if kind == "f" and re.fullmatch(SESSION_LOG, name)),
+                  key=lambda name: re.search(r"\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d", name).group())
     if not logs:
         sys.exit(f"no session logs in {REMOTE_LOGS}/")
     args.remote = REMOTE_LOGS + "/" + logs[-1]
