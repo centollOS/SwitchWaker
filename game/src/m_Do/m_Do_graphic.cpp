@@ -1670,7 +1670,7 @@ bool mDoGph_Painter() {
             dComIfGd_drawXluListSky();
 #if TARGET_PC
             if (pcSkyLowres)
-                pc_gph_sky_lowres_end(camera); // and COS_SKY_AB's redraw the original way
+                pc_gph_sky_lowres_end(camera);
 #endif
 
             if (!dMenu_flag() && dPa_control_c::isStatus(0x01))
@@ -2016,9 +2016,6 @@ bool mDoGph_Painter() {
     if (!dMenu_flag())
         dComIfGp_particle_draw2Dfore(&jpaDrawInfo2D);
     dComIfGp_particle_draw2DmenuFore(&jpaDrawInfo2D);
-#if TARGET_PC
-    pc_gph_mist_ab_show(); // COS_MIST_AB (pc_gpu_opts.h): the A/B frame's copies over everything
-#endif
 
     mDoGph_gInf_c::endRender();
 

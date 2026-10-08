@@ -163,6 +163,25 @@ On top of the above: Docker Desktop or Podman. `scripts/switch/build_native.sh` 
 `build/switch-native/switchwaker.nro` (Mesa, Dawn and Aurora are built in a devkitPro container).
 Full guide: [docs/SWITCH_BUILD.md](docs/SWITCH_BUILD.md).
 
+### Debug server (developers)
+
+For development there is a debug server: from the computer, over the local network, you can
+deploy a new build and restart the game without touching the console, follow the log as it is
+written, take screenshots, press buttons and warp. It is **off by default**: players never need it
+and the game opens no network port unless it is turned on in the options menu (Depuración >
+"Servidor de depuración", at the next start). It has no password, so use it only on your own network.
+
+```sh
+echo <console ip> > build/switch_host.txt                                  # once; the log prints the address
+scripts/switch/build_native.sh && scripts/switch/switchwaker_debug.py deploy # upload, check, restart
+scripts/switch/switchwaker_debug.py log                                      # the log, live
+scripts/switch/switchwaker_debug.py shot                                     # PNG of the next frame
+scripts/switch/switchwaker_debug.py press A                                  # also hold, release, stick, warp
+```
+
+`deploy` restarts the game, so start it from the HOME-screen icon (forwarder). Every command and the
+protocol: [docs/DEBUG_SERVER.md](docs/DEBUG_SERVER.md). It is the same server as SwitchWakerHD's.
+
 ## Install on the Switch
 
 ### What you need
@@ -226,7 +245,8 @@ may prepare a few new shaders again.
 - Settings from the options menu: `native/user/settings.ini`.
 - To update, replace `switchwaker.nro` (and `initial_pipeline_cache.db` if it changed). Saves,
   settings and caches stay.
-- Logs, if something goes wrong: `native/switchwaker.log` (this run) and `switchwaker.prev.log`.
+- Logs, if something goes wrong: `native/logs/`, one file per session named by its date and time
+  (`switchwaker_<date>_<time>.log`); the newest is this run. Only the 10 most recent sessions are kept.
 - If you used this port's earlier SD folder (`sdmc:/switch/centollos/`), rename it to
   `switchwaker` and rename `centollos.nro` to `switchwaker.nro`; the old path is no longer read.
 
@@ -236,8 +256,9 @@ may prepare a few new shaders again.
   `native/user/settings.ini`.
 - Language: the options menu and the shader loading screen are in Spanish or English, following the
   console's language (on the Mac and Linux, `LANG`); `COS_LANG=es` or `COS_LANG=en` forces one.
-- `COS_*` variables (environment on the Mac and Linux, `sdmc:/switch/switchwaker/native/env.txt` on the
-  Switch): [switch/native/env.example.txt](switch/native/env.example.txt) and
+- `COS_*` variables (environment on the Mac and Linux; on the Switch the options menu, and for
+  developer variables the `[dev]` section of `native/user/settings.ini`):
+  [switch/native/settings-dev.example.ini](switch/native/settings-dev.example.ini) and
   [native/README.md](native/README.md).
 - HD textures (optional, a Dolphin-format pack you supply): [docs/HD_TEXTURES.md](docs/HD_TEXTURES.md).
 - 16:9 widescreen: [docs/WIDESCREEN.md](docs/WIDESCREEN.md).

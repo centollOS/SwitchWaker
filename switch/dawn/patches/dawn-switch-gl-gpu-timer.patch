@@ -8,7 +8,7 @@
  #include "src/dawn/native/opengl/SwitchStatsGL.h"
  #include "src/dawn/native/opengl/TextureGL.h"
  #include "src/dawn/native/opengl/UtilsGL.h"
-@@ -871,6 +872,7 @@
+@@ -871,6 +872,7 @@ MaybeError CommandBuffer::Execute(const OpenGLFunctions& gl) {
  #if defined(__SWITCH__)
      bool switchFirstBufferCopy = true;
  #endif
@@ -16,7 +16,7 @@
  
      Command type;
      while (mCommands.NextCommandId(&type)) {
-@@ -898,6 +900,9 @@
+@@ -898,6 +900,9 @@ MaybeError CommandBuffer::Execute(const OpenGLFunctions& gl) {
                  if (nextRenderPassNumber == PassIndex(0u)) {
                      switchFirstPass.emplace();
                  }
@@ -26,7 +26,7 @@
  #endif
                  DAWN_SWITCH_TICKS_START(switchPassStart);
                  for (TextureBase* texture :
-@@ -913,6 +918,7 @@
+@@ -913,6 +918,7 @@ MaybeError CommandBuffer::Execute(const OpenGLFunctions& gl) {
                  DAWN_SWITCH_TICKS_ADD(kPassLazyClearTicks, switchPassStart);
                  DAWN_TRY(ExecuteRenderPass(cmd, gl, nextRenderPassNumber));
                  DAWN_SWITCH_TICKS_ADD(kPassTotalTicks, switchPassStart);
@@ -34,7 +34,7 @@
  #if defined(__SWITCH__)
                  if (switchFirstPass) {
                      switchFirstPass->Done();
-@@ -949,6 +955,7 @@
+@@ -949,6 +955,7 @@ MaybeError CommandBuffer::Execute(const OpenGLFunctions& gl) {
                  } switchCopyTicks{switchFirstBufferCopy, nextRenderPassNumber == PassIndex(0u)};
                  switchFirstBufferCopy = false;
  #endif
@@ -42,7 +42,7 @@
  
                  DAWN_TRY(ToBackend(copy->source)->EnsureDataInitialized());
                  DAWN_TRY(
-@@ -976,6 +983,7 @@
+@@ -976,6 +983,7 @@ MaybeError CommandBuffer::Execute(const OpenGLFunctions& gl) {
              case Command::CopyBufferToTexture: {
                  CopyBufferToTextureCmd* copy = mCommands.NextCommand<CopyBufferToTextureCmd>();
                  DAWN_SWITCH_STAT(kTextureUploads, 1);
@@ -50,7 +50,7 @@
                  if (copy->copySize.IsEmpty()) {
                      // Skip no-op copies.
                      continue;
-@@ -1159,6 +1167,7 @@
+@@ -1159,6 +1167,7 @@ MaybeError CommandBuffer::Execute(const OpenGLFunctions& gl) {
                      continue;
                  }
                  DAWN_SWITCH_STAT(kTextureCopies, 1);
@@ -58,7 +58,7 @@
                  DAWN_SWITCH_TICKS_START(switchTextureCopyStart);
                  auto& src = copy->source;
                  auto& dst = copy->destination;
-@@ -1286,6 +1295,7 @@
+@@ -1286,6 +1295,7 @@ MaybeError CommandBuffer::Execute(const OpenGLFunctions& gl) {
          }
      }
  
@@ -66,40 +66,14 @@
      return {};
  }
  
---- a/src/dawn/native/opengl/SwitchStatsGL.h
-+++ b/src/dawn/native/opengl/SwitchStatsGL.h
-@@ -77,6 +77,23 @@
-     kFirstPassClearTicks,
-     kFirstPassEndTicks,
-     kFirstPassReplayTicks,
-+    // GPU time (ns, GL_TIME_ELAPSED_EXT; SwitchGpuTimerGL.h) of the frames read back so far: per
-+    // segment kind and in all, and of the first render pass of each frame; frames read back,
-+    // frames thrown away because the GPU reported a disjoint event, frames not timed because
-+    // results were not coming back. kGpuTimerState is a level: 1 on, 2 no EXT_disjoint_timer_query,
-+    // 3 off (COS_SWITCH_GPU_TIMER=0), 0 no Execute yet.
-+    kGpuFrames,
-+    kGpuTotalNs,
-+    kGpuEfbNs,
-+    kGpuTexConvNs,
-+    kGpuPresentNs,
-+    kGpuImguiNs,
-+    kGpuCopyNs,
-+    kGpuOtherNs,
-+    kGpuFirstPassNs,
-+    kGpuDisjoint,
-+    kGpuDropped,
-+    kGpuTimerState,
-     kCount
- };
- 
 --- /dev/null
 +++ b/src/dawn/native/opengl/SwitchGpuTimerGL.h
-@@ -0,0 +1,214 @@
+@@ -0,0 +1,209 @@
 +// Switch only (switch/dawn/patches/dawn-switch-gl-gpu-timer.patch): GPU time per render pass and
 +// per run of copies, with GL_TIME_ELAPSED_EXT queries (EXT_disjoint_timer_query), for the native
 +// port's "[cos] perf-switch" lines. One query per segment (TIME_ELAPSED queries cannot nest); a
 +// frame's queries are read a few Executes later and only once the last one is available, so the
-+// CPU never waits for the GPU here. COS_SWITCH_GPU_TIMER=0 turns it off. Everything runs on the
++// CPU never waits for the GPU here. Everything runs on the
 +// GL thread (Queue::Submit under the device lock); the results go to switch_stats' running totals.
 +
 +#ifndef SRC_DAWN_NATIVE_OPENGL_SWITCHGPUTIMERGL_H_
@@ -163,12 +137,7 @@
 +    // Start of an Execute: reads the frames whose queries finished.
 +    void BeginExecute(const OpenGLFunctions& gl) {
 +        if (mState == 0) {
-+            const char* env = std::getenv("COS_SWITCH_GPU_TIMER");
-+            if (env != nullptr && std::strcmp(env, "0") == 0) {
-+                mState = 3;
-+            } else {
-+                mState = gl.IsGLExtensionSupported("GL_EXT_disjoint_timer_query") ? 1 : 2;
-+            }
++            mState = gl.IsGLExtensionSupported("GL_EXT_disjoint_timer_query") ? 1 : 2;
 +            gTotals[kGpuTimerState].store(mState, std::memory_order_relaxed);
 +        }
 +        if (mState != 1) {
@@ -287,7 +256,7 @@
 +        }
 +    }
 +
-+    int mState = 0;  // 0 not checked yet, 1 on, 2 no EXT_disjoint_timer_query, 3 off by env
++    int mState = 0;  // 0 not checked yet, 1 on, 2 no EXT_disjoint_timer_query
 +    bool mOpen = false;
 +    uint8_t mOpenSegment = 0;
 +    bool mCurrentHasPass = false;
@@ -309,3 +278,29 @@
 +#endif
 +
 +#endif  // SRC_DAWN_NATIVE_OPENGL_SWITCHGPUTIMERGL_H_
+--- a/src/dawn/native/opengl/SwitchStatsGL.h
++++ b/src/dawn/native/opengl/SwitchStatsGL.h
+@@ -77,6 +77,23 @@ enum Counter : int {
+     kFirstPassClearTicks,
+     kFirstPassEndTicks,
+     kFirstPassReplayTicks,
++    // GPU time (ns, GL_TIME_ELAPSED_EXT; SwitchGpuTimerGL.h) of the frames read back so far: per
++    // segment kind and in all, and of the first render pass of each frame; frames read back,
++    // frames thrown away because the GPU reported a disjoint event, frames not timed because
++    // results were not coming back. kGpuTimerState is a level: 1 on, 2 no EXT_disjoint_timer_query,
++    // 0 no Execute yet.
++    kGpuFrames,
++    kGpuTotalNs,
++    kGpuEfbNs,
++    kGpuTexConvNs,
++    kGpuPresentNs,
++    kGpuImguiNs,
++    kGpuCopyNs,
++    kGpuOtherNs,
++    kGpuFirstPassNs,
++    kGpuDisjoint,
++    kGpuDropped,
++    kGpuTimerState,
+     kCount
+ };
+ 

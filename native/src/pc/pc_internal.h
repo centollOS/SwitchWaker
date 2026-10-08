@@ -372,6 +372,8 @@ void perfOpen();
 void perfFlush();
 // pc_frame.cpp: COS_PERF_EVERY changed at run time (options menu); 0 stops the perf lines.
 void perfSetEvery(unsigned int every);
+// pc_frame.cpp: COS_HITCH_MS changed at run time (options menu); 0 stops the hitch lines.
+void perfSetHitch(unsigned int ms);
 
 // pc_frame.cpp: "[cos] pacing: frames= wall= requested= ..." since the frame loop started (nothing
 // before it).
@@ -388,6 +390,9 @@ void menuInit();
 // pc_menu.cpp: the options-menu smoke script asked for its own memory card ("#card run"); pc_main
 // then calls prepareRunCard before the game's CARDInit.
 bool menuSmokeWantsRunCard();
+// pc_menu.cpp: the key is one of the options menu's built-in settings (usable before the menu
+// registers them: pc_settings_load_early).
+bool menuBuiltinSetting(const char* key);
 void menuFrame();
 bool menuOpen();
 // pc_menu.cpp: after aurora_end_frame of game frame `frame` (the screenshot action, and

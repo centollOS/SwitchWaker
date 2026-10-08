@@ -40,6 +40,7 @@
 #include <cerrno>
 #include <cmath>
 #include <memory>
+#include <mutex>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -178,6 +179,8 @@ bool texelToRgb(wgpu::TextureFormat format, const uint8_t* p, uint8_t* rgb) {
     }
 }
 
+bool writePng(const char* path, unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t width, uint32_t height);
+
 void writeShot(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t width, uint32_t height) {
     char path[1024];
     int len = snprintf(path, sizeof(path), "%s/shot-%06u.png", sShotDir, frame);
@@ -185,11 +188,15 @@ void writeShot(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t wid
         writef(STDERR_FILENO, "[cos] shot: frame %u: path too long\n", frame);
         return;
     }
+    writePng(path, frame, rgb, width, height);
+}
+
+bool writePng(const char* path, unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t width, uint32_t height) {
     const std::string png = encodePng(rgb, width, height);
     int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
     if (fd < 0) {
         writef(STDERR_FILENO, "[cos] shot: frame %u: cannot create %s (errno %d)\n", frame, path, errno);
-        return;
+        return false;
     }
     size_t done = 0;
     while (done < png.size()) {
@@ -206,6 +213,7 @@ void writeShot(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t wid
     close(fd);
     writef(STDERR_FILENO, "[cos] shot: frame %u: %ux%u -> %s\n", frame, (unsigned int)width,
            (unsigned int)height, path);
+    return done == png.size();
 }
 
 // Runs on the render worker, after the frame's submit and present: the present source as 8-bit
@@ -339,8 +347,8 @@ struct ImguiSnap {
 
 bool sShotImgui = false;
 
-std::shared_ptr<ImguiSnap> snapImgui() {
-    if (!sShotImgui || ImGui::GetCurrentContext() == nullptr) {
+std::shared_ptr<ImguiSnap> snapImgui(bool force = false) {
+    if ((!sShotImgui && !force) || ImGui::GetCurrentContext() == nullptr) {
         return nullptr;
     }
     ImDrawData* data = ImGui::GetDrawData();
@@ -517,7 +525,46 @@ void shotProbe(unsigned int frame,
     aurora::gfx::render_worker::synchronize();
 }
 
+// ---- the Switch debug server's screenshot (switch/native/source/cos_debug.cpp, pc_debug_shot_request)
+std::mutex sDebugShotMu;
+std::string sDebugShotPath;   // where the next frame end writes it ("": nothing asked)
+bool sDebugShotOverlay = false;
+unsigned int sDebugShotAsked = 0, sDebugShotDone = 0, sDebugShotOk = 0;
+
+void debugShotFrameEnd(unsigned int frame) {
+    std::string path;
+    bool overlay;
+    unsigned int ticket;
+    {
+        std::lock_guard<std::mutex> lk(sDebugShotMu);
+        if (sDebugShotPath.empty()) {
+            return;
+        }
+        path.swap(sDebugShotPath);
+        overlay = sDebugShotOverlay;
+        ticket = sDebugShotAsked;
+    }
+    initCrcTable();
+    std::shared_ptr<ImguiSnap> imgui = overlay ? snapImgui(true) : nullptr;
+    bool ok = false;
+    aurora::gfx::render_worker::enqueue_work([frame, imgui, &path, &ok] {
+        std::vector<uint8_t> rgb;
+        uint32_t width = 0, height = 0;
+        if (readPixels(frame, rgb, width, height)) {
+            if (imgui != nullptr) {
+                compositeImgui(*imgui, rgb, width, height);
+            }
+            ok = writePng(path.c_str(), frame, rgb, width, height);
+        }
+    });
+    aurora::gfx::render_worker::synchronize();
+    std::lock_guard<std::mutex> lk(sDebugShotMu);
+    sDebugShotDone = ticket;
+    sDebugShotOk = ok ? ticket : sDebugShotOk;
+}
+
 void shotFrameEnd(unsigned int frame) {
+    debugShotFrameEnd(frame);
     if (!sShotOn || !wanted(frame)) {
         return;
     }
@@ -550,3 +597,19 @@ void saveFramePng(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t 
 }
 
 } // namespace pc
+
+// The debug server: the next frame end writes the presented picture to path as a PNG (overlay: with the
+// frame's ImGui windows, the FPS panel and the options menu, drawn over it). Returns the request's number.
+extern "C" unsigned int pc_debug_shot_request(const char* path, int overlay) {
+    std::lock_guard<std::mutex> lk(pc::sDebugShotMu);
+    pc::sDebugShotPath = path;
+    pc::sDebugShotOverlay = overlay != 0;
+    return ++pc::sDebugShotAsked;
+}
+
+// The number of the last request written (ok: and written well); 0 before any.
+extern "C" unsigned int pc_debug_shot_done(int* ok) {
+    std::lock_guard<std::mutex> lk(pc::sDebugShotMu);
+    *ok = pc::sDebugShotOk == pc::sDebugShotDone && pc::sDebugShotDone != 0;
+    return pc::sDebugShotDone;
+}

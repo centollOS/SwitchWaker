@@ -19,7 +19,7 @@ extern "C" {
 #define COS_SWITCH_DEFAULT_DISC "/switch/switchwaker/GZLE01.iso"
 /* The NRO's name: its log (COS_SWITCH_ROOT/<name>.log) and its symbols (<name>.elf). The deko3d
  * build (COS_SWITCH_RENDERER=deko3d) is switchwaker_dk and lives in /switch/switchwaker_dk/ with its
- * bundled caches; both share the data above (disc, env.txt, saves, settings, Aurora's caches). */
+ * bundled caches; both share the data above (disc, saves, settings and its [dev] section, Aurora's caches). */
 #ifndef COS_SWITCH_NRO_NAME
 #define COS_SWITCH_NRO_NAME "switchwaker"
 #endif
@@ -58,9 +58,9 @@ typedef struct {
     uint64_t workerSubmitNs, workerPresentNs, workerEventsNs, workerFrames;
     /* Pipelines created, the time it took, the longest one. */
     uint64_t pipelineCompiles, pipelineCompileNs, pipelineCompileMaxNs;
-    /* Dawn's GL queue: fences made, blocking waits and their time, glFinish calls (only with
-     * COS_SWITCH_GL_FINISH=1) and their time, fences not yet seen signaled (a level, not a total). */
-    uint64_t glFences, glWaits, glWaitNs, glFinishes, glFinishNs, glFencesPending;
+    /* Dawn's GL queue: fences made, blocking waits and their time, fences not yet seen signaled (a
+     * level, not a total). */
+    uint64_t glFences, glWaits, glWaitNs, glFencesPending;
     /* Disc image reads (nod_read): calls, bytes, time. */
     uint64_t dvdReads, dvdBytes, dvdNs;
     /* Dawn's GL replay of the submissions (switch/dawn/patches/dawn-switch-gl-command-stats.patch):
@@ -102,12 +102,12 @@ typedef struct {
      * EFB passes, the EFB copy conversions/blits, the present pass, the ImGui pass, copies between
      * passes, other passes) and of each frame's first render pass; frames dropped for a disjoint
      * event or not timed because results were not coming back. gpuTimerState is a level: 0 no
-     * Execute yet, 1 on, 2 the driver has no GL_EXT_disjoint_timer_query, 3 COS_SWITCH_GPU_TIMER=0. */
+     * Execute yet, 1 on, 2 the driver has no GL_EXT_disjoint_timer_query. */
     uint64_t gpuFrames, gpuTotalNs, gpuEfbNs, gpuTexConvNs, gpuPresentNs, gpuImguiNs, gpuCopyNs;
     uint64_t gpuOtherNs, gpuFirstPassNs, gpuDisjoint, gpuDropped, gpuTimerState;
     /* Deferred GL deletes (switch/dawn/patches/dawn-switch-gl-deferred-delete.patch): texture and
      * buffer names whose deletion waited for the GPU, deleted, deleted early (too many pending);
-     * pending now and the state (levels: 0 not used yet, 1 on, 2 COS_SWITCH_GL_DEFER_DELETE=0). */
+     * pending now and the state (levels: 0 not used yet, 1 on). */
     uint64_t glDeferDeletes, glDeferDeletesDone, glDeferDeletesForced, glDeferDeletePending;
     uint64_t glDeferDeleteState;
     // dawn-switch-gl-present-split.patch: presents, ns in the blit to the window (NWindow dequeue

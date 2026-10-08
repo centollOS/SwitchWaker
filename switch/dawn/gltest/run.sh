@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Builds the Dawn GL test harness (switch/dawn/gltest/README.md) in a Linux container against the
-# patched Dawn source and runs gl_draw_test with each Switch GL toggle off and on, on Mesa's
-# llvmpipe through EGL (surfaceless).
+# patched Dawn source and runs gl_draw_test (plain and with GLTEST_DIAG=1) on Mesa's llvmpipe
+# through EGL (surfaceless).
 #   switch/dawn/gltest/run.sh <patched dawn source> [build dir] [-- VAR=value...]
 # With "-- VAR=value..." only that one variant of gl_draw_test runs (e.g. GLTEST_DUMP=1 prints
 # Dawn's GLSL). With GLTEST_WGSL=<dir of .wgsl files> (Aurora's shaders, see README.md) gl_shader_test
-# also builds a pipeline from each, with the uniform window off and on.
+# also builds a pipeline from each.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 dawn=$(cd "$1" && pwd)
@@ -34,17 +34,14 @@ if [ -n "$ONE" ]; then
     exit $?
 fi
 status=0
-for env in "GLTEST_DIAG=1" COS_SWITCH_GL_UBO_WINDOW=0 COS_SWITCH_GL_UBO_WINDOW=1 COS_SWITCH_GL_STATE_CACHE=0 \
-           COS_SWITCH_GL_STATE_CACHE=1 "COS_SWITCH_GL_UBO_WINDOW=1 COS_SWITCH_GL_STATE_CACHE=1"; do
+for env in "" "GLTEST_DIAG=1"; do
     echo "== ${env:-defaults}"
     env $env /out/build/gl_draw_test || status=1
 done
 if [ -d /wgsl ]; then
-    for env in COS_SWITCH_GL_UBO_WINDOW=0 COS_SWITCH_GL_UBO_WINDOW=1; do
-        echo "== gl_shader_test $env"
-        env $env /out/build/gl_shader_test /wgsl 2>&1 | grep -v "^Warning" | tail -12 || status=1
-        [ "${PIPESTATUS[0]}" = 0 ] || status=1
-    done
+    echo "== gl_shader_test"
+    /out/build/gl_shader_test /wgsl 2>&1 | grep -v "^Warning" | tail -12 || status=1
+    [ "${PIPESTATUS[0]}" = 0 ] || status=1
 fi
 exit $status
 '

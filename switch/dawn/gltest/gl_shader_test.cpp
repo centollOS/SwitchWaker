@@ -2,7 +2,7 @@
 // (switch/dawn/gltest/README.md): group 0 two read-only storage buffers, group 1 one uniform
 // buffer at a dynamic offset, group 2 the texture/sampler pairs the shader declares, 64 bytes of
 // immediates. Dawn translates each to GLSL and Mesa compiles and links it, so a Switch GL patch
-// that changes the generated GLSL (COS_SWITCH_GL_UBO_WINDOW) is checked against every shader the
+// that changes the generated GLSL (the uniform window) is checked against every shader the
 // game has. The WGSL comes from a Mac run (build/wgsl-dump: Aurora's generated shaders).
 //   gl_shader_test <dir> [--draw]
 #include <dawn/webgpu_cpp.h>
@@ -27,7 +27,6 @@ int main(int argc, char** argv) {
         return 1;
     }
     wgpu::Device& device = ctx.device;
-    printf("COS_SWITCH_GL_UBO_WINDOW=%s\n", getenv("COS_SWITCH_GL_UBO_WINDOW") ? getenv("COS_SWITCH_GL_UBO_WINDOW") : "(unset)");
 
     std::vector<std::string> files;
     if (DIR* d = opendir(argv[1])) {

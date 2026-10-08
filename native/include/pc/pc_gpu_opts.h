@@ -83,27 +83,12 @@ int pc_mist_lowres(void);
    texture (GXCopyTex destination), or NULL when the target would be under 16x16. */
 void* pc_mist_lowres_target(unsigned int* w, unsigned int* h);
 
-/* COS_MIST_AB=<frame> (Mac checks; runs are not frame-reproducible): in that frame the mist is
-   drawn both ways from the same scene, the low-resolution result copied to buffer 2 and the
-   original to buffer 1; frames +1 and +2 show buffer 1 and 2 over everything (shoot them with
-   COS_SHOT). pc_mist_ab_frame: this game frame is the A/B frame. pc_mist_ab_buffer(i): the copy
-   texture names (0 = the scene before the mist). pc_mist_ab_show: the buffer to show this frame,
-   or NULL. */
-int pc_mist_ab_frame(void);
-void* pc_mist_ab_buffer(int index);
-void* pc_mist_ab_show(void);
-
 /* COS_SKY_LOWRES: called by the painter around the sky lists. begin returns 1 when the sky goes to
    the reduced target (the viewport is the whole logical EFB and has_sky/copy2d_empty allow it);
    end copies it back over the EFB (colour only) and leaves GX for the J3D drawing that follows
    (j3dSys.reinitGX and the projection are the caller's). */
 int pc_sky_lowres_begin(float vpNear, float vpFar, int hasSky, int copy2dEmpty);
 void pc_sky_lowres_end(void);
-/* COS_SKY_AB=<frame>: like COS_MIST_AB for the sky (shown through pc_mist_ab_show); copy the
-   whole EFB into a copy texture; redraw the cleared EFB pc_sky_lowres_begin copied. */
-int pc_sky_ab_frame(void);
-void pc_ab_copy_efb(void* buf);
-void pc_sky_ab_restore(void);
 
 /* The current GPU group level: 0 off, 1 buckets, 2 buckets and packets (COS_GPU_GROUPS, or 2 in a
    COS_DRAW_CENSUS frame). Cheap: a load. */

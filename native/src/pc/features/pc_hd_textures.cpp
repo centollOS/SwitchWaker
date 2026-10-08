@@ -89,6 +89,7 @@ constexpr uint64_t kDefaultCostTextureUs = 300;
 constexpr uint64_t kDefaultCostLevelUs = 100;
 constexpr uint64_t kDefaultCostMiBUs = 2000;
 constexpr uint64_t kDefaultRescanKb = 2048;
+constexpr uint64_t kDefaultStatsEvery = 0; // players: no stats lines (the options menu turns them on)
 #else
 constexpr uint64_t kDefaultBudgetMb = 1024;
 constexpr uint64_t kDefaultPublishMb = 12;
@@ -99,6 +100,7 @@ constexpr uint64_t kDefaultCostTextureUs = 50;
 constexpr uint64_t kDefaultCostLevelUs = 5;
 constexpr uint64_t kDefaultCostMiBUs = 300;
 constexpr uint64_t kDefaultRescanKb = 8192;
+constexpr uint64_t kDefaultStatsEvery = 300;
 #endif
 
 uint32_t rd32(const uint8_t* p) { return p[0] | p[1] << 8 | p[2] << 16 | (uint32_t)p[3] << 24; }
@@ -213,7 +215,7 @@ struct State {
     uint64_t costLevelUs = kDefaultCostLevelUs;
     uint64_t costMiBUs = kDefaultCostMiBUs;
     uint64_t rescanKb = kDefaultRescanKb;
-    unsigned int statsEvery = 300;
+    unsigned int statsEvery = kDefaultStatsEvery;
     std::vector<unsigned int> toggleFrames;
     std::vector<std::pair<unsigned int, uint32_t>> capFrames; // COS_HD_MAX_SIZE_FRAMES
     std::unique_ptr<Pack> pack;
@@ -734,7 +736,7 @@ void pc_hd_textures_init(const char* userPath) {
     sState.budgetMb = envU64("COS_HD_BUDGET_MB", kDefaultBudgetMb, 16, 65536);
     sState.publishMb = envU64("COS_HD_PUBLISH_MB", kDefaultPublishMb, 1, 1024);
     sState.workers = (uint32_t)envU64("COS_HD_WORKERS", kDefaultWorkers, 0, 4);
-    sState.statsEvery = (unsigned int)envU64("COS_HD_STATS_EVERY", 300, 0, 1000000);
+    sState.statsEvery = (unsigned int)envU64("COS_HD_STATS_EVERY", kDefaultStatsEvery, 0, 1000000);
     sState.registerUs = envU64("COS_HD_REGISTER_US", kDefaultRegisterUs, 100, 1000000);
     sState.publishUs = envU64("COS_HD_PUBLISH_US", kDefaultPublishUs, 0, 1000000);
     sState.costTextureUs = envU64("COS_HD_COST_TEXTURE_US", kDefaultCostTextureUs, 0, 1000000);
@@ -917,6 +919,10 @@ bool cos_hd_textures_set_enabled(bool enabled) {
 
 bool cos_hd_textures_enabled(void) {
     return sState.requested;
+}
+
+void pc_hd_textures_set_stats_every(unsigned int frames) {
+    sState.statsEvery = frames;
 }
 
 } // extern "C"

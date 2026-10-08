@@ -12,7 +12,7 @@
 # load and the original textures stay). index.bin is always read back and compared; --verify also
 # reads back every data file (about 1 GiB each, slow). A data file left over from a bigger pack
 # is harmless (index.bin says how many there are); delete it by name if space matters.
-# Then enable it on the console with COS_HD_TEXTURES=1 in native/env.txt (push.sh --native-env).
+# Then turn it on in the game's options menu (Gráficos > Texturas HD).
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)

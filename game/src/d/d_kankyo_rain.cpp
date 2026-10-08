@@ -5451,10 +5451,6 @@ void drawCloudShadow(Mtx drawMtx, u8** pImg) {
 
     dKyr_set_btitex(&texObj, (ResTIMG*)pImg[0]);
 
-#if TARGET_PC
-    // The GX state of the sprites, as a lambda: COS_MIST_AB redraws them (pc_kyr_draw_mist).
-    auto setupState = [&]() {
-#endif
     GXSetNumChans(0);
     GXSetTevColor(GX_TEVREG0, reg0);
     GXSetTevColor(GX_TEVREG1, reg1);
@@ -5477,12 +5473,6 @@ void drawCloudShadow(Mtx drawMtx, u8** pImg) {
     GXClearVtxDesc();
     GXSetVtxDesc(GX_VA_POS, GX_DIRECT);
     GXSetVtxDesc(GX_VA_TEX0, GX_DIRECT);
-#if TARGET_PC
-        GXLoadPosMtxImm(drawMtx, GX_PNMTX0);
-        GXSetCurrentMtx(GX_PNMTX0);
-    };
-    setupState();
-#endif
     MTXRotDeg(rotMtx, 'Z', rot);
     MTXConcat(camMtx, rotMtx, camMtx);
     GXLoadPosMtxImm(drawMtx, GX_PNMTX0);
@@ -5492,8 +5482,8 @@ void drawCloudShadow(Mtx drawMtx, u8** pImg) {
     GXSetCurrentMtx(GX_PNMTX0);
 
 #if TARGET_PC
-    // COS_MIST_LOWRES and COS_MIST_AB (pc_gpu_opts.h): the sprites, drawn by a lambda so
-    // pc_kyr_draw_mist (native/src/pc/game_hooks/pc_gpu_hooks.cpp) can draw them more than once.
+    // COS_MIST_LOWRES (pc_gpu_opts.h): the sprites, drawn by a lambda so pc_kyr_draw_mist
+    // (native/src/pc/game_hooks/pc_gpu_hooks.cpp) can draw them more than once.
     auto drawSprites = [&]() {
 #endif
     for (s32 i = 0; i < pPkt->mCount; i++) {
@@ -5556,7 +5546,7 @@ void drawCloudShadow(Mtx drawMtx, u8** pImg) {
 
 #if TARGET_PC
     };
-    pc_kyr_draw_mist(drawSprites, setupState);
+    pc_kyr_draw_mist(drawSprites);
 #endif
     GXSetClipMode(GX_CLIP_ENABLE);
 #if VERSION > VERSION_JPN

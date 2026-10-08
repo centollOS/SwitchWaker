@@ -1,14 +1,6 @@
 --- a/src/dawn/native/opengl/CommandBufferGL.cpp
 +++ b/src/dawn/native/opengl/CommandBufferGL.cpp
-@@ -29,6 +29,7 @@
- 
- #include <algorithm>
- #include <array>
-+#include <cstdlib>
- #include <cstring>
- #include <optional>
- #include <utility>
-@@ -1087,6 +1088,7 @@
+@@ -1073,6 +1073,7 @@ MaybeError CommandBuffer::Execute(const OpenGLFunctions& gl) {
                  Buffer* buffer = ToBackend(src.buffer.Get());
                  Texture* texture = ToBackend(dst.texture.Get());
  
@@ -16,7 +8,7 @@
                  DAWN_TRY(texture->SynchronizeTextureBeforeUse());
  
                  DAWN_TRY(buffer->EnsureDataInitialized());
-@@ -1111,6 +1113,7 @@
+@@ -1097,6 +1098,7 @@ MaybeError CommandBuffer::Execute(const OpenGLFunctions& gl) {
                  DAWN_TRY(DoTexSubImage(gl, dst, reinterpret_cast<void*>(src.offset), dataLayout,
                                         copy->copySize.ToExtent3D()));
                  DAWN_GL_TRY(gl, BindBuffer(GL_PIXEL_UNPACK_BUFFER, 0));
@@ -24,12 +16,10 @@
  
                  buffer->TrackUsage();
                  break;
-@@ -2040,6 +2043,27 @@
+@@ -1936,6 +1938,17 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
      DAWN_UNREACHABLE();
  }
  
-+#if defined(__SWITCH__)
-+namespace {
 +// Switch only (dawn-switch-gl-compressed-upload.patch): GLES has no GL_UNPACK_COMPRESSED_BLOCK_*,
 +// so upstream uploads a compressed texture one row of blocks per glCompressedTexSubImage2D: 257
 +// calls for a 512x512 BC7 texture with its mips. Mesa's nvc0 maps the unpack buffer, allocates a
@@ -38,27 +28,19 @@
 +// whose rows are contiguous in the source (bytesPerRow equal to the row's size, as every row of
 +// at least 256 bytes is in Aurora's uploads) is one call; one with padded rows (WebGPU's 256-byte
 +// row alignment, small mips) is packed on the CPU first, from the mapped unpack buffer or the
-+// client memory, then one call. COS_SWITCH_GL_LEVEL_UPLOAD=0 at run time for the upstream path.
-+bool SwitchLevelUploads() {
-+    static const bool enabled = [] {
-+        const char* v = std::getenv("COS_SWITCH_GL_LEVEL_UPLOAD");
-+        return v == nullptr || v[0] == '\0' || std::strcmp(v, "0") != 0;
-+    }();
-+    return enabled;
-+}
-+}  // namespace
-+#endif
++// client memory, then one call; the upstream row loop remains the fallback when the unpack
++// buffer cannot be mapped.
 +
  MaybeError DoTexSubImage(const OpenGLFunctions& gl,
                           const TextureCopy& destination,
                           const void* data,
-@@ -2137,6 +2161,61 @@
+@@ -2033,6 +2046,61 @@ MaybeError DoTexSubImage(const OpenGLFunctions& gl,
              DAWN_GL_TRY(gl, PixelStorei(GL_UNPACK_COMPRESSED_BLOCK_DEPTH, 0));
          } else {
              if (target == GL_TEXTURE_2D) {
 +#if defined(__SWITCH__)
 +                bool uploaded = false;
-+                if (SwitchLevelUploads()) {
++                {
 +                    const uint64_t rows = static_cast<uint64_t>(blockCopySize.height);
 +                    const TexelCount height = std::min(copySize.height, virtSize.height - y);
 +                    const uint64_t packedSize = rowSize * rows;
@@ -114,7 +96,7 @@
                  const uint8_t* d = static_cast<const uint8_t*>(data);
  
                  for (; y < destination.origin.y + copySize.height; y += blockInfo.height) {
-@@ -2146,8 +2225,12 @@
+@@ -2042,8 +2110,12 @@ MaybeError DoTexSubImage(const OpenGLFunctions& gl,
                                          dchecked_cast<uint32_t>(y), dchecked_cast<uint32_t>(width),
                                          dchecked_cast<uint32_t>(height), format.internalFormat,
                                          rowSize, d));
@@ -129,7 +111,7 @@
                  const uint8_t* pointer = static_cast<const uint8_t*>(data);
 --- a/src/dawn/native/opengl/SwitchStatsGL.h
 +++ b/src/dawn/native/opengl/SwitchStatsGL.h
-@@ -115,6 +115,14 @@
+@@ -115,6 +115,14 @@ enum Counter : int {
      kPresents,
      kPresentBlitNs,
      kPresentSwapNs,
@@ -144,7 +126,7 @@
      kCount
  };
  
-@@ -125,7 +133,8 @@
+@@ -125,7 +133,8 @@ inline bool IsTicks(int counter) {
             counter == kDrawAfterPipelineTicks || counter == kDrawAfterTexturesTicks ||
             (counter >= kPassLazyClearTicks && counter <= kFirstPassReplayTicks &&
              counter != kBufferCopiesBeforeFirstPass && counter != kTextureCopies &&
@@ -156,15 +138,15 @@
  inline uint64_t gLocal[kCount];
 --- a/src/dawn/native/opengl/TextureGL.cpp
 +++ b/src/dawn/native/opengl/TextureGL.cpp
-@@ -44,6 +44,7 @@
+@@ -43,6 +43,7 @@
+ #include "src/dawn/native/opengl/SharedFenceGL.h"
  #include "src/dawn/native/opengl/SharedTextureMemoryGL.h"
  #include "src/dawn/native/opengl/SwitchDeferredDeleteGL.h"
- #include "src/dawn/native/opengl/SwitchFboCacheGL.h"
 +#include "src/dawn/native/opengl/SwitchStatsGL.h"
  #include "src/dawn/native/opengl/UtilsGL.h"
  #include "src/utils/assert.h"
  #include "src/utils/compiler.h"
-@@ -267,6 +268,9 @@
+@@ -266,6 +267,9 @@ ResultOrError<Ref<Texture>> Texture::Create(Device* device,
      bool clear = device->IsToggleEnabled(Toggle::NonzeroClearResourcesOnCreationForTesting);
      DAWN_TRY(device->EnqueueGL([texture, clear](const OpenGLFunctions& gl) -> MaybeError {
          DAWN_GL_TRY(gl, GenTextures(1, &texture->mHandle));
@@ -174,7 +156,7 @@
  
          GLenum target = texture->GetGLTarget();
          uint32_t levels = texture->GetNumMipLevels();
-@@ -284,6 +288,7 @@
+@@ -283,6 +287,7 @@ ResultOrError<Ref<Texture>> Texture::Create(Device* device,
              DAWN_TRY(texture->ClearTexture(gl, texture->GetAllSubresources(),
                                             TextureBase::ClearValue::NonZero));
          }

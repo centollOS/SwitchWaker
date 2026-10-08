@@ -4,26 +4,32 @@
 // devoptab tee as in the translated port (switch/host/source/switch_main.c), to
 //   - the live USB log (switch/source/common/usb_log.c; scripts/switch/usb_log.py on the computer),
 //     only with COS_USB_LOG=1 (off by default: it holds the USB port for the whole run);
-//   - COS_SWITCH_ROOT/switchwaker.log on the SD card (the previous run's is kept as switchwaker.prev.log;
-//     the deko3d NRO's are switchwaker_dk.log and switchwaker_dk.prev.log, COS_SWITCH_NRO_NAME), written
-//     by a thread of its own so a game thread never waits on the SD card. A crash or an exit
-//     writes what is still queued before the process ends.
+//   - a session log on the SD card, COS_SWITCH_ROOT/logs/switchwaker_<date>_<time>.log (the console clock at
+//     start; the deko3d NRO's are switchwaker_dk_<date>_<time>.log, COS_SWITCH_NRO_NAME), as SwitchWakerHD's:
+//     the newest file in logs/ is always the current session, and logs/ keeps the
+//     kMaxSessionLogs most recent sessions (the oldest are deleted, so the logs cannot fill the SD card).
+//     The switchwaker.log / switchwaker.prev.log of earlier builds move into logs/. Written by a thread of
+//     its own so a game thread never waits on the SD card. A crash or an exit writes what is still queued
+//     before the process ends;
+//   - the debug server's "log" streams (debug_server.h; Depuración > "Servidor de depuración" in the
+//     options menu, COS_DEBUG_SERVER, cos_debug.cpp).
 //
 // Memory: the process's used and total memory at start, every 15 seconds (from the log writer
 // thread) and at exit: "[switch] memory: used N MiB of M MiB". The shader cache's lines
 // (cos_shader_cache.cpp) come with it while they change, and at exit.
 //
-// Run options: COS_SWITCH_ROOT/env.txt, one NAME=value per line (# comments), applied before the
-// Switch defaults (setenv without overwrite): COS_DISC (the shared GZLE01.iso), COS_RUN_DIR (the
-// native directory, for backtrace.txt), COS_STALL_S=90 and COS_ASPECT=16:9 (the console's 1280x720
-// screen; COS_ASPECT=4:3 in env.txt gives the GameCube picture, pillarboxed). The defaults are for
-// players: no perf or hitch lines, no frame-rate panel (COS_PERF_EVERY=60, COS_HITCH_MS=50 and
-// COS_FPS_OVERLAY=1 in env.txt for a measuring run).
+// Run options: the options menu's settings file, COS_SWITCH_ROOT/user/settings.ini
+// (native/include/pc/pc_settings.h): pc_settings_load_early copies its values, and the variables of
+// its [dev] section (developer options without a menu row), into the environment, then the Switch
+// defaults fill what is still unset (setenv without overwrite): COS_DISC (the shared GZLE01.iso),
+// COS_RUN_DIR (the native directory, for backtrace.txt), COS_STALL_S=90, COS_ASPECT=16:9 (the
+// console's 1280x720 screen) and COS_FB_SCALE=1.5. The defaults are for players: no perf or hitch
+// lines, no frame-rate panel, no debug server, no USB log (the menu's Depuración tab turns them on).
+// The native/env.txt of earlier builds is moved into the settings file once
+// (pc_settings_migrate_env_file) and kept as env.txt.old.
 // COS_SWITCH_GPU_PROFILE (460 by default, 384, default) picks the console's official handheld performance
 // configuration through apm (CPU 1020 MHz always); the previous one is restored at exit. The options
-// menu changes it at run time (cos_switch_set_gpu_profile). Between env.txt and the defaults,
-// pc_settings_load_early copies the menu's settings file (user/settings.ini) into the environment
-// for every variable env.txt does not set.
+// menu changes it at run time (cos_switch_set_gpu_profile).
 //
 // Crash report: libnx's user exception handler prints the exception, the registers, the thread,
 // the NRO's load address and a frame-pointer backtrace as offsets into switchwaker.elf (for addr2line),
@@ -32,8 +38,13 @@
 // abort() (Aurora's fatal log and asserts, newlib's assert, std::terminate) is wrapped
 // (-Wl,--wrap=abort) to print the same backtrace and state and to write the logs out before the
 // process ends; on its own it would end the process with the last log lines still queued.
+#include <algorithm>
 #include <atomic>
 #include <cerrno>
+#include <ctime>
+#include <dirent.h>
+#include <string>
+#include <vector>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -44,15 +55,18 @@
 #include <unistd.h>
 
 #include "cos_switch_internal.h"
+#include "debug_server.h"
 #include "usb_log.h"
 
 extern "C" void pc_settings_load_early(void); // native/src/pc/features/pc_settings.cpp
+extern "C" int pc_settings_migrate_env_file(const char* envPath, const char* oldPath);
 
 namespace {
 
-constexpr const char* kLogPath = COS_SWITCH_ROOT "/" COS_SWITCH_NRO_NAME ".log";
-constexpr const char* kPrevLogPath = COS_SWITCH_ROOT "/" COS_SWITCH_NRO_NAME ".prev.log";
+constexpr const char* kLogDir = COS_SWITCH_ROOT "/logs";
+constexpr size_t kMaxSessionLogs = 10; // the current session's included
 constexpr size_t kRingSize = 1u << 20;
+char gLogPath[128];                     // this session's log
 
 // ---- SD card log ---------------------------------------------------------------------------------
 uint8_t gRing[kRingSize];
@@ -150,6 +164,9 @@ void writerMain(void*) {
 
 void queueBytes(const char* data, size_t size) {
     usb_log_write(data, size);
+    if (!gCrashing.load(std::memory_order_relaxed)) {
+        debugsrv::log_tap(data, size); // (it takes a lock: not after a crash)
+    }
     if (gLogFile == nullptr) {
         return;
     }
@@ -204,13 +221,63 @@ void sayf(const char* format, ...) {
     queueBytes(line, (size_t)n);
 }
 
+// logs/<NRO name>_<date>_<time>.log for a file's time
+void sessionLogName(char* out, size_t size, time_t when) {
+    struct tm t{};
+    localtime_r(&when, &t);
+    snprintf(out, size, "%s/" COS_SWITCH_NRO_NAME "_%04d-%02d-%02d_%02d-%02d-%02d.log", kLogDir, t.tm_year + 1900, t.tm_mon + 1,
+             t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
+}
+
+// This session's file in logs/, the logs of builds before session logs moved there (named by their
+// modification time), and room for this session: the oldest session logs go (modification time, then name).
+void startSessionLog() {
+    mkdir(kLogDir, 0777);
+    for (const char* old : {COS_SWITCH_ROOT "/switchwaker.prev.log", COS_SWITCH_ROOT "/switchwaker.log"}) {
+        struct stat st;
+        if (stat(old, &st) != 0) {
+            continue;
+        }
+        char name[128];
+        sessionLogName(name, sizeof(name), st.st_mtime);
+        if (stat(name, &st) == 0 || rename(old, name) != 0) {
+            remove(old);
+        }
+    }
+    sessionLogName(gLogPath, sizeof(gLogPath), time(nullptr));
+    struct Log {
+        std::string name;
+        time_t mtime;
+    };
+    std::vector<Log> logs;
+    if (DIR* dir = opendir(kLogDir)) {
+        while (dirent* e = readdir(dir)) {
+            if (strncmp(e->d_name, "switchwaker_", 12) != 0) {
+                continue;
+            }
+            const std::string path = std::string(kLogDir) + "/" + e->d_name;
+            if (path == gLogPath) {
+                continue; // (a restart within the same second: reopened below)
+            }
+            struct stat st;
+            logs.push_back({path, stat(path.c_str(), &st) == 0 ? st.st_mtime : 0});
+        }
+        closedir(dir);
+    }
+    std::sort(logs.begin(), logs.end(), [](const Log& a, const Log& b) {
+        return a.mtime != b.mtime ? a.mtime < b.mtime : a.name < b.name;
+    });
+    for (size_t i = 0; i + kMaxSessionLogs <= logs.size(); i++) {
+        remove(logs[i].name.c_str());
+    }
+}
+
 void startLogs() {
     mkdir("/switch", 0777);
     mkdir("/switch/switchwaker", 0777);
     mkdir(COS_SWITCH_ROOT, 0777);
-    remove(kPrevLogPath);
-    rename(kLogPath, kPrevLogPath);
-    gLogFile = fopen(kLogPath, "w");
+    startSessionLog();
+    gLogFile = fopen(gLogPath, "w");
     mutexInit(&gRingLock);
     mutexInit(&gFileLock);
     condvarInit(&gRingChanged);
@@ -230,26 +297,6 @@ void startLogs() {
 }
 
 // ---- run options ---------------------------------------------------------------------------------
-void loadEnvFile() {
-    FILE* file = fopen(COS_SWITCH_ROOT "/env.txt", "r");
-    if (file == nullptr) {
-        sayf("[switch] no %s/env.txt; Switch defaults only\n", COS_SWITCH_ROOT);
-        return;
-    }
-    char line[512];
-    while (fgets(line, sizeof(line), file) != nullptr) {
-        line[strcspn(line, "\r\n")] = '\0';
-        char* equals = strchr(line, '=');
-        if (line[0] == '#' || line[0] == '\0' || equals == nullptr) {
-            continue;
-        }
-        *equals = '\0';
-        setenv(line, equals + 1, 1);
-        sayf("[switch] env.txt: %s=%s\n", line, equals + 1);
-    }
-    fclose(file);
-}
-
 void setDefault(const char* name, const char* value) {
     if (getenv(name) == nullptr) {
         setenv(name, value, 0);
@@ -322,7 +369,7 @@ bool gApmChanged = false;
 bool gApmHaveSaved = false;
 u32 gApmSaved = 0;
 
-// Applies one COS_SWITCH_GPU_PROFILE value; at start (pc_settings and env.txt already applied) and
+// Applies one COS_SWITCH_GPU_PROFILE value; at start (the settings file already applied) and
 // from the options menu. True if a configuration was accepted or nothing had to be done.
 bool setGpuProfile(const char* profile) {
     if (profile == nullptr || profile[0] == '\0') {
@@ -463,7 +510,8 @@ void reportSystem() {
          "image at 0x%llx\n",
          appletTypeName(applet), mode, (unsigned long long)(total >> 20), (unsigned long long)(used >> 20),
          (unsigned long long)cores, (unsigned long long)cos_switch_image_base());
-    sayf("[switch] logs: %s %s\n", kLogPath, gLogFile != nullptr ? "open" : "NOT open");
+    sayf("[switch] log: %s %s (the newest %zu sessions are kept in %s)\n", gLogPath,
+         gLogFile != nullptr ? "open" : "NOT open", kMaxSessionLogs, kLogDir);
     if (applet != AppletType_Application && applet != AppletType_SystemApplication) {
         sayf("[switch] WARNING: not started as an application: applets get far less memory than "
              "the game needs. Hold R while starting an installed game to open the Homebrew Menu in "
@@ -596,19 +644,25 @@ __attribute__((noreturn)) void __wrap_abort(void) {
 }
 
 void cos_switch_start(int argc, char** argv) {
+    debugsrv::keep_log(); // the debug server's log text from the first line (cos_switch_debug_start)
     startLogs();
     sayf("[switch] SwitchWaker, native port (phase 7); argv[0]=%s\n",
          argc > 0 && argv != nullptr && argv[0] != nullptr ? argv[0] : "-");
     reportSystem();
-    loadEnvFile();
-    // The options menu's settings file (native/include/pc/pc_settings.h): after env.txt, whose
-    // lines win over it, and before the Switch defaults below, which it overrides.
+    // The env.txt of earlier builds: its lines move into the settings file (menu settings as such,
+    // the rest into [dev]) before it is read, so they apply in this session already.
+    pc_settings_migrate_env_file(COS_SWITCH_ROOT "/env.txt", COS_SWITCH_ROOT "/env.txt.old");
+    // The options menu's settings file (native/include/pc/pc_settings.h), [dev] included: before
+    // the Switch defaults below, which it overrides.
     pc_settings_load_early();
+    // COS_DEBUG_SERVER (Depuración > "Servidor de depuración", at the next start): the debug server
+    // for development (cos_debug.cpp), off by default.
+    cos_switch_debug_start();
     // The USB live log (scripts/switch/usb_log.py) holds the console's USB port as 057e:3000 for
     // the whole run, so it is off by default (players: the port stays free, e.g. for SysDVR's USB
-    // mode); COS_USB_LOG=1 (env.txt, or Depuración > "Registro en directo por USB", at the next
-    // start) turns it on for development. The log file on the SD card is written either way.
-    // Started after env.txt and the settings file, so the lines before it are only in the file.
+    // mode); Depuración > "Registro en directo por USB" (COS_USB_LOG=1, at the next start) turns it
+    // on for development. The log file on the SD card is written either way. Started after the
+    // settings file, so the lines before it are only in the file.
     setDefault("COS_USB_LOG", "0");
     {
         const char* usb = getenv("COS_USB_LOG");
@@ -680,6 +734,19 @@ void cos_switch_exit(int code) {
 // 0 at run time too, whatever the load address: the crash reports of the first console run said
 // "image base=0x0". The base is the start of the mapping that holds this function: hbloader maps
 // the NRO's text segment, which begins at offset 0 (crt0), as one read-execute block.
+void cos_switch_restart(void) {
+    restoreGpuProfile();
+    reportMemory();
+    sayf("[switch] restart (debug server reload): the forwarder loads the NRO again\n");
+    cos_switch_flush_logs();
+    usb_log_stop(1000);
+    static const char kArg[] = "switchwaker debug reload";
+    const Result rc = appletRestartProgram(kArg, sizeof(kArg));
+    // (on success the system ends this process)
+    applyGpuProfile();
+    sayf("[switch] restart failed: appletRestartProgram rc 0x%x\n", rc);
+}
+
 uintptr_t cos_switch_image_base(void) {
     static uintptr_t sBase;
     if (sBase == 0) {

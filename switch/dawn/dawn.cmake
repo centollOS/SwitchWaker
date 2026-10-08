@@ -311,7 +311,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
     endif()
 
     # On top of the synchronous queue: GLES 3.0 sync objects instead of a glFinish per
-    # submission (COS_SWITCH_GL_FINISH=1 at run time brings the glFinish back).
+    # submission.
     file(READ "${DAWN_OPENGL_QUEUE_SOURCE}" DAWN_OPENGL_QUEUE_TEXT)
     if(NOT DAWN_OPENGL_QUEUE_TEXT MATCHES "mGLFencesInFlight")
         execute_process(
@@ -436,26 +436,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
-    # COS_SWITCH_GL_NO_ERROR=1 at run time: a KHR_no_error GL context (Mesa skips the error
-    # checks of every GL call), an opt-in A/B option; the ordinary context if Mesa refuses it.
-    set(DAWN_OPENGL_CONTEXT_EGL_SOURCE "${dawn_SOURCE_DIR}/src/dawn/native/opengl/ContextEGL.cpp")
-    file(READ "${DAWN_OPENGL_CONTEXT_EGL_SOURCE}" DAWN_OPENGL_CONTEXT_EGL_TEXT)
-    if(NOT DAWN_OPENGL_CONTEXT_EGL_TEXT MATCHES "COS_SWITCH_GL_NO_ERROR")
-        execute_process(
-            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
-                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-no-error-context.patch"
-            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
-            RESULT_VARIABLE DAWN_GL_NO_ERROR_PATCH_RESULT
-            OUTPUT_VARIABLE DAWN_GL_NO_ERROR_PATCH_OUTPUT
-            ERROR_VARIABLE DAWN_GL_NO_ERROR_PATCH_ERROR
-        )
-        if(NOT DAWN_GL_NO_ERROR_PATCH_RESULT EQUAL 0)
-            message(FATAL_ERROR
-                "Could not apply the Dawn Switch GL no-error context patch:\n"
-                "${DAWN_GL_NO_ERROR_PATCH_OUTPUT}${DAWN_GL_NO_ERROR_PATCH_ERROR}")
-        endif()
-    endif()
-
     # Pipelines whose stages translate to the same GLSL share one linked GL program (Mesa 20.1 on
     # Horizon has no program binaries, so each program costs a full compile and link on the one GL
     # context). Its own patch file, independent of the command-stats and texture-parameter ones.
@@ -559,31 +539,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
-    # On top of the pass and GPU timers: COS_SWITCH_GL_FBO_CACHE=1 keeps render pass framebuffers
-    # keyed by their attachments instead of creating and deleting one per pass, and drops repeated
-    # viewport/scissor/depth-range calls in a pass (SwitchFboCacheGL.h; docs/SWITCH_PERF_STUDY.md,
-    # option c). Off by default: the pass set-up is then unchanged.
-    if(NOT EXISTS "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchFboCacheGL.h")
-        execute_process(
-            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
-                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-fbo-cache.patch"
-            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
-            RESULT_VARIABLE DAWN_GL_FBO_CACHE_PATCH_RESULT
-            OUTPUT_VARIABLE DAWN_GL_FBO_CACHE_PATCH_OUTPUT
-            ERROR_VARIABLE DAWN_GL_FBO_CACHE_PATCH_ERROR
-        )
-        if(NOT DAWN_GL_FBO_CACHE_PATCH_RESULT EQUAL 0)
-            message(FATAL_ERROR
-                "Could not apply the Dawn Switch GL framebuffer cache patch:\n"
-                "${DAWN_GL_FBO_CACHE_PATCH_OUTPUT}${DAWN_GL_FBO_CACHE_PATCH_ERROR}")
-        endif()
-    endif()
-
-    # On top of the framebuffer cache: GL texture and buffer names are deleted once the GPU has
+    # On top of the GPU timers: GL texture and buffer names are deleted once the GPU has
     # finished the work submitted before their destruction (SwitchDeferredDeleteGL.h). libnx's
     # libdrm_nouveau waits for the GPU when Mesa frees a busy bo, and Dawn frees the swapchain
     # texture every frame: the next frame's first clear waited for the whole previous frame on the
-    # GPU (docs/SWITCH_PERF_STUDY.md, section 6). COS_SWITCH_GL_DEFER_DELETE=0 deletes at once.
+    # GPU (docs/SWITCH_PERF_STUDY.md, section 6).
     if(NOT EXISTS "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchDeferredDeleteGL.h")
         execute_process(
             COMMAND "${PATCH_EXECUTABLE}" -p1 -i
@@ -624,7 +584,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
     # On top of all the GL patches above: Aurora's per-draw dynamic-offset uniform buffer is bound
     # once per 64 KiB window and the record's position in it rides with the immediates (Tint's
     # UniformWindowOptions), instead of a glBindBufferRange (and an nvc0 cache invalidation) per
-    # draw. COS_SWITCH_GL_UBO_WINDOW=0 at run time for the old path (SwitchUniformWindowGL.h).
+    # draw (SwitchUniformWindowGL.h).
     if(NOT EXISTS "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchUniformWindowGL.h")
         execute_process(
             COMMAND "${PATCH_EXECUTABLE}" -p1 -i
@@ -643,10 +603,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
 
     # On top of the uniform window: a render pipeline change issues only the fixed-function GL
     # state calls whose value differs from what the pass's pipelines last set
-    # (COS_SWITCH_GL_STATE_CACHE=0 at run time for the old path).
+    # (PersistentPipelineState::AppliedState).
     file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/PersistentPipelineStateGL.h"
          DAWN_OPENGL_PERSISTENT_STATE_TEXT)
-    if(NOT DAWN_OPENGL_PERSISTENT_STATE_TEXT MATCHES "StateCacheEnabled")
+    if(NOT DAWN_OPENGL_PERSISTENT_STATE_TEXT MATCHES "struct AppliedState")
         execute_process(
             COMMAND "${PATCH_EXECUTABLE}" -p1 -i
                     "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-state-cache.patch"
@@ -684,7 +644,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
     endif()
 
     # The present split in two timers (blit to the window, which dequeues the NWindow buffer, and
-    # eglSwapBuffers) and COS_SWITCH_SWAP_INTERVAL (docs/SWITCH_PERF_STUDY.md, section 8).
+    # eglSwapBuffers) (docs/SWITCH_PERF_STUDY.md, section 8).
     file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchStatsGL.h" DAWN_OPENGL_SWITCH_STATS_TEXT)
     if(NOT DAWN_OPENGL_SWITCH_STATS_TEXT MATCHES "kPresentBlitNs")
         execute_process(
@@ -702,30 +662,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         endif()
     endif()
 
-    # COS_SWITCH_GL_FLUSH_PASSES=1: a glFlush after every render pass (an A/B of CPU/GPU overlap
-    # within a frame; docs/SWITCH_PERF_STUDY.md, section 8).
-    file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/CommandBufferGL.cpp" DAWN_OPENGL_COMMAND_BUFFER_TEXT)
-    if(NOT DAWN_OPENGL_COMMAND_BUFFER_TEXT MATCHES "COS_SWITCH_GL_FLUSH_PASSES")
-        execute_process(
-            COMMAND "${PATCH_EXECUTABLE}" -p1 -i
-                    "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-flush-passes.patch"
-            WORKING_DIRECTORY "${dawn_SOURCE_DIR}"
-            RESULT_VARIABLE DAWN_GL_FLUSH_PASSES_PATCH_RESULT
-            OUTPUT_VARIABLE DAWN_GL_FLUSH_PASSES_PATCH_OUTPUT
-            ERROR_VARIABLE DAWN_GL_FLUSH_PASSES_PATCH_ERROR
-        )
-        if(NOT DAWN_GL_FLUSH_PASSES_PATCH_RESULT EQUAL 0)
-            message(FATAL_ERROR
-                "Could not apply the Dawn Switch GL flush-passes patch:\n"
-                "${DAWN_GL_FLUSH_PASSES_PATCH_OUTPUT}${DAWN_GL_FLUSH_PASSES_PATCH_ERROR}")
-        endif()
-    endif()
-
     # On top of the GPU groups: the GPU timer's results scaled from the Tegra X1's PTIMER ticks to
-    # real time (x31.25/19.2; COS_SWITCH_GPU_TIMER_SCALE overrides; docs/SWITCH_PERF_STUDY.md,
-    # section 8).
+    # real time (x31.25/19.2; docs/SWITCH_PERF_STUDY.md, section 8).
     file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchGpuTimerGL.h" DAWN_OPENGL_GPU_TIMER_TEXT2)
-    if(NOT DAWN_OPENGL_GPU_TIMER_TEXT2 MATCHES "mScale")
+    if(NOT DAWN_OPENGL_GPU_TIMER_TEXT2 MATCHES "kScale")
         execute_process(
             COMMAND "${PATCH_EXECUTABLE}" -p1 -i
                     "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-gpu-timer-scale.patch"
@@ -784,8 +724,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
 
     # Bug B7: clip z to WebGPU's [0, w] with glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE) instead
     # of Tint's 2z - w remap, which rounded every vertex's depth to about 2^-24 of w and made
-    # Outset's shore foam decals flicker (SwitchClipControlGL.h; COS_SWITCH_GL_CLIP_CONTROL=0 at
-    # run time for the old remap).
+    # Outset's shore foam decals flicker (SwitchClipControlGL.h).
     if(NOT EXISTS "${dawn_SOURCE_DIR}/src/dawn/native/opengl/SwitchClipControlGL.h")
         execute_process(
             COMMAND "${PATCH_EXECUTABLE}" -p1 -i
@@ -806,9 +745,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
     # textures one row of blocks per glCompressedTexSubImage2D (257 calls for a 512x512 BC7 with
     # mips, each a Mesa staging bo and GPU copy): turning HD textures on blocked the render worker
     # for a second. One call per mip level instead (padded rows packed on the CPU), plus upload and
-    # texture creation counters. COS_SWITCH_GL_LEVEL_UPLOAD=0 at run time for the upstream path.
+    # texture creation counters.
     file(READ "${dawn_SOURCE_DIR}/src/dawn/native/opengl/CommandBufferGL.cpp" DAWN_OPENGL_COMMAND_BUFFER_TEXT)
-    if(NOT DAWN_OPENGL_COMMAND_BUFFER_TEXT MATCHES "SwitchLevelUploads")
+    if(NOT DAWN_OPENGL_COMMAND_BUFFER_TEXT MATCHES "kCompressedRepacks")
         execute_process(
             COMMAND "${PATCH_EXECUTABLE}" -p1 -i
                     "${CMAKE_CURRENT_LIST_DIR}/patches/dawn-switch-gl-compressed-upload.patch"

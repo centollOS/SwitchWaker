@@ -190,48 +190,6 @@ void* pc_mist_lowres_target(unsigned int* w, unsigned int* h) {
     return sBuffer.data();
 }
 
-// COS_MIST_AB or COS_SKY_AB: the A/B frame (one of them per run).
-static unsigned int mistAbFrame() {
-    static int sFrame = -1;
-    if (sFrame < 0) {
-        const char* v = getenv("COS_MIST_AB");
-        if (v == nullptr) {
-            v = getenv("COS_SKY_AB");
-        }
-        sFrame = v != nullptr ? atoi(v) : 0;
-    }
-    return (unsigned int)sFrame;
-}
-
-int pc_mist_ab_frame(void) {
-    return mistAbFrame() != 0 && pc_frame_count() + 1 == mistAbFrame();
-}
-
-void* pc_mist_ab_buffer(int index) {
-    static std::vector<unsigned char> sBuffers[3];
-    auto& b = sBuffers[index < 0 ? 0 : index > 2 ? 2 : index];
-    if (b.empty()) {
-        JKRPcHostAllocScope hostAlloc; // not the game's heaps
-        b.resize(2560 * 1440 * 4);
-    }
-    return b.data();
-}
-
-void* pc_mist_ab_show(void) {
-    const unsigned int ab = mistAbFrame();
-    if (ab == 0) {
-        return nullptr;
-    }
-    const unsigned int frame = pc_frame_count() + 1;
-    if (frame == ab + 1) {
-        return pc_mist_ab_buffer(1);
-    }
-    if (frame == ab + 2) {
-        return pc_mist_ab_buffer(2);
-    }
-    return nullptr;
-}
-
 // A quad over the current viewport textured with the RGBA8 copy texture named by buf, bilinear,
 // opaque (no blend), colour only or colour and alpha; z off. Leaves the projection orthographic
 // and PNMTX0 the identity.
@@ -304,20 +262,6 @@ int skyLowres() {
     return sSkyLowres;
 }
 } // namespace
-
-int pc_sky_ab_frame(void) { return getenv("COS_SKY_AB") != nullptr && pc_mist_ab_frame(); }
-
-void pc_ab_copy_efb(void* buf) {
-    GXSetTexCopySrc(0, 0, 640, 480);
-    GXSetTexCopyDst(640, 480, GX_TF_RGBA8, GX_FALSE);
-    GXCopyTex(buf, GX_FALSE);
-    GXPixModeSync();
-}
-
-void pc_sky_ab_restore(void) {
-    // The cleared EFB the sky started from (pc_sky_lowres_begin's copy), colour and alpha.
-    fullscreenTexture(sSkyBg.data(), 640, 480, true);
-}
 
 int pc_sky_lowres_begin(float vpNear, float vpFar, int hasSky, int copy2dEmpty) {
     sSkyActive = false;

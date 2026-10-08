@@ -1,22 +1,20 @@
 diff --git a/src/dawn/native/opengl/QueueGL.cpp b/src/dawn/native/opengl/QueueGL.cpp
-index be6f228..43ceafa 100644
+index be6f228..199f25f 100644
 --- a/src/dawn/native/opengl/QueueGL.cpp
 +++ b/src/dawn/native/opengl/QueueGL.cpp
-@@ -29,6 +29,13 @@
+@@ -29,6 +29,11 @@
  
  #include <vector>
  
 +#if defined(__SWITCH__)
 +#include <atomic>
 +#include <chrono>
-+#include <cstdlib>
-+#include <cstring>
 +#endif
 +
  #include "dawn/platform/DawnPlatform.h"
  #include "src/dawn/native/BlitBufferToDepthStencil.h"
  #include "src/dawn/native/CommandBuffer.h"
-@@ -44,6 +51,35 @@
+@@ -44,6 +49,34 @@
  #include "src/dawn/platform/tracing/TraceEvent.h"
  #include "src/utils/compiler.h"
  
@@ -27,8 +25,6 @@ index be6f228..43ceafa 100644
 +std::atomic<uint64_t> gSwitchFences{0};      // glFenceSync per submission
 +std::atomic<uint64_t> gSwitchWaits{0};       // blocking glClientWaitSync (WaitForQueueSerial)
 +std::atomic<uint64_t> gSwitchWaitNs{0};
-+std::atomic<uint64_t> gSwitchFinishes{0};    // glFinish per submission (COS_SWITCH_GL_FINISH=1)
-+std::atomic<uint64_t> gSwitchFinishNs{0};
 +std::atomic<uint64_t> gSwitchPendingFences{0};
 +
 +uint64_t SwitchNowNs() {
@@ -38,13 +34,14 @@ index be6f228..43ceafa 100644
 +}
 +}  // namespace
 +
-+// out: fences created, blocking waits, their ns, glFinish calls, their ns, fences in flight.
++// out: fences created, blocking waits, their ns, 0, 0 (formerly glFinish calls and their ns),
++// fences in flight.
 +extern "C" void dawn_switch_gl_queue_stats(uint64_t out[6]) {
 +    out[0] = gSwitchFences.load(std::memory_order_relaxed);
 +    out[1] = gSwitchWaits.load(std::memory_order_relaxed);
 +    out[2] = gSwitchWaitNs.load(std::memory_order_relaxed);
-+    out[3] = gSwitchFinishes.load(std::memory_order_relaxed);
-+    out[4] = gSwitchFinishNs.load(std::memory_order_relaxed);
++    out[3] = 0;
++    out[4] = 0;
 +    out[5] = gSwitchPendingFences.load(std::memory_order_relaxed);
 +}
 +#endif
@@ -52,24 +49,21 @@ index be6f228..43ceafa 100644
  namespace dawn::native::opengl {
  
  namespace {
-@@ -74,8 +110,10 @@ Queue::Queue(Device* device, const QueueDescriptor* descriptor) : QueueBase(devi
+@@ -74,7 +107,7 @@ Queue::Queue(Device* device, const QueueDescriptor* descriptor) : QueueBase(devi
          mEGLSyncType = EGL_SYNC_REUSABLE_KHR;
      } else {
  #if defined(__SWITCH__)
 -        // Diagnostic-only fallback for Mesa builds without EGL sync extensions.
 +        // Mesa builds without EGL sync extensions: GLES sync objects (mGLFencesInFlight).
          mEGLSyncType = EGL_NONE;
-+        const char* finish = std::getenv("COS_SWITCH_GL_FINISH");
-+        mUseGLFinish = finish != nullptr && std::strcmp(finish, "1") == 0;
  #else
          DAWN_UNREACHABLE();
- #endif
-@@ -196,6 +234,42 @@ void Queue::SetNeedsFenceSync() {
+@@ -196,6 +229,42 @@ void Queue::SetNeedsFenceSync() {
  ResultOrError<ExecutionSerial> Queue::WaitForQueueSerialImpl(ExecutionSerial waitSerial,
                                                               Nanoseconds timeout) {
      Device* device = ToBackend(GetDevice());
 +#if defined(__SWITCH__)
-+    if (mEGLSyncType == EGL_NONE && !mUseGLFinish) {
++    if (mEGLSyncType == EGL_NONE) {
 +        return device->ExecuteGL(SubmitMode::Passive, [&](const OpenGLFunctions& gl) -> auto {
 +            return mGLFencesInFlight.Use(
 +                [&](auto fencesInFlight) -> ResultOrError<ExecutionSerial> {
@@ -107,7 +101,7 @@ index be6f228..43ceafa 100644
      // This function is called after all dependent GL commands have been flushed in
      // Queue::SubmitImpl(), it's safe to use ExecuteGL().
      return device->ExecuteGL(SubmitMode::Passive, [&](const OpenGLFunctions& gl) -> auto {
-@@ -238,13 +312,34 @@ MaybeError Queue::SubmitFenceSync() {
+@@ -238,13 +307,24 @@ MaybeError Queue::SubmitFenceSync() {
      Device* device = ToBackend(GetDevice());
      return device->EnqueueAndFlushGL(
          SubmitMode::Passive, [&](const OpenGLFunctions& gl) -> MaybeError {
@@ -115,16 +109,6 @@ index be6f228..43ceafa 100644
              if (mEGLSyncType == EGL_NONE) {
 -                // Drain GL work before advancing Dawn's execution serial.
 -                DAWN_GL_TRY(gl, Finish());
-+                if (mUseGLFinish) {
-+                    // COS_SWITCH_GL_FINISH=1: drain GL work before advancing Dawn's serial.
-+                    const uint64_t start = SwitchNowNs();
-+                    DAWN_GL_TRY(gl, Finish());
-+                    gSwitchFinishes.fetch_add(1, std::memory_order_relaxed);
-+                    gSwitchFinishNs.fetch_add(SwitchNowNs() - start, std::memory_order_relaxed);
-+                    IncrementLastSubmittedCommandSerial();
-+                    mHasPendingUnsignaledCommands = false;
-+                    return {};
-+                }
 +                // The GL equivalent of the EGL fence below: CheckAndUpdateCompletedSerials polls
 +                // it, so the CPU never waits for the GPU here. glFlush makes sure it is signaled
 +                // without a later flush.
@@ -144,17 +128,14 @@ index be6f228..43ceafa 100644
              Ref<WrappedEGLSync> sync;
              DisplayEGL* display = ToBackend(device->GetPhysicalDevice())->GetDisplay();
              DAWN_TRY_ASSIGN(sync, WrappedEGLSync::Create(display, gl, mEGLSyncType, nullptr));
-@@ -327,14 +422,42 @@ MaybeError Queue::SubmitPendingCommandsImpl() {
+@@ -327,14 +407,36 @@ MaybeError Queue::SubmitPendingCommandsImpl() {
  }
  
  ResultOrError<ExecutionSerial> Queue::CheckAndUpdateCompletedSerials() {
 -    if (mEGLSyncType == EGL_NONE) {
-+#if defined(__SWITCH__)
-+    if (mEGLSyncType == EGL_NONE && mUseGLFinish) {
-         // SubmitFenceSync synchronously drained every submitted serial with glFinish.
-         return GetLastSubmittedCommandSerial();
-     }
-+#endif
+-        // SubmitFenceSync synchronously drained every submitted serial with glFinish.
+-        return GetLastSubmittedCommandSerial();
+-    }
      // TODO(crbug.com/40643114): Revisit whether this lock is needed for this backend.
      auto deviceGuard = GetDevice()->GetGuard();
  
@@ -188,7 +169,7 @@ index be6f228..43ceafa 100644
      // This function is called after all dependent GL commands have been flushed in
      // Queue::SubmitImpl(), it's safe to use ExecuteGL().
      return device->ExecuteGL(SubmitMode::Passive, [&](const OpenGLFunctions& gl) -> auto {
-@@ -371,6 +494,9 @@ MaybeError Queue::WaitForIdleForDestructionImpl() {
+@@ -371,6 +473,9 @@ MaybeError Queue::WaitForIdleForDestructionImpl() {
          DAWN_GL_TRY(gl, Finish());
          DAWN_TRY(CheckPassedSerials());
          DAWN_ASSERT(mFencesInFlight->empty());
@@ -199,19 +180,17 @@ index be6f228..43ceafa 100644
          return {};
      });
 diff --git a/src/dawn/native/opengl/QueueGL.h b/src/dawn/native/opengl/QueueGL.h
-index 6a7b251..a8c8697 100644
+index 6a7b251..77e5f3b 100644
 --- a/src/dawn/native/opengl/QueueGL.h
 +++ b/src/dawn/native/opengl/QueueGL.h
-@@ -80,6 +80,14 @@ class Queue final : public QueueBase {
+@@ -80,6 +80,12 @@ class Queue final : public QueueBase {
  
      // Has pending GL commands which are not associated with a fence.
      bool mHasPendingUnsignaledCommands = false;
 +
 +#if defined(__SWITCH__)
 +    // Horizon's Mesa has no EGL sync extension (mEGLSyncType == EGL_NONE): GLES 3.0 sync objects
-+    // (glFenceSync) track the submitted serials instead. COS_SWITCH_GL_FINISH=1 restores the
-+    // diagnostic fallback that drains the GPU with glFinish at every submission.
-+    bool mUseGLFinish = false;
++    // (glFenceSync) track the submitted serials instead.
 +    MutexProtected<std::deque<std::pair<GLsync, ExecutionSerial>>> mGLFencesInFlight;
 +#endif
  };

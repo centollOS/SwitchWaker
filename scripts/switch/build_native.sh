@@ -29,9 +29,15 @@
 #   --assets DIR      the asset headers generated from the player's disc, as for the Mac build
 #                     (build/native-mac/assets/GZLE01; native/README.md, "Asset headers")
 #   --recompcore DIR  RecompCore (ref/recompcore), for Dolphin's DSP HLE (native/tools/fetch_recompcore.sh)
-#   --dawn-src DIR    an already fetched Dawn source tree to reuse instead of downloading it
-#                     (default: build/switch-dawn-probe/_deps/dawn-src if a Dawn source was
-#                     fetched there before; the Horizon patches are applied to it if missing)
+#   --dawn-src DIR    a Dawn source tree to use as is (the Horizon patches are applied to it if
+#                     missing). Default: build/switch-dawn-src/<key>, a copy of the unpatched source
+#                     build/switch-dawn-src/pristine made once per patch set (the key: a hash of
+#                     switch/dawn/dawn.cmake and switch/dawn/patches). dawn.cmake patches the tree
+#                     in place and skips a patch whose marker is already there, so a tree patched
+#                     with older patches would keep their code: a changed patch set gets a fresh
+#                     tree, whose patched files are newer than the objects built from the last one.
+#                     Without pristine, it is extracted from Dawn's pinned tarball (the first
+#                     configure of each new tree then fetches Dawn's dependencies into it).
 #   --mesa DIR        the Mesa prefix to link (default: build/switch-mesa/prefix of this checkout,
 #                     else of the main checkout; built first with scripts/switch/build_mesa.sh
 #                     when neither exists): devkitPro's switch-mesa recipe plus switch/mesa/patches
@@ -64,7 +70,7 @@ while [[ $# -gt 0 ]]; do
         --stock-mesa) stock_mesa=1; shift ;;
         --jobs) jobs=$2; shift 2 ;;
         --target) target=$2; shift 2 ;;
-        -h|--help) sed -n '2,46p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,/^set -euo/p' "$0" | sed '$d'; exit 0 ;;
         *) echo "build_native: unknown option $1" >&2; exit 2 ;;
     esac
 done
@@ -90,12 +96,53 @@ first_existing() {
     done
     return 1
 }
+# The Dawn source for this patch set (see --dawn-src), made when missing; prints its path.
+prepare_dawn_src() {
+    local base key tree pristine url tarball
+    base=$(first_existing "$root/build/switch-dawn-src" "$main_root/build/switch-dawn-src" || true)
+    base=${base:-$root/build/switch-dawn-src}
+    key=$(cat "$root/switch/dawn/dawn.cmake" "$root"/switch/dawn/patches/*.patch | shasum -a 256 | cut -c1-12)
+    tree=$base/$key
+    if [[ -f $tree/CMakeLists.txt ]]; then
+        echo "$tree"
+        return
+    fi
+    pristine=$base/pristine
+    if [[ ! -f $pristine/CMakeLists.txt ]]; then
+        url=$(sed -n 's/^ *URL \(https:.*dawn.*\.tar\.gz\)$/\1/p' "$root/switch/dawn/dawn.cmake")
+        tarball=$base/$(basename "$url")
+        mkdir -p "$base"
+        echo "build_native: fetching Dawn's source ($url)" >&2
+        curl -fsSL -o "$tarball" "$url"
+        rm -rf "$pristine.tmp" && mkdir -p "$pristine.tmp"
+        tar -xzf "$tarball" -C "$pristine.tmp" --strip-components 1
+        mv "$pristine.tmp" "$pristine"
+    fi
+    echo "build_native: new Dawn source for this patch set: $tree" >&2
+    rm -rf "$tree.tmp"
+    cp -a "$pristine" "$tree.tmp"
+    # Newer than any object built from an earlier tree: the GL backend and Tint's GLSL writer (where
+    # the patches are, including ones since removed) and every file a patch names.
+    find "$tree.tmp/src/dawn/native/opengl" "$tree.tmp/src/tint/lang/glsl" -type f -exec touch {} +
+    local patch file dir
+    for patch in "$root"/switch/dawn/patches/*.patch; do
+        dir=$tree.tmp
+        [[ $(basename "$patch") == abseil-* ]] && dir=$tree.tmp/third_party/abseil-cpp
+        sed -n 's|^+++ b/\([^[:space:]]*\).*|\1|p' "$patch" | while read -r file; do
+            if [[ -f $dir/$file ]]; then touch "$dir/$file"; fi
+        done
+    done
+    mv "$tree.tmp" "$tree"
+    echo "$tree"
+}
+
 aurora=${aurora:-$(first_existing "$root/build/aurora-3227d76" "$main_root/build/aurora-3227d76" || true)}
 assets=${assets:-$(first_existing "$root/build/native-mac/assets/GZLE01" \
                                   "$main_root/build/native-mac/assets/GZLE01" || true)}
 recompcore=${recompcore:-$(first_existing "$root/ref/recompcore" "$main_root/ref/recompcore" || true)}
-dawn_src=${dawn_src:-$(first_existing "$root/build/switch-dawn-probe/_deps/dawn-src" \
-                                      "$main_root/build/switch-dawn-probe/_deps/dawn-src" || true)}
+if [[ -z $dawn_src ]]; then
+    dawn_src=$(prepare_dawn_src)
+fi
 
 if [[ $stock_mesa == 0 && -z $mesa ]]; then
     mesa=$(first_existing "$root/build/switch-mesa/prefix" "$main_root/build/switch-mesa/prefix" || true)
@@ -152,8 +199,9 @@ if [[ -n $dawn_src && -f $dawn_src/CMakeLists.txt && $renderer == deko3d ]]; the
     # option of dawn-switch-tint-position-y-up.patch, which the GL NRO's Dawn must not get (it changes
     # the key of Dawn's GLSL program cache). Its Dawn source is a copy of the shared one (an APFS
     # clone, timestamps kept, so the build tree stays incremental) with that patch, mounted at the same
-    # container path: build/dawn-src-deko3d of this checkout, made once and patched when needed.
-    dk_dawn=$root/build/dawn-src-deko3d
+    # container path: build/dawn-src-deko3d-<name of the shared source> of this checkout (one per Dawn
+    # source, so per patch set), made once and patched when needed.
+    dk_dawn=$root/build/dawn-src-deko3d-$(basename "$dawn_src")
     if [[ ! -f $dk_dawn/CMakeLists.txt ]]; then
         echo "build_native: copying $dawn_src to $dk_dawn (the deko3d NRO's Dawn source)"
         mkdir -p "$root/build"

@@ -1,10 +1,10 @@
-Switch: read Aurora's per-draw uniform buffer through a 64 KiB window (COS_SWITCH_GL_UBO_WINDOW)
+Switch: read Aurora's per-draw uniform buffer through a 64 KiB window
 
 Every GX draw has its own uniform record, so Aurora sets its uniform bind group at a new dynamic
 offset for almost every draw (1549 UBO binds in a 1553-draw Outset frame). Each became a
 glBindBufferRange; in Mesa 20.1 the next draw then re-validates both stages' constant buffers
 and nvc0 emits a MEM_BARRIER 0x1011 (invalidating the shader instruction, data and constant
-caches) before it. With the window (default on; COS_SWITCH_GL_UBO_WINDOW=0 for the old path):
+caches) before it. With the window:
 
 - PipelineLayoutGL picks the layout's first dynamic-offset uniform buffer binding;
 - the pipelines of that layout get one more internal immediate, uniformWindowBase, placed right
@@ -18,13 +18,13 @@ caches) before it. With the window (default on; COS_SWITCH_GL_UBO_WINDOW=0 for t
 Checked with switch/dawn/gltest (Dawn GL on Mesa llvmpipe): 1024 draws over two passes with a
 per-draw record at moving offsets, records repeated, the second pass near the buffer's end,
 pipeline switches between uniform layouts; pixel-exact against a CPU reference with the window
-off and on (and failing when the window offset is forced to 0); the 823 GX shaders of a Mac run
+(then a run-time toggle) off and on (and failing when the window offset is forced to 0); the 823 GX shaders of a Mac run
 to Outset translate, compile and link with the window on.
 diff --git a/src/dawn/native/opengl/CommandBufferGL.cpp b/src/dawn/native/opengl/CommandBufferGL.cpp
-index 7551d2f..7facda6 100644
+index dc0e1eb..e91571f 100644
 --- a/src/dawn/native/opengl/CommandBufferGL.cpp
 +++ b/src/dawn/native/opengl/CommandBufferGL.cpp
-@@ -49,6 +49,7 @@
+@@ -48,6 +48,7 @@
  #include "src/dawn/native/opengl/DeviceGL.h"
  #include "src/dawn/native/opengl/Forward.h"
  #include "src/dawn/native/opengl/ImmediatesLayoutGL.h"
@@ -32,7 +32,7 @@ index 7551d2f..7facda6 100644
  #include "src/dawn/native/opengl/PersistentPipelineStateGL.h"
  #include "src/dawn/native/opengl/PhysicalDeviceGL.h"
  #include "src/dawn/native/opengl/PipelineLayoutGL.h"
-@@ -327,12 +328,29 @@ class BindGroupTracker : public BindGroupTrackerBase<false> {
+@@ -325,12 +326,29 @@ class BindGroupTracker : public BindGroupTrackerBase<false> {
      void OnSetPipeline(RenderPipeline* pipeline) {
          BindGroupTrackerBase::OnSetPipeline(pipeline);
          mPipeline = pipeline;
@@ -62,7 +62,7 @@ index 7551d2f..7facda6 100644
          ResetInternalUniformDataBindgroupAndDirtyRange();
      }
  
-@@ -389,6 +407,13 @@ class BindGroupTracker : public BindGroupTrackerBase<false> {
+@@ -387,6 +405,13 @@ class BindGroupTracker : public BindGroupTrackerBase<false> {
                      switch (layout.type) {
                          case wgpu::BufferBindingType::Uniform:
                              target = GL_UNIFORM_BUFFER;
@@ -76,7 +76,7 @@ index 7551d2f..7facda6 100644
  
                              // Round uniform buffer binding sizes up to a multiple of 16 bytes since
                              // Tint will polyfill them as array<vec4u, ...>.
-@@ -556,6 +581,36 @@ class BindGroupTracker : public BindGroupTrackerBase<false> {
+@@ -554,6 +579,36 @@ class BindGroupTracker : public BindGroupTrackerBase<false> {
          return {};
      }
  
@@ -113,7 +113,7 @@ index 7551d2f..7facda6 100644
      void UpdateTextureBuiltinsUniformData(const OpenGLFunctions& gl,
                                            const TextureView* view,
                                            FlatBindingIndex textureIndex) {
-@@ -700,6 +755,19 @@ class BindGroupTracker : public BindGroupTrackerBase<false> {
+@@ -698,6 +753,19 @@ class BindGroupTracker : public BindGroupTrackerBase<false> {
  
      raw_ptr<PipelineGL> mPipeline = nullptr;
  
@@ -133,7 +133,7 @@ index 7551d2f..7facda6 100644
      // The data used for mPipeline's internal uniform buffer from current bind group.
      // Expecting no more than 4 texture bindings called as textureNumLevels/textureNumSamples
      // argument in a pipeline. Initialize the vector to this size to avoid frequent resizing.
-@@ -797,6 +865,13 @@ class RenderImmediatesTracker
+@@ -795,6 +863,13 @@ class RenderImmediatesTracker
      void SetFirstInstance(uint32_t firstInstance) {
          UpdateImmediates(offsetof(RenderImmediates, firstInstance), firstInstance);
      }
@@ -147,7 +147,7 @@ index 7551d2f..7facda6 100644
  };
  
  using ComputeImmediatesTracker = UserImmediatesTrackerBase<ComputeImmediates, ComputePipelineBase>;
-@@ -1635,6 +1710,7 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
+@@ -1578,6 +1653,7 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
                      DAWN_TRY(bindGroupTracker.Apply(gl));
                  }
  
@@ -155,7 +155,7 @@ index 7551d2f..7facda6 100644
                  immediates.SetFirstVertex(0);
                  immediates.SetFirstInstance(draw->firstInstance);
                  {
-@@ -1664,6 +1740,7 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
+@@ -1607,6 +1683,7 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
                      DAWN_TRY(bindGroupTracker.Apply(gl));
                  }
  
@@ -163,7 +163,7 @@ index 7551d2f..7facda6 100644
                  immediates.SetFirstVertex(draw->baseVertex);
                  immediates.SetFirstInstance(draw->firstInstance);
                  {
-@@ -1687,6 +1764,8 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
+@@ -1630,6 +1707,8 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
  
                  DAWN_TRY(vertexStateBufferBindingTracker.Apply(gl, 0, 0));
                  DAWN_TRY(bindGroupTracker.Apply(gl));
@@ -172,7 +172,7 @@ index 7551d2f..7facda6 100644
  
                  IndirectDrawMetadata::ValidatedIndirectDraw validatedDraw =
                      metadata.GetValidatedIndirectDraw(draw, indirectDrawIndex++);
-@@ -1711,6 +1790,8 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
+@@ -1654,6 +1733,8 @@ MaybeError CommandBuffer::ExecuteRenderPass(BeginRenderPassCmd* renderPass,
  
                  DAWN_TRY(vertexStateBufferBindingTracker.Apply(gl, 0, 0));
                  DAWN_TRY(bindGroupTracker.Apply(gl));
@@ -197,7 +197,7 @@ index 009eaf3..ef3527e 100644
  
      // first index offset
 diff --git a/src/dawn/native/opengl/PipelineLayoutGL.cpp b/src/dawn/native/opengl/PipelineLayoutGL.cpp
-index 1308099..6f6b3a3 100644
+index 1308099..780af2a 100644
 --- a/src/dawn/native/opengl/PipelineLayoutGL.cpp
 +++ b/src/dawn/native/opengl/PipelineLayoutGL.cpp
 @@ -29,7 +29,9 @@
@@ -210,12 +210,11 @@ index 1308099..6f6b3a3 100644
  
  namespace dawn::native::opengl {
  
-@@ -58,6 +60,13 @@ PipelineLayout::PipelineLayout(Device* device,
+@@ -58,6 +60,12 @@ PipelineLayout::PipelineLayout(Device* device,
                          case wgpu::BufferBindingType::Uniform:
                              mIndexInfo[group][bindingIndex] = uboIndex;
                              uboIndex++;
 +                            if (layout.hasDynamicOffset && !mUniformWindowBinding &&
-+                                switch_ubo_window::Enabled() &&
 +                                device->GetAdapter()->GetLimits().v1.maxUniformBufferBindingSize >=
 +                                    switch_ubo_window::kWindowSize) {
 +                                mUniformWindowBinding =
@@ -224,7 +223,7 @@ index 1308099..6f6b3a3 100644
                              break;
                          case wgpu::BufferBindingType::Storage:
                          case kInternalStorageBufferBinding:
-@@ -131,4 +140,9 @@ FlatBindingIndex PipelineLayout::GetInternalArrayLengthUniformBinding() const {
+@@ -131,4 +139,9 @@ FlatBindingIndex PipelineLayout::GetInternalArrayLengthUniformBinding() const {
      return mInternalArrayLengthUniformBinding;
  }
  
@@ -235,7 +234,7 @@ index 1308099..6f6b3a3 100644
 +
  }  // namespace dawn::native::opengl
 diff --git a/src/dawn/native/opengl/PipelineLayoutGL.h b/src/dawn/native/opengl/PipelineLayoutGL.h
-index 0ca081f..dc2ee56 100644
+index 0ca081f..26de06f 100644
 --- a/src/dawn/native/opengl/PipelineLayoutGL.h
 +++ b/src/dawn/native/opengl/PipelineLayoutGL.h
 @@ -28,6 +28,8 @@
@@ -252,7 +251,7 @@ index 0ca081f..dc2ee56 100644
      FlatBindingIndex GetInternalArrayLengthUniformBinding() const;
  
 +    // Switch (SwitchUniformWindowGL.h): the dynamic-offset uniform buffer binding read through a
-+    // window, if any (the layout's first one, when COS_SWITCH_GL_UBO_WINDOW is on).
++    // window, if any (the layout's first one).
 +    struct UniformWindowBinding {
 +        BindGroupIndex group;
 +        BindingIndex index;
@@ -327,10 +326,10 @@ index 1f754c6..0d10e0d 100644
              req.tintOptions.bgra_swizzle_locations.insert(static_cast<uint8_t>(i));
 diff --git a/src/dawn/native/opengl/SwitchUniformWindowGL.h b/src/dawn/native/opengl/SwitchUniformWindowGL.h
 new file mode 100644
-index 0000000..91efa35
+index 0000000..302ef8d
 --- /dev/null
 +++ b/src/dawn/native/opengl/SwitchUniformWindowGL.h
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,24 @@
 +// Switch (switch/dawn/patches/dawn-switch-gl-ubo-window.patch): a dynamic-offset uniform buffer
 +// read through a 64 KiB window.
 +//
@@ -342,47 +341,28 @@ index 0000000..91efa35
 +// reads it as array<vec4u, 4096> (Tint's UniformWindowOptions) and adds the record's position in
 +// the window, an internal immediate uploaded with the other immediates (one glUniform1uiv the draw
 +// does anyway), so the buffer is rebound only when a record falls outside the current window.
-+//
-+// COS_SWITCH_GL_UBO_WINDOW=0/1 at run time (read once).
 +#ifndef SRC_DAWN_NATIVE_OPENGL_SWITCHUNIFORMWINDOWGL_H_
 +#define SRC_DAWN_NATIVE_OPENGL_SWITCHUNIFORMWINDOWGL_H_
 +
 +#include <cstdint>
-+#include <cstdlib>
-+#include <cstring>
 +
 +namespace dawn::native::opengl::switch_ubo_window {
 +
 +// The window: 64 KiB, the GL_MAX_UNIFORM_BLOCK_SIZE of Mesa's nvc0 and llvmpipe.
 +inline constexpr uint32_t kWindowSize = 65536;
 +
-+#ifndef DAWN_SWITCH_UBO_WINDOW_DEFAULT
-+#define DAWN_SWITCH_UBO_WINDOW_DEFAULT 1
-+#endif
-+
-+inline bool Enabled() {
-+    static const bool enabled = [] {
-+        const char* v = std::getenv("COS_SWITCH_GL_UBO_WINDOW");
-+        if (v == nullptr || v[0] == '\0') {
-+            return DAWN_SWITCH_UBO_WINDOW_DEFAULT != 0;
-+        }
-+        return std::strcmp(v, "0") != 0;
-+    }();
-+    return enabled;
-+}
-+
 +}  // namespace dawn::native::opengl::switch_ubo_window
 +
 +#endif  // SRC_DAWN_NATIVE_OPENGL_SWITCHUNIFORMWINDOWGL_H_
 diff --git a/src/tint/lang/glsl/writer/common/options.h b/src/tint/lang/glsl/writer/common/options.h
-index 7d14b60..acf986d 100644
+index 7d14b60..cc68b80 100644
 --- a/src/tint/lang/glsl/writer/common/options.h
 +++ b/src/tint/lang/glsl/writer/common/options.h
 @@ -132,6 +132,25 @@ struct ArrayLengthFromUniformOptions {
      TINT_REFLECT(ArrayLengthFromUniformOptions, ubo_binding, bindpoint_to_size_index);
  };
  
-+/// Switch (COS_SWITCH_GL_UBO_WINDOW in Dawn's GL backend): one uniform buffer binding read through a
++/// Switch (SwitchUniformWindowGL.h in Dawn's GL backend): one uniform buffer binding read through a
 +/// window. The buffer is bound once for a whole window of `window_size` bytes and the shader adds
 +/// the record's position in that window, an internal immediate (in 16-byte units), to every load,
 +/// so that a dynamic offset that moves within the window needs no new glBindBufferRange. The

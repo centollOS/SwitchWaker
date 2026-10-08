@@ -496,18 +496,25 @@ open the PLAY scene is paused (hit-stop pause timer) and the game gets no pad in
   preset of `COS_BOOT_PRESET=sailing` on the file being played, in memory only, then to Windfall's
   sea room on the boat; PLAY scene only), a screenshot (`shot-<frame>.png` in `COS_RUN_DIR`,
   without the menu), reload the settings file; and the rows for developers: the perf log interval
-  and lines (`COS_PERF_EVERY`, `COS_PERF_LOG`), the GPU timers per group (`COS_GPU_GROUPS`), the USB
-  live log (`COS_USB_LOG`, Switch) and the real-time shadow A/B test (`COS_SHADOW_OFFSCREEN`).
+  and lines (`COS_PERF_EVERY`, `COS_PERF_LOG`), the hitch lines (`COS_HITCH_MS`), the HD texture
+  stats lines (`COS_HD_STATS_EVERY`), the GPU timers per group (`COS_GPU_GROUPS`), the USB live log
+  (`COS_USB_LOG`, Switch), the debug server (`COS_DEBUG_SERVER`, Switch, at the next start) and the
+  real-time shadow A/B test (`COS_SHADOW_OFFSCREEN`).
   Gráficos and Rendimiento keep the options meant for players.
 - Values are saved to `user/settings.ini` next to the executable (Switch:
   `/switch/switchwaker/native/user/settings.ini`; `COS_SETTINGS=<path>` names another file,
   and `run.sh` gives every run its own `<run dir>/settings.ini`). Lines `NAME=value`, or
   `NAME@handheld=` / `NAME@docked=` for the per-mode rows (internal and dynamic resolution, mist,
   sky): the Switch applies the other mode's values when docked or undocked; the Mac is handheld
-  unless `COS_OPERATION_MODE=docked`.
-- Precedence: the environment at start (the Mac's environment, the Switch's `env.txt`) wins over
-  the file, so test kits keep working; such rows show as fixed (`[fijo]`, `[set]` in English) and
-  cannot be changed.
+  unless `COS_OPERATION_MODE=docked`. The file may end with a `[dev]` section: `NAME=value` lines of
+  developer variables without a menu row, set in the environment at start; the menu writes it back
+  unchanged and ignores a menu setting there
+  ([switch/native/settings-dev.example.ini](../switch/native/settings-dev.example.ini)). It is how
+  the Switch, which has no environment, gets them (the `native/env.txt` of older builds is moved
+  into the file once and kept as `env.txt.old`).
+- Precedence: on the Mac and Linux the environment at start wins over the file (and its `[dev]`),
+  so test kits keep working; such rows show as fixed (`[fijo]`, `[set]` in English) and cannot be
+  changed. Nothing is fixed on the Switch.
 - Language: Spanish or English, as the shader loading screen (the console's language, else
   `LC_ALL` or `LANG`; `COS_LANG=es|en` overrides). The rows' texts are the `label`/`help` and
   `labelEn`/`helpEn` fields of `PcSettingDesc`; the log keeps the Spanish tab names.
@@ -545,7 +552,8 @@ recipe in `native/CMakeLists.txt`) and `COS_HEAP_CHECK=1` to check every JKR hea
 `scripts/switch/build_native.sh` builds this tree as a Switch NRO, `build/switch-native/switchwaker.nro`,
 in the translated port's devkitPro container, with the same asset headers and Aurora checkout as the
 Mac build: docs/SWITCH_BUILD.md, "Native port", has the build, the copy to the console, the run
-options (`COS_*` from an `env.txt` on the SD card) and the crash reports. The Switch build lives in
+options (the options menu, and `COS_*` developer variables in the `[dev]` section of
+`native/user/settings.ini` on the SD card) and the crash reports. The Switch build lives in
 `switch/native` (Aurora patches, a GameCube disc reader standing in for nod, the harness's platform
 layer); in this tree it only adds code under `#if defined(__SWITCH__)` in `src/pc` (no signals,
 `backtrace()` or `_Exit` there: libnx's exception handler, `svcQueryMemory` frame walks and an exit

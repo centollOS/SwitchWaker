@@ -144,7 +144,7 @@ void pc_harness_init(int argc, char* argv[]) {
     (void)argv;
     sStartNs = monotonicNs();
     // The options menu's settings file (pc_settings.h) into the environment before anything reads
-    // it (on the Switch cos_switch_start did it already, between env.txt and its defaults).
+    // it (on the Switch cos_switch_start did it already, before its defaults).
     pc_settings_load_early();
 
     // Line-buffered stdout: the game reports with printf/OSReport into a pipe or file; a watchdog

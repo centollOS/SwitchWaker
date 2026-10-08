@@ -75,7 +75,7 @@ size cap and few mips).
 
 Switch: `scripts/switch/push_hd_pack.sh build/hd-pack-512` copies the pack by file name into
 `sdmc:/switch/switchwaker/native/user/hd_textures/` (data first, `index.bin` last and read
-back), then `COS_HD_TEXTURES=1` in `native/env.txt`.
+back), then turn it on in the options menu (Gráficos > *Texturas HD*).
 
 | variable | default | |
 |---|---|---|
@@ -84,7 +84,7 @@ back), then `COS_HD_TEXTURES=1` in `native/env.txt`.
 | `COS_HD_BUDGET_MB` | 512 Switch, 1024 else | GPU memory for replacements |
 | `COS_HD_PUBLISH_MB` | 4 Switch, 12 else | uploads per frame |
 | `COS_HD_WORKERS` | 1 Switch, auto else | loader threads |
-| `COS_HD_STATS_EVERY` | 300 | `[cos] hd-textures` line: lookups hit/miss, loads, MiB, load ms avg/max, SD reads, published, cache MiB, evictions, over-budget, pending |
+| `COS_HD_STATS_EVERY` | 0 Switch, 300 else (menu *Estadísticas de texturas HD*) | `[cos] hd-textures` line: lookups hit/miss, loads, MiB, load ms avg/max, SD reads, published, cache MiB, evictions, over-budget, pending |
 | `COS_HD_CENSUS` | | file: the Dolphin name of every distinct static texture resolved (works with HD off) |
 | `COS_HD_TOGGLE_FRAMES` | | `a,b,...`: flip the setting at those frames (toggle checks) |
 | `COS_HD_MAX_SIZE` | `auto` | per mode (menu *Tamaño máx. texturas HD*): `auto` (512 handheld, 1024 docked), `256`, `512`, `1024`, `full` |
@@ -93,7 +93,6 @@ back), then `COS_HD_TEXTURES=1` in `native/env.txt`.
 | `COS_HD_COST_TEXTURE_US` / `_LEVEL_US` / `_MIB_US` | 300/100/2000 Switch, 50/5/300 else | the estimate: per texture, per mip level, per MiB |
 | `COS_HD_REGISTER_US` | 2000 | game-thread time per frame for (un)registering after a toggle |
 | `COS_HD_RESCAN_KB` | 2048 Switch, 8192 else | static textures looked up again per frame after a toggle (0: no limit) |
-| `COS_SWITCH_GL_LEVEL_UPLOAD` | `1` | Switch: `0` restores Dawn's row-by-row compressed uploads (A/B) |
 
 ## Smooth toggling and loading (lane hd-smooth)
 

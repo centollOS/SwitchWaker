@@ -29,6 +29,7 @@
 #include "pc/pc_settings.h"
 #include "pc/pc_dynres.h"
 #include "pc/pc_gpu_opts.h"
+#include "pc/pc_hd_textures.h"
 
 #include "pc_internal.h"
 
@@ -55,6 +56,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
 #include <string>
 #include <unistd.h>
 #include <vector>
@@ -434,6 +436,8 @@ void applyOverlayDetail(const char*, const char* v, void*) {
 }
 void applyPerfEvery(const char*, const char* v, void*) { perfSetEvery((unsigned int)atoi(v)); }
 void applyPerfLog(const char*, const char* v, void*) { gConfig.perfLog = strcmp(v, "0") != 0; }
+void applyHitch(const char*, const char* v, void*) { perfSetHitch((unsigned int)atoi(v)); }
+void applyHdStats(const char*, const char* v, void*) { pc_hd_textures_set_stats_every((unsigned int)atoi(v)); }
 void applyGpuGroups(const char*, const char* v, void*) { pc_gpu_groups_set(atoi(v)); }
 
 #define CHOICES(name) name, (int)(sizeof(name) / sizeof(name[0]))
@@ -469,6 +473,12 @@ const PcSettingChoice kPerfEvery[] = {
 const PcSettingChoice kGpuGroups[] = {{"0", "Desactivados", "Off"}, {"1", "Por grupo", "Per group"},
                                       {"2", "Por material J3D", "Per J3D material"}};
 const PcSettingChoice kShowHide[] = {{"1", "Mostrar", "Show"}, {"0", "Ocultar", "Hide"}};
+const PcSettingChoice kHitch[] = {{"0", "Desactivadas", "Off"}, {"33", "Más de 33 ms", "Over 33 ms"},
+                                  {"40", "Más de 40 ms", "Over 40 ms"}, {"50", "Más de 50 ms", "Over 50 ms"},
+                                  {"100", "Más de 100 ms", "Over 100 ms"}};
+const PcSettingChoice kHdStats[] = {{"0", "Desactivadas", "Off"}, {"150", "Cada 150 cuadros", "Every 150 frames"},
+                                    {"300", "Cada 300 cuadros", "Every 300 frames"},
+                                    {"600", "Cada 600 cuadros", "Every 600 frames"}};
 
 const PcSettingDesc kBuiltins[] = {
     // Gráficos
@@ -550,10 +560,15 @@ const PcSettingDesc kBuiltins[] = {
      "Automatic: only with a cold cache (first start); priority only, always or never."},
     // Depuración
     {"COS_PERF_EVERY", "Intervalo del registro perf",
-     "Cada cuántos cuadros se escribe una línea [cos] perf en el registro (switchwaker.log).",
+     "Cada cuántos cuadros se escribe una línea [cos] perf en el registro (native/logs/).",
      PC_SETTING_TAB_DEBUG, 0, CHOICES(kPerfEvery), "0", applyPerfEvery, nullptr, 105,
      "Perf log interval",
-     "How many frames between [cos] perf lines in the log (switchwaker.log)."},
+     "How many frames between [cos] perf lines in the log (native/logs/)."},
+    {"COS_HITCH_MS", "Líneas de tirones (hitch)",
+     "Escribe una línea [cos] hitch en el registro por cada cuadro del juego que tarde más que esto.",
+     PC_SETTING_TAB_DEBUG, 0, CHOICES(kHitch), "0", applyHitch, nullptr, 107,
+     "Hitch lines",
+     "Writes a [cos] hitch line to the log for every game frame that takes longer than this."},
     {"COS_GPU_GROUPS", "Temporizadores de GPU por grupo",
      "Mide la GPU por grupo de dibujo (cielo, fondo, opacos, partículas...) en las líneas perf-switch.",
      PC_SETTING_TAB_DEBUG, 0, CHOICES(kGpuGroups), "0", applyGpuGroups, nullptr, 100,
@@ -565,6 +580,11 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_DEBUG, 0, CHOICES(kShowHide), "1", applyPerfLog, nullptr, 110,
      "Perf lines in the log",
      "Hides or shows the [cos] perf and perf-switch lines (measuring goes on)."},
+    {"COS_HD_STATS_EVERY", "Estadísticas de texturas HD",
+     "Cada cuántos cuadros se escribe una línea [cos] hd-textures (aciertos, cargas, MiB) con las texturas HD activas.",
+     PC_SETTING_TAB_DEBUG, 0, CHOICES(kHdStats), kSwitch ? "0" : "300", applyHdStats, nullptr, 112,
+     "HD texture stats",
+     "How many frames between [cos] hd-textures lines (hits, loads, MiB) while HD textures are on."},
     {"COS_USB_LOG", "Registro en directo por USB",
      "Para desarrollo: envía el registro por USB a scripts/switch/usb_log.py mientras juegas. Ocupa el "
      "puerto USB (por ejemplo, SysDVR por USB no podrá usarlo); el registro en la tarjeta SD se escribe siempre.",
@@ -572,6 +592,13 @@ const PcSettingDesc kBuiltins[] = {
      "Live log over USB",
      "For development: sends the log over USB to scripts/switch/usb_log.py while you play. It holds "
      "the USB port (SysDVR over USB, for example, cannot use it); the log on the SD card is always written."},
+    {"COS_DEBUG_SERVER", "Servidor de depuración (red)",
+     "Solo para desarrollo: abre un puerto en la red local, sin contraseña, para scripts/switch/"
+     "switchwaker_debug.py (registro, capturas, warps, archivos). Ver docs/DEBUG_SERVER.md.",
+     PC_SETTING_TAB_DEBUG, PC_SETTING_RESTART | PC_SETTING_SWITCH_ONLY, CHOICES(kOnOff), "0", nullptr, nullptr, 125,
+     "Debug server (network)",
+     "For development only: opens a port on the local network, without a password, for scripts/switch/"
+     "switchwaker_debug.py (log, screenshots, warps, files). See docs/DEBUG_SERVER.md."},
     {"COS_SHADOW_OFFSCREEN", "Sombras en tiempo real (prueba A/B)",
      "Prueba de GPU: dónde se dibujan las sombras de los personajes; fuera del EFB evita cortar la pasada principal.",
      PC_SETTING_TAB_DEBUG, 0, CHOICES(kShadow), "0", applyShadow, nullptr, 130,
@@ -660,8 +687,7 @@ PcOperationMode rowMode(const PcSettingDesc* d) {
 
 void cycle(const PcSettingDesc* d, int dir) {
     if (pc_settings_locked(d->key)) {
-        toast(std::string(settingLabel(d)) +
-              (kSwitch ? T(": fijado por env.txt", ": set in env.txt") : T(": fijado por el entorno", ": set by the environment")));
+        toast(std::string(settingLabel(d)) + T(": fijado por el entorno", ": set by the environment"));
         return;
     }
     if (d->choiceCount <= 0) {
@@ -886,8 +912,7 @@ std::string rowNote(const Row& r) {
     }
     const PcSettingDesc* d = r.desc;
     if (pc_settings_locked(d->key)) {
-        return kSwitch ? T("fijado por env.txt", "set in env.txt")
-                       : T("fijado por variable de entorno", "set by an environment variable");
+        return T("fijado por variable de entorno", "set by an environment variable");
     }
     if ((d->flags & PC_SETTING_SWITCH_ONLY) && !kSwitch) {
         return T("solo Switch", "Switch only");
@@ -930,10 +955,9 @@ std::string rowHelp(const Row& r) {
     const char* descHelp = settingHelp(r.desc);
     std::string help = descHelp != nullptr ? descHelp : "";
     if (pc_settings_locked(r.desc->key)) {
-        help += kSwitch ? T(" Fijado en env.txt: quítalo de allí para cambiarlo aquí.",
-                            " Set in env.txt: remove it there to change it here.")
-                        : T(" Fijado por una variable de entorno de esta ejecución.",
-                            " Set by an environment variable of this run.");
+        // Only the Mac's and Linux's process environment locks a setting (pc_settings.h).
+        help += T(" Fijado por una variable de entorno de esta ejecución.",
+                  " Set by an environment variable of this run.");
     }
     return help;
 }
@@ -1354,6 +1378,15 @@ void saveShot(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t widt
 
 } // namespace
 
+bool menuBuiltinSetting(const char* key) {
+    for (const PcSettingDesc& d : kBuiltins) {
+        if (key != nullptr && strcmp(d.key, key) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool menuSmokeWantsRunCard() {
     return sSmoke.on && sSmoke.runCard;
 }
@@ -1405,7 +1438,39 @@ void menuFrame() {
     drawMenu();
 }
 
+// ---- the Switch debug server (switch/native/source/cos_debug.cpp): its thread asks, the game thread acts
+std::mutex sDebugMu;
+struct DebugWarp {
+    bool pending = false;
+    char stage[8] = {};
+    int room = 0, point = 0;
+} sDebugWarp;
+struct DebugStatus {
+    unsigned int frame = 0;
+    bool play = false;
+    char stage[8] = {};
+    int room = -1;
+} sDebugStatus;
+
+void debugFrameEnd(unsigned int frame) {
+    const bool play = inPlay();
+    std::lock_guard<std::mutex> lk(sDebugMu);
+    sDebugStatus.frame = frame;
+    sDebugStatus.play = play;
+    snprintf(sDebugStatus.stage, sizeof(sDebugStatus.stage), "%s", play ? dComIfGp_getStartStageName() : "");
+    sDebugStatus.room = play ? dComIfGp_getStartStageRoomNo() : -1;
+    // a warp waits for the game (a file being played) and for no scene change in progress
+    if (sDebugWarp.pending && play && !dComIfGp_isEnableNextStage()) {
+        sDebugWarp.pending = false;
+        setOpen(false);
+        writef(STDERR_FILENO, "[cos] debug server: warp to %s room %d point %d\n", sDebugWarp.stage, sDebugWarp.room,
+               sDebugWarp.point);
+        dComIfGp_setNextStage(sDebugWarp.stage, (s16)sDebugWarp.point, (s8)sDebugWarp.room, -1);
+    }
+}
+
 void menuFrameEnd(unsigned int frame) {
+    debugFrameEnd(frame);
     if (m.pendingShot) {
         m.pendingShot = false;
         if (captureFrame(frame, saveShot, nullptr)) {
@@ -1422,3 +1487,45 @@ void menuFrameEnd(unsigned int frame) {
 }
 
 } // namespace pc
+
+// The warp list, numbered as the menu's Travel page: "n  stage room point  label" lines.
+extern "C" int pc_debug_warp_list(char* out, size_t size) {
+    size_t used = 0;
+    for (int i = 0; i < pc::kMainWarpCount + pc::kAllWarpCount && used < size; i++) {
+        const pc::Warp& w = pc::warpAt(i);
+        const int n = snprintf(out + used, size - used, "%3d  %-8s room %2d point %3d  %s\n", i, w.stage, w.room, w.point,
+                               w.labelEn != nullptr ? w.labelEn : "");
+        if (n < 0) {
+            break;
+        }
+        used += (size_t)n;
+    }
+    return (int)std::min(used, size);
+}
+
+// A warp from the debug server: index >= 0 picks the list's entry, else stage / room / point. The game thread
+// applies it once a file is being played (pc_menu debugFrameEnd). 0: no such entry.
+extern "C" int pc_debug_warp(int index, const char* stage, int room, int point, char* done, size_t size) {
+    pc::Warp w{stage, room, point, nullptr, nullptr};
+    if (index >= 0) {
+        if (index >= pc::kMainWarpCount + pc::kAllWarpCount) {
+            return 0;
+        }
+        w = pc::warpAt(index);
+    }
+    std::lock_guard<std::mutex> lk(pc::sDebugMu);
+    pc::sDebugWarp.pending = true;
+    snprintf(pc::sDebugWarp.stage, sizeof(pc::sDebugWarp.stage), "%s", w.stage);
+    pc::sDebugWarp.room = w.room;
+    pc::sDebugWarp.point = w.point;
+    snprintf(done, size, "%s room %d point %d", pc::sDebugWarp.stage, w.room, w.point);
+    return 1;
+}
+
+// The game's state at the last frame end: frame, in play, stage, room.
+extern "C" int pc_debug_status(char* out, size_t size) {
+    std::lock_guard<std::mutex> lk(pc::sDebugMu);
+    return snprintf(out, size, "frame %u\nstage %s room %d%s\n", pc::sDebugStatus.frame,
+                    pc::sDebugStatus.play ? pc::sDebugStatus.stage : "-", pc::sDebugStatus.room,
+                    pc::sDebugStatus.play ? "" : " (not playing a file)");
+}

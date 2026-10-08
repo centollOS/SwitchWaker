@@ -2,23 +2,22 @@
 # Copy the native port's NRO and its inputs to the console over USB (MTP) and pull back its logs.
 #
 #   scripts/switch/push.sh [--build] [--no-pipeline-cache] [native|deko3d|FILE.nro]...   (default: native)
-#   scripts/switch/push.sh --logs
 #   scripts/switch/push.sh --disc DISC.iso
-#   scripts/switch/push.sh --native-env ENV.txt
 #   scripts/switch/push.sh --pipeline-cache [FILE.db]
 #
 # Enable USB file transfer on the console first (Horizon's own, haze or DBI).
 # Files go to sdmc:/switch/switchwaker/, are read back, and must match
-# the local SHA-256. --build runs scripts/switch/build_native.sh first. --logs
-# copies the native port's logs into build/switch-logs/native/. --disc copies
+# the local SHA-256. --build runs scripts/switch/build_native.sh first. (--logs is gone: the
+# session logs come from scripts/switch/switchwaker_debug.py lastlog.) --disc copies
 # the player's disc image as GZLE01.iso (all the native port reads; skipped if
 # already on the console with the same size). `native` is the native port's NRO
 # (scripts/switch/build_native.sh), switchwaker.nro; `deko3d` the deko3d NRO
 # (build_native.sh --renderer deko3d), switchwaker_dk.nro, which goes to sdmc:/switch/switchwaker_dk/
 # with its own initial_pipeline_cache.db and initial_dksh_cache.bin (the DKSH cache built next to it;
-# it reads the disc, env.txt and native/ of sdmc:/switch/switchwaker/, and logs to
-# native/switchwaker_dk.log);
-# --native-env copies a run options file as its native/env.txt. --pipeline-cache copies the
+# it reads the disc and native/ of sdmc:/switch/switchwaker/, and logs to
+# native/logs/switchwaker_dk_<date>_<time>.log).
+# (Run options live in native/user/settings.ini, written by the in-game options menu; developer
+# variables go in its [dev] section: switch/native/settings-dev.example.ini.) --pipeline-cache copies the
 # bundled pipeline cache (default native/data/initial_pipeline_cache.db, the committed one that
 # native/tools/gen_pipeline_cache.sh updates) as initial_pipeline_cache.db next to the NRO, where
 # Aurora seeds its pipeline cache from at every start, and checks the read-back. Pushing an NRO
@@ -49,16 +48,6 @@ if [[ ${1:-} == --disc ]]; then
     trap 'rm -rf "$staging"' EXIT
     ln -s "$(cd "$(dirname "$disc")" && pwd)/$(basename "$disc")" "$staging/GZLE01.iso"
     "$tool" push-many "$remote_dir" "$staging/GZLE01.iso"
-    exit 0
-fi
-
-if [[ ${1:-} == --native-env ]]; then
-    env_file=${2:?usage: push.sh --native-env ENV.txt}
-    staging=$(mktemp -d)
-    trap 'rm -rf "$staging"' EXIT
-    cp "$env_file" "$staging/env.txt"
-    "$tool" push "$staging/env.txt" "$remote_dir/native"
-    echo "pushed $env_file as $remote_dir/native/env.txt"
     exit 0
 fi
 
@@ -93,14 +82,11 @@ if [[ ${1:-} == --pipeline-cache ]]; then
 fi
 
 if [[ ${1:-} == --logs ]]; then
-    # The native port's logs (switch/native/source/cos_switch.cpp); status 3: no log written yet.
-    mkdir -p "$root/build/switch-logs/native"
-    for log in switchwaker.log switchwaker.prev.log switchwaker_dk.log switchwaker_dk.prev.log; do
-        status=0
-        "$tool" pull "$remote_dir/native" "$log" "$root/build/switch-logs/native/$log" || status=$?
-        [[ $status -eq 0 || $status -eq 3 ]] || exit "$status"
-    done
-    exit 0
+    # The session logs are named by their start time (native/logs/switchwaker_<date>_<time>.log), which MTP
+    # cannot list here: the debug server fetches the newest, or copy them from the SD card.
+    echo "push: --logs is gone: scripts/switch/switchwaker_debug.py lastlog (docs/DEBUG_SERVER.md)," >&2
+    echo "      or copy sdmc:/switch/switchwaker/native/logs/ from the SD card" >&2
+    exit 2
 fi
 
 build=0

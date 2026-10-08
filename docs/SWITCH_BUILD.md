@@ -84,7 +84,6 @@ scripts/switch/build_native.sh       # build/switch-native/switchwaker.nro and s
 ```sh
 scripts/switch/push.sh --disc /path/to/GZLE01.iso   # once: the disc image (skipped if already there)
 scripts/switch/push.sh native                       # the NRO and the bundled pipeline cache, read back and checked by SHA-256
-scripts/switch/push.sh --native-env my-env.txt      # optional: run options (see below)
 scripts/switch/push.sh --pipeline-cache             # only the bundled pipeline cache (see "Pipeline precompile")
 ```
 
@@ -95,9 +94,8 @@ SD card layout:
 | `switch/switchwaker/switchwaker.nro` | the app: "SwitchWaker" in the Homebrew Menu |
 | `switch/switchwaker/GZLE01.iso` | your disc image |
 | `switch/switchwaker/initial_pipeline_cache.db` | the pipelines to precompile at boot (`native/data/`, committed; `build_native.sh` puts a copy next to the NRO). Without it there is no warm-up and no "Preparing shaders" screen: the opening cutscene starts at once and every pipeline is built when first drawn |
-| `switch/switchwaker/native/env.txt` | optional run options |
-| `switch/switchwaker/native/switchwaker.log`, `switchwaker.prev.log` | this run's log and the previous one's |
-| `switch/switchwaker/native/user/` | memory card (`USA/Card A`), Aurora's caches |
+| `switch/switchwaker/native/logs/` | the session logs, `switchwaker_<date>_<time>.log`, the 10 most recent (the newest is this run) |
+| `switch/switchwaker/native/user/` | memory card (`USA/Card A`), Aurora's caches, `settings.ini` (the options menu's settings and the developer `[dev]` section, see below) |
 
 ## The deko3d NRO (experimental)
 
@@ -139,8 +137,8 @@ scripts/switch/push.sh deko3d                      # to sdmc:/switch/switchwaker
 | `switch/switchwaker_dk/switchwaker_dk.nro` | "SwitchWaker (deko3d)" in the Homebrew Menu |
 | `switch/switchwaker_dk/initial_pipeline_cache.db` | the same bundled pipeline list as the GL NRO's (Aurora reads it next to the NRO) |
 | `switch/switchwaker_dk/initial_dksh_cache.bin` | the DKSH cache (about 6 MB) |
-| `switch/switchwaker/GZLE01.iso`, `switch/switchwaker/native/env.txt`, `native/user/` | shared with the GL NRO: the disc, the run options, saves, settings and Aurora's pipeline list cache |
-| `switch/switchwaker/native/switchwaker_dk.log`, `switchwaker_dk.prev.log` | the deko3d NRO's logs (`push.sh --logs` pulls them with the GL NRO's) |
+| `switch/switchwaker/GZLE01.iso`, `native/user/` | shared with the GL NRO: the disc, saves, settings (with their `[dev]` run options) and Aurora's pipeline list cache |
+| `switch/switchwaker/native/logs/switchwaker_dk_<date>_<time>.log` | the deko3d NRO's session logs, among the GL NRO's (the 10 newest kept); `switchwaker_debug.py lastlog` fetches the newest |
 
 - Run options of its own: `COS_DK_TEST_PATTERN=1` draws a test pattern of deko3d's conventions
   under the menu (four coloured corners, two depth-tested squares, a depth-range check, a textured
@@ -161,33 +159,38 @@ scripts/switch/push.sh deko3d                      # to sdmc:/switch/switchwaker
 
 Start the Homebrew Menu in title mode (hold **R** while opening an installed game; an applet has far
 less memory than the game needs, and the log says so) and open **SwitchWaker**. The CPU
-stays at its stock 1020 MHz. With `COS_USB_LOG=1` in `env.txt` (or Depuración > "Registro en
-directo por USB", at the next start; off by default, since it holds the USB port for the whole run)
+stays at its stock 1020 MHz. With Depuración > "Registro en directo por USB" (`COS_USB_LOG`, at the
+next start; off by default, since it holds the USB port for the whole run)
 and USB connected, `uv run scripts/switch/usb_log.py --out build/switch-logs/native-live.log`
-shows the log live.
+shows the log live. Over the network instead, without holding the USB port: the debug server
+(Depuración > "Servidor de depuración", [DEBUG_SERVER.md](DEBUG_SERVER.md)) streams it, deploys and restarts builds,
+and takes screenshots.
 
-Run options come from `native/env.txt`, one `NAME=value` per line, with `#` comments
-([switch/native/env.example.txt](../switch/native/env.example.txt)); they are the Mac's `COS_*`
-variables ([native/README.md](../native/README.md), "Running switchwaker"). Without the file:
-`COS_DISC=/switch/switchwaker/GZLE01.iso`, `COS_RUN_DIR=/switch/switchwaker/native`,
-`COS_STALL_S=90`, `COS_ASPECT=16:9` (the widescreen
-option on the 1280x720 screen; `COS_ASPECT=4:3` gives the GameCube picture, pillarboxed) and
-`COS_FB_SCALE=1.5` (the internal resolution, see below). The defaults are for players: no
-frame-rate panel and no perf or hitch lines in the log. For a measuring run put
-`COS_PERF_EVERY=60`, `COS_HITCH_MS=50` and `COS_FPS_OVERLAY=1` in `env.txt` (the lines below
-assume them). `scripts/switch/perf_scenes.py centollos.log` summarises such a log per scene
+Run options are the Mac's `COS_*` variables ([native/README.md](../native/README.md), "Running
+switchwaker"). On the Switch they come from `native/user/settings.ini`: the options menu (below)
+writes its rows there, and a `[dev]` section at the end of the file holds developer variables
+without a menu row, one `NAME=value` per line, set in the environment at start
+([switch/native/settings-dev.example.ini](../switch/native/settings-dev.example.ini); edit it on the
+SD card or with the debug server's `get`/`put`). Without the file: `COS_DISC=/switch/switchwaker/GZLE01.iso`,
+`COS_RUN_DIR=/switch/switchwaker/native`, `COS_STALL_S=90`, `COS_ASPECT=16:9` (the widescreen option
+on the 1280x720 screen; 4:3 gives the GameCube picture, pillarboxed) and `COS_FB_SCALE=1.5` (the
+internal resolution, see below). The defaults are for players: no frame-rate panel, no perf, hitch
+or HD texture stats lines in the log, no debug server, no USB log. For a measuring run set
+Depuración > perf interval 60 and hitch lines over 50 ms, and Rendimiento > FPS counter on (the
+lines below assume them; `scripts/switch/perf_scenes.py centollos.log` summarises such a log per scene
 (`stage:room`) and classifies each 60-frame window as GPU-, render-worker-, game-bound, compile or
-paced ([DEKO3D_MIGRATION_PLAN.md](DEKO3D_MIGRATION_PLAN.md) sections 2.3 and 2.4).
+paced, [DEKO3D_MIGRATION_PLAN.md](DEKO3D_MIGRATION_PLAN.md) sections 2.3 and 2.4). The `native/env.txt` of earlier builds is no longer read: the first start
+of a newer build moves its lines into `settings.ini` (menu settings as such, every other variable
+into `[dev]`; `[cos] settings: env.txt ...` lines in the log) and renames it `env.txt.old`.
 
 Options menu: **Minus (−)** opens it in game (B closes it; the game pauses meanwhile). It changes
 most of these options at run time and saves them to `native/user/settings.ini` on the SD card, with
 separate values for handheld and docked where it says *[portátil]* / *[sobremesa]* (applied when the
-console is docked or undocked). A line in `env.txt` wins over the menu's file: that row shows as
-fixed (`[fijo]`); remove the line from `env.txt` to set it from the menu ([native/README.md](../native/README.md),
-"Options menu"). To try sailing on an early file: Depuración > **Navegar (barco, vela y batuta)** gives
+console is docked or undocked) ([native/README.md](../native/README.md), "Options menu"). A menu
+setting in `[dev]` is ignored (`[cos] settings: [dev] NAME ignored` in the log). To try sailing on an early file: Depuración > **Navegar (barco, vela y batuta)** gives
 the file being played the boat, the sail (X), the wind baton (Y), the wind song and the open sea, and
 puts the player on the boat next to Windfall; it stays in memory unless the game is saved
-(`COS_BOOT_PRESET=sailing` in `env.txt` does the same on a fresh file at boot).
+(`COS_BOOT_PRESET=sailing` in `[dev]` does the same on a fresh file at boot).
 
 Internal resolution: `COS_FB_SCALE` is Aurora's frame-buffer scale (`VISetFrameBufferScale`, the
 "internal resolution" setting of Dusklight): the game's 640x480 EFB times the scale, widened to the
@@ -204,7 +207,7 @@ What the log shows, in order (the same `[cos]` lines as on the Mac; values vary)
 ```
 [switch] SwitchWaker, native port (phase 7); argv[0]=sdmc:/switch/switchwaker/switchwaker.nro
 [switch] SwitchWaker: application (title mode); memory 3xxx MiB, ... core mask 0x7; image at 0x...
-[switch] logs: /switch/switchwaker/native/switchwaker.log open
+[switch] log: /switch/switchwaker/native/logs/switchwaker_2026-10-08_17-00-00.log open (the newest 10 sessions are kept in /switch/switchwaker/native/logs)
 [switch] USB live log off (COS_USB_LOG=1 turns it on): the USB port is free
 [cos] harness: smoke=- milestone=- timeout=0s stall=90s ...
 [cos] perf: game-thread frame times every 60 frames (COS_PERF_EVERY)  <- COS_PERF_EVERY=60 only
@@ -309,7 +312,8 @@ EFB copy conversions and scaled blits ("TexCopyConv"), the present pass, the ImG
 copies; "first pass" is the first render pass of each frame alone. p95 and max are over the frames
 read back in the window. The present blit to the window surface (`eglSwapBuffers` side) is not
 included. If Mesa does not expose the extension the line says so (and the overlay shows "gpu no
-timer"); `COS_SWITCH_GPU_TIMER=0` in `env.txt` turns the queries off for an A/B run. The frame-rate
+timer"). The query results are scaled from the Tegra's PTIMER ticks to real time (x1.6276,
+`dawn-switch-gl-gpu-timer-scale.patch`). The frame-rate
 panel shows the same GPU ms per frame. If GPU ms per frame is about the frame time, the frame is
 GPU-bound and the internal resolution (`COS_FB_SCALE`) is the lever.
 The sixth line is each thread's CPU time per game frame from the kernel's per-thread tick count
@@ -333,39 +337,27 @@ to the system's; every Result is logged (`[switch] gpu profile:`), then `[switch
 gpu profile:` reads the clocks back. apm keeps a configuration per mode and swaps them on docking,
 so docked stays at the system's 768 MHz (no official docked configuration with CPU 1020 is faster)
 and nothing is re-applied. The previous handheld configuration is restored at exit and on a crash.
-Title mode only (apm is the application's service). Env files for the 720p target:
-`build/switch-envs/default720-460.txt` and `default720-384.txt`.
-`COS_SWITCH_GL_NO_ERROR=1` in `env.txt` makes Dawn ask for a `KHR_no_error` GL context
-(`switch/dawn/patches/dawn-switch-gl-no-error-context.patch`), in which Mesa skips the error
-checks of every GL call, draw and uniform validation included; `[dawn] COS_SWITCH_GL_NO_ERROR:` in
-the log says whether Mesa accepted it. It is an A/B option for the replay times: in such a context
-a GL error has undefined results.
+Title mode only (apm is the application's service). The menu's Rendimiento > "Perfil de GPU
+(portátil)" row sets it.
 Depth uses WebGPU's [0, w] clip range in GL as well (on by default; bug B7,
 `switch/dawn/patches/dawn-switch-gl-clip-control.patch`, `SwitchClipControlGL.h`): Dawn sets
 `glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE)` (`GL_EXT_clip_control`, which the console's Mesa
 exposes) and Tint no longer rewrites each vertex's z as `2z - w` for GL's [-w, w] range. That
 rewrite rounded the depth to about 2^-24 of the distance (Aurora uses reversed Z with the game's
 near plane of 1), so decals a unit above another surface, such as Outset's shore foam, lost the
-depth test in patches that flickered as the camera moved. `[dawn] COS_SWITCH_GL_CLIP_CONTROL:` in
-the log says which path runs; `COS_SWITCH_GL_CLIP_CONTROL=0` in `env.txt` brings the rewrite back
-(A/B). The shaders change with it, so the first run after the update rebuilds them (cold shader
-cache). `COS_SMOKE=shore-foam` with `COS_BOOT_STAGE=sea:44:8` in `env.txt` runs the Mac's
+depth test in patches that flickered as the camera moved. `[dawn] clip control:` in the log says
+which path runs (the rewrite remains only when the context has no `glClipControl`). The shaders
+change with it, so the first run after the update rebuilds them (cold shader
+cache). `COS_SMOKE=shore-foam` with `COS_BOOT_STAGE=sea:44:8` in `[dev]` runs the Mac's
 regression check of the foam on the console (`[cos] shore-foam:` lines; native/README.md).
-`COS_SWITCH_GL_FBO_CACHE=1` in `env.txt` (off by default; `switch/dawn/patches/dawn-switch-gl-fbo-cache.patch`,
-`SwitchFboCacheGL.h`) keeps each render pass's framebuffer object, keyed by its attachments (GL
-texture name, level, layer, attachment point), instead of `glGenFramebuffers`, one
-`glFramebufferTexture2D` per attachment, `glDrawBuffers` and `glDeleteFramebuffers` per pass; skips
-the pass's `glBindFramebuffer(GL_READ_FRAMEBUFFER, 0)`; and leaves out `glViewport`, `glScissor` and
-`glDepthRangef` calls that repeat what the pass already set. A texture drops its cached framebuffers
-before `glDeleteTextures` (GL names are reused). `[dawn] COS_SWITCH_GL_FBO_CACHE:` in the log
-confirms it; the "fbo" share of the `execute split` line is what it saves. The game-side GPU options
+The game-side GPU options
 `COS_SHADOW_OFFSCREEN` and `COS_DOF` are in `native/README.md` (`native/include/pc/pc_gpu_opts.h`).
 GL texture and buffer names are deleted only once the GPU has finished the work submitted before
 their Dawn object was destroyed (on by default; `switch/dawn/patches/dawn-switch-gl-deferred-delete.patch`,
 `SwitchDeferredDeleteGL.h`): libnx's `libdrm_nouveau` waits for the GPU when Mesa frees a busy
 buffer object, and Dawn frees its swapchain texture after every present, which made the next
 frame's first clear wait for the whole previous frame on the GPU (`docs/SWITCH_PERF_STUDY.md`,
-section 6). `COS_SWITCH_GL_DEFER_DELETE=0` deletes at once again (A/B). The
+section 6). The
 `[cos] perf-switch gl stall:` line shows the first render pass's clear time per frame (tens of us
 when nothing waits) and the deferred, deleted and pending names.
 
@@ -377,17 +369,13 @@ worker near the frame time means the worker, not the game thread, sets the frame
 GL queue has no EGL sync extension on the console's Mesa: it used to call `glFinish` after every
 submission (the CPU waited for the GPU each frame); it now puts a GLES sync object in
 (`switch/dawn/patches/dawn-switch-gl-fence-queue.patch`, the "gl ... fences" count) and polls it.
-`COS_SWITCH_GL_FINISH=1` in `env.txt` brings the `glFinish` back for comparison ("glFinish" count
-and time). `COS_SWITCH_CORES=pinned` in `env.txt` (off by default) pins Aurora's render worker to
-core 2 alone and JAudio's audio thread and the game's DVD thread to core 1 when they start
-(`switch/native/source/thread_wrap.c`; `[switch] COS_SWITCH_CORES=pinned:` lines in the log): by
-default every helper thread prefers core 1 or 2 in turn and Horizon does not time-slice threads of
-equal priority, so the worker can wait behind the audio mixer (compare the worker's CPU time in
-the `perf-switch cpu` line with and without it). Every game frame whose busy time is over `COS_HITCH_MS` (off by default; `COS_HITCH_MS=50` in
-`env.txt` sets the threshold) gets one `[cos] hitch frame N: busy ... ms (wall ...): events, begin_frame, cpd, aud, logic,
+Every helper thread prefers core 1 or 2 in turn (`switch/native/source/thread_wrap.c`) and Horizon
+does not time-slice threads of equal priority; Aurora's pipeline compile thread is kept off the
+render worker's core. Every game frame whose busy time is over `COS_HITCH_MS` (off by default; Depuración > "Líneas de tirones
+(hitch)" sets the threshold) gets one `[cos] hitch frame N: busy ... ms (wall ...): events, begin_frame, cpd, aud, logic,
 painter, end_frame, other; pipelines +n (q queued), tex upload KiB, res loads +n last <path>,
 scene NAME (new); switch: slot wait, staging wait, queue-full wait, worker busy (encode, submit,
-present, events), gl fence wait, glFinish, pipeline compile ms (count), dvd reads; dawn gl: draws,
+present, events), gl fence wait, pipeline compile ms (count), dvd reads; dawn gl: draws,
 tex binds, texparams, execute, other work, release ms` line.
 
 Aurora's caches (`user/cache/dawn_cache.db`, `pipeline_cache.db`) are sqlite databases. History:
@@ -404,7 +392,7 @@ pipeline missed the cache). Now:
   is rolled back from it at the next open. A kill is not a power loss: what `write()` handed the
   file system reaches the card, so no syncs are needed. Each cache logs
   `<path>: journal_mode=PERSIST, synchronous=OFF` when it opens. `COS_SWITCH_SQLITE_JOURNAL` in
-  `env.txt` picks `persist` (default), `truncate`, `delete` or `memory` (the old setting) without a
+  `[dev]` picks `persist` (default), `truncate`, `delete` or `memory` (the old setting) without a
   rebuild. A journal that does not work falls back to `memory` for the run with one line
   (`...: writing through the PERSIST journal failed (...); journal_mode=MEMORY for this run` at
   open, where a small write makes sqlite create the journal, or `a write through the persist
@@ -490,7 +478,7 @@ Besides that, the port compiles fewer programs and compiles them before they are
 - Aurora Switch patch 0008 queues the priority-0 pipelines first (the player's own cache records
   each run's frames, so by first use alone pipelines seen anywhere in the game would come first
   after a few sessions) and counts them for the harness.
-- `COS_PRECOMPILE` (in `native/env.txt`) says how long to wait and when to stop:
+- `COS_PRECOMPILE` (Rendimiento > "Precarga de shaders") says how long to wait and when to stop:
   - `boot` (the default): before the game starts (before the boot logo) a loading screen,
     "Preparing shaders" and a bar drawn with Aurora's ImGui, when `COS_PRECOMPILE_SCREEN` (below)
     calls for one. The screen keeps presenting frames (slowly: a build holds the GL context) and
@@ -691,7 +679,7 @@ SD card, so a pipeline built once is not compiled again on later runs:
   its inputs (chipset, stage, TGSI tokens, user clip planes) before running the compiler. Fixup
   function pointers are stored as indices into the GM107 emitter's table, the emitter of the
   console's GM20B.
-- **Off switch:** `COS_SWITCH_SHADER_CACHE=0` in `env.txt` (Mesa then behaves as the package did:
+- **Off switch:** `COS_SWITCH_SHADER_CACHE=0` in `[dev]` (Mesa then behaves as the package did:
   no cache, no program binaries); `COS_SWITCH_SHADER_CACHE=reset` deletes the file at start.
   Deleting `user/cache/` clears it with Aurora's caches.
 - **Log.** Once EGL is up, and then every 15 s while the counters change and at exit (values
@@ -735,7 +723,8 @@ and in a crash report, `[switch] memory: used N MiB of M MiB` shows the process'
   text mapping, which `[cos] image base=0x...` and the start banner's `image at 0x...` print);
   then the harness's state line (scene, frame, last resource). `abort()` (Aurora's fatal errors, asserts) prints `[cos] ABORT` with a
   backtrace the same way, and an `OSPanic` `[cos] PANIC` (exit 12). Get the log with
-  `scripts/switch/push.sh --logs` (to `build/switch-logs/native/switchwaker.log`), or from the live USB log.
+  `scripts/switch/switchwaker_debug.py lastlog` (the debug server, [DEBUG_SERVER.md](DEBUG_SERVER.md)), from
+  the SD card (`native/logs/`, the newest file), or from the live USB log.
   Resolve the offsets with the ELF of the same build:
 
   ```sh
@@ -747,7 +736,7 @@ and in a crash report, `[switch] memory: used N MiB of M MiB` shows the process'
   `atmosphere/crash_reports/<time>_<program id>.log`. Copy it with
   `build/switch-tools/switch_mtp pull atmosphere/crash_reports <name>.log out.log` and resolve the
   addresses after the module name (`+ 0x...`) the same way.
-- `COS_SMOKE=crash-test` in `env.txt` crashes on purpose, to see both reports once.
+- `COS_SMOKE=crash-test` in `[dev]` crashes on purpose, to see both reports once.
 
 ## If something goes wrong
 
@@ -764,7 +753,7 @@ and in a crash report, `[switch] memory: used N MiB of M MiB` shows the process'
   killed while an older build (journal in memory) was writing, is expected; the cache starts empty
   and fills again. If it comes back after runs closed with HOME on this build, note the
   `journal_mode=` line and the `[sqlite]` lines before it, and try `COS_SWITCH_SQLITE_JOURNAL=truncate`
-  (or `memory`) in `env.txt`.
+  (or `memory`) in `[dev]`.
 - Docker Desktop on macOS needs access to the folder the repository is in: if `build_native.sh` hangs
   with its container in the "Created" state, allow Docker in System Settings › Privacy & Security ›
   Files and Folders (Documents), or restart Docker Desktop.

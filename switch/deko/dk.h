@@ -150,7 +150,7 @@ struct Renderer {
 };
 extern Renderer R;
 
-// The conventions the phase 2 test pattern checks (plan section 3.1), each switchable from env.txt so
+// The conventions the phase 2 test pattern checks (plan section 3.1), each switchable from settings.ini [dev] so
 // that the first console session can correct them without a rebuild; all logged at start
 // ("[dk] conventions:"). The defaults are the plan's: WebGPU's clip space and facing as they are.
 struct Conventions {
@@ -268,7 +268,7 @@ void log_flush();
 // The queue is in an error state after a GPU fault, and deko3d aborts on any call that touches it:
 // checked before each submit, acquire and present.
 void check_queue(const char* before);
-// an env.txt switch: unset or empty -> def, "0" -> false, anything else -> true
+// a run option switch (settings.ini [dev]): unset or empty -> def, "0" -> false, anything else -> true
 bool env_flag(const char* name, bool def);
 long env_long(const char* name, long def);
 

@@ -76,4 +76,4 @@ shaders on its first start.
 | Docker errors | Docker Desktop must be running (on Windows, with its WSL integration on) |
 | The game closes at once or says it is out of memory | Start it in title mode (hold R), not from the album |
 | It stutters on every start or fails after the shader preparation was interrupted | Delete `sdmc:/switch/switchwaker/native/user/cache/` and let it prepare once more |
-| Something else | `sdmc:/switch/switchwaker/native/switchwaker.log` (and `switchwaker.prev.log`) say what happened; include them in a report (they contain no game data) |
+| Something else | The session logs in `sdmc:/switch/switchwaker/native/logs/` (the newest file is the last run) say what happened; include them in a report (they contain no game data) |

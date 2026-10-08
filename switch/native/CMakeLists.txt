@@ -16,7 +16,7 @@
 #     disc images behind nod's C API, so Aurora's DVD library reads the .iso on the SD card;
 #   - the game units compile with clang 19 (clang-launcher.sh), as on the Mac; Aurora, Dawn, the
 #     SDK and libnx stay on devkitA64's GCC;
-#   - source/: the harness's Switch platform layer (logs, env.txt, crash report, threads).
+#   - source/: the harness's Switch platform layer (logs, run options, crash report, threads).
 # Two renderers (COS_SWITCH_RENDERER, docs/DEKO3D_MIGRATION_PLAN.md): gl, the default, is Dawn's
 # OpenGL ES backend on Mesa (switchwaker.nro); deko3d is switch/deko (switchwaker_dk.nro, its own SD
 # folder /switch/switchwaker_dk/ with its bundled caches, the data in /switch/switchwaker/ shared).
@@ -266,12 +266,17 @@ add_library(cos_switch_platform STATIC
         "${COS_SWITCH_DIR}/source/cos_switch.cpp"
         "${COS_SWITCH_DIR}/source/cos_switch_stats.cpp"
         "${COS_SWITCH_DIR}/source/cos_shader_cache.cpp"
+        "${COS_SWITCH_DIR}/source/cos_debug.cpp"
+        "${COS_SWITCH_DIR}/source/debug_server.cpp"
         "${COS_SWITCH_DIR}/source/thread_wrap.c"
         "${COS_SWITCH_DIR}/source/nv_wrap.c"
         "${COS_REPO_ROOT}/switch/source/common/usb_log.c")
 target_include_directories(cos_switch_platform PUBLIC "${COS_SWITCH_DIR}/source"
         PRIVATE "${COS_REPO_ROOT}/switch/source/common")
 target_link_libraries(cos_switch_platform PUBLIC nx)
+# the debug server's "info" (cos_debug.cpp): the NRO's version (scripts/switch/build_native.sh: git describe)
+set_property(SOURCE "${COS_SWITCH_DIR}/source/cos_debug.cpp" APPEND PROPERTY COMPILE_DEFINITIONS
+        COS_SWITCH_VERSION_STR="${COS_SWITCH_VERSION}")
 # cos_shader_cache.cpp logs the counters of the Mesa build_mesa.sh builds (include/mesa_switch.h).
 if (COS_SWITCH_RENDERER STREQUAL "gl" AND COS_SWITCH_MESA_DIR AND EXISTS "${COS_SWITCH_MESA_DIR}/include/mesa_switch.h")
     target_compile_definitions(cos_switch_platform PRIVATE COS_SWITCH_MESA_STATS=1)

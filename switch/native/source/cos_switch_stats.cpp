@@ -51,8 +51,6 @@ extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
         .glFences = gl[0],
         .glWaits = gl[1],
         .glWaitNs = gl[2],
-        .glFinishes = gl[3],
-        .glFinishNs = gl[4],
         .glFencesPending = gl[5],
         .dvdReads = dvd[0],
         .dvdBytes = dvd[1],
