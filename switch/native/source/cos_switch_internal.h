@@ -22,6 +22,18 @@ void cos_switch_start(int argc, char** argv);
 int cos_switch_shader_cache_setup(char* note, size_t size);
 int cos_switch_shader_cache_report(char* out, size_t size, int force);
 
+// cos_switch.cpp: the debug server's reload: the GPU profile restored and the logs written as at an exit, then
+// the application restarts (appletRestartProgram: the forwarder loads the NRO again). Returns only on failure.
+void cos_switch_restart(void);
+
+// cos_debug.cpp: the debug server (debug_server.h), started when env.txt has COS_DEBUG_SERVER=1 (or a port);
+// otherwise the log text kept since start is let go. Called by cos_switch_start once env.txt is read.
+void cos_switch_debug_start(void);
+// cos_debug.cpp, for the gamepad shim (switch/aurora/sdl3_shim/sdl3_shim_gamepad.c): the debug server's
+// presses added to the controller's buttons (HidNpadButton bits) and its sticks over the controller's
+// (left x, y, right x, y; libnx units, up positive). Nothing while the server does not run.
+void cos_switch_debug_input(uint64_t* buttons, int32_t sticks[4]);
+
 // The game's main (m_Do_main.cpp; <aurora/main.h> renames it).
 int aurora_main(int argc, char* argv[]);
 

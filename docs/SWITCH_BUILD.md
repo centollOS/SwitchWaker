@@ -96,7 +96,7 @@ SD card layout:
 | `switch/switchwaker/GZLE01.iso` | your disc image |
 | `switch/switchwaker/initial_pipeline_cache.db` | the pipelines to precompile at boot (`native/data/`, committed; `build_native.sh` puts a copy next to the NRO). Without it there is no warm-up and no "Preparing shaders" screen: the opening cutscene starts at once and every pipeline is built when first drawn |
 | `switch/switchwaker/native/env.txt` | optional run options |
-| `switch/switchwaker/native/switchwaker.log`, `switchwaker.prev.log` | this run's log and the previous one's |
+| `switch/switchwaker/native/logs/` | the session logs, `switchwaker_<date>_<time>.log`, the 10 most recent (the newest is this run) |
 | `switch/switchwaker/native/user/` | memory card (`USA/Card A`), Aurora's caches |
 
 ## Run
@@ -106,7 +106,9 @@ less memory than the game needs, and the log says so) and open **SwitchWaker**. 
 stays at its stock 1020 MHz. With `COS_USB_LOG=1` in `env.txt` (or Depuración > "Registro en
 directo por USB", at the next start; off by default, since it holds the USB port for the whole run)
 and USB connected, `uv run scripts/switch/usb_log.py --out build/switch-logs/native-live.log`
-shows the log live.
+shows the log live. Over the network instead, without holding the USB port: the debug server
+(`COS_DEBUG_SERVER=1`, [DEBUG_SERVER.md](DEBUG_SERVER.md)) streams it, deploys and restarts builds,
+and takes screenshots.
 
 Run options come from `native/env.txt`, one `NAME=value` per line, with `#` comments
 ([switch/native/env.example.txt](../switch/native/env.example.txt)); they are the Mac's `COS_*`
@@ -144,7 +146,7 @@ What the log shows, in order (the same `[cos]` lines as on the Mac; values vary)
 ```
 [switch] SwitchWaker, native port (phase 7); argv[0]=sdmc:/switch/switchwaker/switchwaker.nro
 [switch] SwitchWaker: application (title mode); memory 3xxx MiB, ... core mask 0x7; image at 0x...
-[switch] logs: /switch/switchwaker/native/switchwaker.log open
+[switch] log: /switch/switchwaker/native/logs/switchwaker_2026-10-08_17-00-00.log open (the newest 10 sessions are kept in /switch/switchwaker/native/logs)
 [switch] USB live log off (COS_USB_LOG=1 turns it on): the USB port is free
 [cos] harness: smoke=- milestone=- timeout=0s stall=90s ...
 [cos] perf: game-thread frame times every 60 frames (COS_PERF_EVERY)  <- COS_PERF_EVERY=60 only
@@ -675,7 +677,8 @@ and in a crash report, `[switch] memory: used N MiB of M MiB` shows the process'
   text mapping, which `[cos] image base=0x...` and the start banner's `image at 0x...` print);
   then the harness's state line (scene, frame, last resource). `abort()` (Aurora's fatal errors, asserts) prints `[cos] ABORT` with a
   backtrace the same way, and an `OSPanic` `[cos] PANIC` (exit 12). Get the log with
-  `scripts/switch/push.sh --logs` (to `build/switch-logs/native/switchwaker.log`), or from the live USB log.
+  `scripts/switch/switchwaker_debug.py lastlog` (the debug server, [DEBUG_SERVER.md](DEBUG_SERVER.md)), from
+  the SD card (`native/logs/`, the newest file), or from the live USB log.
   Resolve the offsets with the ELF of the same build:
 
   ```sh

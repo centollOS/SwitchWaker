@@ -163,6 +163,25 @@ On top of the above: Docker Desktop or Podman. `scripts/switch/build_native.sh` 
 `build/switch-native/switchwaker.nro` (Mesa, Dawn and Aurora are built in a devkitPro container).
 Full guide: [docs/SWITCH_BUILD.md](docs/SWITCH_BUILD.md).
 
+### Debug server (developers)
+
+For development there is a debug server: from the computer, over the local network, you can
+deploy a new build and restart the game without touching the console, follow the log as it is
+written, take screenshots, press buttons and warp. It is **off by default**: players never need it
+and the game opens no network port unless `native/env.txt` holds the line `COS_DEBUG_SERVER=1`. It
+has no password, so use it only on your own network.
+
+```sh
+echo <console ip> > build/switch_host.txt                                  # once; the log prints the address
+scripts/switch/build_native.sh && scripts/switch/switchwaker_debug.py deploy # upload, check, restart
+scripts/switch/switchwaker_debug.py log                                      # the log, live
+scripts/switch/switchwaker_debug.py shot                                     # PNG of the next frame
+scripts/switch/switchwaker_debug.py press A                                  # also hold, release, stick, warp
+```
+
+`deploy` restarts the game, so start it from the HOME-screen icon (forwarder). Every command and the
+protocol: [docs/DEBUG_SERVER.md](docs/DEBUG_SERVER.md). It is the same server as SwitchWakerHD's.
+
 ## Install on the Switch
 
 ### What you need
@@ -226,7 +245,8 @@ may prepare a few new shaders again.
 - Settings from the options menu: `native/user/settings.ini`.
 - To update, replace `switchwaker.nro` (and `initial_pipeline_cache.db` if it changed). Saves,
   settings and caches stay.
-- Logs, if something goes wrong: `native/switchwaker.log` (this run) and `switchwaker.prev.log`.
+- Logs, if something goes wrong: `native/logs/`, one file per session named by its date and time
+  (`switchwaker_<date>_<time>.log`); the newest is this run. Only the 10 most recent sessions are kept.
 - If you used this port's earlier SD folder (`sdmc:/switch/centollos/`), rename it to
   `switchwaker` and rename `centollos.nro` to `switchwaker.nro`; the old path is no longer read.
 

@@ -2,15 +2,14 @@
 # Copy the native port's NRO and its inputs to the console over USB (MTP) and pull back its logs.
 #
 #   scripts/switch/push.sh [--build] [--no-pipeline-cache] [native|FILE.nro]...   (default: native)
-#   scripts/switch/push.sh --logs
 #   scripts/switch/push.sh --disc DISC.iso
 #   scripts/switch/push.sh --native-env ENV.txt
 #   scripts/switch/push.sh --pipeline-cache [FILE.db]
 #
 # Enable USB file transfer on the console first (Horizon's own, haze or DBI).
 # Files go to sdmc:/switch/switchwaker/, are read back, and must match
-# the local SHA-256. --build runs scripts/switch/build_native.sh first. --logs
-# copies the native port's logs into build/switch-logs/native/. --disc copies
+# the local SHA-256. --build runs scripts/switch/build_native.sh first. (--logs is gone: the
+# session logs come from scripts/switch/switchwaker_debug.py lastlog.) --disc copies
 # the player's disc image as GZLE01.iso (all the native port reads; skipped if
 # already on the console with the same size). `native` is the native port's NRO
 # (scripts/switch/build_native.sh), switchwaker.nro;
@@ -85,14 +84,11 @@ if [[ ${1:-} == --pipeline-cache ]]; then
 fi
 
 if [[ ${1:-} == --logs ]]; then
-    # The native port's logs (switch/native/source/cos_switch.cpp); status 3: no log written yet.
-    mkdir -p "$root/build/switch-logs/native"
-    for log in switchwaker.log switchwaker.prev.log; do
-        status=0
-        "$tool" pull "$remote_dir/native" "$log" "$root/build/switch-logs/native/$log" || status=$?
-        [[ $status -eq 0 || $status -eq 3 ]] || exit "$status"
-    done
-    exit 0
+    # The session logs are named by their start time (native/logs/switchwaker_<date>_<time>.log), which MTP
+    # cannot list here: the debug server fetches the newest, or copy them from the SD card.
+    echo "push: --logs is gone: scripts/switch/switchwaker_debug.py lastlog (docs/DEBUG_SERVER.md)," >&2
+    echo "      or copy sdmc:/switch/switchwaker/native/logs/ from the SD card" >&2
+    exit 2
 fi
 
 build=0

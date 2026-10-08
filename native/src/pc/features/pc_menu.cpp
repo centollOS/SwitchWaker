@@ -55,6 +55,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
 #include <string>
 #include <unistd.h>
 #include <vector>
@@ -550,10 +551,10 @@ const PcSettingDesc kBuiltins[] = {
      "Automatic: only with a cold cache (first start); priority only, always or never."},
     // Depuración
     {"COS_PERF_EVERY", "Intervalo del registro perf",
-     "Cada cuántos cuadros se escribe una línea [cos] perf en el registro (switchwaker.log).",
+     "Cada cuántos cuadros se escribe una línea [cos] perf en el registro (native/logs/).",
      PC_SETTING_TAB_DEBUG, 0, CHOICES(kPerfEvery), "0", applyPerfEvery, nullptr, 105,
      "Perf log interval",
-     "How many frames between [cos] perf lines in the log (switchwaker.log)."},
+     "How many frames between [cos] perf lines in the log (native/logs/)."},
     {"COS_GPU_GROUPS", "Temporizadores de GPU por grupo",
      "Mide la GPU por grupo de dibujo (cielo, fondo, opacos, partículas...) en las líneas perf-switch.",
      PC_SETTING_TAB_DEBUG, 0, CHOICES(kGpuGroups), "0", applyGpuGroups, nullptr, 100,
@@ -1405,7 +1406,39 @@ void menuFrame() {
     drawMenu();
 }
 
+// ---- the Switch debug server (switch/native/source/cos_debug.cpp): its thread asks, the game thread acts
+std::mutex sDebugMu;
+struct DebugWarp {
+    bool pending = false;
+    char stage[8] = {};
+    int room = 0, point = 0;
+} sDebugWarp;
+struct DebugStatus {
+    unsigned int frame = 0;
+    bool play = false;
+    char stage[8] = {};
+    int room = -1;
+} sDebugStatus;
+
+void debugFrameEnd(unsigned int frame) {
+    const bool play = inPlay();
+    std::lock_guard<std::mutex> lk(sDebugMu);
+    sDebugStatus.frame = frame;
+    sDebugStatus.play = play;
+    snprintf(sDebugStatus.stage, sizeof(sDebugStatus.stage), "%s", play ? dComIfGp_getStartStageName() : "");
+    sDebugStatus.room = play ? dComIfGp_getStartStageRoomNo() : -1;
+    // a warp waits for the game (a file being played) and for no scene change in progress
+    if (sDebugWarp.pending && play && !dComIfGp_isEnableNextStage()) {
+        sDebugWarp.pending = false;
+        setOpen(false);
+        writef(STDERR_FILENO, "[cos] debug server: warp to %s room %d point %d\n", sDebugWarp.stage, sDebugWarp.room,
+               sDebugWarp.point);
+        dComIfGp_setNextStage(sDebugWarp.stage, (s16)sDebugWarp.point, (s8)sDebugWarp.room, -1);
+    }
+}
+
 void menuFrameEnd(unsigned int frame) {
+    debugFrameEnd(frame);
     if (m.pendingShot) {
         m.pendingShot = false;
         if (captureFrame(frame, saveShot, nullptr)) {
@@ -1422,3 +1455,45 @@ void menuFrameEnd(unsigned int frame) {
 }
 
 } // namespace pc
+
+// The warp list, numbered as the menu's Travel page: "n  stage room point  label" lines.
+extern "C" int pc_debug_warp_list(char* out, size_t size) {
+    size_t used = 0;
+    for (int i = 0; i < pc::kMainWarpCount + pc::kAllWarpCount && used < size; i++) {
+        const pc::Warp& w = pc::warpAt(i);
+        const int n = snprintf(out + used, size - used, "%3d  %-8s room %2d point %3d  %s\n", i, w.stage, w.room, w.point,
+                               w.labelEn != nullptr ? w.labelEn : "");
+        if (n < 0) {
+            break;
+        }
+        used += (size_t)n;
+    }
+    return (int)std::min(used, size);
+}
+
+// A warp from the debug server: index >= 0 picks the list's entry, else stage / room / point. The game thread
+// applies it once a file is being played (pc_menu debugFrameEnd). 0: no such entry.
+extern "C" int pc_debug_warp(int index, const char* stage, int room, int point, char* done, size_t size) {
+    pc::Warp w{stage, room, point, nullptr, nullptr};
+    if (index >= 0) {
+        if (index >= pc::kMainWarpCount + pc::kAllWarpCount) {
+            return 0;
+        }
+        w = pc::warpAt(index);
+    }
+    std::lock_guard<std::mutex> lk(pc::sDebugMu);
+    pc::sDebugWarp.pending = true;
+    snprintf(pc::sDebugWarp.stage, sizeof(pc::sDebugWarp.stage), "%s", w.stage);
+    pc::sDebugWarp.room = w.room;
+    pc::sDebugWarp.point = w.point;
+    snprintf(done, size, "%s room %d point %d", pc::sDebugWarp.stage, w.room, w.point);
+    return 1;
+}
+
+// The game's state at the last frame end: frame, in play, stage, room.
+extern "C" int pc_debug_status(char* out, size_t size) {
+    std::lock_guard<std::mutex> lk(pc::sDebugMu);
+    return snprintf(out, size, "frame %u\nstage %s room %d%s\n", pc::sDebugStatus.frame,
+                    pc::sDebugStatus.play ? pc::sDebugStatus.stage : "-", pc::sDebugStatus.room,
+                    pc::sDebugStatus.play ? "" : " (not playing a file)");
+}

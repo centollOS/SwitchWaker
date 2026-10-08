@@ -39,6 +39,10 @@ static HidVibrationDeviceHandle g_vibration[VIBRATION_TARGETS][2];
 static int g_vibration_count[VIBRATION_TARGETS];
 static u64 g_rumble_until;  // system tick; 0 when not rumbling
 
+// The native port's debug server (switch/native/source/cos_debug.cpp): its presses and sticks as if
+// from the controller. Weak: the translated port's build has no debug server.
+__attribute__((weak)) void cos_switch_debug_input(uint64_t* buttons, int32_t sticks[4]);
+
 static const struct {
     SDL_GamepadButton button;
     u64 mask;
@@ -128,6 +132,12 @@ void sdl3_shim_gamepad_pump(void) {
     g_buttons = connected ? padGetButtons(&g_pad) : 0;
     g_sticks[0] = padGetStickPos(&g_pad, 0);
     g_sticks[1] = padGetStickPos(&g_pad, 1);
+    if (cos_switch_debug_input) {
+        int32_t sticks[4] = {g_sticks[0].x, g_sticks[0].y, g_sticks[1].x, g_sticks[1].y};
+        cos_switch_debug_input(&g_buttons, sticks);
+        g_sticks[0].x = sticks[0], g_sticks[0].y = sticks[1];
+        g_sticks[1].x = sticks[2], g_sticks[1].y = sticks[3];
+    }
     mutexUnlock(&g_lock);
     if (connected != g_connected) {
         g_connected = connected;

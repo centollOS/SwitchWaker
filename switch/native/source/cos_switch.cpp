@@ -4,9 +4,13 @@
 // devoptab tee as in the translated port (switch/host/source/switch_main.c), to
 //   - the live USB log (switch/source/common/usb_log.c; scripts/switch/usb_log.py on the computer),
 //     only with COS_USB_LOG=1 (off by default: it holds the USB port for the whole run);
-//   - COS_SWITCH_ROOT/switchwaker.log on the SD card (the previous run's is kept as switchwaker.prev.log), written
-//     by a thread of its own so a game thread never waits on the SD card. A crash or an exit
-//     writes what is still queued before the process ends.
+//   - a session log on the SD card, COS_SWITCH_ROOT/logs/switchwaker_<date>_<time>.log (the console clock at
+//     start), as SwitchWakerHD's: the newest file in logs/ is always the current session, and logs/ keeps the
+//     kMaxSessionLogs most recent sessions (the oldest are deleted, so the logs cannot fill the SD card).
+//     The switchwaker.log / switchwaker.prev.log of earlier builds move into logs/. Written by a thread of
+//     its own so a game thread never waits on the SD card. A crash or an exit writes what is still queued
+//     before the process ends;
+//   - the debug server's "log" streams (debug_server.h; COS_DEBUG_SERVER=1 in env.txt, cos_debug.cpp).
 //
 // Memory: the process's used and total memory at start, every 15 seconds (from the log writer
 // thread) and at exit: "[switch] memory: used N MiB of M MiB". The shader cache's lines
@@ -31,8 +35,13 @@
 // abort() (Aurora's fatal log and asserts, newlib's assert, std::terminate) is wrapped
 // (-Wl,--wrap=abort) to print the same backtrace and state and to write the logs out before the
 // process ends; on its own it would end the process with the last log lines still queued.
+#include <algorithm>
 #include <atomic>
 #include <cerrno>
+#include <ctime>
+#include <dirent.h>
+#include <string>
+#include <vector>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -43,15 +52,17 @@
 #include <unistd.h>
 
 #include "cos_switch_internal.h"
+#include "debug_server.h"
 #include "usb_log.h"
 
 extern "C" void pc_settings_load_early(void); // native/src/pc/features/pc_settings.cpp
 
 namespace {
 
-constexpr const char* kLogPath = COS_SWITCH_ROOT "/switchwaker.log";
-constexpr const char* kPrevLogPath = COS_SWITCH_ROOT "/switchwaker.prev.log";
+constexpr const char* kLogDir = COS_SWITCH_ROOT "/logs";
+constexpr size_t kMaxSessionLogs = 10; // the current session's included
 constexpr size_t kRingSize = 1u << 20;
+char gLogPath[128];                     // this session's log
 
 // ---- SD card log ---------------------------------------------------------------------------------
 uint8_t gRing[kRingSize];
@@ -149,6 +160,9 @@ void writerMain(void*) {
 
 void queueBytes(const char* data, size_t size) {
     usb_log_write(data, size);
+    if (!gCrashing.load(std::memory_order_relaxed)) {
+        debugsrv::log_tap(data, size); // (it takes a lock: not after a crash)
+    }
     if (gLogFile == nullptr) {
         return;
     }
@@ -203,13 +217,63 @@ void sayf(const char* format, ...) {
     queueBytes(line, (size_t)n);
 }
 
+// logs/switchwaker_<date>_<time>.log for a file's time
+void sessionLogName(char* out, size_t size, time_t when) {
+    struct tm t{};
+    localtime_r(&when, &t);
+    snprintf(out, size, "%s/switchwaker_%04d-%02d-%02d_%02d-%02d-%02d.log", kLogDir, t.tm_year + 1900, t.tm_mon + 1,
+             t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
+}
+
+// This session's file in logs/, the logs of builds before session logs moved there (named by their
+// modification time), and room for this session: the oldest session logs go (modification time, then name).
+void startSessionLog() {
+    mkdir(kLogDir, 0777);
+    for (const char* old : {COS_SWITCH_ROOT "/switchwaker.prev.log", COS_SWITCH_ROOT "/switchwaker.log"}) {
+        struct stat st;
+        if (stat(old, &st) != 0) {
+            continue;
+        }
+        char name[128];
+        sessionLogName(name, sizeof(name), st.st_mtime);
+        if (stat(name, &st) == 0 || rename(old, name) != 0) {
+            remove(old);
+        }
+    }
+    sessionLogName(gLogPath, sizeof(gLogPath), time(nullptr));
+    struct Log {
+        std::string name;
+        time_t mtime;
+    };
+    std::vector<Log> logs;
+    if (DIR* dir = opendir(kLogDir)) {
+        while (dirent* e = readdir(dir)) {
+            if (strncmp(e->d_name, "switchwaker_", 12) != 0) {
+                continue;
+            }
+            const std::string path = std::string(kLogDir) + "/" + e->d_name;
+            if (path == gLogPath) {
+                continue; // (a restart within the same second: reopened below)
+            }
+            struct stat st;
+            logs.push_back({path, stat(path.c_str(), &st) == 0 ? st.st_mtime : 0});
+        }
+        closedir(dir);
+    }
+    std::sort(logs.begin(), logs.end(), [](const Log& a, const Log& b) {
+        return a.mtime != b.mtime ? a.mtime < b.mtime : a.name < b.name;
+    });
+    for (size_t i = 0; i + kMaxSessionLogs <= logs.size(); i++) {
+        remove(logs[i].name.c_str());
+    }
+}
+
 void startLogs() {
     mkdir("/switch", 0777);
     mkdir("/switch/switchwaker", 0777);
     mkdir(COS_SWITCH_ROOT, 0777);
-    remove(kPrevLogPath);
-    rename(kLogPath, kPrevLogPath);
-    gLogFile = fopen(kLogPath, "w");
+    startSessionLog();
+    gLogFile = fopen(gLogPath, "w");
     mutexInit(&gRingLock);
     mutexInit(&gFileLock);
     condvarInit(&gRingChanged);
@@ -462,7 +526,8 @@ void reportSystem() {
          "image at 0x%llx\n",
          appletTypeName(applet), mode, (unsigned long long)(total >> 20), (unsigned long long)(used >> 20),
          (unsigned long long)cores, (unsigned long long)cos_switch_image_base());
-    sayf("[switch] logs: %s %s\n", kLogPath, gLogFile != nullptr ? "open" : "NOT open");
+    sayf("[switch] log: %s %s (the newest %zu sessions are kept in %s)\n", gLogPath,
+         gLogFile != nullptr ? "open" : "NOT open", kMaxSessionLogs, kLogDir);
     if (applet != AppletType_Application && applet != AppletType_SystemApplication) {
         sayf("[switch] WARNING: not started as an application: applets get far less memory than "
              "the game needs. Hold R while starting an installed game to open the Homebrew Menu in "
@@ -595,6 +660,7 @@ __attribute__((noreturn)) void __wrap_abort(void) {
 }
 
 void cos_switch_start(int argc, char** argv) {
+    debugsrv::keep_log(); // the debug server's log text from the first line (cos_switch_debug_start)
     startLogs();
     sayf("[switch] SwitchWaker, native port (phase 7); argv[0]=%s\n",
          argc > 0 && argv != nullptr && argv[0] != nullptr ? argv[0] : "-");
@@ -603,6 +669,8 @@ void cos_switch_start(int argc, char** argv) {
     // The options menu's settings file (native/include/pc/pc_settings.h): after env.txt, whose
     // lines win over it, and before the Switch defaults below, which it overrides.
     pc_settings_load_early();
+    // COS_DEBUG_SERVER (env.txt): the debug server for development (cos_debug.cpp), off by default
+    cos_switch_debug_start();
     // The USB live log (scripts/switch/usb_log.py) holds the console's USB port as 057e:3000 for
     // the whole run, so it is off by default (players: the port stays free, e.g. for SysDVR's USB
     // mode); COS_USB_LOG=1 (env.txt, or Depuración > "Registro en directo por USB", at the next
@@ -674,6 +742,19 @@ void cos_switch_exit(int code) {
 // 0 at run time too, whatever the load address: the crash reports of the first console run said
 // "image base=0x0". The base is the start of the mapping that holds this function: hbloader maps
 // the NRO's text segment, which begins at offset 0 (crt0), as one read-execute block.
+void cos_switch_restart(void) {
+    restoreGpuProfile();
+    reportMemory();
+    sayf("[switch] restart (debug server reload): the forwarder loads the NRO again\n");
+    cos_switch_flush_logs();
+    usb_log_stop(1000);
+    static const char kArg[] = "switchwaker debug reload";
+    const Result rc = appletRestartProgram(kArg, sizeof(kArg));
+    // (on success the system ends this process)
+    applyGpuProfile();
+    sayf("[switch] restart failed: appletRestartProgram rc 0x%x\n", rc);
+}
+
 uintptr_t cos_switch_image_base(void) {
     static uintptr_t sBase;
     if (sBase == 0) {
