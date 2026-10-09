@@ -23,6 +23,13 @@ void fpcNdRq_RequestQTo(node_create_request* i_NdCtReq) {
 
 static node_list_class l_fpcNdRq_Queue = {NULL, NULL, 0};
 
+#if TARGET_PC
+// COS_FPS60_TEST (pc_fps60_camera.cpp): a scene (or room scene) is being created, changed or deleted.
+int pc_fpcNdRq_pending() {
+    return l_fpcNdRq_Queue.mpHead != NULL;
+}
+#endif
+
 /* 8003F2DC-8003F328       .text fpcNdRq_ToRequestQ__FP19node_create_request */
 void fpcNdRq_ToRequestQ(node_create_request* i_NdCtReq) {
     cTg_Addition(&l_fpcNdRq_Queue, &i_NdCtReq->mCreateTag);

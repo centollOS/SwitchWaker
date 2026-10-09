@@ -354,6 +354,9 @@ bool loadShots();
 // pc_shot.cpp: after aurora_end_frame of game frame `frame` (pc_frame_count numbering): saves the
 // presented image as shot-<frame>.png if COS_SHOT or COS_SHOT_EVERY names that frame.
 void shotFrameEnd(unsigned int frame);
+// pc_shot.cpp: after the split's aurora_end_frame (COS_FPS60_TEST's paint A of game frame `frame`):
+// with COS_SHOT_PAINT_A=1, saves it as shot-<frame>a.png if COS_SHOT / COS_SHOT_EVERY names the frame.
+void shotSplitEnd(unsigned int frame);
 // pc_shot.cpp (bug B6): reads back the frame Aurora just presented (call it right after
 // aurora_end_frame, as shotFrameEnd is) and hands check its 8-bit RGB rows on the render worker;
 // returns once check ran (or the readback failed, logged, and check did not run).

@@ -1668,6 +1668,12 @@ bool mDoGph_Painter() {
             dComIfGp_setCurrentView(&camera->view);
             dComIfGp_setCurrentViewport(viewport_p);
             GXSetProjection(camera->view.mProjMtx, GX_PERSPECTIVE);
+#if TARGET_PC
+            // COS_FPS60_TEST step B (game_hooks.h): in paint B, the draws with this projection see
+            // the camera halfway between the last two draw passes' (Aurora's view delta, patch
+            // 0019) until pc_fps60_view_end below.
+            pc_fps60_view_begin(&camera->view);
+#endif
             PPCSync();
             j3dSys.setViewMtx(camera->view.mViewMtx);
             dKy_setLight();
@@ -1843,6 +1849,7 @@ bool mDoGph_Painter() {
     }
 
 #if TARGET_PC
+    pc_fps60_view_end(); // COS_FPS60_TEST step B: the view delta off before the 2D
     pc_dynres_3d_end(); // COS_DYNRES: the 3D stretched over the EFB, full scale again
 #endif
 

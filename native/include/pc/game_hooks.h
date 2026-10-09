@@ -102,6 +102,30 @@ extern "C" int pc_fps60_test(void);
    a split frame, else `retraces`; 0, no wait, for COS_PAINT_PURITY_REPEAT's second paint B). */
 extern "C" unsigned int pc_frame_wait_retraces(unsigned int retraces);
 
+/* ---- 60 fps step B: the camera of paint B (native/src/pc/game_hooks/pc_fps60_camera.cpp) -------- */
+
+struct view_class;
+
+/* camera_draw (d_camera.cpp, the draw pass), once the view and projection are built: keeps this
+   camera and the one of the draw pass before (COS_FPS60_TEST only). */
+void pc_fps60_camera_drawn(view_class* view);
+/* dCamera_c::Reset: the camera is placed without its smoothing (a cut when it starts). */
+void pc_fps60_camera_reset(void);
+/* mDoGph_Painter, after the world projection is loaded / after the camera block: in paint B, records
+   the view delta to the camera halfway between the two draw passes' cameras in the GX stream
+   (Aurora patch 0019), unless it is a cut; nothing in paint A or with the mode off. */
+void pc_fps60_view_begin(view_class* view);
+void pc_fps60_view_end(void);
+/* pc_frame_split, every frame after the logic: 0 while a transition is in progress or just ended
+   (scene request pending, overlap, wipe, screen fade, JUTFader fading, monotone changing, stage
+   change; a 3-frame cool-down after any of them): the frame is then presented once (no paint B),
+   since paint B would repaint lists the scene being built or deleted left half made (flicker). */
+int pc_fps60_paint_b_allowed(void);
+/* f_pc_node_req.cpp: a node (scene) request is queued. */
+int pc_fpcNdRq_pending();
+/* The perf line: paints B interpolated and not (cuts) so far. */
+void pc_fps60_camera_stats(unsigned long* interpolated, unsigned long* skipped);
+
 /* ---- Collision data (c_bg_s.cpp), native/src/pc/game_hooks/pc_c_bg_s.cpp --------------------- */
 
 class cBgD_t;

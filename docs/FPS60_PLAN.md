@@ -299,3 +299,116 @@ Before the async end of frame (383300a) the game thread waited for Aurora's GX w
 (~5-6 ms at the split, ~9 ms at the end: 47-56 presents/s outside the forest); now the split costs
 0.2 ms and the wait is `GXDrawDone` in the draw pass (2.6-4.1 ms), the game's own GPU sync. Margin
 7-13 ms per game frame at the stock clock. Next: step B (camera).
+
+## Step B: the camera of paint B (2026-10-10, Aurora patch 0019)
+
+With `COS_FPS60_TEST=1` paint B now shows the scene from the camera halfway (t = 0.5) between the
+camera of the draw pass before (the one paint A just showed) and this frame's; no extra latency.
+
+### Design as built
+
+- Capture (`native/src/pc/game_hooks/pc_fps60_camera.cpp`): `camera_draw` (`d_camera.cpp`, draw pass)
+  calls `pc_fps60_camera_drawn(&view)` right after it builds the view: eye, center, up, bank, fovy,
+  aspect, near, far, `mViewMtx`, `mProjMtx`, and for the cut checks the room (`getStayNo`), the stage
+  name, `dComIfGp_event_runCheck`, the demo mode, `dDlst_list_c::mWipe`, `fopOvlpM_IsDoingReq`,
+  `dMenu_flag` and whether `dCamera_c::Reset` ran since the last capture (`pc_fps60_camera_reset`,
+  in `Reset()`, which the other two overloads call). Two snapshots are kept: N and N+1, each with
+  its game frame number.
+- Paint B (`mDoGph_Painter`): right after `GXSetProjection(camera->view.mProjMtx, GX_PERSPECTIVE)`,
+  `pc_fps60_view_begin(&camera->view)`; after the camera block (before `pc_dynres_3d_end`, i.e.
+  before the 2D), `pc_fps60_view_end()`. Begin (paint B only) computes V_t = `mDoMtx_lookAt`(lerped
+  eye, center, up; bank lerped as an s16 angle), P_t = `C_MTXPerspective`(lerped fovy, aspect, near,
+  far) (P_cur itself when they did not change) and C = V_t * V_cur^-1, and calls
+  `AuroraSetViewDelta(C, P_cur, P_t)`; end calls `AuroraSetViewDelta(NULL, ...)`.
+- Aurora patch 0019 (`native/patches/aurora/0019-view-delta.patch`): `GX_AURORA_SET_VIEW_DELTA`
+  (0x0051) is a command **in the GX stream**, decoded by the FIFO worker into
+  `GXState::viewDelta`, so it applies exactly to the draws written between begin and end however
+  late the worker translates them (patch 0018). It is applied where every path meets, when the
+  worker builds a draw's uniform (`fill_uniform`, `shader_info.cpp`), not when matrices are loaded
+  (`copy_xf_data`) as first planned: a matrix can be loaded before the projection that decides
+  whether it is a world draw, and indexed loads, immediate loads and display lists all end in the
+  same `pnMtx` array. For a draw whose projection is perspective **and equal to P_cur** (six
+  floats, GXSetProjection's encoding): every position matrix is premultiplied by C, every normal
+  matrix by C's rotation, light positions by C and light directions by its rotation (GX lights are
+  given in view space: lighting stays the same on the moved geometry), and the projection is
+  replaced by P_t. Orthographic draws (2D, full-screen quads of `drawAlphaBuffer`, `drawDepth`,
+  `motionBlure`, the photo) and any other perspective projection are untouched. Toggling marks the
+  uniform dirty; the end of every frame (`clear_draw_cache`) turns it off. The P_cur match makes
+  the hook safe against perspective passes that are not the world camera even inside the window
+  (none found: `d_menu_capture`, `d_ovlp_fade2`, `d_s_name` set their own projections in other
+  passes), the 3D section bracket keeps it away from the 2D list's 3D (`drawOpaList2D`).
+- What moves: everything drawn with the world projection in the 3D section. J3D (view-space draw
+  matrices baked with V_cur in the draw pass), packets that concatenate `j3dSys`'s view or
+  `camera->view` at paint time (JPA with `jpaDrawInfo`, the sea, weather, grass/tree/flower/wood,
+  ConcatView/NoUseDrawMtx models, shadows, the sky vrbox drawn around the eye of N+1: off-centre by
+  half a frame of camera travel, invisible at its radius).
+- Not moved / not interpolated: objects themselves (step C): a model is drawn where frame N+1 put
+  it, seen from the camera at t. Texture matrices (texgens take model-space input, so projected
+  textures stay on their surfaces; view-dependent env maps and the specular half-angle stay
+  V_cur's). Things the CPU projected to the screen and draws in 2D or orthographic (lens flare and
+  sun glare, HUD markers anchored to 3D positions) stay at N+1's positions. Culling and LOD are
+  N+1's (geometry culled for N+1 may be missing at the screen edge). `dPa_control_c::mWindViewMatrix`
+  (the `particle_wind` group's view) is never written by the game (zero): not a world-camera draw.
+
+### Cuts (paint B at t = 1, as in step A)
+
+Checked at paint B's begin: no camera drawn in this frame's draw pass or the one before ("no camera
+drawn this frame" e.g. in the pause menu, where the camera process is not drawn: the world is
+still), another camera/view, `mViewMtx`/`mProjMtx` changed since the capture, stage or room change,
+a `dCamera_c::Reset` starting (a reset in both frames, a camera driven by resets every frame, is
+not a cut: the jump checks still apply), event or demo start/stop, a wipe or overlap in either
+frame, `dMenu_flag` toggled, eye or center moving over 400 units, fovy over 10 degrees, bank over
+0x1000 (~22 degrees), the forward axes over 45 degrees apart. Logged as `[cos] fps60 camera: frame
+N: paint B not interpolated (<reason>; <n> such paint(s) since the last line)` when the reason
+changes or every 2 s; counted as `camera blended <n> cuts <n>` in the perf line.
+
+### Transitions: paint B dropped (console report of step A)
+
+On the console, step A flickered right after Start on the title screen and when warping. Found on
+the Mac with `COS_SHOT_PAINT_A=1` around the transitions (`new-game`, the options menu's travel):
+during the fade out of a scene change paint B was black (mean 0.2) while the paints A around it
+faded 118 -> 9 (24 frames in `new-game`, 46 in the travel run). Paint B is now **not done at all**
+in those frames: `pc_frame_split` asks `pc_fps60_paint_b_allowed()` (every frame, after the logic)
+and presents the frame once, as at 30 fps, while a node (scene/room scene) request is queued
+(`pc_fpcNdRq_pending`, `f_pc_node_req.cpp`), an overlap runs (`fopOvlpM_IsDoingReq`/`IsPeek`),
+a wipe, a screen fade (`mDoGph_gInf_c::isFade`), a JUTFader fade (FadeIn/FadeOut), the monotone
+rate changes, or the stage name changes, and for 3 frames after. Pacing: paint A waits one retrace
+only after a frame that ended with paint B; after a dropped paint B it waits two, so the game
+frame keeps two retraces either way. Logged (`[cos] fps60: frame N: presented once (<reason>)`,
+`paint B again (after <reason>)`), counted as `paint B dropped <n>`; `COS_FPS60_GATE=0` restores
+step A's behaviour (the test above). With the gate: 0 suspicious paints B out of 144 split frames
+around `new-game`'s transitions and 82 around the travel (paint B differing from both neighbouring
+paints A by more than they differ from each other + 4 levels).
+
+### Verification (Mac)
+
+- Delta correctness, sailing smoke (`--preset sailing`, frame 1200, `COS_SHOT_PAINT_A=1`): on a world
+  region without the boat (clouds, horizon, sea at the left third), mean abs difference / best
+  shift: `COS_FPS60_CAMERA_T=0` paint B vs its paint A (camera N) 0.46 (vs 3.41 between the two
+  paints A), `T=1` paint B vs the next paint A 0.03, `T=0.5` paint B vs the mean of the two paints A
+  0.58 and shifted 2 px where the paints A are 4 px apart (frame 1500: 3 of 6 px). On the whole
+  image paint B differs more than the two paints A do: the boat and Link, which the camera follows,
+  are drawn at N+1 from the camera at t (step C).
+- `COS_PAINT_PURITY=1` + `_REPEAT` (Outset, 600 frames): only the known harmless changes.
+- Mac perf (frames 301-1200, per game frame, `COS_FPS60_CAMERA=0` -> on): Outset game thread
+  2.21-2.25 -> 2.16-2.24 ms, painter2 0.37-0.42 -> 0.39-0.40, drawdone 0.02 -> 0.02; Dragon Roost
+  2.45-2.51 -> 2.34-2.36, drawdone 0.02-0.05 -> 0.02-0.03: the hook's cost is in the noise (game
+  thread: two small matrix computations per paint B; GX worker: 10 position, 10 normal matrices and
+  8 lights transformed per uniform built in paint B's world section).
+- Full `native/tools/regress.sh` passes (the mode off: no change). With `COS_FPS60_TEST=1`:
+  file-select, outset-control (4:3 and 16:9), new-game, telescope-demo, sailing and the three
+  picto-box targets pass. Switch NRO `scripts/switch/build_native.sh --runtime-assets` builds (patch
+  0019 applies on top of the Switch's own patches). Not measured on the console.
+
+### Known artifacts (to be judged on the console)
+
+- **Objects attached to the camera jitter**: the camera is at t = 0.5 but every model is still at
+  N+1 (step C). When the camera follows the player (running, sailing) the player, boat and
+  anything moving with them move forward by half a frame's step in paint B and back in the next
+  paint A: before step B the world stuttered at 30 Hz and the player stood still on screen; now
+  the world is smooth and the followed objects shake at 60 Hz by half their per-frame motion. This
+  is the main reason step C matters; `COS_FPS60_CAMERA=0` compares.
+- Geometry or effects the CPU placed in screen space (lens flare, HUD markers on 3D targets), env
+  maps and specular highlights follow N+1's camera; culling at the screen edges is N+1's.
+- The boat's real shadow showed a stepped edge at the bottom of the screen with t = 0 (shadow
+  receiver drawn for N+1's camera); not seen at t = 0.5 in the shots taken.

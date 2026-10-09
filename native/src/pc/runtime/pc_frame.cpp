@@ -223,6 +223,9 @@ uint64_t sSplitEndCallNs = 0;
 // COS_FPS60_TEST (pc_frame_split): paint A's wait was halved (the frame splits), paint B is running,
 // and the splits so far (presents = game frames + splits).
 bool sHalvedWait = false;
+bool sSplitThisFrame = false; // this game frame was split (paint B follows)
+bool sLastSplit = false;      // the previous game frame was
+uint64_t sPaintBDropped = 0;  // split frames presented once (a transition, pc_fps60_paint_b_allowed)
 bool sPaintExtra = false;
 bool sPaintRepeat = false; // COS_PAINT_PURITY_REPEAT: paint B's second run (no wait)
 uint64_t sSplits = 0;
@@ -828,18 +831,27 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
     if (sPerf.cpuValid) {
         snprintf(cpu, sizeof(cpu), "%.2f ms avg", sPerf.cpuNs / n / 1e6);
     }
-    char fps60[256] = "";
+    char fps60[384] = "";
     if (pc_fps60_test()) {
         // COS_FPS60_TEST: paint B and paint A's present (aurora_end_frame/begin_frame) per game frame;
         // the waits for Aurora's GX worker: GXDrawDone after the draw pass (in the logic) and the
         // aurora_end_frame calls (both, and the split's), with COS_ASYNC_END_FRAME or without.
+        // Step B (pc_fps60_camera.cpp): paints B with the blended camera and cuts in this window.
+        static unsigned long lastInterp = 0, lastSkips = 0;
+        static uint64_t lastDropped = 0;
+        unsigned long interp = 0, skips = 0;
+        pc_fps60_camera_stats(&interp, &skips);
         snprintf(fps60, sizeof(fps60),
                  "; fps60: painter2 %.2f, split %.2f, drawdone %.2f, end_frame calls %.2f (split %.2f, %s), "
-                 "%.1f presents/s",
+                 "%.1f presents/s, camera blended %lu cuts %lu, paint B dropped %llu",
                  sPerf.painter2Ns / n / 1e6, sPerf.splitNs / n / 1e6, sPerf.afterDrawNs / n / 1e6,
                  sPerf.endCallNs / n / 1e6, sPerf.splitEndCallNs / n / 1e6,
                  aurora_get_async_end_frame() ? "async" : "sync",
-                 wallS > 0 ? (n + (double)(sSplits - sPerf.startSplits)) / wallS : 0.0);
+                 wallS > 0 ? (n + (double)(sSplits - sPerf.startSplits)) / wallS : 0.0, interp - lastInterp,
+                 skips - lastSkips, (unsigned long long)(sPaintBDropped - lastDropped));
+        lastDropped = sPaintBDropped;
+        lastInterp = interp;
+        lastSkips = skips;
     }
     if (gConfig.perfLog) {
     writef(STDERR_FILENO, "[cos] perf frames %u-%u: game thread %.2f ms avg, %.2f ms max (begin %.2f, "
@@ -1048,16 +1060,28 @@ unsigned int pc_frame_wait_retraces(unsigned int retraces) {
         // paint B: the split frame's second retrace (none for COS_PAINT_PURITY_REPEAT's second run)
         return sPaintRepeat ? 0 : 1;
     }
-    // Paint A's wait. The options menu pauses the game: no second paint while it is open.
+    // Paint A's wait. The options menu pauses the game: no second paint while it is open. Paint A
+    // waits one retrace only after a frame that ended with paint B (its wait was the other one); a
+    // frame whose paint B was dropped (pc_frame_split) leaves the next paint A the whole wait.
     sHalvedWait = pc_fps60_test() && retraces == 2 && !menuOpen();
-    return sHalvedWait ? 1 : retraces;
+    return sHalvedWait && sLastSplit ? 1 : retraces;
 }
 
 int pc_frame_split(void) {
+    // Paint B allowed (pc_fps60_camera.cpp): no scene change, overlap, wipe, fade or load in
+    // progress, nor a scene created in the last frames. Asked every frame (it keeps a cool-down).
+    const bool allowed = !pc_fps60_test() || pc_fps60_paint_b_allowed();
     if (!sHalvedWait) {
         return 0;
     }
     sHalvedWait = false;
+    if (!allowed) {
+        // a transition: this frame is presented once, as at 30 fps (its paint A waited one retrace
+        // after the last paint B, the next paint A waits two)
+        sPaintBDropped++;
+        return 0;
+    }
+    sSplitThisFrame = true;
     pc_perf_begin(PC_PERF_SPLIT);
     {
         JKRPcHostAllocScope hostAlloc;
@@ -1070,6 +1094,7 @@ int pc_frame_split(void) {
         }
         // A picto box copy asked for by paint A is read back after its frame (pc_capture.cpp).
         captureFrameEnd();
+        shotSplitEnd(pc_frame_count() + 1); // COS_SHOT_PAINT_A
     }
     for (;;) {
         bool begun;
@@ -1133,6 +1158,8 @@ void pc_frame_begin(void) {
     sFrameStartNs = monotonicNs();
     sPaceStartNs = sPaceEndNs = 0;
     sHalvedWait = false;
+    sLastSplit = sSplitThisFrame;
+    sSplitThisFrame = false;
     sFrameWaitNs = 0;
     if (sPerfOn) {
         sFrameStartCpuNs = threadCpuNs();

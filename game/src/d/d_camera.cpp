@@ -7,6 +7,7 @@
 #if TARGET_PC
 #include "pc/pc_aspect.h"
 #include "pc/pc_harness.h"
+#include "pc/game_hooks.h"
 #endif
 #include "d/d_camera.h"
 #include "d/d_bg_s_gnd_chk.h"
@@ -7503,6 +7504,10 @@ bool dCamera_c::Reset(cXyz center, cXyz eye) {
 
 /* 8017B3D8-8017B494       .text Reset__9dCamera_cFv */
 bool dCamera_c::Reset() {
+#if TARGET_PC
+    // COS_FPS60_TEST step B (pc_fps60_camera.cpp): a reset that starts is a cut for paint B.
+    pc_fps60_camera_reset();
+#endif
     mViewCache.mCenter = mCenter;
 
     mViewCache.mEye = mEye;
@@ -8083,6 +8088,10 @@ static bool camera_draw(camera_process_class* i_this) {
     i_this->view.mViewMtxNoTrans[1][3] = 0.0f;
     i_this->view.mViewMtxNoTrans[2][3] = 0.0f;
     cMtx_concatProjView(i_this->view.mProjMtx, i_this->view.mViewMtx, i_this->view.mProjViewMtx);
+#if TARGET_PC
+    // COS_FPS60_TEST step B (pc_fps60_camera.cpp): this draw pass's camera, for paint B's blend.
+    pc_fps60_camera_drawn(&i_this->view);
+#endif
 
     body->Draw();
 

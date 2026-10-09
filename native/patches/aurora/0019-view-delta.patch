@@ -1,0 +1,271 @@
+AuroraSetViewDelta: move the world view of a repaint, in the GX command stream
+
+The native port's 60 fps mode (docs/FPS60_PLAN.md, step B) repaints each game frame's draw lists a
+second time (paint B) with the camera halfway between two game frames. The lists hold view-space
+matrices (J3D bakes the view into its draw matrices in the draw pass) as well as packets that load the
+view at paint time, so the view is changed where everything meets: in the uniform Aurora builds per
+draw.
+
+- GX_AURORA_SET_VIEW_DELTA (0x0051), written by AuroraSetViewDelta(delta, projFrom, projTo): a u8
+  (0 = off) and, when on, a 3x4 rigid transform C, the perspective projection it applies to and the
+  projection to draw instead (six floats each, GXSetProjection's encoding). It is a command in the
+  stream, so with the FIFO worker (ProcessingMode::Thread, and patch 0018's asynchronous end of frame)
+  it applies exactly to the draws written after it, whenever the worker translates them.
+- fill_uniform (shader_info.cpp): while on, a draw whose projection is perspective and equal to
+  projFrom gets every position matrix premultiplied by C, every normal matrix by C's rotation, light
+  positions by C and light directions by its rotation (GX lights are given in view space), and projTo
+  as its projection. Orthographic draws and other perspective projections are untouched. The state is
+  GXState::viewDelta; turning it on or off marks the uniform dirty; clear_draw_cache (the end of
+  every frame) turns it off.
+
+Off (never called), nothing changes: one bool tested per uniform build.
+
+diff --git a/include/dolphin/gx/GXAurora.h b/include/dolphin/gx/GXAurora.h
+index ecd6c97..9099d52 100644
+--- a/include/dolphin/gx/GXAurora.h
++++ b/include/dolphin/gx/GXAurora.h
+@@ -105,6 +105,17 @@ extern "C" {
+  */
+ #define GX_AURORA_SET_CONTENT_SCALE 0x0050
+ 
++/**
++ * View delta for an interpolated repaint (native port, native/patches/aurora/0019): followed by a
++ * u8. 0 turns it off. 1 is followed by 12 f32 (C, a 3x4 row-major rigid transform), 6 f32 (the
++ * perspective projection it applies to, GXSetProjection's encoding: p[0][0], p[0][2], p[1][1],
++ * p[1][2], p[2][2], p[2][3]) and 6 f32 (the projection used instead). While on, a draw whose
++ * projection is that perspective projection is drawn with every position matrix premultiplied by C,
++ * every normal matrix and light direction by C's rotation, light positions by C, and the other
++ * projection; any other draw (orthographic, another perspective) is unchanged.
++ */
++#define GX_AURORA_SET_VIEW_DELTA 0x0051
++
+ #define GX2_SET_POLYGON_OFFSET 0x1000
+ 
+ 
+@@ -183,6 +194,13 @@ void GXSetProjectionFull(const void* mtx);
+  */
+ void AuroraSetContentScale(f32 scale);
+ 
++/**
++ * GX_AURORA_SET_VIEW_DELTA, recorded in the command stream (so a FIFO worker applies it to the draws
++ * written after it). delta: a 3x4 row-major matrix, or NULL to turn it off (then the other two are
++ * ignored). projFrom / projTo: six floats each in GXSetProjection's perspective encoding.
++ */
++void AuroraSetViewDelta(const f32* delta, const f32* projFrom, const f32* projTo);
++
+ /**
+  * Create an offscreen framebuffer and switch rendering to it.
+  * All subsequent GX rendering will target this framebuffer until GXRestoreFrameBuffer() is called.
+diff --git a/lib/dolphin/gx/GXAurora.cpp b/lib/dolphin/gx/GXAurora.cpp
+index 7367e40..c8903fb 100644
+--- a/lib/dolphin/gx/GXAurora.cpp
++++ b/lib/dolphin/gx/GXAurora.cpp
+@@ -94,6 +94,24 @@ void AuroraSetContentScale(f32 scale) {
+   aurora::gx::fifo::publish();
+ }
+ 
++void AuroraSetViewDelta(const f32* delta, const f32* projFrom, const f32* projTo) {
++  GX_WRITE_AURORA(GX_AURORA_SET_VIEW_DELTA);
++  if (delta == nullptr || projFrom == nullptr || projTo == nullptr) {
++    GX_WRITE_U8(0);
++    return;
++  }
++  GX_WRITE_U8(1);
++  for (int i = 0; i < 12; ++i) {
++    GX_WRITE_F32(delta[i]);
++  }
++  for (int i = 0; i < 6; ++i) {
++    GX_WRITE_F32(projFrom[i]);
++  }
++  for (int i = 0; i < 6; ++i) {
++    GX_WRITE_F32(projTo[i]);
++  }
++}
++
+ void GXCreateFrameBuffer(u32 width, u32 height) {
+   GX_WRITE_AURORA(GX_AURORA_BEGIN_OFFSCREEN);
+   GX_WRITE_U32(width);
+diff --git a/lib/gx/command_processor.cpp b/lib/gx/command_processor.cpp
+index 302b562..a8bc188 100644
+--- a/lib/gx/command_processor.cpp
++++ b/lib/gx/command_processor.cpp
+@@ -783,6 +783,26 @@ void handle_aurora(ByteReader& reader) noexcept {
+     gfx::set_content_scale(reader.read<f32>());
+     set_logical_viewport(g_gxState.logicalViewport);
+     set_logical_scissor(g_gxState.logicalScissor);
++  } else if (subCmd == GX_AURORA_SET_VIEW_DELTA) {
++    // native/patches/aurora/0019: applied when the uniform is built (shader_info.cpp fill_uniform).
++    auto& vd = g_gxState.viewDelta;
++    const bool active = reader.read<u8>() != 0;
++    if (active) {
++      f32* flat = reinterpret_cast<f32*>(&vd.delta);
++      for (int i = 0; i < 12; ++i) {
++        flat[i] = reader.read<f32>();
++      }
++      for (auto& v : vd.projFrom) {
++        v = reader.read<f32>();
++      }
++      for (auto& v : vd.projTo) {
++        v = reader.read<f32>();
++      }
++    }
++    if (active || vd.active) {
++      g_gxState.dirty |= DirtyUniform;
++    }
++    vd.active = active;
+   } else if (subCmd == GX_AURORA_BEGIN_OFFSCREEN) {
+     const u32 width = reader.read<u32>();
+     const u32 height = reader.read<u32>();
+@@ -854,6 +874,7 @@ void handle_aurora(ByteReader& reader) noexcept {
+ }
+ 
+ void clear_draw_cache() noexcept {
++  g_gxState.viewDelta.active = false; // native/patches/aurora/0019: never past a frame
+   sDrawCache.bindGeneration = 0;
+   sDrawCache.uniformRange = {};
+   sDrawCache.fogRange = {};
+diff --git a/lib/gx/gx.hpp b/lib/gx/gx.hpp
+index 1e080ec..6623225 100644
+--- a/lib/gx/gx.hpp
++++ b/lib/gx/gx.hpp
+@@ -306,6 +306,14 @@ inline bool operator==(const AttrArray& lhs, const AttrArray& rhs) {
+ }
+ inline bool operator!=(const AttrArray& lhs, const AttrArray& rhs) { return !(lhs == rhs); }
+ 
++// GX_AURORA_SET_VIEW_DELTA (native/patches/aurora/0019): see GXAurora.h.
++struct ViewDelta {
++  bool active = false;
++  Mat3x4<float> delta;            // C, row-major
++  std::array<float, 6> projFrom{}; // the world view's projection (GXSetProjection encoding)
++  std::array<float, 6> projTo{};   // the projection drawn instead
++};
++
+ struct GXState {
+   struct CopyTextureRef {
+     gfx::TextureHandle handle;
+@@ -330,6 +338,7 @@ struct GXState {
+   };
+ 
+   // Decoded state
++  ViewDelta viewDelta; // native/patches/aurora/0019
+   std::array<PnMtx, MaxPnMtx> pnMtx;
+   u32 currentPnMtx;
+   Mat4x4<float> proj;
+diff --git a/lib/gx/shader_info.cpp b/lib/gx/shader_info.cpp
+index 8761d67..53015b4 100644
+--- a/lib/gx/shader_info.cpp
++++ b/lib/gx/shader_info.cpp
+@@ -374,8 +374,49 @@ ShaderInfo build_shader_info(const ShaderConfig& config) noexcept {
+   return info;
+ }
+ 
++// GX_AURORA_SET_VIEW_DELTA (native/patches/aurora/0019): on, and the draw uses the perspective
++// projection it names (the world view's), so the view moves by the delta for this draw.
++static bool view_delta_applies() noexcept {
++  const auto& vd = g_gxState.viewDelta;
++  if (!vd.active) {
++    return false;
++  }
++  const auto& p = g_gxState.proj;
++  if (p.m3[2] != -1.f || p.m3[3] != 0.f) {
++    return false; // orthographic
++  }
++  return p.m0[0] == vd.projFrom[0] && p.m0[2] == vd.projFrom[1] && p.m1[1] == vd.projFrom[2] &&
++         p.m1[2] == vd.projFrom[3] && p.m2[2] == vd.projFrom[4] && p.m2[3] == vd.projFrom[5];
++}
++
++// d = C * m for row-major 3x4 affine matrices; withTranslation false: C's rotation only (normals).
++static Mat3x4<float> view_delta_mul(const Mat3x4<float>& c, const Mat3x4<float>& m, bool withTranslation) noexcept {
++  const Vec4<float>* cr[3] = {&c.m0, &c.m1, &c.m2};
++  const Vec4<float>* mr[3] = {&m.m0, &m.m1, &m.m2};
++  Mat3x4<float> d;
++  Vec4<float>* dr[3] = {&d.m0, &d.m1, &d.m2};
++  for (int i = 0; i < 3; ++i) {
++    const Vec4<float>& ci = *cr[i];
++    for (int j = 0; j < 4; ++j) {
++      (*dr[i])[j] = ci[0] * (*mr[0])[j] + ci[1] * (*mr[1])[j] + ci[2] * (*mr[2])[j];
++    }
++    if (withTranslation) {
++      (*dr[i])[3] += ci[3];
++    }
++  }
++  return d;
++}
++
++static Vec4<float> view_delta_vec(const Mat3x4<float>& c, const Vec4<float>& v, bool point) noexcept {
++  const f32 w = point ? 1.f : 0.f;
++  return Vec4<float>{c.m0[0] * v[0] + c.m0[1] * v[1] + c.m0[2] * v[2] + c.m0[3] * w,
++                     c.m1[0] * v[0] + c.m1[1] * v[1] + c.m1[2] * v[2] + c.m1[3] * w,
++                     c.m2[0] * v[0] + c.m2[1] * v[1] + c.m2[2] * v[2] + c.m2[3] * w, v[3]};
++}
++
+ static void fill_uniform(ByteBuffer& buf, const ShaderInfo& info) noexcept {
+   buf.reserve_extra(info.uniformSize);
++  const bool viewDelta = view_delta_applies();
+ 
+   buf.append<f32>(g_gxState.renderViewport.width);
+   buf.append<f32>(g_gxState.renderViewport.height);
+@@ -395,6 +436,16 @@ static void fill_uniform(ByteBuffer& buf, const ShaderInfo& info) noexcept {
+     }
+   }
+   auto proj = g_gxState.proj;
++  if (viewDelta) {
++    // the world view's projection swapped (xf_load_projection's perspective layout)
++    const auto& to = g_gxState.viewDelta.projTo;
++    proj.m0[0] = to[0];
++    proj.m0[2] = to[1];
++    proj.m1[1] = to[2];
++    proj.m1[2] = to[3];
++    proj.m2[2] = to[4];
++    proj.m2[3] = to[5];
++  }
+   if constexpr (UseReversedZ) {
+     proj.m2 = proj.m2 * Vec4{-1.f, -1.f, -1.f, -1.f};
+   } else {
+@@ -402,8 +453,13 @@ static void fill_uniform(ByteBuffer& buf, const ShaderInfo& info) noexcept {
+   }
+   buf.append(proj);
+ 
++  const auto& delta = g_gxState.viewDelta.delta;
+   for (int i = 0; i < MaxPnMtx; i++) {
+-    buf.append(g_gxState.pnMtx[i].pos);
++    if (viewDelta) {
++      buf.append(view_delta_mul(delta, g_gxState.pnMtx[i].pos, true));
++    } else {
++      buf.append(g_gxState.pnMtx[i].pos);
++    }
+   }
+ 
+   for (int i = 0; i < MaxTexMtx; i++) {
+@@ -411,7 +467,11 @@ static void fill_uniform(ByteBuffer& buf, const ShaderInfo& info) noexcept {
+   }
+ 
+   for (int i = 0; i < MaxPnMtx; i++) {
+-    buf.append(g_gxState.pnMtx[i].nrm);
++    if (viewDelta) {
++      buf.append(view_delta_mul(delta, g_gxState.pnMtx[i].nrm, false));
++    } else {
++      buf.append(g_gxState.pnMtx[i].nrm);
++    }
+   }
+ 
+   for (int i = 0; i < info.loadsTevReg.size(); ++i) {
+@@ -422,7 +482,17 @@ static void fill_uniform(ByteBuffer& buf, const ShaderInfo& info) noexcept {
+   if (info.lightingEnabled) {
+     // Lights
+     static_assert(sizeof(g_gxState.lights) == 80 * GX::MaxLights);
+-    buf.append(g_gxState.lights);
++    if (viewDelta) {
++      // lights are given in view space: they move with the view
++      auto lights = g_gxState.lights;
++      for (auto& light : lights) {
++        light.pos = view_delta_vec(delta, light.pos, true);
++        light.dir = view_delta_vec(delta, light.dir, false);
++      }
++      buf.append(lights);
++    } else {
++      buf.append(g_gxState.lights);
++    }
+     // Light state for all channels
+     for (int i = 0; i < 4; ++i) {
+       buf.append<u32>(g_gxState.colorChannelState[i].lightMask.to_ulong());
