@@ -281,11 +281,6 @@ void fpcM_Management(fpcM_ManagementFunc callBack1, fpcM_ManagementFunc callBack
 #if VERSION > VERSION_DEMO
     cAPIGph_Painter();
 #endif
-#if TARGET_PC
-    // COS_FPS60_TEST (game_hooks.h, docs/FPS60_PLAN.md step A): paint A is presented now; paint B
-    // below repaints the lists of this frame's draw pass.
-    const int paintB = pc_frame_split();
-#endif
     fpcDt_Handler();
     if (!fpcPi_Handler())
         JUT_ASSERT(VERSION_SELECT(460, 490, 548, 547), 0);
@@ -297,6 +292,13 @@ void fpcM_Management(fpcM_ManagementFunc callBack1, fpcM_ManagementFunc callBack
         callBack1();
 
     fpcEx_Handler((fpcLnIt_QueueFunc)fpcM_Execute);
+#if TARGET_PC
+    // COS_FPS60_TEST (game_hooks.h, docs/FPS60_PLAN.md step A): paint A is presented here, after
+    // the logic, which ran while Aurora's GX worker translated it (presented right after the paint,
+    // the game thread waited ~9 ms in aurora_end_frame's fifo drain); paint B below repaints the
+    // lists of this frame's draw pass.
+    const int paintB = pc_frame_split();
+#endif
     fpcDw_Handler((fpcDw_HandlerFuncFunc)fpcM_DrawIterater, (fpcDw_HandlerFunc)fpcM_Draw);
 
     if (callBack2 != NULL)
