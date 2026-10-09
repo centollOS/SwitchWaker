@@ -8,7 +8,14 @@ SwitchWakerHD `main`/`dev` df8fbde, whose Switch renderer moved from OpenGL/Mesa
 no code changed. "Measured" means a number read from a log, a document or an experiment run while
 writing this; "estimated" means a projection.
 
-## Resume here (state at the end of 2026-10-08, evening)
+## Resume here (2026-10-09)
+
+v0.2.0 is out with the deko3d NRO (phase 6 done; picto box, disc error applet and the old
+`switchwaker_dk/` folder checked/removed). **Phase 4 in progress** (section "Phase 4 progress"):
+three commits built but not yet run on the console (dynamic resolution fed by the deko3d timestamps,
+1920x1080 window docked, GPU groups). Next: run them on the console, then the rest of the phase 4 list.
+
+## Earlier state (end of 2026-10-08, evening)
 
 Phases 1-3 are done and **the go/no-go checkpoint of phase 3 passes on performance** (section "Phase 3
 console results"): deko3d runs the whole route at 30 fps, the render worker at 1.3-2.1 ms a frame
@@ -822,6 +829,23 @@ at 1920x1080 on dock (HD `p4-docked`) with the EFB at the per-mode `COS_FB_SCALE
 descriptor writes, DKSH loads, pending shaders, skipped draws); `COS_SWITCH_CORES` placement of the
 uam worker. Verification: each option A/B on the console in the same spot; HD pack census on
 Outset and the forest (`docs/HD_TEXTURES.md` "Coverage"); 30 minutes of play per session, two sessions.
+
+### Phase 4 progress (2026-10-09, `dev`)
+
+Audit of the list against the code: HD textures (BC7 and the other BC formats are mapped in
+`dk_objects.cpp`), the offscreen/low-res options, widescreen and captures go through Aurora and the
+deko3d path already; the `perf-switch` and hitch lines read the deko3d counters
+(`cos_switch_stats.cpp`). Gaps found and fixed (built, console check pending):
+- dynamic resolution (`COS_DYNRES` auto) read Dawn GL's GPU timer, zero on deko3d, so it never
+  moved: now `cos_switch_gfx_stats` (0409073);
+- the window was 1280x720 docked too: 1920x1080 docked, swapchain recreated on a mode change,
+  `COS_DK_DOCKED_1080=0` / `COS_DK_WINDOW=WxH` (c6a9f28);
+- `COS_GPU_GROUPS` had no deko3d implementation: timestamp segments per marker/pass label,
+  `aurora_switch_dk_gpu_groups` (c69502b).
+
+Console checks to do: `COS_DYNRES=1` in a heavy spot (level changes in the log), dock/undock
+(`[dk] frame N: window ... swapchain recreated`, picture and menu fill the TV), the `gpu groups`
+line with groups 1 and 2, then the A/B per option and the HD pack census, 2 x 30 minutes of play.
 
 ### Phase 5: performance (1-2 weeks)
 
