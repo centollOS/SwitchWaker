@@ -938,6 +938,7 @@ void frame_begin(FramePacket& frame) {
 }
 
 void encode_op(FramePacket& frame, const FrameOp& op) {
+    swdk::host_alloc_thread();
     if (!g_frame.open || !R.frameOpen) frame_begin(frame);
     const uint64_t t0 = swdk::now_ns();
     do_uploads(op);

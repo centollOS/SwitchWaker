@@ -246,6 +246,7 @@ extern "C" void aurora_switch_dk_gfx_stats(uint64_t* out, size_t count) {
 // pc_capture.cpp and pc_shot.cpp (COS_SWITCH_DEKO3D): Aurora's texture level 0 as 4-byte texels
 extern "C" bool aurora_switch_dk_read_texture(void* texture, uint8_t** pixels, uint32_t* width, uint32_t* height,
                                               uint32_t* wgpuFormat) {
+    swdk::host_alloc_thread();
     static std::vector<uint8_t> buffer;
     wgpu::TextureFormat format = wgpu::TextureFormat::Undefined;
     if (!read_texture(static_cast<WGPUTexture>(texture), buffer, *width, *height, format)) return false;

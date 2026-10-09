@@ -26,7 +26,9 @@
 #include "text_fsh_dksh.h"
 #include "text_vsh_dksh.h"
 
-extern "C" char* fake_heap_end;              // libnx: the end of the heap malloc grows into (sbrk)
+extern "C" char* fake_heap_end;
+// the game's host allocation scope (JKRHeap.cpp, native/src/pc/game_hooks/pc_jkr_heap.cpp)
+void JKRPcBeginHostAlloc();              // libnx: the end of the heap malloc grows into (sbrk)
 extern "C" void cos_switch_flush_logs(void);  // switch/native/source/cos_switch.cpp
 
 namespace swdk {
@@ -409,6 +411,19 @@ void dklog(const char* format, ...) {
 
 void log_flush() { cos_switch_flush_logs(); }
 
+void host_alloc_thread() {
+    // The global operator new gives a thread's allocations to the game's current JKRHeap unless the
+    // thread is in a host allocation scope: the render worker's and the uam worker's strings, maps
+    // and vectors then took blocks from a game heap (NULL when it was full: a crash in the GPU
+    // groups' marker names in the Tower of the Gods; dangling when the game freed it). These
+    // threads run no game code: host memory for the whole thread.
+    static thread_local bool done = false;
+    if (!done) {
+        done = true;
+        JKRPcBeginHostAlloc();
+    }
+}
+
 void fatal(const char* format, ...) {
     char line[1024];
     va_list args;
@@ -528,7 +543,10 @@ extern "C" void aurora_switch_dk_init(uint32_t gxConfigVersion) {
     log_flush();
 }
 
-extern "C" void aurora_switch_dk_present(const ImDrawData* ui) { frame_present(ui, g_picture, g_pictureUser); }
+extern "C" void aurora_switch_dk_present(const ImDrawData* ui) {
+    host_alloc_thread();
+    frame_present(ui, g_picture, g_pictureUser);
+}
 
 extern "C" void aurora_switch_dk_shutdown(void) {
     if (R.queue == nullptr) return;

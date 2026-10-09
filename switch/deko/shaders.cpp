@@ -126,6 +126,7 @@ bool take_job(Job* out) {
 }
 
 void* worker_main(void*) {
+    host_alloc_thread();
     cos_switch_thread_role(kThreadRoleCompile);
     svcSetThreadPriority(CUR_THREAD_HANDLE, kMaxThreadPriority);
     const uint64_t t0 = now_ns();

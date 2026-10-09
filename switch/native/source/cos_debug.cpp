@@ -37,6 +37,8 @@ extern "C" int pc_debug_status(char* out, size_t size);
 extern "C" unsigned int pc_debug_shot_request(const char* path, int overlay);                     // pc_shot.cpp
 extern "C" unsigned int pc_debug_shot_done(int* ok);
 
+void JKRPcBeginHostAlloc(); // JKRHeap.cpp host allocation scope (pc_jkr_heap.cpp)
+
 namespace {
 
 int gPort = 0;
@@ -163,6 +165,9 @@ extern "C" void cos_switch_debug_start(void) {
     c.log = [](const char* line) { fprintf(stderr, "%s\n", line); };
     // above the game's threads, off its core (core 0): the server answers while the game is busy
     c.threadStart = [] {
+        // host memory, never the game's current JKRHeap (its buffers and strings filled a game
+        // heap: the server stopped answering after a 35 MB deploy, the game ran on)
+        JKRPcBeginHostAlloc();
         svcSetThreadPriority(CUR_THREAD_HANDLE, 0x2C);
         svcSetThreadCoreMask(CUR_THREAD_HANDLE, -1, 0x6);
     };
@@ -173,6 +178,14 @@ extern "C" void cos_switch_debug_start(void) {
                 ipText().c_str(), gPort);
     } else {
         debugsrv::drop_log();
+    }
+}
+
+extern "C" void cos_switch_host_alloc_thread(void) {
+    static thread_local bool done = false;
+    if (!done) {
+        done = true;
+        JKRPcBeginHostAlloc();
     }
 }
 

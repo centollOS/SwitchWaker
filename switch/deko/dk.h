@@ -269,6 +269,8 @@ void dklog(const char* format, ...) __attribute__((format(printf, 1, 2)));
 // (release library: 2359-xxxx; SwitchWakerHD backend.cpp:141-150), so creations log what they are
 // about to do and flush first.
 void log_flush();
+// the calling thread (render worker, uam worker) allocates host memory, never the game's JKRHeaps
+void host_alloc_thread();
 [[noreturn]] void fatal(const char* format, ...) __attribute__((format(printf, 1, 2)));
 // The queue is in an error state after a GPU fault, and deko3d aborts on any call that touches it:
 // checked before each submit, acquire and present.

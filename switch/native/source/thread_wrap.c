@@ -131,7 +131,14 @@ static void place_compile_thread(Handle handle) {
             (unsigned)mask, R_SUCCEEDED(rc) ? "" : " (refused)");
 }
 
+// cos_debug.cpp: the calling thread allocates host memory, never the game's current JKRHeap.
+void cos_switch_host_alloc_thread(void);
+
 void cos_switch_thread_role(int role) {
+    // Aurora's render worker and pipeline compile thread run no game code: their strings, maps and
+    // vectors (Tint's above all) must not take blocks from whatever game heap is current.
+    if (role == COS_SWITCH_THREAD_RENDER || role == COS_SWITCH_THREAD_COMPILE)
+        cos_switch_host_alloc_thread();
     struct ThreadEntry* entry = find_or_add_current();
     if (entry != NULL)
         atomic_store(&entry->role, role);
