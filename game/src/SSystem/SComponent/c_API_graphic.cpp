@@ -18,7 +18,9 @@ void cAPIGph_Painter(void) {
     // (COS_FPS60_TEST's paint B apart).
     const int phase = pc_paint_is_extra() ? PC_PERF_PAINTER2 : PC_PERF_PAINTER;
     pc_perf_begin(phase);
+    pc_fps60_painting(1); // step C: J3DModel::viewCalc calls from the painter are not captured
     g_cAPI_Interface.mpPainter();
+    pc_fps60_painting(0);
     pc_perf_end(phase);
 #else
     g_cAPI_Interface.mpPainter();

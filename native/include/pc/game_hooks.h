@@ -128,6 +128,39 @@ int pc_fps60_paint_b_allowed(void);
 int pc_fpcNdRq_pending();
 /* The perf line: paints B interpolated and not (cuts) so far. */
 void pc_fps60_camera_stats(unsigned long* interpolated, unsigned long* skipped);
+/* d_kankyo_wether.cpp, around the sun, lens flare, star and sky cloud packets (built around the
+   draw pass's camera eye): in paint B they get the camera's turn only (the eye of frame N+1 with the
+   blended orientation), then the full delta again. Nothing outside a blended paint B. */
+void pc_fps60_sky_begin(void);
+void pc_fps60_sky_end(void);
+
+/* ---- 60 fps step C: objects of paint B (native/src/pc/game_hooks/pc_fps60_models.cpp) ---------- */
+
+class J3DModel;
+/* J3DModel::initialize: a model (re)made at this address; its earlier captures are dropped. */
+void pc_fps60_model_init(J3DModel* model);
+/* The end of J3DModel::viewCalc: in the draw pass (not the painter), keeps the model's view-space draw
+   and normal matrices and the view they were made with (COS_FPS60_TEST only). */
+void pc_fps60_model_viewcalc(J3DModel* model);
+/* fpcM_Management, around the draw pass (fpcDw_Handler and callBack2): viewCalc calls in between
+   are listed; at the end the listed models' matrices are copied (the frame's "cur", the last one
+   becoming "prev"). */
+void pc_fps60_models_draw_begin(void);
+void pc_fps60_models_draw_end(void);
+/* cAPIGph_Painter, around mDoGph_Painter (both paints): 1 inside. */
+void pc_fps60_painting(int on);
+/* pc_fps60_view_begin (paint B, no cut): points every model captured in both draw passes at matrices
+   blended at t into a scratch arena (V_cur * lerp(W_prev, W_cur)); pc_fps60_view_end puts the
+   models' own matrices back. viewPrev/viewCur: the cameras' view matrices of the two draw passes. */
+void pc_fps60_models_paint_begin(float t, const float viewPrev[3][4], const float viewCur[3][4]);
+void pc_fps60_models_paint_end(void);
+/* A custom packet's view-space matrix loaded at paint time (made in the draw pass with the camera's
+   view, e.g. daSail_packet_c's): out = m, except in a blended paint B, where out is the blend at t
+   of the matrix the same packet (key) loaded in this frame's paint A (the draw pass before's) and m,
+   as for J3D models. Host memory only. */
+void pc_fps60_packet_mtx(const void* key, const float m[3][4], float out[3][4]);
+/* The perf line's step C part (counts and ms since the last call), "" with the mode off. */
+void pc_fps60_models_stats(char* out, unsigned long size, double frames);
 
 /* ---- Collision data (c_bg_s.cpp), native/src/pc/game_hooks/pc_c_bg_s.cpp --------------------- */
 

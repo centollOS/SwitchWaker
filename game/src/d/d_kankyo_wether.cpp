@@ -13,6 +13,17 @@
 #if VERSION == VERSION_DEMO
 #include "m_Do/m_Do_controller_pad.h"
 #endif
+#if TARGET_PC
+#include "pc/game_hooks.h"
+// COS_FPS60_TEST (pc_fps60_camera.cpp): the sun, moon, lens flare, stars and sky clouds are built
+// around the camera eye of the draw pass; paint B draws them with the camera's turn only, not its
+// move (a sky at the eye of frame N+1 seen from the eye halfway would jump each paint B).
+#define PC_SKY_BEGIN() pc_fps60_sky_begin()
+#define PC_SKY_END() pc_fps60_sky_end()
+#else
+#define PC_SKY_BEGIN()
+#define PC_SKY_END()
+#endif
 
 /* 80086F74-80086FC4       .text dKyw_setDrawPacketList__FP9J3DPacketi */
 J3DPacket* dKyw_setDrawPacketList(J3DPacket* i_packet, int) {
@@ -60,12 +71,16 @@ J3DPacket* dKyw_setDrawPacketListXluZPos(J3DPacket* i_packet, cXyz* param_1) {
 
 /* 80087130-80087168       .text draw__18dKankyo_sun_PacketFv */
 void dKankyo_sun_Packet::draw() {
+    PC_SKY_BEGIN();
     dKyr_drawSun(j3dSys.getViewMtx(), mPos, mColor, mpTextureData);
+    PC_SKY_END();
 }
 
 /* 80087168-800871A0       .text draw__22dKankyo_sunlenz_PacketFv */
 void dKankyo_sunlenz_Packet::draw() {
+    PC_SKY_BEGIN();
     dKyr_drawLenzflare(j3dSys.getViewMtx(), mPositions, mColorTmp, &mpTexSnow01);
+    PC_SKY_END();
 }
 
 /* 800871A0-800871DC       .text __dt__8RAIN_EFFFv */
@@ -99,7 +114,9 @@ STAR_EFF::STAR_EFF() {}
 
 /* 800872D8-80087308       .text draw__19dKankyo_star_PacketFv */
 void dKankyo_star_Packet::draw() {
+    PC_SKY_BEGIN();
     dKyr_drawStar(j3dSys.getViewMtx(), &mpTexture);
+    PC_SKY_END();
 }
 
 /* 80087308-80087344       .text __dt__10POISON_EFFFv */
@@ -143,7 +160,9 @@ VRKUMO_EFF::VRKUMO_EFF() {}
 
 /* 8008749C-800874D0       .text draw__21dKankyo_vrkumo_PacketFv */
 void dKankyo_vrkumo_Packet::draw() {
+    PC_SKY_BEGIN();
     drawVrkumo(j3dSys.getViewMtx(), mColorTmp, &mpCloudTx1);
+    PC_SKY_END();
 }
 
 /* 800874D0-8008750C       .text __dt__8WAVE_EFFFv */

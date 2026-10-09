@@ -21,6 +21,13 @@
 //   than 10 degrees, the bank more than ~22 degrees, or the view turning more than 45 degrees.
 //   Logged (one line per reason change, else every 2 s with the count) and counted in the perf line.
 //
+// - The sky (pc_fps60_sky_begin/_end around the sun, lens flare, star and sky cloud packets,
+//   d_kankyo_wether.cpp): they are built around N+1's camera eye (eye + direction * distance), so seen
+//   from the eye at t they would jump by the eye's half step each paint B (stars ~300 units away: a
+//   few degrees). They get C_sky = V_t' * V_cur^-1 instead, V_t' being V_t's orientation around N+1's
+//   eye: the camera's turn without its move. COS_FPS60_SKY=0 gives them C (step B's behaviour).
+// - Step C (pc_fps60_models.cpp): the models are blended at the same t unless it is a cut.
+//
 // COS_FPS60_CAMERA=0 turns the interpolation off (paint B as in step A); COS_FPS60_CAMERA_T=<t> sets
 // the blend (default 0.5; 0 = the previous camera, a check of the delta: paint B's still world then
 // matches paint A's).
@@ -67,6 +74,10 @@ struct CamSnap {
 CamSnap sPrev, sCur;
 bool sResetPending = false; // dCamera_c::Reset since the last capture
 bool sDeltaOn = false;      // AuroraSetViewDelta on in this paint
+bool sModelsOn = false;     // step C: the models point at blended matrices in this paint
+bool sSkyOn = false;        // the sky's delta (pc_fps60_sky_begin) is the current one
+Mtx sDelta, sSkyDelta;      // C = V_t * V_cur^-1 and the sky's turn-only C
+f32 sProjFrom[6], sProjTo[6];
 
 // counters for the perf line (pc_fps60_camera_stats)
 unsigned long sInterp = 0, sSkips = 0;
@@ -85,6 +96,15 @@ uint64_t nowNs() {
 bool enabled() {
     static const bool on = [] {
         const char* v = getenv("COS_FPS60_CAMERA");
+        return !(v != nullptr && v[0] == '0');
+    }();
+    return on;
+}
+
+// COS_FPS60_MODELS=0: no object interpolation (step C), the camera's alone (step B).
+bool modelsEnabled() {
+    static const bool on = [] {
+        const char* v = getenv("COS_FPS60_MODELS");
         return !(v != nullptr && v[0] == '0');
     }();
     return on;
@@ -236,14 +256,23 @@ void pc_fps60_camera_drawn(view_class* view) {
 
 void pc_fps60_view_begin(view_class* view) {
     sDeltaOn = false;
-    if (!pc_paint_is_extra() || !enabled() || view == nullptr) {
+    sModelsOn = false;
+    if (!pc_paint_is_extra() || view == nullptr || (!enabled() && !modelsEnabled())) {
         return;
     }
     if (const char* reason = cutReason(view)) {
-        skip(reason);
+        skip(reason); // objects at t = 1 too (step C)
         return;
     }
     const f32 t = blendT();
+    if (modelsEnabled()) {
+        // Step C (pc_fps60_models.cpp): every model captured in both draw passes drawn at t.
+        pc_fps60_models_paint_begin(t, sPrev.viewMtx, sCur.viewMtx);
+        sModelsOn = true;
+    }
+    if (!enabled()) {
+        return;
+    }
     cXyz eye = lerpv(sPrev.eye, sCur.eye, t);
     cXyz center = lerpv(sPrev.center, sCur.center, t);
     cXyz up = lerpv(sPrev.up, sCur.up, t);
@@ -255,21 +284,27 @@ void pc_fps60_view_begin(view_class* view) {
         skip("singular view");
         return;
     }
-    Mtx delta;
-    MTXConcat(viewT, inv, delta);
+    MTXConcat(viewT, inv, sDelta);
+    // The sky's delta (pc_fps60_sky_begin): V_t's orientation around N+1's eye, i.e. V_t with the
+    // translation -R_t * eye_cur; C_sky = V_t' * V_cur^-1 turns without moving.
+    Mtx viewSky;
+    MTXCopy(viewT, viewSky);
+    for (int r = 0; r < 3; r++) {
+        viewSky[r][3] = -(viewT[r][0] * sCur.eye.x + viewT[r][1] * sCur.eye.y + viewT[r][2] * sCur.eye.z);
+    }
+    MTXConcat(viewSky, inv, sSkyDelta);
 
-    f32 projFrom[6], projTo[6];
-    projParams(view->mProjMtx, projFrom);
+    projParams(view->mProjMtx, sProjFrom);
     if (sCur.fovy == sPrev.fovy && sCur.aspect == sPrev.aspect && sCur.nearZ == sPrev.nearZ &&
         sCur.farZ == sPrev.farZ) {
-        memcpy(projTo, projFrom, sizeof(projTo));
+        memcpy(sProjTo, sProjFrom, sizeof(sProjTo));
     } else {
         Mtx44 projT;
         C_MTXPerspective(projT, lerpf(sPrev.fovy, sCur.fovy, t), lerpf(sPrev.aspect, sCur.aspect, t),
                          lerpf(sPrev.nearZ, sCur.nearZ, t), lerpf(sPrev.farZ, sCur.farZ, t));
-        projParams(projT, projTo);
+        projParams(projT, sProjTo);
     }
-    AuroraSetViewDelta(&delta[0][0], projFrom, projTo);
+    AuroraSetViewDelta(&sDelta[0][0], sProjFrom, sProjTo);
     sDeltaOn = true;
     sInterp++;
 }
@@ -279,6 +314,30 @@ void pc_fps60_view_end(void) {
         AuroraSetViewDelta(nullptr, nullptr, nullptr);
         sDeltaOn = false;
     }
+    sSkyOn = false;
+    if (sModelsOn) {
+        pc_fps60_models_paint_end();
+        sModelsOn = false;
+    }
+}
+
+void pc_fps60_sky_begin(void) {
+    // COS_FPS60_SKY=0: the sky gets the full delta like the rest (step B's behaviour, for comparison)
+    static const bool skyOn = [] {
+        const char* v = getenv("COS_FPS60_SKY");
+        return !(v != nullptr && v[0] == '0');
+    }();
+    if (skyOn && sDeltaOn && !sSkyOn) {
+        AuroraSetViewDelta(&sSkyDelta[0][0], sProjFrom, sProjTo);
+        sSkyOn = true;
+    }
+}
+
+void pc_fps60_sky_end(void) {
+    if (sDeltaOn && sSkyOn) {
+        AuroraSetViewDelta(&sDelta[0][0], sProjFrom, sProjTo);
+    }
+    sSkyOn = false;
 }
 
 int pc_fps60_paint_b_allowed(void) {

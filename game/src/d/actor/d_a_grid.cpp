@@ -4,6 +4,9 @@
 #include "f_op/f_op_camera.h"
 #include "d/d_kankyo_wether.h"
 #include "d/d_s_play.h"
+#if TARGET_PC
+#include "pc/game_hooks.h"
+#endif
 
 #include "res/Object/Cloth.h"
 #include "res/Object/Ship.h"
@@ -343,8 +346,17 @@ void daHo_packet_c::draw() {
     GXSetTevColor(GX_TEVREG2, mpTevStr->mColorK1);
     GXCallDisplayList(l_matDL, 0x20);
 
+#if TARGET_PC
+    // COS_FPS60_TEST step C (pc_fps60_models.cpp): paint B draws the boat's sail where the mast is
+    // at t.
+    Mtx pcMtx;
+    pc_fps60_packet_mtx(this, getMtx(), pcMtx);
+    GXLoadPosMtxImm(pcMtx, 0);
+    GXLoadNrmMtxImm(pcMtx, 0);
+#else
     GXLoadPosMtxImm(getMtx(), 0);
     GXLoadNrmMtxImm(getMtx(), 0);
+#endif
     GXSetCullMode(GX_CULL_BACK);
     GXCallDisplayList(l_DL, 0x220);
 

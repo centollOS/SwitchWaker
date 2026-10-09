@@ -832,7 +832,7 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
     if (sPerf.cpuValid) {
         snprintf(cpu, sizeof(cpu), "%.2f ms avg", sPerf.cpuNs / n / 1e6);
     }
-    char fps60[384] = "";
+    char fps60[768] = "";
     if (pc_fps60_test()) {
         // COS_FPS60_TEST: paint B and paint A's present (aurora_end_frame/begin_frame) per game frame;
         // the waits for Aurora's GX worker: GXDrawDone after the draw pass (in the logic) and the
@@ -850,6 +850,11 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
                  aurora_get_async_end_frame() ? "async" : "sync",
                  wallS > 0 ? (n + (double)(sSplits - sPerf.startSplits)) / wallS : 0.0, interp - lastInterp,
                  skips - lastSkips, (unsigned long long)(sPaintBDropped - lastDropped));
+        // Step C (pc_fps60_models.cpp): models captured per game frame, blended and held per paint
+        // B, and the capture / blend costs per game frame (part of logic / painter2).
+        char models[320];
+        pc_fps60_models_stats(models, sizeof(models), n);
+        strncat(fps60, models, sizeof(fps60) - strlen(fps60) - 1);
         lastDropped = sPaintBDropped;
         lastInterp = interp;
         lastSkips = skips;

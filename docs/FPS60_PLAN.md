@@ -402,7 +402,7 @@ paints A by more than they differ from each other + 4 levels).
 
 ### Known artifacts (to be judged on the console)
 
-- **Objects attached to the camera jitter**: the camera is at t = 0.5 but every model is still at
+- **Objects attached to the camera jitter** (fixed by step C, below): the camera is at t = 0.5 but every model is still at
   N+1 (step C). When the camera follows the player (running, sailing) the player, boat and
   anything moving with them move forward by half a frame's step in paint B and back in the next
   paint A: before step B the world stuttered at 30 Hz and the player stood still on screen; now
@@ -426,3 +426,130 @@ mode (`aurora_set_async_end_frame` syncs the worker first; `COS_ASYNC_END_FRAME=
 it). Docked at 2.25 the GPU may need `COS_DYNRES` (per mode, like this row). Checked by the
 `options-menu` target with `native/check/input/menu-fps60.txt` (on from the menu: 33 presents/s in
 the window where it is turned on, 59.9 after).
+
+## Step C: the objects of paint B (2026-10-10)
+
+Console report of step B: the camera is smooth, but Link and what the camera follows vibrate (paint B
+showed them at N+1 from the camera at t), and the starry sky flickers whenever the camera moves. With
+`COS_FPS60_TEST=1` paint B now also draws the J3D models, the boat's sail and the sky at t.
+
+### Design as built (`native/src/pc/game_hooks/pc_fps60_models.cpp`)
+
+The plan assumed view-space draw matrices (`mpDrawMtxBuf`). Nearly every model of the game is of
+the load type J3DModelData.h calls `NoUseDrawMtx` (0x20; `J3DShapeFactory.cpp` calls it ConcatView,
+which is what its shapes do): the shapes concatenate the model's **world-space** joint and envelope
+matrices (`mpNodeMtx`, `mpWeightEnvMtx`) with the packet's base matrix (`j3dSys.mViewMtx`, or
+`mViewBaseMtx` in calc mode 2) at paint time, with immediate loads (`J3DShapeMtxConcatView`); viewCalc
+writes no draw matrices for them. (That is also why step B's view delta moved them.) So:
+
+- Capture: `J3DModel::viewCalc` reports the model and j3dSys's view (`pc_fps60_model_viewcalc`)
+  while the draw pass runs (`fpcM_Management`: `pc_fps60_models_draw_begin`/`_end` around
+  `fpcDw_Handler` and `callBack2`); calls from the painter (`cAPIGph_Painter` marks it:
+  `dDlst_shadowReal_c::imageDraw` re-viewCalcs shadow casters there) and outside the draw pass are
+  ignored. At the draw pass's end the listed models' matrices are copied into host memory ("cur";
+  the last "cur" becomes "prev"), by kind:
+  - 0x20 (ConcatView shapes): `mpNodeMtx` (joints) and `mpWeightEnvMtx` (envelopes), world space;
+    calc mode 2 also `mViewBaseMtx`.
+  - 0x00 / 0x10: the view-space draw matrices (`mpDrawMtxBuf[1][view]`; 0x00 also the normal
+    matrices). None in the scenes measured, kept for completeness.
+  - CPU skinning (`J3DSkinDeform`: the King of Red Lions' body, Link's mirror shield; world-space
+    vertices made in calc, drawn with the base matrix as the position matrix): the root joint.
+  - Not captured: static models (`NoAnimation`: no matrices of their own), CPU skinning in calc mode 2.
+  A model re-made at the same address (`J3DModel::initialize` calls `pc_fps60_model_init`; actor
+  heaps are freed without destructors, but every J3DModel is constructed) has its captures dropped.
+- Paint B: `pc_fps60_view_begin`, unless the camera is cut (then objects are at t = 1 too), calls
+  `pc_fps60_models_paint_begin(t, V_prev, V_cur)` before the sky and world lists. For each model in
+  both captures (same model data, kind and matrix count; view-space ones made with the two cameras'
+  views; its matrices still equal to the capture, else "changed"):
+  - world: W_t = blend(W_prev, W_cur);
+  - view space: D_t = blend(K D_prev, D_cur) = V_cur blend(W_prev, W_cur), K = V_cur V_prev^-1
+    (normals with K's rotation; billboard joints keep D_cur's rotation);
+  - CPU skin: each shape packet's base matrix pointer to V_cur R_t R_cur^-1 (R: root joint): the
+    skinned vertices move rigidly with the root, their deformation stays N+1's;
+  - blend = the 3x3 part per column lerped and rescaled to the lerped column length (a slerp-like
+    turn that keeps the scale), the translation lerped.
+  Aurora's view delta (step B) then takes V_cur to V_t. The results go to a scratch arena; the
+  model's pointers (`mpNodeMtx`/`mpWeightEnvMtx`, `mpDrawMtxBuf[1][view]`/`mpNrmMtxBuf[1][view]`, the
+  packets' base pointers) point at it and `mViewBaseMtx` is overwritten until
+  `pc_fps60_models_paint_end` (from `pc_fps60_view_end`, before the 2D) puts everything back.
+- Custom packets with a draw-pass matrix: `pc_fps60_packet_mtx(key, m, out)` blends the matrix a
+  packet loads in paint B with the one the same packet loaded in this frame's paint A (the draw pass
+  before's): the boat's sail (`daGrid_c`, `d_a_grid.cpp`) and the pirate ship's (`daSail_packet_c`).
+- FIFO lifetime: the shapes read the substituted pointers on the game thread; the ConcatView and
+  immediate paths copy values into the GX stream at once, an indexed load (`GX_LOAD_INDX_A/B`) goes
+  through `GXSetArray`, which records the address in the stream (`GX_AURORA_LOAD_ARRAYBASE`), read
+  by Aurora's FIFO worker when it translates the load (`command_processor.cpp`), possibly after paint
+  B returned. So restoring the model's pointers after paint B does not change what was recorded, and
+  the arena must outlive the worker: three arenas in turn, one per paint B; an arena is written
+  again two paints B later, after the split present that follows its paint B (with the async end of
+  frame `aurora_end_frame` waits while more than one ended frame is not done), the next draw pass's
+  `GXDrawDone` (a full drain) and, synchronously, every `aurora_end_frame`'s drain. Arenas grow by
+  realloc only when reused (processed) and are never freed.
+
+### Discontinuities
+
+Per model, drawn as captured (t = 1): not captured in the previous draw pass (first frame shown,
+hidden, culled, re-made at the address, the mode just turned on), another model data / kind / matrix
+count, view-space matrices made with another view than the camera's (`dDlst_shadowReal_c::set`
+viewCalcs with the light view), matrices rewritten after the capture, a matrix moved more than 300
+units, the first (root) matrix turned more than 45 degrees or another more than 120 (a fast limb, an
+arm swinging 60-90 degrees a frame, is blended; at 45 for every joint a running NPC was held every
+other frame). Global: every camera cut of step B (reset, event/demo start/stop, room/stage change,
+wipe, overlap, menu, jumps) leaves the objects at N+1 too; paint B dropped in transitions as before.
+
+### The sky (console report: stars flicker when the camera moves)
+
+The sun and moon (`dKyr_drawSun`), lens flare, stars (`dKyr_drawStar`) and sky clouds (`drawVrkumo`)
+are built in the draw pass around N+1's camera eye (eye + direction * distance; stars ~300 units
+away): seen from the eye at t they were displaced by half the eye's step each paint B. Their packets
+(`d_kankyo_wether.cpp`) call `pc_fps60_sky_begin/_end`, which record (GX stream, as step B) the delta
+C_sky = V_t' V_cur^-1, V_t' being V_t's orientation around N+1's eye (the camera's turn without its
+move), then C again. The sky dome (vrbox, a J3D model placed at the eye) is blended by step C, which
+puts it at the eye at t. The sea (also in the sky list) is world-anchored and keeps C.
+`COS_FPS60_SKY=0` restores step B's behaviour for comparison.
+
+### Verification (Mac)
+
+- `COS_FPS60_CAMERA_T=0` (paint B should equal its paint A): sailing smoke (`sailing --preset
+  sailing`), frames 800-2400 every 100: whole-image mean abs difference paint B vs paint A 12.6-17.6
+  with step B alone, 4.0-6.9 with step C at 15 of the 17 frames (10.3 and 13.6 at two where the
+  boat turns hard and the wake and waves change most) (boat, Link, the King of Red Lions, the sail match; what
+  remains is the wake, the bow waves, the boat's real shadow, the sail's cloth: step D). T = 1: paint B
+  equals the next paint A (0.00-0.05, outset-control frames 400-800).
+- t = 0.5, the boat's on-screen position (centroid of the red hull, 1920x1440): paint B 91 px (mean,
+  17 frames) from the midpoint of the two paints A around it with step B alone, 4.7 px with step C
+  (the paints A 8.9 px apart: the camera follows the boat). Link walking on Outset's lookout
+  (outset-control frames 3520-4360, centroid of his hair): 9.9 px mean, 38 max from the midpoint
+  with step B alone, 1.2 px mean, 13 max with step C.
+- Night sky (`COS_BOOT_TIME=0`, new dev option, sailing smoke): stars matched between paint A, paint
+  B and the next paint A, median distance of paint B's star from the midpoint 29.9 px (mean of 17
+  frames) with the sky on C (step B), 0.44 px with C_sky.
+- `COS_PAINT_PURITY=1` and `=2` with `_REPEAT` (Outset 600 frames, sailing smoke): nothing new but
+  two pointers the J3D loaders set before every use (`J3DShapeMtxConcatView::sMtxPtrTbl`,
+  `j3dSys.mModelDrawMtx`, left pointing into the arena). Seen with step C off too, not from it: on
+  the sailing smoke, once the sail is up, a float in a zelda-heap block changes in its last bit in
+  the repeat (`heap zelda ... no object found`).
+- Mac perf (`COS_PERF_EVERY=300`, frames 301-1200, per game frame): Outset 27-74 models captured
+  (361-583 matrices), all blended but ~0.3 per paint B; capture 0.005 ms, blend + restore 0.021-0.026
+  ms. Dragon Roost 88-106 models (836-1027 matrices), capture 0.006-0.007 ms, blend 0.028-0.031 ms;
+  sailing 42 models (318 matrices, one of them CPU-skinned), 0.003 + 0.017 ms. Game thread / painter2
+  within the run-to-run noise (Outset 2.61-2.97 -> 2.77-3.03 ms, painter2 0.45-0.59 -> 0.50-0.63).
+  The perf line's `fps60:` part gives the counts and both costs (`models: ..., capture <ms>, blend
+  <ms>`), on the console too.
+
+- Full `native/tools/regress.sh` passes (the mode off). With `COS_FPS60_TEST=1`: file-select (and
+  16:10), outset-control (4:3, 16:9), new-game, telescope-demo, sailing, the three picto-box targets
+  and options-menu with `menu-fps60.txt` pass. Switch NRO `scripts/switch/build_native.sh
+  --runtime-assets` builds. Not measured on the console.
+
+### Known artifacts (to be judged on the console)
+
+- Not interpolated (N+1 in paint B): JPA particles (the ship's wake and bow waves, splashes, fire,
+  dust), the boat's real shadow (`dDlst_shadowReal_c`: the shadow image is cast in the painter from
+  N+1's matrices and projected with N+1's receiver matrix), simple shadows, other custom packets that
+  build geometry in the draw pass (ropes, the sea's waves, grass/flowers (static anyway), Link's sword
+  trail), the sail's cloth deformation, CPU-skinned deformation (only the root's motion is blended),
+  models viewCalc'd only outside the draw pass. Step D.
+- A model held at N+1 (new, jump) shows half a step off for that paint B; a model teleporting less
+  than 300 units is blended across the jump.
+- Culling/LOD as in step B: N+1's.
