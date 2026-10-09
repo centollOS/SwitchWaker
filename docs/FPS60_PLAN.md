@@ -412,3 +412,17 @@ paints A by more than they differ from each other + 4 levels).
   maps and specular highlights follow N+1's camera; culling at the screen edges is N+1's.
 - The boat's real shadow showed a stepped edge at the bottom of the screen with t = 0 (shadow
   receiver drawn for N+1's camera); not seen at t = 0.5 in the shots taken.
+
+## The options menu row (2026-10-10)
+
+Rendimiento > "60 fps (interpolación)" / "60 fps (interpolation)" (`COS_FPS60`, `0`/`1`, per
+operation mode, default off: fresh installs stay at 30 presents a second). `pc_fps60_test()` is now a
+runtime query: `COS_FPS60_TEST=1`/`0` (environment or `[dev]`) still forces the mode for a run
+(tests, measurements), else the menu's value, which its apply callback (`pc_fps60_set`) changes
+live. Switching is safe between frames: the menu is open when the row changes (no split while it is
+open), the camera capture restarts (the first paint B is a cut), paint A keeps its full wait until a
+frame has ended with paint B, and `pc_frame_begin` switches Aurora's async end of frame to follow the
+mode (`aurora_set_async_end_frame` syncs the worker first; `COS_ASYNC_END_FRAME=0/1` still forces
+it). Docked at 2.25 the GPU may need `COS_DYNRES` (per mode, like this row). Checked by the
+`options-menu` target with `native/check/input/menu-fps60.txt` (on from the menu: 33 presents/s in
+the window where it is turned on, 59.9 after).

@@ -32,6 +32,7 @@
 // aurora_begin_frame waits and retries instead of skipping the game frame.
 #include "pc_internal.h"
 #include "pc/game_hooks.h"
+#include "pc/pc_settings.h"
 #include "SSystem/SComponent/c_API_graphic.h"
 #include "SSystem/SComponent/c_math.h"
 #include "pc/pc_gpu_opts.h"
@@ -1029,28 +1030,55 @@ void pc_frame_pace(unsigned long long periodNs) {
     }
 }
 
+// 60 fps (docs/FPS60_PLAN.md): the options menu's Rendimiento > "60 fps (interpolación)" (COS_FPS60,
+// per operation mode, live: pc_fps60_set from its apply callback), or COS_FPS60_TEST=1/0 in the
+// environment or [dev], which overrides it (tests and measurements).
+static int sFps60Forced = -2; // COS_FPS60_TEST: 1/0, -1 unset; -2 not read yet
+static int sFps60Setting = -1; // COS_FPS60; -1 not read yet
+
 int pc_fps60_test(void) {
-    static const int on = [] {
+    if (sFps60Forced == -2) {
         const char* v = getenv("COS_FPS60_TEST");
-        const int o = v != nullptr && v[0] == '1';
-        if (o) {
+        sFps60Forced = v != nullptr && (v[0] == '1' || v[0] == '0') ? v[0] - '0' : -1;
+        if (sFps60Forced == 1) {
             writef(STDERR_FILENO, "[cos] COS_FPS60_TEST=1: every game frame of two retraces is presented "
                                   "twice: paint A at once, paint B (the new draw lists painted again, no "
-                                  "draw pass) at the end; each paint waits one retrace\n");
+                                  "draw pass, the camera interpolated) at the end; each paint waits one "
+                                  "retrace\n");
         }
-        return o;
-    }();
-    return on;
+    }
+    if (sFps60Forced >= 0) {
+        return sFps60Forced;
+    }
+    if (sFps60Setting < 0) {
+        const char* v = pc_settings_get("COS_FPS60");
+        sFps60Setting = v != nullptr && v[0] == '1';
+    }
+    return sFps60Setting;
+}
+
+void pc_fps60_set(int on) {
+    sFps60Setting = on ? 1 : 0;
+    if (sFps60Forced >= 0) {
+        writef(STDERR_FILENO, "[cos] fps60: COS_FPS60=%d saved; COS_FPS60_TEST=%d keeps it %s for this run\n",
+               sFps60Setting, sFps60Forced, sFps60Forced ? "on" : "off");
+    } else {
+        writef(STDERR_FILENO, "[cos] fps60: %s from the next game frame\n", on ? "on" : "off");
+    }
 }
 
 // COS_ASYNC_END_FRAME (Aurora patch 0018, docs/FPS60_PLAN.md "Async end of frame"): aurora_end_frame
 // does not wait for Aurora's GX worker to drain the frame; the worker ends it and begins the next, and
-// the game thread goes on (at most one ended frame ahead). =1 on, =0 off; unset: on with COS_FPS60_TEST.
-// Readbacks after a frame (the picto box, COS_SHOT) call aurora_frame_sync first.
+// the game thread goes on (at most one ended frame ahead). =1 on, =0 off; unset: on while 60 fps is
+// (checked before every frame, so it follows the menu). Readbacks after a frame (the picto box,
+// COS_SHOT) call aurora_frame_sync first.
 static bool asyncEndFrameWanted() {
-    const char* v = getenv("COS_ASYNC_END_FRAME");
-    if (v != nullptr && (v[0] == '0' || v[0] == '1')) {
-        return v[0] == '1';
+    static const int forced = [] {
+        const char* v = getenv("COS_ASYNC_END_FRAME");
+        return v != nullptr && (v[0] == '0' || v[0] == '1') ? v[0] - '0' : -1;
+    }();
+    if (forced >= 0) {
+        return forced == 1;
     }
     return pc_fps60_test() != 0;
 }
@@ -1148,11 +1176,16 @@ void pc_frame_begin(void) {
         writef(STDERR_FILENO, "[cos] frame loop: start, %s\n",
                gConfig.uncapped ? "uncapped (COS_UNCAPPED)" : "paced by JFWDisplay");
         sTraceFrame = pc_trace_enabled("frame") != 0;
-        // Between frames, before the loop's first aurora_begin_frame.
-        if (asyncEndFrameWanted()) {
-            aurora_set_async_end_frame(true);
-            writef(STDERR_FILENO, "[cos] COS_ASYNC_END_FRAME: aurora_end_frame leaves the frame's end to "
-                                  "Aurora's GX worker (at most one frame ahead)\n");
+    }
+    {
+        // Between frames, before aurora_begin_frame: the async end of frame follows the 60 fps mode
+        // (the menu can switch it; aurora_set_async_end_frame syncs the worker first).
+        const bool wantAsync = asyncEndFrameWanted();
+        if (wantAsync != (aurora_get_async_end_frame() != 0)) {
+            aurora_set_async_end_frame(wantAsync);
+            writef(STDERR_FILENO, wantAsync ? "[cos] COS_ASYNC_END_FRAME: aurora_end_frame leaves the frame's end "
+                                              "to Aurora's GX worker (at most one frame ahead)\n"
+                                            : "[cos] COS_ASYNC_END_FRAME: off\n");
         }
     }
     sFrameStartNs = monotonicNs();

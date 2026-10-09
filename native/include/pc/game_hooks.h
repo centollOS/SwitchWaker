@@ -96,8 +96,11 @@ extern "C" void pc_paint_extra_end(void);
 /* 1 while paint B runs: the guards that keep it from advancing the game's paint-time state (fade,
    wipe, picto box capture, JUTFader, sea scroll, weather counters). Always 0 with the mode off. */
 extern "C" int pc_paint_is_extra(void);
-/* COS_FPS60_TEST: 1 when on (read once). */
+/* 1 while 60 fps is on: the options menu's COS_FPS60 (per operation mode, live), unless
+   COS_FPS60_TEST=1/0 (environment or [dev]) forces it for the run. */
 extern "C" int pc_fps60_test(void);
+/* The menu's apply callback for COS_FPS60: on/off from the next game frame. */
+extern "C" void pc_fps60_set(int on);
 /* pc_wait_for_tick: the retraces this wait lasts for a game frame of `retraces` (1 for each paint of
    a split frame, else `retraces`; 0, no wait, for COS_PAINT_PURITY_REPEAT's second paint B). */
 extern "C" unsigned int pc_frame_wait_retraces(unsigned int retraces);

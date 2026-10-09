@@ -30,6 +30,7 @@
 #include "pc/pc_dynres.h"
 #include "pc/pc_gpu_opts.h"
 #include "pc/pc_hd_textures.h"
+#include "pc/game_hooks.h"
 
 #include "pc_internal.h"
 
@@ -432,6 +433,7 @@ void applyPerfLog(const char*, const char* v, void*) { gConfig.perfLog = strcmp(
 void applyHitch(const char*, const char* v, void*) { perfSetHitch((unsigned int)atoi(v)); }
 void applyHdStats(const char*, const char* v, void*) { pc_hd_textures_set_stats_every((unsigned int)atoi(v)); }
 void applyGpuGroups(const char*, const char* v, void*) { pc_gpu_groups_set(atoi(v)); }
+void applyFps60(const char*, const char* v, void*) { pc_fps60_set(strcmp(v, "1") == 0); }
 
 #define CHOICES(name) name, (int)(sizeof(name) / sizeof(name[0]))
 
@@ -538,6 +540,12 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_PERFORMANCE, PC_SETTING_RESTART, CHOICES(kPrecompileScreen), "auto", nullptr, nullptr, 50,
      "Shader loading screen",
      "Automatic: only with a cold cache (first start); priority only, always or never."},
+    {"COS_FPS60", "60 fps (interpolación)",
+     "Muestra 60 imágenes por segundo interpolando la cámara; el juego sigue a 30. Usa más CPU y batería.",
+     PC_SETTING_TAB_PERFORMANCE, PC_SETTING_PER_MODE, CHOICES(kOnOff), "0", applyFps60, nullptr, 60,
+     "60 fps (interpolation)",
+     "Shows 60 images a second by interpolating the camera; the game still runs at 30. Uses more CPU "
+     "and battery."},
     // Depuración
     {"COS_PERF_EVERY", "Intervalo del registro perf",
      "Cada cuántos cuadros se escribe una línea [cos] perf en el registro (native/logs/).",

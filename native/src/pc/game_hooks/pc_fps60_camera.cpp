@@ -304,7 +304,7 @@ int pc_fps60_paint_b_allowed(void) {
         why = "fader";
     } else if (monotone != lastMonotone) {
         why = "monotone";
-    } else if (strncmp(lastStage, dComIfGp_getStartStageName(), sizeof(lastStage)) != 0) {
+    } else if (lastStage[0] != '\0' && strncmp(lastStage, dComIfGp_getStartStageName(), sizeof(lastStage)) != 0) {
         why = "stage change";
     }
     lastMonotone = monotone;
