@@ -66,6 +66,7 @@ jobs:
           cache-from: type=gha,scope=linux-${{ matrix.runner }}
           cache-to: type=gha,mode=max,scope=linux-${{ matrix.runner }}
       - name: Cache downloads
+        id: deps
         uses: actions/cache@v4
         with:
           path: |
@@ -75,6 +76,11 @@ jobs:
             build/decomp-ci
           key: deps-${{ matrix.runner }}-${{ hashFiles('native/cmake/Aurora.cmake', 'native/patches/aurora/*.patch', 'native/tools/fetch_recompcore.sh', 'game/UPSTREAM') }}
           restore-keys: deps-${{ matrix.runner }}-
+      # An older cache (restore-keys) has Aurora patched with another patch set, which
+      # aurora_apply_patches.cmake refuses: fetch Aurora again, keep the other downloads.
+      - name: Drop a stale Aurora tree
+        if: steps.deps.outputs.cache-hit != 'true'
+        run: rm -rf build/ci-linux/_deps/aurora-src build/ci-linux/_deps/aurora-subbuild
       - name: Build Aurora, cos_sdk and the harness (no disc, no game executable)
         run: |
           docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/work" -w /work \
