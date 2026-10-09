@@ -2,13 +2,13 @@
 # cache of the deko3d renderer (docs/DEKO3D_MIGRATION_PLAN.md, phase 1 and section 6). Links:
 #   - Aurora's GX shader generator (lib/gx/shader.cpp, shader_info.cpp) from a copy of Aurora at
 #     native/'s pin with native/patches/aurora and switch/native/aurora/patches applied, as the NRO;
-#   - Tint's WGSL reader and GLSL writer from a copy of the Switch build's Dawn source (all of
-#     switch/dawn/patches already applied there by the Switch build) plus
-#     switch/dawn/patches/dawn-switch-tint-position-y-up.patch;
+#   - Tint's WGSL reader and GLSL writer from a copy of the NRO build's Dawn source (all of
+#     switch/dawn/patches already applied there by the NRO's configure, including the Tint options
+#     depth_zero_to_one and disable_position_y_negation), so both translate alike;
 #   - uamlib (switch/uam) and the shared deko3d shader code (switch/deko).
 # Built and run by build.sh in a Debian container (Containerfile). Inputs come as cache variables:
 #   COS_DKSH_AURORA_SRC  Aurora at the pin (build/aurora-3227d76)
-#   COS_DKSH_DAWN_SRC    the Switch build's Dawn source (build/switch-dawn-probe/_deps/dawn-src)
+#   COS_DKSH_DAWN_SRC    the NRO build's Dawn source (build/switch-dawn-src/<key>)
 #   FETCHCONTENT_SOURCE_DIR_FMT / _XXHASH  local copies of Aurora's fmt and xxHash pins (optional)
 cmake_minimum_required(VERSION 3.28)
 project(dksh_cache C CXX)
@@ -28,22 +28,21 @@ endif ()
 if (NOT EXISTS "${COS_DKSH_DAWN_SRC}/src/tint/lang/glsl/writer/writer.h")
     message(FATAL_ERROR "dksh_cache: COS_DKSH_DAWN_SRC (${COS_DKSH_DAWN_SRC}) is not a Dawn source tree")
 endif ()
-find_program(COS_PATCH patch REQUIRED)
 
-# ---- Dawn: a copy without the parts Tint does not need, plus the deko3d Tint patch -----------------
-# The source must carry dawn-switch-gl-clip-control.patch (Tint's depth_zero_to_one): the Switch
-# build applies all of switch/dawn/patches to it the first time it configures.
+# ---- Dawn: a copy without the parts Tint does not need ---------------------------------------------
+# The source must carry switch/dawn/patches' Tint options (dawn-switch-tint-depth-zero-to-one.patch,
+# dawn-switch-tint-position-y-up.patch): the NRO's configure applies all of them the first time.
 file(READ "${COS_DKSH_DAWN_SRC}/src/tint/lang/glsl/writer/common/options.h" _tint_options)
-if (NOT _tint_options MATCHES "depth_zero_to_one")
-    message(FATAL_ERROR "dksh_cache: ${COS_DKSH_DAWN_SRC} lacks switch/dawn/patches "
-            "(dawn-switch-gl-clip-control.patch); configure the Switch build once (scripts/switch/build_native.sh)")
+if (NOT _tint_options MATCHES "depth_zero_to_one" OR NOT _tint_options MATCHES "disable_position_y_negation")
+    message(FATAL_ERROR "dksh_cache: ${COS_DKSH_DAWN_SRC} lacks switch/dawn/patches' Tint options; "
+            "configure the Switch build once (scripts/switch/build_native.sh)")
 endif ()
 set(_dawn_copy "${CMAKE_BINARY_DIR}/dawn-src")
-set(_y_patch "${COS_REPO_ROOT}/switch/dawn/patches/dawn-switch-tint-position-y-up.patch")
-file(SHA256 "${_y_patch}" _y_hash)
 file(SHA256 "${COS_DKSH_DAWN_SRC}/src/tint/lang/glsl/writer/common/options.h" _opt_hash)
+file(SHA256 "${COS_DKSH_DAWN_SRC}/src/tint/lang/glsl/writer/raise/raise.cc" _raise_hash)
+file(SHA256 "${COS_DKSH_DAWN_SRC}/src/tint/lang/glsl/writer/raise/shader_io.cc" _io_hash)
 # bump the "copy" number when the copy rules below change
-set(_dawn_stamp "copy 2\n${COS_DKSH_DAWN_SRC}\n${_opt_hash}\n${_y_hash}\n")
+set(_dawn_stamp "copy 3\n${COS_DKSH_DAWN_SRC}\n${_opt_hash}\n${_raise_hash}\n${_io_hash}\n")
 set(_dawn_previous "")
 if (EXISTS "${_dawn_copy}.stamp")
     file(READ "${_dawn_copy}.stamp" _dawn_previous)
@@ -64,11 +63,6 @@ if (NOT EXISTS "${_dawn_copy}" OR NOT _dawn_previous STREQUAL _dawn_stamp)
     file(COPY "${COS_DKSH_DAWN_SRC}/" DESTINATION "${_dawn_copy}"
             PATTERN ".git" EXCLUDE REGEX "^${_src_re}/(docs|test|webgpu-cts)$" EXCLUDE
             REGEX "^${_src_re}/third_party/(${_dawn_skip})$" EXCLUDE)
-    execute_process(COMMAND "${COS_PATCH}" -p1 --forward -i "${_y_patch}" WORKING_DIRECTORY "${_dawn_copy}"
-            RESULT_VARIABLE _r OUTPUT_VARIABLE _o ERROR_VARIABLE _e)
-    if (NOT _r EQUAL 0)
-        message(FATAL_ERROR "dksh_cache: dawn-switch-tint-position-y-up.patch does not apply:\n${_o}${_e}")
-    endif ()
     file(WRITE "${_dawn_copy}.stamp" "${_dawn_stamp}")
 endif ()
 

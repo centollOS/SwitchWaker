@@ -49,17 +49,19 @@ scripts/switch/build_native.sh       # build/switch-native/switchwaker.nro and s
   without SDL's backends, Dawn's cache callbacks, and `OSTicksToCalendarTime` on the console's
   time zone rule instead of libstdc++'s time zone database, which has no data on Horizon and
   faulted in `std::chrono::reload_tzdb` from the name scene's `dKyeff_Create`), the mechanism
-  `switch/aurora` uses for the translated port. Dawn is the
-  translated port's (`switch/dawn`, encounter/dawn `266c1cf` with its Horizon patches), the one that
-  has presented Aurora's frames on the console; the Dawn source fetched by the translated port's Dawn
-  probe (`build/switch-dawn-probe/_deps/dawn-src`) is reused when it is there.
+  `switch/aurora` uses for the translated port. Dawn is `switch/dawn` (encounter/dawn `266c1cf` with
+  its Horizon patches), built with its Null backend only: Aurora records its frames against Dawn's
+  Null device, and `switch/deko` translates WGSL to GLSL with Dawn's Tint (two Tint options from
+  `switch/dawn/patches`). Its source is `build/switch-dawn-src/<key>`, a copy of the pinned tarball
+  made once per patch set (`--dawn-src` names another); `native/tools/dksh_cache` builds its Tint
+  from the same tree.
 - nod (Aurora's disc reader, written in Rust) has no libnx target: `switch/native/nod` reads plain
   GameCube `.iso` images behind nod's C API. On the Mac it gives the same file system table, metadata
   and file contents as nod for GZLE01, and a Mac `switchwaker` linked with it passes `disc-ls`, `arc-sweep`,
   `stage-sweep`, `j3d-sweep` and `opening`.
-- The first build fetches Dawn's dependencies (unless the probe's source is there), SDL 3's headers,
+- The first build (and the first after a Dawn patch change) fetches Dawn's dependencies, SDL 3's headers,
   ImGui, Tracy, fmt, xxhash and sqlite, and compiles Dawn and the game: about 40 minutes with 4 jobs
-  on a 10-core Mac when the probe's Dawn source is reused; later builds take minutes. `--jobs N` (or
+  on a 10-core Mac; later builds take minutes. `--jobs N` (or
   `SWITCH_BUILD_JOBS`) sets the parallel jobs, default 4. `--aurora`, `--assets`, `--recompcore` and
   `--dawn-src` point at other copies of the inputs; from a git worktree (`build/lanes/<lane>`) the
   main checkout's are used.
@@ -239,7 +241,8 @@ These lines were written for the OpenGL ES NRO, removed on 2026-10-09, and keep 
 switch/deko's counters (passes, draws, pipeline, uniform and texture binds, uploads, copies, the
 encode time as "execute", submits as "items"), the gpu line its GPU timestamps, and the counters that
 only Dawn's GL backend or Mesa had stay zero. What follows on Dawn's GL replay, Mesa and the
-`dawn-switch-gl-*` patches explains where those figures came from on the GL NRO
+`dawn-switch-gl-*` patches (removed with Dawn's GL backend; see git history) explains where those
+figures came from on the GL NRO
 ([SWITCH_PERF_STUDY.md](SWITCH_PERF_STUDY.md)); for deko3d's own see
 [DEKO3D_MIGRATION_PLAN.md](DEKO3D_MIGRATION_PLAN.md) sections 2.3 and 2.4.
 
@@ -324,16 +327,13 @@ so docked stays at the system's 768 MHz (no official docked configuration with C
 and nothing is re-applied. The previous handheld configuration is restored at exit and on a crash.
 Title mode only (apm is the application's service). The menu's Rendimiento > "Perfil de GPU
 (portátil)" row sets it.
-Depth uses WebGPU's [0, w] clip range in GL as well (on by default; bug B7,
-`switch/dawn/patches/dawn-switch-gl-clip-control.patch`, `SwitchClipControlGL.h`): Dawn sets
-`glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE)` (`GL_EXT_clip_control`, which the console's Mesa
-exposes) and Tint no longer rewrites each vertex's z as `2z - w` for GL's [-w, w] range. That
+Depth uses WebGPU's [0, w] clip range (bug B7): the deko3d device clips z to [0, w]
+(`DkDeviceFlags_DepthZeroToOne`) and Tint's `depth_zero_to_one` option
+(`switch/dawn/patches/dawn-switch-tint-depth-zero-to-one.patch`) drops the rewrite of each vertex's
+z as `2z - w` for GL's [-w, w] range, which the GL NRO first fixed with `glClipControl`. That
 rewrite rounded the depth to about 2^-24 of the distance (Aurora uses reversed Z with the game's
 near plane of 1), so decals a unit above another surface, such as Outset's shore foam, lost the
-depth test in patches that flickered as the camera moved. `[dawn] clip control:` in the log says
-which path runs (the rewrite remains only when the context has no `glClipControl`). The shaders
-change with it, so the first run after the update rebuilds them (cold shader
-cache). `COS_SMOKE=shore-foam` with `COS_BOOT_STAGE=sea:44:8` in `[dev]` runs the Mac's
+depth test in patches that flickered as the camera moved. `COS_SMOKE=shore-foam` with `COS_BOOT_STAGE=sea:44:8` in `[dev]` runs the Mac's
 regression check of the foam on the console (`[cos] shore-foam:` lines; native/README.md).
 The game-side GPU option
 `COS_DOF` is in `native/README.md` (`native/include/pc/pc_gpu_opts.h`).
@@ -418,7 +418,7 @@ compiled on the console. On the deko3d NRO the shaders of every bundled pipeline
 shows no loading screen, and a pipeline the DKSH caches lack is compiled by uam in the background
 (its draws skipped meanwhile) instead of stalling the frame; the warm-up, its settings and the
 bundled pipeline list below still apply. The GL context, Mesa and `dawn-switch-gl-*` details are
-the GL NRO's.
+the GL NRO's (those Dawn patches went with Dawn's GL backend).
 
 Every new pipeline costs 0.1-0.4 s on the console, and the game stutters for that long: Dawn's GL
 backend links one GL program per pipeline on the single GL context (with `gl_defer` the render

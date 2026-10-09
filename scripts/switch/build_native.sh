@@ -67,8 +67,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# deko3d, the only renderer (the Dawn source below still tells it from the removed GL NRO's)
-renderer=deko3d build_dir=build/switch-native nro_name=switchwaker
+build_dir=build/switch-native nro_name=switchwaker
 
 # The main checkout, when this is a git worktree (its build/ and ref/ hold the shared inputs).
 main_root=$root
@@ -110,9 +109,9 @@ prepare_dawn_src() {
     echo "build_native: new Dawn source for this patch set: $tree" >&2
     rm -rf "$tree.tmp"
     cp -a "$pristine" "$tree.tmp"
-    # Newer than any object built from an earlier tree: the GL backend and Tint's GLSL writer (where
-    # the patches are, including ones since removed) and every file a patch names.
-    find "$tree.tmp/src/dawn/native/opengl" "$tree.tmp/src/tint/lang/glsl" -type f -exec touch {} +
+    # Newer than any object built from an earlier tree: Dawn's native library and Tint's GLSL writer
+    # (where the patches are, including ones since removed) and every file a patch names.
+    find "$tree.tmp/src/dawn/native" "$tree.tmp/src/tint/lang/glsl" -type f -exec touch {} +
     local patch file dir
     for patch in "$root"/switch/dawn/patches/*.patch; do
         dir=$tree.tmp
@@ -168,28 +167,7 @@ fi
 
 mounts=(-v "$aurora:/inputs/aurora:ro" -v "$assets:/inputs/assets:ro" -v "$recompcore:/inputs/recompcore:ro")
 dawn_flag=""
-if [[ -n $dawn_src && -f $dawn_src/CMakeLists.txt && $renderer == deko3d ]]; then
-    # The deko3d NRO compiles WGSL -> GLSL with Tint for the pipelines its DKSH cache lacks, with the
-    # option of dawn-switch-tint-position-y-up.patch, which the GL NRO's Dawn must not get (it changes
-    # the key of Dawn's GLSL program cache). Its Dawn source is a copy of the shared one (an APFS
-    # clone, timestamps kept, so the build tree stays incremental) with that patch, mounted at the same
-    # container path: build/dawn-src-deko3d-<name of the shared source> of this checkout (one per Dawn
-    # source, so per patch set), made once and patched when needed.
-    dk_dawn=$root/build/dawn-src-deko3d-$(basename "$dawn_src")
-    if [[ ! -f $dk_dawn/CMakeLists.txt ]]; then
-        echo "build_native: copying $dawn_src to $dk_dawn (the deko3d NRO's Dawn source)"
-        mkdir -p "$root/build"
-        rm -rf "$dk_dawn.partial"
-        cp -cRp "$dawn_src" "$dk_dawn.partial" 2>/dev/null || cp -Rp "$dawn_src" "$dk_dawn.partial"
-        mv "$dk_dawn.partial" "$dk_dawn"
-    fi
-    y_patch=$root/switch/dawn/patches/dawn-switch-tint-position-y-up.patch
-    if ! grep -q disable_position_y_negation "$dk_dawn/src/tint/lang/glsl/writer/common/options.h"; then
-        patch -d "$dk_dawn" -p1 --forward --quiet <"$y_patch"
-    fi
-    mounts+=(-v "$dk_dawn:/inputs/dawn-src")
-    dawn_flag=-DFETCHCONTENT_SOURCE_DIR_DAWN=/inputs/dawn-src
-elif [[ -n $dawn_src && -f $dawn_src/CMakeLists.txt ]]; then
+if [[ -n $dawn_src && -f $dawn_src/CMakeLists.txt ]]; then
     mounts+=(-v "$(cd "$dawn_src" && pwd):/inputs/dawn-src")
     dawn_flag=-DFETCHCONTENT_SOURCE_DIR_DAWN=/inputs/dawn-src
 fi
@@ -234,7 +212,10 @@ cp -f "$root/native/data/initial_pipeline_cache.db" "$out/initial_pipeline_cache
 # never committed; the NRO loads it at start ("[dk] shader cache:"). check reads it back as the
 # NRO's loader does and prints the same summary.
 mkdir -p "$root/build/dksh"
-"$root/native/tools/dksh_cache/build.sh" --jobs "$jobs" build native/data/initial_pipeline_cache.db \
+# Its Tint is built from the same patched Dawn source as the NRO's (shader_translate.cpp's options).
+dksh_dawn=()
+[[ -n $dawn_src ]] && dksh_dawn=(--dawn-src "$(cd "$dawn_src" && pwd)")
+"$root/native/tools/dksh_cache/build.sh" --jobs "$jobs" ${dksh_dawn[@]+"${dksh_dawn[@]}"} build native/data/initial_pipeline_cache.db \
     build/dksh/initial_dksh_cache.bin >"$root/build/dksh/build.log" 2>&1 || {
     tail -n 40 "$root/build/dksh/build.log" >&2
     echo "build_native: native/tools/dksh_cache failed (build/dksh/build.log)" >&2
@@ -248,7 +229,7 @@ for f in i4 i8 ia4 ia8 rgb565 r4 ra4 ra8 a8 r8 g8 b8 rg8 gb8 z8 z16; do fixed+=(
 for f in direct fromfloat8 fromfloat4; do fixed+=("tex_palette_conv_$f"); done
 names=(xfb_copy.vs_main xfb_copy.fs_opaque)
 for f in "${fixed[@]}"; do names+=("$f.vs_main" "$f.fs_main"); done
-"$root/native/tools/dksh_cache/build.sh" check build/dksh/initial_dksh_cache.bin "${names[@]}"
+"$root/native/tools/dksh_cache/build.sh" ${dksh_dawn[@]+"${dksh_dawn[@]}"} check build/dksh/initial_dksh_cache.bin "${names[@]}"
 cp -f "$root/build/dksh/initial_dksh_cache.bin" "$out/initial_dksh_cache.bin"
 shasum -a 256 "$nro" 2>/dev/null || sha256sum "$nro"
 printf 'Built %s (%s bytes); symbols: %s\n' "$nro" "$(wc -c <"$nro" | tr -d ' ')" "$out/$nro_name.elf"

@@ -3,8 +3,8 @@
 # scripts/switch/build_native.sh does it (docs/SWITCH_BUILD.md, "Native port").
 #
 # It reuses the translated port's Switch layer (switch/):
-#   - Dawn, built from source for its OpenGL ES backend with the Horizon patches
-#     (switch/dawn/dawn.cmake), the Dawn the console has run Aurora with;
+#   - Dawn, built from source for its Null backend with the Horizon patches (switch/dawn/dawn.cmake):
+#     Aurora's WebGPU object model, and Tint for switch/deko's shader translation;
 #   - SDL 3 as the libnx shim of switch/aurora/sdl3_shim, plus the few functions Aurora 3227d76
 #     calls beyond the translated port's Aurora (sdl3_shim_extra.c);
 #   - sqlite's Horizon VFS settings (switch/aurora/sqlite_horizon.c), the USB log
@@ -39,9 +39,6 @@ endif ()
 # 2359-xxxx result. Off by default (SwitchWakerHD's CMakeLists.txt WWHD_DEKO3D_DEBUG_LIB).
 option(COS_DK_DEBUG_LIB "deko3d build: link the debug library libdeko3dd" OFF)
 set(_nro_dir "/switch/switchwaker")
-# The only renderer; switch/dawn/dawn.cmake still reads this (Dawn's Null backend) while Dawn compiles
-# its GL backend. A plain variable: it hides a COS_SWITCH_RENDERER=gl left in an old build tree's cache.
-set(COS_SWITCH_RENDERER deko3d)
 set(COS_SWITCH_NRO_NAME "switchwaker" CACHE STRING "File name of the NRO and its ELF (without .nro)")
 message(STATUS "Switch renderer: deko3d (${COS_SWITCH_NRO_NAME}.nro)")
 
@@ -52,7 +49,7 @@ string(APPEND CMAKE_CXX_FLAGS " -fno-omit-frame-pointer")
 
 include(FetchContent)
 
-# ---- Dawn (OpenGL ES, patched for Horizon): webgpu_dawn, dawn::webgpu_dawn and abseil ----------
+# ---- Dawn (Null backend and Tint, patched for Horizon): webgpu_dawn, dawn::webgpu_dawn and abseil --
 include("${COS_REPO_ROOT}/switch/dawn/dawn.cmake")
 
 # ---- SDL 3: its headers at Aurora's pin and the libnx shim ----------------------------------------
@@ -265,7 +262,7 @@ target_link_libraries(cos_pc PRIVATE cos_switch_platform)
 # Aurora with AURORA_GFX_DEKO3D (aurora/patches/0013-0014) records its frames as for WebGPU, keeps Dawn's
 # Null device as its object model, and switch/deko records them into deko3d (switch/deko/aurora, compiled
 # into Aurora's gx library), presents and compiles the shaders its DKSH caches lack (uamlib and Tint in
-# the NRO). Dawn still compiles its GL backend (no Mesa is linked: nothing references EGL).
+# the NRO).
 set(_dk_dir "${COS_REPO_ROOT}/switch/deko")
 # The renderer's own shaders (ImGui, the 3x5 text): GLSL compiled by devkitPro's uam at build time and
 # embedded (bin2s), named <name>_vsh.glsl / <name>_fsh.glsl. The test pattern's shaders are WGSL
@@ -300,8 +297,8 @@ add_library(cos_switch_deko STATIC
         "${_dk_dir}/dksh_file.cpp")
 target_include_directories(cos_switch_deko PUBLIC "${_dk_dir}")
 set_target_properties(cos_switch_deko PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)  # (Tint's headers)
-# Tint's WGSL reader and GLSL writer from the Dawn build (build_native.sh gives the deko3d NRO a Dawn
-# source with dawn-switch-tint-position-y-up.patch, whose option shader_translate.cpp sets)
+# Tint's WGSL reader and GLSL writer from the Dawn build (with switch/dawn/patches' Tint options
+# depth_zero_to_one and disable_position_y_negation, which shader_translate.cpp sets)
 target_include_directories(cos_switch_deko PRIVATE "${dawn_SOURCE_DIR}" "${dawn_SOURCE_DIR}/include")
 target_compile_definitions(cos_switch_deko PRIVATE "COS_SWITCH_NRO_DIR=\"${_nro_dir}\""
         "COS_SWITCH_DATA_DIR=\"/switch/switchwaker/native\""

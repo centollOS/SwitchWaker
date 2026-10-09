@@ -1,0 +1,86 @@
+Switch (deko3d): a Tint GLSL option to write gl_Position.z unchanged
+
+Tint's GLSL writer remaps every vertex's z from WebGPU's [0, w] clip range to GL's [-w, w] with
+2 * z - w (raise/shader_io.cc), which rounds z to about 2^-24 of w (bug B7: Outset's shore foam
+decals flickered). The deko3d renderer creates its device with DkDeviceFlags_DepthZeroToOne, whose
+clip space has WebGPU's z range, so its shaders must not remap. Options::depth_zero_to_one (default
+false) skips the remap; switch/deko/shader_translate.cpp sets it.
+
+The Tint half of the removed dawn-switch-gl-clip-control.patch (whose GL half set
+glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE) in Dawn's GL backend), unchanged but for comments.
+
+diff --git a/src/tint/lang/glsl/writer/common/options.h b/src/tint/lang/glsl/writer/common/options.h
+index 7d14b60..45feea8 100644
+--- a/src/tint/lang/glsl/writer/common/options.h
++++ b/src/tint/lang/glsl/writer/common/options.h
+@@ -197,6 +197,11 @@ struct Options {
+     /// Offsets of the minDepth and maxDepth immediate data.
+     std::optional<RangeOffsets> depth_range_offsets;
+ 
++    /// Switch: the target clips z to [0, w] as WebGPU does (deko3d with DkDeviceFlags_DepthZeroToOne),
++    /// so gl_Position.z is written unchanged instead of remapped to GL's [-w, w] range by
++    /// 2 * z - w (which rounds z to about 2^-24 of w).
++    bool depth_zero_to_one = false;
++
+     /// Vertex inputs to perform BGRA swizzle on.
+     std::unordered_set<uint32_t> bgra_swizzle_locations;
+ 
+@@ -238,6 +243,7 @@ struct Options {
+                  first_vertex_offset,
+                  first_instance_offset,
+                  depth_range_offsets,
++                 depth_zero_to_one,
+                  bgra_swizzle_locations,
+                  texture_builtins_from_uniform,
+                  array_length_from_uniform,
+diff --git a/src/tint/lang/glsl/writer/raise/raise.cc b/src/tint/lang/glsl/writer/raise/raise.cc
+index b12e7c3..ed7d6ab 100644
+--- a/src/tint/lang/glsl/writer/raise/raise.cc
++++ b/src/tint/lang/glsl/writer/raise/raise.cc
+@@ -243,7 +243,8 @@ Result<SuccessType> Raise(core::ir::Module& module, const Options& options) {
+ 
+     TINT_CHECK_RESULT(raise::ShaderIO(
+         module, raise::ShaderIOConfig{immediate_data_layout, options.depth_range_offsets,
+-                                      options.bgra_swizzle_locations}));
++                                      options.bgra_swizzle_locations,
++                                      options.depth_zero_to_one}));
+ 
+     // Must come after ShaderIO as it operates on module-scope `in` variables.
+     TINT_CHECK_RESULT(raise::OffsetFirstIndex(
+diff --git a/src/tint/lang/glsl/writer/raise/shader_io.cc b/src/tint/lang/glsl/writer/raise/shader_io.cc
+index 8778dc1..0ca99b0 100644
+--- a/src/tint/lang/glsl/writer/raise/shader_io.cc
++++ b/src/tint/lang/glsl/writer/raise/shader_io.cc
+@@ -275,11 +275,15 @@ struct StateImpl : core::ir::transform::ShaderIOBackendState {
+             auto* y = builder.Swizzle(ty.f32(), value, {1});
+             auto* new_y = builder.Negation(y);
+ 
+-            // Recalculate gl_Position.z = ((2.0f * gl_Position.z) - gl_Position.w);
++            // Recalculate gl_Position.z = ((2.0f * gl_Position.z) - gl_Position.w), unless the
++            // target clips z to [0, w] like WebGPU (Switch: deko3d DepthZeroToOne).
+             auto* z = builder.Swizzle(ty.f32(), value, {2});
+             auto* w = builder.Swizzle(ty.f32(), value, {3});
+-            auto* mul = builder.Multiply(2_f, z);
+-            auto* new_z = builder.Subtract(mul, w);
++            core::ir::Value* new_z = z->Result();
++            if (!config.depth_zero_to_one) {
++                auto* mul = builder.Multiply(2_f, z);
++                new_z = builder.Subtract(mul, w)->Result();
++            }
+             value = builder.Construct(ty.vec4f(), x, new_y, new_z, w)->Result();
+         }
+ 
+diff --git a/src/tint/lang/glsl/writer/raise/shader_io.h b/src/tint/lang/glsl/writer/raise/shader_io.h
+index 2a809fa..161a04c 100644
+--- a/src/tint/lang/glsl/writer/raise/shader_io.h
++++ b/src/tint/lang/glsl/writer/raise/shader_io.h
+@@ -51,6 +51,9 @@ struct ShaderIOConfig {
+ 
+     /// locations of vertex input variables to apply BGRA swizzle to.
+     std::unordered_set<uint32_t> bgra_swizzle_locations{};
++
++    /// Switch: the target clips z to [0, w], so the position's z is not remapped (2 * z - w).
++    bool depth_zero_to_one = false;
+ };
+ 
+ /// ShaderIO is a transform that moves each entry point function's parameters and return value to
