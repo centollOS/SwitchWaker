@@ -96,6 +96,10 @@ back), then turn it on in the options menu (Gráficos > *Texturas HD*).
 
 ## Smooth toggling and loading (lane hd-smooth)
 
+(The hardware runs below were on the OpenGL ES NRO, removed on 2026-10-09; the Dawn GL patch and the
+Mesa costs they describe no longer apply to the deko3d NRO, while Aurora patch 0011's budgets and the
+gradual registration and rescan still do.)
+
 First hardware run (512 pack, Outset, handheld): turning HD on from the menu froze the game for
 about 3 s: frames 1324-1332 took 97, 95, 266, 209, 1071, 1065 and 228 ms with only 0.4-3.5 MiB of
 uploads each. The hitch lines show where: frame 1324's `end_frame` 86 ms was the registration on

@@ -17,9 +17,6 @@
 #                     host's; the other one runs emulated and is several times slower). The
 #                     build directory is then build/native-linux-<arch>.
 #   --engine E        docker or podman (default: Podman if installed, else Docker)
-#   --renderer R      switch: deko3d (default, switchwaker.nro and its DKSH cache) or gl
-#                     (build/switch-native-gl/switchwaker_gl.nro, OpenGL ES on Mesa;
-#                     docs/DEKO3D_MIGRATION_PLAN.md)
 #   --test            after building, run the headless checks in the container: cos_sdk_smoke,
 #                     cos_pc_tests and the static-init, disc-ls and title smoke runs (software
 #                     Vulkan under Xvfb; COS_TEST_TARGETS="..." to choose others)
@@ -32,7 +29,7 @@
 #   2. RecompCore (Dolphin's DSP HLE, native/tools/fetch_recompcore.sh) into ref/recompcore;
 #   3. linux: cmake + ninja in the image of scripts/docker/Containerfile.linux;
 #      switch: Aurora at native/'s pin into build/aurora-3227d76 if missing, then
-#      scripts/switch/build_native.sh (devkitPro image, Dawn and, for the GL NRO, Mesa built in containers).
+#      scripts/switch/build_native.sh (devkitPro image, Dawn and the deko3d renderer built in containers).
 #
 # Downloads are kept between runs, under the repository's ignored directories:
 #   build/native-linux*/_deps        Aurora, Dawn (prebuilt package), nod (prebuilt), SDL 3, ...
@@ -40,7 +37,6 @@
 #   ref/recompcore                   RecompCore
 #   build/aurora-3227d76             Aurora at the pin (the Switch build)
 #   build/switch-native/_deps        Dawn's source and dependencies for the Switch
-#   build/switch-mesa/downloads      Mesa's source tarball and devkitPro's recipe patches
 #   container images                 localhost/centollos-linux-build:<hash of the Containerfile>,
 #                                    localhost/centollos-switch-*-build:<date>
 # Delete a directory to fetch it again; `docker image prune` drops old images.
@@ -58,7 +54,6 @@ platform=""
 engine=""
 do_test=0
 do_regress=0
-renderer=deko3d
 while [[ $# -gt 0 ]]; do
     case $1 in
         linux|switch|all) what=$1; shift ;;
@@ -66,7 +61,6 @@ while [[ $# -gt 0 ]]; do
         --jobs) jobs=$2; shift 2 ;;
         --platform) platform=$2; shift 2 ;;
         --engine) engine=$2; shift 2 ;;
-        --renderer) renderer=$2; shift 2 ;;
         --test) do_test=1; shift ;;
         --regress) do_regress=1; shift ;;
         -h|--help) sed -n '2,/^set -euo/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -194,6 +188,6 @@ if [[ $what == switch || $what == all ]]; then
             git -c advice.detachedHead=false checkout -q --detach FETCH_HEAD"
     fi
     echo "docker/build: Switch build (scripts/switch/build_native.sh, $jobs jobs)"
-    "$root/scripts/switch/build_native.sh" --renderer "$renderer" --aurora "$aurora" --assets "$assets" \
+    "$root/scripts/switch/build_native.sh" --aurora "$aurora" --assets "$assets" \
         --recompcore "$root/ref/recompcore" --jobs "$jobs"
 fi

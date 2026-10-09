@@ -27,8 +27,9 @@ their work; this repository adds the layer that runs it on new hardware.
 - **[elliotttate/Wind-Waker-Recomp](https://github.com/elliotttate/Wind-Waker-Recomp)** and
   **[RecompCore](https://github.com/elliotttate/RecompCore)**: the static recompilation this work
   started from, and the DSP adapter.
-- **[devkitPro](https://devkitpro.org)**, **[libnx](https://github.com/switchbrew/libnx)**,
-  **[Mesa](https://mesa3d.org)** and switch-mesa: the Switch toolchain and its OpenGL driver.
+- **[devkitPro](https://devkitpro.org)**, **[libnx](https://github.com/switchbrew/libnx)** and
+  **[deko3d](https://github.com/devkitPro/deko3d)** with uam (whose shader compiler comes from
+  **[Mesa](https://mesa3d.org)**): the Switch toolchain and its GPU API.
 - **[nx-hbloader](https://github.com/switchbrew/nx-hbloader)**,
   **[hacBrewPack](https://github.com/TooTallNate/hacBrewPack)** and
   **[hactool](https://github.com/SciresM/hactool)**: the HOME-menu forwarder.
@@ -133,7 +134,7 @@ aarch64 on Apple silicon); `--platform linux/amd64` builds the other one under e
 headers are generated once into `build/assets/GZLE01`. Downloads stay between runs in the
 repository's ignored `build/` and `ref/` folders (Aurora and its packages in
 `build/native-linux/_deps`, the decompilation and its tools in `build/decomp-docker`, RecompCore in
-`ref/recompcore`, Mesa in `build/switch-mesa/downloads`, Dawn's sources in `build/switch-native/_deps`)
+`ref/recompcore`, Dawn's sources in `build/switch-native/_deps`)
 and in the engine's image cache; the first Switch build takes an hour or more, later ones minutes.
 `scripts/docker/build.sh --help` lists every option. On Windows, keep the clone inside the WSL file
 system (for example `~/switchwaker`), not under `/mnt/c`: builds there are much slower.
@@ -163,7 +164,7 @@ lays out `build/sd/switch/switchwaker/` (NRO, caches, a copy of the disc) for th
 
 On top of the above: Docker Desktop or Podman. `scripts/switch/build_native.sh` produces
 `build/switch-native/switchwaker.nro` (the deko3d renderer; Dawn, Aurora and the shader cache are built in
-a devkitPro container; `--runtime-assets` builds it without the disc, `--renderer gl` the GL NRO).
+a devkitPro container; `--runtime-assets` builds it without the disc).
 Full guide: [docs/SWITCH_BUILD.md](docs/SWITCH_BUILD.md).
 
 ### Debug server (developers)
@@ -237,10 +238,8 @@ the compiled shaders of every bundled pipeline come next to the NRO in `initial_
 lacks (a new effect, a mod) is compiled once in the background and kept in
 `native/user/cache/dksh_local.bin`; its draw is skipped for a moment meanwhile.
 
-The previous renderer, OpenGL ES on Mesa, is still built for two releases as `switchwaker_gl.nro`
-(`scripts/switch/build_native.sh --renderer gl`, its own folder `sdmc:/switch/switchwaker_gl/`, "SwitchWaker (GL)"
-in the Homebrew Menu, the same disc, saves and settings). Its first start prepares the shaders once
-("Preparing shaders (first start only)", about 8 to 10 minutes; do not close the game meanwhile).
+The previous renderer, OpenGL ES on Mesa (`switchwaker_gl.nro`, "SwitchWaker (GL)"), was removed on
+2026-10-09; [INSTALL.md](INSTALL.md), "Updating", lists the files it left on the SD card.
 
 ### Saves, settings and updates
 

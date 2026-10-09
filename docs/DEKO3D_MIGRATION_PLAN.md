@@ -14,6 +14,8 @@ v0.2.0 is out with the deko3d NRO (phase 6 done; picto box, disc error applet an
 `switchwaker_dk/` folder checked/removed). **Phase 4 in progress** (section "Phase 4 progress"):
 dynamic resolution fed by the deko3d timestamps, 1920x1080 window docked and GPU groups, all checked on
 the console. Next: the rest of the phase 4 list (A/B per option, HD pack census, 2 x 30 minutes).
+**The GL NRO is gone (2026-10-09, user decision)**: not kept for two releases after all (note under
+"Phase 6"); deko3d is the only Switch renderer.
 
 ## Earlier state (end of 2026-10-08, evening)
 
@@ -892,6 +894,14 @@ hbmenu shows one NRO per folder); `push.sh` pushes the DKSH file with the NRO; `
 `env.example.txt` (`COS_DK_*`); the Mesa build and the Dawn GL patches stay for the GL NRO for two
 releases, then go (HD removed its GL renderer the same day; its recover point is `main` 207349b).
 
+Note (2026-10-09, user decision): the GL NRO was removed right after v0.2.0 instead of after two
+releases. Gone: `switchwaker_gl.nro` and `build_native.sh --renderer gl` (with `--mesa`,
+`--stock-mesa`), `push.sh gl`, `make_sd.sh --gl`, `package_switch.sh --gl`, the Mesa build
+(`build_mesa.sh`, `switch/mesa`, the CI image), the Dawn GL harness (`switch/dawn/gltest`), and the
+NRO's code reading Dawn GL and Mesa counters; INSTALL.md, "Updating", tells players which files
+it left on the SD card. Dawn's GL backend and its Switch patches, and Aurora's GL-only Switch
+patches, go in follow-up commits.
+
 ## 6. Shader loading design
 
 Goal: no blocking loading screen, no compile on the render worker, every known pipeline ready
@@ -1021,7 +1031,7 @@ Each with a recommendation; "ask" marks a decision for the user.
 16. **Who removes what.** Ask: after phase 6, drop the Mesa build, the Dawn patches and the
     GL-only `COS_SWITCH_GL_*` options after two releases (recommended; HD removed GL the same day
     and kept a recover-point commit), or keep both renderers indefinitely (two code paths to test
-    on every change)?
+    on every change)? Answered 2026-10-09: removed at once (note under "Phase 6").
 
 ## Appendix A: references
 

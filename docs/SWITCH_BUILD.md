@@ -20,8 +20,8 @@ console and read its logs. The Mac build comes first: the Switch build reuses it
   cable, and the console's **USB file transfer** (Horizon's own, or haze/DBI).
 
 
-`switchwaker.nro` is the game built from its decompilation (`native/`) on Aurora, with Dawn's
-OpenGL ES backend over the Switch's Mesa and an SDL 3 shim on libnx (plan: phase 7 of
+`switchwaker.nro` is the game built from its decompilation (`native/`) on Aurora, drawn with deko3d,
+the Switch's own GPU API (see "The deko3d renderer"), with an SDL 3 shim on libnx (plan: phase 7 of
 [NATIVE_PORT_PLAN.md](NATIVE_PORT_PLAN.md)). It reads only the disc image from the SD card: the
 game's code is compiled in, and the asset headers are compiled in at build time, from the same
 `COS_ASSETS_DIR` as the Mac build.
@@ -63,19 +63,6 @@ scripts/switch/build_native.sh       # build/switch-native/switchwaker.nro and s
   `SWITCH_BUILD_JOBS`) sets the parallel jobs, default 4. `--aurora`, `--assets`, `--recompcore` and
   `--dawn-src` point at other copies of the inputs; from a git worktree (`build/lanes/<lane>`) the
   main checkout's are used.
-- Mesa (EGL, GLES and the nouveau driver) is built from source by `scripts/switch/build_mesa.sh`
-  the first time (about 2 minutes; output `build/switch-mesa/prefix`, also reused from the main
-  checkout by a worktree): devkitPro's `switch-mesa` 20.1.0-5 recipe (Mesa 20.1.0-rc3 and
-  devkitPro's patches from `pacman-packages` `f103fe88`, sha256-checked, configured as the PKGBUILD
-  does in `localhost/centollos-switch-mesa-build:2026-10-04`, `scripts/switch/Containerfile.mesa`)
-  plus `switch/mesa/patches`: 0001 a newlib `timespec_get` clash of the newer devkitA64, 0002
-  compile counters and timers for the log, 0003 the disk shader cache on Horizon, 0004 nvc0's code
-  generation through that cache (see "Shader cache" below). `build_mesa.sh --stock` builds the
-  recipe with 0001 alone (the package's global symbols, one for one); `--test` also builds Mesa's
-  nouveau and OSMesa for Linux with 0002-0004 and runs `switch/mesa/test` (the cache file, nvc0's
-  cached code against a fresh translation, and the GLSL cache and program binaries through the GL
-  API). `build_native.sh --mesa DIR` links another prefix, `--stock-mesa` devkitPro's package from
-  the image (no shader cache). libdrm_nouveau is the package's either way.
 - Output: `build/switch-native/switchwaker.nro` (about 21 MB) and `build/switch-native/switchwaker.elf`, the
   same program with its symbols, for `addr2line`. Keep the ELF of the NRO you test.
 
@@ -98,28 +85,27 @@ SD card layout:
 | `switch/switchwaker/native/logs/` | the session logs, `switchwaker_<date>_<time>.log`, the 10 most recent (the newest is this run) |
 | `switch/switchwaker/native/user/` | memory card (`USA/Card A`), Aurora's caches, `settings.ini` (the options menu's settings and the developer `[dev]` section, see below) |
 
-## The deko3d renderer (default) and the GL NRO
+## The deko3d renderer
 
 `switchwaker.nro` draws with deko3d, the Switch's own GPU API ([DEKO3D_MIGRATION_PLAN.md](DEKO3D_MIGRATION_PLAN.md),
-default since phase 6, 2026-10-09; on the console the render worker spends about a tenth of the GL NRO's
-CPU and the GPU 30-45 % less, with no shader preparation screen). Aurora's frames are recorded into
+default since phase 6, 2026-10-09; on the console the render worker spends about a tenth of the CPU of
+the OpenGL ES renderer it replaced and the GPU 30-45 % less, with no shader preparation screen). Aurora's frames are recorded into
 deko3d (`switch/deko/aurora`), the shaders come from the DKSH caches (a pipeline they lack is compiled
 on the console by uam, its draws skipped meanwhile), and the present, the options menu and the FPS
-panel are deko3d's. The OpenGL ES NRO on Mesa is kept for two releases as `switchwaker_gl.nro`.
+panel are deko3d's. The OpenGL ES NRO on Mesa (`switchwaker_gl.nro`) was removed on 2026-10-09 (user
+decision): deko3d is the only Switch renderer. [INSTALL.md](../INSTALL.md), "Updating", lists the files
+it left on the SD card, which players may delete.
 
 ```sh
 scripts/switch/build_native.sh                  # build/switch-native/switchwaker.nro (+ .elf, its caches)
 scripts/switch/push.sh native                   # to sdmc:/switch/switchwaker/, with its caches
-scripts/switch/build_native.sh --renderer gl    # build/switch-native-gl/switchwaker_gl.nro (needs Mesa)
-scripts/switch/push.sh gl                       # to sdmc:/switch/switchwaker_gl/
 ```
 
-- `COS_SWITCH_RENDERER` (`switch/native/CMakeLists.txt`, default `deko3d`) builds `switch/deko` and Aurora
-  with `AURORA_GFX_DEKO3D` (`switch/native/aurora/patches/0013`); Dawn gets its Null backend and no Mesa is
-  needed. `--dk-debug-lib` links `libdeko3dd`, which checks every deko3d call and logs a misuse before
+- `switch/native/CMakeLists.txt` builds `switch/deko` and Aurora with `AURORA_GFX_DEKO3D`
+  (`switch/native/aurora/patches/0013`); Dawn gets its Null backend and no Mesa is linked.
+  `--dk-debug-lib` links `libdeko3dd`, which checks every deko3d call and logs a misuse before
   ending the process (the release library aborts with a bare 2359-xxxx); the Homebrew Menu then says
-  "SwitchWaker (deko3d debug)". `--renderer gl` builds the GL NRO in `build/switch-native-gl`, mounted at
-  the default tree's container path (a copy of the other tree, `cp -cR` on APFS, is a valid head start).
+  "SwitchWaker (deko3d debug)".
 - `initial_dksh_cache.bin` next to the NRO is the DKSH (deko3d's shader binaries) of every pipeline
   of `native/data/initial_pipeline_cache.db` and of the renderer's fixed shaders, built at the end
   of `build_native.sh` by `native/tools/dksh_cache` (its own Debian container; about 10 s once the tool
@@ -128,16 +114,6 @@ scripts/switch/push.sh gl                       # to sdmc:/switch/switchwaker_gl
   rebuilt with each NRO. The NRO loads it whole at start (`[dk] shader cache:` line). Pipelines it lacks
   are compiled on the console (Tint and uam in the NRO, one worker thread) and kept in
   `switch/switchwaker/native/user/cache/dksh_local.bin` for the next start.
-- The GL NRO has its own folder (the Homebrew Menu shows one NRO per folder) with what belongs to the
-  build, and uses `switch/switchwaker/` for everything else, so the 1.4 GB disc image is not copied twice:
-
-| Path on the SD card | Contents |
-|---|---|
-| `switch/switchwaker_gl/switchwaker_gl.nro` | "SwitchWaker (GL)" in the Homebrew Menu |
-| `switch/switchwaker_gl/initial_pipeline_cache.db` | the same bundled pipeline list (Aurora reads it next to the NRO); its first start prepares the GL shaders once ("Preparing shaders", 8-10 minutes) |
-| `switch/switchwaker/GZLE01.iso`, `native/user/` | shared: the disc, saves, settings (with their `[dev]` run options), Aurora's caches (the GL NRO's Dawn blob cache is `dawn_cache.db`, the deko3d NRO's `dawn_cache_dk.db`) |
-| `switch/switchwaker/native/logs/switchwaker_gl_<date>_<time>.log` | the GL NRO's session logs, among the deko3d NRO's `switchwaker_<date>_<time>.log` (the 10 newest kept); `switchwaker_debug.py lastlog` fetches the newest |
-
 - deko3d run options (settings.ini `[dev]`, `switch/native/settings-dev.example.ini`): `COS_DK_TEST_PATTERN=1`
   draws a test pattern of deko3d's conventions under the menu (four coloured corners, two depth-tested
   squares, a depth-range check, a textured square with texture row 0 marked, a counter-clockwise and a
@@ -153,7 +129,6 @@ scripts/switch/push.sh gl                       # to sdmc:/switch/switchwaker_gl
   stream memory, image heap and blocks, descriptors and the heap; `[cos] shaders:` every 15 s (loaded,
   pending, failed, compiled, draws skipped, code memory); the perf-switch lines carry the encoder's
   counters and the GPU timestamps.
-- `scripts/switch/make_sd.sh --gl` writes `switch/switchwaker_gl/` next to the default folder.
 
 ## Run
 
@@ -212,8 +187,9 @@ What the log shows, in order (the same `[cos]` lines as on the Mac; values vary)
 [cos] harness: smoke=- milestone=- timeout=0s stall=90s ...
 [cos] perf: game-thread frame times every 60 frames (COS_PERF_EVERY)  <- COS_PERF_EVERY=60 only
 [cos] disc: /switch/switchwaker/GZLE01.iso GZLE01 revision 0, 1459978240 bytes
-[info] [aurora::gpu] Attempting to initialize OpenGLES          <- Dawn on Mesa (NV120)
-[cos] aurora: backend=opengles window=1280x720 ...
+[switch] renderer: deko3d (switch/deko)
+[info] [aurora::gpu] Attempting to initialize Null               <- Dawn's Null device: switch/deko draws
+[dk] ...                                                         <- deko3d's set-up, its shader cache
 [cos] dvd: GZLE01 version 0 disc 0                               <- the disc is read through nod_gcn
 [cos] MILESTONE aurora-up ...
 [cos] heaps: root ... check ok   (six heaps)
@@ -247,7 +223,7 @@ two machines compare column for column.
 
 Right after each perf line the Switch prints a `[cos] perf-switch` line (averages per frame over
 the same window; `switch/native/source/cos_switch_stats.cpp` gathers the counters of Aurora's
-Switch patch 0005, the Dawn GL queue patch and the disc reader):
+Switch patch 0005, switch/deko's encoder and GPU timestamps, and the disc reader):
 
 ```
 [cos] perf-switch frames 61-120: begin: events E, slot wait S, staging wait T; queue-full wait Q; render worker B ms/frame busy (encode C, end_frame D: unmap U, acquire A, submit M, present P; events V), N presents/s; gl F fences (I in flight), W waits X ms, G glFinish H ms; pipelines K created, L compiled in Y ms (longest so far Z ms), J queued; tex upload KiB; dvd R reads KiB ms; res loads n; scene NAME
@@ -257,6 +233,15 @@ Switch patch 0005, the Dawn GL queue patch and the disc reader):
 [cos] perf-switch gpu per frame (n read back): G ms (p95 P, max M): efb passes E, tex copy conv C, present R, imgui I, copies K, other O; first pass F; d dropped, j disjoint
 [cos] perf-switch cpu per frame: game thread G ms, render worker R ms (busy B ms wall), audio A, dvd D, other threads O; MODE, gpu G MHz, emc E MHz
 ```
+
+These lines were written for the OpenGL ES NRO, removed on 2026-10-09, and keep their names
+(`scripts/switch/perf_scenes.py` reads them). On the deko3d NRO the "dawn gl" line carries
+switch/deko's counters (passes, draws, pipeline, uniform and texture binds, uploads, copies, the
+encode time as "execute", submits as "items"), the gpu line its GPU timestamps, and the counters that
+only Dawn's GL backend or Mesa had stay zero. What follows on Dawn's GL replay, Mesa and the
+`dawn-switch-gl-*` patches explains where those figures came from on the GL NRO
+([SWITCH_PERF_STUDY.md](SWITCH_PERF_STUDY.md)); for deko3d's own see
+[DEKO3D_MIGRATION_PLAN.md](DEKO3D_MIGRATION_PLAN.md) sections 2.3 and 2.4.
 
 The second line is Dawn's GL replay of the frame's submission
 (`switch/dawn/patches/dawn-switch-gl-command-stats.patch`): with `gl_defer` every GL call of the
@@ -425,11 +410,15 @@ pipeline missed the cache). Now:
   failing check (`database corruption at line N`) or system call; the first 64 are shown, then
   every 1000th with the count (`switch/aurora/sqlite_horizon.c`).
 
-Mesa's `mesa_shader_cache.bin` ("Shader cache" below) survives a HOME kill by design: append-only,
-one `write()` per record, a CRC per entry checked on every read (a damaged entry is a miss, counted
-as "damaged"), and a torn last record cut at the next open ("cut N bytes of a damaged tail").
-
 ## Pipeline precompile
+
+Written for the OpenGL ES NRO (removed on 2026-10-09), where every pipeline was a GL program Mesa
+compiled on the console. On the deko3d NRO the shaders of every bundled pipeline come prebuilt in
+`initial_dksh_cache.bin` ("The deko3d renderer"), so the warm-up's builds are cache hits, `auto`
+shows no loading screen, and a pipeline the DKSH caches lack is compiled by uam in the background
+(its draws skipped meanwhile) instead of stalling the frame; the warm-up, its settings and the
+bundled pipeline list below still apply. The GL context, Mesa and `dawn-switch-gl-*` details are
+the GL NRO's.
 
 Every new pipeline costs 0.1-0.4 s on the console, and the game stutters for that long: Dawn's GL
 backend links one GL program per pipeline on the single GL context (with `gl_defer` the render
@@ -626,91 +615,21 @@ another config version (skipped: a cache written by an older NRO).
 
 ## Shader cache
 
-The NRO's Mesa (`scripts/switch/build_mesa.sh`, `switch/mesa/patches`) keeps compiled shaders on the
-SD card, so a pipeline built once is not compiled again on later runs:
+The deko3d NRO's shaders are DKSH, deko3d's shader binaries ("The deko3d renderer"):
 
-- **Why devkitPro's package had none.** Its meson change compiles the disk shader cache out on
-  Horizon (`-DENABLE_SHADER_CACHE` only when `host_machine.system() != 'horizon'`), so nouveau's
-  `get_disk_shader_cache` returned NULL, the state tracker left `GL_NUM_PROGRAM_BINARY_FORMATS` at 0,
-  and `MESA_GLSL_CACHE_DIR`/`MESA_SHADER_CACHE_DIR` did nothing. Mesa's file cache needs mmap,
-  flock, getpwuid, zlib and one file per entry under 256 directories, and nouveau names its build
-  with dladdr's build-id: none of that exists on Horizon (and thousands of small files open slowly
-  on the SD card's FAT32/exFAT).
-- **Patch 0003** keeps Mesa's `disk_cache.h` API in one append-only file,
-  `switch/switchwaker/native/user/cache/mesa_shader_cache.bin` (`MESA_SHADER_CACHE_DIR`, set by
-  the port before EGL starts): a header with the sha1 of the driver keys, then records (key, size,
-  CRC-32, payload) written with one `write()` each; payloads are read when asked for and their CRC
-  checked. Beside it, `mesa_shader_cache.idx` lists the records (key, size, offset; 40 bytes and a
-  CRC each, appended after each record): at start it is read in one `read()` instead of one 32-byte
-  read per record of the `.bin` (2747 records took 860 ms on the SD card that way). Its entries are
-  used while they are whole, contiguous and inside the `.bin`, the last one is checked against the
-  `.bin`, and a random generation in both headers ties the two files together; records the index
-  misses (the app stopped between the two writes) are read one by one and added, and a missing,
-  damaged or foreign index is rebuilt from the `.bin` once ("index rebuilt (...)" in the log). The
-  `.bin` keeps its format (version 1). **Pruning:** nothing was ever removed, so a shader change
-  left every old entry in the file (after the uniform window change: 5135 entries, 26.4 MiB,
-  opened in 2241 ms). `mesa_shader_cache.use` records the run in which each entry was last used
-  (stored, or read by a lookup; read with one `read()` at start, written by a maintenance thread
-  every 15 s while it changed and at exit). Once per run, 60 s after start
-  (`MESA_SHADER_CACHE_PRUNE_DELAY`), that thread compacts the file if the entries unused for 5 runs
-  (`MESA_SHADER_CACHE_PRUNE_BOOTS`; 0: never) plus dead records are a quarter of it and at least
-  1 MiB (or any, past three quarters of the size limit): it copies the kept records into
-  `.bin.tmp` through its own descriptor in 512 KiB steps (the game and the compile thread keep
-  using the cache meanwhile), then, holding the cache's lock for the swap only, adds the records
-  written meanwhile, writes the new index and replaces the files. A start that finds `.bin.tmp`
-  without `.bin` (stopped mid-swap) takes it; other leftover `.tmp` files are deleted. An entry
-  missing from, or a damaged, `.use` counts as used in the current run, so nothing is pruned on a
-  guess. Mesa's GLSL-cache entries of programs Dawn loads as binaries are not read again and so
-  get pruned after 5 runs: they only matter if Dawn's binary is lost, and are rebuilt then. Safety: a file
-  from another driver build (the build is named by `MESA_SWITCH_CACHE_ID`, a hash of Mesa's source
-  and every patch, written by `build_mesa.sh`), of another format version or with a bad header is
-  emptied; a torn last record (the app stopped mid-write) is cut off; a damaged entry is a miss and
-  is written again; nothing is evicted, and past 256 MiB (`MESA_GLSL_CACHE_MAX_SIZE`) new entries
-  are dropped. With it Mesa's GLSL cache works (a shader seen before is not compiled: the compile is
-  deferred, and the link loads the program's GLSL metadata and TGSI from the cache) and Mesa offers
-  one program binary format, which Dawn's GL backend already uses: it stores each program's
-  `glGetProgramBinary` in its blob cache (`user/cache/dawn_cache.db`) and loads it with
-  `glProgramBinary` instead of compiling (a stale or damaged binary is refused by Mesa's checksum
-  and driver sha1, and Dawn then compiles from source).
-- **Patch 0004**: neither of those skips nvc0's code generation (TGSI to Maxwell code, run when a
-  program is linked or loaded). Mesa added a disk cache for it upstream in 20.3, after splitting
-  `nv50_ir_prog_info`; 0004 is a smaller equivalent for 20.1: `nvc0_program_translate` looks the
-  translated program (code, header, relocations, interpolation fixups, header state) up by a key of
-  its inputs (chipset, stage, TGSI tokens, user clip planes) before running the compiler. Fixup
-  function pointers are stored as indices into the GM107 emitter's table, the emitter of the
-  console's GM20B.
-- **Off switch:** `COS_SWITCH_SHADER_CACHE=0` in `[dev]` (Mesa then behaves as the package did:
-  no cache, no program binaries); `COS_SWITCH_SHADER_CACHE=reset` deletes the file at start.
-  Deleting `user/cache/` clears it with Aurora's caches.
-- **Log.** Once EGL is up, and then every 15 s while the counters change and at exit (values
-  vary):
+- `initial_dksh_cache.bin` next to the NRO holds those of every pipeline of the bundled
+  `initial_pipeline_cache.db` and of the renderer's fixed shaders, built with each NRO by
+  `native/tools/dksh_cache` (`build_native.sh`); the NRO loads it whole at start (`[dk] shader cache:`).
+- A shader it lacks (a pipeline new to the bundled list, a mod) is translated by Tint and compiled by
+  uam on one worker thread in the NRO, its draws skipped meanwhile, and appended to
+  `switch/switchwaker/native/user/cache/dksh_local.bin`, loaded with the bundled file at the next start.
+  `[cos] shaders:` every 15 s counts what was loaded, pending, failed and compiled, and the draws skipped.
+- Deleting `user/cache/` clears `dksh_local.bin` with Aurora's caches; the bundled file is rebuilt
+  only with a new NRO.
 
-  ```
-  [switch] shader cache: MESA_SHADER_CACHE_DIR=/switch/switchwaker/native/user/cache
-  [switch] shader cache: /switch/.../user/cache/mesa_shader_cache.bin: N entries, M MiB, opened in T ms; index: R records in one read; U unused for 5+ runs; run B (max 256 MiB)
-  [switch] shader cache: compacted /switch/.../mesa_shader_cache.bin in T ms: K of N entries kept, U unused for 5+ runs dropped, M MiB -> M' MiB (run B)   <- at most once a run
-  [switch] shader compile: compiles C (D deferred) X ms; links L (F from cache) Y ms = glsl G + st S; nvc0 T (H from cache) Z ms; binaries loaded B (R refused) W ms, saved V W ms; cache gets ... puts ...; dawn binaries: formats 1, hits h, misses m, refused r, stored s (M MiB)
-  ```
-
-  On the first start after installing an NRO with a new Mesa: "new file" or "discarded: written by
-  another driver build" (every change to `switch/mesa/patches` renames the driver build, so the
-  NRO with the index starts once from an empty cache too), dawn binaries mostly misses and stored, nvc0 none from cache. On the next
-  start: dawn binary hits for the pipelines built before, nvc0 "from cache" close to its total, and
-  the precompile lines' "compile ... (X ms each)" should drop from 126-176 ms to a few ms. The
-  "glsl", "st" and "nvc0" times of the first start are where a compile's time goes (the GLSL front
-  end and linker, GLSL IR to TGSI, and Maxwell code generation); what the precompile line counts
-  beyond them is Dawn's own work (Tint, pipeline objects).
-- **Checked off the console** (`build_mesa.sh --test`): the file's persistence, removal, torn tail,
-  damaged entry, another driver build and size limit; the index with 3000 entries (read at once,
-  rebuilt when missing, torn, damaged in the middle, of another generation or for a `.bin` from
-  before it, records it misses read from the `.bin`, a torn `.bin` under a whole index); pruning
-  (entries unused for N runs dropped by a compaction, the rest still readable and indexed, writes
-  after it, a swap interrupted at either point, a damaged use file, the maintenance thread doing
-  it by itself); nvc0 code from the cache identical to a fresh
-  translation (code, header, state, relocations and fixups, GM20B); and through the GL API (OSMesa
-  on softpipe with a test-only disk cache hook), a second run links every program from the cache
-  with every compile deferred, draws the same pixels as the first, loads the saved program binaries
-  with the same pixels, and refuses a damaged binary.
+The OpenGL ES NRO, removed on 2026-10-09, relied on a patched Mesa's disk shader cache
+(`mesa_shader_cache.bin`, `.idx`, `.use`) and Dawn's program binaries (`dawn_cache.db`) instead;
+the deko3d NRO reads neither (players may delete them: [INSTALL.md](../INSTALL.md), "Updating").
 
 Threads: the game thread runs on core 0; JAudio's, the DVD thread, Aurora's and Dawn's
 workers prefer cores 1 and 2 (`switch/native/source/thread_wrap.c`). Every 15 seconds, at exit
@@ -748,8 +667,9 @@ and in a crash report, `[switch] memory: used N MiB of M MiB` shows the process'
 - Nothing in the log at all: check that `switch/switchwaker/native/` exists afterwards (the
   app creates it); start from title mode.
 - `[cos] DISC: cannot open COS_DISC=...` (exit 14): the disc image is missing; `push.sh --disc`.
-- The app closes right after `Attempting to initialize OpenGLES`: Dawn or Mesa failed; the Atmosphère
-  report and the last `[info] [aurora::gpu]` lines say where.
+- The app closes during start-up, before the first present: the Atmosphère report and the last `[dk]`
+  and `[info] [aurora::gpu]` lines say where; a `--dk-debug-lib` build logs deko3d's own message for a
+  misuse.
 - `[cos] STALL: frame counter frozen` (exit 11): no game frame for 90 seconds (`COS_STALL_S`).
 - Every run aborts at the same point right after start-up, after one that aborted in a shader:
   Aurora recompiles its cached pipelines at start-up (as on the Mac, phase 6 render issues); delete

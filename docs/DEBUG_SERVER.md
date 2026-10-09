@@ -14,7 +14,7 @@ the server runs). The menu saves it in `sdmc:/switch/switchwaker/native/user/set
 earlier builds is moved into that file at the first start of a newer build (`COS_DEBUG_SERVER=1` in it
 becomes the menu setting, so the server starts in that same session) and kept as `env.txt.old`.
 
-Other developer variables (those without a menu row: `COS_TRACE`, `COS_BOOT_STAGE`, `MESA_*`, ...) go in
+Other developer variables (those without a menu row: `COS_TRACE`, `COS_BOOT_STAGE`, `COS_DK_*`, ...) go in
 the `[dev]` section at the end of the same file
 ([switch/native/settings-dev.example.ini](../switch/native/settings-dev.example.ini)); they are read at
 start. Over the server:
