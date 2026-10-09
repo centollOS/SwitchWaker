@@ -850,6 +850,21 @@ timer (forced with `COS_FB_SCALE@handheld=2.25`, `COS_DYNRES_HIGH=12`; at the no
 38.0 ms, 30 fps on both sides, docked GPU 9.3 ms (present 1.86 ms for the 720p EFB scaled to 1080p);
 the window of the dock itself had 26.4 presents/s (the system's own mode switch plus the GPU idle wait).
 
+Options A/B (2026-10-09, handheld 1.5, NRO 0.2.0-5, same warp each, 300-frame GPU medians, all 30 fps):
+
+| spot / option | GPU ms | note |
+|---|---|---|
+| Outset `sea:44` (night), defaults | 10.66 | |
+| `COS_DOF=0` | 9.40 | conversions 0.72 -> 0.08 |
+| `COS_SKY_LOWRES=2` | 9.91 | **bug**: Link's real-time shadow solid black (translucent with 0) |
+| `COS_ASPECT=4:3` / `16:10` | 11.05 / 10.25 | pictures right |
+| `COS_SHADOW_OFFSCREEN=1` / `gc` | 10.26 / 10.21 | shadow right |
+| Forbidden Woods `kindan:0`, defaults (mist 1/4) | 11.84 | |
+| `COS_MIST_LOWRES=0` / `2` | 11.15 / 11.92 | mist 1/4 not cheaper here than full |
+
+Open: the black shadow with `COS_SKY_LOWRES=2` (not yet known whether GL or the Mac show it: a Mac
+shot at `sea:44:206` frame 400 has no Link in view); the system Capture button on deko3d.
+
 Remaining console checks: `COS_DYNRES=1` in a heavy spot (level changes in the log), dock/undock
 (`[dk] frame N: window ... swapchain recreated`, picture and menu fill the TV), the `gpu groups`
 line with groups 1 and 2, then the A/B per option and the HD pack census, 2 x 30 minutes of play.
