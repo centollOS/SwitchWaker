@@ -114,6 +114,63 @@ void init_image(DkImage& image, ImageAlloc& mem, DkImageFormat format, uint32_t 
     dklog("%s: %ux%u, %u KiB at image heap offset 0x%X", what, R.width, R.height, mem.size >> 10, mem.offset);
 }
 
+// ---- the window (the swapchain images): 1280x720 handheld, 1920x1080 docked (the TV's output), the
+// swapchain recreated when the operation mode changes; the present pass fits the game's picture and ImGui
+// into it (dk_present.cpp, overlay.cpp scale by R.width/R.height). SwitchWakerHD backend.cpp window_wanted.
+// COS_DK_DOCKED_1080=0: 1280x720 always (the system scales it to the TV, the GL NRO's way).
+// COS_DK_WINDOW=WxH (320x180 to 1920x1080): that size in both modes, for A/B tests in handheld.
+struct WindowConfig {
+    int mode = 1;  // 0 always 1280x720, 1 by the operation mode, 2 forced
+    uint32_t w = 0, h = 0;
+};
+const WindowConfig& window_config() {
+    static const WindowConfig c = [] {
+        WindowConfig c;
+        if (const char* e = getenv("COS_DK_WINDOW"); e && *e) {
+            unsigned w = 0, h = 0;
+            if (sscanf(e, "%ux%u", &w, &h) == 2 && w >= 320 && h >= 180 && w <= 1920 && h <= 1080) {
+                c.mode = 2;
+                c.w = w;
+                c.h = h;
+            } else {
+                dklog("COS_DK_WINDOW=%s ignored: WxH from 320x180 to 1920x1080", e);
+            }
+        }
+        if (c.mode != 2 && !env_flag("COS_DK_DOCKED_1080", true)) c.mode = 0;
+        if (c.mode == 2) {
+            dklog("window: %ux%u in both modes (COS_DK_WINDOW)", c.w, c.h);
+        } else if (c.mode == 1) {
+            dklog("window: docked 1920x1080, handheld 1280x720, the swapchain recreated when the mode changes "
+                  "(COS_DK_DOCKED_1080=0: 1280x720 always)");
+        } else {
+            dklog("window: 1280x720 in both modes (COS_DK_DOCKED_1080=0; docked the system scales it)");
+        }
+        return c;
+    }();
+    return c;
+}
+int g_opMode = -1;  // the operation mode the window was last sized for: 1 docked, 0 handheld, -1 not yet
+uint64_t g_windowResizes = 0;
+
+// the window size for the current operation mode (libnx keeps appletGetOperationMode up to date from
+// AppletMessage_OperationModeChanged in the main thread's appletMainLoop)
+void window_wanted(uint32_t& w, uint32_t& h) {
+    const WindowConfig& c = window_config();
+    const int docked = appletGetOperationMode() == AppletOperationMode_Console ? 1 : 0;
+    if (docked != g_opMode) {
+        dklog("operation mode: %s", docked ? "docked (TV)" : "handheld");
+        g_opMode = docked;
+    }
+    if (c.mode == 2) {
+        w = c.w;
+        h = c.h;
+        return;
+    }
+    const bool big = c.mode == 1 && docked == 1;
+    w = big ? 1920 : 1280;
+    h = big ? 1080 : 720;
+}
+
 void init_swapchain() {
     const DkImage* images[kSwapImages];
     for (uint32_t i = 0; i < kSwapImages; i++) {
@@ -135,6 +192,28 @@ void init_swapchain() {
     nwindowGetDimensions(nwindowGetDefault(), &nw, &nh);
     dklog("swapchain: %u RGBA8 images of %ux%u on the default window (%ux%u), swap interval 1", kSwapImages,
           R.width, R.height, nw, nh);
+}
+
+// a new window size (the operation mode changed): the GPU finishes what was submitted (the previous
+// presents into the old images), the old swapchain gives the window's buffers back, and images and a
+// swapchain of the new size take their place (deko3d sets the window's dimensions from them). The old
+// images' memory is freed once the GPU is done with this frame.
+void resize_window(uint32_t w, uint32_t h, uint64_t frame) {
+    const uint64_t t0 = now_ns();
+    const uint32_t ow = R.width, oh = R.height;
+    check_queue("recreating the swapchain");
+    dkQueueWaitIdle(R.queue);
+    const uint64_t t1 = now_ns();
+    dkSwapchainDestroy(g_swapchain);
+    g_swapchain = nullptr;
+    for (uint32_t i = 0; i < kSwapImages; i++) image_free_later(g_swapMem[i]);
+    image_free_later(g_depthMem);
+    R.width = w;
+    R.height = h;
+    init_swapchain();
+    g_windowResizes++;
+    dklog("frame %llu: window %ux%u -> %ux%u: swapchain recreated in %.1f ms (GPU idle wait %.1f ms)",
+          (unsigned long long)frame, ow, oh, w, h, double(now_ns() - t0) / 1e6, double(t1 - t0) / 1e6);
 }
 
 // ---- statistics every 30 s: presents and where their time went, submits, command and stream memory per
@@ -159,7 +238,8 @@ void frame_stats(uint64_t presentNs) {
           "submit+present %.2f ms, longest %.2f ms, %.1f submits; command memory max %llu KiB/frame (%llu "
           "overflows), stream max %llu KiB/frame (%llu full); image heap %llu KiB in %llu chunks, blocks %llu KiB, "
           "shader code %llu KiB; descriptors: %u images, %u samplers in use, written %llu images, %llu samplers "
-          "(%llu sampler evictions); ImGui textures %u; deko3d messages %d; heap never used %zu MiB",
+          "(%llu sampler evictions); ImGui textures %u; window %ux%u (%llu resizes); deko3d messages %d; heap never "
+          "used %zu MiB",
           (unsigned long long)(R.frame - g_times.presents + 1), (unsigned long long)R.frame,
           n * 1e9 / double(now - g_times.start), double(g_times.fenceNs) / n / 1e6, double(g_times.acquireNs) / n / 1e6,
           double(g_times.recordNs) / n / 1e6, double(g_times.submitNs) / n / 1e6, double(g_times.maxNs) / 1e6,
@@ -169,7 +249,7 @@ void frame_stats(uint64_t presentNs) {
           (unsigned long long)m.imageChunks, (unsigned long long)(m.blockBytes >> 10),
           (unsigned long long)(m.codeBytes >> 10), d.imagesUsed, d.samplersUsed, (unsigned long long)d.imageWrites,
           (unsigned long long)d.samplerWrites, (unsigned long long)d.samplerEvictions, overlay_textures(),
-          g_debugMessages, heap_never_used_mib());
+          R.width, R.height, (unsigned long long)g_windowResizes, g_debugMessages, heap_never_used_mib());
     g_submitsAtStats = g_submits.submits;
     g_times = Times{};
     g_times.start = now;
@@ -246,6 +326,11 @@ SubmitStats submit_stats() { return g_submits; }
 void frame_present(const ImDrawData* ui, PictureFn picture, void* user) {
     frame_open();
     const uint64_t frame = R.frame + 1;
+    {
+        uint32_t ww, wh;
+        window_wanted(ww, wh);
+        if (ww != R.width || wh != R.height) resize_window(ww, wh, frame);
+    }
     const uint64_t t1 = now_ns();
     int slot;
     {
@@ -428,6 +513,7 @@ extern "C" void aurora_switch_dk_init(uint32_t gxConfigVersion) {
 
     memory_init();
     load_builtin_shaders();
+    window_wanted(R.width, R.height);  // the first swapchain at the current mode's size
     init_swapchain();
     g_testPattern = pattern_enabled();
     dklog("present: %s", g_testPattern ? "the TEST PATTERN (COS_DK_TEST_PATTERN=1) under ImGui, instead of the game"
