@@ -964,6 +964,11 @@ void drawMenu() {
     ImGui::SetWindowFocus();
 
     ImGui::TextColored(kAccent, "%s", T("Opciones", "Options"));
+#if defined(__SWITCH__)
+    // the version, so a player can tell which build they run (an issue report, an update)
+    ImGui::SameLine();
+    ImGui::TextColored(kDim, "SwitchWaker %s", cos_switch_version());
+#endif
     const std::string mode = std::string(T("Modo: ", "Mode: ")) + modeName(pc_settings_mode());
     ImGui::SameLine(ImGui::GetWindowWidth() - ImGui::CalcTextSize(mode.c_str()).x - ImGui::GetStyle().WindowPadding.x);
     ImGui::TextColored(kDim, "%s", mode.c_str());

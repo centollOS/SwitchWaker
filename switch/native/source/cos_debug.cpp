@@ -176,6 +176,8 @@ extern "C" void cos_switch_debug_start(void) {
     }
 }
 
+extern "C" const char* cos_switch_version(void) { return COS_SWITCH_VERSION_STR; }
+
 extern "C" int cos_switch_debug_input(uint64_t* buttons, int32_t sticks[4]) {
     if (!debugsrv::running()) {
         return 0;
