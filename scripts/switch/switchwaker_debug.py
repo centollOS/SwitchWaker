@@ -18,7 +18,7 @@ log says '[switch] debug server listening on <ip>:6543'. The console's address: 
   switchwaker_debug.py logs | lastlog [LOCAL]    session logs (native/logs/); the newest one (also while it runs)
   switchwaker_debug.py crashes [--fetch DIR]     Atmosphere's crash reports
   switchwaker_debug.py wait [--seconds N]        until the server answers (after a reload)
-  switchwaker_debug.py quit | reload | ping | help
+  switchwaker_debug.py quit | reload | crash | ping | help
   switchwaker_debug.py raw COMMAND ARGS...       any command, its reply printed
 
 Remote paths are relative to sdmc:/switch/switchwaker unless they start with /.
@@ -313,7 +313,7 @@ def main():
     p.add_argument("--port", type=int, default=int(os.environ.get(ENV_PORT, DEFAULT_PORT)))
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    for name in ("info", "ping", "help", "warps", "quit", "reload"):
+    for name in ("info", "ping", "help", "warps", "quit", "reload", "crash"):
         sub.add_parser(name)
     for name in ("press", "hold", "release", "warp", "stick"):
         sp = sub.add_parser(name)
@@ -353,7 +353,7 @@ def main():
 
     args = p.parse_args()
     try:
-        if args.cmd in ("info", "ping", "help", "warps", "quit", "reload"):
+        if args.cmd in ("info", "ping", "help", "warps", "quit", "reload", "crash"):
             simple(args, args.cmd)
         elif args.cmd in ("press", "hold", "release", "warp", "stick"):
             simple(args, args.cmd, *args.rest, timeout=120.0)

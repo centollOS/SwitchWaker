@@ -48,6 +48,7 @@ not in git).
 | `logs`, `lastlog [LOCAL]` | the session logs in `native/logs/`; download the newest one. The running session's file cannot be opened while the game writes it, so `lastlog` then takes the text the console keeps in memory (`logtext`, the last 2 MiB, from the first line) |
 | `crashes [--fetch DIR]` | Atmosphère's crash reports (`/atmosphere/crash_reports`) |
 | `wait`, `quit`, `reload`, `ping`, `help`, `raw CMD ...` | `raw logtext` prints the kept log text |
+| `crash` | a deliberate data abort (on the server's thread): checks the crash report in the log and that the process ends a few seconds later |
 
 Button names: `A B X Y L R ZL ZR PLUS MINUS UP DOWN LEFT RIGHT LS RS`. The presses go into the gamepad shim
 (`switch/aurora/sdl3_shim/sdl3_shim_gamepad.c`), as if they came from the controller, so they reach the

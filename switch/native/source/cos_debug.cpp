@@ -9,6 +9,8 @@
 //   shot [game]        PNG of the next frame (pc_shot.cpp): with the FPS panel and the menu, or the game alone
 //   reload             restart: the forwarder loads the NRO again (cos_switch_restart)
 //   quit               end the process (cos_switch_exit)
+//   crash              a data abort on the server's connection thread: tests the crash report and the
+//                      end of the process with the game and its audio running (cos_switch.cpp's reaper)
 // Paths of get / put / ls are relative to /switch/switchwaker (the NRO; native/ holds user/settings.ini and logs/).
 #include <arpa/inet.h>
 #include <switch.h>
@@ -130,6 +132,15 @@ debugsrv::Reply quit(const debugsrv::Args&) {
     return r;
 }
 
+debugsrv::Reply crash(const debugsrv::Args&) {
+    debugsrv::Reply r = debugsrv::ok("crashing: the log has the report; the process ends within seconds");
+    r.after = [] {
+        fprintf(stderr, "[cos] debug server: crash requested, writing through a null pointer\n");
+        *(volatile u32*)(uintptr_t)0x10 = 0x7777;
+    };
+    return r;
+}
+
 } // namespace
 
 extern "C" void cos_switch_debug_start(void) {
@@ -145,6 +156,7 @@ extern "C" void cos_switch_debug_start(void) {
     debugsrv::add_command("shot", "shot [game]            PNG of the next frame (game: without the panel and menu)", shot);
     debugsrv::add_command("reload", "reload                 restart: the forwarder loads the NRO again (put it first)", reload);
     debugsrv::add_command("quit", "quit                   end the program", quit);
+    debugsrv::add_command("crash", "crash                  a deliberate crash (tests the crash report)", crash);
     debugsrv::Config c;
     c.port = gPort;
     c.root = "/switch/switchwaker";

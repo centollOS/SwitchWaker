@@ -34,7 +34,8 @@
 // Crash report: libnx's user exception handler prints the exception, the registers, the thread,
 // the NRO's load address and a frame-pointer backtrace as offsets into switchwaker.elf (for addr2line),
 // then the harness's state line (scene, frame, last resource), writes the logs out and returns the
-// exception to the kernel unhandled, so Atmosphère still writes its crash report.
+// exception to the kernel unhandled, so Atmosphère still writes its crash report; a reaper thread
+// ends the process 5 s later if the kernel has not (startReaper).
 // abort() (Aurora's fatal log and asserts, newlib's assert, std::terminate) is wrapped
 // (-Wl,--wrap=abort) to print the same backtrace and state and to write the logs out before the
 // process ends; on its own it would end the process with the last log lines still queued.
@@ -79,6 +80,7 @@ FILE* gLogFile;
 Thread gWriter;
 std::atomic<bool> gWriterRunning{false};
 std::atomic<bool> gCrashing{false};
+constexpr u64 kReaperDelayNs = 5000000000ULL; // crash to the end of the process (reaperMain)
 std::atomic<unsigned> gDropped{0};
 bool gUsb;
 
@@ -595,7 +597,30 @@ void crashReport(ThreadExceptionDump* ctx) {
         gStateWriter(STDERR_FILENO);
     }
     reportMemory();
-    sayf("[cos] exit 13 (crash); Atmosphère writes its report to atmosphere/crash_reports/\n");
+    sayf("[cos] exit 13 (crash); from hbmenu Atmosphère writes its report to atmosphere/crash_reports/, "
+         "from the HOME menu forwarder this log is the report (the process is ended in %llu s)\n",
+         (unsigned long long)(kReaperDelayNs / 1000000000ULL));
+}
+
+// The crash reaper: from hbmenu the kernel ends the process once Atmosphère has written its
+// report, but run as an application (the HOME menu forwarder) there is no report and the process
+// stays alive with the game thread stopped and the audio threads still playing, until the stall
+// watchdog ends it 90 s later. This thread, started with the logs, ends it a few seconds after
+// the crash report instead (the report and the logs are written by then).
+Thread gReaper;
+
+void reaperMain(void*) {
+    while (!gCrashing.load(std::memory_order_acquire)) {
+        svcSleepThread(250000000ULL);
+    }
+    svcSleepThread(kReaperDelayNs);
+    svcExitProcess();
+}
+
+void startReaper() {
+    if (R_SUCCEEDED(threadCreate(&gReaper, reaperMain, nullptr, nullptr, 0x2000, 0x2C, -2))) {
+        threadStart(&gReaper);
+    }
 }
 
 } // namespace
@@ -646,6 +671,7 @@ __attribute__((noreturn)) void __wrap_abort(void) {
 void cos_switch_start(int argc, char** argv) {
     debugsrv::keep_log(); // the debug server's log text from the first line (cos_switch_debug_start)
     startLogs();
+    startReaper();
     sayf("[switch] SwitchWaker, native port (phase 7); argv[0]=%s\n",
          argc > 0 && argv != nullptr && argv[0] != nullptr ? argv[0] : "-");
     reportSystem();

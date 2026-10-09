@@ -198,6 +198,12 @@ public:
         JUT_ASSERT(687, 0 <= poly_index && poly_index < pm_bgd->m_t_num);
         return &pm_tri[poly_index].m_plane;
     }
+#if TARGET_PC
+    // GetTriPla has a plane to return: the triangles are allocated and the index is in range.
+    bool ChkTriPla(int poly_index) const {
+        return pm_tri != NULL && pm_bgd != NULL && 0 <= poly_index && poly_index < pm_bgd->m_t_num;
+    }
+#endif
 
     void SetPriority(PRIORITY priority) { mWallCorrectPriority = priority; }
     void SetLock() { mFlags |= LOCK_e; }

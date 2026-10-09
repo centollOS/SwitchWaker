@@ -735,8 +735,13 @@ and in a crash report, `[switch] memory: used N MiB of M MiB` shows the process'
 - **Atmosphère's report.** After the log, the crash goes on to Atmosphère, which writes
   `atmosphere/crash_reports/<time>_<program id>.log`. Copy it with
   `build/switch-tools/switch_mtp pull atmosphere/crash_reports <name>.log out.log` and resolve the
-  addresses after the module name (`+ 0x...`) the same way.
-- `COS_SMOKE=crash-test` in `[dev]` crashes on purpose, to see both reports once.
+  addresses after the module name (`+ 0x...`) the same way. Started from the HOME menu forwarder
+  (as an application) there is no such report, and the kernel leaves the process running with the
+  crashed thread stopped (picture frozen, audio still playing); a reaper thread ends it 5 s after
+  the crash report, so the log above is then the only report.
+- `COS_SMOKE=crash-test` in `[dev]` crashes on purpose at start, to see both reports once (it
+  crashes at every start until the line is removed); `switchwaker_debug.py crash` crashes once,
+  during play.
 
 ## If something goes wrong
 

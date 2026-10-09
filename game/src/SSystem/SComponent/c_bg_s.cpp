@@ -241,6 +241,24 @@ cM3dGPla* cBgS::GetTriPla(int bg_index, int poly_index) const {
     if (!m_chk_element[bg_index].ChkUsed())
         return NULL;
 
+#if TARGET_PC
+    // A poly info kept from an earlier frame can name a collision whose triangles are gone
+    // (pm_tri NULL): the retail game then reads near address 0, a crash here (boomerang shadow
+    // in the Forbidden Woods). Most callers use the plane without a check, so give them a flat
+    // floor instead of NULL.
+    if (!m_chk_element[bg_index].m_bgw_base_ptr->ChkTriPla(poly_index)) {
+        static cM3dGPla sFlatPla;
+        static bool sWarned = false;
+        if (!sWarned) {
+            sWarned = true;
+            OSReport("[cos] cBgS::GetTriPla: bg %d poly %d has no triangle; a flat plane is used\n", bg_index,
+                     poly_index);
+        }
+        sFlatPla.mNormal.set(0.0f, 1.0f, 0.0f);
+        sFlatPla.mD = 0.0f;
+        return &sFlatPla;
+    }
+#endif
     return m_chk_element[bg_index].m_bgw_base_ptr->GetTriPla(poly_index);
 }
 
