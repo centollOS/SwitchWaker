@@ -22,9 +22,7 @@
 #include "JSystem/JKernel/JKRHeap.h"
 
 #if defined(__SWITCH__)
-// switch/dawn/patches/dawn-switch-gl-command-stats.patch: running totals in switch_stats::Counter
-// order; 48 = GPU frames read back, 49 = their GPU time in ns (dawn-switch-gl-gpu-timer.patch).
-extern "C" void dawn_switch_gl_cmd_stats(uint64_t* out, size_t count);
+#include "cos_switch.h"
 #endif
 
 namespace {
@@ -222,9 +220,11 @@ void pc_dynres_frame_begin(unsigned int frame) {
         return;
     }
 #if defined(__SWITCH__)
-    uint64_t c[50] = {};
-    dawn_switch_gl_cmd_stats(c, 50);
-    const uint64_t frames = c[48], ns = c[49];
+    // GPU frames read back and their GPU time: Dawn GL's timer or the deko3d timestamps
+    // (cos_switch_stats.cpp fills the same fields for both NROs)
+    CosSwitchGfxStats g{};
+    cos_switch_gfx_stats(&g);
+    const uint64_t frames = g.gpuFrames, ns = g.gpuTotalNs;
     if (frames > s.lastGpuFrames && s.lastGpuFrames != 0) {
         const double ms = (double)(ns - s.lastGpuNs) / 1e6 / (double)(frames - s.lastGpuFrames);
         s.gpuMs[s.gpuPos] = ms;
