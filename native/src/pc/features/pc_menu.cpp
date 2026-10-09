@@ -413,16 +413,9 @@ void applyFbScale(const char*, const char* v, void*) {
 void applyDynres(const char*, const char* v, void*) {
     pc_dynres_configure(v, (float)atof(pc_settings_get("COS_FB_SCALE")));
 }
-void applyMist(const char*, const char* v, void*) { pc_mist_lowres_set(atoi(v)); }
-void applySky(const char*, const char* v, void*) { pc_sky_lowres_set(atoi(v)); }
 void applyDof(const char*, const char* v, void*) { pc_dof_set(strcmp(v, "0") != 0); }
 void applyCameraInvertX(const char*, const char* v, void*) { pc_camera_invert_x_set(strcmp(v, "1") == 0); }
 void applyCameraInvertY(const char*, const char* v, void*) { pc_camera_invert_y_set(strcmp(v, "1") == 0); }
-void applyShadow(const char*, const char* v, void*) {
-    pc_shadow_offscreen_set(strcmp(v, "1") == 0    ? PC_SHADOW_OFFSCREEN_SAME
-                            : strcmp(v, "gc") == 0 ? PC_SHADOW_OFFSCREEN_GC
-                                                   : PC_SHADOW_OFFSCREEN_OFF);
-}
 void applyGpuProfile(const char*, const char* v, void*) {
 #if defined(__SWITCH__)
     cos_switch_set_gpu_profile(v);
@@ -454,10 +447,6 @@ const PcSettingChoice kOnOff[] = {{"0", "Desactivado", "Off"}, {"1", "Activado",
 const PcSettingChoice kHdMaxSize[] = {{"auto", "Automático (512 / 1024)", "Automatic (512 / 1024)"}, {"256", "256"}, {"512", "512"},
                                       {"1024", "1024"}, {"full", "Sin límite", "No limit"}};
 const PcSettingChoice kDynres[] = {{"0", "Desactivada", "Off"}, {"1", "Automática", "Automatic"}};
-const PcSettingChoice kLowres[] = {{"0", "Completa", "Full"}, {"2", "1/2"}, {"4", "1/4"}};
-const PcSettingChoice kSkyLowres[] = {{"0", "Completa", "Full"}, {"2", "1/2"}};
-const PcSettingChoice kShadow[] = {
-    {"0", "En el EFB (como la GameCube)", "In the EFB (as on the GameCube)"}, {"1", "Fuera del EFB", "Outside the EFB"}, {"gc", "Fuera del EFB, 256x256", "Outside the EFB, 256x256"}};
 const PcSettingChoice kGpuProfile[] = {
     {"460", "460,8 MHz", "460.8 MHz"}, {"384", "384 MHz"}, {"default", "Del sistema (307,2 MHz)", "System default (307.2 MHz)"}};
 const PcSettingChoice kDetail[] = {{"full", "Completo", "Full"}, {"compact", "Compacto", "Compact"}};
@@ -493,15 +482,6 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kDynres), "0", applyDynres, nullptr, 20,
      "Dynamic resolution",
      "Lowers the 3D resolution (1.25, 1.125) when the GPU cannot hold 30 fps; the HUD stays sharp."},
-    {"COS_MIST_LOWRES", "Niebla del bosque",
-     "Resolución de la niebla (bosques): 1/4 se ve casi igual y cuesta mucho menos.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kLowres), "4", applyMist, nullptr, 30,
-     "Forest mist",
-     "Resolution of the mist (forests): 1/4 looks almost the same and costs much less."},
-    {"COS_SKY_LOWRES", "Cielo", "Resolución del cielo y las nubes: 1/2 ahorra GPU, bordes de nubes más suaves.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kSkyLowres), "0", applySky, nullptr, 40,
-     "Sky",
-     "Resolution of the sky and clouds: 1/2 saves GPU time, with softer cloud edges."},
     {"COS_DOF", "Profundidad de campo", "Desenfoque del paisaje lejano, como en la GameCube.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "1", applyDof, nullptr, 50,
      "Depth of field",
@@ -599,11 +579,6 @@ const PcSettingDesc kBuiltins[] = {
      "Debug server (network)",
      "For development only: opens a port on the local network, without a password, for scripts/switch/"
      "switchwaker_debug.py (log, screenshots, warps, files). See docs/DEBUG_SERVER.md."},
-    {"COS_SHADOW_OFFSCREEN", "Sombras en tiempo real (prueba A/B)",
-     "Prueba de GPU: dónde se dibujan las sombras de los personajes; fuera del EFB evita cortar la pasada principal.",
-     PC_SETTING_TAB_DEBUG, 0, CHOICES(kShadow), "0", applyShadow, nullptr, 130,
-     "Real-time shadows (A/B test)",
-     "GPU test: where character shadows are drawn; outside the EFB avoids splitting the main pass."},
 };
 
 // ---- menu state ----------------------------------------------------------------------------------

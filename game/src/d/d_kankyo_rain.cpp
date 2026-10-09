@@ -5481,11 +5481,6 @@ void drawCloudShadow(Mtx drawMtx, u8** pImg) {
         rot = 719.0f;
     GXSetCurrentMtx(GX_PNMTX0);
 
-#if TARGET_PC
-    // COS_MIST_LOWRES (pc_gpu_opts.h): the sprites, drawn by a lambda so pc_kyr_draw_mist
-    // (native/src/pc/game_hooks/pc_gpu_hooks.cpp) can draw them more than once.
-    auto drawSprites = [&]() {
-#endif
     for (s32 i = 0; i < pPkt->mCount; i++) {
         f32 size = pPkt->mEff[i].mSize;
         if (pPkt->mEff[i].mAlpha <= 0.000001f)
@@ -5544,10 +5539,6 @@ void drawCloudShadow(Mtx drawMtx, u8** pImg) {
         GXEnd();
     }
 
-#if TARGET_PC
-    };
-    pc_kyr_draw_mist(drawSprites);
-#endif
     GXSetClipMode(GX_CLIP_ENABLE);
 #if VERSION > VERSION_JPN
     J3DShape::resetVcdVatCache();

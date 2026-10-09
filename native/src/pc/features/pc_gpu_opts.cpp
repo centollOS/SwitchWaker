@@ -1,4 +1,4 @@
-// Opt-in GPU-side reductions for A/B runs (native/include/pc/pc_gpu_opts.h).
+// The depth-of-field switch and the GPU-group diagnostics (native/include/pc/pc_gpu_opts.h).
 #include "pc/pc_gpu_opts.h"
 #include "pc/pc_dynres.h"
 
@@ -36,9 +36,7 @@ extern "C" void aurora_draw_census_request(const char* pathPrefix);
 namespace {
 
 // -1 until the first call reads the variable.
-int sShadowOffscreen = -1;
 int sDof = -1;
-int sMistLowres = -1;
 
 bool envIs(const char* name, const char* value) {
     const char* v = getenv(name);
@@ -120,205 +118,6 @@ void packetLabel(const void* packet, char* out, size_t size) {
 
 extern "C" {
 
-// Frames from a comma-separated list (for A/B checks that must render both variants of one frame:
-// the game's timing, and with it the scene, drifts as soon as a frame costs more or less).
-static std::vector<unsigned int> parseFrames(const char* list) {
-    std::vector<unsigned int> frames;
-    while (list != nullptr && *list != '\0') {
-        char* end = nullptr;
-        const unsigned long n = strtoul(list, &end, 10);
-        if (end == list) {
-            break;
-        }
-        frames.push_back((unsigned int)n);
-        list = *end == ',' ? end + 1 : end;
-    }
-    std::sort(frames.begin(), frames.end());
-    return frames;
-}
-
-int pc_mist_lowres(void) {
-    static std::vector<unsigned int> sOnlyFrames;
-    if (sMistLowres < 0) {
-        // Default 4 (docs/SWITCH_PERF_STUDY.md, section 8: Mac A/B of the same frame within 7/255,
-        // mean 1.5/255, at 2, 3 and 4 alike); COS_MIST_LOWRES=0 draws the mist as before.
-        const char* v = getenv("COS_MIST_LOWRES");
-        sMistLowres = v == nullptr || v[0] == '\0' ? 4 : atoi(v);
-        sMistLowres = sMistLowres < 2 ? 0 : sMistLowres > 4 ? 4 : sMistLowres;
-        // COS_MIST_LOWRES_FRAMES=<frame>[,...]: only in those game frames (Mac pixel checks).
-        sOnlyFrames = parseFrames(getenv("COS_MIST_LOWRES_FRAMES"));
-        if (sMistLowres != 0) {
-            pc::writef(STDERR_FILENO, "[cos] COS_MIST_LOWRES=%d: forest mist drawn at 1/%d resolution%s\n",
-                       sMistLowres, sMistLowres, sOnlyFrames.empty() ? "" : " in the listed frames only");
-        }
-    }
-    if (!sOnlyFrames.empty() &&
-        !std::binary_search(sOnlyFrames.begin(), sOnlyFrames.end(), pc_frame_count() + 1)) {
-        return 0;
-    }
-    return sMistLowres;
-}
-
-void* pc_mist_lowres_target(unsigned int* w, unsigned int* h) {
-    static std::vector<unsigned char> sBuffer;
-    static unsigned int sLastW = 0, sLastH = 0;
-    const int div = pc_mist_lowres();
-    if (div < 2) {
-        return nullptr;
-    }
-    unsigned int efbW = 0, efbH = 0;
-    pc_efb_pixel_size(640, 480, &efbW, &efbH);
-    const unsigned int tw = (efbW + div - 1) / div;
-    const unsigned int th = (efbH + div - 1) / div;
-    if (tw < 16 || th < 16) {
-        return nullptr;
-    }
-    // GXCopyTex names the copy texture by its destination; RGBA8 tiles are 4x4 texels of 4 bytes.
-    const size_t bytes = (size_t)((tw + 3) & ~3u) * ((th + 3) & ~3u) * 4;
-    if (sBuffer.size() < bytes) {
-        JKRPcHostAllocScope hostAlloc; // not the game's heaps
-        sBuffer.resize(bytes);
-    }
-    if (tw != sLastW || th != sLastH) {
-        sLastW = tw;
-        sLastH = th;
-        pc::writef(STDERR_FILENO, "[cos] mist target %ux%u for a %ux%u EFB (frame %u)\n", tw, th, efbW, efbH,
-                   pc_frame_count());
-    }
-    *w = tw;
-    *h = th;
-    return sBuffer.data();
-}
-
-// A quad over the current viewport textured with the RGBA8 copy texture named by buf, bilinear,
-// opaque (no blend), colour only or colour and alpha; z off. Leaves the projection orthographic
-// and PNMTX0 the identity.
-static void fullscreenTexture(void* buf, u16 w, u16 h, bool alpha) {
-    GXTexObj texObj;
-    GXInitTexObj(&texObj, buf, w, h, GX_TF_RGBA8, GX_CLAMP, GX_CLAMP, GX_FALSE);
-    GXInitTexObjLOD(&texObj, GX_LINEAR, GX_LINEAR, 0.0f, 0.0f, 0.0f, GX_FALSE, GX_FALSE, GX_ANISO_1);
-    GXLoadTexObj(&texObj, GX_TEXMAP0);
-    GXSetNumChans(0);
-    GXSetNumTexGens(1);
-    GXSetTexCoordGen(GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY);
-    GXSetNumTevStages(1);
-    GXSetNumIndStages(0);
-    GXSetTevDirect(GX_TEVSTAGE0);
-    GXSetTevOrder(GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR_NULL);
-    GXSetTevColorIn(GX_TEVSTAGE0, GX_CC_ZERO, GX_CC_ZERO, GX_CC_ZERO, GX_CC_TEXC);
-    GXSetTevColorOp(GX_TEVSTAGE0, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV);
-    GXSetTevAlphaIn(GX_TEVSTAGE0, GX_CA_ZERO, GX_CA_ZERO, GX_CA_ZERO, GX_CA_TEXA);
-    GXSetTevAlphaOp(GX_TEVSTAGE0, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV);
-    GXSetBlendMode(GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_SET);
-    GXSetColorUpdate(GX_TRUE);
-    GXSetAlphaUpdate(alpha ? GX_TRUE : GX_FALSE);
-    GXSetAlphaCompare(GX_ALWAYS, 0, GX_AOP_OR, GX_ALWAYS, 0);
-    GXSetZMode(GX_FALSE, GX_ALWAYS, GX_FALSE);
-    GXSetFog(GX_FOG_NONE, 0.0f, 1.0f, 0.1f, 1.0f, GXColor{0, 0, 0, 0});
-    GXSetFogRangeAdj(GX_FALSE, 0, nullptr);
-    GXSetCullMode(GX_CULL_NONE);
-    Mtx44 ortho;
-    C_MTXOrtho(ortho, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 10.0f);
-    GXSetProjection(ortho, GX_ORTHOGRAPHIC);
-    Mtx identity;
-    PSMTXIdentity(identity);
-    GXLoadPosMtxImm(identity, GX_PNMTX0);
-    GXSetCurrentMtx(GX_PNMTX0);
-    GXClearVtxDesc();
-    GXSetVtxDesc(GX_VA_POS, GX_DIRECT);
-    GXSetVtxDesc(GX_VA_TEX0, GX_DIRECT);
-    GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_S8, 0);
-    GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_S8, 0);
-    GXBegin(GX_QUADS, GX_VTXFMT0, 4);
-    GXPosition3s8(0, 0, -5);
-    GXTexCoord2s8(0, 0);
-    GXPosition3s8(1, 0, -5);
-    GXTexCoord2s8(1, 0);
-    GXPosition3s8(1, 1, -5);
-    GXTexCoord2s8(1, 1);
-    GXPosition3s8(0, 1, -5);
-    GXTexCoord2s8(0, 1);
-    GXEnd();
-}
-
-namespace {
-int sSkyLowres = -1;
-bool sSkyActive = false;
-unsigned int sSkyW = 0, sSkyH = 0;
-f32 sSkyViewport[6];
-u32 sSkyScissor[4];
-std::vector<unsigned char> sSkyBg, sSkyTarget;
-
-int skyLowres() {
-    if (sSkyLowres < 0) {
-        const char* v = getenv("COS_SKY_LOWRES");
-        sSkyLowres = v == nullptr ? 0 : atoi(v);
-        sSkyLowres = sSkyLowres < 2 ? 0 : sSkyLowres > 4 ? 4 : sSkyLowres;
-        if (sSkyLowres != 0) {
-            pc::writef(STDERR_FILENO, "[cos] COS_SKY_LOWRES=%d: sky drawn at 1/%d resolution\n", sSkyLowres,
-                       sSkyLowres);
-        }
-    }
-    return sSkyLowres;
-}
-} // namespace
-
-int pc_sky_lowres_begin(float vpNear, float vpFar, int hasSky, int copy2dEmpty) {
-    sSkyActive = false;
-    const int div = skyLowres();
-    if (div < 2 || !hasSky || !copy2dEmpty) {
-        return 0;
-    }
-    GXGetViewportv(sSkyViewport);
-    if (sSkyViewport[0] != 0.0f || sSkyViewport[1] != 0.0f || sSkyViewport[2] != 640.0f ||
-        sSkyViewport[3] != 480.0f) {
-        return 0;
-    }
-    GXGetScissor(&sSkyScissor[0], &sSkyScissor[1], &sSkyScissor[2], &sSkyScissor[3]);
-    unsigned int efbW = 0, efbH = 0;
-    pc_efb_pixel_size(640, 480, &efbW, &efbH);
-    sSkyW = (efbW + div - 1) / div;
-    sSkyH = (efbH + div - 1) / div;
-    if (sSkyW < 16 || sSkyH < 16) {
-        return 0;
-    }
-    if (sSkyBg.empty()) {
-        JKRPcHostAllocScope hostAlloc; // not the game's heaps
-        sSkyBg.resize(2560 * 1440 * 4);
-        sSkyTarget.resize(2560 * 1440 * 4);
-    }
-    // The cleared EFB (its clear colour shows where the sky does not cover) as the background.
-    GXSetTexCopySrc(0, 0, 640, 480);
-    GXSetTexCopyDst(640, 480, GX_TF_RGBA8, GX_FALSE);
-    GXCopyTex(sSkyBg.data(), GX_FALSE);
-    GXPixModeSync();
-    GXCreateFrameBuffer(sSkyW, sSkyH);
-    GXSetViewport(0.0f, 0.0f, (f32)sSkyW, (f32)sSkyH, vpNear, vpFar);
-    GXSetScissor(0, 0, sSkyW, sSkyH);
-    fullscreenTexture(sSkyBg.data(), 640, 480, true);
-    // The sky lists set their own projection from the camera (dComIfGd_drawOpaListSky draws with
-    // the projection the painter loaded): the caller reloads it.
-    sSkyActive = true;
-    return 1;
-}
-
-void pc_sky_lowres_end(void) {
-    if (!sSkyActive) {
-        return;
-    }
-    sSkyActive = false;
-    GXSetTexCopySrc(0, 0, sSkyW, sSkyH);
-    GXSetTexCopyDst(sSkyW, sSkyH, GX_TF_RGBA8, GX_FALSE);
-    GXCopyTex(sSkyTarget.data(), GX_FALSE);
-    GXPixModeSync();
-    GXRestoreFrameBuffer();
-    GXSetViewport(sSkyViewport[0], sSkyViewport[1], sSkyViewport[2], sSkyViewport[3], sSkyViewport[4],
-                  sSkyViewport[5]);
-    GXSetScissor(sSkyScissor[0], sSkyScissor[1], sSkyScissor[2], sSkyScissor[3]);
-    // Colour only: the sky wrote no alpha, the EFB keeps its cleared alpha.
-    fullscreenTexture(sSkyTarget.data(), (u16)sSkyW, (u16)sSkyH, false);
-}
-
 int pc_gpu_groups_level = 0;
 
 void pc_gpu_groups_frame_begin(unsigned int frame) {
@@ -360,22 +159,6 @@ void pc_gpu_group_packet(const void* packet) {
     GXInsertDebugMarker(label);
 }
 
-int pc_shadow_offscreen(void) {
-    if (sShadowOffscreen < 0) {
-        sShadowOffscreen = envIs("COS_SHADOW_OFFSCREEN", "1")    ? PC_SHADOW_OFFSCREEN_SAME
-                           : envIs("COS_SHADOW_OFFSCREEN", "gc") ? PC_SHADOW_OFFSCREEN_GC
-                                                                 : PC_SHADOW_OFFSCREEN_OFF;
-        if (sShadowOffscreen == PC_SHADOW_OFFSCREEN_SAME) {
-            pc::writef(STDERR_FILENO, "[cos] COS_SHADOW_OFFSCREEN=1: real-time shadows drawn offscreen\n");
-        } else if (sShadowOffscreen == PC_SHADOW_OFFSCREEN_GC) {
-            pc::writef(STDERR_FILENO,
-                       "[cos] COS_SHADOW_OFFSCREEN=gc: real-time shadows drawn offscreen at the GameCube's "
-                       "256x256 (128x128 textures)\n");
-        }
-    }
-    return sShadowOffscreen;
-}
-
 void pc_efb_pixel_size(unsigned int logicalW, unsigned int logicalH, unsigned int* outW,
                        unsigned int* outH) {
     const auto [logicalFbW, logicalFbH] = aurora::vi::configured_fb_size();
@@ -398,16 +181,6 @@ void pc_efb_pixel_size(unsigned int logicalW, unsigned int logicalH, unsigned in
     *outH = h != 0 ? h : 1;
 }
 
-void pc_shadow_offscreen_opened(unsigned int w, unsigned int h, unsigned int copyW, unsigned int copyH) {
-    static unsigned int sLastW = 0, sLastH = 0;
-    if (w != sLastW || h != sLastH) {
-        sLastW = w;
-        sLastH = h;
-        pc::writef(STDERR_FILENO, "[cos] shadow offscreen target %ux%u, I4 copies %ux%u (frame %u)\n", w, h,
-                   copyW, copyH, pc_frame_count());
-    }
-}
-
 int pc_dof_enabled(void) {
     if (sDof < 0) {
         sDof = envIs("COS_DOF", "0") ? 0 : 1;
@@ -418,32 +191,10 @@ int pc_dof_enabled(void) {
     return sDof;
 }
 
-void pc_shadow_offscreen_set(int mode) {
-    pc_shadow_offscreen(); // read the variable first, so it cannot override this later
-    sShadowOffscreen = mode == PC_SHADOW_OFFSCREEN_SAME || mode == PC_SHADOW_OFFSCREEN_GC ? mode
-                                                                                         : PC_SHADOW_OFFSCREEN_OFF;
-    pc::writef(STDERR_FILENO, "[cos] shadow offscreen: %s (options menu)\n",
-               sShadowOffscreen == PC_SHADOW_OFFSCREEN_SAME ? "1"
-               : sShadowOffscreen == PC_SHADOW_OFFSCREEN_GC ? "gc"
-                                                            : "off");
-}
-
 void pc_dof_set(int enabled) {
     pc_dof_enabled();
     sDof = enabled ? 1 : 0;
     pc::writef(STDERR_FILENO, "[cos] depth of field: %s (options menu)\n", sDof ? "on" : "off");
-}
-
-void pc_mist_lowres_set(int div) {
-    pc_mist_lowres();
-    sMistLowres = div < 2 ? 0 : div > 4 ? 4 : div;
-    pc::writef(STDERR_FILENO, "[cos] mist low-res: %d (options menu)\n", sMistLowres);
-}
-
-void pc_sky_lowres_set(int div) {
-    skyLowres();
-    sSkyLowres = div < 2 ? 0 : div > 4 ? 4 : div;
-    pc::writef(STDERR_FILENO, "[cos] sky low-res: %d (options menu)\n", sSkyLowres);
 }
 
 void pc_gpu_groups_set(int level) {

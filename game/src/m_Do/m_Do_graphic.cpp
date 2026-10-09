@@ -1660,18 +1660,9 @@ bool mDoGph_Painter() {
             PPCSync();
             j3dSys.setViewMtx(camera->view.mViewMtx);
             dKy_setLight();
-#if TARGET_PC
-            // COS_SKY_LOWRES (pc_gpu_opts.h): the sky lists into a smaller target, stretched back
-            // (native/src/pc/game_hooks/pc_gpu_hooks.cpp).
-            const bool pcSkyLowres = pc_gph_sky_lowres_begin(camera, viewport_p);
-#endif
             PC_GPU_GROUP("sky");
             dComIfGd_drawOpaListSky();
             dComIfGd_drawXluListSky();
-#if TARGET_PC
-            if (pcSkyLowres)
-                pc_gph_sky_lowres_end(camera);
-#endif
 
             if (!dMenu_flag() && dPa_control_c::isStatus(0x01))
                 dComIfGp_particle_drawShipTail(&jpaDrawInfo);

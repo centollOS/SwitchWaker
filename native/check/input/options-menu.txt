@@ -29,15 +29,11 @@
 420 - 0 0
 422 RIGHT 0 0
 424 - 0 0
-# down four times to "Profundidad de campo", A turns it off
+# down twice to "Profundidad de campo", A turns it off
 426 DOWN 0 0
 428 - 0 0
 430 DOWN 0 0
 432 - 0 0
-434 DOWN 0 0
-436 - 0 0
-438 DOWN 0 0
-440 - 0 0
 442 A 0 0
 444 - 0 0
 # R: Rendimiento; down to "Contador de FPS", A turns it on

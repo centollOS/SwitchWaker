@@ -350,8 +350,8 @@ which path runs (the rewrite remains only when the context has no `glClipControl
 change with it, so the first run after the update rebuilds them (cold shader
 cache). `COS_SMOKE=shore-foam` with `COS_BOOT_STAGE=sea:44:8` in `[dev]` runs the Mac's
 regression check of the foam on the console (`[cos] shore-foam:` lines; native/README.md).
-The game-side GPU options
-`COS_SHADOW_OFFSCREEN` and `COS_DOF` are in `native/README.md` (`native/include/pc/pc_gpu_opts.h`).
+The game-side GPU option
+`COS_DOF` is in `native/README.md` (`native/include/pc/pc_gpu_opts.h`).
 GL texture and buffer names are deleted only once the GPU has finished the work submitted before
 their Dawn object was destroyed (on by default; `switch/dawn/patches/dawn-switch-gl-deferred-delete.patch`,
 `SwitchDeferredDeleteGL.h`): libnx's `libdrm_nouveau` waits for the GPU when Mesa frees a busy

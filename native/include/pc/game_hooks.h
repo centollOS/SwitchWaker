@@ -13,42 +13,6 @@
 
 #include "helpers/endian.h"
 
-/*
- * A callable handed to a hook, which calls it back: e.g. a lambda that draws with the game
- * function's locals. Holds a reference: the callable must outlive the hook call.
- */
-class PcFnRef {
-public:
-    template <typename F>
-    PcFnRef(F& f) : mCall(&callImpl<F>), mObj(&f) {}
-    void operator()() const { mCall(mObj); }
-
-private:
-    template <typename F>
-    static void callImpl(void* obj) { (*static_cast<F*>(obj))(); }
-    void (*mCall)(void*);
-    void* mObj;
-};
-
-/* ---- GPU options (pc_gpu_opts.h), native/src/pc/game_hooks/pc_gpu_hooks.cpp ---------------- */
-
-class camera_process_class;
-struct view_port_class;
-
-/* drawCloudShadow (d_kankyo_rain.cpp): draws the forest mist sprites, at a reduced resolution
-   with COS_MIST_LOWRES, or as the GameCube does. drawSprites draws them with the current GX
-   state. */
-void pc_kyr_draw_mist(PcFnRef drawSprites);
-
-/* mDoGph_Painter (m_Do_graphic.cpp), around the sky lists: COS_SKY_LOWRES draws them into a
-   smaller target (begin returns whether it did), end stretches the result back. */
-bool pc_gph_sky_lowres_begin(camera_process_class* camera, view_port_class* viewport);
-void pc_gph_sky_lowres_end(camera_process_class* camera);
-
-/* dDlst_shadowControl_c::imageDraw (d_drawlist.cpp), COS_SHADOW_OFFSCREEN: opens the offscreen
-   target the casters are drawn into, in place of the EFB's corner (closed by GXRestoreFrameBuffer). */
-void pc_shadow_image_offscreen_open();
-
 /* ---- Picto box capture (m_Do_graphic.cpp), native/src/pc/game_hooks/pc_capture.cpp ---------- */
 
 /* mDoGph_Painter, capture step 3 (bug B36): whether the GXCopyTex picture is in dest, in RAM, for

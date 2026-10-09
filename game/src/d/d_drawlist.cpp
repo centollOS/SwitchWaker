@@ -1574,45 +1574,18 @@ void dDlst_shadowControl_c::reset() {
 void dDlst_shadowControl_c::imageDraw(Mtx mtx) {
     #include "assets/l_matDL__imageDraw__21dDlst_shadowControl_cFPA4_f.h"
 
-#if TARGET_PC
-    // COS_SHADOW_OFFSCREEN (pc_gpu_opts.h): the casters into an offscreen target instead of the
-    // EFB's corner (native/src/pc/game_hooks/pc_gpu_hooks.cpp).
-    bool offscreen = false;
-    if (pc_shadow_offscreen()) {
-        for (s32 i = 0; i < (s32)ARRAY_SIZE(mReal); i++) {
-            if (mReal[i].isImageDraw()) {
-                offscreen = true;
-                break;
-            }
-        }
-    }
-    if (offscreen)
-        pc_shadow_image_offscreen_open();
-    else
-#endif
-    {
     GXSetViewport(0.0f, 0.0f, 256.0f, 256.0f, 0.0f, 1.0f);
     GXSetScissor(0, 0, 0x100, 0x100);
-    }
     GXCallDisplayList(l_matDL, 0x80);
     GXSetZMode(GX_TRUE, GX_LEQUAL, GX_TRUE);
     GXSetBlendMode(GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR);
     GXSetClipMode(GX_CLIP_DISABLE);
-#if TARGET_PC
-    if (!offscreen)
-#endif
-    {
     GXSetTexCopySrc(0, 0, 256, 256);
     GXSetTexCopyDst(128, 128, GX_TF_I4, GX_TRUE);
-    }
     j3dSys.setDrawModeOpaTexEdge();
     dDlst_shadowReal_c * pReal = &mReal[0];
     for (s32 i = 0; i < (s32)ARRAY_SIZE(mReal); i++, pReal++)
         pReal->imageDraw(mtx);
-#if TARGET_PC
-    if (offscreen)
-        GXRestoreFrameBuffer();
-#endif
     GXSetClipMode(GX_CLIP_ENABLE);
 }
 

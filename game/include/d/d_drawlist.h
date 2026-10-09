@@ -360,10 +360,6 @@ public:
     bool isNoUse() { return mState == 0; }
     bool isUse() { return mState != 0; }
     bool checkKey(u32 i_key) { return mKey == i_key; }
-#if TARGET_PC
-    // imageDraw draws this frame (COS_SHADOW_OFFSCREEN opens its target only when one does).
-    bool isImageDraw() { return mState == 1; }
-#endif
 
     static const int MODEL_MAX = 0x1A;
 

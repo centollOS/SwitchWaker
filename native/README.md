@@ -436,7 +436,6 @@ COS_DISC=/nonexistent build/native-mac/switchwaker; echo $?   # 14
 | `COS_ASPECT` | `4:3` (default on the Mac), `16:9` (default on the Switch) or `16:10`: the widescreen option, the community 16:9 Gecko code done in C (wider view and culling, HUD at the screen edges) with Aurora presenting the picture at that aspect ([docs/WIDESCREEN.md](../docs/WIDESCREEN.md)) |
 | `COS_FB_SCALE` | the internal resolution: Aurora's frame-buffer scale (`VISetFrameBufferScale`) of the 640x480 EFB, widened to the window's aspect; at 16:9 `1.5` = 1280x720, `1.125` = 960x540, `1.0` = 854x480 (EFB copies scale with it; the present pass resamples to the window; `COS_SHOT` images are at this size). Unset or `0`: the window's own size (the Mac's default); the Switch sets `1.5` handheld, `2.25` docked ([docs/SWITCH_BUILD.md](../docs/SWITCH_BUILD.md)) |
 | `COS_HD_TEXTURES` | `1`: replace the game's textures from a Dolphin-format HD pack (off by default). `COS_HD_PACK` names the pack: a directory converted by `scripts/hd/build_hd_pack.sh` (`index.bin` + `dataNN.bin`) or a Dolphin texture folder of loose `tex1_*.dds`; default `<user>/hd_textures`. Also `COS_HD_BUDGET_MB`, `COS_HD_PUBLISH_MB`, `COS_HD_WORKERS`, `COS_HD_STATS_EVERY`, `COS_HD_CENSUS`, `COS_HD_TOGGLE_FRAMES` ([docs/HD_TEXTURES.md](../docs/HD_TEXTURES.md)) |
-| `COS_SHADOW_OFFSCREEN` | GPU A/B option (docs/SWITCH_PERF_STUDY.md, option a1; `native/include/pc/pc_gpu_opts.h`), default off: `1` draws the real-time shadow casters into an offscreen target (`GXCreateFrameBuffer`) of the size their 256x256 EFB corner has at the internal resolution, so the main EFB pass is not split per shadow; the I4 shadow textures are pixel-identical. `gc`: the GameCube's 256x256 target and 128x128 textures at any resolution (softer, cheaper shadows; for measurement) |
 | `COS_DOF` | GPU A/B option (`pc_gpu_opts.h`), default on: `0` skips `drawDepth`'s depth of field (m_Do_graphic.cpp, every play frame: a Z16 and a half-size colour EFB copy, their conversion passes and a full-screen composite) unless the monotone effect or the motion blur needs it; the letterbox bars stay. Far scenery is no longer softened. For measurement |
 
 Performance instrumentation (step 6.7, `pc_frame.cpp`). `COS_PERF=<file>` writes, per game frame,
@@ -485,8 +484,7 @@ opened with **F1** or **L+R+Z** (a GameCube-style pad; a `COS_INPUT` script only
 (D-pad/stick, A change, B back, L/R tab), keyboard (arrows, Enter, Esc, Q/E) or mouse. While it is
 open the PLAY scene is paused (hit-stop pause timer) and the game gets no pad input.
 
-- Each row is an existing variable (`COS_FB_SCALE`, `COS_DYNRES`, `COS_MIST_LOWRES`,
-  `COS_SKY_LOWRES`, `COS_DOF`, `COS_SHADOW_OFFSCREEN`, `COS_ASPECT`, `COS_HD_TEXTURES`,
+- Each row is an existing variable (`COS_FB_SCALE`, `COS_DYNRES`, `COS_DOF`, `COS_ASPECT`, `COS_HD_TEXTURES`,
   `COS_SWITCH_GPU_PROFILE`, `COS_FPS_OVERLAY`, `COS_PRECOMPILE`, `COS_PRECOMPILE_SCREEN`,
   `COS_PERF_EVERY`, `COS_GPU_GROUPS`) or a new one: `COS_FPS_OVERLAY_DETAIL=full|compact`,
   `COS_PERF_LOG=0|1` (hide/show the perf and perf-switch lines). `COS_ASPECT`, `COS_PRECOMPILE` and
@@ -498,14 +496,13 @@ open the PLAY scene is paused (hit-stop pause timer) and the game gets no pad in
   without the menu), reload the settings file; and the rows for developers: the perf log interval
   and lines (`COS_PERF_EVERY`, `COS_PERF_LOG`), the hitch lines (`COS_HITCH_MS`), the HD texture
   stats lines (`COS_HD_STATS_EVERY`), the GPU timers per group (`COS_GPU_GROUPS`), the USB live log
-  (`COS_USB_LOG`, Switch), the debug server (`COS_DEBUG_SERVER`, Switch, at the next start) and the
-  real-time shadow A/B test (`COS_SHADOW_OFFSCREEN`).
+  (`COS_USB_LOG`, Switch), and the debug server (`COS_DEBUG_SERVER`, Switch, at the
+  next start).
   Gráficos and Rendimiento keep the options meant for players.
 - Values are saved to `user/settings.ini` next to the executable (Switch:
   `/switch/switchwaker/native/user/settings.ini`; `COS_SETTINGS=<path>` names another file,
   and `run.sh` gives every run its own `<run dir>/settings.ini`). Lines `NAME=value`, or
-  `NAME@handheld=` / `NAME@docked=` for the per-mode rows (internal and dynamic resolution, mist,
-  sky): the Switch applies the other mode's values when docked or undocked; the Mac is handheld
+  `NAME@handheld=` / `NAME@docked=` for the per-mode rows (internal and dynamic resolution): the Switch applies the other mode's values when docked or undocked; the Mac is handheld
   unless `COS_OPERATION_MODE=docked`. The file may end with a `[dev]` section: `NAME=value` lines of
   developer variables without a menu row, set in the environment at start; the menu writes it back
   unchanged and ignores a menu setting there
