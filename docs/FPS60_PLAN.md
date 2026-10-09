@@ -285,3 +285,17 @@ on and off are byte-identical (Outset frames 450/600, Tower of the Gods 750); th
 unchanged). A ThreadSanitizer build of the whole game links (`-Wl,-no_compact_unwind`) but aborts
 at start-up in the TSan allocator (a string freed across the CLT clang / system libc++ boundary in
 `PADInit`), so the races above are reasoned, not tool-checked. Not yet measured on the console.
+
+## Step A on the console (2026-10-09, handheld, CPU 1020 MHz, `COS_FPS60_TEST=1`)
+
+| Spot | presents/s | game thread ms per game frame | paint B ms | GPU ms |
+|---|---|---|---|---|
+| Outset `sea:44` | 59.9 | 23.1 | 5.4 | 11.4 |
+| Forbidden Woods `kindan:0` | 59.9 | 20.3 | 5.0 | 12.4 |
+| Dragon Roost `sea:13` | 59.9 | 25.9 | 6.4 | 13.2 |
+| Tower of the Gods `Siren:0` | 59.9 | 22.2 | 4.4 | 14.4 |
+
+Before the async end of frame (383300a) the game thread waited for Aurora's GX worker at each present
+(~5-6 ms at the split, ~9 ms at the end: 47-56 presents/s outside the forest); now the split costs
+0.2 ms and the wait is `GXDrawDone` in the draw pass (2.6-4.1 ms), the game's own GPU sync. Margin
+7-13 ms per game frame at the stock clock. Next: step B (camera).
