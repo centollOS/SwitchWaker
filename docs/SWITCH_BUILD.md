@@ -173,8 +173,8 @@ without a menu row, one `NAME=value` per line, set in the environment at start
 ([switch/native/settings-dev.example.ini](../switch/native/settings-dev.example.ini); edit it on the
 SD card or with the debug server's `get`/`put`). Without the file: `COS_DISC=/switch/switchwaker/GZLE01.iso`,
 `COS_RUN_DIR=/switch/switchwaker/native`, `COS_STALL_S=90`, `COS_ASPECT=16:9` (the widescreen option
-on the 1280x720 screen; 4:3 gives the GameCube picture, pillarboxed) and `COS_FB_SCALE=1.5` (the
-internal resolution, see below). The defaults are for players: no frame-rate panel, no perf, hitch
+on the 1280x720 screen; 4:3 gives the GameCube picture, pillarboxed) and `COS_FB_SCALE` 1.5 handheld,
+2.25 docked (the internal resolution, 1280x720 and 1920x1080, see below). The defaults are for players: no frame-rate panel, no perf, hitch
 or HD texture stats lines in the log, no debug server, no USB log. For a measuring run set
 Depuración > perf interval 60 and hitch lines over 50 ms, and Rendimiento > FPS counter on (the
 lines below assume them; `scripts/switch/perf_scenes.py centollos.log` summarises such a log per scene

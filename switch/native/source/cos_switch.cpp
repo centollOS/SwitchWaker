@@ -61,6 +61,8 @@
 
 extern "C" void pc_settings_load_early(void); // native/src/pc/features/pc_settings.cpp
 extern "C" int pc_settings_migrate_env_file(const char* envPath, const char* oldPath);
+// mode: PcOperationMode (pc_settings.h), 0 handheld, 1 docked
+extern "C" void pc_settings_set_mode_default(const char* key, int mode, const char* value);
 
 namespace {
 
@@ -703,8 +705,13 @@ void cos_switch_start(int argc, char** argv) {
     setDefault("COS_RUN_DIR", COS_SWITCH_ROOT);
     setDefault("COS_STALL_S", "90");
     setDefault("COS_ASPECT", "16:9");
-    // The internal resolution: 1280x720, the screen's (COS_FB_SCALE=1.125 960x540, 1.0 854x480).
-    setDefault("COS_FB_SCALE", "1.5");
+    // The internal resolution: handheld 1280x720, the screen's (COS_FB_SCALE=1.125 960x540, 1.0
+    // 854x480); docked 1920x1080 (2.25), the TV's: the deko3d NRO presents into a 1920x1080 window
+    // there, and its GPU needs ~9 ms a frame at 1.5 docked. Per mode for the options menu (a mode
+    // change applies the other one), the start mode's into the environment.
+    pc_settings_set_mode_default("COS_FB_SCALE", 0, "1.5");
+    pc_settings_set_mode_default("COS_FB_SCALE", 1, "2.25");
+    setDefault("COS_FB_SCALE", cos_switch_docked() ? "2.25" : "1.5");
     applyGpuProfile();
     char mode[160];
     cos_switch_describe_mode(mode, sizeof(mode));
