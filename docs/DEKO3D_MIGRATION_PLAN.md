@@ -12,8 +12,8 @@ writing this; "estimated" means a projection.
 
 v0.2.0 is out with the deko3d NRO (phase 6 done; picto box, disc error applet and the old
 `switchwaker_dk/` folder checked/removed). **Phase 4 in progress** (section "Phase 4 progress"):
-three commits built but not yet run on the console (dynamic resolution fed by the deko3d timestamps,
-1920x1080 window docked, GPU groups). Next: run them on the console, then the rest of the phase 4 list.
+dynamic resolution fed by the deko3d timestamps, 1920x1080 window docked and GPU groups, all checked on
+the console. Next: the rest of the phase 4 list (A/B per option, HD pack census, 2 x 30 minutes).
 
 ## Earlier state (end of 2026-10-08, evening)
 
@@ -843,7 +843,14 @@ deko3d path already; the `perf-switch` and hitch lines read the deko3d counters
 - `COS_GPU_GROUPS` had no deko3d implementation: timestamp segments per marker/pass label,
   `aurora_switch_dk_gpu_groups` (c69502b).
 
-Console checks to do: `COS_DYNRES=1` in a heavy spot (level changes in the log), dock/undock
+Console results (2026-10-09, handheld title + Forbidden Woods, NRO fa5878f0): the `gpu groups` line
+fills (title: sky 4-6 ms, opa_bg, conversions, dof); dynres auto moved 2.250 -> 1.250 on the deko3d
+timer (forced with `COS_FB_SCALE@handheld=2.25`, `COS_DYNRES_HIGH=12`; at the normal 30 ms threshold
+2.25 handheld only needs ~17 ms GPU); dock: window 1280x720 -> 1920x1080 in 45.5 ms, undock back in
+38.0 ms, 30 fps on both sides, docked GPU 9.3 ms (present 1.86 ms for the 720p EFB scaled to 1080p);
+the window of the dock itself had 26.4 presents/s (the system's own mode switch plus the GPU idle wait).
+
+Remaining console checks: `COS_DYNRES=1` in a heavy spot (level changes in the log), dock/undock
 (`[dk] frame N: window ... swapchain recreated`, picture and menu fill the TV), the `gpu groups`
 line with groups 1 and 2, then the A/B per option and the HD pack census, 2 x 30 minutes of play.
 
