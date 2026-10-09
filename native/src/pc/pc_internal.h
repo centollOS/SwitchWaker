@@ -92,6 +92,16 @@ void dumpAllThreads(int fd);
 // pc_disc.cpp: 0 if COS_DISC is a readable GZLE01 revision 0 image, else prints why and returns
 // PC_EXIT_DISC.
 int checkDisc();
+// pc_disc.cpp: a disc problem: logged as "[cos] DISC: ...", kept for exitDisc
+void discMessage(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
+// pc_disc.cpp: shows the last discMessage to the player (the Switch's error applet, with what the card
+// must hold) and exits PC_EXIT_DISC
+[[noreturn]] void exitDisc();
+
+// pc_assets.cpp (docs/RUNTIME_ASSETS.md): with COS_RUNTIME_ASSETS, reads the game's data arrays from
+// the disc and fills them (pc_main.cpp, after aurora_dvd_open, before OSInit); exits PC_EXIT_DISC if
+// the disc's main.dol or RELs are not GZLE01 revision 0's. COS_SMOKE=assets dumps them and exits.
+void loadAssets();
 
 // pc_smoke.cpp: runs COS_SMOKE if it is a test that runs before the SDK (it never returns then);
 // exits PC_EXIT_USAGE for an unknown name; returns for no COS_SMOKE.

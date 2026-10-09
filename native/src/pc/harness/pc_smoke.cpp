@@ -314,6 +314,8 @@ const Smoke kSmokes[] = {
     {"stall-test", kEarly},
     {"timeout-test", kEarly},
     {"disc-ls", kAfterDisc},
+    // run by pc_assets.cpp's loader itself (COS_RUNTIME_ASSETS builds), which exits before the game
+    {"assets", kInGame},
     {"heap", kAfterAurora},
     {"font", kAfterHeaps},
     {"arc-sweep", kAfterHeaps},

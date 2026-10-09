@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copy the native port's NRO and its inputs to the console over USB (MTP) and pull back its logs.
 #
-#   scripts/switch/push.sh [--build] [--no-pipeline-cache] [native|deko3d|FILE.nro]...   (default: native)
+#   scripts/switch/push.sh [--build] [--no-pipeline-cache] [native|gl|FILE.nro]...   (default: native)
 #   scripts/switch/push.sh --disc DISC.iso
 #   scripts/switch/push.sh --pipeline-cache [FILE.db]
 #
@@ -11,11 +11,11 @@
 # session logs come from scripts/switch/switchwaker_debug.py lastlog.) --disc copies
 # the player's disc image as GZLE01.iso (all the native port reads; skipped if
 # already on the console with the same size). `native` is the native port's NRO
-# (scripts/switch/build_native.sh), switchwaker.nro; `deko3d` the deko3d NRO
-# (build_native.sh --renderer deko3d), switchwaker_dk.nro, which goes to sdmc:/switch/switchwaker_dk/
-# with its own initial_pipeline_cache.db and initial_dksh_cache.bin (the DKSH cache built next to it;
-# it reads the disc and native/ of sdmc:/switch/switchwaker/, and logs to
-# native/logs/switchwaker_dk_<date>_<time>.log).
+# (scripts/switch/build_native.sh, the deko3d renderer), switchwaker.nro, with its
+# initial_pipeline_cache.db and initial_dksh_cache.bin (the DKSH cache built next to it); `gl` the
+# OpenGL ES NRO (build_native.sh --renderer gl), switchwaker_gl.nro, which goes to
+# sdmc:/switch/switchwaker_gl/ with its own initial_pipeline_cache.db (it reads the disc and native/ of
+# sdmc:/switch/switchwaker/, and logs to native/logs/switchwaker_gl_<date>_<time>.log).
 # (Run options live in native/user/settings.ini, written by the in-game options menu; developer
 # variables go in its [dev] section: switch/native/settings-dev.example.ini.) --pipeline-cache copies the
 # bundled pipeline cache (default native/data/initial_pipeline_cache.db, the committed one that
@@ -101,9 +101,10 @@ done
 for target in "$@"; do
     dest=$remote_dir dksh=''
     case $target in
-        native) script=build_native.sh build_args=() nro=build/switch-native/switchwaker.nro ;;
-        deko3d) script=build_native.sh build_args=(--renderer deko3d) nro=build/switch-native-dk/switchwaker_dk.nro
-                dest=switch/switchwaker_dk dksh=build/switch-native-dk/initial_dksh_cache.bin ;;
+        native) script=build_native.sh build_args=() nro=build/switch-native/switchwaker.nro
+                dksh=build/switch-native/initial_dksh_cache.bin ;;
+        gl) script=build_native.sh build_args=(--renderer gl) nro=build/switch-native-gl/switchwaker_gl.nro
+            dest=switch/switchwaker_gl ;;
         *.nro) script='' build_args=() nro=$target ;;
         *) echo "push: unknown target $target" >&2; exit 2 ;;
     esac

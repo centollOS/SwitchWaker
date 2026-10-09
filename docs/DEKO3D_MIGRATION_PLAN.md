@@ -17,11 +17,21 @@ server (`scripts/switch/switchwaker_debug.py`: `deploy`, `warp N` then `press A`
 `shot`, `lastlog`); the deko3d NRO is deployed as `sdmc:/switch/switchwaker/switchwaker.nro` (the
 forwarder loads that path), its caches in `sdmc:/switch/switchwaker_dk/`.
 
+**Phase 6 done (2026-10-09, local commits for review):** `switchwaker.nro` is the deko3d build in
+`sdmc:/switch/switchwaker/` with its `initial_dksh_cache.bin` ("SwitchWaker" in the Homebrew Menu, what the
+HOME forwarder starts); the GL NRO is `switchwaker_gl.nro` in `sdmc:/switch/switchwaker_gl/` ("SwitchWaker
+(GL)", `build_native.sh --renderer gl`, which alone needs Mesa) for two releases. Build trees:
+`build/switch-native` (deko3d) and `build/switch-native-gl`. `push.sh native|gl`, `make_sd.sh [--gl]`,
+`switchwaker_debug.py deploy` (now also the caches next to the NRO), SWITCH_BUILD.md, README, INSTALL.md,
+THIRD_PARTY.md updated. Runtime assets (docs/RUNTIME_ASSETS.md) make both NROs buildable without a disc.
+
 Correctness rows of the checkpoint: shore foam checked by the user on the console (2026-10-09); picto
 box: 39 photos in one session after the thread-reaping fix (955e16a: the crash after many photos was
 leaked detached threads, renderer-independent). Still open before phase 6: 30 minutes of play, then phases 4 (parity: HD textures, dynamic resolution, docked, captures) and 5.
 Upstream reports: devkitPro/deko3d#29 (alpha destination factor, worked around here), devkitPro/uam#7
-(our uam patch 8) and #8 (patch 6); the workaround and the patches can go when they are merged.
+(our uam patch 8) and #8 (patch 6) were closed unmerged by the maintainer on 2026-10-08 ("LLM-generated
+content removed"): devkitPro does not take LLM-written contributions, so the workaround and the uam patches
+stay here for good (a fix there would have to come from a person writing it themselves).
 
 ## 0. Summary
 

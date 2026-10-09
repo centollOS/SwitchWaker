@@ -237,9 +237,8 @@ void pc_harness_init(int argc, char* argv[]) {
     // Smoke tests that run before any SDK call (static-init, the harness self-tests) end here.
     runEarlySmoke();
 
-    int disc = checkDisc();
-    if (disc != 0) {
-        pc_exit(disc);
+    if (checkDisc() != 0) {
+        exitDisc(); // the message on screen on the Switch, then PC_EXIT_DISC
     }
 
     // Smoke tests that need the disc but not the game (disc-ls) end here.

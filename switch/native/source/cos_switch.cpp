@@ -5,7 +5,7 @@
 //   - the live USB log (switch/source/common/usb_log.c; scripts/switch/usb_log.py on the computer),
 //     only with COS_USB_LOG=1 (off by default: it holds the USB port for the whole run);
 //   - a session log on the SD card, COS_SWITCH_ROOT/logs/switchwaker_<date>_<time>.log (the console clock at
-//     start; the deko3d NRO's are switchwaker_dk_<date>_<time>.log, COS_SWITCH_NRO_NAME), as SwitchWakerHD's:
+//     start; the GL NRO's are switchwaker_gl_<date>_<time>.log, COS_SWITCH_NRO_NAME), as SwitchWakerHD's:
 //     the newest file in logs/ is always the current session, and logs/ keeps the
 //     kMaxSessionLogs most recent sessions (the oldest are deleted, so the logs cannot fill the SD card).
 //     The switchwaker.log / switchwaker.prev.log of earlier builds move into logs/. Written by a thread of
@@ -705,6 +705,19 @@ void cos_switch_flush_logs(void) {
             fwrite(line, 1, (size_t)n, gLogFile);
             fflush(gLogFile);
         }
+    }
+}
+
+void cos_switch_show_error(const char* text) {
+    if (appletGetAppletType() != AppletType_Application) {
+        sayf("[switch] error message not shown (needs title mode): %s\n", text);
+        return;
+    }
+    ErrorApplicationConfig c;
+    // the short dialog and the details page show the same text
+    if (R_SUCCEEDED(errorApplicationCreate(&c, text, text))) {
+        const Result rc = errorApplicationShow(&c);
+        sayf("[switch] error message shown (rc 0x%x)\n", rc);
     }
 }
 

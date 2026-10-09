@@ -7,8 +7,9 @@ log says '[switch] debug server listening on <ip>:6543'. The console's address: 
   switchwaker_debug.py info                      build, frame, stage, memory, address
   switchwaker_debug.py log [--all] [--save F] [--grep RE] [--seconds N]
                                                  the log as it is written (Ctrl-C ends it)
-  switchwaker_debug.py deploy [NRO] [--no-reload]
-                                                 upload the NRO (default build/switch-native/switchwaker.nro),
+  switchwaker_debug.py deploy [NRO] [--no-reload] [--nro-only]
+                                                 upload the NRO (default build/switch-native/switchwaker.nro)
+                                                 and the caches built next to it,
                                                  check it, restart
   switchwaker_debug.py shot [OUT.png] [--game]   screenshot of the next frame
   switchwaker_debug.py press A [B ...] [ms]      also hold, release, stick L|R x y [ms]
@@ -42,7 +43,7 @@ DEFAULT_NRO = REPO / "build" / "switch-native" / "switchwaker.nro"
 BUILD_HINT = "scripts/switch/build_native.sh"
 REMOTE_NRO = "switchwaker.nro"          # relative to the server's root, sdmc:/switch/switchwaker
 REMOTE_LOGS = "native/logs"
-SESSION_LOG = r"switchwaker(?:_dk)?_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d\.log"
+SESSION_LOG = r"switchwaker(?:_gl|_dk)?_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d\.log"
 
 
 class ServerError(Exception):
@@ -227,6 +228,11 @@ def cmd_deploy(args):
     c = connect(args)
     try:
         put_file(c, nro, args.remote)
+        # the bundled caches built next to the NRO (deko3d's DKSH file changes with every build)
+        remote_dir = args.remote.rpartition("/")[0]
+        for extra in ([] if args.nro_only else ["initial_pipeline_cache.db", "initial_dksh_cache.bin"]):
+            if (nro.parent / extra).exists():
+                put_file(c, nro.parent / extra, f"{remote_dir}/{extra}" if remote_dir else extra)
         if args.no_reload:
             return
         print(c.command("reload", timeout=10.0).decode())
@@ -332,6 +338,8 @@ def main():
     sp.add_argument("nro", nargs="?")
     sp.add_argument("--remote", default=REMOTE_NRO, help=f"where on the SD card (default {REMOTE_NRO})")
     sp.add_argument("--no-reload", action="store_true")
+    sp.add_argument("--nro-only", action="store_true",
+                    help="only the NRO, not the initial_pipeline_cache.db / initial_dksh_cache.bin next to it")
     sp = sub.add_parser("shot")
     sp.add_argument("out", nargs="?")
     sp.add_argument("--game", action="store_true", help="the game's picture alone (no bars, counter or menu)")

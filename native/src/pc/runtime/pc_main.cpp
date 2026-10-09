@@ -273,20 +273,21 @@ void pc_aurora_init(int argc, char* argv[]) {
 
     // Before DVDInit (Aurora's rule); pc_harness_init already checked COS_DISC is set and readable.
     if (!aurora_dvd_open(gConfig.disc)) {
-        writef(STDERR_FILENO, "[cos] DISC: aurora_dvd_open(%s) failed\n", gConfig.disc);
-        pc_exit(PC_EXIT_DISC);
+        discMessage("%s cannot be opened as a disc image (aurora_dvd_open)", gConfig.disc);
+        exitDisc();
     }
     const DVDDiskID* id = DVDGetCurrentDiskID();
     if (id == nullptr || memcmp(id->gameName, "GZLE", 4) != 0 || memcmp(id->company, "01", 2) != 0 ||
         id->gameVersion != 0) {
-        writef(STDERR_FILENO, "[cos] DISC: DVDGetCurrentDiskID is %.4s%.2s version %u; the supported "
-                              "disc is GZLE01 version 0\n",
-               id != nullptr ? id->gameName : "????", id != nullptr ? id->company : "??",
-               id != nullptr ? (unsigned int)id->gameVersion : 0u);
-        pc_exit(PC_EXIT_DISC);
+        discMessage("the disc is %.4s%.2s version %u (DVDGetCurrentDiskID); the supported disc is GZLE01 version 0",
+                    id != nullptr ? id->gameName : "????", id != nullptr ? id->company : "??",
+                    id != nullptr ? (unsigned int)id->gameVersion : 0u);
+        exitDisc();
     }
     writef(STDERR_FILENO, "[cos] dvd: %.4s%.2s version %u disc %u\n", id->gameName, id->company,
            (unsigned int)id->gameVersion, (unsigned int)id->diskNumber);
+    // COS_RUNTIME_ASSETS: the game's data arrays from main.dol and the RELs, before any game code.
+    loadAssets();
 
     // On the GameCube __start ran OSInit before main; here MEM1 (mem1Size) must be configured first.
     OSInit();
