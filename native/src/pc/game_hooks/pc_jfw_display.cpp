@@ -28,13 +28,15 @@ void pc_wait_for_tick(u32 p1, u16 p2) {
         retraces = (p2 == 0) ? 1 : p2;
         periodNs = retraces * PC_RETRACE_PERIOD_NS;
     }
-    // COS_FPS60_TEST (pc_frame_extra): a game frame of two retraces is painted twice, each paint
+    // COS_FPS60_TEST (pc_frame_split): a game frame of two retraces is painted twice, each paint
     // waiting one retrace, so the game still runs at its speed.
-    const int halve = pc_fps60_test() && retraces == 2;
-    pc_frame_halved_wait(halve);
-    if (halve) {
-        retraces = 1;
-        periodNs = PC_RETRACE_PERIOD_NS;
+    const u32 waitRetraces = pc_frame_wait_retraces(retraces);
+    if (waitRetraces == 0) {
+        return; // COS_PAINT_PURITY_REPEAT's extra paint: no wait
+    }
+    if (waitRetraces != retraces) {
+        retraces = waitRetraces;
+        periodNs = retraces * PC_RETRACE_PERIOD_NS;
     }
     pc_frame_pace(periodNs);
     while ((s32)(VIGetRetraceCount() - nextCount) < 0) {

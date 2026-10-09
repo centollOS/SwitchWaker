@@ -28,6 +28,11 @@ float cM_rndF(float max);
 float cM_rndFX(float max);
 
 void cM_initRnd2(int, int, int);
+#if TARGET_PC
+// The seeds of cM_rnd (3 values), saved and restored around COS_FPS60_TEST's paint B.
+void cM_pcGetRnd(s32* seeds);
+void cM_pcSetRnd(const s32* seeds);
+#endif
 float cM_rnd2(void);
 float cM_rndF2(float);
 float cM_rndFX2(float);

@@ -31,6 +31,9 @@
 // the same spin); no frame-usage statistics, interpolation, turbo mode or settings; a refused
 // aurora_begin_frame waits and retries instead of skipping the game frame.
 #include "pc_internal.h"
+#include "pc/game_hooks.h"
+#include "SSystem/SComponent/c_API_graphic.h"
+#include "SSystem/SComponent/c_math.h"
 #include "pc/pc_gpu_opts.h"
 #include "pc/pc_dynres.h"
 #include "pc/pc_hd_textures.h"
@@ -214,6 +217,12 @@ struct PerfPhase {
     uint64_t ns = 0;
 };
 PerfPhase sPhase[PC_PERF_PHASES];
+// COS_FPS60_TEST (pc_frame_split): paint A's wait was halved (the frame splits), paint B is running,
+// and the splits so far (presents = game frames + splits).
+bool sHalvedWait = false;
+bool sPaintExtra = false;
+bool sPaintRepeat = false; // COS_PAINT_PURITY_REPEAT: paint B's second run (no wait)
+uint64_t sSplits = 0;
 
 // The game thread's CPU time in ns, or UINT64_MAX where the clock is missing.
 uint64_t threadCpuNs() {
@@ -230,6 +239,7 @@ uint64_t threadCpuNs() {
 struct PerfFrame {
     uint64_t wallNs, busyNs, cpuNs, waitNs, beginNs, cpdNs, audNs, logicNs, painterNs, endFrameNs,
         otherNs;
+    uint64_t painter2Ns, splitNs; // COS_FPS60_TEST: paint B and paint A's present (not in the CSV)
     uint64_t eventsNs; // the pumpEvents part of beginNs (not in the CSV)
     bool cpuValid;
 };
@@ -438,6 +448,9 @@ struct PerfWindow {
     uint64_t audNs = 0;
     uint64_t logicNs = 0;
     uint64_t painterNs = 0;
+    uint64_t painter2Ns = 0;
+    uint64_t splitNs = 0;
+    uint64_t startSplits = 0;
     uint64_t cpuNs = 0;
     bool cpuValid = true;
 } sPerf;
@@ -747,8 +760,11 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
     f.cpdNs = sPhase[PC_PERF_CPD_READ].ns;
     f.audNs = sPhase[PC_PERF_AUD_EXECUTE].ns;
     f.painterNs = sPhase[PC_PERF_PAINTER].ns;
+    f.painter2Ns = sPhase[PC_PERF_PAINTER2].ns;
+    f.splitNs = sPhase[PC_PERF_SPLIT].ns;
     const uint64_t gameNs = sPhase[PC_PERF_GAME].ns;
-    f.logicNs = gameNs > f.painterNs ? gameNs - f.painterNs : 0;
+    const uint64_t paintNs = f.painterNs + f.painter2Ns + f.splitNs;
+    f.logicNs = gameNs > paintNs ? gameNs - paintNs : 0;
     f.endFrameNs = now - endFrameStartNs;
     const uint64_t known = f.beginNs + f.cpdNs + f.audNs + gameNs + f.endFrameNs;
     f.otherNs = f.busyNs > known ? f.busyNs - known : 0;
@@ -778,6 +794,7 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
         sPerf.started = true;
         sPerf.startNs = sLoopStartNs;
         sPerf.startRetrace = sLoopStartRetrace;
+        sPerf.startSplits = 0;
     }
     sPerf.frames++;
     sPerf.busyNs += f.busyNs;
@@ -789,6 +806,8 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
     sPerf.audNs += f.audNs;
     sPerf.logicNs += f.logicNs;
     sPerf.painterNs += f.painterNs;
+    sPerf.painter2Ns += f.painter2Ns;
+    sPerf.splitNs += f.splitNs;
     sPerf.cpuNs += f.cpuNs;
     sPerf.cpuValid = sPerf.cpuValid && f.cpuValid;
     if (sPerf.frames < gConfig.perfEvery) {
@@ -800,19 +819,27 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
     if (sPerf.cpuValid) {
         snprintf(cpu, sizeof(cpu), "%.2f ms avg", sPerf.cpuNs / n / 1e6);
     }
+    char fps60[160] = "";
+    if (pc_fps60_test()) {
+        // COS_FPS60_TEST: paint B and paint A's present (aurora_end_frame/begin_frame) per game frame.
+        snprintf(fps60, sizeof(fps60), "; fps60: painter2 %.2f, split %.2f, %.1f presents/s",
+                 sPerf.painter2Ns / n / 1e6, sPerf.splitNs / n / 1e6,
+                 wallS > 0 ? (n + (double)(sSplits - sPerf.startSplits)) / wallS : 0.0);
+    }
     if (gConfig.perfLog) {
     writef(STDERR_FILENO, "[cos] perf frames %u-%u: game thread %.2f ms avg, %.2f ms max (begin %.2f, "
                           "aurora_end_frame %.2f); pace wait %.2f ms avg; %.1f fps, %.1f retraces/s "
                           "(60 = full speed); cpd_read %.2f, aud_execute %.2f, logic %.2f, painter "
-                          "%.2f; cpu %s\n",
+                          "%.2f; cpu %s%s\n",
            last - sPerf.frames + 1, last, sPerf.busyNs / n / 1e6, sPerf.maxBusyNs / 1e6,
            sPerf.beginNs / n / 1e6, sPerf.endFrameNs / n / 1e6, sPerf.waitNs / n / 1e6,
            wallS > 0 ? n / wallS : 0.0, wallS > 0 ? (retrace - sPerf.startRetrace) / wallS : 0.0,
            sPerf.cpdNs / n / 1e6, sPerf.audNs / n / 1e6, sPerf.logicNs / n / 1e6,
-           sPerf.painterNs / n / 1e6, cpu);
+           sPerf.painterNs / n / 1e6, cpu, fps60);
     }
     sPerf = PerfWindow{};
     sPerf.started = true;
+    sPerf.startSplits = sSplits;
     sPerf.startNs = now;
     sPerf.startRetrace = retrace;
 }
@@ -981,28 +1008,37 @@ int pc_fps60_test(void) {
         const int o = v != nullptr && v[0] == '1';
         if (o) {
             writef(STDERR_FILENO, "[cos] COS_FPS60_TEST=1: every game frame of two retraces is presented "
-                                  "twice (the same scene painted again), each paint waiting one retrace\n");
+                                  "twice: paint A at once, paint B (the new draw lists painted again, no "
+                                  "draw pass) at the end; each paint waits one retrace\n");
         }
         return o;
     }();
     return on;
 }
 
-static int sHalvedWait = 0;
+unsigned int pc_frame_wait_retraces(unsigned int retraces) {
+    if (sPaintExtra) {
+        // paint B: the split frame's second retrace (none for COS_PAINT_PURITY_REPEAT's second run)
+        return sPaintRepeat ? 0 : 1;
+    }
+    // Paint A's wait. The options menu pauses the game: no second paint while it is open.
+    sHalvedWait = pc_fps60_test() && retraces == 2 && !menuOpen();
+    return sHalvedWait ? 1 : retraces;
+}
 
-void pc_frame_halved_wait(int halved) { sHalvedWait = halved; }
-
-int pc_frame_extra(void) {
-    // only for the game's 30 fps frames (two retraces, the last wait halved)
-    if (!pc_fps60_test() || !sHalvedWait) {
+int pc_frame_split(void) {
+    if (!sHalvedWait) {
         return 0;
     }
+    sHalvedWait = false;
+    pc_perf_begin(PC_PERF_SPLIT);
     {
         JKRPcHostAllocScope hostAlloc;
-        if (gConfig.fpsOverlay) {
-            overlayFrame(0);
-        }
+        // The FPS overlay in paint A's frame too (it counts presents), so it does not flicker.
+        overlayFrame(0, false);
         aurora_end_frame();
+        // A picto box copy asked for by paint A is read back after its frame (pc_capture.cpp).
+        captureFrameEnd();
     }
     for (;;) {
         bool begun;
@@ -1015,7 +1051,38 @@ int pc_frame_extra(void) {
         }
         usleep(1000);
     }
+    pc_perf_end(PC_PERF_SPLIT);
+    sSplits++;
     return 1;
+}
+
+void pc_paint_extra_begin(void) {
+    sPaintExtra = true;
+    paintPurityBegin();
+    if (!paintPurityRepeat()) {
+        paintPurityArm();
+    }
+}
+
+void pc_paint_extra_end(void) {
+    if (paintPurityRepeat()) {
+        // COS_PAINT_PURITY_REPEAT: paint B once more, compared with the state the first left: what
+        // changes again accumulates (a counter, a state machine), what does not was a plain write.
+        paintPurityBegin();
+        paintPurityArm();
+        sPaintRepeat = true;
+        s32 rnd[3];
+        cM_pcGetRnd(rnd);
+        cAPIGph_Painter();
+        cM_pcSetRnd(rnd);
+        sPaintRepeat = false;
+    }
+    paintPurityEnd(pc_frame_count() + 1);
+    sPaintExtra = false;
+}
+
+int pc_paint_is_extra(void) {
+    return sPaintExtra ? 1 : 0;
 }
 
 void pc_frame_begin(void) {
@@ -1028,6 +1095,7 @@ void pc_frame_begin(void) {
     }
     sFrameStartNs = monotonicNs();
     sPaceStartNs = sPaceEndNs = 0;
+    sHalvedWait = false;
     sFrameWaitNs = 0;
     if (sPerfOn) {
         sFrameStartCpuNs = threadCpuNs();
@@ -1069,7 +1137,7 @@ void pc_frame_end(void) {
         menuFrame();
         if (gConfig.fpsOverlay) {
             const uint64_t frameNs = endFrameStartNs - sFrameStartNs;
-            overlayFrame(frameNs > sFrameWaitNs ? frameNs - sFrameWaitNs : 0);
+            overlayFrame(frameNs > sFrameWaitNs ? frameNs - sFrameWaitNs : 0, true);
         }
         precompileOverlay();
     }

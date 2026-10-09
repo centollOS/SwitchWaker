@@ -189,12 +189,18 @@ void mDoGph_gInf_c::fadeOut(f32 speed) {
 /* 80007FE8-800082D8       .text calcFade__13mDoGph_gInf_cFv */
 void mDoGph_gInf_c::calcFade() {
     if (mFade) {
+#if TARGET_PC
+        // COS_FPS60_TEST's paint B (game_hooks.h): the fade drawn at paint A's rate, not advanced.
+        if (!pc_paint_is_extra())
+#endif
+        {
         mFadeRate += mFadeSpeed;
         if (mFadeRate < 0.0f) {
             mFadeRate = 0.0f;
             mFade = false;
         } else if (mFadeRate > 1.0f) {
             mFadeRate = 1.0f;
+        }
         }
 
         mFadeColor.a = mFadeRate * 255.0f;
@@ -264,6 +270,11 @@ void mDoGph_gInf_c::offMonotone() {
 
 /* 80008354-800083B8       .text calcMonotone__13mDoGph_gInf_cFv */
 void mDoGph_gInf_c::calcMonotone() {
+#if TARGET_PC
+    // COS_FPS60_TEST's paint B (game_hooks.h): the monotone rate as paint A left it.
+    if (pc_paint_is_extra())
+        return;
+#endif
     if (cLib_chaseS(&mMonotoneRate, mMonotoneRateSpeed < 0 ? 400 : -600, abs(mMonotoneRateSpeed)) != 0 && mMonotoneRateSpeed > 0)
         offMonotone();
 }
@@ -1814,7 +1825,13 @@ bool mDoGph_Painter() {
 #endif
 
 #if VERSION > VERSION_DEMO
+#if TARGET_PC
+                // COS_FPS60_TEST's paint B (game_hooks.h): the picto box capture's steps run in paint
+                // A only (the next paint A shows the same lists); paint B only draws the photo.
+                if (mCaptureStep == 1 && !pc_paint_is_extra()) {
+#else
                 if (mCaptureStep == 1) {
+#endif
                     if (!mCaptureCansel)
                         mDoGph_screenCapture();
                     else
@@ -1830,9 +1847,12 @@ bool mDoGph_Painter() {
 #endif
 
 #if TARGET_PC
+    // COS_FPS60_TEST's paint B (game_hooks.h): the capture's steps below are paint A's (the photo is
+    // drawn in both paints).
+    const bool captureSteps = !pc_paint_is_extra();
     // The picto box (bug B36): GXCopyTex left the picture on the GPU; encode_s3tc reads it from RAM, so
     // step 3 waits one frame for the readback (pc_capture.cpp).
-    if (mCaptureStep == 3 && (mCaptureTextureFormat != GX_TF_CMPR ||
+    if (captureSteps && mCaptureStep == 3 && (mCaptureTextureFormat != GX_TF_CMPR ||
                               pc_gph_capture_ready(mCaptureCaptureBuffer, mCaptureSizeWidth, mCaptureSizeHeight, mCaptureCaptureFormat))) {
 #else
     if (mCaptureStep == 3) {
@@ -1886,7 +1906,11 @@ bool mDoGph_Painter() {
         }
     }
 
+#if TARGET_PC
+    if (captureSteps && mCaptureStep == 4) {
+#else
     if (mCaptureStep == 4) {
+#endif
 #if VERSION > VERSION_DEMO
         if (mCaptureCansel) {
             OSCancelThread(&mCaptureThread);
@@ -1943,12 +1967,20 @@ bool mDoGph_Painter() {
     }
 
 #if VERSION > VERSION_DEMO
+#if TARGET_PC
+    if (captureSteps && mCaptureStep == 5 && mCaptureCansel) {
+#else
     if (mCaptureStep == 5 && mCaptureCansel) {
+#endif
         mCaptureStep = 6;
     }
 #endif
 
+#if TARGET_PC
+    if (captureSteps && mCaptureStep == 6) {
+#else
     if (mCaptureStep == 6) {
+#endif
 #if VERSION > VERSION_DEMO
         if (mCaptureTextureBuffer != NULL)
 #endif

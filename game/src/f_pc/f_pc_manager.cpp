@@ -7,6 +7,7 @@
 #include "f_pc/f_pc_manager.h"
 #if TARGET_PC
 #include "pc/game_hooks.h"
+#include "SSystem/SComponent/c_math.h"
 #endif
 #include "f_pc/f_pc_creator.h"
 #include "f_pc/f_pc_draw.h"
@@ -280,6 +281,11 @@ void fpcM_Management(fpcM_ManagementFunc callBack1, fpcM_ManagementFunc callBack
 #if VERSION > VERSION_DEMO
     cAPIGph_Painter();
 #endif
+#if TARGET_PC
+    // COS_FPS60_TEST (game_hooks.h, docs/FPS60_PLAN.md step A): paint A is presented now; paint B
+    // below repaints the lists of this frame's draw pass.
+    const int paintB = pc_frame_split();
+#endif
     fpcDt_Handler();
     if (!fpcPi_Handler())
         JUT_ASSERT(VERSION_SELECT(460, 490, 548, 547), 0);
@@ -296,11 +302,17 @@ void fpcM_Management(fpcM_ManagementFunc callBack1, fpcM_ManagementFunc callBack
     if (callBack2 != NULL)
         callBack2();
 #if TARGET_PC
-    // COS_FPS60_TEST (pc_frame.cpp): a second present per game frame, the same scene drawn again,
-    // to measure what 60 presents a second cost (frame interpolation, step 1).
-    if (pc_frame_extra()) {
+    if (paintB) {
+        // Paint B: cAPIGph_Painter alone (no draw pass); its guards (pc_paint_is_extra) keep it
+        // from advancing the paint-time state, and the game's random seeds are put back after it
+        // (the weather draws use cM_rndF).
+        MtxInit();
+        pc_paint_extra_begin();
+        s32 rnd[3];
+        cM_pcGetRnd(rnd);
         cAPIGph_Painter();
-        fpcDw_Handler((fpcDw_HandlerFuncFunc)fpcM_DrawIterater, (fpcDw_HandlerFunc)fpcM_Draw);
+        cM_pcSetRnd(rnd);
+        pc_paint_extra_end();
     }
 #endif
 }

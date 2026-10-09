@@ -3350,6 +3350,10 @@ void dKyr_drawSun(Mtx drawMtx, cXyz* pPos, GXColor& reg0, u8** pImg) {
     if (dComIfGd_getView() != NULL) {
         MTXInverse(dComIfGd_getViewRotMtx(), camMtx);
     } else {
+#if TARGET_PC
+        // COS_FPS60_TEST's paint B (game_hooks.h): the counter as paint A left it.
+        if (!pc_paint_is_extra())
+#endif
         if (pSunPkt->field_0x3c < 5)
             pSunPkt->field_0x3c += 2;
         pSunPkt->field_0x3d = true;
@@ -4315,9 +4319,15 @@ void drawPoison(Mtx drawMtx, u8** pImg) {
     MTXRotDeg(rotMtx, 'Z', rot);
     MTXConcat(camMtx, rotMtx, camMtx);
     GXLoadPosMtxImm(drawMtx, GX_PNMTX0);
+#if TARGET_PC
+    // COS_FPS60_TEST's paint B (game_hooks.h): the rotation as paint A left it.
+    if (!pc_paint_is_extra())
+#endif
+    {
     rot += 1.3f;
     if (rot < 0.0f)
         rot = 719.0f;
+    }
     GXSetCurrentMtx(GX_PNMTX0);
 
     for (s32 i = 0; i < dKy_getEnvlight().mPoisonCount; i++) {
@@ -5103,9 +5113,15 @@ void dKyr_drawStar(Mtx drawMtx, u8** pImg) {
     GXLoadPosMtxImm(drawMtx, GX_PNMTX0);
     GXSetCurrentMtx(GX_PNMTX0);
 
+#if TARGET_PC
+    // COS_FPS60_TEST's paint B (game_hooks.h): the rotation as paint A left it.
+    if (!pc_paint_is_extra())
+#endif
+    {
     rot++;
     if (rot > 719) {
         rot = 0;
+    }
     }
 
     spBC.x = camera->view.mLookat.mEye.x;
@@ -5476,9 +5492,15 @@ void drawCloudShadow(Mtx drawMtx, u8** pImg) {
     MTXRotDeg(rotMtx, 'Z', rot);
     MTXConcat(camMtx, rotMtx, camMtx);
     GXLoadPosMtxImm(drawMtx, GX_PNMTX0);
+#if TARGET_PC
+    // COS_FPS60_TEST's paint B (game_hooks.h): the rotation as paint A left it.
+    if (!pc_paint_is_extra())
+#endif
+    {
     rot -= 1.5f;
     if (rot < 0.0f)
         rot = 719.0f;
+    }
     GXSetCurrentMtx(GX_PNMTX0);
 
 #if TARGET_PC
@@ -5728,7 +5750,12 @@ void drawVrkumo(Mtx drawMtx, GXColor& color, u8** pImg) {
                 sp50 = cM_fsin(j + (DEMO_SELECT(0.00015f, 0.0001f) * howa_loop_cnt));
                 sp50 *= vrkumo_packet->mInst[k].mDistFalloff;
 
+#if TARGET_PC
+                // COS_FPS60_TEST's paint B (game_hooks.h): the clouds' sway as paint A left it.
+                if (!var_r28 && !pc_paint_is_extra()) {
+#else
                 if (!var_r28) {
+#endif
                     howa_loop_cnt += 0.8f * sp58 + 200.0f;
                     var_r28++;
                 }

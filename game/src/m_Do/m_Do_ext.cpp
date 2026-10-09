@@ -5,6 +5,9 @@
 
 #include "m_Do/machine.h" // IWYU pragma: keep
 #include "m_Do/m_Do_ext.h"
+#if TARGET_PC
+#include "pc/game_hooks.h"
+#endif
 #include "JSystem/J3DGraphBase/J3DTransform.h"
 #include "JSystem/JKernel/JKRArchive.h"
 #include "JSystem/JKernel/JKRSolidHeap.h"
@@ -2020,6 +2023,11 @@ void mDoExt_3DlineMat0_c::draw() {
         line++;
     }
 
+#if TARGET_PC
+    // COS_FPS60_TEST's paint B (game_hooks.h): the next paint A draws the same lists, so the array
+    // the draw pass filled stays the current one.
+    if (!pc_paint_is_extra())
+#endif
     mCurArr ^= 1;
 }
 
@@ -2307,6 +2315,10 @@ void mDoExt_3DlineMat1_c::draw() {
     }
 
     GXSetTexCoordScaleManually(GX_TEXCOORD0, GX_FALSE, 0, 0);
+#if TARGET_PC
+    // COS_FPS60_TEST's paint B (game_hooks.h): as in mDoExt_3DlineMat0_c::draw.
+    if (!pc_paint_is_extra())
+#endif
     mCurArr ^= 1;
 }
 

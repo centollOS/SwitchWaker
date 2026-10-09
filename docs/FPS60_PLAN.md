@@ -91,3 +91,106 @@ Risks: the Switch CPU margin (~5 ms); paint-time mutators in unaudited actor pac
 lifetimes; light-space and other perspective passes that are not the world view (wind view
 `m_Do_graphic.cpp:1727`, shadow models); `GXPeekZ` after the present moves; culling/LOD of frame N+1
 showing at the edges in paint B.
+
+## Step A results (2026-10-09, Mac)
+
+`COS_FPS60_TEST=1` ([dev]) now runs the split frame of the design without a second draw pass.
+`fpcM_Management` (`f_pc_manager.cpp`): paint A (`cAPIGph_Painter`, the previous draw pass's
+lists), then `pc_frame_split()`, which ends the Aurora frame (the FPS overlay counted as a present,
+`captureFrameEnd` for a picto box copy of paint A) and begins the next; logic and the draw pass;
+after `callBack2` paint B = `MtxInit` + `cAPIGph_Painter()` between `pc_paint_extra_begin/end`, the
+`cM_rnd` seeds saved and restored around it (`cM_pcGetRnd`/`cM_pcSetRnd`, `c_math.cpp`); the
+normal `pc_frame_end` presents paint B. The split is decided by paint A's wait
+(`pc_frame_wait_retraces`, `pc_jfw_display.cpp`): only a game frame of two retraces, the mode on
+and the options menu closed; paint B always waits one retrace. Frames of another length (the logo,
+loading at 60), the menu open and the mode off run exactly as before. The crude test's second
+`fpcDw_Handler` is gone. Once per game frame as before: Aurora's event pump, `pc_dynres_frame_begin`
+(the dynamic resolution level holds for both presents), the options menu, `COS_SHOT` (it saves
+paint B).
+
+### Guards (all `#if TARGET_PC`, `pc_paint_is_extra()`)
+
+| Mutator | Where | Paint B |
+|---|---|---|
+| fade | `mDoGph_gInf_c::calcFade` (`m_Do_graphic.cpp:190`, called `:1813`; the `:719` call is JPN/demo only) | `mFadeRate` not advanced; the quad drawn at paint A's rate (the brightness branch as usual) |
+| monotone | `calcMonotone` (`:266`, called from `drawDepth` `:640`) | returns at once |
+| picto box capture | `mCaptureStep == 1` (`:1817`), steps 3/4/5->6/6 (`:1835-1960`) | none of the steps; `mDoGph_screenCaptureDraw` (the photo on screen) still drawn |
+| wipe | `dDlst_list_c::calcWipe` (`d_drawlist.cpp:2135`) | not advanced; the scroll set from the current rate; `mWipeDlst` appended only when the 2D list lacks it (`dDlst_list_c::has2DXlu`), so paint A after paint B (same lists) does not add it twice |
+| JUTFader | `JFWDisplay::endGX` (`JFWDisplay.cpp:240`) | `draw()` without `control()` (drawn unless `WaitIn`) |
+| sea scroll | `daSea_packet_c::draw` `mAnimCounter` (`d_a_sea.cpp:715`) | not advanced |
+| sun | `field_0x3c += 2` (`d_kankyo_rain.cpp:3354`) | not advanced |
+| poison / star rotation | `rot += 1.3f` (`:4318`), `rot++` (`:5106`) | not advanced |
+| cloud shadow rotation | `drawCloudShadow` `rot -= 1.5f` (`:5495`) **found by the checker** | not advanced |
+| cloud sway | `drawVrkumo` `howa_loop_cnt +=` (`:5748`) **found by the checker** | not advanced |
+| lights | `dKy_setLight` (`d_kankyo.cpp:2479-2560`): player light eased (`cLib_addCalc`), flicker targets (statics + `cM_rndF`), eflight **found by the checker** | the two update blocks skipped; the lights loaded as paint A left them |
+| rope/line arrays | `mDoExt_3DlineMat0_c::draw`, `mDoExt_3DlineMat1_c::draw` `mCurArr ^= 1` (`m_Do_ext.cpp:2023`, `:2310`) **found by the checker** | no flip. Without it paint A drew the array of the draw pass before the last one (ropes, bridges, chains one frame late on every other present) |
+| RNG | `cM_rnd` seeds `r0/r1/r2` (`c_math.cpp:167`; rain `cM_rndF` `d_kankyo_rain.cpp:4213`) | saved before paint B, restored after |
+| mDoGph heap flip | `mDoGph_gInf_c::free()` (`:159`, `:1594`) | kept in both paints (only the sea allocates there, per paint) |
+
+### Purity checker (`COS_PAINT_PURITY`, `native/src/pc/harness/pc_paint_purity.cpp`)
+
+macOS only. `=1`: the game's writable globals, i.e. the `__DATA,__data/__bss/__common` symbols whose
+object file comes from `game/src/` (the executable's debug map: N_OSO/N_STSYM/N_GSYM stabs; 4715
+symbols, 1.6 MiB; Aurora, Dawn, ImGui, the SDK and the harness left out by construction), copied
+before paint B and compared after it in 64-byte blocks, every changed symbol named (demangled, with
+its file). `=2`: also the JKR root heap (230 MiB, without the two mDoGph heaps and the audio heap):
+a change there is named by its heap, its allocation (expanded heaps), the process (`g_profile_*`
+through `base_process_class::mpProf`) or class (primary vptr) it is in, and who points to the block
+or to its solid heap. `=1` copies and compares 1.6 MiB per paint B (lost in the Mac's noise); `=2` adds ~19 ms per game
+frame on the Mac (counted as logic in the perf line). Helpers:
+`COS_PAINT_PURITY_REPEAT=1` paints B twice and reports only what the second paint changes (plain
+writes of the same value drop out, accumulating state stays); `COS_PAINT_PURITY_TRAP=1` sets an
+arm64 hardware watchpoint on the game thread for the 8 bytes of each new change and logs the
+backtrace of its first write (that found the line arrays, the cloud rotations and the JPA axes);
+`COS_PAINT_PURITY_IGNORE=a,b`.
+
+Runs (600 frames each, `--env COS_FPS60_TEST=1 --env COS_PAINT_PURITY=2`, with and without
+`_REPEAT`): `sea:44:206` (Outset), `Siren:0:0` (Tower of the Gods), `kindan:0:0` (Forbidden Woods),
+`sea:13:0` (Dragon Roost), `M_NewD2:0:0` (Dragon Roost Cavern). With the guards above, what paint
+B still changes the second time (`_REPEAT`), all harmless:
+
+- `mDoGph_gInf_c::mCurrentHeap` and the mDoGph solid heaps' heads, `l_cloth` (the sea packet's
+  `m_draw_vtx` and texture objects): the heap flip, kept by design.
+- `GXTexObj::texObjId` (Aurora's id per `GXInitTexObj`, `GXTexObj` +0x30) in
+  `mDoGph_gInf_c::mFrameBufferTexObj/mZbufferTexObj`, `clear_z_tobj` (`JFWDisplay.cpp`), the fonts'
+  `JUTResFont::mTexObj`: host ids, rewritten by every paint.
+- `JPADraw::cb.mDrawMtxPtr`, `dComIfG_play_c::mCurrentGrafPort`: pointers to the painter's stack
+  (different stack depth in the repeat), rewritten before use.
+- `JFWDisplay` +0x30..0x3c (tick fields, `mCombinationRatio`): `beginRender`/`endRender` timing,
+  read only by `JUTProcBar`.
+- JPA particles' `JPADrawParams::mAxis` (`JPADrawExecDirectional`, `JPADrawExecRotDirectionalCross`,
+  `JPADrawExecStripe`): re-orthogonalised against the direction at each draw, a projection, the
+  second time equal but for the last bit (0.99999994 -> 1.0).
+- Other threads, at any time: JAudio (`JASystem::*`, `JAInter::*`, `sSeqTickCount`, `cmd_once`),
+  the disc (`JKRDvdRipper`, `JKRDvdAramRipper`, `JKRAram*`, `JKRFileLoader::sVolumeList`,
+  `mDoDvdThd_*`, `m_Do_DVDError` `Alarm`), `JUTVideo::preRetraceProc` (the retraces of paint B's
+  wait).
+
+Without `_REPEAT` paint B also writes what the next paint A writes again before any logic runs
+(scratch matrices `mDoMtx_stack_c::now`, `j3dSys`, `J3DShapeMtx*` statics, `dDlst_shadow*` colours,
+`drawDepth`'s `l_tevColor0`, `g_env_light.mLightDir`, `dMeter`/`dMap_c` texture objects, J2D
+texture objects, `dComIfG_play_c::mCurrentWindow/View/Viewport`, J3D shape/texture state in the
+model heaps), and one-shot work that would happen in the next paint A anyway: `dSnap_packet::Judge`
+(the photo judgement), `dPa_ripplePcallBack::draw`'s `setInvisibleParticleFlag`.
+
+### Mac numbers (M-series, `COS_PERF_EVERY=300`, 1200 frames, frames 301-1200)
+
+| | game thread ms/frame | logic | painter | painter2 (paint B) | split | presents/s | retraces/s | pacing ratio |
+|---|---|---|---|---|---|---|---|---|
+| Outset `sea:44:206`, off | 3.50-3.60 | 2.0-2.2 | 1.0-1.1 | - | - | 30 | 60.0 | 1.0002 |
+| Outset, `COS_FPS60_TEST=1` | 4.9-5.1 | 1.5-1.6 | 0.54-0.63 | 0.53-0.62 | 1.0-1.2 | 59.9 | 59.9 | 1.0001 |
+| Dragon Roost `sea:13:0`, off | 3.8-4.0 | 2.1-2.2 | 1.3-1.4 | - | - | 30 | 60.0 | 1.0001 |
+| Dragon Roost, `COS_FPS60_TEST=1` | 5.4-5.8 | 1.4-1.5 | 0.57-0.59 | 0.56-0.58 | 1.3-1.6 | 59.9 | 59.9 | 1.0001 |
+
+Logic stays at 30 game frames a second (30.0 fps, 59.9 retraces/s, pacing ratio ~1.0); paint B
+costs what paint A does (~0.6 ms on the Mac); the split present (`aurora_end_frame` +
+`aurora_begin_frame` in the middle of the frame) ~1-1.6 ms. On the Switch the painter was ~5-7 ms,
+so paint B should cost about that instead of the ~16 ms of the crude test (to be measured on the
+console). `COS_SHOT` images with the mode on (paint B: Outset frames 450/600, Tower of the Gods
+frame 750 with the full HUD, map and ripples) match the mode off.
+
+Verified: Mac build; full `native/tools/regress.sh` passes (the mode off); with
+`COS_FPS60_TEST=1` the picto-box targets (I8, RGB565 and the Windfall subject check, result 97),
+file-select at 16:10 and outset-control pass; Switch NRO `scripts/switch/build_native.sh
+--runtime-assets` builds. Not yet measured on the console (the next step: paint B's cost there at
+1020 MHz, Outset / Dragon Roost / Tower of the Gods).

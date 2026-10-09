@@ -568,6 +568,16 @@ public:
     void set2DOpaTop(dDlst_base_c* pItem) { set(mp2DOpaTop, mp2DOpaTopEnd, pItem); }
     void set2DOpa(dDlst_base_c* pItem) { set(mp2DOpa, mp2DOpaEnd, pItem); }
     void set2DXlu(dDlst_base_c* pItem) { set(mp2DXlu, mp2DXluEnd, pItem); }
+#if TARGET_PC
+    // calcWipe under COS_FPS60_TEST: the item is already in this frame's 2D translucent list.
+    bool has2DXlu(const dDlst_base_c* pItem) const {
+        for (dDlst_base_c* const* p = mp2DXluArr; p < mp2DXlu; p++) {
+            if (*p == pItem)
+                return true;
+        }
+        return false;
+    }
+#endif
 
     void drawCopy2D() { draw(mpCopy2DArr, mpCopy2D); }
     void draw2DOpaTop() { draw(mp2DOpaTopArr, mp2DOpaTop); }

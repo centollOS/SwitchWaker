@@ -238,6 +238,14 @@ void JFWDisplay::endGX() {
 
     if (mpFader != NULL) {
         ortho.setPort();
+#if TARGET_PC
+        // COS_FPS60_TEST's paint B (game_hooks.h): the fader drawn as paint A left it, not advanced
+        // (control() draws in every state but WaitIn).
+        if (pc_paint_is_extra()) {
+            if (mpFader->getStatus() != JUTFader::WaitIn)
+                mpFader->draw();
+        } else
+#endif
         mpFader->control();
     }
     ortho.setPort();

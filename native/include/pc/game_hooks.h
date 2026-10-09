@@ -78,15 +78,29 @@ void pc_wait_for_tick(unsigned int p1, unsigned short p2);
 
 /* ---- 60 presents a second (pc_frame.cpp) -------------------------------------------------------- */
 
-/* fpcM_Management (f_pc_manager.cpp), after the game frame's draw pass: with COS_FPS60_TEST=1 and
-   a game frame of two retraces, ends this Aurora frame, begins another and returns 1: the caller
-   paints and runs the draw pass again (the same scene presented twice; each paint then waits one
-   retrace instead of two). 0 otherwise. A measurement of the cost of 60 presents a second. */
-extern "C" int pc_frame_extra(void);
+/* COS_FPS60_TEST=1 ([dev]; docs/FPS60_PLAN.md, step A): each game frame of two retraces is presented
+   twice. Paint A (fpcM_Management's cAPIGph_Painter, the lists of the previous draw pass) is
+   presented at once (pc_frame_split); logic and the draw pass run; paint B repaints the new lists
+   with cAPIGph_Painter alone (no draw pass) between pc_paint_extra_begin and pc_paint_extra_end,
+   and pc_frame_end presents it. Each paint waits one retrace, so the game keeps its speed. The
+   options menu open, a frame of another length, or the mode off: the frame runs as before. */
+
+/* fpcM_Management, right after paint A: 1 when this frame is split (paint A's wait was halved);
+   paint A is then presented (Aurora frame ended, the next one begun) and the caller paints B after
+   callBack2. 0 otherwise (nothing done). */
+extern "C" int pc_frame_split(void);
+/* Around paint B (fpcM_Management): pc_paint_is_extra() is 1 in between. With COS_PAINT_PURITY
+   they snapshot and compare the game's writable globals (pc_paint_purity.cpp). */
+extern "C" void pc_paint_extra_begin(void);
+extern "C" void pc_paint_extra_end(void);
+/* 1 while paint B runs: the guards that keep it from advancing the game's paint-time state (fade,
+   wipe, picto box capture, JUTFader, sea scroll, weather counters). Always 0 with the mode off. */
+extern "C" int pc_paint_is_extra(void);
 /* COS_FPS60_TEST: 1 when on (read once). */
 extern "C" int pc_fps60_test(void);
-/* pc_wait_for_tick: whether the frame's last wait was halved (a two-retrace frame under the test). */
-extern "C" void pc_frame_halved_wait(int halved);
+/* pc_wait_for_tick: the retraces this wait lasts for a game frame of `retraces` (1 for each paint of
+   a split frame, else `retraces`; 0, no wait, for COS_PAINT_PURITY_REPEAT's second paint B). */
+extern "C" unsigned int pc_frame_wait_retraces(unsigned int retraces);
 
 /* ---- Collision data (c_bg_s.cpp), native/src/pc/game_hooks/pc_c_bg_s.cpp --------------------- */
 

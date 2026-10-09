@@ -2133,6 +2133,19 @@ void dDlst_list_c::wipeIn(f32 time) {
 
 /* 800866F0-80086790       .text calcWipe__12dDlst_list_cFv */
 void dDlst_list_c::calcWipe() {
+#if TARGET_PC
+    // COS_FPS60_TEST (game_hooks.h): paint B draws the wipe at paint A's rate without advancing it.
+    // Both paints of the same lists append the wipe once: paint B's lists are painted again by the
+    // next paint A, which finds the wipe already there.
+    if (mWipe && pc_paint_is_extra()) {
+        // (the scroll follows the rate: a wipe started since paint A gets its starting position)
+        mWipeDlst.mScrollS = mWipeRate * 2.0f;
+        mWipeDlst.mScrollT = mWipeDlst.mScrollS * 1.218f;
+        if (!g_dComIfG_gameInfo.drawlist.has2DXlu(&mWipeDlst))
+            dComIfGd_set2DXlu(&mWipeDlst);
+        return;
+    }
+#endif
     if (mWipe) {
         mWipeRate += mWipeSpeed;
         if (mWipeRate < 0.0f) {
@@ -2146,6 +2159,9 @@ void dDlst_list_c::calcWipe() {
 
         mWipeDlst.mScrollS = mWipeRate * 2.0f;
         mWipeDlst.mScrollT = mWipeDlst.mScrollS * 1.218f;
+#if TARGET_PC
+        if (!g_dComIfG_gameInfo.drawlist.has2DXlu(&mWipeDlst))
+#endif
         dComIfGd_set2DXlu(&mWipeDlst);
     }
 }

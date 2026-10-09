@@ -5,6 +5,9 @@
 
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "d/actor/d_a_sea.h"
+#if TARGET_PC
+#include "pc/game_hooks.h"
+#endif
 #include "d/d_com_inf_game.h"
 #include "d/d_stage.h"
 #include "m_Do/m_Do_lib.h"
@@ -712,10 +715,16 @@ void daSea_packet_c::draw() {
     GXLoadTexMtxImm(mDoMtx_stack_c::get(), GX_TEXMTX0, GX_MTX2x4);
     GXLoadTexObj(&mTexSea0, GX_TEXMAP0);
 
+#if TARGET_PC
+    // COS_FPS60_TEST's paint B (game_hooks.h): the scroll as paint A left it.
+    if (!pc_paint_is_extra())
+#endif
+    {
     mAnimCounter += 1;
 
     if (mAnimCounter > 300) {
         mAnimCounter = 0;
+    }
     }
 
     mDoMtx_stack_c::transS(0.0f, mAnimCounter / 300.0f, 0.0f);

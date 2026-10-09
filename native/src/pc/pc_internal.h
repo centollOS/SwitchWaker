@@ -189,8 +189,22 @@ void startWatchdog();
 void watchdogPulse();
 
 // pc_overlay.cpp: COS_FPS_OVERLAY's panel, drawn into this frame's ImGui frame (call between
-// aurora_begin_frame and aurora_end_frame). busyNs: this frame's game-thread busy time so far.
-void overlayFrame(uint64_t busyNs);
+// aurora_begin_frame and aurora_end_frame), once per present. busyNs: this frame's game-thread busy
+// time so far; gameFrame: the game frame ends with this present (false for paint A's present of a
+// COS_FPS60_TEST split frame, which counts as a present only).
+void overlayFrame(uint64_t busyNs, bool gameFrame);
+
+// pc_paint_purity.cpp: COS_PAINT_PURITY ([dev]; docs/FPS60_PLAN.md, step A): around paint B of a
+// COS_FPS60_TEST split frame, snapshot the game's writable globals (and with 2 the game's heaps) and
+// log what paint B changed, by symbol. Nothing without the variable.
+void paintPurityBegin();
+void paintPurityEnd(unsigned int frame);
+// COS_PAINT_PURITY_REPEAT=1 (with COS_PAINT_PURITY): paint B runs twice and only what the second run
+// changes is reported (state that accumulates paint after paint, not plain writes of the same value).
+bool paintPurityRepeat();
+// COS_PAINT_PURITY_TRAP=1: right before the checked paint B, write-protects the page of a change
+// first seen in an earlier one (pc_paint_purity.cpp).
+void paintPurityArm();
 
 // pc_frame.cpp: milestone M6 logo-res, once pc_logo_res_synced reported every resource and the
 // logo scene made its scene request (`how` says which: dComIfG_changeOpeningScene, or the
