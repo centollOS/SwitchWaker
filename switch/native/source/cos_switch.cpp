@@ -5,7 +5,7 @@
 //   - the live USB log (switch/source/common/usb_log.c; scripts/switch/usb_log.py on the computer),
 //     only with COS_USB_LOG=1 (off by default: it holds the USB port for the whole run);
 //   - a session log on the SD card, COS_SWITCH_ROOT/logs/switchwaker_<date>_<time>.log (the console clock at
-//     start; the GL NRO's are switchwaker_gl_<date>_<time>.log, COS_SWITCH_NRO_NAME), as SwitchWakerHD's:
+//     start; COS_SWITCH_NRO_NAME), as SwitchWakerHD's:
 //     the newest file in logs/ is always the current session, and logs/ keeps the
 //     kMaxSessionLogs most recent sessions (the oldest are deleted, so the logs cannot fill the SD card).
 //     The switchwaker.log / switchwaker.prev.log of earlier builds move into logs/. Written by a thread of
@@ -15,8 +15,8 @@
 //     options menu, COS_DEBUG_SERVER, cos_debug.cpp).
 //
 // Memory: the process's used and total memory at start, every 15 seconds (from the log writer
-// thread) and at exit: "[switch] memory: used N MiB of M MiB". The shader cache's lines
-// (cos_shader_cache.cpp) come with it while they change, and at exit.
+// thread) and at exit: "[switch] memory: used N MiB of M MiB". The deko3d shader registry's line
+// (cos_shader_cache.cpp) comes with it.
 //
 // Run options: the options menu's settings file, COS_SWITCH_ROOT/user/settings.ini
 // (native/include/pc/pc_settings.h): pc_settings_load_early copies its values, and the variables of
@@ -716,16 +716,8 @@ void cos_switch_start(int argc, char** argv) {
     char mode[160];
     cos_switch_describe_mode(mode, sizeof(mode));
     sayf("[switch] clocks after the gpu profile: %s\n", mode);
-#if defined(COS_SWITCH_DEKO3D)
-    // The deko3d NRO starts no EGL: no Mesa shader cache (its shaders are the DKSH cache, switch/deko).
-    sayf("[switch] renderer: deko3d (switch/deko); Mesa's shader cache unused\n");
-#else
-    // Before Aurora starts EGL, which creates Mesa's shader cache (cos_shader_cache.cpp).
-    char note[640];
-    if (cos_switch_shader_cache_setup(note, sizeof(note)) > 0) {
-        sayf("%s", note);
-    }
-#endif
+    // Its shaders are the DKSH caches (switch/deko, cos_shader_cache.cpp).
+    sayf("[switch] renderer: deko3d (switch/deko)\n");
 }
 
 void cos_switch_flush_logs(void) {

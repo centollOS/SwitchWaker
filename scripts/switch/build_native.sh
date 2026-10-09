@@ -208,12 +208,12 @@ echo "build_native: renderer=$label version=$version aurora=$aurora assets=$asse
 
 container_run "$engine" "$root" "${mounts[@]}" -e JOBS="$jobs" -e TARGET="$target" \
     -e DAWN_FLAG="$dawn_flag" -e RUNTIME_FLAG="$runtime_flag" -e VERSION="$version" \
-    -e RENDERER="$renderer" -e NRO_NAME="$nro_name" -e DK_DEBUG="$dk_debug" "$image" bash -lc '
+    -e NRO_NAME="$nro_name" -e DK_DEBUG="$dk_debug" "$image" bash -lc '
 set -euo pipefail
 export PATH=/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin:$PATH
 cmake -S /work/switch/native -B /work/build/switch-native -G Ninja \
     -DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Switch.cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-    -DDKP_USE_DOUBLE_OBJECT_FILE_EXTENSIONS=ON -DCOS_SWITCH_RENDERER="$RENDERER" \
+    -DDKP_USE_DOUBLE_OBJECT_FILE_EXTENSIONS=ON \
     -DCOS_SWITCH_NRO_NAME="$NRO_NAME" -DCOS_DK_DEBUG_LIB="$DK_DEBUG" -DCOS_SWITCH_VERSION="$VERSION" \
     -DCOS_SWITCH_AURORA_SOURCE=/inputs/aurora -DCOS_ASSETS_DIR=/inputs/assets \
     -DCOS_RECOMPCORE_DIR=/inputs/recompcore $DAWN_FLAG $RUNTIME_FLAG >/dev/null

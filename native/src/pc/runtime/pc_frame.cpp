@@ -64,19 +64,17 @@
 #endif
 #if defined(__SWITCH__)
 #include "cos_switch.h"
-#if defined(COS_SWITCH_DEKO3D)
 #include "dk_aurora.h"  // aurora_switch_dk_gpu_groups
-#endif
 
-// switch/dawn/patches/dawn-switch-gl-gpu-groups.patch: GPU time per group of draws (the frame's
-// last GX debug marker, COS_GPU_GROUPS, or the render pass's label), running totals.
+// GPU time per group of draws (the frame's last GX debug marker, COS_GPU_GROUPS, or the render
+// pass's label), running totals: the deko3d timestamps' AuroraSwitchGpuGroup (switch/deko/dk_aurora.h),
+// the layout of the removed GL NRO's dawn-switch-gl-gpu-groups.patch.
 struct DawnSwitchGpuGroup {
     char name[64];
     uint64_t ns;
     uint64_t segments;
     uint64_t draws;
 };
-extern "C" size_t dawn_switch_gl_gpu_groups(DawnSwitchGpuGroup* out, size_t max);
 #endif
 
 namespace pc {
@@ -614,18 +612,13 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
                    (unsigned long long)(cur.gpuDisjoint - w.gpuDisjoint));
         }
         sSwGpuFrameNs.clear();
-        // Per group (dawn-switch-gl-gpu-groups.patch): the window's GPU time per frame of each
+        // Per group (the deko3d timestamps): the window's GPU time per frame of each
         // group, largest first; groups are EFB passes, or draw-list buckets with COS_GPU_GROUPS.
         static std::vector<DawnSwitchGpuGroup> sGroupsPrev;
         static std::vector<DawnSwitchGpuGroup> sGroupsNow(512);
-#if defined(COS_SWITCH_DEKO3D)
-        // the deko3d NRO's timestamps (switch/deko/dk_aurora.h), the same layout
         static_assert(sizeof(AuroraSwitchGpuGroup) == sizeof(DawnSwitchGpuGroup), "GPU group layout");
         const size_t groupCount = aurora_switch_dk_gpu_groups(
             reinterpret_cast<AuroraSwitchGpuGroup*>(sGroupsNow.data()), sGroupsNow.size());
-#else
-        const size_t groupCount = dawn_switch_gl_gpu_groups(sGroupsNow.data(), sGroupsNow.size());
-#endif
         if (gpuFrames > 0 && groupCount > 0) {
             struct Row {
                 const char* name;
@@ -693,9 +686,9 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
            msOf(cur.cpuDvdNs - w.cpuDvdNs) / n, msOf(cur.cpuCompileNs - w.cpuCompileNs) / n,
            msOf(cur.cpuOtherNs - w.cpuOtherNs) / n, mode);
     {
-        // Where the render worker blocks inside Mesa (switch/native/source/nv_wrap.c): push-buffer
-        // chunk switches (they wait for the GPU to retire the ring's next chunk), libdrm's blocking
-        // fence waits, GPU submissions; per frame, the worker and every other thread apart. With
+        // Where the render worker blocks on the GPU through libnx (switch/native/source/nv_wrap.c):
+        // push-buffer chunk switches (Mesa's, zero since the GL NRO went), blocking fence waits, GPU
+        // submissions; per frame, the worker and every other thread apart. With
         // the worker CPU and busy times above: busy - CPU - fence waits = time the worker was
         // runnable but not running (another thread on its core).
         const auto nvLine = [&](int i) {

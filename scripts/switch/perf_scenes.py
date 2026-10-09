@@ -45,8 +45,9 @@ RE_CPU_MODE = re.compile(r"; (\w+), config \w+, cpu " + NUM + r" MHz, gpu " + NU
 RE_HITCH = re.compile(r"\[cos\] hitch frame (\d+): busy " + NUM + r" ms.*?pipeline compile " + NUM
                       + r" ms \((\d+)\)")
 RE_STAGE = re.compile(r"\[cos\] stage: (\S+) room (-?\d+) created at frame (\d+)")
-RE_PRECOMPILE_DONE = re.compile(r"\[cos\] precompile done: (\d+)/(\d+) pipelines, " + NUM + r" s.*?tint "
-                                + NUM + r" ms, GL context " + NUM + r" ms each")
+# the build split ("tint X ms, GL context Y ms each") is in the GL NRO's logs only
+RE_PRECOMPILE_DONE = re.compile(r"\[cos\] precompile done: (\d+)/(\d+) pipelines, " + NUM + r" s(?:.*?tint "
+                                + NUM + r" ms, GL context " + NUM + r" ms each)?")
 RE_SCREEN_AUTO = re.compile(r"\[cos\] precompile screen auto: .*(no loading screen|loading screen until)")
 RE_HEAP = re.compile(r"\[cos\] heaps: (\w+)\s+0x[0-9a-f]+ size (0x[0-9a-f]+) free (0x[0-9a-f]+)")
 
@@ -117,8 +118,9 @@ def parse(path, session_base):
                 continue
             m = RE_PRECOMPILE_DONE.search(line)
             if m:
+                tint, glctx = (float(m.group(4)), float(m.group(5))) if m.group(4) else (None, None)
                 info["precompile"].append((session, int(m.group(1)), int(m.group(2)), float(m.group(3)),
-                                           float(m.group(4)), float(m.group(5))))
+                                           tint, glctx))
                 continue
             m = RE_SCREEN_AUTO.search(line)
             if m:
@@ -270,8 +272,8 @@ def main():
     screens = dict(info["loading_screen"])  # session -> the last decision of that session
     for sess, done, total, secs, tint, glctx in info["precompile"]:
         screen = "" if sess not in screens else (" behind a loading screen" if screens[sess] else " behind the game")
-        print("  warm-up: %d/%d pipelines in %.1f s%s; per build tint %.0f ms, GL context %.0f ms" % (
-            done, total, secs, screen, tint, glctx))
+        split = "" if tint is None else "; per build tint %.0f ms, GL context %.0f ms" % (tint, glctx)
+        print("  warm-up: %d/%d pipelines in %.1f s%s%s" % (done, total, secs, screen, split))
     if not info["precompile"]:
         print("  warm-up: no `[cos] precompile done` line")
     play_pipes = sum(w.pipes or 0 for w in play)

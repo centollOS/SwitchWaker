@@ -17,10 +17,9 @@ extern "C" {
 #define COS_SWITCH_ROOT "/switch/switchwaker/native"
 /* The disc image (scripts/switch/push.sh --disc). */
 #define COS_SWITCH_DEFAULT_DISC "/switch/switchwaker/GZLE01.iso"
-/* The NRO's name: its logs (COS_SWITCH_ROOT/logs/<name>_<date>_<time>.log) and its symbols (<name>.elf).
- * The deko3d build (the default) is switchwaker in /switch/switchwaker/ with its bundled caches; the GL
- * build is switchwaker_gl in /switch/switchwaker_gl/; both share the data above (disc, saves, settings
- * and its [dev] section, Aurora's caches). */
+/* The NRO's name: its logs (COS_SWITCH_ROOT/logs/<name>_<date>_<time>.log) and its symbols (<name>.elf):
+ * switchwaker, in /switch/switchwaker/ with its bundled caches next to the data above (disc, saves,
+ * settings and its [dev] section, Aurora's caches). */
 #ifndef COS_SWITCH_NRO_NAME
 #define COS_SWITCH_NRO_NAME "switchwaker"
 #endif
@@ -52,8 +51,10 @@ void cos_switch_set_crash_state_writer(void (*writer)(int fd));
 
 /* Running totals (since start) of the Switch's graphics and disc counters, for the harness's
  * "[cos] perf-switch" and "[cos] hitch" lines (native/src/pc/runtime/pc_frame.cpp), which diff two reads.
- * Times in ns. Sources: Aurora's Switch patch 0005 (aurora_switch_get_stats), the Dawn GL queue
- * and command statistics patches (switch/dawn/patches) and the disc reader (nod/). */
+ * Times in ns. Sources: Aurora's Switch patch 0005 (aurora_switch_get_stats), the deko3d encoder and
+ * GPU timestamps (switch/deko/dk_aurora.h) and the disc reader (nod/). The gl* and gpu* fields are
+ * named and described after the removed GL NRO's Dawn patches; the deko3d NRO fills those it has
+ * (cos_switch_stats.cpp) and the rest stay zero. */
 typedef struct {
     /* aurora_begin_frame: waiting for a free frame slot / a mapped staging buffer; any producer
      * waiting for room in the render worker's queue. */
@@ -126,11 +127,10 @@ typedef struct {
     /* CPU time (ns, the kernel's per-thread tick count) of the game thread, Aurora's render worker,
      * JAudio's audio thread, the game's DVD thread and every other thread together. */
     uint64_t cpuGameNs, cpuRenderNs, cpuAudioNs, cpuDvdNs, cpuOtherNs, cpuCompileNs;
-    /* Mesa's and libdrm_nouveau's waits and submissions (switch/native/source/nv_wrap.c), for the
-     * render worker [0] and every other thread [1]: nouveau_pushbuf_space calls (a push-buffer chunk
-     * filled; includes the wait for the GPU to free the next chunk of the ring) and their time,
-     * blocking nvFenceWait calls and their time, polls, GPU submissions (nvGpuChannelKickoff) and
-     * their time, command words submitted. */
+    /* The GPU waits and submissions through libnx (switch/native/source/nv_wrap.c), for the render
+     * worker [0] and every other thread [1]: Mesa's nouveau_pushbuf_space calls and their time (zero
+     * since the GL NRO was removed), blocking nvFenceWait calls and their time, polls, GPU
+     * submissions (nvGpuChannelKickoff) and their time, command words submitted. */
     uint64_t nvSpaceCalls[2], nvSpaceNs[2], nvFenceWaits[2], nvFenceWaitNs[2], nvFencePolls[2];
     uint64_t nvKicks[2], nvKickNs[2], nvPushWords[2];
 } CosSwitchGfxStats;
@@ -145,7 +145,7 @@ void cos_switch_gfx_stats(CosSwitchGfxStats* out);
 enum {
     COS_SWITCH_THREAD_OTHER = 0, /* Aurora's DVD worker and pipeline threads, Dawn's, the logs... */
     COS_SWITCH_THREAD_GAME,      /* the game's main thread */
-    COS_SWITCH_THREAD_RENDER,    /* Aurora's render worker (all of Dawn's GL work) */
+    COS_SWITCH_THREAD_RENDER,    /* Aurora's render worker (switch/deko's encoding and present) */
     COS_SWITCH_THREAD_AUDIO,     /* JAudio's audio thread (JASystem::TAudioThread) */
     COS_SWITCH_THREAD_DVD,       /* the game's DVD thread (mDoDvdThd) */
     COS_SWITCH_THREAD_COMPILE,   /* Aurora's pipeline compile thread (Switch patch 0010) */
