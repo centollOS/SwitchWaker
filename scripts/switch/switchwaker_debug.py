@@ -126,6 +126,28 @@ def connect(args, timeout=10.0):
         sys.exit(f"cannot reach {args.host}:{args.port}: {e} (is {PORT_NAME} running with its debug server on? {MENU_SWITCH}, then restart)")
 
 
+# Commands that change the console's files or the running game.
+CHANGING_COMMANDS = ("deploy", "put", "rm", "mkdir", "reload", "quit", "crash", "warp", "press", "hold",
+                     "release", "stick", "raw")
+
+
+def check_game(args):
+    """SwitchWakerHD's debug server listens on the same port and answers the same commands: refuse to
+    change anything when the game that answers is not SwitchWaker (a deploy once wrote this NRO and
+    its caches into sdmc:/switch/wwhd/ and restarted WWHD). SwitchWaker's info gives its version as
+    git describe ("0.2.0-25"); WWHD's as "v0.4.1+3 (43d74c8)"."""
+    c = connect(args)
+    try:
+        text = c.command("info", timeout=30.0).decode(errors="replace")
+    finally:
+        c.close()
+    first = text.splitlines()[0] if text else ""
+    version = first.split(" ", 1)[1].strip() if first.startswith("version ") else ""
+    if version.startswith("v") or "(" in version:
+        sys.exit(f"the console runs another game ({first.strip()}), not {PORT_NAME}: nothing sent. "
+                 f"Start {PORT_NAME} and try again.")
+
+
 def simple(args, *cmd, timeout=30.0):
     c = connect(args)
     try:
@@ -353,6 +375,8 @@ def main():
 
     args = p.parse_args()
     try:
+        if args.cmd in CHANGING_COMMANDS:
+            check_game(args)
         if args.cmd in ("info", "ping", "help", "warps", "quit", "reload", "crash"):
             simple(args, args.cmd)
         elif args.cmd in ("press", "hold", "release", "warp", "stick"):
