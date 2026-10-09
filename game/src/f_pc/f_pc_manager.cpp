@@ -296,7 +296,9 @@ void fpcM_Management(fpcM_ManagementFunc callBack1, fpcM_ManagementFunc callBack
     // COS_FPS60_TEST (game_hooks.h, docs/FPS60_PLAN.md step A): paint A is presented here, after
     // the logic, which ran while Aurora's GX worker translated it (presented right after the paint,
     // the game thread waited ~9 ms in aurora_end_frame's fifo drain); paint B below repaints the
-    // lists of this frame's draw pass.
+    // lists of this frame's draw pass. With COS_ASYNC_END_FRAME (Aurora patch 0018) the split does
+    // not wait for the worker either: the draw pass runs while it finishes paint A, and the draw
+    // pass's GXDrawDone (mDoGph_AfterOfDraw) is where the game waits for it, as on the console.
     const int paintB = pc_frame_split();
 #endif
     fpcDw_Handler((fpcDw_HandlerFuncFunc)fpcM_DrawIterater, (fpcDw_HandlerFunc)fpcM_Draw);

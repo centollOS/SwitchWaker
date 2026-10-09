@@ -194,3 +194,94 @@ Verified: Mac build; full `native/tools/regress.sh` passes (the mode off); with
 file-select at 16:10 and outset-control pass; Switch NRO `scripts/switch/build_native.sh
 --runtime-assets` builds. Not yet measured on the console (the next step: paint B's cost there at
 1020 MHz, Outset / Dragon Roost / Tower of the Gods).
+
+## Async end of frame (2026-10-09, Aurora patch 0018, `COS_ASYNC_END_FRAME`)
+
+Console measurement of step A: Aurora's GX FIFO worker is slower than the painter, and
+`aurora::end_frame` began with `gx::fifo::drain()`, so the game thread waited ~9 ms in the
+`aurora_end_frame` after paint B and ~5-6 ms at the split (Outset 55, Dragon Roost 52 presents/s),
+while the frame without those waits needs ~22 of 33.3 ms.
+
+Aurora's frame in Thread mode: the game thread writes GX commands into one growing buffer
+(`lib/gx/fifo.cpp`) and publishes them per draw; the worker translates them
+(`command_processor.cpp`) and records into the current gfx frame packet (`g_recorder`,
+`lib/gfx/recording.cpp`), reading game memory late (vertex arrays, display lists, textures,
+indexed matrices). `gfx::begin_frame` (frame and staging slots, `begin_recording`) and the frame's
+end (`fifo::end_frame`'s draw cache reset, `gx::texture::end_frame`: texture caches, replacement
+streaming, invalidations; `gfx::finish`: the last pass; `gfx::end_frame`: the frame to the render
+worker with the present callback) all touch the worker's state, hence the drain.
+
+Patch 0018 (`native/patches/aurora/0018-async-end-frame.patch`, off by default in Aurora):
+`aurora_set_async_end_frame(true)` makes `aurora_end_frame` freeze ImGui's draw data (game thread),
+publish the frame and queue a **frame job** at the stream's end position: the draw cache reset,
+`texture::end_frame`, `gfx::finish` and the present (`present_frame`), run by the worker when it
+has processed the stream up to there. `aurora_begin_frame` keeps its window/surface checks and
+`imgui::new_frame` on the game thread and queues `gfx::begin_frame` as a job at the same position.
+The worker runs a due job before any further command and processes no command past a pending job,
+so frames stay strictly ordered (it reads `sPublished` before the job queue; a frame's begin job is
+queued before any of its commands is published). `aurora_end_frame` returns at once unless two
+ended frames are not done (one frame in flight, `kMaxFramesInFlight`). The command buffer is reset
+whenever the worker has caught up (any drain, `GXDrawDone`, an end of frame finding it idle; never
+waiting on the buffer lock, which the worker holds while translating a range), and drained past
+64 MiB.
+
+What stays synchronous, and why:
+
+- `drain()` (`GXDrawDone`, `AuroraGXSync`, the custom draw/pass API): unchanged. The draw pass's
+  `GXDrawDone` (`mDoGph_AfterOfDraw` -> `JFWDisplay::endFrame`, every game frame) is the game's own
+  wait for the GPU and now the only per-frame wait: paint A is translated while the draw pass runs,
+  as on the console (paint processed by the GP during logic and draw, synchronised there).
+- `aurora_frame_sync()` / `fifo::sync()` waits for every queued frame job: readbacks after a frame
+  call it first (`pc_capture.cpp` `readCopy`: the picto box and the EFB peek, whose copy texture is
+  looked up in the worker's `g_gxState`; `pc_shot.cpp`: `COS_SHOT`, the debug-server shot, the
+  menu screenshot, the telescope probe), so they still run on the render worker behind their frame.
+  `gfx::gpu_synchronize` syncs too, so `release_surface`, `refresh_surface` and `resize_swapchain`
+  (which replace the EFB, swapchain and surface) never race a frame the worker is ending; so do
+  `gx::update` before a new viewport policy, `set_async_end_frame` and `fifo::shutdown`. It is a
+  no-op on the FIFO and render workers (no self-wait; `release_surface` runs on the render worker).
+- Not affected: `GXPeekZ` reads the latest finished depth snapshot (`depth_peek`, mutex), now up
+  to one frame older; display list building is game-thread only; `AuroraSetContentScale` and the
+  census request go through the FIFO or a mutex; the HD texture API locks its registry and posts
+  cache clears through atomics.
+
+Races (reasoned; nothing new on the game thread's side): everything moved to the worker was the
+worker's state already, or is changed by the game thread only after a sync (webgpu frame buffer,
+surface configuration, viewport policy); `g_frameBegun` (aurora.cpp) is written by whichever thread
+begins/ends frames, the switch between them synced. The new overlap with game memory: paint B is
+translated while the game thread runs `pc_frame_end`, the pace wait, `pc_frame_begin`, paint A
+and the logic (until the split's bounded wait / the draw pass's `GXDrawDone`). Paint A paints the
+same lists and its paint-time writes are those the purity checker lists (by value into the FIFO,
+the double-buffered mDoGph heaps and J3D draw matrices, host texture ids), so a worker reading
+paint B's memory late sees the same data; the 30 fps mode already overlaps the paint with the logic
+this way. Risk: an unaudited packet that rewrites memory by pointer at paint time (a CPU-written
+texture or vertex array that is not double-buffered) could show its paint A content in paint B.
+
+Default: on with `COS_FPS60_TEST=1`, off otherwise (the 30 fps frame already waits in `GXDrawDone`,
+so it gains little); `COS_ASYNC_END_FRAME=1/0` forces it. With `COS_FPS60_TEST` the perf line's
+`fps60:` part now also gives `drawdone` (`cAPIGph_AfterOfDraw`, part of the logic) and
+`end_frame calls` (both `aurora_end_frame` calls, and the split's) with the mode.
+
+Mac numbers (M-series, `COS_FPS60_TEST=1 COS_PERF_EVERY=300`, 1200 frames, frames 301-1200, per
+game frame; "end_frame calls" = both `aurora_end_frame` calls, the split's in brackets):
+
+| | game thread ms | logic | painter | painter2 | split | drawdone | end_frame calls | presents/s |
+|---|---|---|---|---|---|---|---|---|
+| Outset `sea:44:206`, sync | 3.25-3.48 | 1.30-1.32 | 0.40-0.44 | 0.41-0.43 | 0.15-0.33 | 0.02 | 0.95-1.27 (0.14-0.31) | 59.9 |
+| Outset, async | 2.22-2.37 | 1.30-1.35 | 0.41-0.46 | 0.40-0.45 | 0.01-0.02 | 0.02-0.03 | 0.00-0.01 (0.00) | 59.9 |
+| Dragon Roost `sea:13:0`, sync | 4.07-4.37 | 1.32-1.40 | 0.51-0.52 | 0.50-0.52 | 0.45-0.63 | 0.02 | 1.56-1.93 (0.44-0.62) | 59.9 |
+| Dragon Roost, async | 2.35-2.37 | 1.29-1.32 | 0.47-0.50 | 0.47-0.50 | 0.01 | 0.02-0.03 | 0.00 (0.00) | 59.9 |
+
+The Mac's worker keeps up, so `drawdone` stays ~0 there; on the Switch the split's wait should
+partly move to `drawdone` (paint A translated during the draw pass) and paint B's ~9 ms should
+overlap the next frame's pace wait and paint A. Uncapped (`--uncapped`, Tower of the Gods):
+85 instead of 60 game frames a second.
+
+Verified: Mac build; full `native/tools/regress.sh` passes with the default (off without
+`COS_FPS60_TEST`) and with `COS_ASYNC_END_FRAME=1` forced for every run; with `COS_FPS60_TEST=1`
+(async on) the three picto-box targets pass (I8, RGB565, Windfall); `COS_SHOT` images with the mode
+on and off are byte-identical (Outset frames 450/600, Tower of the Gods 750); the ASan variant
+(`native/CMakeLists.txt`) runs Outset 1200 frames and the picto box with no report; Switch NRO
+`scripts/switch/build_native.sh --runtime-assets` builds (the Switch patches apply on top of 0018
+unchanged). A ThreadSanitizer build of the whole game links (`-Wl,-no_compact_unwind`) but aborts
+at start-up in the TSan allocator (a string freed across the CLT clang / system libc++ boundary in
+`PADInit`), so the races above are reasoned, not tool-checked. Not yet measured on the console.

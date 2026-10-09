@@ -217,6 +217,9 @@ struct PerfPhase {
     uint64_t ns = 0;
 };
 PerfPhase sPhase[PC_PERF_PHASES];
+// This frame's aurora_end_frame calls (wall time): at its end and at the split (COS_FPS60_TEST).
+uint64_t sEndCallNs = 0;
+uint64_t sSplitEndCallNs = 0;
 // COS_FPS60_TEST (pc_frame_split): paint A's wait was halved (the frame splits), paint B is running,
 // and the splits so far (presents = game frames + splits).
 bool sHalvedWait = false;
@@ -450,6 +453,9 @@ struct PerfWindow {
     uint64_t painterNs = 0;
     uint64_t painter2Ns = 0;
     uint64_t splitNs = 0;
+    uint64_t afterDrawNs = 0;    // mDoGph_AfterOfDraw (its GXDrawDone), in the logic
+    uint64_t endCallNs = 0;      // the aurora_end_frame calls themselves (frame end and split)
+    uint64_t splitEndCallNs = 0; // the split's
     uint64_t startSplits = 0;
     uint64_t cpuNs = 0;
     bool cpuValid = true;
@@ -808,6 +814,9 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
     sPerf.painterNs += f.painterNs;
     sPerf.painter2Ns += f.painter2Ns;
     sPerf.splitNs += f.splitNs;
+    sPerf.afterDrawNs += sPhase[PC_PERF_AFTER_DRAW].ns;
+    sPerf.endCallNs += sEndCallNs + sSplitEndCallNs;
+    sPerf.splitEndCallNs += sSplitEndCallNs;
     sPerf.cpuNs += f.cpuNs;
     sPerf.cpuValid = sPerf.cpuValid && f.cpuValid;
     if (sPerf.frames < gConfig.perfEvery) {
@@ -819,11 +828,17 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
     if (sPerf.cpuValid) {
         snprintf(cpu, sizeof(cpu), "%.2f ms avg", sPerf.cpuNs / n / 1e6);
     }
-    char fps60[160] = "";
+    char fps60[256] = "";
     if (pc_fps60_test()) {
-        // COS_FPS60_TEST: paint B and paint A's present (aurora_end_frame/begin_frame) per game frame.
-        snprintf(fps60, sizeof(fps60), "; fps60: painter2 %.2f, split %.2f, %.1f presents/s",
-                 sPerf.painter2Ns / n / 1e6, sPerf.splitNs / n / 1e6,
+        // COS_FPS60_TEST: paint B and paint A's present (aurora_end_frame/begin_frame) per game frame;
+        // the waits for Aurora's GX worker: GXDrawDone after the draw pass (in the logic) and the
+        // aurora_end_frame calls (both, and the split's), with COS_ASYNC_END_FRAME or without.
+        snprintf(fps60, sizeof(fps60),
+                 "; fps60: painter2 %.2f, split %.2f, drawdone %.2f, end_frame calls %.2f (split %.2f, %s), "
+                 "%.1f presents/s",
+                 sPerf.painter2Ns / n / 1e6, sPerf.splitNs / n / 1e6, sPerf.afterDrawNs / n / 1e6,
+                 sPerf.endCallNs / n / 1e6, sPerf.splitEndCallNs / n / 1e6,
+                 aurora_get_async_end_frame() ? "async" : "sync",
                  wallS > 0 ? (n + (double)(sSplits - sPerf.startSplits)) / wallS : 0.0);
     }
     if (gConfig.perfLog) {
@@ -1016,6 +1031,18 @@ int pc_fps60_test(void) {
     return on;
 }
 
+// COS_ASYNC_END_FRAME (Aurora patch 0018, docs/FPS60_PLAN.md "Async end of frame"): aurora_end_frame
+// does not wait for Aurora's GX worker to drain the frame; the worker ends it and begins the next, and
+// the game thread goes on (at most one ended frame ahead). =1 on, =0 off; unset: on with COS_FPS60_TEST.
+// Readbacks after a frame (the picto box, COS_SHOT) call aurora_frame_sync first.
+static bool asyncEndFrameWanted() {
+    const char* v = getenv("COS_ASYNC_END_FRAME");
+    if (v != nullptr && (v[0] == '0' || v[0] == '1')) {
+        return v[0] == '1';
+    }
+    return pc_fps60_test() != 0;
+}
+
 unsigned int pc_frame_wait_retraces(unsigned int retraces) {
     if (sPaintExtra) {
         // paint B: the split frame's second retrace (none for COS_PAINT_PURITY_REPEAT's second run)
@@ -1036,7 +1063,11 @@ int pc_frame_split(void) {
         JKRPcHostAllocScope hostAlloc;
         // The FPS overlay in paint A's frame too (it counts presents), so it does not flicker.
         overlayFrame(0, false);
+        const uint64_t endCallStart = sPerfOn ? monotonicNs() : 0;
         aurora_end_frame();
+        if (sPerfOn) {
+            sSplitEndCallNs += monotonicNs() - endCallStart;
+        }
         // A picto box copy asked for by paint A is read back after its frame (pc_capture.cpp).
         captureFrameEnd();
     }
@@ -1092,6 +1123,12 @@ void pc_frame_begin(void) {
         writef(STDERR_FILENO, "[cos] frame loop: start, %s\n",
                gConfig.uncapped ? "uncapped (COS_UNCAPPED)" : "paced by JFWDisplay");
         sTraceFrame = pc_trace_enabled("frame") != 0;
+        // Between frames, before the loop's first aurora_begin_frame.
+        if (asyncEndFrameWanted()) {
+            aurora_set_async_end_frame(true);
+            writef(STDERR_FILENO, "[cos] COS_ASYNC_END_FRAME: aurora_end_frame leaves the frame's end to "
+                                  "Aurora's GX worker (at most one frame ahead)\n");
+        }
     }
     sFrameStartNs = monotonicNs();
     sPaceStartNs = sPaceEndNs = 0;
@@ -1103,6 +1140,7 @@ void pc_frame_begin(void) {
         for (PerfPhase& phase : sPhase) {
             phase.ns = 0;
         }
+        sEndCallNs = sSplitEndCallNs = 0;
     }
     pumpEvents();
     sEventsDoneNs = monotonicNs();
@@ -1145,7 +1183,11 @@ void pc_frame_end(void) {
     {
         // Aurora's frame work allocates host memory, not the game's current heap (JKRHeap.cpp).
         JKRPcHostAllocScope hostAlloc;
+        const uint64_t endCallStart = sPerfOn ? monotonicNs() : 0;
         aurora_end_frame();
+        if (sPerfOn) {
+            sEndCallNs += monotonicNs() - endCallStart;
+        }
         // The picto box's photo (pc_capture.cpp): its GPU copy into the game's buffer.
         captureFrameEnd();
         // COS_SHOT: the frame is queued to Aurora's render worker; the readback goes in behind it.

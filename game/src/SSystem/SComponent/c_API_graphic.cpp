@@ -32,5 +32,13 @@ void cAPIGph_BeforeOfDraw(void) {
 
 /* 802413BC-802413EC       .text cAPIGph_AfterOfDraw__Fv */
 void cAPIGph_AfterOfDraw(void) {
+#if TARGET_PC
+    // mDoGph_AfterOfDraw ends with JFWDisplay::endFrame's GXDrawDone: the wait for Aurora's GX worker
+    // to finish the frame's paint (COS_PERF_EVERY's "drawdone", part of the logic).
+    pc_perf_begin(PC_PERF_AFTER_DRAW);
     g_cAPI_Interface.mpAfterOfDraw();
+    pc_perf_end(PC_PERF_AFTER_DRAW);
+#else
+    g_cAPI_Interface.mpAfterOfDraw();
+#endif
 }
