@@ -72,6 +72,16 @@ enum AuroraSwitchDkStat {
 };
 void aurora_switch_dk_gfx_stats(uint64_t* out, size_t count);
 
+// GPU time per group (the perf-switch "gpu groups" line, COS_GPU_GROUPS; dk_encode.cpp): running totals
+// by group id, the same layout as the GL NRO's dawn_switch_gl_gpu_groups. The number written to out.
+typedef struct AuroraSwitchGpuGroup {
+    char name[64];
+    uint64_t ns;
+    uint64_t segments;
+    uint64_t draws;
+} AuroraSwitchGpuGroup;
+size_t aurora_switch_dk_gpu_groups(AuroraSwitchGpuGroup* out, size_t max);
+
 // "[cos] shaders:" for the perf window: the bytes written to out
 int aurora_switch_dk_shaders_report(char* out, size_t size);
 

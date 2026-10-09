@@ -64,6 +64,9 @@
 #endif
 #if defined(__SWITCH__)
 #include "cos_switch.h"
+#if defined(COS_SWITCH_DEKO3D)
+#include "dk_aurora.h"  // aurora_switch_dk_gpu_groups
+#endif
 
 // switch/dawn/patches/dawn-switch-gl-gpu-groups.patch: GPU time per group of draws (the frame's
 // last GX debug marker, COS_GPU_GROUPS, or the render pass's label), running totals.
@@ -615,7 +618,14 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
         // group, largest first; groups are EFB passes, or draw-list buckets with COS_GPU_GROUPS.
         static std::vector<DawnSwitchGpuGroup> sGroupsPrev;
         static std::vector<DawnSwitchGpuGroup> sGroupsNow(512);
+#if defined(COS_SWITCH_DEKO3D)
+        // the deko3d NRO's timestamps (switch/deko/dk_aurora.h), the same layout
+        static_assert(sizeof(AuroraSwitchGpuGroup) == sizeof(DawnSwitchGpuGroup), "GPU group layout");
+        const size_t groupCount = aurora_switch_dk_gpu_groups(
+            reinterpret_cast<AuroraSwitchGpuGroup*>(sGroupsNow.data()), sGroupsNow.size());
+#else
         const size_t groupCount = dawn_switch_gl_gpu_groups(sGroupsNow.data(), sGroupsNow.size());
+#endif
         if (gpuFrames > 0 && groupCount > 0) {
             struct Row {
                 const char* name;

@@ -25,6 +25,8 @@
 // frame), as SwitchWakerHD's, so the GPU starts on a frame while the FIFO thread still records it.
 #include "dk_encode.hpp"
 
+#include "dk_aurora.h"
+
 #include "dk_gfx.hpp"
 
 #include "gfx/clear.hpp"
@@ -42,7 +44,10 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <mutex>
 #include <string>
+#include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace aurora::gfx::dk {
@@ -105,11 +110,51 @@ uint32_t g_submitDraws = 256;
 constexpr uint32_t kMaxMarks = swdk::kQuerySize / swdk::kFrames / 16;
 struct Marks {
     GpuWork work[kMaxMarks];
+    uint16_t group[kMaxMarks];  // the GPU group of the segment that ends at each mark
+    uint32_t draws[kMaxMarks];  // its draws
     uint32_t count = 0;
     uint64_t cpuNs = 0;  // when the frame was opened
 };
 Marks g_marks[swdk::kFrames];
 bool g_gpuTimers = true;
+
+// ---- GPU time per group (the perf-switch "gpu groups" line; dawn-switch-gl-gpu-groups.patch is the GL
+// NRO's): a group is the frame's last GX debug marker (the native port inserts one per draw-list bucket
+// with COS_GPU_GROUPS=1, per J3D material with =2), or before the frame's first marker the render pass's
+// label; the other segments are named by their kind ("copies", "conversions", "present", "imgui").
+// Running totals by group id, read by aurora_switch_dk_gpu_groups.
+constexpr size_t kMaxGroups = 512;
+std::mutex g_groupMutex;
+std::vector<AuroraSwitchGpuGroup> g_groups;                // guarded by g_groupMutex; id 0 "(none)"
+std::unordered_map<std::string, uint16_t> g_groupIds;     // render worker
+uint16_t g_frameMarker = 0;  // the frame's last marker's group, 0 before its first
+uint16_t g_openGroup = 0;    // the group of the EFB segment being recorded
+uint64_t g_segDrawsStart = 0;
+
+uint16_t intern_group(std::string_view name) {
+    if (name.empty()) name = "(unlabelled)";
+    const std::string key(name);
+    if (auto it = g_groupIds.find(key); it != g_groupIds.end()) return it->second;
+    std::lock_guard<std::mutex> lock(g_groupMutex);
+    if (g_groups.empty()) g_groups.push_back(AuroraSwitchGpuGroup{"(none)", 0, 0, 0});
+    if (g_groups.size() >= kMaxGroups) return 0;
+    AuroraSwitchGpuGroup total{};
+    const size_t n = std::min(name.size(), sizeof(total.name) - 1);
+    memcpy(total.name, name.data(), n);
+    total.name[n] = '\0';
+    const uint16_t id = uint16_t(g_groups.size());
+    g_groups.push_back(total);
+    g_groupIds.emplace(key, id);
+    return id;
+}
+
+uint16_t work_group(GpuWork work) {
+    static const uint16_t ids[] = {
+        intern_group("(frame start)"), 0, intern_group("conversions"), intern_group("copies"),
+        intern_group("present"),       intern_group("imgui"), intern_group("other"),
+    };
+    return work == GpuWork::Efb ? g_openGroup : ids[size_t(work)];
+}
 
 // the GPU's timer against the CPU's (SwitchWakerHD backend.cpp GpuClock): deko3d's dkTimestampToNs
 // assumes 31.25 MHz, the Tegra X1's runs at 19.2 MHz; measured over the session from the frames' first
@@ -149,6 +194,14 @@ void read_marks(uint64_t frame) {
                 g_stats.gpuNs[size_t(m.work[i])] += uint64_t(double(dkTimestampToNs(ts[i] - ts[i - 1])) * g_clock.factor);
             g_stats.gpuTotalNs += uint64_t(double(dkTimestampToNs(ts[m.count - 1] - ts[0])) * g_clock.factor);
             g_stats.gpuFrames++;
+            std::lock_guard<std::mutex> lock(g_groupMutex);
+            for (uint32_t i = 1; i < m.count; i++) {
+                if (m.group[i] >= g_groups.size()) continue;
+                AuroraSwitchGpuGroup& g = g_groups[m.group[i]];
+                g.ns += uint64_t(double(dkTimestampToNs(ts[i] - ts[i - 1])) * g_clock.factor);
+                g.segments++;
+                g.draws += m.draws[i];
+            }
         } else {
             g_stats.gpuDropped++;
         }
@@ -657,10 +710,11 @@ void efb_copy(const RenderPass& pass) {
 }
 
 // ---- passes
-void encode_pass(RenderPass& pass) {
+void encode_pass(FramePacket& frame, RenderPass& pass) {
     if (!pass.sealed) return;
     for (const auto& conv : pass.paletteConvs) palette_conv(conv);
     if (pass.discardable) return;
+    if (g_gpuTimers) g_openGroup = g_frameMarker != 0 ? g_frameMarker : intern_group(pass.label);
     if (pass.msaaSamples > 1) log_once("a multisampled pass (drawn single-sampled)");
     const auto& scene = pass.colorAttachments[SceneColorAttachmentIndex];
     const uint32_t tw = scene.size.width, th = scene.size.height;
@@ -736,7 +790,17 @@ void encode_pass(RenderPass& pass) {
             log_once("a runtime-registered draw type");
             g_stats.skippedOther++;
             break;
-        case CommandType::DebugMarker: break;
+        case CommandType::DebugMarker:
+            if (g_gpuTimers && c.data.debugMarkerIndex < frame.debugMarkers.size()) {
+                // the draws after it form a new group
+                const uint16_t g = intern_group(frame.debugMarkers[c.data.debugMarkerIndex]);
+                g_frameMarker = g;
+                if (g != g_openGroup) {
+                    gpu_mark(GpuWork::Efb);
+                    g_openGroup = g;
+                }
+            }
+            break;
         }
     }
     // later passes and copies read what this one wrote
@@ -775,6 +839,9 @@ void gpu_mark(GpuWork work) {
     }
     const swdk::QueryRegion q = swdk::query_region(frame);
     dkCmdBufReportCounter(R.cmd, DkCounter_Timestamp, q.gpu + uint64_t(m.count) * 16);
+    m.group[m.count] = work_group(work);
+    m.draws[m.count] = uint32_t(g_stats.draws - g_segDrawsStart);
+    g_segDrawsStart = g_stats.draws;
     m.work[m.count++] = work;
 }
 
@@ -854,6 +921,9 @@ void frame_begin(FramePacket& frame) {
     if (f > swdk::kFrames) read_marks(f - swdk::kFrames);  // that frame's fence was waited for in frame_open
     g_marks[f % swdk::kFrames].count = 0;
     g_marks[f % swdk::kFrames].cpuNs = swdk::now_ns();
+    g_frameMarker = 0;
+    g_openGroup = 0;
+    g_segDrawsStart = g_stats.draws;
     g_frame = FrameState{};
     g_frame.open = true;
     // the previous frame's draws may still sample what this frame's first upload overwrites: the copy
@@ -873,7 +943,7 @@ void encode_op(FramePacket& frame, const FrameOp& op) {
     do_uploads(op);
     switch (op.type) {
     case FrameOpType::RenderPass:
-        if (op.renderPass) encode_pass(*op.renderPass);
+        if (op.renderPass) encode_pass(frame, *op.renderPass);
         break;
     case FrameOpType::TextureCopy:
         if (op.textureCopy) texture_copy(*op.textureCopy);
@@ -893,3 +963,11 @@ OverflowUpload overflow_upload(const uint8_t* data, uint32_t bytesPerRow, uint32
 }
 
 }  // namespace aurora::gfx::dk
+
+extern "C" size_t aurora_switch_dk_gpu_groups(AuroraSwitchGpuGroup* out, size_t max) {
+    using namespace aurora::gfx::dk;
+    std::lock_guard<std::mutex> lock(g_groupMutex);
+    const size_t n = std::min(max, g_groups.size());
+    for (size_t i = 0; i < n; i++) out[i] = g_groups[i];
+    return n;
+}
