@@ -1697,6 +1697,12 @@ bool dDlst_shadowControl_c::addReal(u32 key, J3DModel* model) {
 int dDlst_shadowControl_c::setSimple(cXyz* pos, f32 groundY, f32 scaleXZ, cXyz* floor_nrm, s16 rotY, f32 scaleZ, GXTexObj* tex) {
     if (floor_nrm == NULL || mSimpleNum >= ARRAY_SIZE(mSimple))
         return false;
+#if TARGET_PC
+    // Actors pass &dComIfG_Bgsp()->GetTriPla(...)->mNormal unchecked; when the floor's collision
+    // is gone that is NULL plus the member's offset. No shadow rather than a read near 0.
+    if ((uintptr_t)floor_nrm < 0x1000)
+        return false;
+#endif
 
     mSimple[mSimpleNum].set(pos, groundY, scaleXZ, floor_nrm, rotY, scaleZ, tex);
     mSimpleNum++;
