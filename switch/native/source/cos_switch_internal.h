@@ -32,7 +32,9 @@ void cos_switch_debug_start(void);
 // cos_debug.cpp, for the gamepad shim (switch/aurora/sdl3_shim/sdl3_shim_gamepad.c): the debug server's
 // presses added to the controller's buttons (HidNpadButton bits) and its sticks over the controller's
 // (left x, y, right x, y; libnx units, up positive). Nothing while the server does not run.
-void cos_switch_debug_input(uint64_t* buttons, int32_t sticks[4]);
+// Returns 1 while it runs: the controller then counts as connected even with none attached
+// (docked with the Joy-Cons off the console), so the game takes the server's presses.
+int cos_switch_debug_input(uint64_t* buttons, int32_t sticks[4]);
 
 // The game's main (m_Do_main.cpp; <aurora/main.h> renames it).
 int aurora_main(int argc, char* argv[]);

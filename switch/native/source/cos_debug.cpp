@@ -176,9 +176,9 @@ extern "C" void cos_switch_debug_start(void) {
     }
 }
 
-extern "C" void cos_switch_debug_input(uint64_t* buttons, int32_t sticks[4]) {
+extern "C" int cos_switch_debug_input(uint64_t* buttons, int32_t sticks[4]) {
     if (!debugsrv::running()) {
-        return;
+        return 0;
     }
     const debugsrv::Injected in = debugsrv::injected();
     *buttons |= in.buttons;
@@ -188,4 +188,5 @@ extern "C" void cos_switch_debug_input(uint64_t* buttons, int32_t sticks[4]) {
             sticks[2 * s + 1] = (int32_t)(in.y[s] * JOYSTICK_MAX);
         }
     }
+    return 1;
 }
