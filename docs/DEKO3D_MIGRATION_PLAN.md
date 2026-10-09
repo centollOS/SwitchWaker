@@ -862,7 +862,10 @@ Options A/B (2026-10-09, handheld 1.5, NRO 0.2.0-5, same warp each, 300-frame GP
 | Forbidden Woods `kindan:0`, defaults (mist 1/4) | 11.84 | |
 | `COS_MIST_LOWRES=0` / `2` | 11.15 / 11.92 | mist 1/4 not cheaper here than full |
 
-Open: the black shadow with `COS_SKY_LOWRES=2` (not yet known whether GL or the Mac show it: a Mac
+Decision (2026-10-09, user: remove what we can, GL goes with the next release): sky, mist and
+offscreen shadow options removed (1b58666), which also closes the black shadow below.
+
+Was open: the black shadow with `COS_SKY_LOWRES=2` (not yet known whether GL or the Mac show it: a Mac
 shot at `sea:44:206` frame 400 has no Link in view); the system Capture button on deko3d.
 
 Remaining console checks: `COS_DYNRES=1` in a heavy spot (level changes in the log), dock/undock
