@@ -1,8 +1,16 @@
 /*
- * pc_gpu_opts.h - the depth-of-field switch and the GPU-group diagnostics of the native port
- * (docs/SWITCH_PERF_STUDY.md; native/src/pc/features/pc_gpu_opts.cpp). The lower-resolution sky and
- * mist and the offscreen shadow casters were removed once the deko3d renderer made them pointless
- * (docs/DEKO3D_MIGRATION_PLAN.md, phase 4).
+ * pc_gpu_opts.h - the mist at a lower resolution, the depth-of-field switch and the GPU-group
+ * diagnostics of the native port (docs/SWITCH_PERF_STUDY.md; native/src/pc/features/pc_gpu_opts.cpp).
+ * The lower-resolution sky and the offscreen shadow casters were removed once the deko3d renderer
+ * made them pointless (docs/DEKO3D_MIGRATION_PLAN.md, phase 4); the mist stayed: at full resolution
+ * it cost 12.9 ms of GPU a frame in the Tower of the Gods (90 sprites).
+ *
+ * COS_MIST_LOWRES=<n>    (default 4; 0 = off; [dev] only, no menu row) the mist (drawCloudShadow,
+ *                         d_kankyo_rain.cpp: up to 100 blended sprites with no depth test, many screens
+ *                         of fragments in the forests and the Tower) is drawn into an offscreen target 1/n
+ *                         of the EFB in each direction and composited with the same blend equation
+ *                         (n = 2, 3 or 4; 0 or 1 = off). Skipped while spot lights or motion blur read
+ *                         the EFB alpha the mist used to write.
  *
  * COS_DOF=0               drawDepth (m_Do_graphic.cpp, every play frame: the distance blur, i.e.
  *                         depth of field) is skipped while neither the monotone (grey) effect nor
@@ -39,6 +47,12 @@ extern "C" {
    scale_copy_dst): lround(logical * EFB pixels / logical EFB size), at least 1. */
 void pc_efb_pixel_size(unsigned int logicalW, unsigned int logicalH, unsigned int* outW,
                        unsigned int* outH);
+
+/* COS_MIST_LOWRES: the divisor (0 = off). */
+int pc_mist_lowres(void);
+/* The low-resolution mist target's size for the current EFB and a host buffer to name its copy
+   texture (GXCopyTex destination), or NULL when the target would be under 16x16. */
+void* pc_mist_lowres_target(unsigned int* w, unsigned int* h);
 
 /* Zero when COS_DOF=0 (the depth-of-field composite is skipped where that is safe). */
 int pc_dof_enabled(void);

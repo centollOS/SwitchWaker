@@ -13,6 +13,30 @@
 
 #include "helpers/endian.h"
 
+/*
+ * A callable handed to a hook, which calls it back: e.g. a lambda that draws with the game
+ * function's locals. Holds a reference: the callable must outlive the hook call.
+ */
+class PcFnRef {
+public:
+    template <typename F>
+    PcFnRef(F& f) : mCall(&callImpl<F>), mObj(&f) {}
+    void operator()() const { mCall(mObj); }
+
+private:
+    template <typename F>
+    static void callImpl(void* obj) { (*static_cast<F*>(obj))(); }
+    void (*mCall)(void*);
+    void* mObj;
+};
+
+/* ---- The mist at a lower resolution (pc_gpu_opts.h), native/src/pc/game_hooks/pc_gpu_hooks.cpp --- */
+
+/* drawCloudShadow (d_kankyo_rain.cpp): draws the mist sprites, at a reduced resolution with
+   COS_MIST_LOWRES (default 1/4), or as the GameCube does. drawSprites draws them with the current GX
+   state. */
+void pc_kyr_draw_mist(PcFnRef drawSprites);
+
 /* ---- Picto box capture (m_Do_graphic.cpp), native/src/pc/game_hooks/pc_capture.cpp ---------- */
 
 /* mDoGph_Painter, capture step 3 (bug B36): whether the GXCopyTex picture is in dest, in RAM, for

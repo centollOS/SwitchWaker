@@ -1,4 +1,5 @@
-// The depth-of-field switch and the GPU-group diagnostics (native/include/pc/pc_gpu_opts.h).
+// The mist at a lower resolution, the depth-of-field switch and the GPU-group diagnostics
+// (native/include/pc/pc_gpu_opts.h).
 #include "pc/pc_gpu_opts.h"
 #include "pc/pc_dynres.h"
 
@@ -37,6 +38,7 @@ namespace {
 
 // -1 until the first call reads the variable.
 int sDof = -1;
+int sMistLowres = -1;
 
 bool envIs(const char* name, const char* value) {
     const char* v = getenv(name);
@@ -117,6 +119,76 @@ void packetLabel(const void* packet, char* out, size_t size) {
 } // namespace
 
 extern "C" {
+
+// Frames from a comma-separated list (for A/B checks that must render both variants of one frame:
+// the game's timing, and with it the scene, drifts as soon as a frame costs more or less).
+static std::vector<unsigned int> parseFrames(const char* list) {
+    std::vector<unsigned int> frames;
+    while (list != nullptr && *list != '\0') {
+        char* end = nullptr;
+        const unsigned long n = strtoul(list, &end, 10);
+        if (end == list) {
+            break;
+        }
+        frames.push_back((unsigned int)n);
+        list = *end == ',' ? end + 1 : end;
+    }
+    std::sort(frames.begin(), frames.end());
+    return frames;
+}
+
+int pc_mist_lowres(void) {
+    static std::vector<unsigned int> sOnlyFrames;
+    if (sMistLowres < 0) {
+        // Default 4 (docs/SWITCH_PERF_STUDY.md, section 8: Mac A/B of the same frame within 7/255,
+        // mean 1.5/255, at 2, 3 and 4 alike); COS_MIST_LOWRES=0 draws the mist as before.
+        const char* v = getenv("COS_MIST_LOWRES");
+        sMistLowres = v == nullptr || v[0] == '\0' ? 4 : atoi(v);
+        sMistLowres = sMistLowres < 2 ? 0 : sMistLowres > 4 ? 4 : sMistLowres;
+        // COS_MIST_LOWRES_FRAMES=<frame>[,...]: only in those game frames (Mac pixel checks).
+        sOnlyFrames = parseFrames(getenv("COS_MIST_LOWRES_FRAMES"));
+        if (sMistLowres != 0) {
+            pc::writef(STDERR_FILENO, "[cos] COS_MIST_LOWRES=%d: forest mist drawn at 1/%d resolution%s\n",
+                       sMistLowres, sMistLowres, sOnlyFrames.empty() ? "" : " in the listed frames only");
+        }
+    }
+    if (!sOnlyFrames.empty() &&
+        !std::binary_search(sOnlyFrames.begin(), sOnlyFrames.end(), pc_frame_count() + 1)) {
+        return 0;
+    }
+    return sMistLowres;
+}
+
+void* pc_mist_lowres_target(unsigned int* w, unsigned int* h) {
+    static std::vector<unsigned char> sBuffer;
+    static unsigned int sLastW = 0, sLastH = 0;
+    const int div = pc_mist_lowres();
+    if (div < 2) {
+        return nullptr;
+    }
+    unsigned int efbW = 0, efbH = 0;
+    pc_efb_pixel_size(640, 480, &efbW, &efbH);
+    const unsigned int tw = (efbW + div - 1) / div;
+    const unsigned int th = (efbH + div - 1) / div;
+    if (tw < 16 || th < 16) {
+        return nullptr;
+    }
+    // GXCopyTex names the copy texture by its destination; RGBA8 tiles are 4x4 texels of 4 bytes.
+    const size_t bytes = (size_t)((tw + 3) & ~3u) * ((th + 3) & ~3u) * 4;
+    if (sBuffer.size() < bytes) {
+        JKRPcHostAllocScope hostAlloc; // not the game's heaps
+        sBuffer.resize(bytes);
+    }
+    if (tw != sLastW || th != sLastH) {
+        sLastW = tw;
+        sLastH = th;
+        pc::writef(STDERR_FILENO, "[cos] mist target %ux%u for a %ux%u EFB (frame %u)\n", tw, th, efbW, efbH,
+                   pc_frame_count());
+    }
+    *w = tw;
+    *h = th;
+    return sBuffer.data();
+}
 
 int pc_gpu_groups_level = 0;
 
