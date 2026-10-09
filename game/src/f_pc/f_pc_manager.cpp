@@ -5,6 +5,9 @@
 
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "f_pc/f_pc_manager.h"
+#if TARGET_PC
+#include "pc/game_hooks.h"
+#endif
 #include "f_pc/f_pc_creator.h"
 #include "f_pc/f_pc_draw.h"
 #include "f_pc/f_pc_deletor.h"
@@ -292,6 +295,14 @@ void fpcM_Management(fpcM_ManagementFunc callBack1, fpcM_ManagementFunc callBack
 
     if (callBack2 != NULL)
         callBack2();
+#if TARGET_PC
+    // COS_FPS60_TEST (pc_frame.cpp): a second present per game frame, the same scene drawn again,
+    // to measure what 60 presents a second cost (frame interpolation, step 1).
+    if (pc_frame_extra()) {
+        cAPIGph_Painter();
+        fpcDw_Handler((fpcDw_HandlerFuncFunc)fpcM_DrawIterater, (fpcDw_HandlerFunc)fpcM_Draw);
+    }
+#endif
 }
 
 /* 8003ED90-8003EDCC       .text fpcM_Init__Fv */

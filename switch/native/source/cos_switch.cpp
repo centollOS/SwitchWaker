@@ -433,11 +433,56 @@ bool setGpuProfile(const char* profile) {
     return false;
 }
 
+// COS_SWITCH_CPU_HZ=<hz> ([dev] only, for measurements; no menu row): the CPU clock through clkrst
+// (as sys-clk and SwitchWakerHD's CPU option do), back to the stock 1020 MHz when the game ends. apm
+// re-applies its own configuration on a dock change, which resets it.
+bool gCpuChanged = false;
+ClkrstSession gClkCpu;
+
+void applyCpuClock() {
+    const char* v = getenv("COS_SWITCH_CPU_HZ");
+    if (v == nullptr || v[0] == '\0') {
+        return;
+    }
+    const u32 hz = (u32)strtoul(v, nullptr, 0);
+    if (gCpuChanged) {
+        clkrstSetClockRate(&gClkCpu, hz);  // again (after a focus change)
+        return;
+    }
+    Result rc = hosversionAtLeast(8, 0, 0) ? clkrstInitialize() : MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+    if (R_SUCCEEDED(rc)) {
+        rc = clkrstOpenSession(&gClkCpu, PcvModuleId_CpuBus, 3);
+    }
+    if (R_SUCCEEDED(rc)) {
+        rc = clkrstSetClockRate(&gClkCpu, hz);
+        gCpuChanged = R_SUCCEEDED(rc);
+    }
+    u32 now = 0;
+    if (gCpuChanged) {
+        clkrstGetClockRate(&gClkCpu, &now);
+    }
+    sayf("[switch] cpu clock: COS_SWITCH_CPU_HZ=%u: rc 0x%x, now %.1f MHz (a measurement setting)\n", (unsigned)hz,
+         (unsigned)rc, now / 1e6);
+}
+
+void restoreCpuClock() {
+    if (!gCpuChanged) {
+        return;
+    }
+    gCpuChanged = false;
+    const Result rc = clkrstSetClockRate(&gClkCpu, 1020000000u);
+    clkrstCloseSession(&gClkCpu);
+    clkrstExit();
+    sayf("[switch] cpu clock: back to 1020 MHz: rc 0x%x\n", (unsigned)rc);
+}
+
 void applyGpuProfile() {
     setGpuProfile(getenv("COS_SWITCH_GPU_PROFILE"));
+    applyCpuClock();
 }
 
 void restoreGpuProfile() {
+    restoreCpuClock();
     if (!gApmChanged) {
         return;
     }

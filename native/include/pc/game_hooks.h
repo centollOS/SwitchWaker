@@ -52,6 +52,18 @@ void pc_logo_scene_created_hook();
    retraces the console's VI interrupt would have counted meanwhile (step 6.2). */
 void pc_wait_for_tick(unsigned int p1, unsigned short p2);
 
+/* ---- 60 presents a second (pc_frame.cpp) -------------------------------------------------------- */
+
+/* fpcM_Management (f_pc_manager.cpp), after the game frame's draw pass: with COS_FPS60_TEST=1 and
+   a game frame of two retraces, ends this Aurora frame, begins another and returns 1: the caller
+   paints and runs the draw pass again (the same scene presented twice; each paint then waits one
+   retrace instead of two). 0 otherwise. A measurement of the cost of 60 presents a second. */
+extern "C" int pc_frame_extra(void);
+/* COS_FPS60_TEST: 1 when on (read once). */
+extern "C" int pc_fps60_test(void);
+/* pc_wait_for_tick: whether the frame's last wait was halved (a two-retrace frame under the test). */
+extern "C" void pc_frame_halved_wait(int halved);
+
 /* ---- Collision data (c_bg_s.cpp), native/src/pc/game_hooks/pc_c_bg_s.cpp --------------------- */
 
 class cBgD_t;

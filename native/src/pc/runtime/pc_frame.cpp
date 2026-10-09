@@ -975,6 +975,49 @@ void pc_frame_pace(unsigned long long periodNs) {
     }
 }
 
+int pc_fps60_test(void) {
+    static const int on = [] {
+        const char* v = getenv("COS_FPS60_TEST");
+        const int o = v != nullptr && v[0] == '1';
+        if (o) {
+            writef(STDERR_FILENO, "[cos] COS_FPS60_TEST=1: every game frame of two retraces is presented "
+                                  "twice (the same scene painted again), each paint waiting one retrace\n");
+        }
+        return o;
+    }();
+    return on;
+}
+
+static int sHalvedWait = 0;
+
+void pc_frame_halved_wait(int halved) { sHalvedWait = halved; }
+
+int pc_frame_extra(void) {
+    // only for the game's 30 fps frames (two retraces, the last wait halved)
+    if (!pc_fps60_test() || !sHalvedWait) {
+        return 0;
+    }
+    {
+        JKRPcHostAllocScope hostAlloc;
+        if (gConfig.fpsOverlay) {
+            overlayFrame(0);
+        }
+        aurora_end_frame();
+    }
+    for (;;) {
+        bool begun;
+        {
+            JKRPcHostAllocScope hostAlloc;
+            begun = aurora_begin_frame();
+        }
+        if (begun) {
+            break;
+        }
+        usleep(1000);
+    }
+    return 1;
+}
+
 void pc_frame_begin(void) {
     if (sLoopStartNs == 0) {
         sLoopStartNs = monotonicNs();
