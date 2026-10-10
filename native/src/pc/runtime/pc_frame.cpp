@@ -848,8 +848,8 @@ void fifoProfileLine(double frames) {
            "[cos] perf fifo per game frame (sampled, %.0f samples): busy %.2f ms, idle %.2f; parse %.2f, jobs %.2f, "
            "bp %.2f, xf %.2f, cp %.2f, aurora %.2f, draw %.2f, pipeline %.2f + lookup %.2f, textures %.2f, binds %.2f, "
            "uniforms %.2f, arrays %.2f, command %.2f; %.0f draws +%.0f merged, %.0f bp, %.0f xf, %.0f pipeline "
-           "changes (%.0f from the frame's memo), %.0f bind "
-           "builds, %.0f uniforms %.1f KiB, vertices %.1f KiB, arrays %.1f KiB, stream %.1f KiB\n",
+           "changes (%.0f from the frame's memo), %.0f bind builds (%.0f from the memo), "
+           "%.0f uniforms %.1f KiB, vertices %.1f KiB, arrays %.1f KiB, stream %.1f KiB\n",
            d[AURORA_FIFO_PROFILE_SAMPLES], busy / 1e6, ms(AURORA_FIFO_PROFILE_IDLE), ms(AURORA_FIFO_PROFILE_PROCESS),
            ms(AURORA_FIFO_PROFILE_JOB), ms(AURORA_FIFO_PROFILE_BP), ms(AURORA_FIFO_PROFILE_XF),
            ms(AURORA_FIFO_PROFILE_CP), ms(AURORA_FIFO_PROFILE_AURORA), ms(AURORA_FIFO_PROFILE_DRAW),
@@ -857,7 +857,8 @@ void fifoProfileLine(double frames) {
            ms(AURORA_FIFO_PROFILE_BIND), ms(AURORA_FIFO_PROFILE_UNIFORM),
            ms(AURORA_FIFO_PROFILE_ARRAYS), ms(AURORA_FIFO_PROFILE_COMMAND), d[AURORA_FIFO_PROFILE_DRAWS],
            d[AURORA_FIFO_PROFILE_MERGED], d[AURORA_FIFO_PROFILE_BP_LOADS], d[AURORA_FIFO_PROFILE_XF_LOADS],
-           d[AURORA_FIFO_PROFILE_PIPELINES], d[AURORA_FIFO_PROFILE_PIPELINE_MEMO_HITS], d[AURORA_FIFO_PROFILE_BINDS], d[AURORA_FIFO_PROFILE_UNIFORMS],
+           d[AURORA_FIFO_PROFILE_PIPELINES], d[AURORA_FIFO_PROFILE_PIPELINE_MEMO_HITS], d[AURORA_FIFO_PROFILE_BINDS],
+           d[AURORA_FIFO_PROFILE_BIND_MEMO_HITS], d[AURORA_FIFO_PROFILE_UNIFORMS],
            d[AURORA_FIFO_PROFILE_UNIFORM_BYTES] / 1024.0, d[AURORA_FIFO_PROFILE_VERTEX_BYTES] / 1024.0,
            d[AURORA_FIFO_PROFILE_ARRAY_BYTES] / 1024.0, d[AURORA_FIFO_PROFILE_STREAM_BYTES] / 1024.0);
 }
