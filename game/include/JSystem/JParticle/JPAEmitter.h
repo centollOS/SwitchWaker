@@ -391,6 +391,9 @@ private:
 private:
     friend class JPAEmitterManager;
     friend class JPABaseParticle;
+#if TARGET_PC
+    friend struct PcFps60JpaAccess; // 60 fps step D (pc_fps60_particles.cpp)
+#endif
 
     /* 0x000 */ VolumeFunc mVolumeFunc;
     /* 0x00C */ JGeometry::TVec3<f32> mEmitterScale;

@@ -300,6 +300,9 @@ public:
     /* 0x04 */ GXTexObj* mpTexObj;
     /* 0x08 */ Mtx mVolumeMtx;
     /* 0x38 */ Mtx mMtx;
+#if TARGET_PC
+    const void* mPcKey; // 60 fps step D: the caster's position pointer (pc_fps60_packet_mtx's key)
+#endif
 };  // Size: 0x68
 
 struct cBgD_Vtx_t;

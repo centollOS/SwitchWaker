@@ -1174,10 +1174,24 @@ void dDlst_shadowReal_c::imageDraw(Mtx drawMtx) {
             (*modelP)->viewCalc();
             J3DModelData* modelData = (*modelP)->getModelData();
             modelData->getShapeNodePointer(0)->loadPreDrawSetting();
+#if TARGET_PC
+            // 60 fps step D (game_hooks.h): a CPU-skinned caster blended in paint B (the boat): its
+            // skinned vertices are N+1's; the light view times its blended turn/move casts it at t.
+            Mtx pcSkinDelta, pcLightMtx;
+            Mtx* pcBase = &mViewMtx;
+            if (pc_fps60_models_skin_delta(*modelP, pcSkinDelta)) {
+                MTXConcat(mViewMtx, pcSkinDelta, pcLightMtx);
+                pcBase = &pcLightMtx;
+            }
+#endif
             for (u16 j = 0; j < modelData->getShapeNum(); j++) {
                 if (!modelData->getShapeNodePointer(j)->checkFlag(J3DShpFlag_Hide)) {
                     J3DShapePacket* packet = (*modelP)->getShapePacket(j);
+#if TARGET_PC
+                    packet->setBaseMtxPtr(pcBase);
+#else
                     packet->setBaseMtxPtr(&mViewMtx);
+#endif
                     packet->drawFast();
                     packet->setBaseMtxPtr((Mtx*)drawMtx);
                 }
@@ -1471,7 +1485,16 @@ void dDlst_shadowSimple_c::draw() {
 
     GXClearVtxDesc();
     GXSetVtxDesc(GX_VA_POS, GX_INDEX8);
+#if TARGET_PC
+    // 60 fps step D (pc_fps60_models.cpp): in paint B both matrices blended with the ones paint A
+    // loaded for the same caster (its position pointer), as for the models.
+    Mtx volumeMtx, mtx;
+    pc_fps60_packet_mtx(mPcKey, mVolumeMtx, volumeMtx);
+    pc_fps60_packet_mtx((const char*)mPcKey + 1, mMtx, mtx);
+    GXLoadPosMtxImm(volumeMtx, GX_PNMTX0);
+#else
     GXLoadPosMtxImm(mVolumeMtx, GX_PNMTX0);
+#endif
     GXSetCurrentMtx(GX_PNMTX0);
 
     GXCallDisplayList(l_frontMat, 0x40);
@@ -1479,7 +1502,11 @@ void dDlst_shadowSimple_c::draw() {
     GXCallDisplayList(l_backSubMat, 0x20);
     GXCallDisplayList(l_shadowVolumeDL, 0x40);
 
+#if TARGET_PC
+    GXLoadPosMtxImm(mtx, GX_PNMTX1);
+#else
     GXLoadPosMtxImm(mMtx, GX_PNMTX1);
+#endif
     GXSetCurrentMtx(GX_PNMTX1);
     if (mpTexObj != NULL) {
         GXLoadTexObj(mpTexObj, GX_TEXMAP0);
@@ -1553,6 +1580,9 @@ void dDlst_shadowSimple_c::set(cXyz* pos, f32 y, f32 scaleXZ, cXyz* floorNrm, s1
         dist = 1.0f;
     mAlpha = dist * 64.0f;
     mpTexObj = texObj;
+#if TARGET_PC
+    mPcKey = pos;
+#endif
 }
 
 /* 80084D48-80084D94       .text init__21dDlst_shadowControl_cFv */

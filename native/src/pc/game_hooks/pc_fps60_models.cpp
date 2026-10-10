@@ -112,9 +112,10 @@ enum Skip {
     kSkipChanged,   // the matrices changed after the capture
     kSkipJump,      // moved / turned over the thresholds
     kSkipKind,      // static (no animation), CPU skinning in calc mode 2
+    kSkipTeleport,  // the root snapped (a sudden move far beyond the previous frame's)
     kSkipCount
 };
-const char* const kSkipNames[kSkipCount] = {"new", "other view", "changed", "jump", "kind"};
+const char* const kSkipNames[kSkipCount] = {"new", "other view", "changed", "jump", "kind", "teleport"};
 
 struct Rec {
     J3DModel* model;
@@ -130,6 +131,7 @@ struct Rec {
     u32 nrmOff; // into Cap::nrm
     Mtx view;   // j3dSys's view at its last viewCalc
     Mtx base;   // mViewBaseMtx (hasBase)
+    f32 rootMove; // world kinds: how far the root matrix moved since the previous capture, < 0 unknown
 };
 
 struct Cap {
@@ -161,12 +163,20 @@ struct Restore {
     J3DModel* model;
     Kind kind;
     bool hasBase;
+    bool hasNrm;
+    bool applied; // phase 2 (pc_fps60_models_paint_apply) done
     u32 viewNo;
+    u32 count;
     Mtx* draw;
     Mtx33* nrm;
     Mtx* nodes;
     Mtx* weights;
     Mtx base;
+    // the blended values phase 2 puts in
+    Mtx* blended;
+    Mtx33* blendedNrm;
+    Mtx blendedBase;
+    Mtx skinDelta; // kKindSkin: R_t * R_cur^-1 (world), for the shadow images
 };
 Restore* sRestore = nullptr;
 u32 sNRestore = 0, sCapRestore = 0;
@@ -187,14 +197,16 @@ Mtx sK;
 struct PacketMtx {
     const void* key;
     unsigned int frame; // pc_frame_count() at paint A
+    bool dup;           // the key loaded twice in that paint A (not blended)
     Mtx m;
 };
-constexpr int kPacketMtxMax = 64;
+constexpr int kPacketMtxMax = 256;
 PacketMtx sPacketMtx[kPacketMtxMax];
 int sNPacketMtx = 0;
 
 // stats since the last perf line
 uint64_t sCaptureNs = 0, sBlendNs = 0;
+uint64_t sFloatsNs = 0; // pc_fps60_paint_floats
 unsigned long sCapturedModels = 0, sCapturedMtx = 0, sBlendedModels = 0, sBlendedMtx = 0, sPaints = 0;
 unsigned long sSkips[kSkipCount] = {};
 // for COS_FPS60_MODELS_LOG
@@ -478,7 +490,39 @@ void pc_fps60_model_viewcalc(J3DModel* model) {
     MTXCopy(j3dSys.getViewMtx(), r->view);
 }
 
+namespace {
+// The teleport check (COS_FPS60_TELEPORT): a root that moves more than kTeleportMin units in one frame
+// and more than kTeleportRatio times (+ kTeleportSlack) what it moved the frame before is taken for a
+// snap (a ledge grab, a warp within the room) and held at N+1, not blended across the jump.
+constexpr f32 kTeleportMin = 40.0f;
+constexpr f32 kTeleportRatio = 3.0f;
+constexpr f32 kTeleportSlack = 20.0f;
+
+bool teleportOn() {
+    static const bool on = [] {
+        const char* v = getenv("COS_FPS60_TELEPORT");
+        return !(v != nullptr && v[0] == '0');
+    }();
+    return on;
+}
+
+// r (world kind, matrices just copied into c): how far its root moved since the previous capture
+void rootMoveOf(Rec& r, const Cap& c) {
+    r.rootMove = -1.0f;
+    const Rec* p = find(*sPrev, r.model);
+    if (p == nullptr || p->dead || p->kind != r.kind || p->data != r.data || sPrev->frame + 1 != c.frame) {
+        return;
+    }
+    const Mtx& a = sPrev->mtx[p->off];
+    const Mtx& b = c.mtx[r.off];
+    const f32 dx = b[0][3] - a[0][3], dy = b[1][3] - a[1][3], dz = b[2][3] - a[2][3];
+    r.rootMove = std::sqrt(dx * dx + dy * dy + dz * dz);
+}
+} // namespace
+
 void pc_fps60_models_draw_end(void) {
+    // step D (pc_fps60_particles.cpp): the particles JPA's calc moved in this draw pass
+    pc_fps60_particles_capture();
     if (!sInDraw) {
         return;
     }
@@ -512,6 +556,7 @@ void pc_fps60_models_draw_end(void) {
             r.off = c.nmtx;
             MTXCopy(Acc::nodes(m)[0], c.mtx[c.nmtx]);
             c.nmtx += 1;
+            rootMoveOf(r, c);
         } else if (r.kind == kKindAnm) {
             r.nodes = d->getJointNum();
             const u32 weights = Acc::weights(m) != nullptr ? d->getWEvlpMtxNum() : 0;
@@ -524,6 +569,7 @@ void pc_fps60_models_draw_end(void) {
             }
             c.nmtx += r.count;
             r.hasBase = (Acc::flags(m) & 0x03) == 2;
+            rootMoveOf(r, c);
             if (r.hasBase) {
                 MTXCopy(Acc::viewBase(m), r.base);
             }
@@ -602,6 +648,9 @@ void pc_fps60_models_paint_begin(float t, const float viewPrev[3][4], const floa
                        : (Acc::drawArr(m)[r.viewNo] == nullptr ||
                           memcmp(Acc::drawArr(m)[r.viewNo], cur.mtx + r.off, r.count * sizeof(Mtx)) != 0)) {
             why = kSkipChanged; // something rewrote them after the draw pass: leave them
+        } else if (teleportOn() && (r.kind == kKindAnm || r.kind == kKindSkin) && r.rootMove > kTeleportMin &&
+                   p->rootMove >= 0.0f && r.rootMove > kTeleportRatio * p->rootMove + kTeleportSlack) {
+            why = kSkipTeleport;
         }
         if (why != kSkipCount) {
             sSkips[why]++;
@@ -613,10 +662,11 @@ void pc_fps60_models_paint_begin(float t, const float viewPrev[3][4], const floa
         Mtx* om = outMtx + usedMtx;
         Mtx33* on = outNrm + usedNrm;
         Mtx base;
+        Mtx o;
         bool ok = true;
         if (r.kind == kKindSkin) {
             // V_cur * R_t * R_cur^-1: the skinned vertices (made for R_cur) moved with the root to R_t
-            Mtx rt, inv2, o;
+            Mtx rt, inv2;
             ok = blendMtx(mp[0], mc[0], rt, t, false, kMinCosRoot) && MTXInverse(mc[0], inv2);
             if (ok) {
                 concat(rt, inv2, o);
@@ -699,35 +749,31 @@ void pc_fps60_models_paint_begin(float t, const float viewPrev[3][4], const floa
         s.model = m;
         s.kind = r.kind;
         s.viewNo = r.viewNo;
+        s.count = r.count;
         s.hasBase = r.hasBase;
+        s.hasNrm = r.hasNrm;
+        s.applied = false;
         s.nrm = nullptr;
+        s.blended = om;
+        s.blendedNrm = r.hasNrm ? on : nullptr;
+        if (r.hasBase) {
+            MTXCopy(base, s.blendedBase);
+        }
         if (r.kind == kKindSkin) {
-            const u16 shapes = r.data->getShapeNum();
-            for (u16 k = 0; k < shapes; k++) {
-                J3DShapePacket* pk = m->getShapePacket(k);
-                grow(sRestorePk, sCapRestorePk, sNRestorePk + 1);
-                sRestorePk[sNRestorePk++] = {pk, pk->getBaseMtxPtr()};
-                pk->setBaseMtxPtr(om);
-            }
-        } else if (r.kind == kKindAnm) {
+            MTXCopy(o, s.skinDelta);
+        }
+        if (r.kind == kKindAnm) {
+            // phase 1 (before the shadow images, pc_fps60_models.h): the world-space joints and
+            // envelopes, which dDlst_shadowReal_c::imageDraw casts the real shadows from
             s.nodes = Acc::nodes(m);
             s.weights = Acc::weights(m);
             Acc::nodes(m) = om;
             if (r.count > r.nodes) {
                 Acc::weights(m) = om + r.nodes;
             }
-            if (r.hasBase) {
-                MTXCopy(Acc::viewBase(m), s.base);
-                MTXCopy(base, Acc::viewBase(m));
-            }
-        } else {
-            s.draw = Acc::drawArr(m)[r.viewNo];
-            Acc::drawArr(m)[r.viewNo] = om;
-            if (r.hasNrm) {
-                s.nrm = Acc::nrmArr(m)[r.viewNo];
-                Acc::nrmArr(m)[r.viewNo] = on;
-                usedNrm += r.count;
-            }
+        }
+        if (r.hasNrm) {
+            usedNrm += r.count;
         }
         usedMtx += r.count;
         sBlendedModels++;
@@ -736,6 +782,52 @@ void pc_fps60_models_paint_begin(float t, const float viewPrev[3][4], const floa
     }
     sBlendNs += nowNs() - t0;
     maybeLog();
+}
+
+int pc_fps60_models_skin_delta(J3DModel* model, float out[3][4]) {
+    for (u32 i = 0; i < sNRestore; i++) {
+        if (sRestore[i].model == model && sRestore[i].kind == kKindSkin) {
+            MTXCopy(sRestore[i].skinDelta, out);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void pc_fps60_models_paint_apply(void) {
+    const uint64_t t0 = nowNs();
+    for (u32 i = 0; i < sNRestore; i++) {
+        Restore& s = sRestore[i];
+        if (s.applied) {
+            continue;
+        }
+        s.applied = true;
+        J3DModel* m = s.model;
+        if (s.kind == kKindSkin) {
+            const u16 shapes = Acc::data(m)->getShapeNum();
+            for (u16 k = 0; k < shapes; k++) {
+                J3DShapePacket* pk = m->getShapePacket(k);
+                grow(sRestorePk, sCapRestorePk, sNRestorePk + 1);
+                sRestorePk[sNRestorePk++] = {pk, pk->getBaseMtxPtr()};
+                pk->setBaseMtxPtr(s.blended);
+            }
+        } else if (s.kind == kKindAnm) {
+            // mViewBaseMtx after the shadow images (imageDraw's viewCalc rewrites it in calc mode 2)
+            if (s.hasBase) {
+                MTXCopy(Acc::viewBase(m), s.base);
+                MTXCopy(s.blendedBase, Acc::viewBase(m));
+            }
+        } else {
+            // view-space draw matrices: after the shadow images, whose viewCalc swaps the buffers
+            s.draw = Acc::drawArr(m)[s.viewNo];
+            Acc::drawArr(m)[s.viewNo] = s.blended;
+            if (s.hasNrm) {
+                s.nrm = Acc::nrmArr(m)[s.viewNo];
+                Acc::nrmArr(m)[s.viewNo] = s.blendedNrm;
+            }
+        }
+    }
+    sBlendNs += nowNs() - t0;
 }
 
 void pc_fps60_models_paint_end(void) {
@@ -748,10 +840,10 @@ void pc_fps60_models_paint_end(void) {
         if (s.kind == kKindAnm) {
             Acc::nodes(m) = s.nodes;
             Acc::weights(m) = s.weights;
-            if (s.hasBase) {
+            if (s.hasBase && s.applied) {
                 MTXCopy(s.base, Acc::viewBase(m));
             }
-        } else if (s.kind != kKindSkin) {
+        } else if (s.kind != kKindSkin && s.applied) {
             Acc::drawArr(m)[s.viewNo] = s.draw;
             if (s.kind == kKindDraw && Acc::nrmArr(m) != nullptr && s.nrm != nullptr) {
                 Acc::nrmArr(m)[s.viewNo] = s.nrm;
@@ -773,12 +865,12 @@ void pc_fps60_models_stats(char* out, unsigned long size, double frames) {
     const double paints = sPaints != 0 ? (double)sPaints : 1.0;
     snprintf(out, size,
              ", models: %.0f captured (%.0f mtx), %.0f blended (%.0f mtx) per paint B, held new %.1f view %.1f "
-             "changed %.1f jump %.1f kind %.1f, capture %.3f ms, blend %.3f ms",
+             "changed %.1f jump %.1f kind %.1f teleport %.1f, capture %.3f ms, blend %.3f ms, packet arrays %.3f ms",
              sCapturedModels / frames, sCapturedMtx / frames, sBlendedModels / paints, sBlendedMtx / paints,
              sSkips[kSkipNoPrev] / paints, sSkips[kSkipOtherView] / paints, sSkips[kSkipChanged] / paints,
-             sSkips[kSkipJump] / paints, sSkips[kSkipKind] / paints, sCaptureNs / frames / 1e6,
-             sBlendNs / frames / 1e6);
-    sCaptureNs = sBlendNs = 0;
+             sSkips[kSkipJump] / paints, sSkips[kSkipKind] / paints, sSkips[kSkipTeleport] / paints, sCaptureNs / frames / 1e6,
+             sBlendNs / frames / 1e6, sFloatsNs / frames / 1e6);
+    sCaptureNs = sBlendNs = sFloatsNs = 0;
     sCapturedModels = sCapturedMtx = sBlendedModels = sBlendedMtx = sPaints = 0;
     for (unsigned long& s : sSkips) {
         s = 0;
@@ -806,6 +898,9 @@ void pc_fps60_packet_mtx(const void* key, const float m[3][4], float out[3][4]) 
                 sNPacketMtx++;
             }
         }
+        // a key loaded twice in one paint A (e.g. two simple shadows of actors passing the same
+        // stack position): ambiguous, not blended
+        sPacketMtx[i].dup = sPacketMtx[i].key == key && sPacketMtx[i].frame == frame;
         sPacketMtx[i].key = key;
         sPacketMtx[i].frame = frame;
         MTXCopy(m, sPacketMtx[i].m);
@@ -816,7 +911,7 @@ void pc_fps60_packet_mtx(const void* key, const float m[3][4], float out[3][4]) 
     }
     for (int i = 0; i < sNPacketMtx; i++) {
         if (sPacketMtx[i].key == key) {
-            if (sPacketMtx[i].frame == frame) {
+            if (sPacketMtx[i].frame == frame && !sPacketMtx[i].dup) {
                 Mtx a, o;
                 concat(sK, sPacketMtx[i].m, a);
                 if (blendMtx(a, m, o, sBlendT, false, kMinCosRoot)) {
@@ -827,3 +922,88 @@ void pc_fps60_packet_mtx(const void* key, const float m[3][4], float out[3][4]) 
         }
     }
 }
+
+int pc_fps60_blend_mtx(const float a[3][4], const float b[3][4], float out[3][4], float t) {
+    return blendMtx(a, b, out, t, false, kMinCosRoot) ? 1 : 0;
+}
+
+float pc_fps60_paint_t(void) {
+    return sBlendActive && pc_paint_is_extra() ? sBlendT : 0.0f;
+}
+
+namespace {
+// pc_fps60_paint_floats: arrays a packet used in paint A (the draw pass before's), by key
+struct PaintFloats {
+    const void* key = nullptr;
+    unsigned int frame = 0;
+    float* prev = nullptr; // paint A's copy
+    float* out = nullptr;  // paint B's blend
+    unsigned int n = 0, cap = 0;
+};
+constexpr int kPaintFloatsMax = 4;
+PaintFloats sPaintFloats[kPaintFloatsMax];
+} // namespace
+
+static bool seaOn() {
+    static const bool on = [] {
+        const char* v = getenv("COS_FPS60_SEA");
+        return !(v != nullptr && v[0] == '0');
+    }();
+    return on;
+}
+
+float pc_fps60_sea_t(void) { return seaOn() ? pc_fps60_paint_t() : 0.0f; }
+
+const float* pc_fps60_paint_floats(const void* key, const float* cur, unsigned int n) {
+    // COS_FPS60_SEA=0: off (the sea's wave heights are its only user)
+    if (!pc_fps60_test() || !sPainting || !seaOn()) {
+        return cur;
+    }
+    const uint64_t t0 = nowNs();
+    const unsigned int frame = pc_frame_count();
+    PaintFloats* e = nullptr;
+    for (PaintFloats& f : sPaintFloats) {
+        if (f.key == key) {
+            e = &f;
+            break;
+        }
+    }
+    if (!pc_paint_is_extra()) {
+        if (e == nullptr) {
+            // a free slot, else the oldest
+            e = &sPaintFloats[0];
+            for (PaintFloats& f : sPaintFloats) {
+                if (f.key == nullptr || f.frame < e->frame) {
+                    e = &f;
+                }
+            }
+        }
+        if (n > e->cap) {
+            free(e->prev);
+            free(e->out);
+            e->prev = (float*)malloc(n * sizeof(float));
+            e->out = (float*)malloc(n * sizeof(float));
+            if (e->prev == nullptr || e->out == nullptr) {
+                abort();
+            }
+            e->cap = n;
+        }
+        e->key = key;
+        e->frame = frame;
+        e->n = n;
+        memcpy(e->prev, cur, n * sizeof(float));
+        sFloatsNs += nowNs() - t0;
+        return cur;
+    }
+    if (!sBlendActive || e == nullptr || e->frame != frame || e->n != n) {
+        return cur;
+    }
+    const float t = sBlendT;
+    for (unsigned int i = 0; i < n; i++) {
+        e->out[i] = e->prev[i] + (cur[i] - e->prev[i]) * t;
+    }
+    sFloatsNs += nowNs() - t0;
+    return e->out;
+}
+
+int pc_fps60_paint_blending(void) { return sBlendActive && pc_paint_is_extra() ? 1 : 0; }

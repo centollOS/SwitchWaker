@@ -851,11 +851,21 @@ void motionBlure(view_class* view) {
     if (mDoGph_gInf_c::isBlure()) {
         GXLoadTexObj(mDoGph_gInf_c::getFrameBufferTexObj(), GX_TEXMAP0);
         GXColor color;
+#if TARGET_PC
+        // 60 fps step D (game_hooks.h): two presents a game frame keep the trail's decay per game frame.
+        Mtx blureMtx;
+        color.a = pc_fps60_blur_rate(mDoGph_gInf_c::getBlureRate(), mDoGph_gInf_c::getBlureMtx(), blureMtx);
+#else
         color.a = mDoGph_gInf_c::getBlureRate();
+#endif
         GXSetNumChans(0);
         GXSetNumTexGens(1);
         GXSetTexCoordGen(GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_TEXMTX0);
+#if TARGET_PC
+        GXLoadTexMtxImm(blureMtx, GX_TEXMTX0, GX_MTX2x4);
+#else
         GXLoadTexMtxImm(mDoGph_gInf_c::getBlureMtx(), GX_TEXMTX0, GX_MTX2x4);
+#endif
         GXSetNumTevStages(1);
         GXSetTevColor(GX_TEVREG0, color);
         GXSetTevOrder(GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR_NULL);
@@ -1637,6 +1647,11 @@ bool mDoGph_Painter() {
 
         if (camera != NULL) {
             PC_GPU_GROUP("shadow_image");
+#if TARGET_PC
+            // COS_FPS60_TEST step D (game_hooks.h): in paint B the models' world-space joints are at t
+            // before the real shadows are cast from them.
+            pc_fps60_paint_prepare(&camera->view);
+#endif
             dComIfGd_imageDrawShadow(camera->view.mViewMtx);
 
             view_port_class viewport_crop;

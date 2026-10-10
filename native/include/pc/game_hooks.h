@@ -119,6 +119,10 @@ void pc_fps60_camera_reset(void);
    (Aurora patch 0019), unless it is a cut; nothing in paint A or with the mode off. */
 void pc_fps60_view_begin(view_class* view);
 void pc_fps60_view_end(void);
+/* mDoGph_Painter, before the shadow images (dComIfGd_imageDrawShadow): in paint B, decides the cut and
+   points the models at their blended world-space joints already (step D: the real shadows are cast
+   from the models at t); pc_fps60_view_begin does the rest. COS_FPS60_SHADOWS=0: nothing here. */
+void pc_fps60_paint_prepare(view_class* view);
 /* pc_frame_split, every frame after the logic: 0 while a transition is in progress or just ended
    (scene request pending, overlap, wipe, screen fade, JUTFader fading, monotone changing, stage
    change; a 3-frame cool-down after any of them): the frame is then presented once (no paint B),
@@ -154,6 +158,12 @@ void pc_fps60_painting(int on);
    models' own matrices back. viewPrev/viewCur: the cameras' view matrices of the two draw passes. */
 void pc_fps60_models_paint_begin(float t, const float viewPrev[3][4], const float viewCur[3][4]);
 void pc_fps60_models_paint_end(void);
+/* pc_fps60_view_begin, after the shadow images: the rest of the blend (view-space draw matrices, the
+   CPU-skinned packets' base, mViewBaseMtx), which the shadow images' viewCalc would undo. */
+void pc_fps60_models_paint_apply(void);
+/* dDlst_shadowReal_c::imageDraw in paint B: for a CPU-skinned caster blended in this paint, the world
+   turn/move R_t * R_cur^-1 its skinned vertices (made at N+1) need (returns 1); else 0. */
+int pc_fps60_models_skin_delta(J3DModel* model, float out[3][4]);
 /* A custom packet's view-space matrix loaded at paint time (made in the draw pass with the camera's
    view, e.g. daSail_packet_c's): out = m, except in a blended paint B, where out is the blend at t
    of the matrix the same packet (key) loaded in this frame's paint A (the draw pass before's) and m,
@@ -161,6 +171,64 @@ void pc_fps60_models_paint_end(void);
 void pc_fps60_packet_mtx(const void* key, const float m[3][4], float out[3][4]);
 /* The perf line's step C part (counts and ms since the last call), "" with the mode off. */
 void pc_fps60_models_stats(char* out, unsigned long size, double frames);
+/* The blend's t in a blended paint B (models on, camera not cut), else 0: paint-time counters that
+   paint A advances (the sea's texture scroll) are drawn that fraction of a step ahead in paint B. */
+float pc_fps60_paint_t(void);
+/* 1 inside a blended paint B (pc_fps60_paint_t's t applies, whatever its value). */
+int pc_fps60_paint_blending(void);
+/* An array of floats a packet draws from, made in the logic or the draw pass (the sea's wave
+   heights): paint A keeps a copy (by key); in a blended paint B the result is the blend at t of that
+   copy and cur (host memory, valid until the next call with the key), else cur itself. */
+const float* pc_fps60_paint_floats(const void* key, const float* cur, unsigned int n);
+/* pc_fps60_paint_t for the sea's texture scroll; 0 with COS_FPS60_SEA=0 (which also turns off
+   pc_fps60_paint_floats, whose only user is the sea). */
+float pc_fps60_sea_t(void);
+/* out = the blend at t of two 3x4 matrices as for the models (3x3 columns turned keeping their
+   length, translation lerped); 0 (out undefined) past 300 units or a 45-degree turn. */
+int pc_fps60_blend_mtx(const float a[3][4], const float b[3][4], float out[3][4], float t);
+
+/* ---- 60 fps step D: particles of paint B (native/src/pc/game_hooks/pc_fps60_particles.cpp) ------ */
+
+class JPAEmitterManager;
+class JPABaseEmitter;
+class JPABaseParticle;
+/* JPAEmitterManager's constructor: the particle and emitter pools (host tables indexed by slot). */
+void pc_fps60_particles_register(JPAEmitterManager* mgr, JPABaseParticle* ptcls, unsigned int nptcl,
+                                 JPABaseEmitter* emtrs, unsigned int nemtr);
+/* pc_fps60_models_draw_end: every live particle and emitter kept (this frame's "cur"). */
+void pc_fps60_particles_capture(void);
+/* pc_fps60_view_begin, paint B not cut: particles drawn at t for the rest of this paint. */
+void pc_fps60_particles_paint_begin(float t);
+/* JPAEmitterManager::draw, around one emitter's draw: in a blended paint B its particles' and its own
+   fields are set to the blend at t (begin returns 1), and put back by end. */
+int pc_fps60_particles_emitter_begin(JPABaseEmitter* e);
+void pc_fps60_particles_emitter_end(JPABaseEmitter* e);
+/* dPa_waveEcallBack::draw: v (an offset in the emitter's frame of calc) turned by the emitter's
+   blended turn, inside its emitter_begin/_end; unchanged otherwise. */
+void pc_fps60_particles_emitter_turn(JPABaseEmitter* e, float v[3]);
+/* Strips that map their texture along the particle list (dPa_trackEcallBack, the ship's wake): in a
+   blended paint B, (1 - t) * the particles born this frame in the emitter's list, moved back with
+   it (their texture coordinate along the strip starts that many particles earlier); else 0. */
+float pc_fps60_particles_strip_shift(JPABaseEmitter* e);
+/* The perf line's particle part. */
+void pc_fps60_particles_stats(char* out, unsigned long size, double frames);
+
+/* ---- 60 fps step D: lines and motion blur (native/src/pc/game_hooks/pc_fps60_misc.cpp) ----------- */
+
+/* mDoExt_3DlineMat0/1_c::draw, per line: the positions to point GX_VA_POS at. Paint A: cur (the
+   packet's drawn count kept); a blended paint B: the blend at t of prev (the other array, paint A's)
+   and cur in scratch memory that outlives the GX worker's read, if paint A drew the packet with the
+   same count this game frame and nothing jumped; else cur. count = positions (3 floats each). */
+const float* pc_fps60_line_positions(const void* key, int lineNo, const float* cur, const float* prev,
+                                     unsigned int count);
+/* 1 when the present being painted follows the previous one by one retrace (paint B; paint A after a
+   frame that ended with paint B). */
+extern "C" int pc_fps60_presents_close(void);
+/* motionBlure: the blur rate (0-255) and texture matrix for this present: the same decay per game
+   frame when two presents share it (sqrt of the rate, the matrix's step halved), else as given. */
+unsigned char pc_fps60_blur_rate(unsigned char rate, const float m[3][4], float out[3][4]);
+/* The perf line's lines part. */
+void pc_fps60_misc_stats(char* out, unsigned long size, double frames);
 
 /* ---- Collision data (c_bg_s.cpp), native/src/pc/game_hooks/pc_c_bg_s.cpp --------------------- */
 

@@ -27,6 +27,9 @@
 #include "JSystem/TPosition3.h"
 #include "dolphin/gx/GX.h"
 #include "stdio.h"
+#if TARGET_PC
+#include "pc/game_hooks.h"
+#endif
 
 /* 8007A4D8-8007A514       .text __ct__18dPa_modelEmitter_cFv */
 dPa_modelEmitter_c::dPa_modelEmitter_c() {
@@ -1415,6 +1418,10 @@ void dPa_waveEcallBack::draw(JPABaseEmitter* emitter) {
 #else
         JGeometry::TVec3<f32> out2 = reinterpret_cast<JGeometry::TVec3<f32>&>(mRotMtx[0]) * collapse->x + reinterpret_cast<JGeometry::TVec3<f32>&>(mRotMtx[1]) * collapse->y + reinterpret_cast<JGeometry::TVec3<f32>&>(mRotMtx[2]) * collapse->z;
 #endif
+#if TARGET_PC
+        // 60 fps step D: mRotMtx is calc's; in paint B the fan centre turns with the blended emitter.
+        pc_fps60_particles_emitter_turn(emitter, &out2.x);
+#endif
 
         GXBegin(GX_TRIANGLEFAN, GX_VTXFMT0, n + 1);
         GXPosition3f32(trans.x + out2.x, trans.y + out2.y, trans.z + out2.z);
@@ -1736,6 +1743,11 @@ void dPa_trackEcallBack::draw(JPABaseEmitter* emitter) {
     JSULink<JPABaseParticle>* link = emitter->getParticleList()->getFirst();
     u32 i = 0;
     f31 = 0.0f;
+#if TARGET_PC
+    // 60 fps step D: in paint B the newest row is moved back with the emitter (pc_fps60_particles.cpp);
+    // the texture along the wake starts (1 - t) rows earlier, so it does not slide a row per paint B.
+    f31 = -pc_fps60_particles_strip_shift(emitter) * (1.0f / 3.0f) * f30;
+#endif
     for (; i < r28; i++) {
         if (i) {
             GXBegin(GX_TRIANGLESTRIP, GX_VTXFMT0, 6);

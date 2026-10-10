@@ -832,7 +832,7 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
     if (sPerf.cpuValid) {
         snprintf(cpu, sizeof(cpu), "%.2f ms avg", sPerf.cpuNs / n / 1e6);
     }
-    char fps60[768] = "";
+    char fps60[1536] = "";
     if (pc_fps60_test()) {
         // COS_FPS60_TEST: paint B and paint A's present (aurora_end_frame/begin_frame) per game frame;
         // the waits for Aurora's GX worker: GXDrawDone after the draw pass (in the logic) and the
@@ -855,6 +855,13 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
         char models[320];
         pc_fps60_models_stats(models, sizeof(models), n);
         strncat(fps60, models, sizeof(fps60) - strlen(fps60) - 1);
+        // Step D (pc_fps60_particles.cpp): particles captured / blended and their costs.
+        char ptcls[256];
+        pc_fps60_particles_stats(ptcls, sizeof(ptcls), n);
+        strncat(fps60, ptcls, sizeof(fps60) - strlen(fps60) - 1);
+        char misc[160];
+        pc_fps60_misc_stats(misc, sizeof(misc), n);
+        strncat(fps60, misc, sizeof(fps60) - strlen(fps60) - 1);
         lastDropped = sPaintBDropped;
         lastInterp = interp;
         lastSkips = skips;
@@ -1172,6 +1179,12 @@ void pc_paint_extra_end(void) {
 
 int pc_paint_is_extra(void) {
     return sPaintExtra ? 1 : 0;
+}
+
+int pc_fps60_presents_close(void) {
+    // paint B follows paint A by one retrace; paint A follows the last paint B by one retrace only
+    // after a frame that ended with paint B
+    return sPaintExtra || (pc_fps60_test() && sLastSplit) ? 1 : 0;
 }
 
 void pc_frame_begin(void) {

@@ -553,3 +553,155 @@ puts it at the eye at t. The sea (also in the sky list) is world-anchored and ke
 - A model held at N+1 (new, jump) shows half a step off for that paint B; a model teleporting less
   than 300 units is blended across the jump.
 - Culling/LOD as in step B: N+1's.
+
+## Step D: what still showed frame N+1 in paint B (2026-10-10)
+
+Step C left in paint B, at N+1 while models and camera are at t: the JPA particles (the boat's wake and
+bow waves, splashes), the real shadows, simple shadows, the sea, ropes, the sail's cloth. With
+`COS_FPS60_TEST=1` paint B now draws them at t too. Each part has its own switch (`0` turns it off,
+default on), for A/B comparison.
+
+### Particles (`COS_FPS60_PARTICLES`, `native/src/pc/game_hooks/pc_fps60_particles.cpp`)
+
+- JPA's calc runs in the draw pass, its draw in the painter; what the draw reads lives in the
+  particles (`mGlobalPosition`, `JPADrawParams`: scale, alpha, colours, rotation) and the emitters
+  (translation, rotation, tick). No field was added to `JPABaseParticle` (its pool of 3000 is on the
+  particle heap): at the draw pass's end (`pc_fps60_models_draw_end`) every live particle and emitter
+  of the one `JPAEmitterManager` (its constructor registers the pools) is copied into host tables
+  indexed by pool slot; the last copy is "prev".
+- Identity by slot without touching the game: the same emitter and an age one more than in prev (or
+  the same: calc skipped, pause, `StopCalc`); an emitter by its data and a tick one more or equal.
+  A particle born in this draw pass (age 0 after its first calc) has no prev: it moves with its
+  emitter (`+ E_t - E_cur`), so the wake's and bow waves' newest particles stay at the boat's blended
+  position rather than half a step ahead.
+- Paint B (`JPAEmitterManager::draw`, per emitter, `pc_fps60_particles_emitter_begin/_end`): the
+  particles' fields and the emitter's translation, rotation and tick are overwritten with the blend at
+  t and put back right after the emitter's draw. JPA draws with immediate vertices, so nothing in the
+  GX stream points at them; paint B leaves the game's state as it found it (purity checker clean).
+  Held (drawn as captured): a particle whose live fields differ from the capture, a move over 300
+  units.
+- Draw-time readers of calc state: `dPa_waveEcallBack::draw` (bow waves) keeps the emitter axes from
+  calc: its fan centre is turned by the emitter's blended turn (`pc_fps60_particles_emitter_turn`).
+  `dPa_trackEcallBack::draw` (the wake) maps its texture along the particle list, one row (3
+  particles) per frame: with the newborn row moved back, the texture would slide a row per paint B;
+  it starts `(1 - t) * born / 3` rows earlier (`pc_fps60_particles_strip_shift`). The tick lerp
+  covers the texture scrolls JPA and the wake compute from the emitter's frame at draw time. Both were
+  needed together: with the newborn move alone the wake's T=0 error was 2.74, with the tick alone
+  worse (4.41), with both 1.83 (frames 1500/1600).
+- 2D particle groups are blended as well (the state stays on for the whole paint B).
+
+### Shadows (`COS_FPS60_SHADOWS`)
+
+- Real shadows (`dDlst_shadowReal_c`): the image is cast in the painter (`imageDraw` re-viewCalcs the
+  casters with the light view) before the world lists, and projected on the receivers with the
+  receiver matrix of N+1's light view. The model blend is now split: `pc_fps60_paint_prepare` (before
+  `dComIfGd_imageDrawShadow`, paint B only) decides the cut and points the models at their blended
+  world joints/envelopes; `pc_fps60_view_begin` does the rest (`pc_fps60_models_paint_apply`:
+  view-space draw matrices, CPU-skin packet bases, `mViewBaseMtx`, which imageDraw's viewCalc would
+  swap or rewrite). Casting the blended casters into N+1's light view and projecting with N+1's
+  receiver matrix puts the shadow where the caster is at t (the same mapping both ways). The boat is
+  CPU-skinned: imageDraw gives its packets the light view times its blended turn/move
+  (`pc_fps60_models_skin_delta`). With `COS_FPS60_SHADOWS=0` the old order (shadows from N+1).
+- Simple shadows (`dDlst_shadowSimple_c`, the round blobs): both view-space matrices go through
+  `pc_fps60_packet_mtx`, keyed by the caster's position pointer (`set`'s `pos`, kept in `mPcKey`); a key
+  loaded twice in one paint A (actors passing the same stack variable) is not blended. The table is
+  256 entries now.
+
+### Sea (`COS_FPS60_SEA`)
+
+The wave heights are computed in the logic (`daSea_packet_c::execute`, `mpHeightTable`, 65 x 65) and
+turned into vertices at paint time. `pc_fps60_paint_floats` keeps paint A's heights and gives paint B
+their blend with this frame's (by index: the grid follows the player continuously, the same place
+within half a step; 17 KB copied per paint). The texture scroll that paint A advances (`mAnimCounter`)
+is drawn `t` of a step ahead in paint B (`pc_fps60_sea_t`).
+
+### Lines and cloth (`COS_FPS60_LINES`, `native/src/pc/game_hooks/pc_fps60_misc.cpp`)
+
+- `mDoExt_3DlineMat0/1_c` (bridges, rafts, the grappling hook, the salvage rope, lifts, Puppet
+  Ganon's strings, goal flags, ...): `update()` writes the ribbon into `mPosArr[mCurArr]` in the draw
+  pass; paint B does not flip `mCurArr` (step A), so the other array still holds paint A's ribbon.
+  `pc_fps60_line_positions` blends the two (paint A must have drawn the packet with the same segment
+  count in this game frame; no point over 300 units) into scratch memory that `GX_VA_POS` then points
+  at. `GXSetArray` records the address in the GX stream, read by the FIFO worker later: the scratch
+  rotates over three buffers, one per paint B, as the models' arenas.
+- The boat's sail cloth (`daHo_packet_c`, 85 positions, normals, back normals, flipped by `_execute`):
+  the same blend, keyed by the packet and its buffer index (paint B asks for the other buffer, so a
+  frame whose `_execute` did not flip is not blended).
+
+### Motion blur (`COS_FPS60_BLUR`)
+
+`motionBlure` blends the previous present's colour copy at the game's rate a. A present one retrace
+after the previous one (paint B; paint A after a frame that ended with paint B,
+`pc_fps60_presents_close`) uses `255 * sqrt(a / 255)` and the blur matrix halfway to the identity, so
+the trail decays as much per game frame as at 30 fps. Used by camera effects and a few bosses (`d_a_bgn`, `d_a_bwd`, `d_a_himo2`);
+not measured (no scene of the regression shows it).
+
+### Teleports (`COS_FPS60_TELEPORT`)
+
+A model whose root (world kinds: ConcatView, CPU skin) moves more than 40 units in one frame and more
+than 3x + 20 units what it moved the frame before is taken for a snap (ledge grab, a warp within the
+room, an actor placed) and held at N+1 for that paint B ("teleport" in the perf line's held counts);
+larger jumps were already held at 300 units, camera-cut warps by the cut. A fast motion starting from
+rest (the hookshot pull) is held for its first paint B only. Game-side signals (old/current
+positions, procedures) were considered, but a J3DModel does not know its actor; not used.
+
+### Not done (and why)
+
+- Fades, monotone, wipe half steps: every one of them drops paint B (step B's gate: `isFade`, the
+  JUTFader, a monotone change, a wipe), so there is no paint B to give a half step to. What stays
+  ungated changes in 2D (menus: J2D animations of the draw pass, 30 Hz) or by brightness during events.
+- Weather counters guarded in step A (sun fade-in counter, star sprite rotation 1 degree a frame,
+  poison and cloud-shadow rotation 1.3/1.5 degrees, the clouds' sway 0.02 rad a frame): below what a
+  30 Hz step shows; left as paint A has them.
+- Stays at N+1 in paint B: texture animations of J3D models (btk/brk: the distant waterspout,
+  water surfaces), Link's sword trail (`daPy_swBlur_c`: a ribbon of past positions; its head leads the
+  blended sword by half a step during swings), other cloth packets (pirate flag, goal flags, the
+  `d_a_majuu_flag`: same pattern as the sail, not hooked), CPU-skinned deformation (root motion only),
+  grass/flowers/trees sway (computed in the logic, small), screen-space effects (lens flare, HUD
+  markers), culling/LOD.
+
+### Verification (Mac)
+
+Sailing smoke (`sailing --preset sailing`, `COS_SHOT_PAINT_A=1`, frames 800-2400 every 100, runs
+deterministic when the machine is otherwise idle: paints A identical between runs):
+
+| | step C (all step D switches 0) | step D |
+|---|---|---|
+| `COS_FPS60_CAMERA_T=0`: paint B vs its paint A, whole image | 5.21 | 1.54 |
+| `T=1`: paint B vs the next paint A | - | 0.06 |
+| `T=0.5`: paint B vs the mean of the two paints A, whole image | 6.88 | 5.72 |
+| `T=0.5`, lower half (sea, wake, waves) | 11.66 | 9.44 |
+
+Per part at T=0 (frames 1500/1600/2000): the boat's shadow region (right of the boat) 1.55 -> 1.17,
+the sail region 0.69 -> 0.35; particles alone (frames 800-2400) 5.21 -> 1.89. What remains at T=0:
+the waterspout's texture animation, the sea's finer streaks, a seam at the shadow's edge, splash
+details. (`T=0.5` vs the mean of two images is only a rough guide: the mean doubles moving edges.)
+
+`COS_PAINT_PURITY=2` + `_REPEAT` (sailing smoke, Outset 600 frames), `=1` (Dragon Roost, Outset
+control): nothing new (the known heap flip, texture ids, stack pointers, audio threads, the zelda-heap
+float of the sail's last bit).
+
+Cost (Mac, per game frame, `COS_PERF_EVERY=300`, sailing): particles ~1100-1270 captured, ~1060-1200
+blended per paint B: capture 0.025-0.037 ms, blend 0.09-0.16 ms; models 0.004 + 0.014-0.018 ms; packet
+arrays (sea) 0.005 ms; lines/cloth 3-4 arrays 0.002 ms. Outset (outset-control): 155-170 particles,
+0.006 + 0.023 ms, ~32 rope arrays (the lookout's bridge) 0.002 ms; Dragon Roost `sea:13:0`: ~520
+particles, 0.009 + 0.03 ms. At T=0 Outset and Dragon Roost stay at 0.13-0.16 mean (their shots are
+mostly still; no regression). The particle blend is the one that matters on
+the console (estimated ~0.5-1 ms at 1020 MHz; to be measured).
+
+Full `native/tools/regress.sh` passes (the mode off). With `COS_FPS60_TEST=1`: file-select (and
+16:10), outset-control (4:3, 16:9), new-game, telescope-demo, sailing, the three picto-box targets and
+options-menu with `menu-fps60.txt` pass. Switch NRO `scripts/switch/build_native.sh --runtime-assets`
+builds (exit 0, no `error:`). Not measured on the console.
+
+### To check on the console
+
+- Cost: the perf line's `particles: ... capture <ms>, blend <ms>` on the sea (the wake: ~1200
+  particles) and Dragon Roost; game thread margin at 1020 MHz.
+- Sailing: the wake and bow waves stay attached to the boat (no half-step lead/lag, no texture
+  sliding along the wake), the boat's shadow follows the hull, the sail cloth, the sea's waves.
+- Ropes (Outset's lookout bridge, Windfall, the grappling hook), simple shadows of NPCs/enemies.
+- Any one-paint glitch: a particle effect or rope flashing at a wrong place for a frame (identity or
+  scratch lifetime), a model held at a teleport that is not one (`teleport` count in the perf line).
+- A boss with motion blur (Puppet Ganon, `d_a_bgn`): trail length as at 30 fps.
+

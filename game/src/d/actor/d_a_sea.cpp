@@ -664,7 +664,13 @@ void daSea_packet_c::draw() {
 #endif
 
     cXyz* vtx = m_draw_vtx;
+#if TARGET_PC
+    // 60 fps step D (game_hooks.h): in paint B the wave heights halfway between paint A's and this
+    // frame's (the grid follows the player: by index, the same place within half a step).
+    const f32* pY = pc_fps60_paint_floats(this, mpHeightTable, GRID_CELLS * GRID_CELLS);
+#else
     f32* pY = mpHeightTable;
+#endif
 
     f32 minZ = getMinZ();
     for (int z = 0; z < GRID_CELLS; z++) {
@@ -727,7 +733,12 @@ void daSea_packet_c::draw() {
     }
     }
 
+#if TARGET_PC
+    // 60 fps step D: paint B draws the scroll the blend's fraction of a step ahead (paint A advances it).
+    mDoMtx_stack_c::transS(0.0f, (mAnimCounter + pc_fps60_sea_t()) / 300.0f, 0.0f);
+#else
     mDoMtx_stack_c::transS(0.0f, mAnimCounter / 300.0f, 0.0f);
+#endif
     GXLoadTexMtxImm(mDoMtx_stack_c::get(), GX_TEXMTX1, GX_MTX2x4);
     GXLoadTexObj(&mTexYura, GX_TEXMAP1);
     GXSetIndTexOrder(GX_INDTEXSTAGE0, GX_TEXCOORD1, GX_TEXMAP1);

@@ -254,25 +254,72 @@ void pc_fps60_camera_drawn(view_class* view) {
     sResetPending = false;
 }
 
-void pc_fps60_view_begin(view_class* view) {
-    sDeltaOn = false;
+namespace {
+
+// COS_FPS60_SHADOWS=0: the models blended after the shadow images (step C's order: real shadows cast
+// from N+1's matrices).
+bool shadowsEnabled() {
+    static const bool on = [] {
+        const char* v = getenv("COS_FPS60_SHADOWS");
+        return !(v != nullptr && v[0] == '0');
+    }();
+    return on;
+}
+
+bool sPrepared = false; // pc_fps60_paint_prepare ran in this paint
+bool sPrepCut = false;  // ... and found a cut
+
+void prepare(view_class* view) {
+    sPrepared = true;
+    sPrepCut = false;
     sModelsOn = false;
-    if (!pc_paint_is_extra() || view == nullptr || (!enabled() && !modelsEnabled())) {
-        return;
-    }
     if (const char* reason = cutReason(view)) {
         skip(reason); // objects at t = 1 too (step C)
+        sPrepCut = true;
         return;
     }
     const f32 t = blendT();
+    // Step D (pc_fps60_particles.cpp): the JPA particles at t for the rest of this paint.
+    pc_fps60_particles_paint_begin(t);
     if (modelsEnabled()) {
-        // Step C (pc_fps60_models.cpp): every model captured in both draw passes drawn at t.
+        // Step C (pc_fps60_models.cpp): every model captured in both draw passes drawn at t; the
+        // world-space joints right away (the shadow images are cast from them), the rest in
+        // pc_fps60_models_paint_apply.
         pc_fps60_models_paint_begin(t, sPrev.viewMtx, sCur.viewMtx);
         sModelsOn = true;
+    }
+}
+
+} // namespace
+
+void pc_fps60_paint_prepare(view_class* view) {
+    sPrepared = false;
+    if (!pc_paint_is_extra() || view == nullptr || (!enabled() && !modelsEnabled()) || !shadowsEnabled()) {
+        return;
+    }
+    prepare(view);
+}
+
+void pc_fps60_view_begin(view_class* view) {
+    sDeltaOn = false;
+    if (!pc_paint_is_extra() || view == nullptr || (!enabled() && !modelsEnabled())) {
+        sPrepared = false;
+        return;
+    }
+    if (!sPrepared) {
+        prepare(view);
+    }
+    sPrepared = false;
+    if (sPrepCut) {
+        return;
+    }
+    if (sModelsOn) {
+        pc_fps60_models_paint_apply();
     }
     if (!enabled()) {
         return;
     }
+    const f32 t = blendT();
     cXyz eye = lerpv(sPrev.eye, sCur.eye, t);
     cXyz center = lerpv(sPrev.center, sCur.center, t);
     cXyz up = lerpv(sPrev.up, sCur.up, t);
