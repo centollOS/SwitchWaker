@@ -516,10 +516,12 @@ const PcSettingDesc kBuiltins[] = {
      "The camera shakes with quakes, hits, explosions and cutscenes, as on the GameCube. The controller "
      "rumble does not change."},
     {"COS_HEAT_HAZE", "Distorsión por calor",
-     "La imagen ondula sobre la lava y el fuego (Montaña del Dragón y su caverna), como en la GameCube.",
+     "La imagen ondula sobre la lava y el fuego (Montaña del Dragón y su caverna), como en la GameCube. "
+     "Con 60 fps se ve mal: distorsiona demasiado.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyHeatHaze, nullptr, 93,
      "Heat haze",
-     "The picture wobbles over lava and fire (Dragon Roost and its cavern), as on the GameCube."},
+     "The picture wobbles over lava and fire (Dragon Roost and its cavern), as on the GameCube. "
+     "At 60 fps it looks wrong: it distorts too much."},
     {"COS_ASPECT", "Relación de aspecto", "Imagen panorámica 16:9 o la 4:3 original de la GameCube.",
      PC_SETTING_TAB_GRAPHICS, PC_SETTING_RESTART, CHOICES(kAspect), kSwitch ? "16:9" : "4:3", nullptr, nullptr,
      70,
