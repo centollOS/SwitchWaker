@@ -801,6 +801,20 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
 
 // COS_FIFO_PROFILE=1 (Aurora patch 0020): with the perf lines, where Aurora's GX FIFO worker spends its
 // time per game frame (both paints with 60 fps; sampled every ~250 us), and what it translated.
+// COS_FIFO_FAST=0 (Aurora patch 0021): Aurora's original GX translation paths instead of the fast ones
+// (pipeline lookup memo, merged primitives' indices written in place), for A/B checks. Read once.
+void fifoFastPathsApply() {
+    static const bool applied = [] {
+        const char* v = getenv("COS_FIFO_FAST");
+        if (v != nullptr && v[0] == '0') {
+            aurora_set_fifo_fast_paths(false);
+            writef(STDERR_FILENO, "[cos] COS_FIFO_FAST=0: Aurora's original GX translation paths\n");
+        }
+        return true;
+    }();
+    (void)applied;
+}
+
 bool fifoProfileOn() {
     static const bool on = [] {
         const char* v = getenv("COS_FIFO_PROFILE");
@@ -832,16 +846,18 @@ void fifoProfileLine(double frames) {
     }
     writef(STDERR_FILENO,
            "[cos] perf fifo per game frame (sampled, %.0f samples): busy %.2f ms, idle %.2f; parse %.2f, jobs %.2f, "
-           "bp %.2f, xf %.2f, cp %.2f, aurora %.2f, draw %.2f, pipeline %.2f, binds %.2f, uniforms %.2f, arrays "
-           "%.2f, command %.2f; %.0f draws +%.0f merged, %.0f bp, %.0f xf, %.0f pipeline lookups, %.0f bind "
+           "bp %.2f, xf %.2f, cp %.2f, aurora %.2f, draw %.2f, pipeline %.2f + lookup %.2f, textures %.2f, binds %.2f, "
+           "uniforms %.2f, arrays %.2f, command %.2f; %.0f draws +%.0f merged, %.0f bp, %.0f xf, %.0f pipeline "
+           "changes (%.0f from the frame's memo), %.0f bind "
            "builds, %.0f uniforms %.1f KiB, vertices %.1f KiB, arrays %.1f KiB, stream %.1f KiB\n",
            d[AURORA_FIFO_PROFILE_SAMPLES], busy / 1e6, ms(AURORA_FIFO_PROFILE_IDLE), ms(AURORA_FIFO_PROFILE_PROCESS),
            ms(AURORA_FIFO_PROFILE_JOB), ms(AURORA_FIFO_PROFILE_BP), ms(AURORA_FIFO_PROFILE_XF),
            ms(AURORA_FIFO_PROFILE_CP), ms(AURORA_FIFO_PROFILE_AURORA), ms(AURORA_FIFO_PROFILE_DRAW),
-           ms(AURORA_FIFO_PROFILE_PIPELINE), ms(AURORA_FIFO_PROFILE_BIND), ms(AURORA_FIFO_PROFILE_UNIFORM),
+           ms(AURORA_FIFO_PROFILE_PIPELINE), ms(AURORA_FIFO_PROFILE_PIPELINE_LOOKUP), ms(AURORA_FIFO_PROFILE_TEXTURES),
+           ms(AURORA_FIFO_PROFILE_BIND), ms(AURORA_FIFO_PROFILE_UNIFORM),
            ms(AURORA_FIFO_PROFILE_ARRAYS), ms(AURORA_FIFO_PROFILE_COMMAND), d[AURORA_FIFO_PROFILE_DRAWS],
            d[AURORA_FIFO_PROFILE_MERGED], d[AURORA_FIFO_PROFILE_BP_LOADS], d[AURORA_FIFO_PROFILE_XF_LOADS],
-           d[AURORA_FIFO_PROFILE_PIPELINES], d[AURORA_FIFO_PROFILE_BINDS], d[AURORA_FIFO_PROFILE_UNIFORMS],
+           d[AURORA_FIFO_PROFILE_PIPELINES], d[AURORA_FIFO_PROFILE_PIPELINE_MEMO_HITS], d[AURORA_FIFO_PROFILE_BINDS], d[AURORA_FIFO_PROFILE_UNIFORMS],
            d[AURORA_FIFO_PROFILE_UNIFORM_BYTES] / 1024.0, d[AURORA_FIFO_PROFILE_VERTEX_BYTES] / 1024.0,
            d[AURORA_FIFO_PROFILE_ARRAY_BYTES] / 1024.0, d[AURORA_FIFO_PROFILE_STREAM_BYTES] / 1024.0);
 }
@@ -1538,6 +1554,7 @@ void pc_frame_begin(void) {
     {
         // Between frames, before aurora_begin_frame: the async end of frame follows the 60 fps mode
         // (the menu can switch it; aurora_set_async_end_frame syncs the worker first).
+        fifoFastPathsApply();
         const bool wantAsync = asyncEndFrameWanted();
         if (wantAsync != (aurora_get_async_end_frame() != 0)) {
             aurora_set_async_end_frame(wantAsync);
