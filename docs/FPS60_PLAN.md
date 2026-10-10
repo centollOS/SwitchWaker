@@ -705,3 +705,225 @@ builds (exit 0, no `error:`). Not measured on the console.
   scratch lifetime), a model held at a teleport that is not one (`teleport` count in the perf line).
 - A boss with motion blur (Puppet Ganon, `d_a_bgn`): trail length as at 30 fps.
 
+
+## Step E: robustness and budget (2026-10-10)
+
+What keeps the 60 fps mode from making things worse than 30 when a scene is too heavy, docked, or
+in menus. Logic in `native/src/pc/runtime/pc_fps60_budget.h` (pure, unit-tested in `cos_pc_tests`),
+wired in `pc_frame.cpp`; dynres in `pc_dynres.cpp` / `pc_dynres_policy.h` (also unit-tested).
+
+### Pacing: paint A waits from paint A (found while building the guard)
+
+Each paint waits in `JFWDisplay::beginRender` -> `pc_frame_pace`, whose limiter sleeps until a
+period after the end of the *previous* wait. Paint B's wait ends one retrace after paint A's wake,
+paint A's one retrace after paint B's. When paint A + logic + split + draw pass exceed one retrace
+(the console: ~20 ms of 16.7) paint B's wait finds its retrace past and ends late, and paint A then
+waited a full retrace from that late end: the game frame grew by the overrun and the game ran
+slow (Mac, 20 ms of test delay in the draw pass and 6 ms in paint B: 26.5 game frames a second,
+53 presents/s, every frame "late"). Now paint A after a split frame waits until **two retraces after
+the last paint A's wake** (`sPaceFromAWake`, the limiter's period shortened by paint B's lateness):
+the same run holds 30.0 game frames and 59.9 presents a second. A paint B that starts late still
+presents in its own retrace slot as long as the whole frame fits in two retraces (vsync FIFO: one
+present per retrace). `COS_FPS60_PACE=0` restores the old wait (A/B).
+
+### Item 1: paint B's budget guard
+
+- When: at the split (`pc_frame_split`, after the logic, **before paint A is presented**): once the
+  split is done the frame must end with paint B (the begun Aurora frame is empty), so the decision
+  is a prediction, not a measurement of paint B's start.
+- Prediction: the game frame from paint A's wake, `max(elapsed + present + draw, 1 retrace) +
+  paint B + tail`, with `elapsed` measured (paint A + logic) and running estimates, each biased high
+  (rises by half the gap, falls by 1/16 a sample, so it follows a lighter scene over ~1 s; a lone
+  spike over twice the estimate + 4 ms is set aside unless another came within ~2 samples, so one
+  hitch does not skip the next paints B while an every-other-frame cost still counts) of the
+  split's present (`aurora_end_frame` + `aurora_begin_frame`), the draw pass (to `pc_frame_draw_end`,
+  new hook after `callBack2`; includes its `GXDrawDone`, i.e. a GX worker that is behind), paint B
+  without its wait, and the tail (paint B's present, the end and start of the frame, up to the next
+  paint A's wait; includes an `aurora_end_frame` waiting for a frame in flight). Over the budget
+  (`COS_FPS60_BUDGET_MS`, default two retraces less 1 ms = 32.4 ms) the frame is presented once,
+  as in a transition (`pc_fps60_paint_b_allowed`): the next paint A waits two retraces, the game
+  keeps its speed. With the console's step A numbers (12 + 0.2 + 12 + 6 + 1 = 31.2 ms) paint B
+  goes on; 3 ms more of logic skips it.
+- GPU behind: the paths above see a GX worker or render worker that is behind through the waits
+  they contain. On the Switch the GPU time per present is also checked: p95 over 30+ game frames
+  above `COS_FPS60_GPU_MS` (17 ms) while dynres cannot go lower (off, fixed, idle, at its floor;
+  `pc_dynres_gpu_limited`) skips paint B ("gpu"): two presents of that cost do not fit in 33.3 ms.
+- Steady 30 instead of judder: a window of the last 60 eligible frames (2 s; frames with the menu
+  open, in transitions or in a fallback do not count) records each as bad (paint B skipped, or a
+  split frame that took over two retraces + 1 ms, "late"). Over 25 % bad (with at least 20 frames
+  in): **fallback**, every frame presented once for 3 s (`COS_FPS60_FALLBACK_S`), logged once
+  (`[cos] fps60: frame N: paint B skipped or late in 16 of the last 60 game frames: steady 30
+  presents/s for 3.0 s, then paint B again`), then paint B is tried again (`paint B again after
+  3.0 s at 30`). A fallback that comes back within 20 s of the retry doubles the next (3, 6, 12,
+  24 s max); 20 s without one resets it to 3 s. Never disabled for good. A fallback ends early when
+  the prediction has stayed 3 ms under both the budget and the prediction that started it for 2 s
+  (the heavy spot is over; not with the GPU limit): `paint B again early (predicted ... for 2 s)`.
+- Estimates that only split frames refresh (the split's present, paint B) start over after every
+  fallback, so the first frame after it is split (a probe): one spike before a fallback (a hitch, a
+  shader build in `aurora_begin_frame`) can no longer keep paint B off for good. Readbacks after a
+  present (`COS_SHOT` and its paint A copy, the picto box, the menu screenshot, the telescope probe,
+  which wait for the GPU) are left out of the estimates and of the "late" check: a `COS_SHOT_PAINT_A`
+  run first locked paint B out this way (a 33.7 ms "present"). Uncapped (`COS_UNCAPPED`, the
+  regression's runs) there are no retraces to fit in: the guard is off.
+- Counted in the perf line: `budget: skipped <n> (time <n>, gpu <n>), at 30 <n> (fallbacks <n>[, in
+  one]), late <n>, predicted max <ms>, est present/draw/paint B/tail <ms>`. Single skips are logged
+  rate-limited (`presented once (paint B over budget: predicted 34.1 ms > 32.4: elapsed ..., present
+  ..., draw ..., paint B ..., tail ...)` at most every 2 s). `COS_FPS60_GUARD=0` turns the guard off.
+- Test knobs (Mac): `COS_FPS60_TEST_DELAY_MS=<ms>[@<from>-<to>][/<every>]` busy time after the draw
+  pass (of game frames from..to, every n-th), `COS_FPS60_TEST_DELAY_B_MS=<ms>` busy time in every
+  paint B (the Mac's paint B is ~0.3 ms, the console's 4-7).
+
+### Item 2: dynamic resolution per present
+
+- The samples were already per present: `cos_switch_gfx_stats` gives the GPU time of the frames
+  read back since the last game frame and their number; `pc_dynres_frame_begin` divides (one
+  present a game frame at 30, two with 60 fps). What changes with 60 fps is the budget: 16.7 ms a
+  present. Thresholds: `COS_DYNRES_HIGH60` / `COS_DYNRES_LOW60` (15 / 13 ms; 30 / 27 at 30 fps), chosen
+  per evaluation from the mode (`pc_dynres_policy.h` `dynresThresholds`); the counters restart when
+  the mode changes. The p95 is of per-game-frame averages of the two presents (paint A and paint B
+  cost about the same on the GPU).
+- Levels from the base: 5/6, 3/4 and 2/3 of `COS_FB_SCALE`, rounded to 1/96 (`dynresDefaultLevels`):
+  handheld 1.5 -> 1.25, 1.125, 1.0 (the old list plus 854x480); docked 2.25 -> 1.875, 1.6875, 1.5
+  (the old fixed list 1.25/1.125 jumped from 1920x1080 to 1067x600 docked). `COS_DYNRES_LEVELS` still
+  overrides.
+- 60 fps on with dynres off: the menu's "Resolución dinámica" has three values now, **"Con 60 fps" /
+  "With 60 fps" (`COS_DYNRES=auto`, the new default)**: dynres runs while the 60 fps row is on and
+  stays at the base scale at 30 fps (`[cos] dynres: on while 60 fps is on ...` / `idle with 60 fps
+  off`); "Desactivada" (`0`) keeps it off even with 60 fps (the user's explicit choice, respected: the
+  budget guard then falls back to 30 when the GPU is the limit); "Siempre" (`1`) at 30 fps too (the
+  old "Automática"). A settings file that saved `COS_DYNRES=0` keeps it off; one that never touched
+  the row gets auto. The 60 fps row's help says it lowers the resolution or drops to 30 when it
+  cannot keep up. `pc_dynres` now reads its start values through `pc_settings_get` (file and
+  defaults, not only the environment).
+
+### Item 3: docked
+
+- Docked at 2.25 (1920x1080) the GPU is likely 16-20 ms a present: with 60 fps on and dynres auto,
+  p95 over 15 ms twice (about 3 s at a level: 60 samples, then two evaluations 30 frames apart) drops
+  to 1.875 (0.69x the pixels, ~11-14 ms), then 1.6875, 1.5 (~9 ms measured at 1.5 docked). Until
+  dynres settles the budget guard skips or falls back (the GPU's back-pressure lands in the tail and
+  draw estimates). With dynres off docked, the GPU check falls back to 30.
+- Mode switch with 60 fps on: `pc_settings_poll_mode` runs in `menuFrame` (in `pc_frame_end`, after
+  paint B, before its present) and applies the per-mode values (`COS_FB_SCALE`, `COS_FPS60`,
+  `COS_DYNRES`) through their apply callbacks, all effective from the next frame (`pc_fps60_set`,
+  `pc_dynres_configure`, `VISetFrameBufferScale`, whose resize happens in the next frame's event
+  pump, before paint A: both paints of a frame see the same EFB, and Aurora's resize syncs the async
+  end of frame first, patch 0018). New: `pc_fps60_hold(why)` presents the frame once and the 3 after
+  (as a transition) on an operation mode change, a new internal resolution or dynres setting (the
+  menu's apply callbacks), and Aurora's window resized / paused / display scale events; the camera
+  and model captures carry over (the next paint B blends the last two draw passes as usual).
+
+### Item 4: pause, menus, demos, loading
+
+- Options menu open: no split at all (`pc_frame_wait_retraces`: `menuOpen()`), as before.
+- Pause menu screens (items, collection, map, save, the game over's save prompt: `dMenu_flag()`,
+  `dMenu_pause`): **now presented once** (gate reason "pause menu"): the world behind is the
+  menu's captured picture (`dDlst_MENU_CAPTURE_c`) and the menus animate in the draw pass at 30 Hz,
+  so paint B showed the same picture at the cost of a paint (and its GPU time and battery). The
+  capture packet copies the EFB in the first paint after the draw pass that set its flag; with paint
+  B dropped that is the next paint A, as at 30 fps.
+- Frozen game frames (item-get fanfare, hit-stop, talking with the world paused): the draw pass
+  still runs, prev and cur captures are equal, so paint B blends identical frames (camera,
+  models, particles with an equal age, sea) and draws what paint A draws: no oscillation.
+- Loading, scene changes, fades, wipes: step B's gate (presented once).
+
+### Item 5: battery and heat
+
+Nothing in code. Paint B costs the CPU ~5-7 ms and the GPU a second present per game frame
+(handheld 11-14 ms): the GPU does about twice the work, the CPU ~25-30 % more. Expect shorter
+battery life and a warmer console with the 60 fps row on (default off); the steady-30 fallback and
+the pause menu gate save some of it where 60 shows nothing.
+
+### Verification (Mac)
+
+- `cos_pc_tests` (new `testFps60Budget`, `testDynresPolicy`): the prediction (paint B's retrace wait,
+  the console's 31.2 ms fitting and 34.2 not), the high-biased estimate, scattered skips (1 in 3)
+  falling back after 20 frames for 90, the doubling to 180/360 and back to 90 after 600 healthy
+  frames, rare skips (1 in 10) never falling back, the 720-frame cap, the early retry (held while
+  GPU-limited), the probe after a spike; dynres levels (1.5 -> 1.25/1.125/1.0, 2.25 ->
+  1.875/1.6875/1.5), 18 ms a present docked fine at 30 fps but two evaluations over 15 with 60 fps ->
+  1.875, the floor, headroom back up after four, the handheld 30 fps behaviour unchanged.
+- Synthetic heavy scenes (Outset `sea:44:206`, capped, `COS_FPS60_TEST=1`, `COS_PERF_EVERY=60`, 2400
+  frames, `COS_FPS60_TEST_DELAY_B_MS=6` so paint B costs what it does on the console; delay in game
+  frames 600-1500):
+
+  | Draw-pass delay | guard | game fps in the delay | presents/s | late / 60 frames | after 1500 |
+  |---|---|---|---|---|---|
+  | none | on | 30.0 | 59.9 | 0 | - |
+  | 20 ms (paint B starts late, fits) | on | 30.0 | 59.9 | 0 | 59.9 |
+  | 20 ms, `COS_FPS60_PACE=0` (old pacing) | off | 26.4-26.6 | 52.9-53.2 | 60 | 59.9 |
+  | 26 ms every frame (over budget) | on | 30.0 | 30.0 (skips, then fallbacks 3, 6, 12, 24 s) | 0 | 59.9 from frame 1563 (early retry, 2 s after) |
+  | 28 ms every 2nd frame (uneven) | on | 30.0 (29.7 in the retry windows) | 30.0 | 0 (5-10 in a retry window) | 59.9 from 1564 (early retry) |
+  | 28 ms every 2nd frame | off | 29.0-29.2 | 58.0-58.3 (uneven) | 30 | 59.9 |
+
+  The last two rows are the judder case: without the guard every heavy frame overruns (the game
+  runs 3 % slow and presents bunch); with it a steady 30 for a few seconds at a time, a retry costing
+  ~20 frames of mixed presents, longer apart each time.
+- Sailing smoke capped (`sailing --preset sailing`, `COS_FPS60_TEST=1`): no skip, 59.9 presents/s
+  once at sea; before the outlier rule a few 30-35 ms hitches in the tail skipped 13-15 paints B per
+  300 frames and once fell back.
+- Item-get demo (`item-sweep` 0x22 with `COS_SHOT_PAINT_A=1`, 117 frame pairs over frames 400-1100):
+  no paint B differing from both neighbouring paints A by more than they differ from each other + 4;
+  frozen frames (paints A 0.13-0.42 apart) have paint B 0.05-0.26 from them: no oscillation.
+- Pause menu (`options-menu` with `menu-travel-save.txt`, `COS_FPS60_TEST=1`): `presented once (pause
+  menu)` at frame 1201 through `paint B again (after pause menu)` at 3014 (items, collection, save
+  screen, save and its round trip pass); the internal resolution changes in the options menu give
+  `presented once (window resized)`.
+- Full `native/tools/regress.sh` passes (mode off). With `COS_FPS60_TEST=1`: file-select (and 16:10),
+  outset-control (4:3, 16:9), new-game, telescope-demo, sailing, the three picto-box targets,
+  options-menu with `menu-fps60.txt` and `menu-travel-save.txt`, item-sweep and save-sweep pass
+  (uncapped, as the regression runs them: guard off); capped, outset-control, `menu-travel-save.txt`
+  and item-sweep pass with no budget skip. Switch NRO `scripts/switch/build_native.sh --runtime-assets` builds
+  (exit 0, no `error:`). Not tried on the console.
+
+## Console checklist (steps A-E)
+
+Everything below is unmeasured on the Switch. Settings: the options menu's Rendimiento > "60 fps
+(interpolación)" per mode (or `[dev] COS_FPS60_TEST=1`), `COS_PERF_EVERY=300` for the perf lines.
+
+Pacing and cost (handheld 720p, 1020 MHz):
+
+1. Outset, Dragon Roost, Forbidden Woods, Tower of the Gods, the open sea while sailing: perf line
+   `59.9 presents/s` and `30.0 fps` (game frames); `budget: skipped 0 ..., at 30 0, late 0`; the
+   estimates (`est present/draw/paint B/tail`) and `predicted max` well under 32.4 ms. Compare the
+   game thread with step A's table (20-26 ms): the step C/D blends add `models: ... blend`, `particles:
+   ... blend` (sailing: ~1200 particles, estimated 0.5-1 ms).
+2. A heavy spot (Windfall at night with rain, the storm on the sea, Dragon Roost's top, a big fight):
+   whether skips or fallbacks appear (`[cos] fps60: ... presented once (paint B over budget ...)`,
+   `steady 30 presents/s for ...`, `paint B again ...`), and that it looks like a steady 30 then, not
+   a stutter. Try `COS_FPS60_GUARD=0` there for comparison, and `COS_FPS60_PACE=0` (old pacing).
+3. The FPS overlay with 60 fps on: no flicker of the panel itself.
+
+Picture (step B-D artefacts):
+
+4. Camera turning and following Link/the boat: smooth, Link and the boat steady (no 60 Hz vibration);
+   starry sky, sun, moon and clouds steady while turning; lens flare.
+5. Sailing: the wake and bow waves attached to the boat (no lead/lag, no texture sliding along the
+   wake), the boat's real shadow on the hull/sea, the sail cloth, the sea's waves.
+6. Ropes and bridges (Outset's lookout bridge, Windfall, the grappling hook), simple shadows under
+   NPCs and enemies, particles (fire, dust, splashes, sparkles).
+7. One-paint glitches: an effect, rope or model flashing at a wrong place for one frame (identity or
+   scratch lifetime), a model held at a "teleport" that is not one (the perf line's `teleport` count).
+8. A boss with motion blur (Puppet Ganon `d_a_bgn`, Helmaroc King): trail length as at 30 fps.
+9. Transitions: title -> file select, entering/leaving houses, warps, the options menu's travel:
+   no black or half-built frame (step B's gate; `presented once (<reason>)` lines).
+
+Menus, demos, mode changes (step E):
+
+10. Pause menu (items, collection, map, save; the game over's save prompt): presented once (`pause
+    menu` in the log, 30 presents/s while it is open), no flicker opening or closing it.
+11. Item-get fanfare, talking, cutscenes with the world frozen: no shimmer between paints.
+12. Options menu open: 30 presents/s (no split); turning the 60 fps row on and off live.
+13. Docked (2.25, 1920x1080) with 60 fps on and "Resolución dinámica" at its default "Con 60 fps":
+    `[cos] dynres: on while 60 fps is on`, then level changes `2.250 -> 1.875 ...` (`GPU-bound`, GPU
+    p95 per present over 15 ms) settling where the `perf-switch gpu` time per present is under ~15 ms;
+    whether 1.5 is reached and how it looks on the TV; `budget:` counts while it settles.
+14. Docked with "Resolución dinámica" = "Desactivada": `presented once (GPU: p95 ...)` and a steady
+    30 fallback when the GPU cannot draw two presents (expected at 2.25).
+15. Dock and undock with 60 fps on (and with it on in one mode only): `presented once (operation
+    mode changed)`, no crash or corrupt frame at the swapchain resize, the other mode's 60 fps / dynres
+    values applied (`[cos] fps60: on|off from the next game frame`).
+16. Internal resolution changed in the options menu with 60 fps on: `presented once (internal
+    resolution changed)`, no corrupt frame.
+17. Battery and heat: a 20-30 minute session handheld with 60 fps on vs off (battery percentage
+    drop, how warm the console gets); the CPU/GPU clocks stay at the stock profile (no overclock).

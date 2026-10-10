@@ -310,6 +310,8 @@ void fpcM_Management(fpcM_ManagementFunc callBack1, fpcM_ManagementFunc callBack
         callBack2();
 #if TARGET_PC
     pc_fps60_models_draw_end();
+    // Step E: the draw pass's time for paint B's budget guard (and its test delay).
+    pc_frame_draw_end();
     if (paintB) {
         // Paint B: cAPIGph_Painter alone (no draw pass); its guards (pc_paint_is_extra) keep it
         // from advancing the paint-time state, and the game's random seeds are put back after it

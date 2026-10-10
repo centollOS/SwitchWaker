@@ -387,6 +387,13 @@ void pc_fps60_sky_end(void) {
     sSkyOn = false;
 }
 
+// Step E: pc_fps60_hold's reason, taken by the next pc_fps60_paint_b_allowed.
+static const char* sHoldWhy = nullptr;
+
+extern "C" void pc_fps60_hold(const char* why) {
+    sHoldWhy = why;
+}
+
 int pc_fps60_paint_b_allowed(void) {
     // the last frame a transition was seen, and why (logged when paint B comes back)
     static unsigned int lastSeen = 0;
@@ -398,8 +405,16 @@ int pc_fps60_paint_b_allowed(void) {
     const char* why = nullptr;
     const s16 monotone = mDoGph_gInf_c::getMonotoneRate();
     JUTFader* fader = mDoGph_gInf_c::mFader;
-    if (pc_fpcNdRq_pending()) {
+    if (sHoldWhy != nullptr) {
+        why = sHoldWhy; // step E: a resize, a mode change, a new internal resolution
+        sHoldWhy = nullptr;
+    } else if (pc_fpcNdRq_pending()) {
         why = "scene request";
+    } else if (dMenu_flag() != 0) {
+        // Step E: the pause menu's screens (items, collection, map, save, options of the game): the
+        // world behind is the menu's captured picture and the menus animate in the draw pass at 30 Hz,
+        // so paint B would show the same picture again at the cost of a paint; presented once.
+        why = "pause menu";
     } else if (fopOvlpM_IsDoingReq() || fopOvlpM_IsPeek()) {
         why = "overlap";
     } else if (dDlst_list_c::mWipe) {

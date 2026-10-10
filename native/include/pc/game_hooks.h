@@ -104,6 +104,13 @@ extern "C" void pc_fps60_set(int on);
 /* pc_wait_for_tick: the retraces this wait lasts for a game frame of `retraces` (1 for each paint of
    a split frame, else `retraces`; 0, no wait, for COS_PAINT_PURITY_REPEAT's second paint B). */
 extern "C" unsigned int pc_frame_wait_retraces(unsigned int retraces);
+/* fpcM_Management, after the draw pass (and callBack2), before paint B: step E's budget guard measures
+   the draw pass here (docs/FPS60_PLAN.md "Step E"); COS_FPS60_TEST_DELAY_MS adds its test delay. */
+extern "C" void pc_frame_draw_end(void);
+/* Step E: the next frame is presented once (no paint B), and the 3 after it, as in a transition:
+   a window resize, an operation mode change, a new internal resolution (the swapchain or the EFB
+   resized between two paints). `why` is logged (a string literal). */
+extern "C" void pc_fps60_hold(const char* why);
 
 /* ---- 60 fps step B: the camera of paint B (native/src/pc/game_hooks/pc_fps60_camera.cpp) -------- */
 

@@ -12,6 +12,8 @@
 //     offsets, the extremes of the range, and the panics on a null or out-of-range offset;
 //     setBaseAllowZero, where an offset of 0 is the base (step 4.9a);
 //   - JUtility::TColor's u32 form, 0xRRGGBBAA as GX and the disc have it (step 4.5);
+//   - the 60 fps budget guard and its steady-30 fallback (pc_fps60_budget.h) and dynamic
+//     resolution's levels and per-present thresholds (pc_dynres_policy.h), docs/FPS60_PLAN.md step E;
 //   - BMG data read in place: JMessage's header, block and INF1 accessors, the JMSMesgEntry_c
 //     fields, and JGadget's TParseValue_endian_big_ for tag parameters (step 4.6).
 // Prints "ok" and exits 0 when every check passes; otherwise prints each failed check and exits 1.
@@ -24,6 +26,8 @@
 #include "JSystem/JUtility/TColor.h"
 #include "f_op/f_op_msg_mng.h"
 #include "../src/pc/features/pc_precompile_gate.h"
+#include "../src/pc/features/pc_dynres_policy.h"
+#include "../src/pc/runtime/pc_fps60_budget.h"
 
 #include <cmath>
 #include <cstdint>
@@ -544,6 +548,219 @@ void testLateGate() {
     }
 }
 
+// ---- 60 fps step E: paint B's budget guard (pc_fps60_budget.h) ----------------------------------
+
+constexpr uint64_t kMs = 1000000ull;
+
+void testFps60Budget() {
+    // The prediction: paint B waits for its retrace, so a fast frame is one retrace + paint B + tail.
+    {
+        pc::Fps60Budget b;
+        b.present.add(0.2 * kMs);
+        b.draw.add(1.0 * kMs);
+        b.paintB.add(0.6 * kMs);
+        b.tail.add(0.4 * kMs);
+        CHECK(b.predict(1 * kMs) == b.cfg.retraceNs + (uint64_t)(1.0 * kMs));
+        uint64_t p = 0;
+        CHECK(b.decide(1 * kMs, false, &p) == pc::Fps60Verdict::Split && p < b.cfg.budgetNs);
+        // the GPU behind: presented once whatever the CPU says
+        CHECK(b.decide(1 * kMs, true, nullptr) == pc::Fps60Verdict::SkipGpu);
+    }
+    // The console's numbers (handheld, 1020 MHz): paint A + logic 12 ms, draw pass 9 + drawdone 3,
+    // paint B 6, tail 1: 31.2 ms, fits; 3 ms more of logic (34.2) does not.
+    {
+        pc::Fps60Budget b;
+        b.present.add(0.2 * kMs);
+        b.draw.add(12.0 * kMs);
+        b.paintB.add(6.0 * kMs);
+        b.tail.add(1.0 * kMs);
+        CHECK(b.decide(12 * kMs, false, nullptr) == pc::Fps60Verdict::Split);
+        CHECK(b.decide(15 * kMs, false, nullptr) == pc::Fps60Verdict::SkipBudget);
+    }
+    // The estimate: a spike is taken at once (half the gap), forgotten slowly (1/16 a sample).
+    {
+        pc::Fps60Estimate e;
+        e.add(10.0);
+        e.add(20.0);
+        CHECK(e.get() == 15.0);
+        for (int i = 0; i < 64; i++) {
+            e.add(10.0);
+        }
+        CHECK(e.get() > 10.0 && e.get() < 10.1);
+    }
+    // A lone spike (a 34 ms hitch over a 0.3 ms tail) is set aside; spikes that recur within ~2
+    // samples (every other frame heavy) count.
+    {
+        pc::Fps60Estimate e;
+        e.add(0.3 * kMs);
+        e.add(34.0 * kMs);
+        CHECK(e.get() == 0.3 * kMs);
+        e.add(0.3 * kMs);
+        CHECK(e.get() == 0.3 * kMs);
+        e.add(20.0 * kMs);
+        e.add(26.0 * kMs);
+        CHECK(e.get() > 13.0 * kMs);
+    }
+    {
+        pc::Fps60Estimate e; // every other draw pass 28 ms heavier: the heavy ones count
+        e.add(0.3 * kMs);
+        for (int i = 0; i < 10; i++) {
+            e.add(28.3 * kMs);
+            e.add(0.3 * kMs);
+        }
+        CHECK(e.get() > 20.0 * kMs);
+    }
+    // Scattered skips (every 3rd frame: 33 %, the uneven 40-50 presents/s): a fallback once 20
+    // frames are in, 90 frames at 30, then paint B again with a clean window.
+    {
+        pc::Fps60Budget b;
+        int startedAt = -1;
+        for (int i = 0; i < 60 && startedAt < 0; i++) {
+            if (b.frameResult(i % 3 == 0)) {
+                startedAt = i;
+            }
+        }
+        CHECK(startedAt == 19); // 20 frames, 7 bad (> 25 %)
+        CHECK(b.inFallback() && b.lastFallbackFrames() == 90 && b.lastBad() == 7 && b.lastCount() == 20);
+        CHECK(b.decide(0, false, nullptr) == pc::Fps60Verdict::Fallback);
+        int ended = -1;
+        for (int i = 0; i < 200 && ended < 0; i++) {
+            if (b.tick()) {
+                ended = i;
+            }
+        }
+        CHECK(ended == 89 && !b.inFallback() && b.windowCount() == 0);
+        // still heavy right after the retry: the next fallback is twice as long (180)
+        bool again = false;
+        for (int i = 0; i < 30 && !again; i++) {
+            again = b.frameResult(true);
+        }
+        CHECK(again && b.lastFallbackFrames() == 180 && b.nextFallbackFrames() == 360);
+        for (int i = 0; i < 180; i++) {
+            b.tick();
+        }
+        // healthy for 600 frames after the retry: back to the short fallback
+        for (int i = 0; i < 600; i++) {
+            CHECK(!b.frameResult(false));
+        }
+        CHECK(b.nextFallbackFrames() == 90);
+    }
+    // A heavy spot (34 ms predicted) starts a fallback; once the prediction is 3 ms under both the
+    // budget and 34 ms for 60 frames in a row the fallback ends early (not after its 90 frames); a
+    // prediction that stays near the start's, or the GPU limit, keeps it.
+    {
+        pc::Fps60Budget b;
+        b.draw.add(26.0 * kMs);
+        b.paintB.add(6.0 * kMs);
+        b.tail.add(1.0 * kMs);
+        for (int i = 0; i < 20; i++) {
+            CHECK(b.decide(1 * kMs, false, nullptr) == pc::Fps60Verdict::SkipBudget);
+            b.frameResult(true);
+        }
+        CHECK(b.inFallback());
+        for (int i = 0; i < 5; i++) {
+            b.tick();
+            CHECK(b.decide(1 * kMs, false, nullptr) == pc::Fps60Verdict::Fallback);
+        }
+        for (int i = 0; i < 64; i++) {
+            b.draw.add(1.0 * kMs); // the heavy spot is over: draw down to ~1 ms
+        }
+        int earlyAt = -1;
+        for (int i = 0; i < 70 && earlyAt < 0; i++) {
+            b.tick();
+            if (b.decide(1 * kMs, i < 10, nullptr) == pc::Fps60Verdict::Split) { // GPU-limited for 10
+                earlyAt = i;
+                CHECK(b.retriedEarly());
+            }
+        }
+        CHECK(earlyAt == 69 && !b.inFallback());
+    }
+    // A spike in the split-only estimates (a 34 ms present: a hitch) skips paint B and starts a
+    // fallback; at its end those estimates start over, so the next frame is split (a probe).
+    {
+        pc::Fps60Budget b;
+        b.draw.add(1.0 * kMs);
+        b.paintB.add(0.6 * kMs);
+        b.tail.add(0.3 * kMs);
+        b.present.add(34.0 * kMs); // the first split's present (a readback once inflated it so)
+        int fellBack = 0;
+        for (int i = 0; i < 40 && !b.inFallback(); i++) {
+            CHECK(b.decide(1 * kMs, false, nullptr) == pc::Fps60Verdict::SkipBudget);
+            fellBack += b.frameResult(true) ? 1 : 0;
+        }
+        CHECK(fellBack == 1);
+        while (!b.tick()) {
+        }
+        CHECK(!b.present.valid && !b.paintB.valid && b.draw.valid);
+        CHECK(b.decide(1 * kMs, false, nullptr) == pc::Fps60Verdict::Split);
+    }
+    // Rare skips (1 in 10) never fall back; the cap holds at 24 s (720 frames).
+    {
+        pc::Fps60Budget b;
+        for (int i = 0; i < 1000; i++) {
+            CHECK(!b.frameResult(i % 10 == 0));
+        }
+        for (int round = 0; round < 6; round++) {
+            for (int i = 0; i < 20; i++) {
+                b.frameResult(true);
+            }
+            while (b.inFallback()) {
+                b.tick();
+            }
+        }
+        CHECK(b.lastFallbackFrames() == 720 && b.fallbacks() == 6);
+        b.reset();
+        CHECK(!b.inFallback() && b.nextFallbackFrames() == 90);
+    }
+}
+
+// ---- dynamic resolution: levels and per-present thresholds (pc_dynres_policy.h) -----------------
+
+void testDynresPolicy() {
+    const pc::DynresLevels hh = pc::dynresDefaultLevels(1.5f);
+    const float* handheld = hh.v;
+    CHECK(hh.n == 4 && handheld[1] == 1.25f && handheld[2] == 1.125f && handheld[3] == 1.0f);
+    const pc::DynresLevels dk = pc::dynresDefaultLevels(2.25f);
+    const float* docked = dk.v;
+    CHECK(dk.n == 4 && docked[1] == 1.875f && docked[2] == 1.6875f && docked[3] == 1.5f);
+    const pc::DynresThresholds t30 = pc::dynresThresholds(false, 30, 27, 15, 13);
+    const pc::DynresThresholds t60 = pc::dynresThresholds(true, 30, 27, 15, 13);
+    CHECK(t30.highMs == 30 && t60.highMs == 15 && t60.lowMs == 13);
+    // Docked at 2.25 with 60 fps: 18 ms a present (the estimate for 1920x1080) is fine at 30 fps but
+    // over 15 with 60 fps: down after two evaluations, 2.25 -> 1.875.
+    {
+        pc::DynresEval e = pc::dynresEvaluate(18.0, t30, docked, 4, 0, 0, 0);
+        CHECK(e.level == 0 && e.why == nullptr);
+        e = pc::dynresEvaluate(18.0, t60, docked, 4, 0, 0, 0);
+        CHECK(e.level == 0 && e.overCount == 1);
+        e = pc::dynresEvaluate(18.0, t60, docked, 4, e.level, e.overCount, e.underCount);
+        CHECK(e.level == 1 && e.why != nullptr && e.overCount == 0);
+        // 1.875: 18 * (1.875/2.25)^2 = 12.5 ms; stays (back up would predict 18 > 13)
+        e = pc::dynresEvaluate(12.5, t60, docked, 4, 1, 0, 0);
+        CHECK(e.level == 1 && e.underCount == 0);
+        // still 16 ms at 1.875 twice: 1.6875, then the floor 1.5 (1280x720, ~9 ms measured)
+        e = pc::dynresEvaluate(16.0, t60, docked, 4, 1, 1, 0);
+        CHECK(e.level == 2);
+        e = pc::dynresEvaluate(16.0, t60, docked, 4, 3, 1, 0);
+        CHECK(e.level == 3); // at the floor: nowhere lower
+    }
+    // Headroom: 9 ms at 1.5 predicts 9 * (1.6875/1.5)^2 = 11.4 < 13: up after four evaluations.
+    {
+        pc::DynresEval e{3, 0, 0, nullptr};
+        for (int i = 0; i < 3; i++) {
+            e = pc::dynresEvaluate(9.0, t60, docked, 4, e.level, e.overCount, e.underCount);
+            CHECK(e.level == 3);
+        }
+        e = pc::dynresEvaluate(9.0, t60, docked, 4, e.level, e.overCount, e.underCount);
+        CHECK(e.level == 2 && e.underCount == 0);
+    }
+    // The handheld at 30 fps keeps the old behaviour: 31 ms twice -> 1.25.
+    {
+        pc::DynresEval e = pc::dynresEvaluate(31.0, t30, handheld, 4, 0, 1, 0);
+        CHECK(e.level == 1);
+    }
+}
+
 } // namespace
 
 int main() {
@@ -556,6 +773,8 @@ int main() {
     testTColor();
     testBmg();
     testLateGate();
+    testFps60Budget();
+    testDynresPolicy();
     if (g_failures != 0) {
         std::printf("FAIL: %d checks\n", g_failures);
         return 1;

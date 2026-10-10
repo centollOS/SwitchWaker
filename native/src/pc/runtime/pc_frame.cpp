@@ -31,6 +31,7 @@
 // the same spin); no frame-usage statistics, interpolation, turbo mode or settings; a refused
 // aurora_begin_frame waits and retries instead of skipping the game frame.
 #include "pc_internal.h"
+#include "pc_fps60_budget.h"
 #include "pc/game_hooks.h"
 #include "pc/pc_settings.h"
 #include "SSystem/SComponent/c_API_graphic.h"
@@ -94,6 +95,8 @@ public:
     using duration_t = uint64_t;
 
     void Reset() { m_oldTime = monotonicNs(); }
+    // The time Sleep measures the next period from (the end of the last wait).
+    uint64_t Last() const { return m_oldTime; }
 
     duration_t Sleep(duration_t targetFrameTime) {
         if (targetFrameTime == 0) {
@@ -230,6 +233,51 @@ uint64_t sPaintBDropped = 0;  // split frames presented once (a transition, pc_f
 bool sPaintExtra = false;
 bool sPaintRepeat = false; // COS_PAINT_PURITY_REPEAT: paint B's second run (no wait)
 uint64_t sSplits = 0;
+
+// 60 fps step E (pc_fps60_budget.h, docs/FPS60_PLAN.md "Step E"): paint B's budget guard. Times are
+// monotonicNs; 0 = not this frame.
+Fps60Budget sBudget;
+bool sBudgetConfigured = false;
+bool sBudgetGuard = true;      // COS_FPS60_GUARD=0: paint B whatever it costs (A/B, tests)
+double sGpuBudgetMs = 17.0;    // COS_FPS60_GPU_MS: GPU p95 per present over this at dynres' floor
+uint64_t sAWakeNs = 0;         // paint A's wake (the end of its pace wait)
+uint64_t sPrevAWakeNs = 0;
+bool sPaceFromAWake = false;   // paint A after a split frame: its wait ends two retraces after the last paint A's wake
+uint64_t sAfterSplitNs = 0;    // the split's present done, or the decision when presented once
+uint64_t sPaintBStartNs = 0;   // pc_paint_extra_begin
+uint64_t sPaintBWaitStartNs = 0; // sFrameWaitNs then (paint B's own wait is left out of its cost)
+uint64_t sPaintEndNs = 0;      // paint B's end, or the draw pass's when presented once: the tail's start
+bool sSplitOutcomePending = false; // a split frame: overran or not, seen at the next paint A's wake
+// Readbacks after a present (COS_SHOT and its paint A copy, the picto box, the menu screenshot, the
+// telescope probe) wait for the frame on the GPU: tools and rare events, left out of the estimates
+// (a COS_SHOT run would otherwise see a 30 ms present and skip paint B in every shot frame).
+uint64_t sReadbackNs = 0;
+uint64_t sCycleReadbackNs = 0; // the same over the game frame (left out of its "late" check)
+// Counts, since start and since the last perf line.
+struct BudgetCounts {
+    uint64_t skipTime = 0, skipGpu = 0, fallbackFrames = 0, fallbacks = 0, late = 0;
+    uint64_t predictedMaxNs = 0;
+};
+BudgetCounts sBudgetAll, sBudgetWin;
+// Rate-limited skip log: the frame of the last line and the skips since.
+unsigned int sSkipLogFrame = 0;
+unsigned int sSkipsSinceLog = 0;
+// COS_FPS60_TEST_DELAY_MS=<ms>[@<from>-<to>][/<every>] (tests only): busy time added after the draw pass
+// of the game frames from..to (every <every>-th of them), to run the guard on a fast machine.
+double sTestDelayMs = 0.0;
+unsigned int sTestDelayFrom = 0, sTestDelayTo = UINT32_MAX, sTestDelayEvery = 1;
+// COS_FPS60_TEST_DELAY_B_MS=<ms> (tests only): busy time added to every paint B (the Mac's paint B
+// costs ~0.3 ms, the Switch's 4-7 ms).
+double sTestDelayBMs = 0.0;
+// COS_FPS60_PACE=0: paint A after a split frame waits one retrace after paint B's wake, as before
+// step E (A/B of the pacing fix).
+bool sPaceFromAWakeOn = true;
+
+void busyWaitMs(double ms) {
+    const uint64_t until = monotonicNs() + (uint64_t)(ms * 1e6);
+    while (monotonicNs() < until) {
+    }
+}
 
 // The game thread's CPU time in ns, or UINT64_MAX where the clock is missing.
 uint64_t threadCpuNs() {
@@ -832,7 +880,7 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
     if (sPerf.cpuValid) {
         snprintf(cpu, sizeof(cpu), "%.2f ms avg", sPerf.cpuNs / n / 1e6);
     }
-    char fps60[1536] = "";
+    char fps60[2048] = "";
     if (pc_fps60_test()) {
         // COS_FPS60_TEST: paint B and paint A's present (aurora_end_frame/begin_frame) per game frame;
         // the waits for Aurora's GX worker: GXDrawDone after the draw pass (in the logic) and the
@@ -862,6 +910,21 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
         char misc[160];
         pc_fps60_misc_stats(misc, sizeof(misc), n);
         strncat(fps60, misc, sizeof(fps60) - strlen(fps60) - 1);
+        // Step E (pc_fps60_budget.h): frames presented once by the budget guard in this window (over
+        // the budget, the GPU behind, a steady-30 fallback), the fallbacks started, split frames that
+        // overran two retraces, the largest prediction and the running estimates (ms).
+        char budget[320];
+        snprintf(budget, sizeof(budget),
+                 "; budget: skipped %llu (time %llu, gpu %llu), at 30 %llu (fallbacks %llu%s), late %llu, predicted "
+                 "max %.1f, est present %.2f draw %.2f paint B %.2f tail %.2f",
+                 (unsigned long long)(sBudgetWin.skipTime + sBudgetWin.skipGpu),
+                 (unsigned long long)sBudgetWin.skipTime, (unsigned long long)sBudgetWin.skipGpu,
+                 (unsigned long long)sBudgetWin.fallbackFrames, (unsigned long long)sBudgetWin.fallbacks,
+                 sBudget.inFallback() ? ", in one" : "", (unsigned long long)sBudgetWin.late,
+                 sBudgetWin.predictedMaxNs / 1e6, sBudget.present.get() / 1e6, sBudget.draw.get() / 1e6,
+                 sBudget.paintB.get() / 1e6, sBudget.tail.get() / 1e6);
+        strncat(fps60, budget, sizeof(fps60) - strlen(fps60) - 1);
+        sBudgetWin = BudgetCounts{};
         lastDropped = sPaintBDropped;
         lastInterp = interp;
         lastSkips = skips;
@@ -893,6 +956,15 @@ void pumpEvents() {
         event = aurora_update();
     }
     for (; event != nullptr && event->type != AURORA_NONE; event++) {
+        // 60 fps step E: a new swapchain/EFB size, or the window paused, is presented once (and for
+        // 3 frames after), as a transition (pc_fps60_paint_b_allowed).
+        if (event->type == AURORA_WINDOW_RESIZED) {
+            pc_fps60_hold("window resized");
+        } else if (event->type == AURORA_PAUSED || event->type == AURORA_UNPAUSED) {
+            pc_fps60_hold("window paused");
+        } else if (event->type == AURORA_DISPLAY_SCALE_CHANGED) {
+            pc_fps60_hold("display scale changed");
+        }
         if (event->type == AURORA_EXIT) {
             const bool expected = gConfig.milestone != nullptr || gConfig.frames != 0;
             writef(STDERR_FILENO, "[cos] quit requested (window closed) at frame %u%s\n",
@@ -996,6 +1068,107 @@ void logoResDone(const char* how) {
 
 using namespace pc;
 
+namespace {
+
+// ---- 60 fps step E: paint B's budget guard (pc_fps60_budget.h; docs/FPS60_PLAN.md "Step E") ----
+
+double envMs(const char* name, double fallback) {
+    const char* v = getenv(name);
+    if (v == nullptr || *v == '\0') {
+        return fallback;
+    }
+    char* end = nullptr;
+    const double d = strtod(v, &end);
+    return end != v && d >= 0.0 ? d : fallback;
+}
+
+void budgetConfigure() {
+    if (sBudgetConfigured) {
+        return;
+    }
+    sBudgetConfigured = true;
+    Fps60BudgetConfig cfg;
+    cfg.retraceNs = PC_RETRACE_PERIOD_NS;
+    cfg.budgetNs = (uint64_t)(envMs("COS_FPS60_BUDGET_MS", (2 * PC_RETRACE_PERIOD_NS - 1000000ull) / 1e6) * 1e6);
+    cfg.lateNs = 2 * PC_RETRACE_PERIOD_NS + 1000000ull;
+    const double fallbackS = envMs("COS_FPS60_FALLBACK_S", 3.0);
+    cfg.fallbackFrames = std::max(1u, (unsigned int)(fallbackS * 30.0 + 0.5));
+    cfg.fallbackMaxFrames = std::max(cfg.fallbackFrames, cfg.fallbackFrames * 8);
+    sBudget.configure(cfg);
+    sGpuBudgetMs = envMs("COS_FPS60_GPU_MS", 17.0);
+    const char* guard = getenv("COS_FPS60_GUARD");
+    // Uncapped (COS_UNCAPPED, the regression's runs) there are no retraces to fit in: no guard.
+    sBudgetGuard = !(guard != nullptr && guard[0] == '0') && !gConfig.uncapped;
+    const char* pace = getenv("COS_FPS60_PACE");
+    sPaceFromAWakeOn = !(pace != nullptr && pace[0] == '0');
+    sTestDelayBMs = envMs("COS_FPS60_TEST_DELAY_B_MS", 0.0);
+    if (sTestDelayBMs > 0.0) {
+        writef(STDERR_FILENO, "[cos] COS_FPS60_TEST_DELAY_B_MS: %.1f ms of busy time in every paint B (a test)\n",
+               sTestDelayBMs);
+    }
+    if (const char* d = getenv("COS_FPS60_TEST_DELAY_MS"); d != nullptr && *d != '\0') {
+        char* end = nullptr;
+        sTestDelayMs = strtod(d, &end);
+        if (end != nullptr && *end == '@') {
+            sTestDelayFrom = (unsigned int)strtoul(end + 1, &end, 10);
+            if (*end == '-') {
+                sTestDelayTo = (unsigned int)strtoul(end + 1, &end, 10);
+            }
+        }
+        if (end != nullptr && *end == '/') {
+            sTestDelayEvery = std::max(1u, (unsigned int)strtoul(end + 1, &end, 10));
+        }
+        writef(STDERR_FILENO, "[cos] COS_FPS60_TEST_DELAY_MS: %.1f ms of busy time after the draw pass, game frames "
+                              "%u-%u, every %u (a test of the 60 fps budget guard)\n",
+               sTestDelayMs, sTestDelayFrom, sTestDelayTo, sTestDelayEvery);
+    }
+    if (!sPaceFromAWakeOn) {
+        writef(STDERR_FILENO, "[cos] COS_FPS60_PACE=0: paint A waits one retrace after paint B (before step E)\n");
+    }
+    writef(STDERR_FILENO, "[cos] fps60 budget guard: %s; paint B only when the game frame is predicted under %.1f ms "
+                          "and the GPU under %.1f ms a present (or dynres can still go lower); over %.0f%% of the "
+                          "last %u frames skipped: steady 30 for %.1f s (up to %.1f s), then paint B again\n",
+           sBudgetGuard ? "on" : gConfig.uncapped ? "off (uncapped)" : "off (COS_FPS60_GUARD=0)", cfg.budgetNs / 1e6, sGpuBudgetMs,
+           cfg.fallbackRatio * 100.0, cfg.window, cfg.fallbackFrames / 30.0, cfg.fallbackMaxFrames / 30.0);
+}
+
+// A fallback started (pc_fps60_budget.h: over fallbackRatio of the window bad).
+void budgetFallbackLog() {
+    sBudgetAll.fallbacks++;
+    sBudgetWin.fallbacks++;
+    writef(STDERR_FILENO, "[cos] fps60: frame %u: paint B skipped or late in %u of the last %u game frames: steady 30 "
+                          "presents/s for %.1f s, then paint B again\n",
+           pc_frame_count() + 1, sBudget.lastBad(), sBudget.lastCount(), sBudget.lastFallbackFrames() / 30.0);
+}
+
+// At paint A's wake (the end of its pace wait): the tail of the last frame (its paint's end to this
+// wait) and whether the last split frame overran.
+void budgetPaintAWake() {
+    sPrevAWakeNs = sAWakeNs;
+    sAWakeNs = sPaceEndNs;
+    if (sPaintEndNs != 0 && sPaceStartNs > sPaintEndNs) {
+        const uint64_t tailNs = sPaceStartNs - sPaintEndNs;
+        sBudget.tail.add((double)(tailNs > sReadbackNs ? tailNs - sReadbackNs : 0));
+    }
+    sPaintEndNs = 0;
+    sReadbackNs = 0;
+    if (sSplitOutcomePending) {
+        sSplitOutcomePending = false;
+        const uint64_t cycleNs = sPrevAWakeNs != 0 ? sAWakeNs - sPrevAWakeNs : 0;
+        const bool late = cycleNs > sCycleReadbackNs && cycleNs - sCycleReadbackNs > sBudget.cfg.lateNs;
+        if (late) {
+            sBudgetAll.late++;
+            sBudgetWin.late++;
+        }
+        if (sBudgetGuard && sBudget.frameResult(late)) {
+            budgetFallbackLog();
+        }
+    }
+    sCycleReadbackNs = 0;
+}
+
+} // namespace
+
 extern "C" {
 
 void pc_perf_begin(int phase) {
@@ -1017,6 +1190,19 @@ void pc_perf_end(int phase) {
 }
 
 void pc_frame_pace(unsigned long long periodNs) {
+    if (sPaceFromAWake) {
+        // 60 fps step E: paint A after a split frame waits until two retraces after the last paint
+        // A's wake, not one retrace after paint B's: a paint B that started late (its retrace already
+        // past) no longer stretches the game frame, so the game keeps its speed while the frame fits
+        // in two retraces. The limiter measures from its last wait (paint B's); 1 ns at least, so it
+        // still restarts from now.
+        sPaceFromAWake = false;
+        const uint64_t target = sAWakeNs + 2 * PC_RETRACE_PERIOD_NS;
+        const uint64_t from = sLimiter.Last();
+        if (sAWakeNs != 0 && from != 0) {
+            periodNs = target > from ? std::min<uint64_t>(target - from, periodNs) : 1;
+        }
+    }
     sRequestedNs += periodNs;
     const uint64_t cpuStart = sPerfOn ? threadCpuNs() : UINT64_MAX;
     sPaceStartNs = monotonicNs();
@@ -1039,6 +1225,9 @@ void pc_frame_pace(unsigned long long periodNs) {
     if (sFirstPaceEndNs == 0) {
         sFirstPaceEndNs = sPaceEndNs;
         sFirstPeriodNs = periodNs;
+    }
+    if (!sPaintExtra) {
+        budgetPaintAWake();
     }
 }
 
@@ -1071,6 +1260,7 @@ int pc_fps60_test(void) {
 
 void pc_fps60_set(int on) {
     sFps60Setting = on ? 1 : 0;
+    sBudget.reset(); // step E: a new start for the guard's window and fallback
     if (sFps60Forced >= 0) {
         writef(STDERR_FILENO, "[cos] fps60: COS_FPS60=%d saved; COS_FPS60_TEST=%d keeps it %s for this run\n",
                sFps60Setting, sFps60Forced, sFps60Forced ? "on" : "off");
@@ -1104,6 +1294,9 @@ unsigned int pc_frame_wait_retraces(unsigned int retraces) {
     // waits one retrace only after a frame that ended with paint B (its wait was the other one); a
     // frame whose paint B was dropped (pc_frame_split) leaves the next paint A the whole wait.
     sHalvedWait = pc_fps60_test() && retraces == 2 && !menuOpen();
+    // Step E: after a split frame paint A's wait ends two retraces after the last paint A's wake
+    // (pc_frame_pace), whatever paint B's wait did.
+    sPaceFromAWake = sHalvedWait && sLastSplit && sPaceFromAWakeOn;
     return sHalvedWait && sLastSplit ? 1 : retraces;
 }
 
@@ -1115,11 +1308,67 @@ int pc_frame_split(void) {
         return 0;
     }
     sHalvedWait = false;
+    budgetConfigure();
+    const unsigned int frame = pc_frame_count() + 1;
+    if (sBudgetGuard && sBudget.tick()) {
+        writef(STDERR_FILENO, "[cos] fps60: frame %u: paint B again after %.1f s at 30\n", frame,
+               sBudget.lastFallbackFrames() / 30.0);
+    }
+    const uint64_t decisionNs = monotonicNs();
+    sAfterSplitNs = decisionNs; // the draw pass's time is measured from here when presented once
     if (!allowed) {
         // a transition: this frame is presented once, as at 30 fps (its paint A waited one retrace
         // after the last paint B, the next paint A waits two)
         sPaintBDropped++;
         return 0;
+    }
+    // Step E, the budget guard (pc_fps60_budget.h): before paint A is presented, the rest of the game
+    // frame with paint B is predicted from paint A's wake; over the budget, or with the GPU unable to
+    // draw two presents a game frame (dynres off or at its floor), the frame is presented once, as in
+    // a transition: the next paint A waits two retraces, the game keeps its speed.
+    if (sBudgetGuard) {
+        uint64_t predicted = 0;
+        const bool gpuLimited = pc_dynres_gpu_limited(sGpuBudgetMs) != 0;
+        const Fps60Verdict verdict =
+            sBudget.decide(sAWakeNs != 0 ? decisionNs - sAWakeNs : 0, gpuLimited, &predicted);
+        sBudgetWin.predictedMaxNs = std::max(sBudgetWin.predictedMaxNs, predicted);
+        if (sBudget.retriedEarly()) {
+            writef(STDERR_FILENO, "[cos] fps60: frame %u: paint B again early (predicted %.1f ms for 2 s)\n", frame,
+                   predicted / 1e6);
+        }
+        if (verdict != Fps60Verdict::Split) {
+            BudgetCounts* counts[2] = {&sBudgetAll, &sBudgetWin};
+            for (BudgetCounts* c : counts) {
+                (verdict == Fps60Verdict::Fallback ? c->fallbackFrames
+                 : verdict == Fps60Verdict::SkipGpu ? c->skipGpu
+                                                     : c->skipTime)++;
+            }
+            if (verdict != Fps60Verdict::Fallback) {
+                // the first skip, then at most one line every 2 s
+                sSkipsSinceLog++;
+                if (sSkipLogFrame == 0 || frame - sSkipLogFrame >= 60) {
+                    if (verdict == Fps60Verdict::SkipGpu) {
+                        writef(STDERR_FILENO, "[cos] fps60: frame %u: presented once (GPU: p95 %.1f ms a present "
+                                              "over %.1f, dynres cannot go lower; %u such since the last line)\n",
+                               frame, pc_dynres_gpu_p95(), sGpuBudgetMs, sSkipsSinceLog);
+                    } else {
+                        writef(STDERR_FILENO, "[cos] fps60: frame %u: presented once (paint B over budget: "
+                                              "predicted %.1f ms > %.1f: elapsed %.1f, present %.1f, draw %.1f, "
+                                              "paint B %.1f, tail %.1f; %u such since the last line)\n",
+                               frame, predicted / 1e6, sBudget.cfg.budgetNs / 1e6,
+                               (decisionNs - sAWakeNs) / 1e6, sBudget.present.get() / 1e6,
+                               sBudget.draw.get() / 1e6, sBudget.paintB.get() / 1e6, sBudget.tail.get() / 1e6,
+                               sSkipsSinceLog);
+                    }
+                    sSkipLogFrame = frame;
+                    sSkipsSinceLog = 0;
+                }
+                if (sBudget.frameResult(true)) {
+                    budgetFallbackLog();
+                }
+            }
+            return 0;
+        }
     }
     sSplitThisFrame = true;
     pc_perf_begin(PC_PERF_SPLIT);
@@ -1133,8 +1382,11 @@ int pc_frame_split(void) {
             sSplitEndCallNs += monotonicNs() - endCallStart;
         }
         // A picto box copy asked for by paint A is read back after its frame (pc_capture.cpp).
+        const uint64_t readbackStart = monotonicNs();
         captureFrameEnd();
         shotSplitEnd(pc_frame_count() + 1); // COS_SHOT_PAINT_A
+        sReadbackNs += monotonicNs() - readbackStart;
+        sCycleReadbackNs += monotonicNs() - readbackStart;
     }
     for (;;) {
         bool begun;
@@ -1149,10 +1401,34 @@ int pc_frame_split(void) {
     }
     pc_perf_end(PC_PERF_SPLIT);
     sSplits++;
+    sAfterSplitNs = monotonicNs();
+    const uint64_t splitNs = sAfterSplitNs - decisionNs;
+    sBudget.present.add((double)(splitNs > sReadbackNs ? splitNs - sReadbackNs : 0));
+    sReadbackNs = 0;
+    sSplitOutcomePending = true;
     return 1;
 }
 
+void pc_frame_draw_end(void) {
+    // COS_FPS60_TEST_DELAY_MS (tests): busy time standing for a heavier draw pass.
+    if (sTestDelayMs > 0.0) {
+        const unsigned int frame = pc_frame_count() + 1;
+        if (frame >= sTestDelayFrom && frame <= sTestDelayTo && frame % sTestDelayEvery == 0) {
+            busyWaitMs(sTestDelayMs);
+        }
+    }
+    // Step E: the draw pass's time (after the split, or the decision when presented once).
+    if (sAfterSplitNs != 0) {
+        const uint64_t now = monotonicNs();
+        sBudget.draw.add((double)(now - sAfterSplitNs));
+        sAfterSplitNs = 0;
+        sPaintEndNs = now; // the tail starts here when the frame is presented once
+    }
+}
+
 void pc_paint_extra_begin(void) {
+    sPaintBStartNs = monotonicNs();
+    sPaintBWaitStartNs = sFrameWaitNs;
     sPaintExtra = true;
     paintPurityBegin();
     if (!paintPurityRepeat()) {
@@ -1174,7 +1450,16 @@ void pc_paint_extra_end(void) {
         sPaintRepeat = false;
     }
     paintPurityEnd(pc_frame_count() + 1);
+    if (sTestDelayBMs > 0.0) {
+        busyWaitMs(sTestDelayBMs); // COS_FPS60_TEST_DELAY_B_MS (tests): after paint B's wait
+    }
     sPaintExtra = false;
+    // Step E: paint B's cost without its wait; the tail starts here.
+    const uint64_t now = monotonicNs();
+    const uint64_t waitNs = sFrameWaitNs - sPaintBWaitStartNs;
+    const uint64_t ns = now - sPaintBStartNs;
+    sBudget.paintB.add((double)(ns > waitNs ? ns - waitNs : 0));
+    sPaintEndNs = now;
 }
 
 int pc_paint_is_extra(void) {
@@ -1267,11 +1552,14 @@ void pc_frame_end(void) {
             sEndCallNs += monotonicNs() - endCallStart;
         }
         // The picto box's photo (pc_capture.cpp): its GPU copy into the game's buffer.
+        const uint64_t readbackStart = monotonicNs();
         captureFrameEnd();
         // COS_SHOT: the frame is queued to Aurora's render worker; the readback goes in behind it.
         shotFrameEnd(pc_frame_count() + 1);
         telescopeDemoFrameEnd(pc_frame_count() + 1);
         menuFrameEnd(pc_frame_count() + 1);
+        sReadbackNs += monotonicNs() - readbackStart; // step E: left out of the tail estimate
+        sCycleReadbackNs += monotonicNs() - readbackStart;
         // COS_HD_TEXTURES (pc_hd_textures.h): the runtime toggle and the stats line.
         pc_hd_textures_frame_end(pc_frame_count() + 1);
         stats = aurora_get_stats();

@@ -410,9 +410,11 @@ void applyFbScale(const char*, const char* v, void*) {
     const float scale = (float)atof(v);
     setFrameBufferScale(scale);
     pc_dynres_configure(pc_settings_get("COS_DYNRES"), scale);
+    pc_fps60_hold("internal resolution changed"); // 60 fps step E: the EFB is resized
 }
 void applyDynres(const char*, const char* v, void*) {
     pc_dynres_configure(v, (float)atof(pc_settings_get("COS_FB_SCALE")));
+    pc_fps60_hold("dynamic resolution changed");
 }
 void applyDof(const char*, const char* v, void*) { pc_dof_set(strcmp(v, "0") != 0); }
 void applyCameraInvertX(const char*, const char* v, void*) { pc_camera_invert_x_set(strcmp(v, "1") == 0); }
@@ -448,7 +450,11 @@ const PcSettingChoice kAspect[] = {{"16:9", "16:9 (panorámica)", "16:9 (widescr
 const PcSettingChoice kOnOff[] = {{"0", "Desactivado", "Off"}, {"1", "Activado", "On"}};
 const PcSettingChoice kHdMaxSize[] = {{"auto", "Automático (512 / 1024)", "Automatic (512 / 1024)"}, {"256", "256"}, {"512", "512"},
                                       {"1024", "1024"}, {"full", "Sin límite", "No limit"}};
-const PcSettingChoice kDynres[] = {{"0", "Desactivada", "Off"}, {"1", "Automática", "Automatic"}};
+// "auto" (the default): on while the 60 fps row is on (docs/FPS60_PLAN.md step E), off at 30 fps;
+// "0" keeps it off even with 60 fps (the user's choice is respected); "1" on at 30 fps too.
+const PcSettingChoice kDynres[] = {{"auto", "Con 60 fps", "With 60 fps"},
+                                   {"0", "Desactivada", "Off"},
+                                   {"1", "Siempre", "Always"}};
 const PcSettingChoice kGpuProfile[] = {
     {"460", "460,8 MHz", "460.8 MHz"}, {"384", "384 MHz"}, {"default", "Del sistema (307,2 MHz)", "System default (307.2 MHz)"}};
 const PcSettingChoice kDetail[] = {{"full", "Completo", "Full"}, {"compact", "Compacto", "Compact"}};
@@ -480,10 +486,12 @@ const PcSettingDesc kBuiltins[] = {
      "Internal resolution",
      "Resolution the game is drawn at before scaling to the screen. Lower = faster."},
     {"COS_DYNRES", "Resolución dinámica",
-     "Baja la resolución del 3D (1.25, 1.125) cuando la GPU no llega a 30 fps; el HUD queda nítido.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kDynres), "0", applyDynres, nullptr, 20,
+     "Baja la resolución del 3D (hasta 2/3) cuando la GPU no llega; el HUD queda nítido. Con 60 fps: solo "
+     "mientras los 60 fps están activados.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kDynres), "auto", applyDynres, nullptr, 20,
      "Dynamic resolution",
-     "Lowers the 3D resolution (1.25, 1.125) when the GPU cannot hold 30 fps; the HUD stays sharp."},
+     "Lowers the 3D resolution (down to 2/3) when the GPU cannot keep up; the HUD stays sharp. With 60 fps: "
+     "only while 60 fps is on."},
     {"COS_DOF", "Profundidad de campo", "Desenfoque del paisaje lejano, como en la GameCube.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "1", applyDof, nullptr, 50,
      "Depth of field",
@@ -541,11 +549,13 @@ const PcSettingDesc kBuiltins[] = {
      "Shader loading screen",
      "Automatic: only with a cold cache (first start); priority only, always or never."},
     {"COS_FPS60", "60 fps (interpolación)",
-     "Muestra 60 imágenes por segundo interpolando la cámara; el juego sigue a 30. Usa más CPU y batería.",
+     "60 imágenes por segundo interpolando entre cuadros; el juego sigue a 30. Más CPU y batería. Si no "
+     "llega, baja la resolución (Resolución dinámica) o vuelve a 30 un rato.",
      PC_SETTING_TAB_PERFORMANCE, PC_SETTING_PER_MODE, CHOICES(kOnOff), "0", applyFps60, nullptr, 60,
      "60 fps (interpolation)",
-     "Shows 60 images a second by interpolating the camera; the game still runs at 30. Uses more CPU "
-     "and battery."},
+     "60 images a second by interpolating between frames; the game still runs at 30. More CPU and "
+     "battery. When it cannot keep up it lowers the resolution (Dynamic resolution) or drops to 30 for "
+     "a while."},
     // Depuración
     {"COS_PERF_EVERY", "Intervalo del registro perf",
      "Cada cuántos cuadros se escribe una línea [cos] perf en el registro (native/logs/).",
@@ -1418,7 +1428,15 @@ void menuFrame() {
     if (!m.initialized || ImGui::GetCurrentContext() == nullptr) {
         return;
     }
-    pc_settings_poll_mode();
+    {
+        // 60 fps step E: a docked/handheld change applies the other mode's values (internal
+        // resolution, 60 fps, dynres) and resizes the swapchain: presented once around it.
+        const PcOperationMode before = pc_settings_mode();
+        pc_settings_poll_mode();
+        if (pc_settings_mode() != before) {
+            pc_fps60_hold("operation mode changed");
+        }
+    }
     // The COS_INPUT script drives the menu only in its own smoke test: other scripts press L+R+Z
     // for the game (pad-echo).
     handleInput((sSmoke.on ? readScript() : 0) | readGamepads() | readKeyboard());
