@@ -799,6 +799,53 @@ void perfPlatformFrame(const PerfFrame& f, const FrameEvents& ev, const AuroraSt
 #endif
 }
 
+// COS_FIFO_PROFILE=1 (Aurora patch 0020): with the perf lines, where Aurora's GX FIFO worker spends its
+// time per game frame (both paints with 60 fps; sampled every ~250 us), and what it translated.
+bool fifoProfileOn() {
+    static const bool on = [] {
+        const char* v = getenv("COS_FIFO_PROFILE");
+        const bool enabled = v != nullptr && v[0] == '1';
+        // the sampler thread's start-up state is freed on that thread: not from a game heap
+        JKRPcHostAllocScope hostAlloc;
+        aurora_fifo_profile_enable(enabled);
+        return enabled;
+    }();
+    return on;
+}
+
+void fifoProfileLine(double frames) {
+    static uint64_t prev[AURORA_FIFO_PROFILE_COUNT] = {};
+    if (!fifoProfileOn()) {
+        return;
+    }
+    uint64_t cur[AURORA_FIFO_PROFILE_COUNT] = {};
+    aurora_fifo_profile_get(cur, AURORA_FIFO_PROFILE_COUNT);
+    double d[AURORA_FIFO_PROFILE_COUNT];
+    for (int i = 0; i < AURORA_FIFO_PROFILE_COUNT; i++) {
+        d[i] = (double)(cur[i] - prev[i]) / frames;
+        prev[i] = cur[i];
+    }
+    const auto ms = [&](int i) { return d[i] / 1e6; };
+    double busy = 0;
+    for (int i = AURORA_FIFO_PROFILE_PROCESS; i < AURORA_FIFO_PROFILE_CATEGORIES; i++) {
+        busy += d[i];
+    }
+    writef(STDERR_FILENO,
+           "[cos] perf fifo per game frame (sampled, %.0f samples): busy %.2f ms, idle %.2f; parse %.2f, jobs %.2f, "
+           "bp %.2f, xf %.2f, cp %.2f, aurora %.2f, draw %.2f, pipeline %.2f, binds %.2f, uniforms %.2f, arrays "
+           "%.2f, command %.2f; %.0f draws +%.0f merged, %.0f bp, %.0f xf, %.0f pipeline lookups, %.0f bind "
+           "builds, %.0f uniforms %.1f KiB, vertices %.1f KiB, arrays %.1f KiB, stream %.1f KiB\n",
+           d[AURORA_FIFO_PROFILE_SAMPLES], busy / 1e6, ms(AURORA_FIFO_PROFILE_IDLE), ms(AURORA_FIFO_PROFILE_PROCESS),
+           ms(AURORA_FIFO_PROFILE_JOB), ms(AURORA_FIFO_PROFILE_BP), ms(AURORA_FIFO_PROFILE_XF),
+           ms(AURORA_FIFO_PROFILE_CP), ms(AURORA_FIFO_PROFILE_AURORA), ms(AURORA_FIFO_PROFILE_DRAW),
+           ms(AURORA_FIFO_PROFILE_PIPELINE), ms(AURORA_FIFO_PROFILE_BIND), ms(AURORA_FIFO_PROFILE_UNIFORM),
+           ms(AURORA_FIFO_PROFILE_ARRAYS), ms(AURORA_FIFO_PROFILE_COMMAND), d[AURORA_FIFO_PROFILE_DRAWS],
+           d[AURORA_FIFO_PROFILE_MERGED], d[AURORA_FIFO_PROFILE_BP_LOADS], d[AURORA_FIFO_PROFILE_XF_LOADS],
+           d[AURORA_FIFO_PROFILE_PIPELINES], d[AURORA_FIFO_PROFILE_BINDS], d[AURORA_FIFO_PROFILE_UNIFORMS],
+           d[AURORA_FIFO_PROFILE_UNIFORM_BYTES] / 1024.0, d[AURORA_FIFO_PROFILE_VERTEX_BYTES] / 1024.0,
+           d[AURORA_FIFO_PROFILE_ARRAY_BYTES] / 1024.0, d[AURORA_FIFO_PROFILE_STREAM_BYTES] / 1024.0);
+}
+
 void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* stats) {
     if (!sPerfOn) {
         return;
@@ -849,6 +896,7 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
         return;
     }
     if (!sPerf.started) {
+        fifoProfileOn();
         sPerf.started = true;
         sPerf.startNs = sLoopStartNs;
         sPerf.startRetrace = sLoopStartRetrace;
@@ -940,6 +988,7 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
            sPerf.cpdNs / n / 1e6, sPerf.audNs / n / 1e6, sPerf.logicNs / n / 1e6,
            sPerf.painterNs / n / 1e6, cpu, fps60);
     }
+    fifoProfileLine(n);
     sPerf = PerfWindow{};
     sPerf.started = true;
     sPerf.startSplits = sSplits;
