@@ -12,6 +12,9 @@ aurora_set_fifo_fast_paths(false) for A/B checks:
 - Texture bind groups memoised for the frame by each sampled slot's texture view and sampler
   descriptor: skips the per-slot sampler cache lookups and the bind group descriptor's hash and lock
   (the entry holds the slots' texture handles for its frame, so no view address is reused).
+- BP loads that change nothing (the register already holds the value, no mask pending, no side
+  effects: ~70 % of ~35k loads a paint, display lists resending their materials) skipped inline in
+  the command loop (bp_redundant) instead of a call to handle_bp.
 - Merged primitives (most of the stream: display lists of short strips) write their indices straight
   into the frame's index buffer (gfx::map_indices) instead of a staging buffer copied in.diff --git a/include/aurora/aurora.h b/include/aurora/aurora.h
 index 164b000..2b9f7d2 100644
@@ -124,7 +127,7 @@ index 2951156..b03b68f 100644
  Range push_indices(ArrayRef<T> data, size_t alignment) {
    return push_indices(reinterpret_cast<const uint8_t*>(data.data()), data.size() * sizeof(T), alignment);
 diff --git a/lib/gx/command_processor.cpp b/lib/gx/command_processor.cpp
-index 359c5b1..bafe4e9 100644
+index 359c5b1..b7c1bcb 100644
 --- a/lib/gx/command_processor.cpp
 +++ b/lib/gx/command_processor.cpp
 @@ -2,6 +2,7 @@
@@ -274,6 +277,18 @@ index 359c5b1..bafe4e9 100644
  // GX FIFO opcodes - use CP_ prefix to avoid clashing with GXCommandList.h macros
  constexpr u8 CP_CMD_NOP = GX_NOP;
  constexpr u8 CP_CMD_LOAD_CP_REG = GX_LOAD_CP_REG;
+@@ -239,9 +365,9 @@ ProcessResult process(const u8* data, u32 size) noexcept {
+ 
+     case CP_CMD_LOAD_BP_REG: {
+       const u32 value = reader.read<u32>();
+-      {
++      profile::count(AURORA_FIFO_PROFILE_BP_LOADS);
++      if (!sFastPaths || !bp_redundant(value)) {
+         profile::Scope prof{AURORA_FIFO_PROFILE_BP};
+-        profile::count(AURORA_FIFO_PROFILE_BP_LOADS);
+         handle_bp(value);
+       }
+       if (reg_get(value, 8, 24) == GX_BP_REG_DRAWDONE) {
 @@ -495,8 +621,26 @@ static void push_gx_draw(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, gfx::Rang
      const auto prevSampledTextures = cache.shaderInfo.sampledTextures;
      const auto prevSampledIndTextures = cache.shaderInfo.sampledIndTextures;
@@ -543,3 +558,53 @@ index fb9fe15..feb4ae1 100644
 +void set_fast_paths(bool enabled) noexcept;
  
  } // namespace aurora::gx::fifo
+diff --git a/lib/gx/regs.cpp b/lib/gx/regs.cpp
+index dcec16d..89e0bbb 100644
+--- a/lib/gx/regs.cpp
++++ b/lib/gx/regs.cpp
+@@ -938,6 +938,15 @@ bool store_xf_f32(f32& dst, u32 bits) noexcept {
+ 
+ } // namespace
+ 
++// SwitchWaker patch 0021: kBpRegs' alwaysHandle flags, for bp_redundant (regs.hpp).
++const std::array<bool, 0x100> g_bpAlwaysHandle = [] {
++  std::array<bool, 0x100> flags{};
++  for (u32 i = 0; i < 0x100; ++i) {
++    flags[i] = kBpRegs[i].alwaysHandle;
++  }
++  return flags;
++}();
++
+ // Dispatch
+ 
+ void handle_bp(u32 value) noexcept {
+diff --git a/lib/gx/regs.hpp b/lib/gx/regs.hpp
+index ccdff0a..6937e44 100644
+--- a/lib/gx/regs.hpp
++++ b/lib/gx/regs.hpp
+@@ -2,6 +2,7 @@
+ 
+ #include "gx.hpp"
+ 
++#include <array>
+ #include <bit>
+ #include <cstring>
+ #include <span>
+@@ -13,6 +14,17 @@ constexpr u32 reg_get(const u32 reg, const u32 size, const u32 shift) noexcept {
+ }
+ 
+ void handle_bp(u32 value) noexcept;
++
++// SwitchWaker patch 0021: true when handle_bp(value) would return at once (the register already holds
++// the value, no BP mask pending, no side effects): most BP loads in a frame (display lists send their
++// materials' whole state), skipped by the command processor without the call.
++extern const std::array<bool, 0x100> g_bpAlwaysHandle;
++inline bool bp_redundant(u32 value) noexcept {
++  const u32 regId = value >> 24;
++  const auto& state = g_gxState;
++  return regId != 0xFE && state.bpRegCache[0xFE] == 0x00FFFFFF && state.bpRegValid.test(regId) &&
++         state.bpRegCache[regId] == value && !g_bpAlwaysHandle[regId];
++}
+ void handle_cp(u8 addr, u32 value) noexcept;
+ void handle_xf(u16 addr, std::span<const u8> data) noexcept;
+ 
