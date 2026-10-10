@@ -420,6 +420,7 @@ void applyDof(const char*, const char* v, void*) { pc_dof_set(strcmp(v, "0") != 
 void applyCameraInvertX(const char*, const char* v, void*) { pc_camera_invert_x_set(strcmp(v, "1") == 0); }
 void applyCameraInvertY(const char*, const char* v, void*) { pc_camera_invert_y_set(strcmp(v, "1") == 0); }
 void applyCameraShake(const char*, const char* v, void*) { pc_camera_shake_set(strcmp(v, "1") == 0); }
+void applyHeatHaze(const char*, const char* v, void*) { pc_heat_haze_set(strcmp(v, "1") == 0); }
 void applyGpuProfile(const char*, const char* v, void*) {
 #if defined(__SWITCH__)
     cos_switch_set_gpu_profile(v);
@@ -514,6 +515,11 @@ const PcSettingDesc kBuiltins[] = {
      "Camera shake",
      "The camera shakes with quakes, hits, explosions and cutscenes, as on the GameCube. The controller "
      "rumble does not change."},
+    {"COS_HEAT_HAZE", "Distorsión por calor",
+     "La imagen ondula sobre la lava y el fuego (Montaña del Dragón y su caverna), como en la GameCube.",
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyHeatHaze, nullptr, 93,
+     "Heat haze",
+     "The picture wobbles over lava and fire (Dragon Roost and its cavern), as on the GameCube."},
     {"COS_ASPECT", "Relación de aspecto", "Imagen panorámica 16:9 o la 4:3 original de la GameCube.",
      PC_SETTING_TAB_GRAPHICS, PC_SETTING_RESTART, CHOICES(kAspect), kSwitch ? "16:9" : "4:3", nullptr, nullptr,
      70,

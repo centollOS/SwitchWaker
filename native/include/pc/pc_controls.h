@@ -4,13 +4,16 @@
  * COS_CAMERA_INVERT_X=1   the C stick's horizontal axis turns the camera the other way
  * COS_CAMERA_INVERT_Y=1   the C stick's vertical axis tilts the camera the other way
  * COS_CAMERA_SHAKE=1      the camera shakes (quakes, hits, explosions, cutscenes); default off
+ * COS_HEAT_HAZE=1         the heat haze (the screen wobbling over lava and fire); default off
  *
  * Applied only where the camera reads the C stick (d_camera.cpp, dCamera_cStickX/Y): the wind
  * baton's left hand, the item menu's songs, the grappling hook and the figure viewer keep the C
  * stick's real directions. Options menu: Gráficos > "Invertir cámara horizontal" and "Invertir
  * cámara vertical", live. The camera shake: every shake reaches the camera through dVibration_c::Run
  * (d_vibration.cpp), which starts none while it is off (the controller rumble is kept); Gráficos >
- * "Temblor de cámara", live. The game thread calls all of them.
+ * "Temblor de cámara", live. The heat haze: the "kagerou" particles that bend the frame buffer
+ * (Dragon Roost and its cavern, fire holes, Magtails...); off, JPAEmitterManager::draw skips their
+ * emitters; Gráficos > "Distorsión por calor", live. The game thread calls all of them.
  */
 #ifndef PC_CONTROLS_H
 #define PC_CONTROLS_H
@@ -28,6 +31,11 @@ void pc_camera_invert_y_set(int on);
 /* Nonzero when the camera may shake (COS_CAMERA_SHAKE=1; off by default), and its setter. */
 int pc_camera_shake(void);
 void pc_camera_shake_set(int on);
+/* Nonzero when the heat haze is drawn (COS_HEAT_HAZE=1; off by default), and its setter. */
+int pc_heat_haze(void);
+void pc_heat_haze_set(int on);
+/* Nonzero when an emitter of that particle user index must not be drawn (heat haze off). */
+int pc_heat_haze_hidden(unsigned short user_id);
 
 #ifdef __cplusplus
 }

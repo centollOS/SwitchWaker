@@ -13,6 +13,7 @@
 #include "JSystem/JUtility/JUTAssert.h"
 #if TARGET_PC
 #include "pc/game_hooks.h"
+#include "pc/pc_controls.h"
 #endif
 
 /* 8025EE44-8025F0E4       .text __ct__17JPAEmitterManagerFP18JPAResourceManagerUlUlUlP7JKRHeap */
@@ -81,6 +82,9 @@ JPABaseEmitter* JPAEmitterManager::createSimpleEmitterID(const JGeometry::TVec3<
         emtr->setParticleCallBackPtr(pPtclCallBack);
         emtr->mGroupID = groupID;
         emtr->mResMgrID = rmID;
+#if TARGET_PC
+        emtr->mPcUserID = userID;
+#endif
         emtr->setGlobalTranslation(pos);
     }
 
@@ -111,6 +115,12 @@ void JPAEmitterManager::draw(JPADrawInfo* drawInfo, u8 groupID) {
     JPABaseEmitter::emtrInfo.mAspect = drawInfo->getAspect();
     for (JSULink<JPABaseEmitter>* link = mEmtrGroup[groupID].getFirst(); link != NULL; link = link->getNext()) {
         JPABaseEmitter *emtr = link->getObject();
+#if TARGET_PC
+        // SwitchWaker: "Distorsión por calor" off hides the heat-haze emitters (still simulated).
+        if (pc_heat_haze_hidden(emtr->getPcUserID())) {
+            continue;
+        }
+#endif
         if (emtr->isDraw()) {
 #if TARGET_PC
             // 60 fps step D: in paint B the emitter and its particles at t, put back after the draw.

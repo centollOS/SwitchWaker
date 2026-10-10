@@ -230,6 +230,9 @@ public:
 
     u8 getGroupID() { return mGroupID; }
     u8 getResourceManagerID() { return mResMgrID; }
+#if TARGET_PC
+    u16 getPcUserID() const { return mPcUserID; }
+#endif
 
     JPADataBlockLinkInfo * getEmitterDataBlockInfoPtr() const { return mpDataLinkInfo; }
     bool isEnableDeleteEmitter() { return checkStatus(JPAEmtrStts_EnableDeleteEmitter) && getParticleNumber() == 0; }
@@ -451,6 +454,11 @@ private:
     /* 0x214 */ u8 mGroupID;
     /* 0x215 */ u8 mResMgrID;
     /* 0x216 */ u16 field_0x216;
+#if TARGET_PC
+    // SwitchWaker: the user index it was created from (createSimpleEmitterID), for the options
+    // menu's "Distorsión por calor" (pc_controls.h).
+    u16 mPcUserID;
+#endif
 };
 
 #endif /* JPAEMITTER_H */
