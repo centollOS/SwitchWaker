@@ -151,14 +151,23 @@ static void pcBootStage(dScnLogo_c* i_this) {
     // (bug B6: 20, the telescope, which Link then raises with X).
     unsigned short items[16];
     int nitems = pc_boot_items(items, 16);
-    for (int i = 0; i < nitems; i++) {
-        execItemGet((u8)items[i]);
-        if (i == 0) {
-            for (int slot = 0; slot < dInvSlot_ItemLast_e; slot++) {
-                if (dComIfGs_getItem(slot) == items[0]) {
-                    dComIfGs_setSelectItem(dItemBtn_X_e, (u8)slot);
-                    break;
-                }
+    // The first item goes on X: looked for right after it is given (an empty bottle, 50, before a
+    // later item fills it), else once every item is given (all-purpose bait, 82, lands in the bait
+    // bag only once the bag, 2C, is given too); the bags count too, as the item menu's bag pages
+    // put a bait or a spoil on a button.
+    bool onX = false;
+    for (int i = 0; i <= nitems; i++) {
+        if (i < nitems) {
+            execItemGet((u8)items[i]);
+        }
+        if (onX || (i != 0 && i != nitems)) {
+            continue;
+        }
+        for (int slot = 0; nitems > 0 && slot < dInvSlot_ReserveLast_e; slot++) {
+            if (dComIfGs_getItem(slot) == items[0]) {
+                dComIfGs_setSelectItem(dItemBtn_X_e, (u8)slot);
+                onX = true;
+                break;
             }
         }
     }

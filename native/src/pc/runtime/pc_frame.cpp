@@ -1095,6 +1095,7 @@ void pc_frame_end(void) {
     outsetFrame(frames);
     actorSweepFrame(frames);
     combatSweepFrame(frames);
+    toolWatchFrame(frames);
     fxSweepFrame(frames);
     resSweepFrame(frames);
     bgmHopFrame(frames);

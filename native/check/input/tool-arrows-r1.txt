@@ -1,0 +1,17 @@
+# Tool sweep (native/tools/tool_sweep.py): the bow on X; ready, R 1 time(s) (normal -> fire -> ice
+# -> light: the arrow type), shoot towards the sea; then put it away, turn to the pier and shoot
+# again (the type is kept) at the pier's post.
+400 X 0 0
+402 - 0 0
+440 R 0 0
+442 - 0 0
+560 X 0 0
+562 - 0 0
+700 B 0 0
+702 - 0 0
+740 - 0 -127
+770 - 0 0
+800 X 0 0
+802 - 0 0
+870 X 0 0
+872 - 0 0

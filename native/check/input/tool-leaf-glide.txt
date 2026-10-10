@@ -1,0 +1,7 @@
+# Tool sweep (native/tools/tool_sweep.py): the deku leaf on X. From the Outset pier's start the
+# stick forward runs the player off the pier's end (an auto jump about frame 418); X in the air at
+# frame 424 opens the leaf: he glides (procFanGlide, magic spent) out over the sea, the stick held.
+400 - 0 127
+424 X 0 127
+426 - 0 127
+700 - 0 0

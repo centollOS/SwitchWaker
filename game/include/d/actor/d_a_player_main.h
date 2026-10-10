@@ -1144,6 +1144,10 @@ public:
     BOOL procMoveTurn();
 #if TARGET_PC
     void debugGrabRope(fopAc_ac_c* rope, const cXyz& at);
+    // The tool watch (native/src/pc/harness/smokes/pc_tool_watch.cpp) logs these.
+    int debugCurProc() const;
+    int debugEquipItem() const;
+    void debugPlace(const cXyz& pos, s16 angleY);
 #endif
     BOOL procSlip_init();
     BOOL procSlip();

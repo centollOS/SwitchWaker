@@ -13140,6 +13140,22 @@ void daPy_lk_c::setPlayerPosAndAngle(cXyz* param_1, csXyz* param_2) {
 #endif
 }
 
+#if TARGET_PC
+// The tool watch's COS_TOOL_PLACE (native/src/pc/harness/smokes/pc_tool_watch.cpp): as
+// setPlayerPosAndAngle, outside events too. execute() puts the player back at l_debug_keep_pos
+// every frame, so writing current.pos from outside does not last.
+void daPy_lk_c::debugPlace(const cXyz& pos, s16 angleY) {
+    current.pos = pos;
+    old.pos = pos;
+    shape_angle.y = angleY;
+    current.angle.y = angleY;
+    m34DE = angleY;
+    l_debug_keep_pos = current.pos;
+    l_debug_shape_angle = shape_angle;
+    l_debug_current_angle = current.angle;
+}
+#endif
+
 /* 80128CE4-80128DC0       .text setPlayerPosAndAngle__9daPy_lk_cFPA4_f */
 void daPy_lk_c::setPlayerPosAndAngle(MtxP param_1) {
     if (dComIfGp_event_runCheck()) {

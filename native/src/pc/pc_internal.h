@@ -228,6 +228,9 @@ void actorSweepFrame(unsigned int frames);
 // attack, items) against each enemy it spawns in front of the player (COS_COMBAT_MODE=spawn) or
 // against the room's own enemies (room), keeping the player alive; native/tools/combat_sweep.py.
 void combatSweepFrame(unsigned int frames);
+// pc_tool_watch.cpp: COS_TOOL_WATCH=1 logs the player and every actor created after a baseline into
+// <COS_RUN_DIR>/tool_watch.txt (native/tools/tool_sweep.py); toolWatchFrame runs from pc_frame_end.
+void toolWatchFrame(unsigned int frames);
 // pc_fx_sweep.cpp: COS_SMOKE=fx-sweep; fxSweepFrame runs from pc_frame_end every game frame and,
 // once outsetLinkReady, creates every loaded particle emitter (common and scene, COS_FX_SWEEP) in
 // front of the player a few at a time, in the Normal and Toon groups, so their pipelines are

@@ -1,0 +1,10 @@
+# Tool sweep (native/tools/tool_sweep.py): the hookshot on X in the test room K_Teste, the player
+# placed (COS_TOOL_PLACE=500,0,-1500,180) 900 units in front of a hookshot target (Hfuck1 at
+# 500,295,-2400). X readies it; the stick down raises the aim (inverted) to the target; X fires:
+# the hook sticks and pulls the player to the target (procHookshotFly).
+400 X 0 0
+402 - 0 0
+420 - 0 -60
+440 - 0 0
+460 X 0 0
+462 - 0 0
