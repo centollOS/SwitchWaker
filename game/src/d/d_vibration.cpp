@@ -6,6 +6,9 @@
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "d/d_vibration.h"
 #include "d/d_com_inf_game.h"
+#if TARGET_PC
+#include "pc/pc_controls.h"
+#endif
 #include "d/d_camera.h"
 #include "m_Do/m_Do_controller_pad.h"
 #include "SSystem/SComponent/c_math.h"
@@ -86,6 +89,14 @@ int dVibration_c::Run() {
             rumble |= RUMBLE_QUAKE;
         }
 
+#if TARGET_PC
+        // SwitchWaker: the options menu's "Temblor de cámara" (COS_CAMERA_SHAKE, pc_controls.h; off by
+        // default: the shakes were too strong for the user, Dragon Roost Cavern's lava rooms above all).
+        // Every camera shake starts here; the controller rumble (mMotor) is kept.
+        if (!pc_camera_shake()) {
+            rumble = 0;
+        }
+#endif
         s32 length, pattern, bits;
         switch (rumble) {
         case RUMBLE_SHOCK: /* branch e0 */

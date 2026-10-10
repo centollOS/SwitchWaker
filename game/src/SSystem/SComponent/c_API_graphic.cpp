@@ -8,15 +8,20 @@
 #include "dolphin/types.h"
 #if TARGET_PC
 #include "pc/pc_harness.h"
+#include "pc/game_hooks.h"
 #endif
 
 /* 8024135C-8024138C       .text cAPIGph_Painter__Fv */
 void cAPIGph_Painter(void) {
 #if TARGET_PC
-    // Step 6.7 (pc_frame.cpp): mDoGph_Painter's GX encode, a phase of COS_PERF / COS_PERF_EVERY.
-    pc_perf_begin(PC_PERF_PAINTER);
+    // Step 6.7 (pc_frame.cpp): mDoGph_Painter's GX encode, a phase of COS_PERF / COS_PERF_EVERY
+    // (COS_FPS60_TEST's paint B apart).
+    const int phase = pc_paint_is_extra() ? PC_PERF_PAINTER2 : PC_PERF_PAINTER;
+    pc_perf_begin(phase);
+    pc_fps60_painting(1); // step C: J3DModel::viewCalc calls from the painter are not captured
     g_cAPI_Interface.mpPainter();
-    pc_perf_end(PC_PERF_PAINTER);
+    pc_fps60_painting(0);
+    pc_perf_end(phase);
 #else
     g_cAPI_Interface.mpPainter();
 #endif
@@ -29,5 +34,13 @@ void cAPIGph_BeforeOfDraw(void) {
 
 /* 802413BC-802413EC       .text cAPIGph_AfterOfDraw__Fv */
 void cAPIGph_AfterOfDraw(void) {
+#if TARGET_PC
+    // mDoGph_AfterOfDraw ends with JFWDisplay::endFrame's GXDrawDone: the wait for Aurora's GX worker
+    // to finish the frame's paint (COS_PERF_EVERY's "drawdone", part of the logic).
+    pc_perf_begin(PC_PERF_AFTER_DRAW);
     g_cAPI_Interface.mpAfterOfDraw();
+    pc_perf_end(PC_PERF_AFTER_DRAW);
+#else
+    g_cAPI_Interface.mpAfterOfDraw();
+#endif
 }

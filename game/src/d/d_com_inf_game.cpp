@@ -592,6 +592,13 @@ int dComIfGd_setSimpleShadow2(cXyz* i_pos, f32 groundY, f32 scaleXZ, cBgS_PolyIn
     if (i_floorPoly.ChkSetInfo() && groundY != -G_CM3D_F_INF) {
         cM3dGPla* plane_p =
             dComIfG_Bgsp()->GetTriPla(i_floorPoly);
+#if TARGET_PC
+        // The floor's collision can be gone (its actor deleted; cBgS::GetTriPla returns NULL for
+        // an unused element): the retail game passed &NULL->mNormal on (an item on a removed
+        // platform crashed at 0xc in dDlst_shadowSimple_c::set). No shadow that frame.
+        if (plane_p == NULL)
+            return 0;
+#endif
 
         return dComIfGd_setSimpleShadow(i_pos, groundY, scaleXZ, &plane_p->mNormal, i_angle, scaleZ, i_tex);
     } else {

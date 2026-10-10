@@ -9,6 +9,7 @@
 // X and Y to Y. ZL/ZR are the analog-trigger axes (GameCube L/R) and R is the
 // right shoulder (GameCube Z).
 #include <SDL3/SDL.h>
+#include <stdio.h>
 #include <string.h>
 #include <switch.h>
 
@@ -40,8 +41,10 @@ static int g_vibration_count[VIBRATION_TARGETS];
 static u64 g_rumble_until;  // system tick; 0 when not rumbling
 
 // The native port's debug server (switch/native/source/cos_debug.cpp): its presses and sticks as if
-// from the controller. Weak: the translated port's build has no debug server.
-__attribute__((weak)) void cos_switch_debug_input(uint64_t* buttons, int32_t sticks[4]);
+// from the controller; while it runs the controller counts as connected even with none attached
+// (docked, Joy-Cons off), or the game would ignore its presses. Weak: the translated port's build
+// has no debug server.
+__attribute__((weak)) int cos_switch_debug_input(uint64_t* buttons, int32_t sticks[4]);
 
 static const struct {
     SDL_GamepadButton button;
@@ -127,18 +130,25 @@ void sdl3_shim_gamepad_pump(void) {
     }
     mutexUnlock(&g_lock);
     padUpdate(&g_pad);
-    const bool connected = padIsConnected(&g_pad);
+    const bool attached = padIsConnected(&g_pad);
+    bool connected = attached;
     mutexLock(&g_lock);
-    g_buttons = connected ? padGetButtons(&g_pad) : 0;
+    g_buttons = attached ? padGetButtons(&g_pad) : 0;
     g_sticks[0] = padGetStickPos(&g_pad, 0);
     g_sticks[1] = padGetStickPos(&g_pad, 1);
     if (cos_switch_debug_input) {
         int32_t sticks[4] = {g_sticks[0].x, g_sticks[0].y, g_sticks[1].x, g_sticks[1].y};
-        cos_switch_debug_input(&g_buttons, sticks);
+        if (cos_switch_debug_input(&g_buttons, sticks))
+            connected = true;
         g_sticks[0].x = sticks[0], g_sticks[0].y = sticks[1];
         g_sticks[1].x = sticks[2], g_sticks[1].y = sticks[3];
     }
     mutexUnlock(&g_lock);
+    static int s_attached = -1;
+    if ((int)attached != s_attached) {
+        s_attached = attached;
+        fprintf(stderr, "[switch] controller %s (handheld or player 1)\n", attached ? "connected" : "not connected");
+    }
     if (connected != g_connected) {
         g_connected = connected;
         queue_device_event(connected ? SDL_EVENT_GAMEPAD_ADDED : SDL_EVENT_GAMEPAD_REMOVED);

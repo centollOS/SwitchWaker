@@ -191,6 +191,21 @@ float cM_rndFX(float f) {
     return f * (cM_rnd() - 0.5f) * 2.0f;
 }
 
+#if TARGET_PC
+// COS_FPS60_TEST's paint B (f_pc_manager.cpp): the seeds saved before it and put back after it.
+void cM_pcGetRnd(s32* seeds) {
+    seeds[0] = r0;
+    seeds[1] = r1;
+    seeds[2] = r2;
+}
+
+void cM_pcSetRnd(const s32* seeds) {
+    r0 = seeds[0];
+    r1 = seeds[1];
+    r2 = seeds[2];
+}
+#endif
+
 static s32 r02, r12, r22;
 
 /* 80246430-80246440       .text cM_initRnd2__Fiii */

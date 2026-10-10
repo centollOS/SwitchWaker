@@ -5,7 +5,7 @@
 //   - the live USB log (switch/source/common/usb_log.c; scripts/switch/usb_log.py on the computer),
 //     only with COS_USB_LOG=1 (off by default: it holds the USB port for the whole run);
 //   - a session log on the SD card, COS_SWITCH_ROOT/logs/switchwaker_<date>_<time>.log (the console clock at
-//     start; the GL NRO's are switchwaker_gl_<date>_<time>.log, COS_SWITCH_NRO_NAME), as SwitchWakerHD's:
+//     start; COS_SWITCH_NRO_NAME), as SwitchWakerHD's:
 //     the newest file in logs/ is always the current session, and logs/ keeps the
 //     kMaxSessionLogs most recent sessions (the oldest are deleted, so the logs cannot fill the SD card).
 //     The switchwaker.log / switchwaker.prev.log of earlier builds move into logs/. Written by a thread of
@@ -15,8 +15,8 @@
 //     options menu, COS_DEBUG_SERVER, cos_debug.cpp).
 //
 // Memory: the process's used and total memory at start, every 15 seconds (from the log writer
-// thread) and at exit: "[switch] memory: used N MiB of M MiB". The shader cache's lines
-// (cos_shader_cache.cpp) come with it while they change, and at exit.
+// thread) and at exit: "[switch] memory: used N MiB of M MiB". The deko3d shader registry's line
+// (cos_shader_cache.cpp) comes with it.
 //
 // Run options: the options menu's settings file, COS_SWITCH_ROOT/user/settings.ini
 // (native/include/pc/pc_settings.h): pc_settings_load_early copies its values, and the variables of
@@ -61,6 +61,8 @@
 
 extern "C" void pc_settings_load_early(void); // native/src/pc/features/pc_settings.cpp
 extern "C" int pc_settings_migrate_env_file(const char* envPath, const char* oldPath);
+// mode: PcOperationMode (pc_settings.h), 0 handheld, 1 docked
+extern "C" void pc_settings_set_mode_default(const char* key, int mode, const char* value);
 
 namespace {
 
@@ -431,11 +433,56 @@ bool setGpuProfile(const char* profile) {
     return false;
 }
 
+// COS_SWITCH_CPU_HZ=<hz> ([dev] only, for measurements; no menu row): the CPU clock through clkrst
+// (as sys-clk and SwitchWakerHD's CPU option do), back to the stock 1020 MHz when the game ends. apm
+// re-applies its own configuration on a dock change, which resets it.
+bool gCpuChanged = false;
+ClkrstSession gClkCpu;
+
+void applyCpuClock() {
+    const char* v = getenv("COS_SWITCH_CPU_HZ");
+    if (v == nullptr || v[0] == '\0') {
+        return;
+    }
+    const u32 hz = (u32)strtoul(v, nullptr, 0);
+    if (gCpuChanged) {
+        clkrstSetClockRate(&gClkCpu, hz);  // again (after a focus change)
+        return;
+    }
+    Result rc = hosversionAtLeast(8, 0, 0) ? clkrstInitialize() : MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+    if (R_SUCCEEDED(rc)) {
+        rc = clkrstOpenSession(&gClkCpu, PcvModuleId_CpuBus, 3);
+    }
+    if (R_SUCCEEDED(rc)) {
+        rc = clkrstSetClockRate(&gClkCpu, hz);
+        gCpuChanged = R_SUCCEEDED(rc);
+    }
+    u32 now = 0;
+    if (gCpuChanged) {
+        clkrstGetClockRate(&gClkCpu, &now);
+    }
+    sayf("[switch] cpu clock: COS_SWITCH_CPU_HZ=%u: rc 0x%x, now %.1f MHz (a measurement setting)\n", (unsigned)hz,
+         (unsigned)rc, now / 1e6);
+}
+
+void restoreCpuClock() {
+    if (!gCpuChanged) {
+        return;
+    }
+    gCpuChanged = false;
+    const Result rc = clkrstSetClockRate(&gClkCpu, 1020000000u);
+    clkrstCloseSession(&gClkCpu);
+    clkrstExit();
+    sayf("[switch] cpu clock: back to 1020 MHz: rc 0x%x\n", (unsigned)rc);
+}
+
 void applyGpuProfile() {
     setGpuProfile(getenv("COS_SWITCH_GPU_PROFILE"));
+    applyCpuClock();
 }
 
 void restoreGpuProfile() {
+    restoreCpuClock();
     if (!gApmChanged) {
         return;
     }
@@ -703,22 +750,19 @@ void cos_switch_start(int argc, char** argv) {
     setDefault("COS_RUN_DIR", COS_SWITCH_ROOT);
     setDefault("COS_STALL_S", "90");
     setDefault("COS_ASPECT", "16:9");
-    // The internal resolution: 1280x720, the screen's (COS_FB_SCALE=1.125 960x540, 1.0 854x480).
-    setDefault("COS_FB_SCALE", "1.5");
+    // The internal resolution: handheld 1280x720, the screen's (COS_FB_SCALE=1.125 960x540, 1.0
+    // 854x480); docked 1920x1080 (2.25), the TV's: the deko3d NRO presents into a 1920x1080 window
+    // there, and its GPU needs ~9 ms a frame at 1.5 docked. Per mode for the options menu (a mode
+    // change applies the other one), the start mode's into the environment.
+    pc_settings_set_mode_default("COS_FB_SCALE", 0, "1.5");
+    pc_settings_set_mode_default("COS_FB_SCALE", 1, "2.25");
+    setDefault("COS_FB_SCALE", cos_switch_docked() ? "2.25" : "1.5");
     applyGpuProfile();
     char mode[160];
     cos_switch_describe_mode(mode, sizeof(mode));
     sayf("[switch] clocks after the gpu profile: %s\n", mode);
-#if defined(COS_SWITCH_DEKO3D)
-    // The deko3d NRO starts no EGL: no Mesa shader cache (its shaders are the DKSH cache, switch/deko).
-    sayf("[switch] renderer: deko3d (switch/deko); Mesa's shader cache unused\n");
-#else
-    // Before Aurora starts EGL, which creates Mesa's shader cache (cos_shader_cache.cpp).
-    char note[640];
-    if (cos_switch_shader_cache_setup(note, sizeof(note)) > 0) {
-        sayf("%s", note);
-    }
-#endif
+    // Its shaders are the DKSH caches (switch/deko, cos_shader_cache.cpp).
+    sayf("[switch] renderer: deko3d (switch/deko)\n");
 }
 
 void cos_switch_flush_logs(void) {

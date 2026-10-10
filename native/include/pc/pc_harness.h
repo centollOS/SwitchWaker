@@ -187,7 +187,10 @@ enum {
     PC_PERF_AUD_EXECUTE = 1, /* mDoAud_Execute */
     PC_PERF_GAME = 2,        /* fapGm_Execute, the painter included */
     PC_PERF_PAINTER = 3,     /* mDoGph_Painter: the GX encode of the frame's draw lists */
-    PC_PERF_PHASES = 4,
+    PC_PERF_PAINTER2 = 4,    /* COS_FPS60_TEST: paint B, the lists painted again (game_hooks.h) */
+    PC_PERF_SPLIT = 5,       /* COS_FPS60_TEST: paint A's present (pc_frame_split) */
+    PC_PERF_AFTER_DRAW = 6,  /* mDoGph_AfterOfDraw (in the logic): its GXDrawDone waits for Aurora's GX worker */
+    PC_PERF_PHASES = 7,
 };
 void pc_perf_begin(int phase);
 void pc_perf_end(int phase);

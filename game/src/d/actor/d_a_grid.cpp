@@ -4,6 +4,9 @@
 #include "f_op/f_op_camera.h"
 #include "d/d_kankyo_wether.h"
 #include "d/d_s_play.h"
+#if TARGET_PC
+#include "pc/game_hooks.h"
+#endif
 
 #include "res/Object/Cloth.h"
 #include "res/Object/Ship.h"
@@ -237,8 +240,18 @@ void daHo_packet_c::draw() {
 #if TARGET_PC
     // Aurora's GXSetArray also takes the array's byte size and byte order
     // (one 85-entry cXyz set of the double-buffered arrays and the static asset array, host-endian).
-    GXSETARRAY(GX_VA_POS, mPos[field_0x18a2], sizeof(mPos[0]), sizeof(cXyz), true);
-    GXSETARRAY(GX_VA_NRM, mNrm[field_0x18a2], sizeof(mNrm[0]), sizeof(cXyz), true);
+    // 60 fps step D (pc_fps60_misc.cpp): in paint B the cloth halfway between the set paint A drew
+    // (the other buffer, if _execute flipped since) and this frame's. Keys: this + buffer index (+2
+    // normals, +4 back normals); paint B asks for the other buffer's.
+    const int pcPrevIdx = pc_paint_is_extra() ? field_0x18a2 ^ 1 : field_0x18a2;
+    const float* pcPos = pc_fps60_line_positions((const char*)this + pcPrevIdx, 0, &mPos[field_0x18a2][0].x,
+                                                 &mPos[field_0x18a2 ^ 1][0].x, 85);
+    const float* pcNrm = pc_fps60_line_positions((const char*)this + 2 + pcPrevIdx, 0, &mNrm[field_0x18a2][0].x,
+                                                 &mNrm[field_0x18a2 ^ 1][0].x, 85);
+    const float* pcBackNrm = pc_fps60_line_positions((const char*)this + 4 + pcPrevIdx, 0,
+                                                     &mBackNrm[field_0x18a2][0].x, &mBackNrm[field_0x18a2 ^ 1][0].x, 85);
+    GXSETARRAY(GX_VA_POS, pcPos, sizeof(mPos[0]), sizeof(cXyz), true);
+    GXSETARRAY(GX_VA_NRM, pcNrm, sizeof(mNrm[0]), sizeof(cXyz), true);
     GXSETARRAY(GX_VA_TEX0, l_texCoord, sizeof(l_texCoord), sizeof(cXy), true);
 #else
     GXSetArray(GX_VA_POS, mPos[field_0x18a2], sizeof(cXyz));
@@ -343,14 +356,23 @@ void daHo_packet_c::draw() {
     GXSetTevColor(GX_TEVREG2, mpTevStr->mColorK1);
     GXCallDisplayList(l_matDL, 0x20);
 
+#if TARGET_PC
+    // COS_FPS60_TEST step C (pc_fps60_models.cpp): paint B draws the boat's sail where the mast is
+    // at t.
+    Mtx pcMtx;
+    pc_fps60_packet_mtx(this, getMtx(), pcMtx);
+    GXLoadPosMtxImm(pcMtx, 0);
+    GXLoadNrmMtxImm(pcMtx, 0);
+#else
     GXLoadPosMtxImm(getMtx(), 0);
     GXLoadNrmMtxImm(getMtx(), 0);
+#endif
     GXSetCullMode(GX_CULL_BACK);
     GXCallDisplayList(l_DL, 0x220);
 
     GXSetCullMode(GX_CULL_FRONT);
 #if TARGET_PC
-    GXSETARRAY(GX_VA_NRM, mBackNrm[field_0x18a2], sizeof(mBackNrm[0]), sizeof(cXyz), true);
+    GXSETARRAY(GX_VA_NRM, pcBackNrm, sizeof(mBackNrm[0]), sizeof(cXyz), true);
 #else
     GXSetArray(GX_VA_NRM, mBackNrm[field_0x18a2], sizeof(cXyz));
 #endif

@@ -1,0 +1,20 @@
+# COS_SMOKE=options-menu (native/src/pc/features/pc_menu.cpp), with --stage sea:44:206 (Outset). Opens the
+# menu with L+R+Z, R to Rendimiento, up once (the list wraps) to its last row, "60 fps (interpolación)",
+# A turns it on (handheld), B closes the menu: from the next game frame each game frame is presented
+# twice (paint B with the camera interpolated; docs/FPS60_PLAN.md) without a restart. Checked at
+# frame 900; the run's perf lines (COS_PERF_EVERY) show ~60 presents/s after the menu closes.
+#expect opened 1
+#expect setting COS_FPS60 1
+#expect saved COS_FPS60@handheld=1
+#expect end 900
+# frame buttons stickX stickY
+400 L+R+Z 0 0
+403 - 0 0
+410 R 0 0
+412 - 0 0
+416 UP 0 0
+418 - 0 0
+424 A 0 0
+426 - 0 0
+432 B 0 0
+434 - 0 0

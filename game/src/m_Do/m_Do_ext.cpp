@@ -5,6 +5,9 @@
 
 #include "m_Do/machine.h" // IWYU pragma: keep
 #include "m_Do/m_Do_ext.h"
+#if TARGET_PC
+#include "pc/game_hooks.h"
+#endif
 #include "JSystem/J3DGraphBase/J3DTransform.h"
 #include "JSystem/JKernel/JKRArchive.h"
 #include "JSystem/JKernel/JKRSolidHeap.h"
@@ -2004,7 +2007,10 @@ void mDoExt_3DlineMat0_c::draw() {
 #if TARGET_PC
         // Aurora's GXSetArray also takes the array's byte size (init allocates mMaxSegments * 2
         // entries) and byte order (computed on the host: host-endian, le = true).
-        GXSETARRAY(GX_VA_POS, line->mPosArr[mCurArr], mMaxSegments * 2 * sizeof(cXyz), sizeof(cXyz), true);
+        // 60 fps step D (game_hooks.h): in paint B the ribbon halfway between paint A's array and this
+        // draw pass's.
+        const float* pos = pc_fps60_line_positions(this, i, &line->mPosArr[mCurArr]->x, &line->mPosArr[mCurArr ^ 1]->x, numTriStrip);
+        GXSETARRAY(GX_VA_POS, pos, (pos == &line->mPosArr[mCurArr]->x ? mMaxSegments * 2 : numTriStrip) * sizeof(cXyz), sizeof(cXyz), true);
 #else
         GXSetArray(GX_VA_POS, line->mPosArr[mCurArr], sizeof(cXyz));
 #endif
@@ -2020,6 +2026,11 @@ void mDoExt_3DlineMat0_c::draw() {
         line++;
     }
 
+#if TARGET_PC
+    // COS_FPS60_TEST's paint B (game_hooks.h): the next paint A draws the same lists, so the array
+    // the draw pass filled stays the current one.
+    if (!pc_paint_is_extra())
+#endif
     mCurArr ^= 1;
 }
 
@@ -2285,8 +2296,10 @@ void mDoExt_3DlineMat1_c::draw() {
     u16 numTriStrip = mNumSegments * 2;
     for (s32 i = 0; i < mNumLines; i++) {
 #if TARGET_PC
-        // As in mDoExt_3DlineMat0_c::draw: mMaxSegments * 2 host-endian entries per array.
-        GXSETARRAY(GX_VA_POS, line->mPosArr[mCurArr], mMaxSegments * 2 * sizeof(cXyz), sizeof(cXyz), true);
+        // As in mDoExt_3DlineMat0_c::draw: mMaxSegments * 2 host-endian entries per array; in paint B
+        // the positions blended with paint A's (60 fps step D).
+        const float* pos = pc_fps60_line_positions(this, i, &line->mPosArr[mCurArr]->x, &line->mPosArr[mCurArr ^ 1]->x, numTriStrip);
+        GXSETARRAY(GX_VA_POS, pos, (pos == &line->mPosArr[mCurArr]->x ? mMaxSegments * 2 : numTriStrip) * sizeof(cXyz), sizeof(cXyz), true);
         GXSETARRAY(GX_VA_TEX0, line->mTexArr[mCurArr], mMaxSegments * 2 * sizeof(cXy), sizeof(cXy), true);
 #else
         GXSetArray(GX_VA_POS, line->mPosArr[mCurArr], sizeof(cXyz));
@@ -2307,6 +2320,10 @@ void mDoExt_3DlineMat1_c::draw() {
     }
 
     GXSetTexCoordScaleManually(GX_TEXCOORD0, GX_FALSE, 0, 0);
+#if TARGET_PC
+    // COS_FPS60_TEST's paint B (game_hooks.h): as in mDoExt_3DlineMat0_c::draw.
+    if (!pc_paint_is_extra())
+#endif
     mCurArr ^= 1;
 }
 

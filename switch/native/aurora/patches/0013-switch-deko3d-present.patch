@@ -1,19 +1,21 @@
 Switch: the deko3d NRO's device and present (AURORA_GFX_DEKO3D)
 
-docs/DEKO3D_MIGRATION_PLAN.md phase 2. With AURORA_GFX_DEKO3D (switch/native/CMakeLists.txt,
-COS_SWITCH_RENDERER=deko3d) Aurora keeps recording and encoding every frame, against Dawn's Null
-device (no GPU work, nothing drawn: the GX encoding is a no-op in this phase), and switch/deko owns
-the GPU through the C functions of switch/deko/dk_aurora.h:
+docs/DEKO3D_MIGRATION_PLAN.md phase 2. With AURORA_GFX_DEKO3D (switch/native/CMakeLists.txt) Aurora
+keeps recording and encoding every frame, against Dawn's Null device (no GPU work, nothing drawn:
+the GX encoding is a no-op in this phase), and switch/deko owns the GPU through the C functions of
+switch/deko/dk_aurora.h:
 - webgpu::initialize: the Null backend, no WebGPU surface, the GL NRO's feature set (the Null device
   offers every feature: CoreFeaturesAndLimits is left out so the pipeline configs match the GL
   NRO's), then aurora_switch_dk_init (device, queue, memory, swapchain, DKSH cache); the frame
   buffers are created without a surface; shutdown calls aurora_switch_dk_shutdown;
+  the device toggles keep gl_defer (no effect on Null) instead of gl_allow_context_on_multi_threads:
+  Dawn's device cache key hashes them, and dawn_cache_dk.db's entries stay valid;
 - aurora.cpp: no SDL renderer for the Null backend, no surface checks in begin_frame; end_frame
   submits the Null device's command buffer, then imgui::present_deko3d presents (timed as the
   present in the perf-switch lines) instead of the surface acquire, the blit and the ImGui pass;
 - imgui.cpp: no imgui_impl_wgpu; the font atlas and aurora_imgui_add_texture go to
   aurora_switch_dk_imgui_texture, the frozen draw data to aurora_switch_dk_present.
-Without AURORA_GFX_DEKO3D (the GL NRO, the Mac) nothing changes.
+Without AURORA_GFX_DEKO3D (the Mac) nothing changes.
 
 Switch only (switch/native/aurora/patches); not for upstream.
 
@@ -191,66 +193,48 @@ index a11a7f8..82e04af 100644
 +#endif
  } // namespace aurora::imgui
 diff --git a/lib/webgpu/gpu.cpp b/lib/webgpu/gpu.cpp
-index 9c96237..ad39c96 100644
+index 1dcb943..e058bf4 100644
 --- a/lib/webgpu/gpu.cpp
 +++ b/lib/webgpu/gpu.cpp
-@@ -30,7 +30,12 @@
+@@ -30,6 +30,13 @@
  #include <dawn/native/DawnNative.h>
  #endif
  
--#if defined(__SWITCH__)
 +#if defined(AURORA_GFX_DEKO3D)
 +// The deko3d NRO (switch/deko, docs/DEKO3D_MIGRATION_PLAN.md phase 2): Aurora records and encodes
 +// against Dawn's Null device, and switch/deko owns the GPU, the window and the present pass.
 +#include "../gx/pipeline.hpp"
 +#include "dk_aurora.h"
-+#elif defined(__SWITCH__)
- // Dawn's OpenGL ES backend on Mesa's EGL. Its window surface is libnx's NWindow, carried in the
- // Android native window source (switch/dawn/patches/dawn-switch-nwindow-surface.patch).
- #include <EGL/egl.h>
-@@ -764,7 +769,9 @@ static wgpu::BackendType to_wgpu_backend(AuroraBackend backend) {
++#endif
++
+ namespace aurora::gx {
+ void clear_copy_texture_cache() noexcept;
+ } // namespace aurora::gx
+@@ -756,6 +763,9 @@ static wgpu::BackendType to_wgpu_backend(AuroraBackend backend) {
  static void release_surface_locked() noexcept { g_surface = {}; }
  
  static bool create_surface() {
--#if defined(__SWITCH__)
 +#if defined(AURORA_GFX_DEKO3D)
 +  return true; // no WebGPU surface: switch/deko presents to the window
-+#elif defined(__SWITCH__)
-   {
-     window::SurfaceLock surfaceLock;
-     // The window needs its buffer size set before EGL draws to it, as libnx's framebuffer API does.
-@@ -833,7 +840,11 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
++#endif
+   SDL_Window* window = window::get_sdl_window();
+   if (window == nullptr) {
+     Log.error("Failed to create surface: no window");
+@@ -804,7 +814,13 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
        return false;
      }
    }
--#if defined(__SWITCH__)
 +#if defined(AURORA_GFX_DEKO3D)
 +  (void)auroraBackend;
 +  // Dawn's Null device: the frame's WebGPU work costs no GPU time and draws nothing (phase 2)
 +  const wgpu::BackendType backend = wgpu::BackendType::Null;
-+#elif defined(__SWITCH__)
-   (void)auroraBackend;
-   const wgpu::BackendType backend = wgpu::BackendType::OpenGLES;
- #else
-@@ -849,7 +860,7 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
-     return false;
-   }
-   {
--#if defined(__SWITCH__)
-+#if defined(__SWITCH__) && !defined(AURORA_GFX_DEKO3D)
-     // Dawn finds Mesa's EGL through eglGetProcAddress (its dlopen path is patched out for Horizon)
-     // and uses the default display.
-     dawn::native::opengl::RequestAdapterOptionsGetGLProc glProc;
-@@ -857,7 +868,7 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
-     glProc.display = EGL_NO_DISPLAY;
- #endif
-     const wgpu::RequestAdapterOptions options{
--#if defined(__SWITCH__)
-+#if defined(__SWITCH__) && !defined(AURORA_GFX_DEKO3D)
-         .nextInChain = &glProc,
- #endif
-         .featureLevel = wgpu::FeatureLevel::Compatibility,
-@@ -973,6 +984,14 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
++#else
+   const wgpu::BackendType backend = to_wgpu_backend(auroraBackend);
++#endif
+   Log.info("Attempting to initialize {}", magic_enum::enum_name(backend));
+ #if 0
+   // D3D12's debug layer is very slow
+@@ -929,6 +945,14 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
      g_adapter.GetFeatures(&supportedFeatures);
      for (size_t i = 0; i < supportedFeatures.featureCount; ++i) {
        const auto feature = supportedFeatures.features[i];
@@ -265,7 +249,21 @@ index 9c96237..ad39c96 100644
        if (feature == wgpu::FeatureName::CoreFeaturesAndLimits || feature == wgpu::FeatureName::TextureCompressionBC ||
            feature == wgpu::FeatureName::TextureCompressionASTC ||
            feature == wgpu::FeatureName::TextureComponentSwizzle || feature == wgpu::FeatureName::DualSourceBlending) {
-@@ -1098,6 +1117,13 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+@@ -985,7 +1009,13 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+ #endif
+         "disable_symbol_renaming",
+         "enable_immediate_error_handling",
++#if defined(AURORA_GFX_DEKO3D)
++        // A GL toggle, no effect on the Null device: kept because Dawn's device cache key hashes the
++        // toggles, so dawn_cache_dk.db's entries stay valid across the GL backend's removal.
++        "gl_defer",
++#else
+         "gl_allow_context_on_multi_threads",
++#endif
+     };
+     constexpr std::array disableToggles{
+         "timestamp_quantization",
+@@ -1047,6 +1077,13 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
    }
    g_queue = g_device.GetQueue();
  
@@ -279,7 +277,7 @@ index 9c96237..ad39c96 100644
    const wgpu::Status status = g_surface.GetCapabilities(g_adapter, &g_surfaceCapabilities);
    if (status != wgpu::Status::Success) {
      Log.error("Failed to get surface capabilities: {}", magic_enum::enum_name(status));
-@@ -1114,6 +1140,7 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+@@ -1063,6 +1100,7 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
    auto surfaceFormat = best_surface_format();
    g_vsyncEnabled.store(g_config.vsync, std::memory_order_release);
    auto presentMode = select_present_mode(g_surfaceCapabilities);
@@ -287,7 +285,7 @@ index 9c96237..ad39c96 100644
    Log.info("Using surface format {}, present mode {}", magic_enum::enum_name(surfaceFormat),
             magic_enum::enum_name(presentMode));
    const auto size = window::get_window_size();
-@@ -1141,6 +1168,9 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+@@ -1090,6 +1128,9 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
  void shutdown() {
    g_initialized = false;
    gfx::gpu_synchronize();
@@ -297,7 +295,7 @@ index 9c96237..ad39c96 100644
    gpu_prof::shutdown();
    g_CopyBindGroupLayout = {};
    g_CopyPipeline = {};
-@@ -1173,9 +1203,15 @@ void release_surface() noexcept {
+@@ -1122,9 +1163,15 @@ void release_surface() noexcept {
  
  static void resize_swapchain_internal(uint32_t width, uint32_t height, uint32_t nativeWidth, uint32_t nativeHeight,
                                        bool force) {
@@ -313,7 +311,7 @@ index 9c96237..ad39c96 100644
    const bool sizeChanged = g_graphicsConfig.surfaceConfiguration.width != nativeWidth ||
                             g_graphicsConfig.surfaceConfiguration.height != nativeHeight ||
                             g_frameBuffer.size.width != width || g_frameBuffer.size.height != height;
-@@ -1190,10 +1226,12 @@ static void resize_swapchain_internal(uint32_t width, uint32_t height, uint32_t
+@@ -1139,10 +1186,12 @@ static void resize_swapchain_internal(uint32_t width, uint32_t height, uint32_t
    g_graphicsConfig.surfaceConfiguration.height = nativeHeight;
    auto surfaceConfiguration = g_graphicsConfig.surfaceConfiguration;
    surfaceConfiguration.device = g_device;

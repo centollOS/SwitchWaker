@@ -1,7 +1,6 @@
-// The GPU options' changes to the game's drawing (pc_gpu_opts.h; docs/SWITCH_PERF_STUDY.md),
-// moved out of game/ (step G3 of docs/GAME_CODE_ORGANIZATION.md): the forest mist of
-// drawCloudShadow (d_kankyo_rain.cpp), the sky of mDoGph_Painter (m_Do_graphic.cpp) and the shadow casters' offscreen target (d_drawlist.cpp). Declared in
-// native/include/pc/game_hooks.h; the game calls them under TARGET_PC.
+// The mist at a lower resolution (pc_gpu_opts.h COS_MIST_LOWRES; docs/SWITCH_PERF_STUDY.md), moved
+// out of game/ (step G3 of docs/GAME_CODE_ORGANIZATION.md): drawCloudShadow (d_kankyo_rain.cpp).
+// Declared in native/include/pc/game_hooks.h; the game calls it under TARGET_PC.
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "pc/game_hooks.h"
 #include "pc/pc_gpu_opts.h"
@@ -140,66 +139,4 @@ void pc_kyr_draw_mist(PcFnRef drawSprites) {
     } else {
         drawSprites();
     }
-}
-
-// ---- mDoGph_Painter (m_Do_graphic.cpp) --------------------------------------------------------
-
-// COS_SKY_LOWRES: whether a draw buffer holds any packet.
-static bool pcDrawBufferUsed(J3DDrawBuffer* buffer) {
-    if (buffer == NULL) {
-        return false;
-    }
-    for (u32 i = 0; i < buffer->getEntryTableSize(); i++) {
-        if (buffer->getEntryPacket((u16)i) != NULL) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool pc_gph_sky_lowres_begin(camera_process_class* camera, view_port_class* viewport_p) {
-    // COS_SKY_LOWRES (pc_gpu_opts.h): the sky lists into a smaller target, stretched back.
-    const bool pcSkyLowres = pc_sky_lowres_begin(
-        viewport_p->mNearZ, viewport_p->mFarZ,
-        pcDrawBufferUsed(g_dComIfG_gameInfo.drawlist.mpOpaListSky) ||
-            pcDrawBufferUsed(g_dComIfG_gameInfo.drawlist.mpXluListSky),
-        g_dComIfG_gameInfo.drawlist.mpCopy2D == &g_dComIfG_gameInfo.drawlist.mpCopy2DArr[0]);
-    if (pcSkyLowres) {
-        GXSetProjection(camera->view.mProjMtx, GX_PERSPECTIVE);
-        j3dSys.reinitGX();
-        J3DShape::resetVcdVatCache();
-        dKy_setLight();
-    }
-    return pcSkyLowres;
-}
-
-void pc_gph_sky_lowres_end(camera_process_class* camera) {
-    pc_sky_lowres_end();
-    j3dSys.reinitGX();
-    J3DShape::resetVcdVatCache();
-    GXSetProjection(camera->view.mProjMtx, GX_PERSPECTIVE);
-    dKy_setLight();
-}
-
-// ---- dDlst_shadowControl_c::imageDraw (d_drawlist.cpp) ----------------------------------------
-
-// COS_SHADOW_OFFSCREEN=1 (pc_gpu_opts.h): draw the casters into an offscreen target the size
-// of the EFB region they would use (256x256 logical, at the internal resolution) instead of
-// the EFB's corner, so the main EFB pass is neither broken nor partially cleared per shadow.
-// In an offscreen target logical coordinates are its pixels: viewport, scissor and copy
-// source span it, and the copy keeps the size Aurora gives the 128x128 copy from the EFB, so
-// the I4 textures (and the shadows drawn with them) are the same.
-void pc_shadow_image_offscreen_open() {
-    // COS_SHADOW_OFFSCREEN=gc: the GameCube's 256x256 and 128x128, whatever the resolution.
-    unsigned int w = 256, h = 256, dstW = 128, dstH = 128;
-    if (pc_shadow_offscreen() == PC_SHADOW_OFFSCREEN_SAME) {
-        pc_efb_pixel_size(256, 256, &w, &h);
-        pc_efb_pixel_size(128, 128, &dstW, &dstH);
-    }
-    GXCreateFrameBuffer(w, h);
-    GXSetViewport(0.0f, 0.0f, (f32)w, (f32)h, 0.0f, 1.0f);
-    GXSetScissor(0, 0, w, h);
-    GXSetTexCopySrc(0, 0, w, h);
-    GXSetTexCopyDst(dstW, dstH, GX_TF_I4, GX_TRUE);
-    pc_shadow_offscreen_opened(w, h, dstW, dstH);
 }

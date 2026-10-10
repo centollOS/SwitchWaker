@@ -4,39 +4,39 @@ Tint's GLSL writer negates gl_Position.y in every vertex shader, for GL's lower-
 origin (raise/shader_io.cc). The deko3d renderer (docs/DEKO3D_MIGRATION_PLAN.md section 3.1) creates
 its device with DkDeviceFlags_OriginUpperLeft | DepthZeroToOne, whose clip space is WebGPU's (y up,
 row 0 at the top, z in [0, w]), so its shaders must write y unchanged.
-Options::disable_position_y_negation (default false: Dawn's GL backend never sets it, the GL NRO's
-shaders are unchanged) skips the negation, next to depth_zero_to_one of
-dawn-switch-gl-clip-control.patch, on top of which it applies.
+Options::disable_position_y_negation (default false) skips the negation, next to depth_zero_to_one
+of dawn-switch-tint-depth-zero-to-one.patch, on top of which it applies; switch/deko/
+shader_translate.cpp sets both.
 
-Applied by native/tools/dksh_cache (the offline DKSH builder) to its copy of the Dawn source, and
-later by the deko3d NRO's build. Not applied by dawn.cmake: a new Options field changes the key of
-Dawn's GLSL blob cache, which would make the GL NRO's program cache cold once for nothing.
-
+diff --git a/src/tint/lang/glsl/writer/common/options.h b/src/tint/lang/glsl/writer/common/options.h
+index 45feea8..f36a6a1 100644
 --- a/src/tint/lang/glsl/writer/common/options.h
 +++ b/src/tint/lang/glsl/writer/common/options.h
-@@ -223,6 +223,11 @@
-     /// as WebGPU does, so gl_Position.z is written unchanged instead of remapped to GL's [-w, w]
-     /// range by 2 * z - w (which rounds z to about 2^-24 of w).
+@@ -202,6 +202,11 @@ struct Options {
+     /// 2 * z - w (which rounds z to about 2^-24 of w).
      bool depth_zero_to_one = false;
-+
+ 
 +    /// Switch (deko3d renderer): write gl_Position.y unchanged instead of negating it. deko3d with
 +    /// DkDeviceFlags_OriginUpperLeft has WebGPU's clip space (y up, framebuffer row 0 at the top),
-+    /// so the flip GL's lower-left origin needs is wrong there. Dawn's GL backend never sets it.
++    /// so the flip GL's lower-left origin needs is wrong there.
 +    bool disable_position_y_negation = false;
- 
++
      /// Vertex inputs to perform BGRA swizzle on.
      std::unordered_set<uint32_t> bgra_swizzle_locations;
-@@ -267,6 +272,7 @@
+ 
+@@ -244,6 +249,7 @@ struct Options {
+                  first_instance_offset,
                   depth_range_offsets,
-                  uniform_window,
                   depth_zero_to_one,
 +                 disable_position_y_negation,
                   bgra_swizzle_locations,
                   texture_builtins_from_uniform,
                   array_length_from_uniform,
+diff --git a/src/tint/lang/glsl/writer/raise/raise.cc b/src/tint/lang/glsl/writer/raise/raise.cc
+index ed7d6ab..99cdb4f 100644
 --- a/src/tint/lang/glsl/writer/raise/raise.cc
 +++ b/src/tint/lang/glsl/writer/raise/raise.cc
-@@ -314,7 +314,8 @@
+@@ -244,7 +244,8 @@ Result<SuccessType> Raise(core::ir::Module& module, const Options& options) {
      TINT_CHECK_RESULT(raise::ShaderIO(
          module, raise::ShaderIOConfig{immediate_data_layout, options.depth_range_offsets,
                                        options.bgra_swizzle_locations,
@@ -46,9 +46,11 @@ Dawn's GLSL blob cache, which would make the GL NRO's program cache cold once fo
  
      // Must come after ShaderIO as it operates on module-scope `in` variables.
      TINT_CHECK_RESULT(raise::OffsetFirstIndex(
+diff --git a/src/tint/lang/glsl/writer/raise/shader_io.cc b/src/tint/lang/glsl/writer/raise/shader_io.cc
+index 0ca99b0..b3e8b33 100644
 --- a/src/tint/lang/glsl/writer/raise/shader_io.cc
 +++ b/src/tint/lang/glsl/writer/raise/shader_io.cc
-@@ -271,9 +271,13 @@
+@@ -271,9 +271,13 @@ struct StateImpl : core::ir::transform::ShaderIOBackendState {
          } else if (outputs[idx].attributes.builtin == core::BuiltinValue::kPosition) {
              auto* x = builder.Swizzle(ty.f32(), value, {0});
  
@@ -63,12 +65,14 @@ Dawn's GLSL blob cache, which would make the GL NRO's program cache cold once fo
 +            }
  
              // Recalculate gl_Position.z = ((2.0f * gl_Position.z) - gl_Position.w), unless the
-             // context clips z to [0, w] like WebGPU (Switch: glClipControl ZERO_TO_ONE).
+             // target clips z to [0, w] like WebGPU (Switch: deko3d DepthZeroToOne).
+diff --git a/src/tint/lang/glsl/writer/raise/shader_io.h b/src/tint/lang/glsl/writer/raise/shader_io.h
+index 161a04c..027be2f 100644
 --- a/src/tint/lang/glsl/writer/raise/shader_io.h
 +++ b/src/tint/lang/glsl/writer/raise/shader_io.h
-@@ -54,6 +54,9 @@
+@@ -54,6 +54,9 @@ struct ShaderIOConfig {
  
-     /// Switch: the context clips z to [0, w], so the position's z is not remapped (2 * z - w).
+     /// Switch: the target clips z to [0, w], so the position's z is not remapped (2 * z - w).
      bool depth_zero_to_one = false;
 +
 +    /// Switch (deko3d): the position's y is written unchanged (clip space y up, upper-left origin).

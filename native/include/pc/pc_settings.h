@@ -125,6 +125,10 @@ void pc_settings_load_early(void);
    oldPath (an older oldPath is replaced). Before pc_settings_load_early. 0: no such file, 1:
    migrated, -1: the settings file could not be written (envPath is left in place). */
 int pc_settings_migrate_env_file(const char* envPath, const char* oldPath);
+/* A platform default with one value per operation mode (the Switch: COS_FB_SCALE 1.5 handheld,
+   2.25 docked): used for a per-mode setting when the file has no value for that mode, before the
+   environment's single platform default. */
+void pc_settings_set_mode_default(const char* key, PcOperationMode mode, const char* value);
 /* Re-reads the file (menu: "Recargar ajustes") and applies what changed. */
 void pc_settings_reload(void);
 /* The settings file's path. */

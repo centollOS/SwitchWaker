@@ -5,6 +5,10 @@
 
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "f_pc/f_pc_manager.h"
+#if TARGET_PC
+#include "pc/game_hooks.h"
+#include "SSystem/SComponent/c_math.h"
+#endif
 #include "f_pc/f_pc_creator.h"
 #include "f_pc/f_pc_draw.h"
 #include "f_pc/f_pc_deletor.h"
@@ -288,10 +292,39 @@ void fpcM_Management(fpcM_ManagementFunc callBack1, fpcM_ManagementFunc callBack
         callBack1();
 
     fpcEx_Handler((fpcLnIt_QueueFunc)fpcM_Execute);
+#if TARGET_PC
+    // COS_FPS60_TEST (game_hooks.h, docs/FPS60_PLAN.md step A): paint A is presented here, after
+    // the logic, which ran while Aurora's GX worker translated it (presented right after the paint,
+    // the game thread waited ~9 ms in aurora_end_frame's fifo drain); paint B below repaints the
+    // lists of this frame's draw pass. With COS_ASYNC_END_FRAME (Aurora patch 0018) the split does
+    // not wait for the worker either: the draw pass runs while it finishes paint A, and the draw
+    // pass's GXDrawDone (mDoGph_AfterOfDraw) is where the game waits for it, as on the console.
+    const int paintB = pc_frame_split();
+    // Step C (pc_fps60_models.cpp): the models viewCalc'd in the draw pass are listed, and their
+    // matrices kept at its end, for paint B's blend.
+    pc_fps60_models_draw_begin();
+#endif
     fpcDw_Handler((fpcDw_HandlerFuncFunc)fpcM_DrawIterater, (fpcDw_HandlerFunc)fpcM_Draw);
 
     if (callBack2 != NULL)
         callBack2();
+#if TARGET_PC
+    pc_fps60_models_draw_end();
+    // Step E: the draw pass's time for paint B's budget guard (and its test delay).
+    pc_frame_draw_end();
+    if (paintB) {
+        // Paint B: cAPIGph_Painter alone (no draw pass); its guards (pc_paint_is_extra) keep it
+        // from advancing the paint-time state, and the game's random seeds are put back after it
+        // (the weather draws use cM_rndF).
+        MtxInit();
+        pc_paint_extra_begin();
+        s32 rnd[3];
+        cM_pcGetRnd(rnd);
+        cAPIGph_Painter();
+        cM_pcSetRnd(rnd);
+        pc_paint_extra_end();
+    }
+#endif
 }
 
 /* 8003ED90-8003EDCC       .text fpcM_Init__Fv */

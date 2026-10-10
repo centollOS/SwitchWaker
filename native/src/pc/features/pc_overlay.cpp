@@ -4,8 +4,8 @@
 //
 // COS_FPS_OVERLAY_DETAIL=compact keeps only the frame rate and the game thread's time on one line.
 //
-// Every half second it shows the frames per second over that half second (game frames, which on
-// the Switch are also the presents: one each), the game thread's busy time per frame (the frame
+// Every half second it shows the presents per second over that half second (one per game frame, two
+// for the split frames of COS_FPS60_TEST), the game thread's busy time per frame (the frame
 // minus the pace wait, without aurora_end_frame), and on the Switch the render worker's busy time
 // per presented frame and its Queue::Submit part (cos_switch_gfx_stats), and what Dawn's GL replay
 // issued per presented frame: draws, pipeline changes and sampled-texture binds, and the time of the
@@ -29,7 +29,8 @@ struct OverlayState {
     bool started = false;
     bool measured = false; // a half-second window closed (fps and game ms are valid)
     uint64_t windowStartNs = 0;
-    unsigned int frames = 0;
+    unsigned int frames = 0;     // presents
+    unsigned int gameFrames = 0; // game frames (fewer than presents with COS_FPS60_TEST)
     uint64_t busyNs = 0;
     double fps = 0;
     double gameMs = 0;
@@ -53,7 +54,7 @@ void overlayUpdate(uint64_t now) {
     OverlayState& s = sOverlay;
     const uint64_t elapsed = now - s.windowStartNs;
     s.fps = s.frames * 1e9 / (double)elapsed;
-    s.gameMs = s.frames != 0 ? s.busyNs / 1e6 / s.frames : 0;
+    s.gameMs = s.gameFrames != 0 ? s.busyNs / 1e6 / s.gameFrames : 0;
 #if defined(__SWITCH__)
     CosSwitchGfxStats cur{};
     cos_switch_gfx_stats(&cur);
@@ -80,13 +81,14 @@ void overlayUpdate(uint64_t now) {
 #endif
     s.windowStartNs = now;
     s.frames = 0;
+    s.gameFrames = 0;
     s.busyNs = 0;
     s.measured = true;
 }
 
 } // namespace
 
-void overlayFrame(uint64_t busyNs) {
+void overlayFrame(uint64_t busyNs, bool gameFrame) {
     if (!gConfig.fpsOverlay || ImGui::GetCurrentContext() == nullptr) {
         return;
     }
@@ -100,7 +102,10 @@ void overlayFrame(uint64_t busyNs) {
 #endif
     }
     s.frames++;
-    s.busyNs += busyNs;
+    if (gameFrame) {
+        s.gameFrames++;
+        s.busyNs += busyNs;
+    }
     if (now - s.windowStartNs >= kWindowNs) {
         overlayUpdate(now);
     }

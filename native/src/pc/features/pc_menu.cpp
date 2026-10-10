@@ -30,6 +30,7 @@
 #include "pc/pc_dynres.h"
 #include "pc/pc_gpu_opts.h"
 #include "pc/pc_hd_textures.h"
+#include "pc/game_hooks.h"
 
 #include "pc_internal.h"
 
@@ -409,20 +410,17 @@ void applyFbScale(const char*, const char* v, void*) {
     const float scale = (float)atof(v);
     setFrameBufferScale(scale);
     pc_dynres_configure(pc_settings_get("COS_DYNRES"), scale);
+    pc_fps60_hold("internal resolution changed"); // 60 fps step E: the EFB is resized
 }
 void applyDynres(const char*, const char* v, void*) {
     pc_dynres_configure(v, (float)atof(pc_settings_get("COS_FB_SCALE")));
+    pc_fps60_hold("dynamic resolution changed");
 }
-void applyMist(const char*, const char* v, void*) { pc_mist_lowres_set(atoi(v)); }
-void applySky(const char*, const char* v, void*) { pc_sky_lowres_set(atoi(v)); }
 void applyDof(const char*, const char* v, void*) { pc_dof_set(strcmp(v, "0") != 0); }
 void applyCameraInvertX(const char*, const char* v, void*) { pc_camera_invert_x_set(strcmp(v, "1") == 0); }
 void applyCameraInvertY(const char*, const char* v, void*) { pc_camera_invert_y_set(strcmp(v, "1") == 0); }
-void applyShadow(const char*, const char* v, void*) {
-    pc_shadow_offscreen_set(strcmp(v, "1") == 0    ? PC_SHADOW_OFFSCREEN_SAME
-                            : strcmp(v, "gc") == 0 ? PC_SHADOW_OFFSCREEN_GC
-                                                   : PC_SHADOW_OFFSCREEN_OFF);
-}
+void applyCameraShake(const char*, const char* v, void*) { pc_camera_shake_set(strcmp(v, "1") == 0); }
+void applyHeatHaze(const char*, const char* v, void*) { pc_heat_haze_set(strcmp(v, "1") == 0); }
 void applyGpuProfile(const char*, const char* v, void*) {
 #if defined(__SWITCH__)
     cos_switch_set_gpu_profile(v);
@@ -439,6 +437,7 @@ void applyPerfLog(const char*, const char* v, void*) { gConfig.perfLog = strcmp(
 void applyHitch(const char*, const char* v, void*) { perfSetHitch((unsigned int)atoi(v)); }
 void applyHdStats(const char*, const char* v, void*) { pc_hd_textures_set_stats_every((unsigned int)atoi(v)); }
 void applyGpuGroups(const char*, const char* v, void*) { pc_gpu_groups_set(atoi(v)); }
+void applyFps60(const char*, const char* v, void*) { pc_fps60_set(strcmp(v, "1") == 0); }
 
 #define CHOICES(name) name, (int)(sizeof(name) / sizeof(name[0]))
 
@@ -453,11 +452,11 @@ const PcSettingChoice kAspect[] = {{"16:9", "16:9 (panorámica)", "16:9 (widescr
 const PcSettingChoice kOnOff[] = {{"0", "Desactivado", "Off"}, {"1", "Activado", "On"}};
 const PcSettingChoice kHdMaxSize[] = {{"auto", "Automático (512 / 1024)", "Automatic (512 / 1024)"}, {"256", "256"}, {"512", "512"},
                                       {"1024", "1024"}, {"full", "Sin límite", "No limit"}};
-const PcSettingChoice kDynres[] = {{"0", "Desactivada", "Off"}, {"1", "Automática", "Automatic"}};
-const PcSettingChoice kLowres[] = {{"0", "Completa", "Full"}, {"2", "1/2"}, {"4", "1/4"}};
-const PcSettingChoice kSkyLowres[] = {{"0", "Completa", "Full"}, {"2", "1/2"}};
-const PcSettingChoice kShadow[] = {
-    {"0", "En el EFB (como la GameCube)", "In the EFB (as on the GameCube)"}, {"1", "Fuera del EFB", "Outside the EFB"}, {"gc", "Fuera del EFB, 256x256", "Outside the EFB, 256x256"}};
+// "auto" (the default): on while the 60 fps row is on (docs/FPS60_PLAN.md step E), off at 30 fps;
+// "0" keeps it off even with 60 fps (the user's choice is respected); "1" on at 30 fps too.
+const PcSettingChoice kDynres[] = {{"auto", "Con 60 fps", "With 60 fps"},
+                                   {"0", "Desactivada", "Off"},
+                                   {"1", "Siempre", "Always"}};
 const PcSettingChoice kGpuProfile[] = {
     {"460", "460,8 MHz", "460.8 MHz"}, {"384", "384 MHz"}, {"default", "Del sistema (307,2 MHz)", "System default (307.2 MHz)"}};
 const PcSettingChoice kDetail[] = {{"full", "Completo", "Full"}, {"compact", "Compacto", "Compact"}};
@@ -489,19 +488,12 @@ const PcSettingDesc kBuiltins[] = {
      "Internal resolution",
      "Resolution the game is drawn at before scaling to the screen. Lower = faster."},
     {"COS_DYNRES", "Resolución dinámica",
-     "Baja la resolución del 3D (1.25, 1.125) cuando la GPU no llega a 30 fps; el HUD queda nítido.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kDynres), "0", applyDynres, nullptr, 20,
+     "Baja la resolución del 3D (hasta 2/3) cuando la GPU no llega; el HUD queda nítido. Con 60 fps: solo "
+     "mientras los 60 fps están activados.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kDynres), "auto", applyDynres, nullptr, 20,
      "Dynamic resolution",
-     "Lowers the 3D resolution (1.25, 1.125) when the GPU cannot hold 30 fps; the HUD stays sharp."},
-    {"COS_MIST_LOWRES", "Niebla del bosque",
-     "Resolución de la niebla (bosques): 1/4 se ve casi igual y cuesta mucho menos.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kLowres), "4", applyMist, nullptr, 30,
-     "Forest mist",
-     "Resolution of the mist (forests): 1/4 looks almost the same and costs much less."},
-    {"COS_SKY_LOWRES", "Cielo", "Resolución del cielo y las nubes: 1/2 ahorra GPU, bordes de nubes más suaves.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_PER_MODE, CHOICES(kSkyLowres), "0", applySky, nullptr, 40,
-     "Sky",
-     "Resolution of the sky and clouds: 1/2 saves GPU time, with softer cloud edges."},
+     "Lowers the 3D resolution (down to 2/3) when the GPU cannot keep up; the HUD stays sharp. With 60 fps: "
+     "only while 60 fps is on."},
     {"COS_DOF", "Profundidad de campo", "Desenfoque del paisaje lejano, como en la GameCube.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "1", applyDof, nullptr, 50,
      "Depth of field",
@@ -516,6 +508,20 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertY, nullptr, 91,
      "Invert camera vertically",
      "The C stick tilts the camera the other way vertically."},
+    {"COS_CAMERA_SHAKE", "Temblor de cámara",
+     "La cámara tiembla con terremotos, golpes, explosiones y cinemáticas, como en la GameCube. La vibración "
+     "del mando no cambia.",
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraShake, nullptr, 92,
+     "Camera shake",
+     "The camera shakes with quakes, hits, explosions and cutscenes, as on the GameCube. The controller "
+     "rumble does not change."},
+    {"COS_HEAT_HAZE", "Distorsión por calor",
+     "La imagen ondula sobre la lava y el fuego (Montaña del Dragón y su caverna), como en la GameCube. "
+     "Con 60 fps se ve mal: distorsiona demasiado.",
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyHeatHaze, nullptr, 93,
+     "Heat haze",
+     "The picture wobbles over lava and fire (Dragon Roost and its cavern), as on the GameCube. "
+     "At 60 fps it looks wrong: it distorts too much."},
     {"COS_ASPECT", "Relación de aspecto", "Imagen panorámica 16:9 o la 4:3 original de la GameCube.",
      PC_SETTING_TAB_GRAPHICS, PC_SETTING_RESTART, CHOICES(kAspect), kSwitch ? "16:9" : "4:3", nullptr, nullptr,
      70,
@@ -558,6 +564,14 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_PERFORMANCE, PC_SETTING_RESTART, CHOICES(kPrecompileScreen), "auto", nullptr, nullptr, 50,
      "Shader loading screen",
      "Automatic: only with a cold cache (first start); priority only, always or never."},
+    {"COS_FPS60", "60 fps (interpolación)",
+     "60 imágenes por segundo interpolando entre cuadros; el juego sigue a 30. Más CPU y batería. Si no "
+     "llega, baja la resolución (Resolución dinámica) o vuelve a 30 un rato.",
+     PC_SETTING_TAB_PERFORMANCE, PC_SETTING_PER_MODE, CHOICES(kOnOff), "0", applyFps60, nullptr, 60,
+     "60 fps (interpolation)",
+     "60 images a second by interpolating between frames; the game still runs at 30. More CPU and "
+     "battery. When it cannot keep up it lowers the resolution (Dynamic resolution) or drops to 30 for "
+     "a while."},
     // Depuración
     {"COS_PERF_EVERY", "Intervalo del registro perf",
      "Cada cuántos cuadros se escribe una línea [cos] perf en el registro (native/logs/).",
@@ -599,11 +613,6 @@ const PcSettingDesc kBuiltins[] = {
      "Debug server (network)",
      "For development only: opens a port on the local network, without a password, for scripts/switch/"
      "switchwaker_debug.py (log, screenshots, warps, files). See docs/DEBUG_SERVER.md."},
-    {"COS_SHADOW_OFFSCREEN", "Sombras en tiempo real (prueba A/B)",
-     "Prueba de GPU: dónde se dibujan las sombras de los personajes; fuera del EFB evita cortar la pasada principal.",
-     PC_SETTING_TAB_DEBUG, 0, CHOICES(kShadow), "0", applyShadow, nullptr, 130,
-     "Real-time shadows (A/B test)",
-     "GPU test: where character shadows are drawn; outside the EFB avoids splitting the main pass."},
 };
 
 // ---- menu state ----------------------------------------------------------------------------------
@@ -989,6 +998,11 @@ void drawMenu() {
     ImGui::SetWindowFocus();
 
     ImGui::TextColored(kAccent, "%s", T("Opciones", "Options"));
+#if defined(__SWITCH__)
+    // the version, so a player can tell which build they run (an issue report, an update)
+    ImGui::SameLine();
+    ImGui::TextColored(kDim, "SwitchWaker %s", cos_switch_version());
+#endif
     const std::string mode = std::string(T("Modo: ", "Mode: ")) + modeName(pc_settings_mode());
     ImGui::SameLine(ImGui::GetWindowWidth() - ImGui::CalcTextSize(mode.c_str()).x - ImGui::GetStyle().WindowPadding.x);
     ImGui::TextColored(kDim, "%s", mode.c_str());
@@ -1430,7 +1444,15 @@ void menuFrame() {
     if (!m.initialized || ImGui::GetCurrentContext() == nullptr) {
         return;
     }
-    pc_settings_poll_mode();
+    {
+        // 60 fps step E: a docked/handheld change applies the other mode's values (internal
+        // resolution, 60 fps, dynres) and resizes the swapchain: presented once around it.
+        const PcOperationMode before = pc_settings_mode();
+        pc_settings_poll_mode();
+        if (pc_settings_mode() != before) {
+            pc_fps60_hold("operation mode changed");
+        }
+    }
     // The COS_INPUT script drives the menu only in its own smoke test: other scripts press L+R+Z
     // for the game (pad-echo).
     handleInput((sSmoke.on ? readScript() : 0) | readGamepads() | readKeyboard());

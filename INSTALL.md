@@ -54,6 +54,15 @@ Download the new release and copy its `switch` folder over the old one (`switchw
 `initial_pipeline_cache.db` and `initial_dksh_cache.bin`). Your disc, saves (`native/user/USA/Card A`) and
 settings stay.
 
+The OpenGL renderer (`switchwaker_gl.nro`, "SwitchWaker (GL)") was removed on 2026-10-09: deko3d is the
+only renderer. Optional, to free the space its files take on the card, delete what it left behind:
+
+- the folder `sdmc:/switch/switchwaker_gl/`, if you built and installed the GL NRO;
+- in `sdmc:/switch/switchwaker/native/user/cache/`: `dawn_cache.db` (and `dawn_cache.db-journal`),
+  `mesa_shader_cache.bin`, `mesa_shader_cache.idx` and `mesa_shader_cache.use`; keep the rest of the
+  folder;
+- in `sdmc:/switch/switchwaker/native/logs/`: the `switchwaker_gl_*.log` files.
+
 ## Problems
 
 | | |

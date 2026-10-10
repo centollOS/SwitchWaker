@@ -9,7 +9,7 @@
 #                 (with the decomp's resource index enums only: gen_assets.sh --res-only), and
 #                 the unit tests cos_sdk_smoke and cos_pc_tests run; then the game executable
 #                 switchwaker itself with COS_RUNTIME_ASSETS=ON (gen_assets.sh --stubs)
-#   switch-image  the Switch build images (scripts/switch/Containerfile.native and .mesa), built
+#   switch-image  the Switch build image (scripts/switch/Containerfile.native), built
 #                 and kept in the GitHub Actions cache, so a later job (or a fork) starts warm
 # Downloads (Aurora, Dawn and nod packages, SDL 3 ...) are cached across runs with actions/cache;
 # images with the buildx GitHub Actions cache.
@@ -118,11 +118,3 @@ jobs:
           tags: centollos-switch-native-build:ci
           cache-from: type=gha,scope=switch-native
           cache-to: type=gha,mode=max,scope=switch-native
-      - name: Switch Mesa build image
-        uses: docker/build-push-action@v6
-        with:
-          context: scripts/switch
-          file: scripts/switch/Containerfile.mesa
-          tags: centollos-switch-mesa-build:ci
-          cache-from: type=gha,scope=switch-mesa
-          cache-to: type=gha,mode=max,scope=switch-mesa

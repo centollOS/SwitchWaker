@@ -11,6 +11,9 @@
 #include "JSystem/J3DGraphBase/J3DSys.h"
 #include "JSystem/JKernel/JKRHeap.h"
 #include "dolphin/os/OSCache.h"
+#if TARGET_PC
+#include "pc/game_hooks.h"
+#endif
 
 Mtx J3DModel::sNoUseDrawMtx;
 Mtx33 J3DModel::sNoUseNrmMtx;
@@ -28,6 +31,11 @@ J3DModel::~J3DModel() {
 
 /* 802ED610-802ED6C4       .text initialize__8J3DModelFv */
 void J3DModel::initialize() {
+#if TARGET_PC
+    // COS_FPS60_TEST step C (pc_fps60_models.cpp): a model made at this address is not the one the
+    // matrices captured there before belong to.
+    pc_fps60_model_init(this);
+#endif
     mModelData = NULL;
     mFlags = 0;
     mDiffFlag = 0;
@@ -830,6 +838,11 @@ void J3DModel::viewCalc() {
 
         prepareShapePackets();
     }
+#if TARGET_PC
+    // COS_FPS60_TEST step C (pc_fps60_models.cpp): the draw pass's matrices of this model, kept for
+    // paint B's blend (calls from the painter and with another view are told apart there).
+    pc_fps60_model_viewcalc(this);
+#endif
 }
 
 /* 802EF050-802EF1B8       .text calcNrmMtx__8J3DModelFv */

@@ -1174,10 +1174,24 @@ void dDlst_shadowReal_c::imageDraw(Mtx drawMtx) {
             (*modelP)->viewCalc();
             J3DModelData* modelData = (*modelP)->getModelData();
             modelData->getShapeNodePointer(0)->loadPreDrawSetting();
+#if TARGET_PC
+            // 60 fps step D (game_hooks.h): a CPU-skinned caster blended in paint B (the boat): its
+            // skinned vertices are N+1's; the light view times its blended turn/move casts it at t.
+            Mtx pcSkinDelta, pcLightMtx;
+            Mtx* pcBase = &mViewMtx;
+            if (pc_fps60_models_skin_delta(*modelP, pcSkinDelta)) {
+                MTXConcat(mViewMtx, pcSkinDelta, pcLightMtx);
+                pcBase = &pcLightMtx;
+            }
+#endif
             for (u16 j = 0; j < modelData->getShapeNum(); j++) {
                 if (!modelData->getShapeNodePointer(j)->checkFlag(J3DShpFlag_Hide)) {
                     J3DShapePacket* packet = (*modelP)->getShapePacket(j);
+#if TARGET_PC
+                    packet->setBaseMtxPtr(pcBase);
+#else
                     packet->setBaseMtxPtr(&mViewMtx);
+#endif
                     packet->drawFast();
                     packet->setBaseMtxPtr((Mtx*)drawMtx);
                 }
@@ -1471,7 +1485,16 @@ void dDlst_shadowSimple_c::draw() {
 
     GXClearVtxDesc();
     GXSetVtxDesc(GX_VA_POS, GX_INDEX8);
+#if TARGET_PC
+    // 60 fps step D (pc_fps60_models.cpp): in paint B both matrices blended with the ones paint A
+    // loaded for the same caster (its position pointer), as for the models.
+    Mtx volumeMtx, mtx;
+    pc_fps60_packet_mtx(mPcKey, mVolumeMtx, volumeMtx);
+    pc_fps60_packet_mtx((const char*)mPcKey + 1, mMtx, mtx);
+    GXLoadPosMtxImm(volumeMtx, GX_PNMTX0);
+#else
     GXLoadPosMtxImm(mVolumeMtx, GX_PNMTX0);
+#endif
     GXSetCurrentMtx(GX_PNMTX0);
 
     GXCallDisplayList(l_frontMat, 0x40);
@@ -1479,7 +1502,11 @@ void dDlst_shadowSimple_c::draw() {
     GXCallDisplayList(l_backSubMat, 0x20);
     GXCallDisplayList(l_shadowVolumeDL, 0x40);
 
+#if TARGET_PC
+    GXLoadPosMtxImm(mtx, GX_PNMTX1);
+#else
     GXLoadPosMtxImm(mMtx, GX_PNMTX1);
+#endif
     GXSetCurrentMtx(GX_PNMTX1);
     if (mpTexObj != NULL) {
         GXLoadTexObj(mpTexObj, GX_TEXMAP0);
@@ -1553,6 +1580,9 @@ void dDlst_shadowSimple_c::set(cXyz* pos, f32 y, f32 scaleXZ, cXyz* floorNrm, s1
         dist = 1.0f;
     mAlpha = dist * 64.0f;
     mpTexObj = texObj;
+#if TARGET_PC
+    mPcKey = pos;
+#endif
 }
 
 /* 80084D48-80084D94       .text init__21dDlst_shadowControl_cFv */
@@ -1574,45 +1604,18 @@ void dDlst_shadowControl_c::reset() {
 void dDlst_shadowControl_c::imageDraw(Mtx mtx) {
     #include "assets/l_matDL__imageDraw__21dDlst_shadowControl_cFPA4_f.h"
 
-#if TARGET_PC
-    // COS_SHADOW_OFFSCREEN (pc_gpu_opts.h): the casters into an offscreen target instead of the
-    // EFB's corner (native/src/pc/game_hooks/pc_gpu_hooks.cpp).
-    bool offscreen = false;
-    if (pc_shadow_offscreen()) {
-        for (s32 i = 0; i < (s32)ARRAY_SIZE(mReal); i++) {
-            if (mReal[i].isImageDraw()) {
-                offscreen = true;
-                break;
-            }
-        }
-    }
-    if (offscreen)
-        pc_shadow_image_offscreen_open();
-    else
-#endif
-    {
     GXSetViewport(0.0f, 0.0f, 256.0f, 256.0f, 0.0f, 1.0f);
     GXSetScissor(0, 0, 0x100, 0x100);
-    }
     GXCallDisplayList(l_matDL, 0x80);
     GXSetZMode(GX_TRUE, GX_LEQUAL, GX_TRUE);
     GXSetBlendMode(GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR);
     GXSetClipMode(GX_CLIP_DISABLE);
-#if TARGET_PC
-    if (!offscreen)
-#endif
-    {
     GXSetTexCopySrc(0, 0, 256, 256);
     GXSetTexCopyDst(128, 128, GX_TF_I4, GX_TRUE);
-    }
     j3dSys.setDrawModeOpaTexEdge();
     dDlst_shadowReal_c * pReal = &mReal[0];
     for (s32 i = 0; i < (s32)ARRAY_SIZE(mReal); i++, pReal++)
         pReal->imageDraw(mtx);
-#if TARGET_PC
-    if (offscreen)
-        GXRestoreFrameBuffer();
-#endif
     GXSetClipMode(GX_CLIP_ENABLE);
 }
 
@@ -1724,6 +1727,12 @@ bool dDlst_shadowControl_c::addReal(u32 key, J3DModel* model) {
 int dDlst_shadowControl_c::setSimple(cXyz* pos, f32 groundY, f32 scaleXZ, cXyz* floor_nrm, s16 rotY, f32 scaleZ, GXTexObj* tex) {
     if (floor_nrm == NULL || mSimpleNum >= ARRAY_SIZE(mSimple))
         return false;
+#if TARGET_PC
+    // Actors pass &dComIfG_Bgsp()->GetTriPla(...)->mNormal unchecked; when the floor's collision
+    // is gone that is NULL plus the member's offset. No shadow rather than a read near 0.
+    if ((uintptr_t)floor_nrm < 0x1000)
+        return false;
+#endif
 
     mSimple[mSimpleNum].set(pos, groundY, scaleXZ, floor_nrm, rotY, scaleZ, tex);
     mSimpleNum++;
@@ -2154,6 +2163,19 @@ void dDlst_list_c::wipeIn(f32 time) {
 
 /* 800866F0-80086790       .text calcWipe__12dDlst_list_cFv */
 void dDlst_list_c::calcWipe() {
+#if TARGET_PC
+    // COS_FPS60_TEST (game_hooks.h): paint B draws the wipe at paint A's rate without advancing it.
+    // Both paints of the same lists append the wipe once: paint B's lists are painted again by the
+    // next paint A, which finds the wipe already there.
+    if (mWipe && pc_paint_is_extra()) {
+        // (the scroll follows the rate: a wipe started since paint A gets its starting position)
+        mWipeDlst.mScrollS = mWipeRate * 2.0f;
+        mWipeDlst.mScrollT = mWipeDlst.mScrollS * 1.218f;
+        if (!g_dComIfG_gameInfo.drawlist.has2DXlu(&mWipeDlst))
+            dComIfGd_set2DXlu(&mWipeDlst);
+        return;
+    }
+#endif
     if (mWipe) {
         mWipeRate += mWipeSpeed;
         if (mWipeRate < 0.0f) {
@@ -2167,6 +2189,9 @@ void dDlst_list_c::calcWipe() {
 
         mWipeDlst.mScrollS = mWipeRate * 2.0f;
         mWipeDlst.mScrollT = mWipeDlst.mScrollS * 1.218f;
+#if TARGET_PC
+        if (!g_dComIfG_gameInfo.drawlist.has2DXlu(&mWipeDlst))
+#endif
         dComIfGd_set2DXlu(&mWipeDlst);
     }
 }

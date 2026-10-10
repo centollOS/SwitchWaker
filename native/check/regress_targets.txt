@@ -126,6 +126,9 @@ options-menu 0 --stage sea:44:206 --input native/check/input/menu-travel-save.tx
 # the boat, the sail (X), the wind baton (Y), the wind song and the open sea on the file in memory and
 # takes the player to Windfall's sea room on the boat; an unknown COS_BOOT_PRESET is a usage error
 options-menu 0 --stage sea:44:206 --input native/check/input/menu-sailing.txt
+# 60 fps from the options menu (Rendimiento > "60 fps (interpolación)", COS_FPS60): turned on live, the
+# game frames are then presented twice (docs/FPS60_PLAN.md)
+options-menu 0 --stage sea:44:206 --input native/check/input/menu-fps60.txt
 static-init 2 --preset bogus
 # COS_SMOKE=sailing (lane sailing): the sailing preset's boot on the boat, off it with A and back on
 # with A after swimming to it (bug B17: the preset lacked event bits 0x0A80/0x1980), the wind turned north (the wind

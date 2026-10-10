@@ -189,12 +189,18 @@ void mDoGph_gInf_c::fadeOut(f32 speed) {
 /* 80007FE8-800082D8       .text calcFade__13mDoGph_gInf_cFv */
 void mDoGph_gInf_c::calcFade() {
     if (mFade) {
+#if TARGET_PC
+        // COS_FPS60_TEST's paint B (game_hooks.h): the fade drawn at paint A's rate, not advanced.
+        if (!pc_paint_is_extra())
+#endif
+        {
         mFadeRate += mFadeSpeed;
         if (mFadeRate < 0.0f) {
             mFadeRate = 0.0f;
             mFade = false;
         } else if (mFadeRate > 1.0f) {
             mFadeRate = 1.0f;
+        }
         }
 
         mFadeColor.a = mFadeRate * 255.0f;
@@ -264,6 +270,11 @@ void mDoGph_gInf_c::offMonotone() {
 
 /* 80008354-800083B8       .text calcMonotone__13mDoGph_gInf_cFv */
 void mDoGph_gInf_c::calcMonotone() {
+#if TARGET_PC
+    // COS_FPS60_TEST's paint B (game_hooks.h): the monotone rate as paint A left it.
+    if (pc_paint_is_extra())
+        return;
+#endif
     if (cLib_chaseS(&mMonotoneRate, mMonotoneRateSpeed < 0 ? 400 : -600, abs(mMonotoneRateSpeed)) != 0 && mMonotoneRateSpeed > 0)
         offMonotone();
 }
@@ -840,11 +851,21 @@ void motionBlure(view_class* view) {
     if (mDoGph_gInf_c::isBlure()) {
         GXLoadTexObj(mDoGph_gInf_c::getFrameBufferTexObj(), GX_TEXMAP0);
         GXColor color;
+#if TARGET_PC
+        // 60 fps step D (game_hooks.h): two presents a game frame keep the trail's decay per game frame.
+        Mtx blureMtx;
+        color.a = pc_fps60_blur_rate(mDoGph_gInf_c::getBlureRate(), mDoGph_gInf_c::getBlureMtx(), blureMtx);
+#else
         color.a = mDoGph_gInf_c::getBlureRate();
+#endif
         GXSetNumChans(0);
         GXSetNumTexGens(1);
         GXSetTexCoordGen(GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_TEXMTX0);
+#if TARGET_PC
+        GXLoadTexMtxImm(blureMtx, GX_TEXMTX0, GX_MTX2x4);
+#else
         GXLoadTexMtxImm(mDoGph_gInf_c::getBlureMtx(), GX_TEXMTX0, GX_MTX2x4);
+#endif
         GXSetNumTevStages(1);
         GXSetTevColor(GX_TEVREG0, color);
         GXSetTevOrder(GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR_NULL);
@@ -1626,6 +1647,11 @@ bool mDoGph_Painter() {
 
         if (camera != NULL) {
             PC_GPU_GROUP("shadow_image");
+#if TARGET_PC
+            // COS_FPS60_TEST step D (game_hooks.h): in paint B the models' world-space joints are at t
+            // before the real shadows are cast from them.
+            pc_fps60_paint_prepare(&camera->view);
+#endif
             dComIfGd_imageDrawShadow(camera->view.mViewMtx);
 
             view_port_class viewport_crop;
@@ -1657,21 +1683,18 @@ bool mDoGph_Painter() {
             dComIfGp_setCurrentView(&camera->view);
             dComIfGp_setCurrentViewport(viewport_p);
             GXSetProjection(camera->view.mProjMtx, GX_PERSPECTIVE);
+#if TARGET_PC
+            // COS_FPS60_TEST step B (game_hooks.h): in paint B, the draws with this projection see
+            // the camera halfway between the last two draw passes' (Aurora's view delta, patch
+            // 0019) until pc_fps60_view_end below.
+            pc_fps60_view_begin(&camera->view);
+#endif
             PPCSync();
             j3dSys.setViewMtx(camera->view.mViewMtx);
             dKy_setLight();
-#if TARGET_PC
-            // COS_SKY_LOWRES (pc_gpu_opts.h): the sky lists into a smaller target, stretched back
-            // (native/src/pc/game_hooks/pc_gpu_hooks.cpp).
-            const bool pcSkyLowres = pc_gph_sky_lowres_begin(camera, viewport_p);
-#endif
             PC_GPU_GROUP("sky");
             dComIfGd_drawOpaListSky();
             dComIfGd_drawXluListSky();
-#if TARGET_PC
-            if (pcSkyLowres)
-                pc_gph_sky_lowres_end(camera);
-#endif
 
             if (!dMenu_flag() && dPa_control_c::isStatus(0x01))
                 dComIfGp_particle_drawShipTail(&jpaDrawInfo);
@@ -1823,7 +1846,13 @@ bool mDoGph_Painter() {
 #endif
 
 #if VERSION > VERSION_DEMO
+#if TARGET_PC
+                // COS_FPS60_TEST's paint B (game_hooks.h): the picto box capture's steps run in paint
+                // A only (the next paint A shows the same lists); paint B only draws the photo.
+                if (mCaptureStep == 1 && !pc_paint_is_extra()) {
+#else
                 if (mCaptureStep == 1) {
+#endif
                     if (!mCaptureCansel)
                         mDoGph_screenCapture();
                     else
@@ -1835,13 +1864,17 @@ bool mDoGph_Painter() {
     }
 
 #if TARGET_PC
+    pc_fps60_view_end(); // COS_FPS60_TEST step B: the view delta off before the 2D
     pc_dynres_3d_end(); // COS_DYNRES: the 3D stretched over the EFB, full scale again
 #endif
 
 #if TARGET_PC
+    // COS_FPS60_TEST's paint B (game_hooks.h): the capture's steps below are paint A's (the photo is
+    // drawn in both paints).
+    const bool captureSteps = !pc_paint_is_extra();
     // The picto box (bug B36): GXCopyTex left the picture on the GPU; encode_s3tc reads it from RAM, so
     // step 3 waits one frame for the readback (pc_capture.cpp).
-    if (mCaptureStep == 3 && (mCaptureTextureFormat != GX_TF_CMPR ||
+    if (captureSteps && mCaptureStep == 3 && (mCaptureTextureFormat != GX_TF_CMPR ||
                               pc_gph_capture_ready(mCaptureCaptureBuffer, mCaptureSizeWidth, mCaptureSizeHeight, mCaptureCaptureFormat))) {
 #else
     if (mCaptureStep == 3) {
@@ -1895,7 +1928,11 @@ bool mDoGph_Painter() {
         }
     }
 
+#if TARGET_PC
+    if (captureSteps && mCaptureStep == 4) {
+#else
     if (mCaptureStep == 4) {
+#endif
 #if VERSION > VERSION_DEMO
         if (mCaptureCansel) {
             OSCancelThread(&mCaptureThread);
@@ -1952,12 +1989,20 @@ bool mDoGph_Painter() {
     }
 
 #if VERSION > VERSION_DEMO
+#if TARGET_PC
+    if (captureSteps && mCaptureStep == 5 && mCaptureCansel) {
+#else
     if (mCaptureStep == 5 && mCaptureCansel) {
+#endif
         mCaptureStep = 6;
     }
 #endif
 
+#if TARGET_PC
+    if (captureSteps && mCaptureStep == 6) {
+#else
     if (mCaptureStep == 6) {
+#endif
 #if VERSION > VERSION_DEMO
         if (mCaptureTextureBuffer != NULL)
 #endif

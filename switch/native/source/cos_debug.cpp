@@ -37,6 +37,8 @@ extern "C" int pc_debug_status(char* out, size_t size);
 extern "C" unsigned int pc_debug_shot_request(const char* path, int overlay);                     // pc_shot.cpp
 extern "C" unsigned int pc_debug_shot_done(int* ok);
 
+void JKRPcBeginHostAlloc(); // JKRHeap.cpp host allocation scope (pc_jkr_heap.cpp)
+
 namespace {
 
 int gPort = 0;
@@ -163,6 +165,9 @@ extern "C" void cos_switch_debug_start(void) {
     c.log = [](const char* line) { fprintf(stderr, "%s\n", line); };
     // above the game's threads, off its core (core 0): the server answers while the game is busy
     c.threadStart = [] {
+        // host memory, never the game's current JKRHeap (its buffers and strings filled a game
+        // heap: the server stopped answering after a 35 MB deploy, the game ran on)
+        JKRPcBeginHostAlloc();
         svcSetThreadPriority(CUR_THREAD_HANDLE, 0x2C);
         svcSetThreadCoreMask(CUR_THREAD_HANDLE, -1, 0x6);
     };
@@ -171,14 +176,33 @@ extern "C" void cos_switch_debug_start(void) {
                 "[switch] debug server listening on %s:%d (COS_DEBUG_SERVER; client scripts/switch/switchwaker_debug.py; "
                 "local network only, no password)\n",
                 ipText().c_str(), gPort);
+        // A testing session: no auto-sleep or screen dimming while the game runs (sleep also drops the
+        // server's socket). COS_SWITCH_NO_SLEEP=0 in [dev] keeps the console's own timers.
+        const char* ns = getenv("COS_SWITCH_NO_SLEEP");
+        if (ns == nullptr || ns[0] != '0') {
+            const Result r1 = appletSetAutoSleepDisabled(true);
+            const Result r2 = appletSetMediaPlaybackState(true);
+            fprintf(stderr, "[switch] auto-sleep and dimming off while the debug server runs (rc 0x%x, 0x%x; "
+                            "COS_SWITCH_NO_SLEEP=0 keeps them)\n", (unsigned)r1, (unsigned)r2);
+        }
     } else {
         debugsrv::drop_log();
     }
 }
 
-extern "C" void cos_switch_debug_input(uint64_t* buttons, int32_t sticks[4]) {
+extern "C" void cos_switch_host_alloc_thread(void) {
+    static thread_local bool done = false;
+    if (!done) {
+        done = true;
+        JKRPcBeginHostAlloc();
+    }
+}
+
+extern "C" const char* cos_switch_version(void) { return COS_SWITCH_VERSION_STR; }
+
+extern "C" int cos_switch_debug_input(uint64_t* buttons, int32_t sticks[4]) {
     if (!debugsrv::running()) {
-        return;
+        return 0;
     }
     const debugsrv::Injected in = debugsrv::injected();
     *buttons |= in.buttons;
@@ -188,4 +212,5 @@ extern "C" void cos_switch_debug_input(uint64_t* buttons, int32_t sticks[4]) {
             sticks[2 * s + 1] = (int32_t)(in.y[s] * JOYSTICK_MAX);
         }
     }
+    return 1;
 }

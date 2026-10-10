@@ -9,7 +9,8 @@
 //
 // pc_gph_capture_ready holds the capture at step 3 for one frame: the frame of the copy asks for
 // the readback; pc_capture_frame_end, right after that frame's aurora_end_frame (Aurora's FIFO is
-// drained, so its copy-texture table holds the copy, and its worker has the frame queued), reads
+// drained, so its copy-texture table holds the copy, and its worker has the frame queued; with the
+// async end of frame, Aurora patch 0018, after aurora_frame_sync), reads
 // the copy texture back on the render worker behind the frame, box-filters it from the EFB's
 // scale down to the copy's GX size and writes it into the buffer in GX's tiled layout, as the
 // GameCube's copy left it (I8: 8x4 tiles, the luma; RGB565: 4x4 tiles, host-endian u16, which is
@@ -21,6 +22,7 @@
 
 #include "d/d_snap.h"
 
+#include <aurora/aurora.h>
 #include <lib/gfx/render_worker.hpp>
 #include <lib/gx/gx.hpp>
 #include <lib/webgpu/gpu.hpp>
@@ -211,6 +213,9 @@ namespace {
 // bytes off and the picto box crashed reading it (bug B38).
 bool readCopy(const void* dest, const char* what, std::vector<uint8_t>& rgba, uint32_t& srcWidth,
               uint32_t& srcHeight) {
+    // With the async end of frame (Aurora patch 0018, COS_ASYNC_END_FRAME) the GX worker may still be
+    // ending the frame: wait for it, so the copy texture exists and the readback goes in behind the frame.
+    aurora_frame_sync();
     const aurora::gfx::TextureHandle handle = aurora::gx::find_copy_texture(dest);
     if (!handle) {
         pc::writef(STDERR_FILENO, "[cos] %s: no copy texture for %p\n", what, dest);

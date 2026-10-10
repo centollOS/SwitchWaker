@@ -1,9 +1,0 @@
---- a/src/dawn/native/opengl/CommandBufferGL.cpp
-+++ b/src/dawn/native/opengl/CommandBufferGL.cpp
-@@ -844,5 +844,5 @@
- MaybeError CommandBuffer::Execute(const OpenGLFunctions& gl) {
- #endif
--    auto LazyClearSyncScope = [gl](const SyncScopeResourceUsage& scope) -> MaybeError {
-+    auto LazyClearSyncScope = [&gl](const SyncScopeResourceUsage& scope) -> MaybeError {
-         for (size_t i = 0; i < scope.textures.size(); i++) {
-             Texture* texture = ToBackend(scope.textures[i]);

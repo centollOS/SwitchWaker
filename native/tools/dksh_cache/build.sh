@@ -13,7 +13,8 @@
 # Inputs (each looked up in this checkout's build/, then in the main checkout's when this is a git
 # worktree, as scripts/switch/build_native.sh does):
 #   build/aurora-3227d76                      Aurora at native/'s pin            (--aurora DIR)
-#   build/switch-dawn-probe/_deps/dawn-src    the Switch build's patched Dawn     (--dawn-src DIR)
+#   build/switch-dawn-src/<key>               the NRO build's patched Dawn source (--dawn-src DIR;
+#                                             the key as scripts/switch/build_native.sh makes it)
 #   build/switch-native/_deps/{fmt,xxhash}-src  Aurora's fmt and xxHash (optional: else downloaded)
 #   build/switch-native/_deps/imgui-src       ImGui's WebGPU shaders (optional: else not built)
 # Options before the tool's arguments: --jobs N (compile jobs, default: the engine's CPUs).
@@ -47,8 +48,12 @@ first_existing() {
     return 1
 }
 aurora=${aurora:-$(first_existing "$root/build/aurora-3227d76" "$main_root/build/aurora-3227d76" || true)}
-dawn_src=${dawn_src:-$(first_existing "$root/build/switch-dawn-probe/_deps/dawn-src" \
-                                      "$main_root/build/switch-dawn-probe/_deps/dawn-src" || true)}
+# the Dawn source of the current patch set (build_native.sh's prepare_dawn_src), patched by the NRO's
+# configure: Tint with dawn-switch-tint-depth-zero-to-one.patch and dawn-switch-tint-position-y-up.patch
+if command -v sha256sum >/dev/null 2>&1; then sha=(sha256sum); else sha=(shasum -a 256); fi
+dawn_key=$(cat "$root/switch/dawn/dawn.cmake" "$root"/switch/dawn/patches/*.patch | "${sha[@]}" | cut -c1-12)
+dawn_src=${dawn_src:-$(first_existing "$root/build/switch-dawn-src/$dawn_key" \
+                                      "$main_root/build/switch-dawn-src/$dawn_key" || true)}
 fmt_src=$(first_existing "$root/build/switch-native/_deps/fmt-src" "$main_root/build/switch-native/_deps/fmt-src" || true)
 xxhash_src=$(first_existing "$root/build/switch-native/_deps/xxhash-src" \
                             "$main_root/build/switch-native/_deps/xxhash-src" || true)
@@ -59,7 +64,7 @@ if [[ ! -f $aurora/lib/gx/shader.cpp ]]; then
     exit 1
 fi
 if [[ ! -f $dawn_src/src/tint/lang/glsl/writer/writer.h ]]; then
-    echo "dksh_cache: no Dawn source (--dawn-src); the Switch build fetches it (scripts/switch/build_native.sh)" >&2
+    echo "dksh_cache: no Dawn source for this patch set (--dawn-src); scripts/switch/build_native.sh makes it" >&2
     exit 1
 fi
 

@@ -15,6 +15,9 @@
 #include "d/actor/d_a_obj_pirateship.h"
 #include "f_op/f_op_actor_mng.h"
 #include "m_Do/m_Do_mtx.h"
+#if TARGET_PC
+#include "pc/game_hooks.h"
+#endif
 #include "SSystem/SComponent/c_lib.h"
 #include "SSystem/SComponent/c_angle.h"
 
@@ -283,8 +286,16 @@ void daSail_packet_c::draw() {
     GXSetTevColor(GX_TEVREG2, mTevStr->mColorK1);
     GXCallDisplayList(l_sail_matDL, 0x20);
 
+#if TARGET_PC
+    // COS_FPS60_TEST step C (pc_fps60_models.cpp): paint B draws the sail where the mast is at t.
+    Mtx pcMtx;
+    pc_fps60_packet_mtx(this, *getMtx(), pcMtx);
+    GXLoadPosMtxImm(pcMtx, 0);
+    GXLoadNrmMtxImm(pcMtx, 0);
+#else
     GXLoadPosMtxImm(*getMtx(), 0);
     GXLoadNrmMtxImm(*getMtx(), 0);
+#endif
 
     GXSetZCompLoc(GX_FALSE);
     GXSetZMode(GX_TRUE, GX_LEQUAL, GX_TRUE);

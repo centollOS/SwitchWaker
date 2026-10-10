@@ -50,6 +50,7 @@ struct Slot {
 };
 Slot g_slots[kFrames];
 uint32_t g_slot = 0;
+bool g_fencePending = false;  // frame_end recorded the slot's signal; not yet submitted
 bool g_inFrame = false;
 DkMemBlock g_stream = nullptr, g_cmdMem = nullptr, g_code = nullptr, g_descriptors = nullptr, g_queries = nullptr;
 uint8_t* g_streamCpu = nullptr;
@@ -139,7 +140,44 @@ void note_completed(uint64_t frame) {
 
 }  // namespace
 
+// COS_DK_MEMBENCH=1 ([dev]): at start-up, how fast the CPU writes the way Aurora's FIFO thread fills a
+// staging slot (2 KiB blocks, as its uniforms; 40-byte runs, as merged vertices) into deko3d memory that
+// is CPU-uncached (the staging slots) and CPU-cached (with and without the cache flush the GPU would
+// need), and into ordinary heap memory. One log line; decides whether staging should be CPU-cached.
+static void memory_bench() {
+    constexpr uint32_t kSize = 8u << 20;
+    const DkMemBlock unc = make_block(kSize, DkMemBlockFlags_CpuUncached | DkMemBlockFlags_GpuCached, "membench");
+    const DkMemBlock cac = make_block(kSize, DkMemBlockFlags_CpuCached | DkMemBlockFlags_GpuCached, "membench");
+    std::vector<uint8_t> heap(kSize);
+    std::vector<uint8_t> src(4096);
+    for (size_t i = 0; i < src.size(); i++) src[i] = uint8_t(i * 7);
+    const auto run = [&](uint8_t* dst, uint32_t chunk) {
+        const uint64_t t0 = now_ns();
+        for (uint32_t off = 0; off + chunk <= kSize; off += chunk) memcpy(dst + off, src.data() + (off & 1023), chunk);
+        return double(now_ns() - t0) / 1e6;
+    };
+    uint8_t* u = static_cast<uint8_t*>(dkMemBlockGetCpuAddr(unc));
+    uint8_t* c = static_cast<uint8_t*>(dkMemBlockGetCpuAddr(cac));
+    double r[2][4];
+    const uint32_t chunks[2] = {2048, 40};
+    for (int k = 0; k < 2; k++) {
+        run(heap.data(), chunks[k]);  // warm
+        r[k][0] = run(u, chunks[k]);
+        r[k][1] = run(c, chunks[k]);
+        const uint64_t t0 = now_ns();
+        dkMemBlockFlushCpuCache(cac, 0, kSize);
+        r[k][2] = double(now_ns() - t0) / 1e6;
+        r[k][3] = run(heap.data(), chunks[k]);
+    }
+    dklog("membench: 8 MiB in 2 KiB copies: uncached %.2f ms, cached %.2f ms + flush %.2f ms, heap %.2f ms; in 40-byte "
+          "copies: uncached %.2f ms, cached %.2f ms + flush %.2f ms, heap %.2f ms",
+          r[0][0], r[0][1], r[0][2], r[0][3], r[1][0], r[1][1], r[1][2], r[1][3]);
+    dkMemBlockDestroy(unc);
+    dkMemBlockDestroy(cac);
+}
+
 void memory_init() {
+    if (env_flag("COS_DK_MEMBENCH", false)) memory_bench();
     DkCmdBufMaker cm;
     dkCmdBufMakerDefaults(&cm, R.device);
     cm.cbAddMem = add_cmd_memory;
@@ -190,6 +228,16 @@ void frame_begin(uint64_t frame) {
         note_completed(s.frame);
     }
     {
+        // The slot is this frame's from now on. Its DkFence keeps the signalled state of the frame that
+        // used the slot before until the submit carrying this frame's signal rewrites it: polled now it
+        // would report this frame done before the GPU has it (and, through g_completed, every frame
+        // before it), and Aurora's staging slots (staging_ready) were reused while the GPU still read
+        // them: whole-screen garbage whenever the GPU ran behind. fenced again in fence_submitted.
+        std::lock_guard<std::mutex> lock(g_fenceMutex);
+        s.fenced = false;
+        s.frame = frame;
+    }
+    {
         std::lock_guard<std::mutex> lock(g_heapMutex);
         for (const ImageAlloc& a : s.retired)
             if (a.chunk >= 0) chunk_free(g_chunks[size_t(a.chunk)], a.offset, a.size);
@@ -209,7 +257,6 @@ void frame_begin(uint64_t frame) {
         g_deferredBlocks.clear();
     }
     s.streamUsed = 0;
-    s.frame = frame;
     // dkCmdBufClear rewinds to the start of the memory fed last (deko3d 0.5.0 keeps it), which belongs
     // to the previous frame: feed this slot's first chunk explicitly (as deko_examples' CCmdMemRing)
     dkCmdBufClear(R.cmd);
@@ -223,7 +270,7 @@ void frame_begin(uint64_t frame) {
 void frame_end() {
     Slot& s = g_slots[g_slot];
     dkCmdBufSignalFence(R.cmd, &s.fence, true);
-    s.fenced = true;
+    g_fencePending = true;  // the fence counts once the list with the signal is submitted
     g_inFrame = false;
     g_stats.frames++;
     g_stats.cmdBytesSum += g_cmdFedThisFrame;
@@ -233,6 +280,14 @@ void frame_end() {
 
 // device.cpp's submit holds the same lock while the queue writes the fences
 std::mutex& fence_mutex() { return g_fenceMutex; }
+
+// under fence_mutex, right after a submit of the frame's command buffer: the frame's fence was in it
+void fence_submitted() {
+    if (g_fencePending) {
+        g_slots[g_slot].fenced = true;
+        g_fencePending = false;
+    }
+}
 
 bool frame_done(uint64_t frame) {
     if (frame == 0 || frame <= g_completed.load(std::memory_order_acquire)) return true;

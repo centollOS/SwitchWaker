@@ -100,13 +100,6 @@
 #include "cos_switch.h"
 
 #include <aurora/switch_precompile.h>
-
-// Dawn's shared GL program cache (switch/dawn/patches/dawn-switch-gl-program-share.patch).
-extern "C" void dawn_switch_gl_program_stats(uint64_t* linked, uint64_t* shared);
-// Dawn's GL counters (switch/dawn/patches, switch_stats::Counter): 65-67 are the render pipeline
-// builds, their Tint translation ns and their ns holding the GL context
-// (dawn-switch-gl-pipeline-compile.patch).
-extern "C" void dawn_switch_gl_cmd_stats(uint64_t* out, size_t count);
 #else
 #include <limits.h>
 #include <sqlite3.h>
@@ -357,27 +350,14 @@ void formatEta(char* out, size_t size, double seconds) {
     }
 }
 
-// "; GL programs 37 linked, 4 shared; build split ..." (Switch) or nothing.
+// "; throttle duty 0.50, ..." (Switch, while the warm-up is throttled) or nothing.
 void programNote(char* out, size_t size, const Progress& p) {
     out[0] = '\0';
 #if defined(__SWITCH__)
-    uint64_t linked = 0;
-    uint64_t shared = 0;
-    dawn_switch_gl_program_stats(&linked, &shared);
-    uint64_t gl[68] = {};
-    dawn_switch_gl_cmd_stats(gl, 68);
-    const double builds = gl[65] > 0 ? (double)gl[65] : 1.0;
-    char throttle[96] = "";
     if (p.throttleDuty > 0) {
-        snprintf(throttle, sizeof(throttle), "; throttle duty %.2f, %u held back, %.1f s waited, %u fast builds not held",
+        snprintf(out, size, "; throttle duty %.2f, %u held back, %.1f s waited, %u fast builds not held",
                  p.throttleDuty, p.throttled, p.throttleWaitS, p.unthrottled);
     }
-    // Tint (no GL context) against the GL part (compile, link; the render worker waits for it).
-    snprintf(out, size,
-             "; GL programs %llu linked, %llu shared; %llu pipeline builds: tint %.0f ms, GL context "
-             "%.0f ms each%s",
-             (unsigned long long)linked, (unsigned long long)shared, (unsigned long long)gl[65],
-             gl[66] / 1e6 / builds, gl[67] / 1e6 / builds, throttle);
 #else
     (void)p;
     (void)size;

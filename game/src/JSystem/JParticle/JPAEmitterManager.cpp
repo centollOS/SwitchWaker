@@ -11,6 +11,10 @@
 #include "JSystem/JParticle/JPAResourceManager.h"
 #include "JSystem/JKernel/JKRHeap.h"
 #include "JSystem/JUtility/JUTAssert.h"
+#if TARGET_PC
+#include "pc/game_hooks.h"
+#include "pc/pc_controls.h"
+#endif
 
 /* 8025EE44-8025F0E4       .text __ct__17JPAEmitterManagerFP18JPAResourceManagerUlUlUlP7JKRHeap */
 JPAEmitterManager::JPAEmitterManager(JPAResourceManager* resMgr, u32 ptclNum, u32 emtrNum, u32 fieldNum, JKRHeap* heap) {
@@ -46,6 +50,10 @@ JPAEmitterManager::JPAEmitterManager(JPAResourceManager* resMgr, u32 ptclNum, u3
         JPAFieldData* field = &pFieldArray[i];
         mFieldPool.prepend(field->getLinkBufferPtr());
     }
+#if TARGET_PC
+    // 60 fps step D (pc_fps60_particles.cpp): paint B's particle blend indexes its tables by slot.
+    pc_fps60_particles_register(this, pPtclArray, mPtclNum, pEmtrArray, mEmtrNum);
+#endif
 }
 
 /* 8025F0E4-8025F2F4       .text createSimpleEmitterID__17JPAEmitterManagerFRCQ29JGeometry8TVec3<f>UsUcUcP34JPACallBackBase<P14JPABaseEmitter>P54JPACallBackBase2<P14JPABaseEmitter,P15JPABaseParticle> */
@@ -74,6 +82,9 @@ JPABaseEmitter* JPAEmitterManager::createSimpleEmitterID(const JGeometry::TVec3<
         emtr->setParticleCallBackPtr(pPtclCallBack);
         emtr->mGroupID = groupID;
         emtr->mResMgrID = rmID;
+#if TARGET_PC
+        emtr->mPcUserID = userID;
+#endif
         emtr->setGlobalTranslation(pos);
     }
 
@@ -104,9 +115,24 @@ void JPAEmitterManager::draw(JPADrawInfo* drawInfo, u8 groupID) {
     JPABaseEmitter::emtrInfo.mAspect = drawInfo->getAspect();
     for (JSULink<JPABaseEmitter>* link = mEmtrGroup[groupID].getFirst(); link != NULL; link = link->getNext()) {
         JPABaseEmitter *emtr = link->getObject();
+#if TARGET_PC
+        // SwitchWaker: "Distorsión por calor" off hides the heat-haze emitters (still simulated).
+        if (pc_heat_haze_hidden(emtr->getPcUserID())) {
+            continue;
+        }
+#endif
         if (emtr->isDraw()) {
+#if TARGET_PC
+            // 60 fps step D: in paint B the emitter and its particles at t, put back after the draw.
+            const int blended = pc_fps60_particles_emitter_begin(emtr);
+#endif
             emtr->calcgReRDirection();
             emtr->draw(drawInfo->getCameraMtxPtr());
+#if TARGET_PC
+            if (blended) {
+                pc_fps60_particles_emitter_end(emtr);
+            }
+#endif
         }
     }
 }

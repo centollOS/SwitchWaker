@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copy the native port's NRO and its inputs to the console over USB (MTP) and pull back its logs.
 #
-#   scripts/switch/push.sh [--build] [--no-pipeline-cache] [native|gl|FILE.nro]...   (default: native)
+#   scripts/switch/push.sh [--build] [--no-pipeline-cache] [native|FILE.nro]...   (default: native)
 #   scripts/switch/push.sh --disc DISC.iso
 #   scripts/switch/push.sh --pipeline-cache [FILE.db]
 #
@@ -12,10 +12,7 @@
 # the player's disc image as GZLE01.iso (all the native port reads; skipped if
 # already on the console with the same size). `native` is the native port's NRO
 # (scripts/switch/build_native.sh, the deko3d renderer), switchwaker.nro, with its
-# initial_pipeline_cache.db and initial_dksh_cache.bin (the DKSH cache built next to it); `gl` the
-# OpenGL ES NRO (build_native.sh --renderer gl), switchwaker_gl.nro, which goes to
-# sdmc:/switch/switchwaker_gl/ with its own initial_pipeline_cache.db (it reads the disc and native/ of
-# sdmc:/switch/switchwaker/, and logs to native/logs/switchwaker_gl_<date>_<time>.log).
+# initial_pipeline_cache.db and initial_dksh_cache.bin (the DKSH cache built next to it).
 # (Run options live in native/user/settings.ini, written by the in-game options menu; developer
 # variables go in its [dev] section: switch/native/settings-dev.example.ini.) --pipeline-cache copies the
 # bundled pipeline cache (default native/data/initial_pipeline_cache.db, the committed one that
@@ -99,18 +96,16 @@ done
 [[ $# -gt 0 ]] || set -- native
 
 for target in "$@"; do
-    dest=$remote_dir dksh=''
+    dksh=''
     case $target in
-        native) script=build_native.sh build_args=() nro=build/switch-native/switchwaker.nro
+        native) script=build_native.sh nro=build/switch-native/switchwaker.nro
                 dksh=build/switch-native/initial_dksh_cache.bin ;;
-        gl) script=build_native.sh build_args=(--renderer gl) nro=build/switch-native-gl/switchwaker_gl.nro
-            dest=switch/switchwaker_gl ;;
-        *.nro) script='' build_args=() nro=$target ;;
+        *.nro) script='' nro=$target ;;
         *) echo "push: unknown target $target" >&2; exit 2 ;;
     esac
     [[ $nro == /* ]] || nro="$root/$nro"
     if [[ $build -eq 1 && -n $script ]]; then
-        bash "$root/scripts/switch/$script" ${build_args[@]+"${build_args[@]}"}
+        bash "$root/scripts/switch/$script"
     fi
     if [[ ! -s $nro ]]; then
         echo "push: $nro is missing; build it or pass --build" >&2
@@ -119,7 +114,7 @@ for target in "$@"; do
 
     copy=$(mktemp)
     trap 'rm -f "$copy"' EXIT
-    "$tool" push "$nro" "$dest" "$copy"
+    "$tool" push "$nro" "$remote_dir" "$copy"
     want=$(shasum -a 256 "$nro" | cut -d' ' -f1)
     got=$(shasum -a 256 "$copy" | cut -d' ' -f1)
     rm -f "$copy"
@@ -127,10 +122,10 @@ for target in "$@"; do
         echo "push: read-back of $(basename "$nro") does not match ($got != $want)" >&2
         exit 1
     fi
-    echo "verified $dest/$(basename "$nro") $want"
+    echo "verified $remote_dir/$(basename "$nro") $want"
     if [[ $with_db -eq 1 ]]; then
-        push_pipeline_cache "$bundled_db" "$dest"
-        # the deko3d NRO's DKSH cache (build_native.sh --renderer deko3d builds it next to the NRO)
-        [[ -z $dksh ]] || push_verified "$root/$dksh" initial_dksh_cache.bin "$dest"
+        push_pipeline_cache "$bundled_db"
+        # the DKSH cache (build_native.sh builds it next to the NRO)
+        [[ -z $dksh ]] || push_verified "$root/$dksh" initial_dksh_cache.bin "$remote_dir"
     fi
 done

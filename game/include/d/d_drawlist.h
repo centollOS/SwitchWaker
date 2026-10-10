@@ -300,6 +300,9 @@ public:
     /* 0x04 */ GXTexObj* mpTexObj;
     /* 0x08 */ Mtx mVolumeMtx;
     /* 0x38 */ Mtx mMtx;
+#if TARGET_PC
+    const void* mPcKey; // 60 fps step D: the caster's position pointer (pc_fps60_packet_mtx's key)
+#endif
 };  // Size: 0x68
 
 struct cBgD_Vtx_t;
@@ -360,10 +363,6 @@ public:
     bool isNoUse() { return mState == 0; }
     bool isUse() { return mState != 0; }
     bool checkKey(u32 i_key) { return mKey == i_key; }
-#if TARGET_PC
-    // imageDraw draws this frame (COS_SHADOW_OFFSCREEN opens its target only when one does).
-    bool isImageDraw() { return mState == 1; }
-#endif
 
     static const int MODEL_MAX = 0x1A;
 
@@ -572,6 +571,16 @@ public:
     void set2DOpaTop(dDlst_base_c* pItem) { set(mp2DOpaTop, mp2DOpaTopEnd, pItem); }
     void set2DOpa(dDlst_base_c* pItem) { set(mp2DOpa, mp2DOpaEnd, pItem); }
     void set2DXlu(dDlst_base_c* pItem) { set(mp2DXlu, mp2DXluEnd, pItem); }
+#if TARGET_PC
+    // calcWipe under COS_FPS60_TEST: the item is already in this frame's 2D translucent list.
+    bool has2DXlu(const dDlst_base_c* pItem) const {
+        for (dDlst_base_c* const* p = mp2DXluArr; p < mp2DXlu; p++) {
+            if (*p == pItem)
+                return true;
+        }
+        return false;
+    }
+#endif
 
     void drawCopy2D() { draw(mpCopy2DArr, mpCopy2D); }
     void draw2DOpaTop() { draw(mp2DOpaTopArr, mp2DOpaTop); }

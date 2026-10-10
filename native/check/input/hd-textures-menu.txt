@@ -1,4 +1,4 @@
-# COS_SMOKE=options-menu with --stage sea:44:206: Gráficos > "Texturas HD" (seven rows down) on, then
+# COS_SMOKE=options-menu with --stage sea:44:206: Gráficos > "Texturas HD" (five rows down) on, then
 # off again (pc_hd_textures.cpp subscribes to COS_HD_TEXTURES). In the regression there is no pack
 # (COS_HD_PACK unset, <user>/hd_textures absent): turning it on logs "no pack" and stays off, and the
 # setting still round-trips through the menu and the run's settings.ini. With a pack in COS_HD_PACK
@@ -19,10 +19,6 @@
 420 - 0 0
 422 DOWN 0 0
 424 - 0 0
-426 DOWN 0 0
-428 - 0 0
-430 DOWN 0 0
-432 - 0 0
 438 A 0 0
 440 - 0 0
 448 B 0 0

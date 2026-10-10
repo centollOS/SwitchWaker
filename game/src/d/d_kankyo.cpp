@@ -5,6 +5,9 @@
 
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "d/d_kankyo.h"
+#if TARGET_PC
+#include "pc/game_hooks.h"
+#endif
 #include "d/d_bg_s_gnd_chk.h"
 #include "d/d_com_inf_game.h"
 #include "d/d_kankyo_data.h"
@@ -2476,6 +2479,12 @@ void dKy_setLight() {
     MtxP viewMtx = j3dSys.getViewMtx();
     dKyr_get_vectle_calc(&pCamera->view.mLookat.mEye, &pCamera->view.mLookat.mCenter, &camfwd);
 
+#if TARGET_PC
+    // COS_FPS60_TEST's paint B (game_hooks.h): the lights as paint A left them. The two blocks below
+    // ease the player light towards its influence (cLib_addCalc) and flicker the light colours
+    // (static targets, cM_rndF) once per paint; paint B only loads them.
+    if (!pc_paint_is_extra()) {
+#endif
     // light
     {
         dKy_setLight__Status& stts = lightStatusPt[0];
@@ -2559,6 +2568,9 @@ void dKy_setLight() {
             lightStatusPt[1].mColor.b = 0;
         }
     }
+#if TARGET_PC
+    }
+#endif
 
     Mtx invView;
     mDoMtx_inverseTranspose(viewMtx, invView);

@@ -1,0 +1,505 @@
+aurora_set_async_end_frame: end a frame on the GX FIFO worker instead of draining it
+
+Aurora 3227d76 processes the GX FIFO on a worker thread (lib/gx/fifo.cpp, ProcessingMode::Thread),
+but aurora::end_frame starts with gx::fifo::drain(), which blocks the calling thread until the worker
+has translated every command of the frame, and then runs the frame's end (fifo::end_frame's draw
+cache reset, gx::texture::end_frame, gfx::finish, gfx::end_frame's hand-off to the render worker)
+and aurora::begin_frame the next frame's gfx::begin_frame on that thread. On the Switch the worker is
+slower than the game's painter, so with COS_FPS60_TEST the game thread waited ~9 ms in every
+aurora_end_frame after paint B and ~5-6 ms at the split after paint A.
+
+The patch adds an asynchronous end of frame, off by default (Aurora's behaviour is unchanged):
+- aurora_set_async_end_frame(true), set between frames. aurora::end_frame then freezes ImGui's draw
+  data and calls fifo::end_frame_async, which publishes the frame's commands, queues a frame job at the
+  stream's end (the draw cache reset, gx::texture::end_frame, gfx::finish and the present: the frame
+  handed to the render worker, the code end_frame ran after the drain, now present_frame) and returns.
+  aurora::begin_frame queues gfx::begin_frame as a job at the same position (retried on the worker
+  while a staging buffer cannot be mapped). The worker runs a job once it has processed the stream up
+  to the job's position, and processes no command past a job not yet run, so frames stay strictly
+  ordered; it only ever sees a frame's commands after that frame's begin job (the job is queued before
+  any of them is published, and the worker reads sPublished before the job queue).
+- end_frame_async waits while more than one ended frame is not done (kMaxFramesInFlight): the game
+  thread runs at most one frame ahead of the worker. The command buffer is reset when the worker has
+  processed all of it (any drain, GXDrawDone, or an end of frame finding it idle) and drained at an
+  end of frame past 64 MiB.
+- fifo::sync / aurora_frame_sync waits until every queued frame job has run: what a synchronous
+  end_frame guaranteed (copy textures made, the frame queued to the render worker). Called by
+  gfx::gpu_synchronize (so release_surface, refresh_surface and resize_swapchain, which replace the
+  EFB, swapchain and surface the worker records and presents with, wait for the frames first), by
+  gx::update before it applies a new viewport policy (read by the worker), by fifo::shutdown and by
+  set_async_end_frame. A no-op on the FIFO worker and on the render worker (release_surface runs on
+  the render worker after a lost surface) and with no frame job pending.
+- drain() (GXDrawDone, AuroraGXSync, the custom draw and pass API) is unchanged: it waits until every
+  command written so far is processed, frame jobs before them included.
+
+Moved to the worker in async mode, with what else touches their state:
+- gx::texture::end_frame: the texture caches and the replacement streaming publish, which the worker
+  already used while processing; the game-thread replacement API locks its registry and posts cache
+  clears and invalidations through atomics (applied by end_frame).
+- gfx::finish / gfx::end_frame / gfx::begin_frame: the recorder and frame packets (the worker's
+  already), the frame and staging slots (now acquired on the worker: the GPU's back-pressure reaches
+  the game thread through the frames-in-flight wait), g_frameIndex (read by the resource and pipeline
+  caches on the worker), the pipeline frame hooks.
+- present_frame: webgpu::present_source and the surface configuration, which only the game thread
+  changes, after gpu_synchronize's sync.
+On the game thread as before: imgui::new_frame/freeze, the window and surface checks of
+begin_frame, fifo's sFrameActive.
+
+diff --git a/include/aurora/aurora.h b/include/aurora/aurora.h
+index 10f64cc..1a9da1d 100644
+--- a/include/aurora/aurora.h
++++ b/include/aurora/aurora.h
+@@ -138,6 +138,20 @@ void aurora_shutdown();
+ const AuroraEvent* aurora_update();
+ bool aurora_begin_frame();
+ void aurora_end_frame();
++/**
++ * Asynchronous end of frame (SwitchWaker patch 0018), off by default. aurora_end_frame then returns without
++ * waiting for the GX FIFO worker to process the frame: the worker ends it (texture caches, the last render
++ * pass, the hand-off to the render worker) when it gets there, and begins the next. aurora_end_frame waits
++ * only while two ended frames are not yet done. Set between frames.
++ */
++void aurora_set_async_end_frame(bool enabled);
++bool aurora_get_async_end_frame();
++/**
++ * Waits for the frames the async end of frame has not yet ended on the GX FIFO worker. After it Aurora is as
++ * a synchronous aurora_end_frame leaves it: copy textures made, the frame queued to the render worker (so
++ * work queued there afterwards, such as a readback, runs behind it). Returns at once otherwise.
++ */
++void aurora_frame_sync();
+ 
+ void aurora_set_log_level(AuroraLogLevel level);
+ void aurora_set_pause_on_focus_lost(bool value);
+diff --git a/lib/aurora.cpp b/lib/aurora.cpp
+index 5e7623b..3324a9f 100644
+--- a/lib/aurora.cpp
++++ b/lib/aurora.cpp
+@@ -28,6 +28,9 @@
+ #include <SDL3/SDL_filesystem.h>
+ #include <magic_enum.hpp>
+ 
++#include <chrono>
++#include <thread>
++
+ #include "system_info.hpp"
+ #include "tracy/Tracy.hpp"
+ 
+@@ -235,6 +238,29 @@ const AuroraEvent* update() noexcept {
+   return window::poll_events();
+ }
+ 
++#ifdef AURORA_ENABLE_GX
++void present_frame(imgui::DrawData imguiDrawData) noexcept;
++
++// A gfx frame is being recorded. Written by whichever thread begins and ends frames: the game thread, or
++// the GX FIFO worker with the async end of frame (fifo::set_async_end_frame syncs in between), so a frame
++// begun by one path is ended by the other when the mode changes between aurora_end_frame and
++// aurora_begin_frame.
++bool g_frameBegun = false;
++
++// Async end of frame (patch 0018): gfx::begin_frame on the GX FIFO worker. It fails only while a staging
++// buffer cannot be mapped; the frame's commands need a recording, so it is retried (the synchronous path
++// has the caller retry aurora_begin_frame).
++void begin_frame_on_worker() {
++  for (uint32_t attempt = 0; !gfx::begin_frame(); ++attempt) {
++    if (attempt % 5000 == 0) {
++      Log.warn("begin_frame failed on the GX FIFO worker; retrying");
++    }
++    std::this_thread::sleep_for(std::chrono::milliseconds{1});
++  }
++  g_frameBegun = true;
++}
++#endif
++
+ bool begin_frame() noexcept {
+   ZoneScoped;
+ #ifdef AURORA_ENABLE_GX
+@@ -255,7 +281,12 @@ bool begin_frame() noexcept {
+   }
+ 
+   imgui::new_frame(window::get_window_size());
+-  if (!gfx::begin_frame()) {
++  if (gx::fifo::async_end_frame()) {
++    // Async end of frame (patch 0018): the recording starts on the GX FIFO worker, behind the last frame.
++    gx::fifo::begin_frame_async(begin_frame_on_worker);
++  } else if (gfx::begin_frame()) {
++    g_frameBegun = true;
++  } else {
+     return false;
+   }
+   gx::fifo::begin_frame();
+@@ -266,12 +297,36 @@ bool begin_frame() noexcept {
+ void end_frame() noexcept {
+   ZoneScoped;
+ #ifdef AURORA_ENABLE_GX
++  auto imguiDrawData = imgui::freeze();
++  if (gx::fifo::async_end_frame()) {
++    // Async end of frame (patch 0018): what needs the frame's commands processed (the texture caches, the
++    // last render pass, the frame handed to the render worker) runs on the GX FIFO worker once it gets
++    // there; the game thread goes on (fifo.hpp).
++    gx::fifo::end_frame_async([imguiDrawData = std::move(imguiDrawData)]() mutable {
++      if (!g_frameBegun) {
++        return;
++      }
++      g_frameBegun = false;
++      gx::texture::end_frame();
++      gfx::finish();
++      present_frame(std::move(imguiDrawData));
++    });
++    return;
++  }
+   gx::fifo::drain();
+   gx::fifo::end_frame();
+   gx::texture::end_frame();
+   gfx::finish();
+-  auto imguiDrawData = imgui::freeze();
++  g_frameBegun = false;
++  present_frame(std::move(imguiDrawData));
++#endif
++}
+ 
++#ifdef AURORA_ENABLE_GX
++// The frame's present: hands the recorded frame to the render worker. After gfx::finish, on the thread
++// that ended the frame (the GX FIFO worker with the async end of frame).
++void present_frame(imgui::DrawData imguiDrawData) noexcept {
++  ZoneScoped;
+   const auto& presentSource = webgpu::present_source();
+   const auto viewport = webgpu::calculate_present_viewport(webgpu::g_graphicsConfig.surfaceConfiguration.width,
+                                                            webgpu::g_graphicsConfig.surfaceConfiguration.height,
+@@ -442,9 +497,8 @@ void end_frame() noexcept {
+     TracyPlot("aurora: lastStorageSize", static_cast<int64_t>(stats.lastStorageSize));
+     TracyPlot("aurora: lastTextureUploadSize", static_cast<int64_t>(stats.lastTextureUploadSize));
+   });
+-
+-#endif
+ }
++#endif
+ } // namespace
+ } // namespace aurora
+ 
+@@ -456,6 +510,25 @@ void aurora_shutdown() { aurora::shutdown(); }
+ const AuroraEvent* aurora_update() { return aurora::update(); }
+ bool aurora_begin_frame() { return aurora::begin_frame(); }
+ void aurora_end_frame() { aurora::end_frame(); }
++void aurora_set_async_end_frame(bool enabled) {
++#ifdef AURORA_ENABLE_GX
++  aurora::gx::fifo::set_async_end_frame(enabled);
++#else
++  (void)enabled;
++#endif
++}
++bool aurora_get_async_end_frame() {
++#ifdef AURORA_ENABLE_GX
++  return aurora::gx::fifo::async_end_frame();
++#else
++  return false;
++#endif
++}
++void aurora_frame_sync() {
++#ifdef AURORA_ENABLE_GX
++  aurora::gx::fifo::sync();
++#endif
++}
+ AuroraBackend aurora_get_backend() { return aurora::g_config.desiredBackend; }
+ const AuroraBackend* aurora_get_available_backends(size_t* count) {
+   if (count != nullptr) {
+diff --git a/lib/gfx/frame.cpp b/lib/gfx/frame.cpp
+index 2473ae9..18b1edb 100644
+--- a/lib/gfx/frame.cpp
++++ b/lib/gfx/frame.cpp
+@@ -9,6 +9,7 @@
+ #include "tex_palette_conv.hpp"
+ #include "texture_replacement.hpp"
+ #include "../gx/gx.hpp"
++#include "../gx/fifo.hpp"
+ #ifdef AURORA_ENABLE_RMLUI
+ #include "../rmlui/pipeline.hpp"
+ #endif
+@@ -734,7 +735,12 @@ uint32_t current_frame() noexcept { return g_frameIndex; }
+ 
+ void after_submit() noexcept { depth_peek::after_submit(); }
+ 
+-void gpu_synchronize() { render_worker::synchronize(); }
++void gpu_synchronize() {
++  // With the async end of frame (patch 0018) the GX FIFO worker may still be ending frames: surface and
++  // swapchain changes wait for those to be queued to the render worker first.
++  gx::fifo::sync();
++  render_worker::synchronize();
++}
+ 
+ void synchronize() { render_worker::synchronize(); }
+ 
+diff --git a/lib/gx/fifo.cpp b/lib/gx/fifo.cpp
+index bcaba60..3eb175c 100644
+--- a/lib/gx/fifo.cpp
++++ b/lib/gx/fifo.cpp
+@@ -1,13 +1,16 @@
+ #include "fifo.hpp"
+ 
+ #include "../thread.hpp"
++#include "../gfx/render_worker.hpp"
+ #include "command_processor.hpp"
+ 
+ #include <algorithm>
+ #include <atomic>
+ #include <cstring>
++#include <deque>
+ #include <limits>
+ #include <mutex>
++#include <thread>
+ 
+ #include <tracy/Tracy.hpp>
+ 
+@@ -37,6 +40,29 @@ std::atomic<uint32_t> sWorkerWake{0};
+ thread::Thread sWorkerThread;
+ std::atomic<DrawDoneCallback> sDrawDoneCallback{nullptr};
+ 
++// Async end of frame (patch 0018). Frame jobs run on the worker once it has processed the command stream
++// up to their position (stream offsets, as sPublished/sProcessed). The game thread queues them and is the
++// only writer of the stream; the counters let it wait for them.
++struct Job {
++  uint64_t pos;
++  FrameJob fn;
++  bool frameEnd;
++};
++// More ended frames than this not yet done make end_frame_async wait: the game thread runs at most one
++// frame ahead of the worker.
++constexpr uint64_t kMaxFramesInFlight = 1;
++// A command buffer this large at an async end of frame is drained (reset): it is otherwise only reset when
++// the worker has caught up (a drain, GXDrawDone, or an end of frame finding it idle).
++constexpr uint32_t kAsyncBufferLimit = 64u << 20;
++std::atomic<bool> sAsync{false};
++std::mutex sJobMutex;
++std::deque<Job> sJobs;
++std::atomic<uint64_t> sJobsQueued{0};
++std::atomic<uint64_t> sJobsDone{0};
++std::atomic<uint64_t> sFramesEnded{0};
++std::atomic<uint64_t> sFramesDone{0};
++std::atomic<std::thread::id> sWorkerId{};
++
+ void dispatch_draw_done() noexcept {
+   if (const auto callback = sDrawDoneCallback.load(std::memory_order_acquire); callback != nullptr) {
+     callback();
+@@ -73,14 +99,80 @@ void process_to(uint64_t target, std::memory_order order) noexcept {
+   }
+ }
+ 
++// Runs the first frame job if the stream has been processed up to its position.
++bool run_due_job(uint64_t processed) noexcept {
++  Job job;
++  {
++    std::lock_guard lock{sJobMutex};
++    if (sJobs.empty() || sJobs.front().pos > processed) {
++      return false;
++    }
++    job = std::move(sJobs.front());
++    sJobs.pop_front();
++  }
++  if (job.fn) {
++    job.fn();
++  }
++  if (job.frameEnd) {
++    sFramesDone.fetch_add(1, std::memory_order_release);
++    sFramesDone.notify_all();
++  }
++  sJobsDone.fetch_add(1, std::memory_order_release);
++  sJobsDone.notify_all();
++  return true;
++}
++
++uint64_t next_job_pos() noexcept {
++  std::lock_guard lock{sJobMutex};
++  return sJobs.empty() ? std::numeric_limits<uint64_t>::max() : sJobs.front().pos;
++}
++
++void queue_job(uint64_t pos, FrameJob fn, bool frameEnd) {
++  {
++    std::lock_guard lock{sJobMutex};
++    sJobs.push_back(Job{.pos = pos, .fn = std::move(fn), .frameEnd = frameEnd});
++  }
++  sJobsQueued.fetch_add(1, std::memory_order_release);
++}
++
++void wait_at_least(std::atomic<uint64_t>& counter, uint64_t target) noexcept {
++  uint64_t value = counter.load(std::memory_order_acquire);
++  while (value < target) {
++    counter.wait(value, std::memory_order_acquire);
++    value = counter.load(std::memory_order_acquire);
++  }
++}
++
++// Game thread: the buffer starts over once the worker has processed all of it. Never waits: the worker
++// holds sBufferMutex while it translates a published range (a whole frame when it is behind), and has
++// released it by the time sProcessed reaches the end.
++void reset_buffer_if_processed() noexcept {
++  const uint64_t end = sStreamBase + detail::sBufferSize;
++  if (sProcessed.load(std::memory_order_acquire) != end) {
++    return;
++  }
++  std::unique_lock lock{sBufferMutex, std::try_to_lock};
++  if (lock.owns_lock()) {
++    sStreamBase = end;
++    detail::sBufferSize = 0;
++  }
++}
++
+ void worker_main(std::stop_token token) noexcept {
+   std::stop_callback wakeOnStop{token, wake_worker};
++  sWorkerId.store(std::this_thread::get_id(), std::memory_order_release);
+   while (true) {
+     const uint32_t event = sWorkerWake.load(std::memory_order_acquire);
+-    const uint64_t processed = sProcessed.load(std::memory_order_relaxed);
++    // sPublished before the jobs: the game thread queues a frame's begin job before it publishes any of
++    // the frame's commands, so commands seen here never overtake a job not yet seen.
+     const uint64_t published = sPublished.load(std::memory_order_acquire);
+-    if (published != processed) {
+-      process_to(published, std::memory_order_release);
++    const uint64_t processed = sProcessed.load(std::memory_order_relaxed);
++    if (run_due_job(processed)) {
++      continue;
++    }
++    const uint64_t limit = std::min(published, next_job_pos());
++    if (limit > processed) {
++      process_to(limit, std::memory_order_release);
+       continue;
+     }
+ 
+@@ -137,7 +229,11 @@ void init() {
+   start_worker();
+ }
+ 
+-void shutdown() { stop_worker(); }
++void shutdown() {
++  sync();
++  stop_worker();
++  sAsync.store(false, std::memory_order_relaxed);
++}
+ 
+ void begin_frame() noexcept { sFrameActive = true; }
+ 
+@@ -146,6 +242,66 @@ void end_frame() noexcept {
+   clear_draw_cache(); // command_processor
+ }
+ 
++bool is_worker_thread() noexcept { return sWorkerId.load(std::memory_order_acquire) == std::this_thread::get_id(); }
++
++void set_async_end_frame(bool enabled) noexcept {
++  enabled = enabled && kProcessingMode == ProcessingMode::Thread;
++  if (enabled == sAsync.load(std::memory_order_relaxed)) {
++    return;
++  }
++  sync();
++  sAsync.store(enabled, std::memory_order_release);
++  Log.info("Async end of frame {}", enabled ? "on" : "off");
++}
++
++bool async_end_frame() noexcept { return sAsync.load(std::memory_order_relaxed); }
++
++void end_frame_async(FrameJob job) {
++  ZoneScoped;
++  const uint64_t target = sStreamBase + detail::sBufferSize;
++  queue_job(
++      target,
++      [job = std::move(job)] {
++        clear_draw_cache(); // command_processor (end_frame's, on the worker)
++        job();
++      },
++      true);
++  const uint64_t ended = sFramesEnded.fetch_add(1, std::memory_order_relaxed) + 1;
++  if (target > sPublished.load(std::memory_order_relaxed)) {
++    sPublished.store(target, std::memory_order_release);
++  }
++  sPendingDraws = 0;
++  sFrameActive = false;
++  wake_worker();
++  if (ended > kMaxFramesInFlight) {
++    ZoneScopedN("Wait for frames in flight");
++    wait_at_least(sFramesDone, ended - kMaxFramesInFlight);
++  }
++  reset_buffer_if_processed();
++  if (detail::sBufferSize > kAsyncBufferLimit) {
++    drain();
++  }
++}
++
++void begin_frame_async(FrameJob job) {
++  // At the stream's published end: commands written since the end of the last frame (outside a frame,
++  // unpublished) are processed after it, in this frame, as in the synchronous path.
++  queue_job(sPublished.load(std::memory_order_relaxed), std::move(job), false);
++  wake_worker();
++}
++
++void sync() noexcept {
++  if (!sWorkerThread.joinable() || is_worker_thread() || gfx::render_worker::is_worker_thread()) {
++    return;
++  }
++  const uint64_t queued = sJobsQueued.load(std::memory_order_acquire);
++  if (sJobsDone.load(std::memory_order_acquire) >= queued) {
++    return;
++  }
++  ZoneScoped;
++  wait_at_least(sJobsDone, queued);
++}
++
+ void write_data_grow(const void* data, uint32_t length) {
+   const uint64_t needed64 = static_cast<uint64_t>(detail::sBufferSize) + length;
+   AURORA_ASSERT(needed64 <= std::numeric_limits<uint32_t>::max(), "fifo::write_data: buffer size overflow");
+diff --git a/lib/gx/fifo.hpp b/lib/gx/fifo.hpp
+index 0d6a5d8..25cb45d 100644
+--- a/lib/gx/fifo.hpp
++++ b/lib/gx/fifo.hpp
+@@ -3,6 +3,7 @@
+ #include "../internal.hpp"
+ 
+ #include <cstring>
++#include <functional>
+ 
+ namespace aurora::gx::fifo {
+ 
+@@ -32,6 +33,26 @@ void shutdown();
+ void begin_frame() noexcept;
+ void end_frame() noexcept;
+ 
++// Asynchronous end of frame (SwitchWaker patch 0018), Thread mode only, off by default. aurora::end_frame
++// then does not wait for the worker to drain the frame: end_frame_async publishes it and queues `job` (the
++// frame's texture, recording and present work) for the worker to run once it has processed the frame's
++// commands; begin_frame_async queues the next frame's gfx::begin_frame right behind it. The game thread
++// goes on with the next frame while the worker still translates this one; end_frame_async waits only
++// while more than one ended frame is not yet done. Frames stay strictly ordered: the worker runs the jobs
++// at their positions in the command stream.
++using FrameJob = std::function<void()>;
++// Between frames (game thread): waits for the queued frames first (sync).
++void set_async_end_frame(bool enabled) noexcept;
++bool async_end_frame() noexcept;
++void end_frame_async(FrameJob job);
++void begin_frame_async(FrameJob job);
++// Waits until the worker has run every queued frame job (and so processed the commands before it): what
++// the synchronous end of frame guaranteed (copy textures, the frame queued to the render worker). A no-op
++// on the FIFO worker and on the render worker (the waits are for them; release_surface runs there too)
++// and without frame jobs pending, so the synchronous path never waits here.
++void sync() noexcept;
++bool is_worker_thread() noexcept;
++
+ // Out-of-line slow path: grows internal buffer then appends data
+ void write_data_grow(const void* data, uint32_t length);
+ 
+diff --git a/lib/gx/gx.cpp b/lib/gx/gx.cpp
+index a0165d2..5348586 100644
+--- a/lib/gx/gx.cpp
++++ b/lib/gx/gx.cpp
+@@ -11,6 +11,7 @@
+ #include "../gfx/resource_cache.hpp"
+ #include "../gfx/texture.hpp"
+ #include "gx_fmt.hpp"
++#include "fifo.hpp"
+ 
+ #include <absl/container/flat_hash_map.h>
+ #include <tracy/Tracy.hpp>
+@@ -229,6 +230,7 @@ void set_viewport_policy(AuroraViewportPolicy policy) noexcept {
+ 
+ void update() noexcept {
+   if (const int pending = sPendingViewportPolicy.exchange(-1, std::memory_order_acq_rel); pending != -1) {
++    fifo::sync(); // the GX FIFO worker reads the policy (async end of frame, patch 0018)
+     const auto policy = static_cast<AuroraViewportPolicy>(pending);
+     g_gxState.viewportPolicy = policy;
+     window::set_frame_buffer_aspect_fit(policy == AURORA_VIEWPORT_FIT);

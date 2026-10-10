@@ -55,6 +55,7 @@ struct State {
     std::string path;
     std::map<std::string, std::string> envAtStart; // COS_* (and MESA_*) variables before the file
     std::set<std::string> fileSet;                 // variables pc_settings_load_early set
+    std::map<std::string, std::string> modeDefaults[PC_MODES]; // pc_settings_set_mode_default
     std::map<std::string, Entry> entries;
     std::vector<std::string> order;                // registered keys, menu order
     bool hasDev = false;                           // the file has a [dev] section
@@ -311,6 +312,12 @@ std::string valueFor(const char* key, PcOperationMode mode) {
             }
         }
     }
+    // The platform's default for this mode (pc_settings_set_mode_default).
+    if (auto d = s.modeDefaults[mode].find(key); d != s.modeDefaults[mode].end()) {
+        if (e == nullptr || !e->has[0]) {
+            return d->second;
+        }
+    }
     // The platform default: what the environment holds unless the file put it there.
     if (s.fileSet.count(key) == 0) {
         if (const char* v = getenv(key); v != nullptr) {
@@ -550,6 +557,12 @@ int pc_settings_register(const PcSettingDesc* desc) {
 
 const char* pc_settings_get(const char* key) {
     return keep(valueFor(key, st().lastMode));
+}
+
+void pc_settings_set_mode_default(const char* key, PcOperationMode mode, const char* value) {
+    if (key != nullptr && value != nullptr && mode >= 0 && mode < PC_MODES) {
+        st().modeDefaults[mode][key] = value;
+    }
 }
 
 const char* pc_settings_get_mode(const char* key, PcOperationMode mode) {

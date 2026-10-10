@@ -155,6 +155,12 @@ public:
     void setVisibilityManager(J3DVisibilityManager* manager) { mpVisibilityManager = manager; }
     J3DSkinDeform* getSkinDeform() { return mpSkinDeform; }
 
+#if TARGET_PC
+    // COS_FPS60_TEST step C (native/src/pc/game_hooks/pc_fps60_models.cpp): reads the draw and
+    // normal matrices and points paint B at interpolated copies.
+    friend struct PcFps60ModelAccess;
+#endif
+
 private:
     /* 0x000 */ /* vtable */
     /* 0x004 */ J3DModelData* mModelData;

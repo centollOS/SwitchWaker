@@ -13,7 +13,8 @@
 // - Threading: Aurora encodes and submits a frame on its render worker, in queue order
 //   (lib/gfx/render_worker.cpp). shotFrameEnd runs on the game thread right after
 //   aurora_end_frame queued the frame, and queues the readback behind it: on the worker, the frame
-//   is already submitted and the next one not yet begun. The readback copies the texture into a
+//   is already submitted and the next one not yet begun. With the async end of frame (Aurora patch
+//   0018) Aurora's GX worker queues the frame; aurora_frame_sync waits for that first. The readback copies the texture into a
 //   buffer (rows padded to 256 bytes), submits, waits for the map (Instance::WaitAny, as
 //   gpu.cpp waits for the adapter) and writes the PNG there. The game thread then waits for the
 //   worker (render_worker::synchronize), so a shot taken right before an exit is on disk; a
@@ -26,6 +27,7 @@
 //   library is needed; a 640x480 frame is about 0.9 MB.
 #include "pc_internal.h"
 
+#include <aurora/aurora.h>
 #include <lib/gfx/render_worker.hpp>
 #include <lib/webgpu/gpu.hpp>
 #if defined(COS_SWITCH_DEKO3D)
@@ -181,9 +183,10 @@ bool texelToRgb(wgpu::TextureFormat format, const uint8_t* p, uint8_t* rgb) {
 
 bool writePng(const char* path, unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t width, uint32_t height);
 
-void writeShot(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t width, uint32_t height) {
+void writeShot(unsigned int frame, const std::vector<uint8_t>& rgb, uint32_t width, uint32_t height,
+               const char* suffix = "") {
     char path[1024];
-    int len = snprintf(path, sizeof(path), "%s/shot-%06u.png", sShotDir, frame);
+    int len = snprintf(path, sizeof(path), "%s/shot-%06u%s.png", sShotDir, frame, suffix);
     if (len < 0 || len >= (int)sizeof(path)) {
         writef(STDERR_FILENO, "[cos] shot: frame %u: path too long\n", frame);
         return;
@@ -451,14 +454,14 @@ void compositeImgui(const ImguiSnap& s, std::vector<uint8_t>& rgb, uint32_t widt
     }
 }
 
-void readBack(unsigned int frame, const std::shared_ptr<ImguiSnap>& imgui) {
+void readBack(unsigned int frame, const std::shared_ptr<ImguiSnap>& imgui, const char* suffix = "") {
     std::vector<uint8_t> rgb;
     uint32_t width = 0, height = 0;
     if (readPixels(frame, rgb, width, height)) {
         if (imgui != nullptr) {
             compositeImgui(*imgui, rgb, width, height);
         }
-        writeShot(frame, rgb, width, height);
+        writeShot(frame, rgb, width, height, suffix);
     }
 }
 
@@ -515,6 +518,7 @@ bool loadShots() {
 
 void shotProbe(unsigned int frame,
                std::function<void(const std::vector<uint8_t>&, uint32_t, uint32_t)> check) {
+    aurora_frame_sync(); // the frame on the render worker first (async end of frame, Aurora 0018)
     aurora::gfx::render_worker::enqueue_work([frame, &check] {
         std::vector<uint8_t> rgb;
         uint32_t width = 0, height = 0;
@@ -547,6 +551,7 @@ void debugShotFrameEnd(unsigned int frame) {
     initCrcTable();
     std::shared_ptr<ImguiSnap> imgui = overlay ? snapImgui(true) : nullptr;
     bool ok = false;
+    aurora_frame_sync(); // the frame on the render worker first (async end of frame, Aurora 0018)
     aurora::gfx::render_worker::enqueue_work([frame, imgui, &path, &ok] {
         std::vector<uint8_t> rgb;
         uint32_t width = 0, height = 0;
@@ -569,12 +574,30 @@ void shotFrameEnd(unsigned int frame) {
         return;
     }
     std::shared_ptr<ImguiSnap> imgui = snapImgui();
+    aurora_frame_sync(); // the frame on the render worker first (async end of frame, Aurora 0018)
     aurora::gfx::render_worker::enqueue_work([frame, imgui] { readBack(frame, imgui); });
+    aurora::gfx::render_worker::synchronize();
+}
+
+void shotSplitEnd(unsigned int frame) {
+    // COS_SHOT_PAINT_A=1: a COS_FPS60_TEST split frame's paint A too, as shot-<frame>a.png (paint A
+    // shows the previous draw pass, paint B, shot-<frame>.png, this frame's).
+    static const bool paintA = [] {
+        const char* v = getenv("COS_SHOT_PAINT_A");
+        return v != nullptr && v[0] == '1';
+    }();
+    if (!paintA || !sShotOn || !wanted(frame)) {
+        return;
+    }
+    std::shared_ptr<ImguiSnap> imgui = snapImgui();
+    aurora_frame_sync(); // the frame on the render worker first (async end of frame, Aurora 0018)
+    aurora::gfx::render_worker::enqueue_work([frame, imgui] { readBack(frame, imgui, "a"); });
     aurora::gfx::render_worker::synchronize();
 }
 
 bool captureFrame(unsigned int frame, FrameSink sink, void* user) {
     bool ok = false;
+    aurora_frame_sync(); // the frame on the render worker first (async end of frame, Aurora 0018)
     aurora::gfx::render_worker::enqueue_work([frame, sink, user, &ok] {
         std::vector<uint8_t> rgb;
         uint32_t width = 0, height = 0;

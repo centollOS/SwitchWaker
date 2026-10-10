@@ -27,7 +27,7 @@ units out).
 
 | File | From `game/` |
 |------|--------------|
-| `pc_gpu_hooks` | the GPU options' drawing: forest mist (`d_kankyo_rain.cpp`), sky and A/B copies (`m_Do_graphic.cpp`), shadow casters' offscreen target (`d_drawlist.cpp`) |
+| `pc_gpu_hooks` | the mist at a lower resolution (`COS_MIST_LOWRES`, default 1/4): `drawCloudShadow` (`d_kankyo_rain.cpp`) |
 | `pc_logo_hooks` | the logo scene's milestones M5/M6 and the debug stage boot (`d_s_logo.cpp`) |
 | `pc_jkr_heap`, `pc_jkr_hooks` | the host operator new/delete and allocation scopes (`JKRHeap.cpp`), the thread list lock (`JKRThread.cpp`), the archives' resource pointer table (`JKRArchivePri.cpp`) |
 | `pc_j3d_transform` | the host bodies of the paired-single matrix functions (`J3DTransform.cpp`) |

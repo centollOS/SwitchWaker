@@ -8,7 +8,16 @@ SwitchWakerHD `main`/`dev` df8fbde, whose Switch renderer moved from OpenGL/Mesa
 no code changed. "Measured" means a number read from a log, a document or an experiment run while
 writing this; "estimated" means a projection.
 
-## Resume here (state at the end of 2026-10-08, evening)
+## Resume here (2026-10-09)
+
+v0.2.0 is out with the deko3d NRO (phase 6 done; picto box, disc error applet and the old
+`switchwaker_dk/` folder checked/removed). **Phase 4 in progress** (section "Phase 4 progress"):
+dynamic resolution fed by the deko3d timestamps, 1920x1080 window docked and GPU groups, all checked on
+the console. Next: the rest of the phase 4 list (A/B per option, HD pack census, 2 x 30 minutes).
+**The GL NRO is gone (2026-10-09, user decision)**: not kept for two releases after all (note under
+"Phase 6"); deko3d is the only Switch renderer.
+
+## Earlier state (end of 2026-10-08, evening)
 
 Phases 1-3 are done and **the go/no-go checkpoint of phase 3 passes on performance** (section "Phase 3
 console results"): deko3d runs the whole route at 30 fps, the render worker at 1.3-2.1 ms a frame
@@ -823,6 +832,48 @@ descriptor writes, DKSH loads, pending shaders, skipped draws); `COS_SWITCH_CORE
 uam worker. Verification: each option A/B on the console in the same spot; HD pack census on
 Outset and the forest (`docs/HD_TEXTURES.md` "Coverage"); 30 minutes of play per session, two sessions.
 
+### Phase 4 progress (2026-10-09, `dev`)
+
+Audit of the list against the code: HD textures (BC7 and the other BC formats are mapped in
+`dk_objects.cpp`), the offscreen/low-res options, widescreen and captures go through Aurora and the
+deko3d path already; the `perf-switch` and hitch lines read the deko3d counters
+(`cos_switch_stats.cpp`). Gaps found and fixed (built, console check pending):
+- dynamic resolution (`COS_DYNRES` auto) read Dawn GL's GPU timer, zero on deko3d, so it never
+  moved: now `cos_switch_gfx_stats` (0409073);
+- the window was 1280x720 docked too: 1920x1080 docked, swapchain recreated on a mode change,
+  `COS_DK_DOCKED_1080=0` / `COS_DK_WINDOW=WxH` (c6a9f28);
+- `COS_GPU_GROUPS` had no deko3d implementation: timestamp segments per marker/pass label,
+  `aurora_switch_dk_gpu_groups` (c69502b).
+
+Console results (2026-10-09, handheld title + Forbidden Woods, NRO fa5878f0): the `gpu groups` line
+fills (title: sky 4-6 ms, opa_bg, conversions, dof); dynres auto moved 2.250 -> 1.250 on the deko3d
+timer (forced with `COS_FB_SCALE@handheld=2.25`, `COS_DYNRES_HIGH=12`; at the normal 30 ms threshold
+2.25 handheld only needs ~17 ms GPU); dock: window 1280x720 -> 1920x1080 in 45.5 ms, undock back in
+38.0 ms, 30 fps on both sides, docked GPU 9.3 ms (present 1.86 ms for the 720p EFB scaled to 1080p);
+the window of the dock itself had 26.4 presents/s (the system's own mode switch plus the GPU idle wait).
+
+Options A/B (2026-10-09, handheld 1.5, NRO 0.2.0-5, same warp each, 300-frame GPU medians, all 30 fps):
+
+| spot / option | GPU ms | note |
+|---|---|---|
+| Outset `sea:44` (night), defaults | 10.66 | |
+| `COS_DOF=0` | 9.40 | conversions 0.72 -> 0.08 |
+| `COS_SKY_LOWRES=2` | 9.91 | **bug**: Link's real-time shadow solid black (translucent with 0) |
+| `COS_ASPECT=4:3` / `16:10` | 11.05 / 10.25 | pictures right |
+| `COS_SHADOW_OFFSCREEN=1` / `gc` | 10.26 / 10.21 | shadow right |
+| Forbidden Woods `kindan:0`, defaults (mist 1/4) | 11.84 | |
+| `COS_MIST_LOWRES=0` / `2` | 11.15 / 11.92 | mist 1/4 not cheaper here than full |
+
+Decision (2026-10-09, user: remove what we can, GL goes with the next release): sky, mist and
+offscreen shadow options removed (1b58666), which also closes the black shadow below.
+
+Was open: the black shadow with `COS_SKY_LOWRES=2` (not yet known whether GL or the Mac show it: a Mac
+shot at `sea:44:206` frame 400 has no Link in view); the system Capture button on deko3d.
+
+Remaining console checks: `COS_DYNRES=1` in a heavy spot (level changes in the log), dock/undock
+(`[dk] frame N: window ... swapchain recreated`, picture and menu fill the TV), the `gpu groups`
+line with groups 1 and 2, then the A/B per option and the HD pack census, 2 x 30 minutes of play.
+
 ### Phase 5: performance (1-2 weeks)
 
 In HD's order and with HD's switches as the model (`deko3d-plan.md` P4): lazy barriers (hazard
@@ -842,6 +893,14 @@ hbmenu shows one NRO per folder); `push.sh` pushes the DKSH file with the NRO; `
 `README.md` (first start: no shader preparation), `THIRD_PARTY.md` (uam, deko3d, SwitchWakerHD),
 `env.example.txt` (`COS_DK_*`); the Mesa build and the Dawn GL patches stay for the GL NRO for two
 releases, then go (HD removed its GL renderer the same day; its recover point is `main` 207349b).
+
+Note (2026-10-09, user decision): the GL NRO was removed right after v0.2.0 instead of after two
+releases. Gone: `switchwaker_gl.nro` and `build_native.sh --renderer gl` (with `--mesa`,
+`--stock-mesa`), `push.sh gl`, `make_sd.sh --gl`, `package_switch.sh --gl`, the Mesa build
+(`build_mesa.sh`, `switch/mesa`, the CI image), the Dawn GL harness (`switch/dawn/gltest`), and the
+NRO's code reading Dawn GL and Mesa counters; INSTALL.md, "Updating", tells players which files
+it left on the SD card. Dawn's GL backend and its Switch patches, and Aurora's GL-only Switch
+patches, go in follow-up commits.
 
 ## 6. Shader loading design
 
@@ -972,7 +1031,7 @@ Each with a recommendation; "ask" marks a decision for the user.
 16. **Who removes what.** Ask: after phase 6, drop the Mesa build, the Dawn patches and the
     GL-only `COS_SWITCH_GL_*` options after two releases (recommended; HD removed GL the same day
     and kept a recover-point commit), or keep both renderers indefinitely (two code paths to test
-    on every change)?
+    on every change)? Answered 2026-10-09: removed at once (note under "Phase 6").
 
 ## Appendix A: references
 

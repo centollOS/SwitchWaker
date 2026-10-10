@@ -1,8 +1,8 @@
 diff --git a/lib/webgpu/gpu.cpp b/lib/webgpu/gpu.cpp
-index 6e3263b..9c96237 100644
+index b3ae6cd..1dcb943 100644
 --- a/lib/webgpu/gpu.cpp
 +++ b/lib/webgpu/gpu.cpp
-@@ -1003,12 +1003,13 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+@@ -959,12 +959,13 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
      Log.info("Enabling features: {}", featureList);
  #ifdef WEBGPU_DAWN
      wgpu::DawnCacheDeviceDescriptor cacheDescriptor({.nextInChain = nullptr});

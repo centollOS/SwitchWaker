@@ -1,0 +1,610 @@
+GX FIFO translation fast paths (aurora_set_fifo_fast_paths, on by default)
+
+The FIFO worker is the 60 fps limit on the Switch (docs/FPS60_PLAN.md; patch 0020's profile). Two
+paths with the same output (byte-identical shots on the Mac), Aurora's own kept behind
+aurora_set_fifo_fast_paths(false) for A/B checks:
+
+- Pipeline lookups memoised for the frame by (pipeline config, render target layout): a draw state
+  seen earlier in the frame reuses its shader info and pipeline ref instead of build_shader_info,
+  the pipeline cache's two config hashes, two locks and the creation callback's config copy (a
+  heap allocation). Each state still goes through pipeline_ref once a frame (remembered for the
+  cache, promoted while it compiles).
+- Texture bind groups memoised for the frame by each sampled slot's texture view and sampler
+  descriptor: skips the per-slot sampler cache lookups and the bind group descriptor's hash and lock
+  (the entry holds the slots' texture handles for its frame, so no view address is reused).
+- BP loads that change nothing (the register already holds the value, no mask pending, no side
+  effects: ~70 % of ~35k loads a paint, display lists resending their materials) skipped inline in
+  the command loop (bp_redundant) instead of a call to handle_bp.
+- Merged primitives (most of the stream: display lists of short strips) write their indices straight
+  into the frame's index buffer (gfx::map_indices) instead of a staging buffer copied in.diff --git a/include/aurora/aurora.h b/include/aurora/aurora.h
+index 164b000..2b9f7d2 100644
+--- a/include/aurora/aurora.h
++++ b/include/aurora/aurora.h
+@@ -189,10 +189,19 @@ typedef enum {
+   AURORA_FIFO_PROFILE_STREAM_BYTES, /* GX stream bytes translated */
+   AURORA_FIFO_PROFILE_BP_LOADS,
+   AURORA_FIFO_PROFILE_XF_LOADS,
++  AURORA_FIFO_PROFILE_PIPELINE_MEMO_HITS, /* pipeline lookups answered by patch 0021's memo */
++  AURORA_FIFO_PROFILE_BIND_MEMO_HITS,     /* bind group builds answered by patch 0021's memo */
+   AURORA_FIFO_PROFILE_COUNT
+ } AuroraFifoProfileValue;
+ void aurora_fifo_profile_enable(bool enabled);
+ void aurora_fifo_profile_get(uint64_t* out, size_t count);
++/**
++ * GX FIFO translation fast paths (SwitchWaker patch 0021), on by default: a per-frame memo of pipeline
++ * lookups (repeated draw states skip the shader info, the cache hashes and locks) and indices of merged
++ * primitives written straight into the frame's index buffer. Off = Aurora's original paths (A/B checks).
++ * Set between frames.
++ */
++void aurora_set_fifo_fast_paths(bool enabled);
+ 
+ void aurora_set_log_level(AuroraLogLevel level);
+ void aurora_set_pause_on_focus_lost(bool value);
+diff --git a/lib/aurora.cpp b/lib/aurora.cpp
+index b563afd..4b30763 100644
+--- a/lib/aurora.cpp
++++ b/lib/aurora.cpp
+@@ -536,6 +536,13 @@ void aurora_fifo_profile_enable(bool enabled) {
+   }
+   aurora::gx::fifo::profile::g_enabled.store(enabled, std::memory_order_relaxed);
+ }
++void aurora_set_fifo_fast_paths(bool enabled) {
++#ifdef AURORA_ENABLE_GX
++  aurora::gx::fifo::set_fast_paths(enabled);
++#else
++  (void)enabled;
++#endif
++}
+ void aurora_fifo_profile_get(uint64_t* out, size_t count) {
+   for (size_t i = 0; i < count; ++i) {
+     out[i] = i < AURORA_FIFO_PROFILE_COUNT ? aurora::gx::fifo::profile::g_values[i].load(std::memory_order_relaxed)
+diff --git a/lib/gfx/recording.cpp b/lib/gfx/recording.cpp
+index cc5d35f..70191dd 100644
+--- a/lib/gfx/recording.cpp
++++ b/lib/gfx/recording.cpp
+@@ -663,6 +663,12 @@ void increment_merged_draw_count() noexcept {
+   }
+ }
+ 
++void add_merged_draw_count(uint32_t count) noexcept {
++  if (g_recorder.active()) {
++    g_recorder.mergedDrawCallCount += count;
++  }
++}
++
+ } // namespace detail
+ 
+ void queue_texture_upload(TextureUpload upload) {
+@@ -1212,6 +1218,26 @@ Range push_indices(const uint8_t* data, size_t length, size_t alignment) {
+   return push(current_frame_packet().indices, data, length, alignment);
+ }
+ 
++uint8_t* map_indices(size_t length, size_t alignment, Range& range) {
++  if (!check_recording("map_indices")) {
++    range = {};
++    return nullptr;
++  }
++  auto& indices = current_frame_packet().indices;
++  range = map(indices, length, alignment);
++  return indices.data() + range.offset;
++}
++
++uint8_t* map_verts(size_t length, size_t alignment, Range& range) {
++  if (!check_recording("map_verts")) {
++    range = {};
++    return nullptr;
++  }
++  auto& verts = current_frame_packet().verts;
++  range = map(verts, length, alignment);
++  return verts.data() + range.offset;
++}
++
+ Range push_uniform(const uint8_t* data, size_t length) {
+   ZoneScoped;
+   if (!check_recording("push_uniform")) {
+diff --git a/lib/gfx/recording.hpp b/lib/gfx/recording.hpp
+index 2951156..b03b68f 100644
+--- a/lib/gfx/recording.hpp
++++ b/lib/gfx/recording.hpp
+@@ -18,6 +18,7 @@ void begin_recording(FramePacket& packet, size_t frameSlot);
+ RecordedFrame end_recording();
+ void shutdown_recording();
+ void increment_merged_draw_count() noexcept;
++void add_merged_draw_count(uint32_t count) noexcept; // SwitchWaker patch 0021
+ 
+ namespace testing {
+ void suppress_render_worker(bool suppress) noexcept;
+@@ -71,6 +72,11 @@ Range push_verts(ArrayRef<T> data, size_t alignment) {
+   return push_verts(reinterpret_cast<const uint8_t*>(data.data()), data.size() * sizeof(T), alignment);
+ }
+ Range push_indices(const uint8_t* data, size_t length, size_t alignment);
++// SwitchWaker patch 0021: `length` bytes of the frame's index buffer for the caller to write (not
++// zeroed), at `range`; nullptr outside a recording frame.
++uint8_t* map_indices(size_t length, size_t alignment, Range& range);
++// The same for the frame's vertex buffer.
++uint8_t* map_verts(size_t length, size_t alignment, Range& range);
+ template <typename T>
+ Range push_indices(ArrayRef<T> data, size_t alignment) {
+   return push_indices(reinterpret_cast<const uint8_t*>(data.data()), data.size() * sizeof(T), alignment);
+diff --git a/lib/gx/command_processor.cpp b/lib/gx/command_processor.cpp
+index 359c5b1..b7c1bcb 100644
+--- a/lib/gx/command_processor.cpp
++++ b/lib/gx/command_processor.cpp
+@@ -2,6 +2,7 @@
+ 
+ #include "../gfx/census.hpp"
+ #include "../gfx/depth_peek.hpp"
++#include "../gfx/hash.hpp"
+ #include "../gfx/recording.hpp"
+ #include "../internal.hpp"
+ #include "dolphin/gd/GDGeometry.h"
+@@ -19,6 +20,7 @@
+ #include <cmath>
+ #include <cstdint>
+ #include <span>
++#include <unordered_map>
+ #include <vector>
+ 
+ namespace aurora::gx::fifo {
+@@ -105,6 +107,130 @@ u16 prepare_idx_buffer(ByteBuffer& buf, GXPrimitive prim, u16 vtxStart, u16 vtxC
+   return numIndices;
+ }
+ 
++// SwitchWaker patch 0021: indices a primitive of `vtxCount` vertices adds (as prepare_idx_buffer appends).
++u32 idx_count(GXPrimitive prim, u16 vtxCount) noexcept {
++  switch (prim) {
++  case GX_QUADS:
++    return (vtxCount / 4) * 6 + (vtxCount % 4 == 3 ? 3 : 0);
++  case GX_TRIANGLES:
++    return vtxCount;
++  case GX_TRIANGLEFAN:
++  case GX_TRIANGLESTRIP:
++    return vtxCount <= 3 ? vtxCount : 3 + (static_cast<u32>(vtxCount) - 3) * 3;
++  case GX_LINES:
++  case GX_LINESTRIP:
++  case GX_POINTS:
++    return 6;
++  default:
++    UNLIKELY FATAL("unsupported primitive type {}", static_cast<u32>(prim));
++  }
++}
++
++// prepare_idx_buffer's indices written to `out` (idx_count(prim, vtxCount) of them).
++void write_idx(u16* out, GXPrimitive prim, u16 vtxStart, u16 vtxCount) noexcept {
++  switch (prim) {
++  case GX_QUADS: {
++    u16 v = 0;
++    for (; v + 4 <= vtxCount; v += 4) {
++      const u16 i0 = vtxStart + v;
++      out[0] = i0;
++      out[1] = i0 + 1;
++      out[2] = i0 + 2;
++      out[3] = i0 + 2;
++      out[4] = i0 + 3;
++      out[5] = i0;
++      out += 6;
++    }
++    if (vtxCount - v == 3) {
++      out[0] = vtxStart + v;
++      out[1] = vtxStart + v + 1;
++      out[2] = vtxStart + v + 2;
++    }
++    break;
++  }
++  case GX_TRIANGLES:
++    for (u16 v = 0; v < vtxCount; ++v) {
++      out[v] = vtxStart + v;
++    }
++    break;
++  case GX_TRIANGLEFAN:
++  case GX_TRIANGLESTRIP: {
++    const u16 head = vtxCount < 3 ? vtxCount : 3;
++    for (u16 v = 0; v < head; ++v) {
++      *out++ = vtxStart + v;
++    }
++    if (prim == GX_TRIANGLEFAN) {
++      for (u16 v = 3; v < vtxCount; ++v) {
++        const u16 idx = vtxStart + v;
++        out[0] = vtxStart;
++        out[1] = idx - 1;
++        out[2] = idx;
++        out += 3;
++      }
++    } else {
++      for (u16 v = 3; v < vtxCount; ++v) {
++        const u16 idx = vtxStart + v;
++        const bool even = (v & 1) == 0;
++        out[0] = even ? idx - 2 : idx - 1;
++        out[1] = even ? idx - 1 : idx - 2;
++        out[2] = idx;
++        out += 3;
++      }
++    }
++    break;
++  }
++  default: {
++    static constexpr u16 kQuad[6] = {0, 1, 3, 3, 2, 0};
++    std::memcpy(out, kQuad, sizeof(kQuad));
++    break;
++  }
++  }
++}
++
++bool sFastPaths = true;
++
++// Pipeline lookups of this frame by (pipeline config, render target layout): a draw state seen earlier in
++// the frame reuses its shader info and pipeline ref. Valid for one frame (clear_draw_cache) so each state
++// still goes through pipeline_ref once a frame (remembered for the cache, promoted while it compiles).
++struct PipelineMemoEntry {
++  uint64_t frame = 0;
++  ShaderInfo shaderInfo{};
++  gfx::PipelineRef pipelineRef{};
++};
++std::unordered_map<HashType, PipelineMemoEntry> sPipelineMemo;
++uint64_t sPipelineMemoFrame = 1;
++
++// Texture bind groups of this frame by what build_bind_groups reads: each sampled slot's texture view and
++// sampler descriptor. Skips the per-slot sampler cache lookups (hash, lock, refcounts) and the bind group
++// descriptor's hash and lock for a texture set seen earlier in the frame. Valid for one frame, as the
++// pipeline memo (bind_group_ref marks a bind group used once a frame); the entry holds the slots' texture
++// handles so no view address is reused while it can match.
++struct BindMemoEntry {
++  uint64_t frame = 0;
++  GXBindGroups bindGroups{};
++  std::array<decltype(gfx::TextureBind::ref), MaxTextures> textures{};
++};
++std::unordered_map<HashType, BindMemoEntry> sBindMemo;
++
++constexpr size_t kSamplerKeyOffset = offsetof(wgpu::SamplerDescriptor, addressModeU);
++constexpr size_t kSamplerKeySize = sizeof(wgpu::SamplerDescriptor) - kSamplerKeyOffset - 2;
++
++HashType bind_memo_key(const ShaderInfo& info) noexcept {
++  std::array<u8, MaxTextures*(sizeof(void*) + kSamplerKeySize)> key{};
++  u8* out = key.data();
++  for (u32 i = 0; i < MaxTextures; ++i, out += sizeof(void*) + kSamplerKeySize) {
++    const auto& tex = g_gxState.textures[i];
++    if (!tex || !(info.sampledTextures[i] || info.sampledIndTextures[i])) {
++      continue;
++    }
++    const void* view = tex.ref->sampleTextureView.Get();
++    std::memcpy(out, &view, sizeof(void*));
++    const wgpu::SamplerDescriptor desc = tex.get_descriptor();
++    std::memcpy(out + sizeof(void*), reinterpret_cast<const u8*>(&desc) + kSamplerKeyOffset, kSamplerKeySize);
++  }
++  return xxh3_hash_s(key.data(), key.size(), info.sampledTextures.any() || info.sampledIndTextures.any());
++}
++
+ // GX FIFO opcodes - use CP_ prefix to avoid clashing with GXCommandList.h macros
+ constexpr u8 CP_CMD_NOP = GX_NOP;
+ constexpr u8 CP_CMD_LOAD_CP_REG = GX_LOAD_CP_REG;
+@@ -239,9 +365,9 @@ ProcessResult process(const u8* data, u32 size) noexcept {
+ 
+     case CP_CMD_LOAD_BP_REG: {
+       const u32 value = reader.read<u32>();
+-      {
++      profile::count(AURORA_FIFO_PROFILE_BP_LOADS);
++      if (!sFastPaths || !bp_redundant(value)) {
+         profile::Scope prof{AURORA_FIFO_PROFILE_BP};
+-        profile::count(AURORA_FIFO_PROFILE_BP_LOADS);
+         handle_bp(value);
+       }
+       if (reg_get(value, 8, 24) == GX_BP_REG_DRAWDONE) {
+@@ -495,8 +621,26 @@ static void push_gx_draw(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, gfx::Rang
+     const auto prevSampledTextures = cache.shaderInfo.sampledTextures;
+     const auto prevSampledIndTextures = cache.shaderInfo.sampledIndTextures;
+     populate_pipeline_config(cache.config, prim, fmt);
+-    cache.shaderInfo = build_shader_info(cache.config.shaderConfig);
+-    {
++    if (sFastPaths) {
++      const auto key = xxh3_hash(cache.config, targetLayoutKey);
++      auto [it, inserted] = sPipelineMemo.try_emplace(key);
++      auto& memo = it->second;
++      if (!inserted && memo.frame == sPipelineMemoFrame) {
++        profile::count(AURORA_FIFO_PROFILE_PIPELINE_MEMO_HITS);
++        cache.shaderInfo = memo.shaderInfo;
++        cache.pipelineRef = memo.pipelineRef;
++      } else {
++        cache.shaderInfo = build_shader_info(cache.config.shaderConfig);
++        {
++          profile::Scope profLookup{AURORA_FIFO_PROFILE_PIPELINE_LOOKUP};
++          cache.pipelineRef = gfx::pipeline_ref(cache.config);
++        }
++        memo.frame = sPipelineMemoFrame;
++        memo.shaderInfo = cache.shaderInfo;
++        memo.pipelineRef = cache.pipelineRef;
++      }
++    } else {
++      cache.shaderInfo = build_shader_info(cache.config.shaderConfig);
+       profile::Scope profLookup{AURORA_FIFO_PROFILE_PIPELINE_LOOKUP};
+       cache.pipelineRef = gfx::pipeline_ref(cache.config);
+     }
+@@ -521,7 +665,23 @@ static void push_gx_draw(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, gfx::Rang
+       profile::Scope profTextures{AURORA_FIFO_PROFILE_TEXTURES};
+       resolve_sampled_textures(cache.shaderInfo);
+     }
+-    cache.bindGroups = build_bind_groups(cache.shaderInfo);
++    if (sFastPaths) {
++      auto [it, inserted] = sBindMemo.try_emplace(bind_memo_key(cache.shaderInfo));
++      auto& memo = it->second;
++      if (!inserted && memo.frame == sPipelineMemoFrame) {
++        profile::count(AURORA_FIFO_PROFILE_BIND_MEMO_HITS);
++        cache.bindGroups = memo.bindGroups;
++      } else {
++        cache.bindGroups = build_bind_groups(cache.shaderInfo);
++        memo.frame = sPipelineMemoFrame;
++        memo.bindGroups = cache.bindGroups;
++        for (u32 i = 0; i < MaxTextures; ++i) {
++          memo.textures[i] = g_gxState.textures[i].ref;
++        }
++      }
++    } else {
++      cache.bindGroups = build_bind_groups(cache.shaderInfo);
++    }
+     cache.bindGeneration = texture::current_bind_generation();
+     state.dirty &= ~DirtyTextures;
+     // For texture_size_bias uniform
+@@ -581,7 +741,12 @@ static void handle_draw_unmerged(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, g
+   u32 numIndices = 0;
+   gfx::Range idxRange;
+ 
+-  if (prim != GX_TRIANGLES) {
++  if (prim != GX_TRIANGLES && sFastPaths) {
++    numIndices = idx_count(prim, vtxCount);
++    if (auto* out = gfx::map_indices(numIndices * sizeof(u16), 4, idxRange)) {
++      write_idx(reinterpret_cast<u16*>(out), prim, 0, vtxCount);
++    }
++  } else if (prim != GX_TRIANGLES) {
+     ZoneScopedN("build idx buffer");
+     static ByteBuffer idxBuf;
+     numIndices = prepare_idx_buffer(idxBuf, prim, 0, vtxCount);
+@@ -592,7 +757,118 @@ static void handle_draw_unmerged(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, g
+   push_gx_draw(prim, fmt, vtxCount, vertRange, idxRange, numIndices);
+ }
+ 
++static void draw_prim_one(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, ByteReader& reader) noexcept;
++
++// SwitchWaker patch 0021: the draw commands that follow a draw in the stream with the same vertex format
++// (display lists are runs of short strips), merged into the last draw command in one go: what
++// draw_prim_one's merge does per primitive (same vertex bytes, same indices), with one look-up of the
++// last command, one vertex and one index reservation and no per-primitive checks. Stops at anything
++// else, at line/point primitives, past 0xFFFF vertices in the draw, or while the draw census records.
++static void merge_run(GXVtxFmt fmt, u32 vtxSize, ByteReader& reader) noexcept {
++  struct Prim {
++    GXPrimitive prim;
++    u16 vtxCount;
++    const u8* data;
++  };
++  static std::vector<Prim> run;
++  if (g_gxState.dirty != 0 || fmt != sDrawCache.lastDrawFmt || sDrawCache.lineMode != 0 ||
++      gfx::census::recording() != nullptr) {
++    return;
++  }
++  auto* lastDraw = gfx::get_last_draw_command<DrawData>();
++  if (lastDraw == nullptr || lastDraw->instanceCount != 1) {
++    return;
++  }
++  run.clear();
++  u32 runVerts = 0;
++  bool anyIndexed = false;
++  ByteReader scan = reader;
++  while (scan.remaining() >= 3) {
++    const u8 cmd = scan.data()[scan.offset()];
++    if (cmd < 0x80 || cmd >= 0xC0 || static_cast<GXVtxFmt>(cmd & CP_VAT_MASK) != fmt) {
++      break;
++    }
++    const auto prim = static_cast<GXPrimitive>(cmd & CP_OPCODE_MASK);
++    if (prim == GX_LINES || prim == GX_LINESTRIP || prim == GX_POINTS) {
++      break;
++    }
++    ByteReader peek = scan;
++    peek.skip(1);
++    const u16 count = peek.read<u16>();
++    const u32 bytes = count * vtxSize;
++    if (bytes > peek.remaining() || lastDraw->vtxCount + runVerts + count > 0xFFFF) {
++      break;
++    }
++    run.push_back({prim, count, peek.data() + peek.offset()});
++    runVerts += count;
++    anyIndexed |= prim != GX_TRIANGLES;
++    peek.skip(bytes);
++    scan = peek;
++  }
++  if (run.empty()) {
++    return;
++  }
++  reader = scan;
++
++  gfx::Range vertRange;
++  if (auto* out = gfx::map_verts(runVerts * vtxSize, 0, vertRange)) {
++    for (const auto& p : run) {
++      std::memcpy(out, p.data, p.vtxCount * vtxSize);
++      out += p.vtxCount * vtxSize;
++    }
++  }
++  CHECK(lastDraw->vertRange.offset + lastDraw->vertRange.size == vertRange.offset,
++        "Non-consecutive vertex ranges ({} < {})", lastDraw->vertRange.offset + lastDraw->vertRange.size,
++        vertRange.offset);
++
++  // Indices: as draw_prim_one makes them one primitive at a time. An unindexed draw stays so while only
++  // triangle lists join it; the first other primitive indexes everything before it as a triangle list.
++  if (lastDraw->indexCount != 0 || anyIndexed) {
++    const bool hadIndexRange = lastDraw->idxRange.size != 0;
++    const u32 prevCount = lastDraw->indexCount == 0 ? idx_count(GX_TRIANGLES, lastDraw->vtxCount) : 0;
++    u32 runIndices = 0;
++    for (const auto& p : run) {
++      runIndices += idx_count(p.prim, p.vtxCount);
++    }
++    gfx::Range idxRange;
++    if (auto* out = reinterpret_cast<u16*>(
++            gfx::map_indices((prevCount + runIndices) * sizeof(u16), hadIndexRange ? 0 : 4, idxRange))) {
++      if (prevCount != 0) {
++        write_idx(out, GX_TRIANGLES, 0, lastDraw->vtxCount);
++        out += prevCount;
++      }
++      u16 start = lastDraw->vtxCount;
++      for (const auto& p : run) {
++        write_idx(out, p.prim, start, p.vtxCount);
++        out += idx_count(p.prim, p.vtxCount);
++        start += p.vtxCount;
++      }
++    }
++    if (hadIndexRange) {
++      CHECK(lastDraw->idxRange.offset + lastDraw->idxRange.size == idxRange.offset,
++            "Non-consecutive index ranges ({} < {})", lastDraw->idxRange.offset + lastDraw->idxRange.size,
++            idxRange.offset);
++      lastDraw->idxRange.size += idxRange.size;
++    } else {
++      lastDraw->idxRange = idxRange;
++    }
++    lastDraw->indexCount += prevCount + runIndices;
++  }
++  lastDraw->vertRange.size += vertRange.size;
++  lastDraw->vtxCount += runVerts;
++  gfx::detail::add_merged_draw_count(static_cast<u32>(run.size()));
++  profile::count(AURORA_FIFO_PROFILE_MERGED, run.size());
++  profile::count(AURORA_FIFO_PROFILE_VERTEX_BYTES, runVerts * vtxSize);
++}
++
+ static void draw_prim(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, ByteReader& reader) noexcept {
++  draw_prim_one(prim, fmt, vtxCount, reader);
++  if (sFastPaths) {
++    merge_run(fmt, g_gxState.lastVtxSize, reader);
++  }
++}
++
++static void draw_prim_one(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, ByteReader& reader) noexcept {
+   ZoneScoped;
+   u32 vtxSize;
+   if (g_gxState.lastVtxFmt == fmt)
+@@ -614,7 +890,51 @@ static void draw_prim(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, ByteReader&
+   profile::count(AURORA_FIFO_PROFILE_VERTEX_BYTES, totalVtxBytes);
+   gfx::Range vertRange = gfx::push_verts(vertexData.data(), vertexData.size(), canMerge ? 0 : 4);
+ 
+-  // Try to merge with previous draw call
++  // Try to merge with previous draw call (patch 0021's fast path: the indices written in place)
++  if (canMerge && sFastPaths) {
++    const bool hadIndexRange = lastDraw->idxRange.size != 0;
++    const bool indexPrev = lastDraw->indexCount == 0 && prim != GX_TRIANGLES;
++    u32 numIndices = 0;
++    if (indexPrev || lastDraw->indexCount != 0) {
++      const u32 prevCount = indexPrev ? idx_count(GX_TRIANGLES, lastDraw->vtxCount) : 0;
++      numIndices = idx_count(prim, vtxCount);
++      gfx::Range idxRange;
++      auto* out = reinterpret_cast<u16*>(
++          gfx::map_indices((prevCount + numIndices) * sizeof(u16), hadIndexRange ? 0 : 4, idxRange));
++      if (out != nullptr) {
++        if (indexPrev) {
++          write_idx(out, GX_TRIANGLES, 0, lastDraw->vtxCount);
++          lastDraw->indexCount = prevCount;
++        }
++        write_idx(out + prevCount, prim, lastDraw->vtxCount, vtxCount);
++      }
++      if (hadIndexRange) {
++        CHECK(lastDraw->idxRange.offset + lastDraw->idxRange.size == idxRange.offset,
++              "Non-consecutive index ranges ({} < {})", lastDraw->idxRange.offset + lastDraw->idxRange.size,
++              idxRange.offset);
++        lastDraw->idxRange.size += idxRange.size;
++      } else {
++        lastDraw->idxRange = idxRange;
++      }
++    }
++    CHECK(lastDraw->vertRange.offset + lastDraw->vertRange.size == vertRange.offset,
++          "Non-consecutive vertex ranges ({} < {})", lastDraw->vertRange.offset + lastDraw->vertRange.size,
++          vertRange.offset);
++    lastDraw->vertRange.size += vertRange.size;
++    lastDraw->vtxCount += vtxCount;
++    lastDraw->indexCount += numIndices;
++    if (auto* capture = gfx::census::recording())
++      UNLIKELY {
++        const auto index = gfx::last_command_census();
++        if (index < capture->draws.size()) {
++          capture->draws[index].vtxCount += vtxCount;
++          capture->draws[index].merges++;
++        }
++      }
++    gfx::detail::increment_merged_draw_count();
++    profile::count(AURORA_FIFO_PROFILE_MERGED);
++    return;
++  }
+   if (canMerge) {
+     u32 numIndices = 0;
+     gfx::Range idxRange;
+@@ -905,7 +1225,16 @@ void handle_aurora(ByteReader& reader) noexcept {
+   }
+ }
+ 
++void set_fast_paths(bool enabled) noexcept { sFastPaths = enabled; }
++
+ void clear_draw_cache() noexcept {
++  if (++sPipelineMemoFrame % 600 == 0 && sPipelineMemo.size() > 4096) {
++    sPipelineMemo.clear(); // states of scenes gone
++  }
++  // the memo's texture handles are kept only for their frame
++  for (auto it = sBindMemo.begin(); it != sBindMemo.end();) {
++    it = it->second.frame + 1 < sPipelineMemoFrame ? sBindMemo.erase(it) : std::next(it);
++  }
+   g_gxState.viewDelta.active = false; // native/patches/aurora/0019: never past a frame
+   sDrawCache.bindGeneration = 0;
+   sDrawCache.uniformRange = {};
+diff --git a/lib/gx/command_processor.hpp b/lib/gx/command_processor.hpp
+index fb9fe15..feb4ae1 100644
+--- a/lib/gx/command_processor.hpp
++++ b/lib/gx/command_processor.hpp
+@@ -14,5 +14,7 @@ struct ProcessResult {
+ // Process GX FIFO commands until the next draw done event or end of buffer
+ ProcessResult process(const uint8_t* data, uint32_t size) noexcept;
+ void clear_draw_cache() noexcept;
++// SwitchWaker patch 0021: the translation's fast paths (on by default), switchable for A/B checks.
++void set_fast_paths(bool enabled) noexcept;
+ 
+ } // namespace aurora::gx::fifo
+diff --git a/lib/gx/regs.cpp b/lib/gx/regs.cpp
+index dcec16d..89e0bbb 100644
+--- a/lib/gx/regs.cpp
++++ b/lib/gx/regs.cpp
+@@ -938,6 +938,15 @@ bool store_xf_f32(f32& dst, u32 bits) noexcept {
+ 
+ } // namespace
+ 
++// SwitchWaker patch 0021: kBpRegs' alwaysHandle flags, for bp_redundant (regs.hpp).
++const std::array<bool, 0x100> g_bpAlwaysHandle = [] {
++  std::array<bool, 0x100> flags{};
++  for (u32 i = 0; i < 0x100; ++i) {
++    flags[i] = kBpRegs[i].alwaysHandle;
++  }
++  return flags;
++}();
++
+ // Dispatch
+ 
+ void handle_bp(u32 value) noexcept {
+diff --git a/lib/gx/regs.hpp b/lib/gx/regs.hpp
+index ccdff0a..6937e44 100644
+--- a/lib/gx/regs.hpp
++++ b/lib/gx/regs.hpp
+@@ -2,6 +2,7 @@
+ 
+ #include "gx.hpp"
+ 
++#include <array>
+ #include <bit>
+ #include <cstring>
+ #include <span>
+@@ -13,6 +14,17 @@ constexpr u32 reg_get(const u32 reg, const u32 size, const u32 shift) noexcept {
+ }
+ 
+ void handle_bp(u32 value) noexcept;
++
++// SwitchWaker patch 0021: true when handle_bp(value) would return at once (the register already holds
++// the value, no BP mask pending, no side effects): most BP loads in a frame (display lists send their
++// materials' whole state), skipped by the command processor without the call.
++extern const std::array<bool, 0x100> g_bpAlwaysHandle;
++inline bool bp_redundant(u32 value) noexcept {
++  const u32 regId = value >> 24;
++  const auto& state = g_gxState;
++  return regId != 0xFE && state.bpRegCache[0xFE] == 0x00FFFFFF && state.bpRegValid.test(regId) &&
++         state.bpRegCache[regId] == value && !g_bpAlwaysHandle[regId];
++}
+ void handle_cp(u8 addr, u32 value) noexcept;
+ void handle_xf(u16 addr, std::span<const u8> data) noexcept;
+ 

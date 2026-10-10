@@ -4,7 +4,9 @@
 // over the whole EFB, then the 2D at the full resolution. The level follows the GPU timer.
 #include "pc/pc_dynres.h"
 
+#include "pc_dynres_policy.h"
 #include "pc_internal.h"
+#include "pc/pc_settings.h"
 
 #include <algorithm>
 #include <cmath>
@@ -22,10 +24,10 @@
 #include "JSystem/JKernel/JKRHeap.h"
 
 #if defined(__SWITCH__)
-// switch/dawn/patches/dawn-switch-gl-command-stats.patch: running totals in switch_stats::Counter
-// order; 48 = GPU frames read back, 49 = their GPU time in ns (dawn-switch-gl-gpu-timer.patch).
-extern "C" void dawn_switch_gl_cmd_stats(uint64_t* out, size_t count);
+#include "cos_switch.h"
 #endif
+
+extern "C" int pc_fps60_test(void); // pc_frame.cpp (game_hooks.h): the 60 fps mode is on
 
 namespace {
 
@@ -40,7 +42,12 @@ struct State {
     unsigned int cycle = 0;          // COS_DYNRES_CYCLE
     double highMs = 30.0;
     double lowMs = 27.0;
-    std::vector<double> gpuMs;       // the last 60 frames' GPU times
+    double highMs60 = 15.0;          // COS_DYNRES_HIGH60 / _LOW60: the thresholds with 60 fps (per
+    double lowMs60 = 13.0;           // present, 16.7 ms each)
+    bool with60 = false;             // COS_DYNRES=auto: only while the 60 fps mode is on
+    bool active = false;             // Auto and (not with60 or 60 fps on): the levels move
+    bool fps60 = false;              // the 60 fps mode at the last frame
+    std::vector<double> gpuMs = std::vector<double>(60, 0.0); // the last 60 frames' GPU ms per present
     size_t gpuPos = 0;
     unsigned int samples = 0;        // samples since the last level change
     unsigned int sinceEval = 0;
@@ -68,9 +75,12 @@ void initWith(const char* v, float base) {
     if (v == nullptr || *v == '\0' || strcmp(v, "0") == 0) {
         return;
     }
+    const bool autoWith60 = strcmp(v, "auto") == 0;
     s.base = base;
     if (!(s.base > 0.f)) {
-        pc::writef(STDERR_FILENO, "[cos] COS_DYNRES needs COS_FB_SCALE (a fixed internal resolution); off\n");
+        if (!autoWith60) { // auto (the default) with the window's size (the Mac's default): quietly off
+            pc::writef(STDERR_FILENO, "[cos] COS_DYNRES needs COS_FB_SCALE (a fixed internal resolution); off\n");
+        }
         return;
     }
     s.levels.push_back(s.base);
@@ -87,7 +97,11 @@ void initWith(const char* v, float base) {
     } else {
         const char* list = getenv("COS_DYNRES_LEVELS");
         if (list == nullptr || *list == '\0') {
-            list = "1.25,1.125";
+            // 5/6, 3/4 and 2/3 of the base (pc_dynres_policy.h): 1.5 -> 1.25, 1.125, 1.0;
+            // 2.25 (docked) -> 1.875, 1.6875, 1.5
+            const pc::DynresLevels d = pc::dynresDefaultLevels(s.base);
+            s.levels.assign(d.v, d.v + d.n);
+            list = "";
         }
         while (*list != '\0') {
             char* end = nullptr;
@@ -101,11 +115,13 @@ void initWith(const char* v, float base) {
             list = *end == ',' ? end + 1 : end;
         }
         s.mode = Mode::Auto;
+        s.with60 = autoWith60;
         s.cycle = (unsigned int)envDouble("COS_DYNRES_CYCLE", 0.0);
         s.highMs = envDouble("COS_DYNRES_HIGH", 30.0);
         s.lowMs = envDouble("COS_DYNRES_LOW", 27.0);
+        s.highMs60 = envDouble("COS_DYNRES_HIGH60", 15.0);
+        s.lowMs60 = envDouble("COS_DYNRES_LOW60", 13.0);
     }
-    s.gpuMs.assign(60, 0.0);
     std::string levels;
     for (float l : s.levels) {
         char buf[16];
@@ -113,19 +129,23 @@ void initWith(const char* v, float base) {
         levels += buf;
     }
     pc::writef(STDERR_FILENO,
-               "[cos] dynres: %s, levels %s (3D only; 2D at the full scale)%s; down above %.1f ms GPU p95, "
-               "up under %.1f ms predicted\n",
-               s.mode == Mode::Fixed ? "fixed" : "auto", levels.c_str(),
+               "[cos] dynres: %s, levels %s (3D only; 2D at the full scale)%s; per present, down above %.1f ms "
+               "GPU p95, up under %.1f ms predicted (60 fps: %.1f / %.1f ms)\n",
+               s.mode == Mode::Fixed ? "fixed" : s.with60 ? "auto while 60 fps is on (COS_DYNRES=auto)" : "auto",
+               levels.c_str(),
 #if defined(__SWITCH__)
                "",
 #else
                s.mode == Mode::Auto && s.cycle == 0 ? " (no GPU timer here: stays at the base)" : "",
 #endif
-               s.highMs, s.lowMs);
+               s.highMs, s.lowMs, s.highMs60, s.lowMs60);
 }
 
 void init() {
-    initWith(getenv("COS_DYNRES"), (float)envDouble("COS_FB_SCALE", 0.0));
+    // The options menu's values (environment, settings file, platform default; "auto" when none):
+    // COS_DYNRES=auto follows the 60 fps mode.
+    const char* fb = pc_settings_get("COS_FB_SCALE");
+    initWith(pc_settings_get("COS_DYNRES"), fb != nullptr && *fb != '\0' ? (float)atof(fb) : 0.f);
 }
 
 double p95() {
@@ -212,19 +232,40 @@ void pc_dynres_frame_begin(unsigned int frame) {
     if (!s.init) {
         init();
     }
-    if (s.mode != Mode::Auto) {
-        return;
-    }
-    if (s.cycle != 0) {
-        if (frame % s.cycle == 0) {
-            setLevel((s.level + 1) % s.levels.size(), frame, 0.0, "COS_DYNRES_CYCLE");
+    // COS_DYNRES=auto: the levels move only while the 60 fps mode is on (the base otherwise); its
+    // thresholds are per present either way (15 / 13 ms with 60 fps, 30 / 27 ms without).
+    const bool fps60 = pc_fps60_test() != 0;
+    if (fps60 != s.fps60) {
+        s.fps60 = fps60;
+        s.overCount = s.underCount = 0;
+        if (s.mode == Mode::Auto && !s.with60) {
+            pc::writef(STDERR_FILENO, "[cos] dynres: 60 fps %s: down above %.1f ms GPU p95 per present, up under %.1f ms\n",
+                       fps60 ? "on" : "off", fps60 ? s.highMs60 : s.highMs, fps60 ? s.lowMs60 : s.lowMs);
         }
-        return;
+    }
+    const bool active = s.mode == Mode::Auto && (!s.with60 || fps60);
+    if (active != s.active) {
+        s.active = active;
+        if (s.with60) {
+            if (active) {
+                pc::writef(STDERR_FILENO, "[cos] dynres: on while 60 fps is on (COS_DYNRES=auto; the menu's "
+                                          "\"Off\" keeps it off): down above %.1f ms GPU p95 per present, up under "
+                                          "%.1f ms\n",
+                           s.highMs60, s.lowMs60);
+            } else {
+                pc::writef(STDERR_FILENO, "[cos] dynres: idle with 60 fps off (COS_DYNRES=auto): the base scale\n");
+            }
+            if (!active && s.level != 0) {
+                setLevel(0, frame, p95(), "60 fps off");
+            }
+        }
     }
 #if defined(__SWITCH__)
-    uint64_t c[50] = {};
-    dawn_switch_gl_cmd_stats(c, 50);
-    const uint64_t frames = c[48], ns = c[49];
+    // GPU frames read back and their GPU time: Dawn GL's timer or the deko3d timestamps
+    // (cos_switch_stats.cpp fills the same fields for both NROs)
+    CosSwitchGfxStats g{};
+    cos_switch_gfx_stats(&g);
+    const uint64_t frames = g.gpuFrames, ns = g.gpuTotalNs;
     if (frames > s.lastGpuFrames && s.lastGpuFrames != 0) {
         const double ms = (double)(ns - s.lastGpuNs) / 1e6 / (double)(frames - s.lastGpuFrames);
         s.gpuMs[s.gpuPos] = ms;
@@ -235,31 +276,44 @@ void pc_dynres_frame_begin(unsigned int frame) {
     s.lastGpuFrames = frames;
     s.lastGpuNs = ns;
 #endif
+    // The samples above are taken in every mode (pc_dynres_gpu_limited reads them); only Auto moves.
+    if (!active) {
+        return;
+    }
+    if (s.cycle != 0) {
+        if (frame % s.cycle == 0) {
+            setLevel((s.level + 1) % s.levels.size(), frame, 0.0, "COS_DYNRES_CYCLE");
+        }
+        return;
+    }
     // Evaluate every 30 GPU frames once 60 frames at this level are in.
     if (s.samples < s.gpuMs.size() || s.sinceEval < 30) {
         return;
     }
     s.sinceEval = 0;
     const double p = p95();
-    if (p > s.highMs) {
-        s.underCount = 0;
-        if (++s.overCount >= 2 && s.level + 1 < s.levels.size()) {
-            setLevel(s.level + 1, frame, p, "GPU-bound");
-        }
-    } else {
-        s.overCount = 0;
-        if (s.level > 0) {
-            const double ratio = (double)s.levels[s.level - 1] / (double)s.levels[s.level];
-            const double predicted = p * ratio * ratio;
-            if (predicted < s.lowMs) {
-                if (++s.underCount >= 4) {
-                    setLevel(s.level - 1, frame, p, "headroom");
-                }
-            } else {
-                s.underCount = 0;
-            }
-        }
+    const pc::DynresEval e =
+        pc::dynresEvaluate(p, pc::dynresThresholds(fps60, s.highMs, s.lowMs, s.highMs60, s.lowMs60), s.levels.data(),
+                           s.levels.size(), s.level, s.overCount, s.underCount);
+    s.overCount = e.overCount;
+    s.underCount = e.underCount;
+    if (e.level != s.level) {
+        setLevel(e.level, frame, p, e.why);
     }
+}
+
+int pc_dynres_gpu_limited(double budgetMs) {
+    // Enough samples at this level (1 s), their p95 over the budget of one present, and no lower
+    // level to go to (dynres off, fixed, waiting for 60 fps, or at its floor).
+    if (s.samples < 30 || s.gpuMs.empty()) {
+        return 0;
+    }
+    const bool canGoLower = s.active && s.mode == Mode::Auto && s.level + 1 < s.levels.size();
+    return !canGoLower && p95() > budgetMs ? 1 : 0;
+}
+
+double pc_dynres_gpu_p95(void) {
+    return s.gpuMs.empty() ? 0.0 : p95();
 }
 
 void pc_dynres_configure(const char* mode, float base) {
