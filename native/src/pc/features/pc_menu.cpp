@@ -419,6 +419,7 @@ void applyDynres(const char*, const char* v, void*) {
 void applyDof(const char*, const char* v, void*) { pc_dof_set(strcmp(v, "0") != 0); }
 void applyCameraInvertX(const char*, const char* v, void*) { pc_camera_invert_x_set(strcmp(v, "1") == 0); }
 void applyCameraInvertY(const char*, const char* v, void*) { pc_camera_invert_y_set(strcmp(v, "1") == 0); }
+void applyCameraShake(const char*, const char* v, void*) { pc_camera_shake_set(strcmp(v, "1") == 0); }
 void applyGpuProfile(const char*, const char* v, void*) {
 #if defined(__SWITCH__)
     cos_switch_set_gpu_profile(v);
@@ -506,6 +507,13 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertY, nullptr, 91,
      "Invert camera vertically",
      "The C stick tilts the camera the other way vertically."},
+    {"COS_CAMERA_SHAKE", "Temblor de cámara",
+     "La cámara tiembla con terremotos, golpes, explosiones y cinemáticas, como en la GameCube. La vibración "
+     "del mando no cambia.",
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraShake, nullptr, 92,
+     "Camera shake",
+     "The camera shakes with quakes, hits, explosions and cutscenes, as on the GameCube. The controller "
+     "rumble does not change."},
     {"COS_ASPECT", "Relación de aspecto", "Imagen panorámica 16:9 o la 4:3 original de la GameCube.",
      PC_SETTING_TAB_GRAPHICS, PC_SETTING_RESTART, CHOICES(kAspect), kSwitch ? "16:9" : "4:3", nullptr, nullptr,
      70,

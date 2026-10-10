@@ -1,4 +1,4 @@
-// Control options (native/include/pc/pc_controls.h): the camera's inverted axes.
+// Control options (native/include/pc/pc_controls.h): the camera's inverted axes and its shake.
 #include "pc_internal.h"
 
 #include "pc/pc_controls.h"
@@ -11,6 +11,7 @@ namespace {
 
 int sInvertX = -1; // -1: not read yet
 int sInvertY = -1;
+int sShake = -1;
 
 int readFlag(const char* name) {
     const char* v = getenv(name);
@@ -45,6 +46,18 @@ void pc_camera_invert_x_set(int on) {
 
 void pc_camera_invert_y_set(int on) {
     sInvertY = on ? 1 : 0;
+}
+
+int pc_camera_shake(void) {
+    if (sShake < 0) {
+        const char* v = getenv("COS_CAMERA_SHAKE");
+        sShake = v != nullptr && strcmp(v, "1") == 0;
+    }
+    return sShake;
+}
+
+void pc_camera_shake_set(int on) {
+    sShake = on ? 1 : 0;
 }
 
 } // extern "C"
