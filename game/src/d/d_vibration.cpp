@@ -86,6 +86,14 @@ int dVibration_c::Run() {
             rumble |= RUMBLE_QUAKE;
         }
 
+#if TARGET_PC
+        // SwitchWaker: no camera shake at all in Dragon Roost Cavern (M_NewD2: the lava rooms' ambient
+        // quakes, the magma rocks, the volcano, hits): the user found it too strong to play through
+        // (2026-10-10). The controller rumble (mMotor) is kept.
+        if (strcmp(dComIfGp_getStartStageName(), "M_NewD2") == 0) {
+            rumble = 0;
+        }
+#endif
         s32 length, pattern, bits;
         switch (rumble) {
         case RUMBLE_SHOCK: /* branch e0 */
