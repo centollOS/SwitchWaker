@@ -105,12 +105,37 @@ public:
         if (beforeB < (double)cfg.retraceNs) {
             beforeB = (double)cfg.retraceNs; // paint B waits for its retrace
         }
-        return (uint64_t)(beforeB + paintB.get() + tail.get());
+        const double p = beforeB + paintB.get() + tail.get() - (biasValid_ && bias_ > 0.0 ? bias_ : 0.0);
+        return p > 0.0 ? (uint64_t)p : 0;
     }
+
+    // A split frame's real busy time (paint A's wake to the next paint A's wait) against what
+    // predict() said at its split: the estimates add waits that overlap (GXDrawDone, the frame
+    // tail's backpressure from the GX and render workers, which run beside the game thread), so the
+    // sum overshoots (console, Dragon Roost: predicted 35 ms, real 26-28 ms, no late frame). The
+    // over-prediction's running average is taken off later predictions; under-predictions count
+    // fully at once so a heavier scene is caught at its first sample.
+    void observeSplit(uint64_t predictedRawNs, uint64_t actualNs) {
+        if (predictedRawNs == 0 || actualNs == 0) {
+            return;
+        }
+        const double err = (double)predictedRawNs - (double)actualNs;
+        if (!biasValid_) {
+            bias_ = err;
+            biasValid_ = true;
+        } else if (err < bias_) {
+            bias_ = err;
+        } else {
+            bias_ += (err - bias_) * 0.1;
+        }
+    }
+    double bias() const { return biasValid_ ? bias_ : 0.0; }
+    uint64_t lastPredictedRaw() const { return lastPredictedRaw_; }
 
     // At the split of an eligible frame (60 fps on, two retraces, the menu closed, no transition).
     Fps60Verdict decide(uint64_t elapsedNs, bool gpuLimited, uint64_t* predictedNs) {
         const uint64_t p = predict(elapsedNs);
+        lastPredictedRaw_ = p + (uint64_t)(biasValid_ && bias_ > 0.0 ? bias_ : 0.0);
         if (predictedNs != nullptr) {
             *predictedNs = p;
         }
@@ -214,6 +239,9 @@ public:
 private:
     static constexpr unsigned int kMaxWindow = 256;
     bool ring_[kMaxWindow] = {};
+    double bias_ = 0.0;
+    bool biasValid_ = false;
+    uint64_t lastPredictedRaw_ = 0;
     unsigned int pos_ = 0;
     unsigned int count_ = 0;
     unsigned int fallbackLeft_ = 0;

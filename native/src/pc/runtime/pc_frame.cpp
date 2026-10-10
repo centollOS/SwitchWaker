@@ -916,13 +916,13 @@ void perfFrameEnd(uint64_t endFrameStartNs, uint64_t now, const AuroraStats* sta
         char budget[320];
         snprintf(budget, sizeof(budget),
                  "; budget: skipped %llu (time %llu, gpu %llu), at 30 %llu (fallbacks %llu%s), late %llu, predicted "
-                 "max %.1f, est present %.2f draw %.2f paint B %.2f tail %.2f",
+                 "max %.1f, est present %.2f draw %.2f paint B %.2f tail %.2f, over-prediction %.2f",
                  (unsigned long long)(sBudgetWin.skipTime + sBudgetWin.skipGpu),
                  (unsigned long long)sBudgetWin.skipTime, (unsigned long long)sBudgetWin.skipGpu,
                  (unsigned long long)sBudgetWin.fallbackFrames, (unsigned long long)sBudgetWin.fallbacks,
                  sBudget.inFallback() ? ", in one" : "", (unsigned long long)sBudgetWin.late,
                  sBudgetWin.predictedMaxNs / 1e6, sBudget.present.get() / 1e6, sBudget.draw.get() / 1e6,
-                 sBudget.paintB.get() / 1e6, sBudget.tail.get() / 1e6);
+                 sBudget.paintB.get() / 1e6, sBudget.tail.get() / 1e6, sBudget.bias() / 1e6);
         strncat(fps60, budget, sizeof(fps60) - strlen(fps60) - 1);
         sBudgetWin = BudgetCounts{};
         lastDropped = sPaintBDropped;
@@ -1156,6 +1156,12 @@ void budgetPaintAWake() {
         sSplitOutcomePending = false;
         const uint64_t cycleNs = sPrevAWakeNs != 0 ? sAWakeNs - sPrevAWakeNs : 0;
         const bool late = cycleNs > sCycleReadbackNs && cycleNs - sCycleReadbackNs > sBudget.cfg.lateNs;
+        // the split frame's real busy time (wake to this paint A's wait), readbacks left out
+        if (sPrevAWakeNs != 0 && sPaceStartNs > sPrevAWakeNs) {
+            const uint64_t busyNs = sPaceStartNs - sPrevAWakeNs;
+            sBudget.observeSplit(sBudget.lastPredictedRaw(),
+                                 busyNs > sCycleReadbackNs ? busyNs - sCycleReadbackNs : busyNs);
+        }
         if (late) {
             sBudgetAll.late++;
             sBudgetWin.late++;
