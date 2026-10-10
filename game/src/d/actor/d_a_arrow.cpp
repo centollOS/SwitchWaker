@@ -543,7 +543,14 @@ void daArrow_c::setKeepMatrix() {
         // This function takes three signed shorts, but one of the literals passed here is unsigned.
         // X rotation must be a float literal to force the compiler to pass an unsigned short.
         // Z rotation must be an int literal to pass a signed short as normal.
+#if TARGET_PC
+        // 45238.04f does not fit a signed short: converting it is undefined behaviour in C++, and
+        // clang folds it to a different angle than the GameCube's, which aims the arrow at the
+        // ground. The Metrowerks build passes the low 16 bits of the truncated integer, 0xB0B6.
+        mDoMtx_stack_c::XYZrotM((s16)0xB0B6, 0x238E, -0x6333);
+#else
         mDoMtx_stack_c::XYZrotM((248.5f*65536)/360, 0x238E, -0x6333);
+#endif
         mDoMtx_stack_c::revConcat(player->getLeftHandMatrix());
         MtxP mtx = mDoMtx_stack_c::get();
         mpModel->setBaseTRMtx(mtx);
