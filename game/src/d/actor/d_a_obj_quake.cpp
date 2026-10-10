@@ -96,6 +96,14 @@ BOOL daObjQuake_c::_is_delete() {
 BOOL daObjQuake_c::_execute() {
     // Required for match
     const char* unused[] = {"camera", "sound", "motor"}; // Has to be in a function after _create and before getPrmType
+#if TARGET_PC
+    // SwitchWaker: no ambient camera quake in Dragon Roost Cavern (M_NewD2 rooms 0, 7 and 10, the lava
+    // rooms): the periodic shake was too strong to play through (user's request, 2026-10-10). Only
+    // the camera type is skipped; the controller rumble (type 2) and the rumbling sound (type 1) stay.
+    if (mType == 0 && strcmp(dComIfGp_getStartStageName(), "M_NewD2") == 0) {
+        return TRUE;
+    }
+#endif
 
     m294 = dKy_get_schbit_timer();
     s32 var_r30 = 0x2E;
