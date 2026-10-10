@@ -923,6 +923,17 @@ The worker is still the limit (1-4 ms idle a game frame): heavier spots will fal
 game frame (Dragon Roost): draw 7.1, bp 5.1, uniforms 4.3, pipeline 2.7 + lookup 2.5, binds 3.0, parse
 2.1, xf 1.9, jobs 1.0. Mac: full `native/tools/regress.sh` passes with 0021 on.
 
+### Later console checks (2026-10-10)
+
+- Redundant BP loads skipped inline (5250d42): no gain on the console (bp 5.1 -> 1.2 ms per game
+  frame, but "parse" 2.1 -> 5.4: the cost is walking the stream, not the call). Kept (no harm).
+- `COS_DK_MEMBENCH=1`: 8 MiB in 2 KiB copies uncached 1.55 ms, cached 1.38 + flush 0.51, heap 1.38;
+  in 40-byte copies uncached 160.6 ms, cached 2.47 + flush 0.52. A CPU-cached staging slot with a
+  flush per op (tried, not kept) changed nothing: Dragon Roost worker 32.36 vs 32.47 ms per game
+  frame (the worker's small writes are not memcpy's slow uncached case). The worker's ~32 ms are
+  spread out (parse 5.5, draw 6.3, uniforms 5, binds 2.9, pipeline 2.7 + lookup 2.7, xf 1.9).
+- Dragon Roost 59.6-59.7 presents/s (2-3 skips per 300 frames), Outset 59.9.
+
 ## Console checklist (steps A-E)
 
 Everything below is unmeasured on the Switch. Settings: the options menu's Rendimiento > "60 fps
