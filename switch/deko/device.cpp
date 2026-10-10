@@ -296,6 +296,7 @@ void submit_list() {
     const DkCmdList list = dkCmdBufFinishList(R.cmd);
     std::lock_guard<std::mutex> lock(fence_mutex());
     dkQueueSubmitCommands(R.queue, list);
+    fence_submitted();
     g_submits.submits++;
 }
 

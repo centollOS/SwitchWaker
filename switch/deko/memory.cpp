@@ -50,6 +50,7 @@ struct Slot {
 };
 Slot g_slots[kFrames];
 uint32_t g_slot = 0;
+bool g_fencePending = false;  // frame_end recorded the slot's signal; not yet submitted
 bool g_inFrame = false;
 DkMemBlock g_stream = nullptr, g_cmdMem = nullptr, g_code = nullptr, g_descriptors = nullptr, g_queries = nullptr;
 uint8_t* g_streamCpu = nullptr;
@@ -190,6 +191,16 @@ void frame_begin(uint64_t frame) {
         note_completed(s.frame);
     }
     {
+        // The slot is this frame's from now on. Its DkFence keeps the signalled state of the frame that
+        // used the slot before until the submit carrying this frame's signal rewrites it: polled now it
+        // would report this frame done before the GPU has it (and, through g_completed, every frame
+        // before it), and Aurora's staging slots (staging_ready) were reused while the GPU still read
+        // them: whole-screen garbage whenever the GPU ran behind. fenced again in fence_submitted.
+        std::lock_guard<std::mutex> lock(g_fenceMutex);
+        s.fenced = false;
+        s.frame = frame;
+    }
+    {
         std::lock_guard<std::mutex> lock(g_heapMutex);
         for (const ImageAlloc& a : s.retired)
             if (a.chunk >= 0) chunk_free(g_chunks[size_t(a.chunk)], a.offset, a.size);
@@ -209,7 +220,6 @@ void frame_begin(uint64_t frame) {
         g_deferredBlocks.clear();
     }
     s.streamUsed = 0;
-    s.frame = frame;
     // dkCmdBufClear rewinds to the start of the memory fed last (deko3d 0.5.0 keeps it), which belongs
     // to the previous frame: feed this slot's first chunk explicitly (as deko_examples' CCmdMemRing)
     dkCmdBufClear(R.cmd);
@@ -223,7 +233,7 @@ void frame_begin(uint64_t frame) {
 void frame_end() {
     Slot& s = g_slots[g_slot];
     dkCmdBufSignalFence(R.cmd, &s.fence, true);
-    s.fenced = true;
+    g_fencePending = true;  // the fence counts once the list with the signal is submitted
     g_inFrame = false;
     g_stats.frames++;
     g_stats.cmdBytesSum += g_cmdFedThisFrame;
@@ -233,6 +243,14 @@ void frame_end() {
 
 // device.cpp's submit holds the same lock while the queue writes the fences
 std::mutex& fence_mutex() { return g_fenceMutex; }
+
+// under fence_mutex, right after a submit of the frame's command buffer: the frame's fence was in it
+void fence_submitted() {
+    if (g_fencePending) {
+        g_slots[g_slot].fenced = true;
+        g_fencePending = false;
+    }
+}
 
 bool frame_done(uint64_t frame) {
     if (frame == 0 || frame <= g_completed.load(std::memory_order_acquire)) return true;

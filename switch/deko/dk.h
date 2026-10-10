@@ -78,6 +78,7 @@ bool frame_done(uint64_t frame);    // the GPU has finished that frame's command
 uint64_t frames_completed();
 // held while the queue writes the fences (every submit) and while they are polled
 std::mutex& fence_mutex();
+void fence_submitted();  // under fence_mutex after submitting the frame command buffer (memory.cpp)
 StreamAlloc stream_alloc(uint32_t size, uint32_t alignment);  // this frame's slice; empty when full (logged)
 // Thread-safe: the FIFO thread creates Aurora's textures
 ImageAlloc image_alloc(uint32_t size, uint32_t alignment);
