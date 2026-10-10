@@ -876,6 +876,53 @@ the pause menu gate save some of it where 60 shows nothing.
   and item-sweep pass with no budget skip. Switch NRO `scripts/switch/build_native.sh --runtime-assets` builds
   (exit 0, no `error:`). Not tried on the console.
 
+## The GX FIFO worker (2026-10-10, Aurora patches 0020-0021)
+
+Console measurement after steps A-E: Dragon Roost stayed a steady 30 (the guard's fallback) because
+Aurora's GX FIFO worker (the thread translating the GX stream into the gfx recording, on core 2 with
+the audio thread) needed ~17-20 ms of CPU per paint at 1020 MHz, about 8x the Mac's time: two paints
+did not fit in 33.3 ms, and the draw pass's `GXDrawDone` waited for it.
+
+Patch 0020 (`COS_FIFO_PROFILE=1`, a `[cos] perf fifo per game frame` line with the perf lines; the
+setting goes in the main section of `settings.ini`): a sampling profile of that thread. It stores its
+current category in a byte (plain load/store per scope) and a sampler thread adds the time since its
+last sample to the category it finds, every ~250 us; timing each scope with the clock tripled the
+worker's time on the Mac. Categories: parse, frame jobs, BP/XF/CP loads, Aurora subcommands, draw
+(vertices, indices, merging), pipeline config + lookup, textures, bind groups, uniforms, indexed
+arrays, draw command; plus counts (draws, merged primitives, BP/XF loads, memo hits) and bytes.
+
+Dragon Roost per paint, Aurora's paths (`COS_FIFO_FAST=0`): busy 18.7 ms; draw 5.1 (13.6k merged
+primitives in ~880 draws), bp 2.7 (34.5k loads, ~70 % redundant), lookup 2.4 (326 pipeline changes,
+~7 us each: two config hashes, two locks, a heap-allocated creation callback), binds 1.7 (302, ~5.6 us
+each: a sampler cache look-up per slot, the descriptor's hash and lock), uniforms 1.6 (884 x ~2 KiB),
+parse 1.3, pipeline config 1.1, xf 1.0.
+
+Patch 0021 (on by default; `COS_FIFO_FAST=0` gives Aurora's paths for A/B), the same output
+(byte-identical shots on the Mac at three frames, equal counts):
+
+- pipeline lookups memoised for the frame by (config, render target layout): ~65 % hits;
+- texture bind groups memoised for the frame by each sampled slot's view and sampler descriptor
+  (the entry keeps the slots' texture handles for its frame): ~50 % hits;
+- merged primitives' indices written straight into the frame's index buffer, and the draw commands
+  following a draw with the same vertex format merged in one go (one look-up of the last command,
+  one vertex and one index reservation).
+
+Each memo entry is valid for its frame only, so every state still goes through Aurora's lookups once
+a frame (remembered for the pipeline cache, promoted while compiling, bind groups marked used).
+
+Console (handheld, 1020 MHz, `COS_FPS60@handheld=1`), worker per game frame (two paints) with 0021:
+
+| Spot | presents/s | worker busy / idle ms | budget |
+|---|---|---|---|
+| Dragon Roost `sea:13` | 59.9 (30 without 0021) | 32.3 / 1.0 | skipped 0, at 30 0, late 0 |
+| Outset `sea:44` | 59.9 | 30.4 / 3.0 | 0 / 0 / 0 |
+| Tower of the Gods `Siren:0` | 59.9 | 29.1 / 4.3 | 0 / 0 / 0 |
+| Windfall `sea:11` | 59.9 | 28.9 / 4.4 | 0 / 0 / 0 |
+
+The worker is still the limit (1-4 ms idle a game frame): heavier spots will fall back to 30. Left per
+game frame (Dragon Roost): draw 7.1, bp 5.1, uniforms 4.3, pipeline 2.7 + lookup 2.5, binds 3.0, parse
+2.1, xf 1.9, jobs 1.0. Mac: full `native/tools/regress.sh` passes with 0021 on.
+
 ## Console checklist (steps A-E)
 
 Everything below is unmeasured on the Switch. Settings: the options menu's Rendimiento > "60 fps
