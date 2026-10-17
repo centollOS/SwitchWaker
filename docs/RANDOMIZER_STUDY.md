@@ -3,6 +3,8 @@
 Question (2026-10-17): can SwitchWaker offer a Wind Waker randomizer while the player still needs only the NRO
 and their unmodified disc (the same `.iso` as today)?
 
+Status: **analysis only, parked** (decision 2026-10-17: not started). Kept on this branch for reference.
+
 Short answer: **yes, it is feasible**, as a randomizer built into the port. It is not a matter of loading a
 randomized ISO: the randomizer's code changes have to be written into the decompiled code (as the BetterWW
 options already were, [QOL_PLAN.md](QOL_PLAN.md)), its data changes applied in memory when the game loads the
