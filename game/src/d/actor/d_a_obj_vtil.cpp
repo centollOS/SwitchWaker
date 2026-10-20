@@ -15,6 +15,9 @@
 #include "m_Do/m_Do_ext.h"
 #include "JSystem/JUtility/JUTAssert.h"
 #include "res/Object/Vtil.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 
 const int daObjVtil_c::l_daObjVtil_bdl_idx_table[5] = {
     dRes_INDEX_VTIL_BDL_VTIL1_e, dRes_INDEX_VTIL_BDL_VTIL2_e,
@@ -121,7 +124,14 @@ bool daObjVtil_c::_delete() {
 
 /* 00000718-00000750       .text check_ev_bit__11daObjVtil_cCFv */
 BOOL daObjVtil_c::check_ev_bit() const {
+#if TARGET_PC
+    // pc_rando(R3.6): flexible_item_locations.asm d_a_obj_vtil 0x820 (check_tingle_statue_owned);
+    // original: dComIfGs_isStageTbox(l_daObjVtil_scene_no_table[mType], 15)
+    return pc_rando() ? pc_rando_tingle_statue_owned(l_daObjVtil_scene_no_table[mType], 15)
+                      : dComIfGs_isStageTbox(l_daObjVtil_scene_no_table[mType], 15);
+#else
     return dComIfGs_isStageTbox(l_daObjVtil_scene_no_table[mType], 15);
+#endif
 }
 
 /* 00000750-00000770       .text tell_agb_attack__11daObjVtil_cFv */

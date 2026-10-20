@@ -22,6 +22,7 @@
 #include "d/actor/d_a_boko.h"
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 
 static dCcD_SrcCyl l_cyl_src = {
@@ -1718,6 +1719,11 @@ BOOL daAgbsw0_c::HitCheck(cXyz param_1, f32 param_2) {
 
 /* 00003344-0000476C       .text MoveCheck__10daAgbsw0_cFs */
 BOOL daAgbsw0_c::MoveCheck(s16 conditionNo) {
+#if TARGET_PC
+    // pc_rando(R3.6): flexible_item_locations.asm d_a_agbsw0 0x359C-0x360C (MoveCheck conditions 9-D
+    // call check_tingle_statue_owned); original: dComIfGs_isStageTbox(stage, 0xF)
+    BOOL (*isStatue)(int, int) = pc_rando() ? pc_rando_tingle_statue_owned : dComIfGs_isStageTbox;
+#endif
     switch(conditionNo) {
         case 1:
             if(dComIfGs_isEventBit(dSv_event_flag_c::MET_KORL)) {
@@ -1770,31 +1776,51 @@ BOOL daAgbsw0_c::MoveCheck(s16 conditionNo) {
 
             break;
         case 9:
+#if TARGET_PC
+            if(isStatue(dSv_save_c::STAGE_DRC, 0xF)) {
+#else
             if(dComIfGs_isStageTbox(dSv_save_c::STAGE_DRC, 0xF)) {
+#endif
                 return FALSE;
             }
 
             break;
         case 0xA:
+#if TARGET_PC
+            if(isStatue(dSv_save_c::STAGE_FW, 0xF)) {
+#else
             if(dComIfGs_isStageTbox(dSv_save_c::STAGE_FW, 0xF)) {
+#endif
                 return FALSE;
             }
 
             break;
         case 0xB:
+#if TARGET_PC
+            if(isStatue(dSv_save_c::STAGE_TOTG, 0xF)) {
+#else
             if(dComIfGs_isStageTbox(dSv_save_c::STAGE_TOTG, 0xF)) {
+#endif
                 return FALSE;
             }
 
             break;
         case 0xC:
+#if TARGET_PC
+            if(isStatue(dSv_save_c::STAGE_WT, 0xF)) {
+#else
             if(dComIfGs_isStageTbox(dSv_save_c::STAGE_WT, 0xF)) {
+#endif
                 return FALSE;
             }
 
             break;
         case 0xD:
+#if TARGET_PC
+            if(isStatue(dSv_save_c::STAGE_ET, 0xF)) {
+#else
             if(dComIfGs_isStageTbox(dSv_save_c::STAGE_ET, 0xF)) {
+#endif
                 return FALSE;
             }
 

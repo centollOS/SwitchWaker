@@ -137,6 +137,29 @@ u32 daNpc_Tc_c::getMsgRed() {
 
         if (!field_0x810) {
             field_0x810 = true;
+#if TARGET_PC
+            if (pc_rando()) {
+                // pc_rando(R3.6): flexible_item_locations.asm d_a_npc_tc 0x58CC-0x598C (getMsgRed,
+                // check_tingle_statue_owned); original: dComIfGs_isStageTbox(stage, 0xF) in the
+                // USA/PAL branch below
+                if (pc_rando_tingle_statue_owned(dSv_save_c::STAGE_DRC, 0xF) && !dComIfGs_isEventBit(dSv_event_flag_c::UNK_1240)) {
+                    return 0xDEE;
+                }
+                if (pc_rando_tingle_statue_owned(dSv_save_c::STAGE_FW, 0xF) && !dComIfGs_isEventBit(dSv_event_flag_c::UNK_1D08)) {
+                    return 0xDEE;
+                }
+                if (pc_rando_tingle_statue_owned(dSv_save_c::STAGE_TOTG, 0xF) && !dComIfGs_isEventBit(dSv_event_flag_c::UNK_1D04)) {
+                    return 0xDEE;
+                }
+                if (pc_rando_tingle_statue_owned(dSv_save_c::STAGE_WT, 0xF) && !dComIfGs_isEventBit(dSv_event_flag_c::UNK_1D02)) {
+                    return 0xDEE;
+                }
+                if (pc_rando_tingle_statue_owned(dSv_save_c::STAGE_ET, 0xF) && !dComIfGs_isEventBit(dSv_event_flag_c::UNK_1D01)) {
+                    return 0xDEE;
+                }
+                return 0xDE6;
+            }
+#endif
 #if VERSION == VERSION_DEMO
             if(checkAllMonumentFee() || !checkOneMonumentGet()) {
                 return 0xDE6;
@@ -178,7 +201,13 @@ u32 daNpc_Tc_c::getMsgRed() {
 
 /* 00005944-000059A8       .text checkMonumentFee__10daNpc_Tc_cFUsUs */
 bool daNpc_Tc_c::checkMonumentFee(u16 i_stageNo, u16 i_eventId) {
+#if TARGET_PC
+    // pc_rando(R3.6): flexible_item_locations.asm d_a_npc_tc 0x5A54 (checkMonumentFee,
+    // check_tingle_statue_owned); original: dComIfGs_isStageTbox(i_stageNo, 0xf)
+    if (pc_rando() ? pc_rando_tingle_statue_owned(i_stageNo, 0xf) : dComIfGs_isStageTbox(i_stageNo, 0xf)) {
+#else
     if (dComIfGs_isStageTbox(i_stageNo, 0xf)) {
+#endif
         return dComIfGs_isEventBit(i_eventId);
     }
     return false;
@@ -242,7 +271,13 @@ bool daNpc_Tc_c::checkMonumentPay(u16 i_stageNo, u16 i_eventId) {
     if(dComIfGs_isEventBit(i_eventId)) {
         return false;
     }
+#if TARGET_PC
+    // pc_rando(R3.6): flexible_item_locations.asm d_a_npc_tc 0x5C50 (checkMonumentPay,
+    // check_tingle_statue_owned); original: dComIfGs_isStageTbox(i_stageNo, 0xF)
+    if (pc_rando() ? pc_rando_tingle_statue_owned(i_stageNo, 0xF) : dComIfGs_isStageTbox(i_stageNo, 0xF)) {
+#else
     if(dComIfGs_isStageTbox(i_stageNo, 0xF)) {
+#endif
         dComIfGs_onEventBit(i_eventId);
         return true;
     }

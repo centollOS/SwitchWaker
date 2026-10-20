@@ -11,6 +11,9 @@
 #include "d/d_snap.h"
 #include "d/actor/d_a_obj_smplbg.h"
 #include "d/d_lib.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 
 class daNpc_Tc_HIO_c : public mDoHIO_entry_c{
 public:
@@ -80,11 +83,24 @@ daNpc_Tc_HIO_c::daNpc_Tc_HIO_c() {
         field_0x7F[i] = dComIfGs_isCollectMapTriforce(i+1);
     }
 
+#if TARGET_PC
+    {
+        // pc_rando(R3.6): flexible_item_locations.asm d_a_npc_tc 0x2F8-0x338 (daNpc_Tc_HIO_c ctor,
+        // check_tingle_statue_owned); original: dComIfGs_isStageTbox(stage, 0xf)
+        BOOL (*isStatue)(int, int) = pc_rando() ? pc_rando_tingle_statue_owned : dComIfGs_isStageTbox;
+        field_0x8F = isStatue(dSv_save_c::STAGE_DRC, 0xf);
+        field_0x90 = isStatue(dSv_save_c::STAGE_FW, 0xf);
+        field_0x91 = isStatue(dSv_save_c::STAGE_TOTG, 0xf);
+        field_0x92 = isStatue(dSv_save_c::STAGE_WT, 0xf);
+        field_0x93 = isStatue(dSv_save_c::STAGE_ET, 0xf);
+    }
+#else
     field_0x8F = dComIfGs_isStageTbox(dSv_save_c::STAGE_DRC, 0xf);
     field_0x90 = dComIfGs_isStageTbox(dSv_save_c::STAGE_FW, 0xf);
     field_0x91 = dComIfGs_isStageTbox(dSv_save_c::STAGE_TOTG, 0xf);
     field_0x92 = dComIfGs_isStageTbox(dSv_save_c::STAGE_WT, 0xf);
     field_0x93 = dComIfGs_isStageTbox(dSv_save_c::STAGE_ET, 0xf);
+#endif
 
     mNpc.m04 = -20.0f;
     mNpc.mMaxHeadX = 0x1FFE;
@@ -679,9 +695,18 @@ void daNpc_Tc_c::checkOrder() {
 
 /* 00001470-000014FC       .text existTcMonument__10daNpc_Tc_cFv */
 bool daNpc_Tc_c::existTcMonument() {
+#if TARGET_PC
+    // pc_rando(R3.6): flexible_item_locations.asm d_a_npc_tc 0x1578-0x15C8 (existTcMonument,
+    // check_tingle_statue_owned); original: dComIfGs_isStageTbox(stage, 0xF)
+    BOOL (*isStatue)(int, int) = pc_rando() ? pc_rando_tingle_statue_owned : dComIfGs_isStageTbox;
+    if(isStatue(dSv_save_c::STAGE_DRC, 0xF) || isStatue(dSv_save_c::STAGE_FW, 0xF)
+    || isStatue(dSv_save_c::STAGE_TOTG, 0xF) || isStatue(dSv_save_c::STAGE_WT, 0xF)
+    || isStatue(dSv_save_c::STAGE_ET, 0xF)) {
+#else
     if(dComIfGs_isStageTbox(dSv_save_c::STAGE_DRC, 0xF) || dComIfGs_isStageTbox(dSv_save_c::STAGE_FW, 0xF) 
     || dComIfGs_isStageTbox(dSv_save_c::STAGE_TOTG, 0xF) || dComIfGs_isStageTbox(dSv_save_c::STAGE_WT, 0xF)
     || dComIfGs_isStageTbox(dSv_save_c::STAGE_ET, 0xF)) {
+#endif
         return true;
     }
     return false;
@@ -784,13 +809,24 @@ void daNpc_Tc_c::startTower() {
 
 /* 000017A4-00001900       .text next_msgStatusBlue__10daNpc_Tc_cFPUl */
 u16 daNpc_Tc_c::next_msgStatusBlue(u32* pMsgNo) {
+#if TARGET_PC
+    // pc_rando(R3.6): flexible_item_locations.asm d_a_npc_tc 0x193C-0x198C (next_msgStatusBlue,
+    // check_tingle_statue_owned); original: dComIfGs_isStageTbox(stage, 0xF)
+    BOOL (*isStatue)(int, int) = pc_rando() ? pc_rando_tingle_statue_owned : dComIfGs_isStageTbox;
+#endif
     u16 msgStatus = fopMsgStts_MSG_CONTINUES_e;
     if ((mAnmPrmIdx == ANM_PRM_IDX_DANCE01_TO_TALK01 || mAnmPrmIdx == ANM_PRM_IDX_DANCE02_TO_WAIT03) && !mpMorf->isStop()) {
         msgStatus = fopMsgStts_MSG_DISPLAYED_e;
     } else {
         switch (*pMsgNo) {
             case 0xDDD:
+#if TARGET_PC
+                // pc_rando(R3.6): flexible_item_locations.asm d_a_npc_tc 0x193C-0x198C
+                // (next_msgStatusBlue, check_tingle_statue_owned); original: dComIfGs_isStageTbox(stage, 0xF)
+                if (isStatue(dSv_save_c::STAGE_DRC, 0xF) || isStatue(dSv_save_c::STAGE_FW, 0xF) || isStatue(dSv_save_c::STAGE_TOTG, 0xF) || isStatue(dSv_save_c::STAGE_WT, 0xF) || isStatue(dSv_save_c::STAGE_ET, 0xF)) {
+#else
                 if (dComIfGs_isStageTbox(dSv_save_c::STAGE_DRC, 0xF) || dComIfGs_isStageTbox(dSv_save_c::STAGE_FW, 0xF) || dComIfGs_isStageTbox(dSv_save_c::STAGE_TOTG, 0xF) || dComIfGs_isStageTbox(dSv_save_c::STAGE_WT, 0xF) || dComIfGs_isStageTbox(dSv_save_c::STAGE_ET, 0xF)) {
+#endif
                     *pMsgNo = 0xDDE;
                 } else {
                     *pMsgNo = 0xDF9;

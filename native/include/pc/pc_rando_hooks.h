@@ -39,6 +39,17 @@ const char* pc_rando_msg_hook_text(uint16_t msg_no);
    another number; else unchanged. Called by both getMesgEntry under pc_rando(). */
 void pc_rando_msg_hook_entry(uint16_t msg_no, void* entry);
 
+/* --- R3.6: Tingle Statues (asm group G4; game_hooks/pc_rando_hooks_tingle.cpp, tables in
+   features/rando/pc_rando_tingle.h) --- */
+/* check_tingle_statue_owned (custom_funcs.asm): replaces dComIfGs_isStageTbox(stage, 0xF) at the
+   statue sites (d_a_obj_vtil, d_a_npc_tc, d_a_agb, d_a_agbsw0). 1 when the event bit of the statue of
+   `stage` (3-7) is set; 0 for another stage or a flag other than 0xF. Same type as
+   dComIfGs_isStageTbox, so a hunk can pick either function. */
+int pc_rando_tingle_statue_owned(int stage, int flag);
+/* get_num_owned_tingle_statues (misc_rando_features.asm): the number of owned statues (0-5), which
+   the quest screen shows instead of dComIfGs_getCollectMapNum(). */
+int pc_rando_tingle_statue_count(void);
+
 /* --- R3.9: nonlinear A (make_game_nonlinear.asm) --- */
 
 /* reset_makar_position / reset_medli_position: when Makar (option 1, d_a_npc_cb1) or Medli (option 2,
