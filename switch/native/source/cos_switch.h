@@ -180,6 +180,22 @@ void cos_switch_thread_cpu_ns(uint64_t out[COS_SWITCH_THREAD_ROLES]);
  * preferred core, affinity mask and, for unnamed threads, its entry point (offset in switchwaker.elf). */
 int cos_switch_thread_table(char* out, size_t size, double frames);
 
+/* The randomizer's text input (docs/RANDOMIZER_PLAN.md step R4.2): the system keyboard applet
+ * (swkbd) for a seed name (kind 0: letters, digits and - _ ' % .) or a permalink (kind 1: base64),
+ * at most max_len characters. The applet's OK refuses other characters with a message. Title mode
+ * only, as cos_switch_show_error: an applet cannot start another one (the Homebrew Menu through the
+ * album runs as one).
+ * cos_switch_text_input blocks the calling thread until the player closes the keyboard; the game
+ * thread uses the _start / _poll pair instead, which runs it on a thread of its own, so the frames
+ * (and COS_STALL_S's watchdog) go on meanwhile.
+ * Returns: 1 OK (the UTF-8 text in out), 0 cancelled, -1 not available here or the applet failed. */
+int cos_switch_text_input(const char* header, const char* initial, int max_len, int kind, char* out,
+                          size_t size);
+/* 1 if the keyboard thread was started; 0 if not in title mode or one is still running. */
+int cos_switch_text_input_start(const char* header, const char* initial, int max_len, int kind);
+/* 2 while the keyboard is open; else cos_switch_text_input's result (the text in out on 1), once. */
+int cos_switch_text_input_poll(char* out, size_t size);
+
 #ifdef __cplusplus
 }
 #endif

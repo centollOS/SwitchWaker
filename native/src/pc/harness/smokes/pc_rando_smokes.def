@@ -12,3 +12,4 @@ PC_RANDO_SMOKE(nonlinA, randoSmokeNonlinA) // R3.9: nonlinear A (make_game_nonli
 PC_RANDO_SMOKE(nonlinB, randoSmokeNonlinB) // R3.10: make_game_nonlinear.asm items 12-22
 PC_RANDO_SMOKE(cutscenes, randoSmokeCutscenes) // R3.11: cutscene removal (pearls, letters, warps, item-get music)
 PC_RANDO_SMOKE(bugfixes, randoSmokeBugfixes) // R3.12: vanilla bug fixes (Skull Hammer guard, arrow callback, Sam) and the ReDead switch
+PC_RANDO_SMOKE(text, randoSmokeText) // R4.2: the text input (seed grid through the menu, permalink import)

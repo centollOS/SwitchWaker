@@ -64,9 +64,11 @@ set_property(SOURCE "${COS_NATIVE_ROOT}/src/pc/runtime/pc_main.cpp" "${COS_NATIV
 # pc_overlay.cpp (COS_FPS_OVERLAY), pc_precompile.cpp (the shader loading screen and indicator) and
 # pc_menu.cpp (the options menu) draw with Aurora's ImGui; pc_shot.cpp composites ImGui's draw data
 # into COS_SHOT images with COS_SHOT_IMGUI=1. Headers only: aurora_core links imgui.
+# game_hooks/pc_rando_hooks_text.cpp: the randomizer's text input inside the menu (plan step R4.2).
 if (TARGET imgui)
     set(_pc_imgui_sources "${COS_NATIVE_ROOT}/src/pc/features/pc_overlay.cpp" "${COS_NATIVE_ROOT}/src/pc/features/pc_precompile.cpp"
-            "${COS_NATIVE_ROOT}/src/pc/features/pc_menu.cpp" "${COS_NATIVE_ROOT}/src/pc/harness/pc_shot.cpp")
+            "${COS_NATIVE_ROOT}/src/pc/features/pc_menu.cpp" "${COS_NATIVE_ROOT}/src/pc/harness/pc_shot.cpp"
+            "${COS_NATIVE_ROOT}/src/pc/game_hooks/pc_rando_hooks_text.cpp")
     set_property(SOURCE ${_pc_imgui_sources}
             APPEND PROPERTY INCLUDE_DIRECTORIES "$<TARGET_PROPERTY:imgui,INTERFACE_INCLUDE_DIRECTORIES>")
     set_property(SOURCE ${_pc_imgui_sources}

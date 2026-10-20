@@ -39,6 +39,7 @@
 #include "pc/pc_controls.h"
 #include "pc/pc_qol.h"
 #include "features/pc_button_remap_map.h"
+#include "features/rando/pc_rando_text_ui.h"
 
 #include "d/d_com_inf_game.h"
 #include "d/d_kankyo.h"
@@ -187,6 +188,9 @@ uint32_t readKeyboard() {
     }
     uint32_t k = 0;
     k |= keys[SDL_SCANCODE_F1] ? kCombo : 0;
+    if (randoTextKeyboardCaptured()) {
+        return k; // the randomizer's text field is typed in (pc_rando_text_ui.h): no menu keys but F1
+    }
     k |= keys[SDL_SCANCODE_UP] ? kUp : 0;
     k |= keys[SDL_SCANCODE_DOWN] ? kDown : 0;
     k |= keys[SDL_SCANCODE_LEFT] ? kLeft : 0;
@@ -880,6 +884,9 @@ void setOpen(bool open) {
     }
     m.open = open;
     m.warpPage = false;
+    if (!open) {
+        randoTextCancel(); // the randomizer's text input ends with the menu
+    }
     m.waitRelease = true;
     m.captureAction = -1;
     PADBlockInput(open);
@@ -1167,6 +1174,10 @@ void handleInput(uint32_t keys) {
         setOpen(false);
         return;
     }
+    if (randoTextActive()) {
+        randoTextKeys(p); // the randomizer's text input has the keys (same bits as rando::TextKey)
+        return;
+    }
     if (m.warpPage) {
         const int count = kMainWarpCount + kAllWarpCount;
         if (p & kBack) {
@@ -1401,7 +1412,7 @@ void drawMenu() {
         const char* name = T(kTabNames[t], kTabNamesEn[t]);
         ImGui::PushStyleColor(ImGuiCol_Button, sel ? ImVec4(0.20f, 0.42f, 0.70f, 1.0f) : ImVec4(0.16f, 0.18f, 0.22f, 1.0f));
         if (ImGui::Button(name, ImVec2(ImGui::CalcTextSize(name).x + tabSpare, 0)) && !m.warpPage &&
-            m.captureAction < 0) {
+            m.captureAction < 0 && !randoTextActive()) {
             m.tab = t;
         }
         ImGui::PopStyleColor();
@@ -1413,7 +1424,9 @@ void drawMenu() {
     if (ImGui::BeginChild("##rows", ImVec2(0, -footer), ImGuiChildFlags_None, ImGuiWindowFlags_NoNav)) {
         // Child windows scale their text by their parent's font scale already.
         float valueX = ImGui::GetContentRegionAvail().x * 0.45f;
-        if (m.warpPage) {
+        if (randoTextActive()) {
+            randoTextDraw(&help); // the randomizer's text input instead of the rows
+        } else if (m.warpPage) {
             ImGui::TextColored(kAccent, "%s", T("Viajar a...   (B: volver)", "Travel to...   (B: back)"));
             const int count = kMainWarpCount + kAllWarpCount;
             for (int i = 0; i < count; i++) {
@@ -1869,7 +1882,14 @@ void menuFrame() {
     }
     // The COS_INPUT script drives the menu only in its own smoke test: other scripts press L+R+Z
     // for the game (pad-echo).
-    const uint32_t keys = (sSmoke.on ? readScript() : 0) | readGamepads() | readKeyboard();
+    // The randomizer's text input (pc_rando_text_ui.h) opens the menu to show it, and its smoke reads
+    // the script too.
+    const bool textBefore = randoTextActive();
+    if (textBefore && !m.open) {
+        setOpen(true);
+        m.waitRelease = false; // the menu was not opened by a key
+    }
+    const uint32_t keys = (sSmoke.on || randoTextScripted() ? readScript() : 0) | readGamepads() | readKeyboard();
     captureFrame();
     handleInput(keys);
     if (!m.open) {
@@ -1881,6 +1901,9 @@ void menuFrame() {
         dScnPly_ply_c::setPauseTimer(2);
     }
     drawMenu();
+    if (textBefore && !randoTextActive()) {
+        m.waitRelease = true; // the key that ended it (A on OK, Enter, B) does nothing to the rows
+    }
 }
 
 // ---- the Switch debug server (switch/native/source/cos_debug.cpp): its thread asks, the game thread acts

@@ -1,0 +1,10 @@
+# R4.2 permalink vectors (cos_rando_test_R4_2): "<permalink> <seed> <option bytes, hex>", made by
+# wwrando 1.10.0_9775811 (MIT) with its default options, from the worktree root:
+#   cd ref/wwrando && PYTHONPATH=../../build/rando-deps/gclib:. ../../build/rando-venv/bin/python -c \
+#     'from randomizer import WWRandomizer as W; from options.wwrando_options import Options; import base64
+#      for s in ["TestSeed1","pytestseed","a","x-_%.Z9"]:
+#        p=W.encode_permalink(s,Options()); print(p, s, base64.b64decode(p).split(b"\0",2)[2].hex())'
+MS4xMC4wXzk3NzU4MTEAVGVzdFNlZWQxAEkQUBgAAPsCyCUAAAAAAAEAQQCAAA== TestSeed1 491050180000fb02c8250000000000010041008000
+MS4xMC4wXzk3NzU4MTEAcHl0ZXN0c2VlZABJEFAYAAD7AsglAAAAAAABAEEAgAA= pytestseed 491050180000fb02c8250000000000010041008000
+MS4xMC4wXzk3NzU4MTEAYQBJEFAYAAD7AsglAAAAAAABAEEAgAA= a 491050180000fb02c8250000000000010041008000
+MS4xMC4wXzk3NzU4MTEAeC1fJS5aOQBJEFAYAAD7AsglAAAAAAABAEEAgAA= x-_%.Z9 491050180000fb02c8250000000000010041008000
