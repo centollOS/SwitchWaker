@@ -14,11 +14,44 @@
 
 #include "pc/pc_rando.h"
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* --- R0.1: no hooks (the switch itself is pc_rando.h) --- */
+
+/* --- R0.7: slot binding (game_hooks/pc_rando_hooks_slot.cpp; pure part in
+   features/rando/pc_rando_slot.h). Unlike the other hooks these run whatever pc_rando() is, since
+   they decide it (D7); with no rando record and no pending seed each is a no-op, so a vanilla file
+   is unchanged. --- */
+/* dScnName_c::NameInMain, right before dComIfGs_init of a new file: with a pending seed
+   (pc_rando_slot_set_pending), writes its sidecar into the card directory and activates it, so the
+   init functions dComIfGs_init runs already see pc_rando() == 1; else turns the randomizer off. */
+void pc_rando_slot_new_game_begin(void);
+/* Right after that dComIfGs_init: a randomized new file gets its record in mReserve; a vanilla one
+   gets a stale rando record (left in memory by a slot loaded before) cleared (D4). */
+void pc_rando_slot_new_game_end(void);
+/* dScnName_c::FileSelectMainNormal, right after dComIfGs_setCardToMemory: a slot whose mReserve holds
+   a record activates the sidecar it names from the card directory; any other slot plays vanilla. */
+void pc_rando_slot_card_loaded(void);
+/* dScnTitle_Create and dScnName_Create (file select, not the end-of-game NAMEEX save scene): turns
+   the randomizer off. */
+void pc_rando_slot_scene_entry(void);
+/* pcBootStage (debug stage boot), around its dComIfGs_init: with COS_RANDO_PLACEMENT=<placement
+   json> the file is a randomized new file as with a pending seed (record flag DEBUG_BOOT); exits 2 if
+   the file does not load. Without it: as a vanilla new game. */
+void pc_rando_slot_debug_boot_begin(void);
+void pc_rando_slot_debug_boot_end(void);
+/* The memory card A folder (Aurora's GCI folder: <userPath>/USA/Card A, or the run's card in harness
+   runs), without a trailing slash. Returns the length, 0 when unknown. */
+size_t pc_rando_slot_card_dir(char* buf, size_t cap);
+/* <exe dir>/user (Switch: <COS_SWITCH_ROOT>/user), defined in runtime/pc_main.cpp. */
+const char* pc_user_path(void);
+/* 1 for COS_SMOKE=rando with COS_RANDO_SMOKE=slot, which needs its own card (pc_main.cpp then calls
+   prepareRunCard before CARDInit); defined in harness/smokes/pc_rando_smoke_slot.cpp. */
+int pc_rando_smoke_wants_run_card(void);
 
 /* --- R0.8: item dispatch (game_hooks/pc_rando_hooks_items.cpp; registries in
    features/rando/pc_rando_items.h) --- */

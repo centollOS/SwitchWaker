@@ -1,0 +1,6 @@
+# R0.7 (docs/RANDOMIZER_PLAN.md): slot binding - the mReserve record, the sidecar on the run's card, the
+# new game / load / file select hooks, called in the game's order in a booted game (not forced: it
+# checks "off"). The real save-and-reload through the card is the two-run sequence in the header of
+# native/src/pc/harness/smokes/pc_rando_smoke_slot.cpp.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=slot

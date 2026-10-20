@@ -29,6 +29,23 @@ Columns: file, function, guard form, wwrando reference.
 |---|---|---|---|
 | - | no hunks in `game/`: the switch (`native/include/pc/pc_rando.h`), the `rando` smoke and the test plumbing | - | - |
 
+## R0.7
+
+Slot binding (plan D3, D4, D7). These hooks are not under `pc_rando()`: they decide it. With no rando
+record in `mReserve` and no pending seed each one is a no-op, so a vanilla file is unchanged. Bodies in
+`native/src/pc/game_hooks/pc_rando_hooks_slot.cpp`; the debug boot calls them from `pcBootStage`
+(`native/src/pc/game_hooks/pc_logo_hooks.cpp`, outside `game/`).
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/d_s_name.cpp | `NameInMain`: `pc_rando_slot_new_game_begin` before `dComIfGs_init` (activates a pending seed, writes its sidecar), `pc_rando_slot_new_game_end` after it (writes the record, or clears a stale one) | add | none (wwrando patches the disc; plan D3/D4/D7) |
+| game/src/d/d_s_name.cpp | `FileSelectMainNormal`: `pc_rando_slot_card_loaded` after `dComIfGs_setCardToMemory` | add | none (plan D7) |
+| game/src/d/d_s_name.cpp | `dScnName_Create`: `pc_rando_slot_scene_entry` for the NAME scene (not NAMEEX) | add | none (plan D7) |
+| game/src/d/d_s_title.cpp | `dScnTitle_Create`: `pc_rando_slot_scene_entry` for the TITLE scene (not ENDING) | add | none (plan D7) |
+
+PAL: the file select load and the name entry are the same functions in `d_s_name.cpp` for every
+version, so `game/src/pal/d/d_file_select.inc` needs no hunk.
+
 ## R0.8
 
 | File | Function | Guard | wwrando |

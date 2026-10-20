@@ -17,6 +17,9 @@
 #include "d/d_meter.h"
 #include "m_Do/m_Do_controller_pad.h"
 #include "d/actor/d_a_movie_player.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 
 #if VERSION == VERSION_PAL
     #define title_of_scene_class dScnTitle_c
@@ -113,6 +116,12 @@ static cPhs_State dScnTitle_Create(scene_class* i_scn) {
     if (JAInter::BankWave::checkAllWaveLoadStatus())
         return cPhs_INIT_e;
 
+#if TARGET_PC
+    // pc_rando(R0.7): plan D7 (off at the title; not for the ENDING scene); original: none
+    if (fpcM_GetName(i_this) == fpcNm_TITLE_SCENE_e) {
+        pc_rando_slot_scene_entry();
+    }
+#endif
     dMenu_flagSet(0);
     fopAc_ac_c::setStopStatus(0);
 #if VERSION > VERSION_DEMO

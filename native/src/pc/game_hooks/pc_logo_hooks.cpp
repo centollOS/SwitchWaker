@@ -5,6 +5,7 @@
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "pc/game_hooks.h"
 #include "pc/pc_harness.h"
+#include "pc/pc_rando_hooks.h"
 #include "res/Object/Logo.h"
 #include "d/d_com_inf_game.h"
 #include "d/d_item.h"
@@ -138,7 +139,10 @@ static void pcBootStage(dScnLogo_c* i_this) {
     if (l_pcBootStageRequested || fopOvlpM_IsPeek()) {
         return;
     }
+    // Randomizer R0.7: COS_RANDO_PLACEMENT=<json> makes this a randomized new file (D7).
+    pc_rando_slot_debug_boot_begin();
     dComIfGs_init();
+    pc_rando_slot_debug_boot_end();
     dComIfGp_itemDataInit();
     // COS_BOOT_EVENTS: story event bits for a boot later in the story (bug B6: 2A80 makes Aryll
     // give the telescope on the lookout, which leads to the zelda_fly event).

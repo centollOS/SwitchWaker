@@ -38,6 +38,7 @@
 #include "pc/pc_harness.h"
 #include "pc/pc_qol.h"
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 
 dSn_HIO_c g_snHIO;
@@ -1227,6 +1228,10 @@ void dScnName_c::FileSelectMainNormal() {
             mMainProc = 5;
         } else {
             dComIfGs_setCardToMemory(saveMemory, dFs_c->getSelectNum());
+#if TARGET_PC
+            // pc_rando(R0.7): plan D7 (a slot with a rando record activates its sidecar); original: none
+            pc_rando_slot_card_loaded();
+#endif
             if (dFs_c->isDataExtra(dFs_c->getSelectNum()) && !dComIfGs_isEventBit(dSv_event_flag_c::UNK_3510)) {
                 field_0x1bb9 = 1;
             }
@@ -1386,7 +1391,15 @@ void dScnName_c::NameInMain() {
     dNm_c->_move();
     if (dNm_c->isInputEnd() == 1) {
         if (!field_0x1bb9) {
+#if TARGET_PC
+            // pc_rando(R0.7): plan D7 (activate a pending seed before the init); original: none
+            pc_rando_slot_new_game_begin();
+#endif
             dComIfGs_init();
+#if TARGET_PC
+            // pc_rando(R0.7): plan D3/D4 (slot record, or clear a stale one); original: none
+            pc_rando_slot_new_game_end();
+#endif
             dComIfGp_itemDataInit();
         }
 
@@ -1559,6 +1572,12 @@ static cPhs_State dScnName_Create(scene_class* i_scn) {
     dScnName_c* i_this = new (i_scn) dScnName_c;
 #else
     dScnName_c* i_this = new (i_scn) dScnName_c();
+#endif
+#if TARGET_PC
+    // pc_rando(R0.7): plan D7 (off at file select; not for the end-of-game NAMEEX save); original: none
+    if (fpcM_GetName(i_this) == fpcNm_NAME_SCENE_e) {
+        pc_rando_slot_scene_entry();
+    }
 #endif
     return i_this->create();
 }
