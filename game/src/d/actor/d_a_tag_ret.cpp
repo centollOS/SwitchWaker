@@ -9,6 +9,9 @@
 #include "d/d_item_data.h"
 #include "d/d_cc_d.h"
 #include "d/d_com_inf_game.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 #include "d/actor/d_a_player_main.h"
 
 static dCcD_SrcCyl cyl_check_src = {
@@ -48,7 +51,13 @@ cPhs_State Act_c::_create() {
     fopAcM_ct(this, daTagRet::Act_c);
 
     #if VERSION > VERSION_DEMO
+#if TARGET_PC
+    // pc_rando(R3.9): make_game_nonlinear.asm d_a_tag_ret 0x22C (the void stays after Farore's Pearl);
+    // original: if (checkItemGet(dItemNo_PEARL_FARORE_e, TRUE)) stop
+    if (!pc_rando() && checkItemGet(dItemNo_PEARL_FARORE_e, TRUE)) {
+#else
     if (checkItemGet(dItemNo_PEARL_FARORE_e, TRUE)) {
+#endif
         return cPhs_STOP_e;
     }
     #endif

@@ -9,6 +9,9 @@
 #include "d/actor/d_a_ship.h"
 #include "d/d_camera.h"
 #include "d/d_com_inf_game.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 #include "d/d_kankyo_wether.h"
 #include "d/d_cc_d.h"
 #include "d/d_s_play.h"
@@ -266,7 +269,13 @@ cPhs_State daNpc_Cb1_c::create() {
 #if VERSION == VERSION_DEMO
         if(dComIfGs_isStageBossEnemy(dSv_save_c::STAGE_WT))
 #else
+#if TARGET_PC
+        // pc_rando(R3.9): make_game_nonlinear.asm d_a_npc_cb1 0x640 (Makar stays after the Master Sword
+        // (Full Power)); original: if(dComIfGs_checkGetItem(dItemNo_MASTER_SWORD_3_e))
+        if(!pc_rando() && dComIfGs_checkGetItem(dItemNo_MASTER_SWORD_3_e))
+#else
         if(dComIfGs_checkGetItem(dItemNo_MASTER_SWORD_3_e))
+#endif
 #endif
         {
             if(!isTypeKazeBoss()) {
@@ -309,15 +318,23 @@ cPhs_State daNpc_Cb1_c::create() {
     cPhs_State result = dComIfG_resLoad(&mPhs, "Cb");
     if(result == cPhs_COMPLEATE_e) {
         if(isTypeKaze()) {
-            if(dComIfGs_getPlayerPriestFlag() == 1) {
 #if TARGET_PC
+            if (pc_rando()) {
+                // pc_rando(R3.9): make_game_nonlinear.asm d_a_npc_cb1 0x7B4/0x7D4 reset_makar_position (the
+                // saved partner position is reset to the Wind Temple entry the player came from);
+                // original: nothing (and setRestartOption only when the flag is 1)
+                pc_rando_reset_partner_position(1);
+            }
+            if(pc_rando() || dComIfGs_getPlayerPriestFlag() == 1) {
                 // The saved position is big-endian (d_save.h): pass a host copy.
                 cXyz priestPos = dComIfGs_getPlayerPriestPos();
                 dComIfGs_setRestartOption(&priestPos, dComIfGs_getPlayerPriestRotate(), dComIfGs_getPlayerPriestRoomNo(), 1);
-#else
-                dComIfGs_setRestartOption(&dComIfGs_getPlayerPriestPos(), dComIfGs_getPlayerPriestRotate(), dComIfGs_getPlayerPriestRoomNo(), 1);
-#endif
             }
+#else
+            if(dComIfGs_getPlayerPriestFlag() == 1) {
+                dComIfGs_setRestartOption(&dComIfGs_getPlayerPriestPos(), dComIfGs_getPlayerPriestRotate(), dComIfGs_getPlayerPriestRoomNo(), 1);
+            }
+#endif
 
 #if VERSION > VERSION_DEMO
             checkRestart(1);

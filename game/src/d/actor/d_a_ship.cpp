@@ -24,6 +24,7 @@
 #include "res/Object/Ship.h"
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
 
 // QoL "Vela" (pc_qol.h; wwrando swift_sail.asm / BetterWW brisk_sail.asm and their tweaks): the swift
 // and brisk sails double the REL's pooled 55.0 and 80.0 (its sailing and initial speed, so every use
@@ -1041,7 +1042,9 @@ BOOL daShip_c::checkOutRange() {
                 // QoL "Barco sin restricciones" (pc_qol.h; BetterWW KORL_control.asm): the three
                 // story paths (0: until Dragon Roost's arrival, 1: until Farore's Pearl, 2: until
                 // the Master Sword) count as passed; path 3 and later (the edge of the sea) stay
-                (pc_qol(PC_QOL_FREE_BOAT) && pathIndex <= 2) ||
+                // pc_rando(R3.9): make_game_nonlinear.asm d_a_ship 0x29EC/0x2A08/0x2A24 (the same three
+                // branches made unconditional); original: pc_qol(PC_QOL_FREE_BOAT) alone
+                ((pc_rando() || pc_qol(PC_QOL_FREE_BOAT)) && pathIndex <= 2) ||
 #endif
                 (pathIndex == 0 && dComIfGs_isEventBit(dSv_event_flag_c::UNK_0902)) ||
                 (pathIndex == 1 && dComIfGs_isSymbol(dSymbol_FARORE_e)) ||
@@ -4277,12 +4280,22 @@ BOOL daShip_c::execute() {
     }
     else {
         attention_info.position = current.pos;
+#if TARGET_PC
+        if (!dComIfGp_checkPlayerStatus0(0, daPyStts0_SHIP_RIDE_e) &&
+            // pc_rando(R3.9): make_game_nonlinear.asm d_a_ship 0xB29C (boarding needs the Sail,
+            // isItem(1, 0), since the new game sets 0x0908); original: isEventBit(0x0908)
+            (pc_rando() ? dComIfGs_isGetItem(1, 0) : dComIfGs_isEventBit(dSv_event_flag_c::UNK_0908)) &&
+            !checkStateFlg(daSFLG_UNK800000_e)) {
+#else
         if (!dComIfGp_checkPlayerStatus0(0, daPyStts0_SHIP_RIDE_e) && dComIfGs_isEventBit(dSv_event_flag_c::UNK_0908) && !checkStateFlg(daSFLG_UNK800000_e)) {
+#endif
 #if TARGET_PC
             // QoL "Barco sin restricciones" (KORL_control.asm, REL 0xB2D8): the boat offers "get in"
             // whatever the wind, also between Dragon Roost's arrival (0x0902) and the first boarding
             // after the boat's wind talk (0x1980)
-            if (pc_qol(PC_QOL_FREE_BOAT) ||
+            // pc_rando(R3.9): make_game_nonlinear.asm d_a_ship 0xB2D8 (the same branch made
+            // unconditional); original: pc_qol(PC_QOL_FREE_BOAT) alone
+            if (pc_rando() || pc_qol(PC_QOL_FREE_BOAT) ||
                 dComIfGs_isEventBit(dSv_event_flag_c::UNK_1980) || !dComIfGs_isEventBit(dSv_event_flag_c::UNK_0902)) {
 #else
             if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_1980) || !dComIfGs_isEventBit(dSv_event_flag_c::UNK_0902)) {

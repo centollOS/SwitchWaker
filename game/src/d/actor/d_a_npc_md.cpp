@@ -6,6 +6,9 @@
 #include "d/dolzel_rel.h" // IWYU pragma: keep
 #include "d/actor/d_a_npc_md.h"
 #include "d/d_com_inf_game.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 #include "d/d_item_data.h"
 #include "m_Do/m_Do_controller_pad.h"
 #include "m_Do/m_Do_mtx.h"
@@ -562,7 +565,13 @@ cPhs_State daNpc_Md_c::create() {
     if ((int)getTalkType() == -2) { // !@bug: Comparing unsigned value with -2 is always false.
         dComIfGs_onEventBit(dSv_event_flag_c::UNK_1620);
     } else {
+#if TARGET_PC
+        // pc_rando(R3.9): make_game_nonlinear.asm d_a_npc_md 0xA24 (Medli stays after the Master Sword
+        // (Half Power)); original: if (dComIfGs_isCollect(0, 2))
+        if (!pc_rando() && dComIfGs_isCollect(0, 2)) {
+#else
         if (dComIfGs_isCollect(0, 2)) {
+#endif
             if (strcmp(dComIfGp_getStartStageName(), "M_DaiB") != 0) {
                 return cPhs_ERROR_e;
             } else {
@@ -631,15 +640,23 @@ cPhs_State daNpc_Md_c::create() {
 
         if (isTypeM_Dai()) {
             u8 flag = dComIfGs_getPlayerPriestFlag();
-            if (flag == 2) {
 #if TARGET_PC
+            if (pc_rando()) {
+                // pc_rando(R3.9): make_game_nonlinear.asm d_a_npc_md 0xD94/0xDB4 reset_medli_position (the
+                // saved partner position is reset to the Earth Temple entry the player came from);
+                // original: nothing (and setRestartOption only when flag == 2)
+                pc_rando_reset_partner_position(2);
+            }
+            if (pc_rando() || flag == 2) {
                 // The saved position is big-endian (d_save.h): pass a host copy.
                 cXyz priestPos = dComIfGs_getPlayerPriestPos();
                 dComIfGs_setRestartOption(&priestPos, dComIfGs_getPlayerPriestRotate(), dComIfGs_getPlayerPriestRoomNo(), 2);
-#else
-                dComIfGs_setRestartOption(&dComIfGs_getPlayerPriestPos(), dComIfGs_getPlayerPriestRotate(), dComIfGs_getPlayerPriestRoomNo(), 2);
-#endif
             }
+#else
+            if (flag == 2) {
+                dComIfGs_setRestartOption(&dComIfGs_getPlayerPriestPos(), dComIfGs_getPlayerPriestRotate(), dComIfGs_getPlayerPriestRoomNo(), 2);
+            }
+#endif
             checkRestart(2);
         }
 

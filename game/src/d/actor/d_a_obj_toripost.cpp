@@ -10,6 +10,9 @@
 #include "f_op/f_op_actor_mng.h"
 #include "d/actor/d_a_player.h"
 #include "d/d_com_inf_game.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 #include "d/d_lib.h"
 #include "d/d_letter.h"
 #include "d/d_item_data.h"
@@ -867,7 +870,13 @@ bool daObjTpost_c::_execute() {
 #if VERSION == VERSION_DEMO
     mNumReadable = getReadableLetterNum();
 #else
+#if TARGET_PC
+    // pc_rando(R3.9): make_game_nonlinear.asm d_a_obj_toripost 0x187C (mail without Din's Pearl);
+    // original: if(dComIfGs_isSymbol(dSymbol_DIN_e))
+    if(pc_rando() || dComIfGs_isSymbol(dSymbol_DIN_e)) {
+#else
     if(dComIfGs_isSymbol(dSymbol_DIN_e)) {
+#endif
         mNumReadable = getReadableLetterNum();
     }
     else {

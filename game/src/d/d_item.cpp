@@ -10,6 +10,7 @@
 #include "d/d_item_data.h"
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
 #endif
 
 typedef void (ItemGetFunc)();
@@ -2914,12 +2915,24 @@ u8 check_itemno(int itemNo) {
             return dItemNo_GREEN_RUPEE_e;
         }
     }
+#if TARGET_PC
+    // pc_rando(R3.9): make_game_nonlinear.asm 0x800C7E58/0x800C7E84 (bait and spoils drop without their
+    // bags); original: !checkItemGet(dItemNo_BAIT_BAG_e / dItemNo_SPOILS_BAG_e, TRUE)
+    if (!pc_rando() && !checkItemGet(dItemNo_BAIT_BAG_e, TRUE)) {
+#else
     if (!checkItemGet(dItemNo_BAIT_BAG_e, TRUE)) {
+#endif
         if (isEsa(itemNo)) {
             return dItemNo_GREEN_RUPEE_e;
         }
     }
+#if TARGET_PC
+    // pc_rando(R3.9): make_game_nonlinear.asm 0x800C7E84 (spoils drop without the bag); original:
+    // !checkItemGet(dItemNo_SPOILS_BAG_e, TRUE)
+    if (!pc_rando() && !checkItemGet(dItemNo_SPOILS_BAG_e, TRUE)) {
+#else
     if (!checkItemGet(dItemNo_SPOILS_BAG_e, TRUE)) {
+#endif
         if (isEmono(itemNo)) {
             return dItemNo_GREEN_RUPEE_e;
         }
