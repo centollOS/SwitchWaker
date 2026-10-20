@@ -10,6 +10,8 @@
 #include "d/d_item_data.h"
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 
 typedef void (ItemGetFunc)();
@@ -535,11 +537,23 @@ ItemGetCheckFunc* item_getcheck_func_ptr[0x100] = {
 
 /* 800C2DFC-800C2E30       .text execItemGet__FUc */
 void execItemGet(u8 itemNo) {
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R0.8): tweaks.py make_items_progressive / allow_dungeon_items_to_appear_anywhere / update_tingle_statue_item_get_funcs (item_func_ptr redirects); original: item_func_ptr[itemNo]()
+        return pc_rando_exec_item_get(itemNo);
+    }
+#endif
     item_func_ptr[itemNo]();
 }
 
 /* 800C2E30-800C2E7C       .text checkItemGet__FUci */
 BOOL checkItemGet(u8 itemNo, BOOL defaultVal) {
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R0.8): item_getcheck_func_ptr overrides for the randomizer's items; original: item_getcheck_func_ptr[itemNo]()
+        return pc_rando_check_item_get(itemNo, defaultVal);
+    }
+#endif
     int result = item_getcheck_func_ptr[itemNo]();
     if (result == -1) {
         return defaultVal;

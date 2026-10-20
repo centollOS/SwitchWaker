@@ -1,0 +1,4 @@
+# R0.8 (docs/RANDOMIZER_PLAN.md): item dispatch overrides and item/shop table snapshots, plain and forced.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=items
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=items --env COS_RANDO_FORCE=1
