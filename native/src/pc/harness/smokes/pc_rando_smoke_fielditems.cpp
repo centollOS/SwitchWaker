@@ -12,7 +12,7 @@
 //      resources lack the models their entries name):
 //      - field (COS_FIELDITEMS_MODE=field|chest|both, default both): the item is created with
 //        fopAcM_createItem on the player (action 2: it pops up and falls back on him); it must be a
-//        field item of that id with getYOffset 23.0, and touching it must start the item-get demo
+//        field item of that id (or of its next tier, for R3.3's progressive ids) with getYOffset 23.0, and touching it must start the item-get demo
 //        (DEFAULT_GETITEM, dComIfGp_event_getGtItm() == id) within kStartFrames; A through the
 //        messages; the event must end within kEventSeconds of wall time;
 //      - chest: a big chest (takara3 0xFF200200, chest flag 4, as COS_SMOKE=item-sweep) with the id is
@@ -85,6 +85,11 @@ s16 sChestYaw = 0;
 int sRoom = 0;
 bool sHaveSpot = false;
 bool sSawItem = false;
+// The id the field item and its demo carry: R3.3's progressive items turn a progressive id into the
+// tier the save gets next when the field item is created (daItem_c::_daItem_create), so 0x39 or 0x3E
+// with no sword is the Hero's Sword 0x38. Set at spawn, before the item is got. A chest's event keeps
+// the id it was created with.
+int sExpect = 0;
 bool sShots = false;
 unsigned int sMesgFrame = 0;
 int sFd = -1;
@@ -291,6 +296,7 @@ void spawn(const Job& j) {
     }
     dComIfGp_event_setGtItm(dItemNo_NONE_e);
     sSawItem = false;
+    sExpect = j.mode == kField ? pc_rando_convert_progressive_item_id(j.id) : j.id;
     sMesgFrame = 0;
     sEventFrames = 0;
     layer_class* saved = fpcLy_CurrentLayer();
@@ -380,10 +386,12 @@ void randoSmokeFielditems(unsigned int frames) {
             if (void* p = findProc()) {
                 daItem_c* item = (daItem_c*)p;
                 sSawItem = true;
-                if (fopAcM_GetName(item) != fpcNm_ITEM_e || item->getItemNo() != job->id) {
+                if (fopAcM_GetName(item) != fpcNm_ITEM_e || item->getItemNo() != sExpect) {
                     fail(*job, "wrong-item name=%d no=0x%02X", (int)fopAcM_GetName(item),
                          (unsigned)item->getItemNo());
-                } else if (item->getYOffset() != PC_RANDO_FIELD_ITEM_Y_OFFSET) {
+                } else if (sExpect == job->id && item->getYOffset() != PC_RANDO_FIELD_ITEM_Y_OFFSET) {
+                    // (a converted progressive item is another id, with that id's own getYOffset case:
+                    // 20.0 for the Hero's Sword)
                     fail(*job, "y-offset %.1f", item->getYOffset());
                 }
             }
@@ -435,7 +443,7 @@ void randoSmokeFielditems(unsigned int frames) {
         }
         if (!dComIfGp_event_runCheck()) {
             const u8 gt = dComIfGp_event_getGtItm();
-            if (gt != job->id) {
+            if (gt != sExpect) {
                 fail(*job, "wrong-demo-item 0x%02X", (unsigned)gt);
             } else if (sMesgFrame == 0) {
                 fail(*job, "no-message");
