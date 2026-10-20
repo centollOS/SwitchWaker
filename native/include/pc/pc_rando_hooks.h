@@ -28,6 +28,17 @@ void pc_rando_exec_item_get(uint8_t item_no);
    `default_val`. */
 int pc_rando_check_item_get(uint8_t item_no, int default_val);
 
+/* --- R0.12: the message overlay (features/rando/pc_rando_msg.h; bodies in pc_rando_msg.cpp, which
+   needs no game code) --- */
+/* The overlay's encoded text for msg_no (BMG bytes ending with a NUL), or NULL: keep the BMG's.
+   Called by fopMsgM_msgGet_c::getMessage and fopMsgM_itemMsgGet_c::getMessage under pc_rando(). */
+const char* pc_rando_msg_hook_text(uint16_t msg_no);
+/* Rewrites `entry` (a JMSMesgEntry_c: the 0x18-byte big-endian BMG INF1 entry the BMG gave for
+   msg_no, or for the last message when the BMG has none) from the overlay: the record's entry fields
+   when it has some; wwrando's new-message defaults when it has only text and the BMG entry is for
+   another number; else unchanged. Called by both getMesgEntry under pc_rando(). */
+void pc_rando_msg_hook_entry(uint16_t msg_no, void* entry);
+
 #ifdef __cplusplus
 }
 #endif

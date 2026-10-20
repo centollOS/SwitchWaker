@@ -1,0 +1,4 @@
+# R0.12 (docs/RANDOMIZER_PLAN.md): the message overlay in a booted game, plain and forced.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=msg
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=msg --env COS_RANDO_FORCE=1

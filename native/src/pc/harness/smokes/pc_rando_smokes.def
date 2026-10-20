@@ -6,3 +6,4 @@
 // (pc_rando_smokes.h). Append-only: each step adds one line; on a merge keep both sides.
 PC_RANDO_SMOKE(null, randoSmokeNull) // R0.1: the switch, the defaults and activation
 PC_RANDO_SMOKE(items, randoSmokeItems) // R0.8: item dispatch overrides and item/shop table snapshots
+PC_RANDO_SMOKE(msg, randoSmokeMsg) // R0.12: the message overlay (3906 text, new 849, d_msg)
