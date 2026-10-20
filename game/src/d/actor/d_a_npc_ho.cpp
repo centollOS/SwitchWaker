@@ -8,6 +8,9 @@
 #include "res/Object/Ho.h"
 #include "d/d_snap.h"
 #include "m_Do/m_Do_controller_pad.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 static fpc_ProcID l_msgId;
 static msg_class* l_msg;
@@ -398,7 +401,13 @@ u32 daNpc_Ho_c::getMsg() {
             return (dComIfGs_getEventReg(dSv_event_flag_c::UNK_C0FF) == 0 ? 0 : 1) + 0x2712;
 
         case HO_STATE_TALK_03:
+#if TARGET_PC
+            // pc_rando(R3.11): remove_cutscenes.asm d_a_npc_ho 0xDB4 (li r4, 0x1F80): Joy Pendants once the
+            // Killer Bees reward is given, not after Ivan's cutscene; original: UNK_1E04
+            if(dComIfGp_event_getPreItemNo() != dItemNo_JOY_PENDANT_e || !dComIfGs_isEventBit(pc_rando() ? dSv_event_flag_c::UNK_1F80 : DEMO_SELECT(dSv_event_flag_c::UNK_1E02, dSv_event_flag_c::UNK_1E04))) {
+#else
             if(dComIfGp_event_getPreItemNo() != dItemNo_JOY_PENDANT_e || !dComIfGs_isEventBit(DEMO_SELECT(dSv_event_flag_c::UNK_1E02, dSv_event_flag_c::UNK_1E04))) {
+#endif
                 return 0x2739;
             } 
 
@@ -617,7 +626,12 @@ bool daNpc_Ho_c::wait01() {
         setAnmStatus();
     } else {
         SetOrder(HO_FLAG_00000001);
+#if TARGET_PC
+        // pc_rando(R3.11): remove_cutscenes.asm d_a_npc_ho 0x15FC (li r4, 0x1F80); original: UNK_1E04
+        if (dComIfGs_isEventBit(pc_rando() ? dSv_event_flag_c::UNK_1F80 : DEMO_SELECT(dSv_event_flag_c::UNK_1E02, dSv_event_flag_c::UNK_1E04)) && !dKy_checkEventNightStop()) {
+#else
         if (dComIfGs_isEventBit(DEMO_SELECT(dSv_event_flag_c::UNK_1E02, dSv_event_flag_c::UNK_1E04)) && !dKy_checkEventNightStop()) {
+#endif
             SetOrder(HO_FLAG_00000004);
         }
     }

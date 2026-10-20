@@ -3,14 +3,29 @@
 #include "d/d_letter.h"
 #include "SSystem/SComponent/c_lib.h"
 #include "d/d_item_data.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 /* 80197AB8-80197FE4       .text dKankyo_DayProc__Fv */
 static void dKankyo_DayProc() {
+#if TARGET_PC
+    // pc_rando(R3.11): remove_cutscenes.asm 0x80197ADC/0x80197AFC: Aryll's and Tingle's letters once
+    // Helmaroc King is dead (the Hyrule 2 cutscene is removed); original: isEventBit(UNK_1820)
+    const BOOL aryllLetterReady = pc_rando() ? dComIfGs_isStageBossEnemy(dSv_save_c::STAGE_FF)
+                                             : dComIfGs_isEventBit(dSv_event_flag_c::UNK_1820);
+    if (aryllLetterReady)
+        dLetter_autoStock(dSv_event_flag_c::LETTER_ARYLL);
+
+    if (aryllLetterReady && dComIfGs_isEventBit(dSv_event_flag_c::UNK_0B80))
+        dLetter_autoStock(dSv_event_flag_c::LETTER_TINGLE);
+#else
     if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_1820))
         dLetter_autoStock(dSv_event_flag_c::LETTER_ARYLL);
 
     if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_1820) && dComIfGs_isEventBit(dSv_event_flag_c::UNK_0B80))
         dLetter_autoStock(dSv_event_flag_c::LETTER_TINGLE);
+#endif
 
     dLetter_delivery(dSv_event_flag_c::LETTER_BAITOS_MOM);
     dLetter_delivery(dSv_event_flag_c::LETTER_HOSKITS_GIRLFRIEND);

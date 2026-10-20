@@ -15,6 +15,9 @@
 #include "pc/pc_rando.h"
 #endif
 #include "f_op/f_op_actor_mng.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 
 typedef void (daWarpdm20_c::*EventInitFunc)(int);
 typedef BOOL (daWarpdm20_c::*EventActionFunc)(int);
@@ -118,7 +121,13 @@ void daWarpdm20_c::CreateInit() {
     m2E0 = current.pos;
     m2EC.set(1.0f, 1.0f, 1.0f);
     m2C8 = 0;
+#if TARGET_PC
+    // pc_rando(R3.11): remove_cutscenes.asm d_a_warpdm20 0x634 (bl check_hyrule_warp_unlocked: all 8
+    // Triforce shards, since the new game sets 0x2D08); original: dComIfGs_isEventBit(UNK_2D08)
+    if (pc_rando() ? pc_rando_hyrule_warp_unlocked() : dComIfGs_isEventBit(dSv_event_flag_c::UNK_2D08)) {
+#else
     if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_2D08)) {
+#endif
         m2CC = 1;
         setEndAnm();
     }
@@ -194,7 +203,13 @@ void daWarpdm20_c::normal_execute() {
     f32 abs = (player->current.pos - current.pos).absXZ();
     f32 max = 2000.0f;
 
+#if TARGET_PC
+    // pc_rando(R3.11): remove_cutscenes.asm d_a_warpdm20 0xB50 (bl check_hyrule_warp_unlocked);
+    // original: dComIfGs_isEventBit(UNK_2D08)
+    if (pc_rando() ? pc_rando_hyrule_warp_unlocked() : dComIfGs_isEventBit(dSv_event_flag_c::UNK_2D08)) {
+#else
     if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_2D08)) {
+#endif
         m2CC = 1;
         animPlay();
         if (emitter != NULL) {

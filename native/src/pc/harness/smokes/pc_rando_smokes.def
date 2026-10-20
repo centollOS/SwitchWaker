@@ -10,3 +10,4 @@ PC_RANDO_SMOKE(msg, randoSmokeMsg) // R0.12: the message overlay (3906 text, new
 PC_RANDO_SMOKE(swop, randoSmokeSwop) // R3.7: custom actors SwOp and DngSw
 PC_RANDO_SMOKE(nonlinA, randoSmokeNonlinA) // R3.9: nonlinear A (make_game_nonlinear.asm items 1-11)
 PC_RANDO_SMOKE(nonlinB, randoSmokeNonlinB) // R3.10: make_game_nonlinear.asm items 12-22
+PC_RANDO_SMOKE(cutscenes, randoSmokeCutscenes) // R3.11: cutscene removal (pearls, letters, warps, item-get music)

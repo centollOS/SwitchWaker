@@ -11,6 +11,9 @@
 #include "d/actor/d_a_player.h"
 #include "f_op/f_op_camera.h"
 #include "d/d_kankyo_rain.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 static dCcD_SrcCyl l_cyl_src = {
     // dCcD_SrcGObjInf
@@ -736,8 +739,21 @@ bool daObjDoguu_c::_execute() {
     
             if (getFinishEventCount() >= 3) {
                 dComIfGs_onEventBit(dSv_event_flag_c::UNK_1E40);
+#if TARGET_PC
+                if (pc_rando()) {
+                    // pc_rando(R3.11): remove_cutscenes.asm d_a_obj_doguu 0x267C (b 0x26A0): no tower-rise
+                    // cutscene, end the pearl-placing event as for the first two pearls; original:
+                    // order mMegamiDemoEventIdx, state 11
+                    field_0x8AC = 10;
+                    dComIfGp_event_reset();
+                } else {
+                    fopAcM_orderChangeEventId(this, mMegamiDemoEventIdx, 0, 0xFFFF);
+                    field_0x8AC = 11;
+                }
+#else
                 fopAcM_orderChangeEventId(this, mMegamiDemoEventIdx, 0, 0xFFFF);
                 field_0x8AC = 11;
+#endif
             } else {
                 field_0x8AC = 10;
                 dComIfGp_event_reset();

@@ -20,6 +20,9 @@
 #include "d/d_a_obj.h"
 #include "m_Do/m_Do_ext.h"
 #include "m_Do/m_Do_mtx.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 class daObjTpost_HIO_c {
 public:
@@ -945,7 +948,14 @@ void daObjTpost_c::createInit() {
         dLetter_autoStock(dSv_event_flag_c::LETTER_BAITO);
     }
 
+#if TARGET_PC
+    // pc_rando(R3.11): remove_cutscenes.asm d_a_obj_toripost 0x1B0C/0x1B10: Orca's letter once Kalle
+    // Demos is dead (the Greatfish cutscene is removed); original: isEventBit(UNK_1E80)
+    if(pc_rando() ? dComIfGs_isStageBossEnemy(dSv_save_c::STAGE_FW)
+                  : dComIfGs_isEventBit(DEMO_SELECT(dSv_event_flag_c::MASTER_SWORD_CUTSCENE, dSv_event_flag_c::UNK_1E80))) {
+#else
     if(dComIfGs_isEventBit(DEMO_SELECT(dSv_event_flag_c::MASTER_SWORD_CUTSCENE, dSv_event_flag_c::UNK_1E80))) {
+#endif
         dLetter_autoStock(dSv_event_flag_c::LETTER_ORCA);
     }
 

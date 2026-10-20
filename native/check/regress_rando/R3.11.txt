@@ -1,0 +1,4 @@
+# R3.11 (docs/RANDOMIZER_PLAN.md): cutscene removal, randomizer off then on, and forced on.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=cutscenes
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=cutscenes --env COS_RANDO_FORCE=1
