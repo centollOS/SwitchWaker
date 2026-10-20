@@ -82,6 +82,7 @@ struct BindTables {
         t[PCR_TBL_SHOP_ITEM_DATA] = {sShopItem, PCR_SHOP_ITEM_COUNT, sizeof(ShopItems_c__ItemData)};
         t[PCR_TBL_SHOP_SET_DATA] = {sShopSet, PCR_SHOP_SET_COUNT, sizeof(__shop_items_set_data)};
         pc_rando_items_bind_tables(t, PCR_TBL_COUNT);
+        pc_rando_dungeon_items_register(); // R3.4: links and registers the dungeon item IDs
     }
 } sBindTables;
 

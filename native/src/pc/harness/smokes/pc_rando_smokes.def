@@ -18,3 +18,4 @@ PC_RANDO_SMOKE(modes, randoSmokeModes) // R6.15: the small modes (hero mode, mus
 PC_RANDO_SMOKE(slot, randoSmokeSlot) // R0.7: slot binding (record in mReserve, sidecar, new game / load / title hooks)
 PC_RANDO_SMOKE(fielditems, randoSmokeFielditems) // R2.11: any item anywhere (field models, item-get demo as a field item and from a chest)
 PC_RANDO_SMOKE(progressive, randoSmokeProgressive) // R3.3: progressive items (tiers, item funcs, no-ops, demo/shop/field items, message 278)
+PC_RANDO_SMOKE(dkeys, randoSmokeDkeys) // R3.4: the 22 per-dungeon item IDs (keys, Big Keys, maps, compasses)

@@ -234,6 +234,12 @@ means `pc_rando() || pc_qol(PC_QOL_FIX_BUGS)`.
 | game/src/d/actor/d_a_ph.cpp | `daPH_Create`, `dead_item`, `daPH_Execute`, `daPH_Draw` | `add` | flexible_enemies.asm peahat_check_disable_spawn_switch, peahat_set_death_switch, peahat_check_enable_spawn_switch(_for_draw) (d_a_ph 0x68B0, 0x4118, 0x5B2C, 0x358) |
 | game/src/d/actor/d_a_nzg.cpp | `daNZG_Create` (group), `nzg_00_move` | `add`, `if/else` | flexible_enemies.asm g_profile_NZG 0xD08, rat_hole_all_rats_dead (d_a_nzg 0x1FC) |
 
+## R3.4
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| - | no hunks in `game/`: the 22 per-dungeon item IDs are item-get overrides through R0.8's `execItemGet` dispatch, table edits (`pc_rando_table_edit`) and overlay messages (`game_hooks/pc_rando_hooks_dungeon_items.cpp`, `features/rando/pc_rando_dungeon_items.{h,cpp}`) | - | `tweaks.py` `allow_dungeon_items_to_appear_anywhere`; `custom_funcs.asm` `generic_on_dungeon_bit`, `generic_small_key_item_get_func` and the 22 `*_item_get_func` wrappers |
+
 ## R4.2
 
 | File | Function | Guard | wwrando |
