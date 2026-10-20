@@ -11,8 +11,9 @@ entrances, extra starting items) and checks:
   2. the pool multiset is placed: every progress and nonprogress item exactly as often as the pool
      holds it; fixed consumables at most as often; other items only if duplicatable consumables;
   3. check_item_valid_in_location holds for every pair (with the whole placement in place, so the
-     rock spire shop's no-duplicates rule is checked too), and no progress item sits in a location
-     banned by required bosses (dungeon items excepted);
+     rock spire shop's no-duplicates rule is checked too), and no progress copy sits in a location
+     banned by required bosses (dungeon items excepted; count-based per item, so a nonprogress
+     copy of a split item, e.g. the wallet left after one is an extra starting item, may);
   4. at least N copies of each progress item sit in progress-eligible, non-banned locations
      (count-based: duplicates such as wallets can be split between progress and nonprogress);
   5. reachability: owning everything reachable until a fixpoint reaches
@@ -107,8 +108,22 @@ def verify(d, validity_only=False):
   for loc, item in locs.items():
     if not L.check_item_valid_in_location(item, loc):
       errors.append(f"invalid: {item} @ {loc}")
-    if item in L.all_progress_items and loc in banned and not L.is_dungeon_item(item):
-      errors.append(f"progress item in banned location: {item} @ {loc}")
+  # Banned (required-bosses) locations may hold nonprogress copies of an item
+  # whose other copies are progress (e.g. one Progressive Wallet given as an
+  # extra starting item leaves the remaining wallet nonprogress). Count per item
+  # against the progress copies in unplaced_progress_items, like check 4.
+  progress_need = collections.Counter(L.unplaced_progress_items)
+  placed_all = collections.Counter(locs.values())
+  in_banned = collections.defaultdict(list)
+  for loc, item in locs.items():
+    if loc in banned and not L.is_dungeon_item(item):
+      in_banned[item].append(loc)
+  for item, blocs in in_banned.items():
+    allowed = max(0, placed_all[item] - progress_need[item])
+    if len(blocs) > allowed:
+      errors.append(f"progress item in banned location: {item} @ {', '.join(blocs)}"
+                    f" ({len(blocs)} in banned locations, {progress_need[item]} progress"
+                    f" of {placed_all[item]} placed)")
   if validity_only:
     return {"locations": len(locs), "errors": errors}
 
