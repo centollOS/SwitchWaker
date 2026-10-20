@@ -710,6 +710,13 @@ BOOL daPy_lk_c::dProcGetItem_init() {
         } else {
             item_no = dComIfGp_event_getGtItm();
         }
+#if TARGET_PC
+        if (pc_rando()) {
+            // pc_rando(R3.3): make_items_progressive.asm 0x8012E7B8/0x8012E7DC convert_progressive_item_id_for_dProcGetItem_init_1/2
+            // (the event's item id and the given item 0x803C9EB4 both become the next tier); original: item_no as read
+            item_no = pc_rando_convert_progressive_item_id((int)item_no);
+        }
+#endif
         fpc_ProcID itemID =
             fopAcM_createItemForPresentDemo(&current.pos, item_no, 0, -1, fopAcM_GetRoomNo(this));
         if (itemID != fpcM_ERROR_PROCESS_ID_e) {

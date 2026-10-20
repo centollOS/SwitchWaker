@@ -89,6 +89,14 @@ void pc_rando_msg_hook_entry(uint16_t msg_no, void* entry);
 /* daItem_c::mode_wait under pc_rando(): 1 when field item `item_no` moves with itemActionForArrow
    (wwrando: ids 0x20-0x44 and every id above 0x4B), else its vanilla case. */
 int pc_rando_field_item_wait_arrow(uint8_t item_no);
+/* --- R3.3: progressive items (make_items_progressive.asm; pc_rando_hooks_progressive.cpp, tier
+   tables in features/rando/pc_rando_progressive.h) --- */
+/* convert_progressive_item_id: for a progressive id, the id of the tier the save gets next (sword
+   0x38/39/3A/3E, shield, bow, wallet, bomb bag, quiver, picto box, magic meter); any other id
+   unchanged. Used by the R3.3 hunks (demo item, field item, get-item demo, shop item, Beedle's
+   item-get check) and by R3.1's starting gear loop. Like the asm, it compares the whole value, so a
+   value outside 0..0xFF comes back unchanged. */
+int pc_rando_convert_progressive_item_id(int item_no);
 
 /* --- R3.9: nonlinear A (make_game_nonlinear.asm) --- */
 

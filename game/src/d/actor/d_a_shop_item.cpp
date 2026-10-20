@@ -15,6 +15,10 @@
 #include "res/Object/Cloth.h"
 #include "m_Do/m_Do_mtx.h"
 #include "m_Do/m_Do_lib.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
+#endif
 
 const char daShopItem_c::m_cloth_arcname[] = "Cloth";
 const f32 daShopItem_c::m_cullfar_max = 5000.0f;
@@ -194,7 +198,14 @@ static cPhs_State daShopItem_Create(void* i_this) {
 cPhs_State daShopItem_c::_create() {
     fopAcM_ct(this, daShopItem_c);
     
+#if TARGET_PC
+    // pc_rando(R3.3): make_items_progressive.asm d_a_shop_item 0x8B8/0x9C0 convert_progressive_item_id_for_shop_item
+    // (the shop shows the next tier); original: fopAcM_GetParamBit(fopAcM_GetParam(this), 0, 8)
+    m_itemNo = pc_rando() ? pc_rando_convert_progressive_item_id((int)fopAcM_GetParamBit(fopAcM_GetParam(this), 0, 8))
+                          : fopAcM_GetParamBit(fopAcM_GetParam(this), 0, 8);
+#else
     m_itemNo = fopAcM_GetParamBit(fopAcM_GetParam(this), 0, 8);
+#endif
     
     const char* arcName = getShopArcname();
     if (getShopBmdIdx() == -1 || arcName == 0) {

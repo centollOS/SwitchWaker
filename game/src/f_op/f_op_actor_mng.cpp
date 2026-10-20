@@ -27,6 +27,10 @@
 #include "JSystem/JKernel/JKRSolidHeap.h"
 #include "JSystem/JUtility/JUTAssert.h"
 #include "SSystem/SComponent/c_malloc.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
+#endif
 
 #define MAKE_ITEM_PARAMS(itemNo, itemBitNo, switchNo2, type, action)                               \
     ((itemNo & 0xFF) << 0 | (itemBitNo & 0xFF) << 8 | (switchNo2 & 0xFF) << 16 | (type & 0x3) << 24 | (action & 0x3F) << 26)
@@ -966,6 +970,13 @@ fpc_ProcID fopAcM_createDemoItem(cXyz* pos, int i_itemNo, int i_itemBitNo, csXyz
         return fpcM_ERROR_PROCESS_ID_e;
     }
 
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R3.3): make_items_progressive.asm 0x80026A24 convert_progressive_item_id_for_createDemoItem
+        // (the get-item demo shows the next tier); original: i_itemNo as given
+        i_itemNo = pc_rando_convert_progressive_item_id((int)i_itemNo);
+    }
+#endif
     u32 params = (i_itemNo & 0xFF) << 0 | (i_itemBitNo & 0x7F) << 8 | (i_argFlag & 0xFF) << 16;
     return fopAcM_create(fpcNm_Demo_Item_e, params, pos, i_roomNo, i_angle, i_scale);
 }
