@@ -61,6 +61,18 @@ void pc_rando_exec_item_get(uint8_t item_no);
    `default_val`. */
 int pc_rando_check_item_get(uint8_t item_no, int default_val);
 
+/* --- R0.10: the archive-load hook (features/rando/pc_rando_resources.h; set's body is in the pure
+   pc_rando_resources.cpp, loaded's in game_hooks/pc_rando_hooks_resources.cpp) --- */
+/* dRes_info_c::set under pc_rando(): records the archive directory `arc_path` of `info` (the
+   dRes_info_c), so stage files are dispatched by stage directory. */
+void pc_rando_res_hook_set(const void* info, const char* arc_path);
+/* dRes_info_c::loadResource under pc_rando(), for each file it puts into mRes[]: runs the registered
+   patchers on `res` (file `file_name` of type `type`, a four-character code such as 'DZS ', of the
+   archive `archive` (a JKRArchive) named `arc_name`) and returns the pointer to store: `res`, or a
+   patched copy on the archive heap. */
+void* pc_rando_res_hook_loaded(const void* info, const char* arc_name, void* archive, uint32_t type,
+                               const char* file_name, void* res);
+
 /* --- R0.12: the message overlay (features/rando/pc_rando_msg.h; bodies in pc_rando_msg.cpp, which
    needs no game code) --- */
 /* The overlay's encoded text for msg_no (BMG bytes ending with a NUL), or NULL: keep the BMG's.

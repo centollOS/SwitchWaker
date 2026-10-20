@@ -1,0 +1,7 @@
+// The randomizer's archive patchers (docs/RANDOMIZER_PLAN.md step R0.10; pc_rando_resources.h).
+// One line per step: PC_RANDO_PATCHER(<init function>), where <init function> is an
+// extern "C" void <name>(void) defined in that step's module; it registers the step's patchers with
+// pc_rando_register_dzx_patcher / pc_rando_register_res_patcher. The game side
+// (game_hooks/pc_rando_hooks_resources.cpp) calls every init once, in this order, before the first
+// archive is dispatched; patchers then run in registration order. Append-only: each step adds its
+// line; on a merge keep both sides.

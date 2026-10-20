@@ -1,0 +1,61 @@
+// The game side of the randomizer's archive-load hook (docs/RANDOMIZER_PLAN.md step R0.10, decision
+// D8; the dispatcher is features/rando/pc_rando_resources.{h,cpp}, which stays free of game code for
+// the unit tests). dRes_info_c::loadResource (game/src/d/d_resorce.cpp) calls
+// pc_rando_res_hook_loaded under pc_rando() for every file it stores in mRes[]. The file's bytes are
+// still the disc's (stage.dzs, room.dzr, event_list.dat); the registered patchers edit them, or
+// replace them with a copy allocated on the current heap, which during loadResource is the archive's
+// own data heap (dRes_info_c::setRes), so the copy is freed with the archive.
+#include "d/dolzel.h" // IWYU pragma: keep
+#include "pc/pc_rando_hooks.h"
+#include "features/rando/pc_rando_resources.h"
+#include "JSystem/JKernel/JKRArchive.h"
+#include "JSystem/JKernel/JKRHeap.h"
+
+#define PC_RANDO_PATCHER(fn) extern "C" void fn(void);
+#include "features/rando/pc_rando_patchers.def"
+#undef PC_RANDO_PATCHER
+
+namespace {
+
+bool sPatchersInit = false;
+
+void initPatchers() {
+    if (sPatchersInit) {
+        return;
+    }
+    sPatchersInit = true;
+#define PC_RANDO_PATCHER(fn) fn();
+#include "features/rando/pc_rando_patchers.def"
+#undef PC_RANDO_PATCHER
+}
+
+void* allocOnCurrentHeap(size_t size, void*) {
+    if (size > 0xFFFFFFFFu) {
+        return nullptr;
+    }
+    return JKRHeap::alloc((u32)size, 0x20, nullptr);
+}
+
+} // namespace
+
+extern "C" void* pc_rando_res_hook_loaded(const void* info, const char* arcName, void* archive,
+                                          uint32_t type, const char* fileName, void* res) {
+    initPatchers();
+    if (res == nullptr || archive == nullptr || pc_rando_res_patcher_count() == 0) {
+        return res;
+    }
+    PcRandoResFile file = {};
+    PcRandoResNames names;
+    pc_rando_res_describe(&file, &names, arcName, pc_rando_res_dir_of(info));
+    file.name = fileName != nullptr ? fileName : "";
+    file.type = type;
+    file.data = (uint8_t*)res;
+    const u32 size = ((JKRArchive*)archive)->getResSize(res); // (u32)-1: not found
+    file.size = size != 0xFFFFFFFFu ? size : 0;
+    file.alloc = allocOnCurrentHeap;
+    file.allocCtx = nullptr;
+    if (file.size == 0) {
+        return res;
+    }
+    return pc_rando_res_dispatch(&file);
+}
