@@ -19,6 +19,9 @@
 #include "m_Do/m_Do_graphic.h"
 #include "m_Do/m_Do_hostIO.h"
 #include "m_Do/m_Do_mtx.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 #define FUNC_TYPE_NORMAL 0
 #define FUNC_TYPE_SWITCH 1
@@ -87,7 +90,14 @@ cPhs_State daTbox_c::commonShapeSet() {
     u32 modelFlags = 0x11000022;
 
     // Load open animation
+#if TARGET_PC
+    // pc_rando(R3.8): wwrando asm/actors/d_a_tbox.cpp l_modelInfo[1..3].openBckId 0x0009 (every shape
+    // uses the light wood chest's short open); original: mdlInfo.openBckId
+    J3DAnmTransform* openAnm = (J3DAnmTransform*)dComIfG_getObjectRes(
+        "Dalways", pc_rando() ? (s16)dRes_INDEX_DALWAYS_BCK_BOXOPENSHORTBOX_e : mdlInfo.openBckId);
+#else
     J3DAnmTransform* openAnm = (J3DAnmTransform*)dComIfG_getObjectRes("Dalways", mdlInfo.openBckId);
+#endif
     if (mOpenAnm.init(modelData, openAnm, true, J3DFrameCtrl::EMode_NONE,  1.0f, 0, -1, false) == 0) {
         return cPhs_ERROR_e;
     }
@@ -394,7 +404,13 @@ s32 daTbox_c::getShapeType() {
 
 /* 00000FE4-00000FF0       .text getFuncType__8daTbox_cFv */
 s32 daTbox_c::getFuncType() {
+#if TARGET_PC
+    // pc_rando(R3.8): wwrando asm/actors/d_a_tbox.cpp getFuncType mask 0x3F (bit 0x40 is the trap flag,
+    // getIsTrap); original: 0x7F
+    return fopAcM_GetParam(this) & (pc_rando() ? 0x3F : 0x7F);
+#else
     return fopAcM_GetParam(this) & 0x7F;
+#endif
 }
 
 /* 00000FF0-0000108C       .text checkNormal__8daTbox_cFv */
@@ -962,7 +978,13 @@ BOOL daTbox_c::actionOpenWait() {
             dComIfGp_event_setItemPartnerId(itemPID);
         }
 
+#if TARGET_PC
+        // pc_rando(R3.8): wwrando asm/actors/d_a_tbox.cpp actionOpenWait drops the big chest path (no
+        // JA_BGM_OPEN_BOX, colour ratio or lights: every chest opens short); original: getShapeType() != 0
+        if (!pc_rando() && getShapeType() != 0) {
+#else
         if (getShapeType() != 0) {
+#endif
             mDoAud_subBgmStart(JA_BGM_OPEN_BOX);
             mAllColRatio = 0.4f;
 
@@ -985,7 +1007,13 @@ BOOL daTbox_c::actionOpenWait() {
     else if (boxCheck()) {
         eventInfo.onCondition(dEvtCnd_CANDOOR_e);
 
+#if TARGET_PC
+        // pc_rando(R3.8): wwrando asm/actors/d_a_tbox.cpp actionOpenWait: every chest uses the short
+        // DEFAULT_TREASURE_A; original: getShapeType() == 0
+        if (pc_rando() || getShapeType() == 0) {
+#else
         if (getShapeType() == 0) {
+#endif
             eventInfo.setEventName("DEFAULT_TREASURE_A");
         }
         else {

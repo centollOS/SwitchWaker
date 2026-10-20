@@ -1,0 +1,5 @@
+# R3.8 (docs/RANDOMIZER_PLAN.md): chest short open. COS_SMOKE=chest opens a big chest (takara3, the Spoils
+# Bag) on Tetra's ship; forced rando must use DEFAULT_TREASURE_A and the short open bck (Dalways 0x9),
+# vanilla DEFAULT_TREASURE and bck 0x8; both must give the Spoils Bag.
+chest 0 --stage Asoko:0:0:2
+chest 0 --stage Asoko:0:0:2 --env COS_RANDO_FORCE=1
