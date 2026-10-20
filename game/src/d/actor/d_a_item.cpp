@@ -14,6 +14,9 @@
 #include "f_op/f_op_camera_mng.h"
 #include "m_Do/m_Do_mtx.h"
 #include "m_Do/m_Do_controller_pad.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 
 s32 daItem_c::m_timer_max = 10000;
 
@@ -45,9 +48,17 @@ float daItem_c::getYOffset() {
     case dItemNo_GREEN_JELLY_e:
     case dItemNo_BLUE_JELLY_e:
         return 0.0f;
+#if TARGET_PC
+    case dItemNo_SMALL_KEY_e:
+        return 0.0f;
+    case dItemNo_BOSS_KEY_e:
+        // pc_rando(R2.11): tweaks.py allow_all_items_to_be_field_items (getYOffset jump table 0x8038C8B8 entry 0x4E -> the default case 0x800F4CD0, 23.0); original: 0.0f
+        return pc_rando() ? 23.0f : 0.0f;
+#else
     case dItemNo_SMALL_KEY_e:
     case dItemNo_BOSS_KEY_e:
         return 0.0f;
+#endif
     case dItemNo_SHIELD_e:
         return 23.0f;
     case dItemNo_SWORD_e:
@@ -68,7 +79,12 @@ float daItem_c::getYOffset() {
     case dItemNo_HEART_e:
         return 0.0f;
     default:
+#if TARGET_PC
+        // pc_rando(R2.11): tweaks.py allow_all_items_to_be_field_items (getYOffset 0x800F4CD0: lfs 23.0 instead of 0.0); original: 0.0f
+        return pc_rando() ? 23.0f : 0.0f;
+#else
         return 0.0f;
+#endif
     }
 }
 
@@ -767,6 +783,14 @@ void daItem_c::itemGetExecute() {
             execItemGet(m_itemNo);
         }
         break;
+#if TARGET_PC
+    default:
+        if (pc_rando()) {
+            // pc_rando(R2.11): tweaks.py allow_all_items_to_be_field_items (itemGetExecute default case 0x800F6C8C and ids 0x84+ -> 0x800F675C, the Small Key's get demo); original: no default case (the item is not given)
+            mItemStatus = STATUS_INIT_GET_DEMO;
+        }
+        break;
+#endif
     }
     
     fopAcM_onItemForIb(mItemBitNo, m_itemNo, current.roomNo);
@@ -1260,6 +1284,12 @@ void daItem_c::mode_wait() {
         dComIfGp_particle_setSimple(appearEffect, &current.pos);
     }
     
+#if TARGET_PC
+    if (pc_rando() && pc_rando_field_item_wait_arrow(m_itemNo)) {
+        // pc_rando(R2.11): tweaks.py allow_all_items_to_be_field_items (mode_wait jump table 0x8038CC7C ids 0x20-0x44 and the bound check for 0x4C+ -> 0x800F8160); original: the switch below
+        itemActionForArrow();
+    } else
+#endif
     switch (m_itemNo) {
     case dItemNo_HEART_e:
     case dItemNo_TRIPLE_HEART_e:

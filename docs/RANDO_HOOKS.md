@@ -47,6 +47,21 @@ pure `pc_rando_msg.cpp`.
 | game/src/f_op/f_op_msg_mng.cpp:1509 | `fopMsgM_msgGet_c::getMesgEntry` (1509), `fopMsgM_itemMsgGet_c::getMesgEntry` (1601): the overlay's INF1 entry fields (or the new-message defaults) replace the BMG entry before the instant-text QoL | add | gclib `bmg.py` `add_new_message` / `Message` fields, set in `tweaks.py` and `randomizers/hints.py` |
 | game/src/f_op/f_op_msg_mng.cpp:1530 | `fopMsgM_msgGet_c::getMessage` (1530), `fopMsgM_itemMsgGet_c::getMessage` (1621): the overlay's encoded text replaces the BMG text (and serves numbers the BMG lacks; `mResMsgNo` = the asked number) | add | `msg.string = ...` / `add_new_message` (`tweaks.py`, `randomizers/hints.py`, `randomizers/boss_reqs.py`) |
 
+## R2.11
+
+Any item anywhere (tweaks.py `allow_all_items_to_be_field_items`, always applied by wwrando). The table
+part (field models from `item_resource`, the fixed get models of the Master Swords, songs, magic meters
+and Hurricane Spin, `item_info` height/radius 0 -> 0x28) is no hunk: edits of R0.8's registry, registered
+by `native/src/pc/game_hooks/pc_rando_hooks_field_items.cpp` from `features/rando/pc_rando_field_items.cpp`.
+The 7 song / Hurricane Spin arc-name initializations wwrando nops (0x800C1970-0x800C1BA8) need no hunk:
+the port's tables are constant-initialized and the edits are applied later, at activation.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_item.cpp:55 | `daItem_c::getYOffset`: the Big Key (own case, split from the Small Key's) and the default case return 23.0 | ?: | getYOffset 0x800F4CD0 `lfs f1, -0x5E7C(rtoc)` (23.0) and jump table 0x8038C8B8 entry 0x4E |
+| game/src/d/actor/d_a_item.cpp:789 | `daItem_c::itemGetExecute`: a `default:` case sets `STATUS_INIT_GET_DEMO` (the item-get demo, as the Small Key) | add | jump table 0x8038CA6C entries 0x800F6C8C -> 0x800F675C, `bgt 0x800F675C` at 0x800F6468 |
+| game/src/d/actor/d_a_item.cpp:1289 | `daItem_c::mode_wait`: ids 0x20-0x44 and 0x4C+ use `itemActionForArrow` (`pc_rando_field_item_wait_arrow`) | if/else | jump table 0x8038CC7C ids 0x20-0x44 -> 0x800F8160, `bgt 0x800F8160` at 0x800F8138 |
+
 ## R3.7
 
 The custom actors SwOp (0x1F6) and DngSw (0x1F7). New port-only units and registrations, each inside

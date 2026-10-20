@@ -39,6 +39,12 @@ const char* pc_rando_msg_hook_text(uint16_t msg_no);
    another number; else unchanged. Called by both getMesgEntry under pc_rando(). */
 void pc_rando_msg_hook_entry(uint16_t msg_no, void* entry);
 
+/* --- R2.11: any item anywhere (game_hooks/pc_rando_hooks_field_items.cpp; the table edits and the
+   id list in features/rando/pc_rando_field_items.h) --- */
+/* daItem_c::mode_wait under pc_rando(): 1 when field item `item_no` moves with itemActionForArrow
+   (wwrando: ids 0x20-0x44 and every id above 0x4B), else its vanilla case. */
+int pc_rando_field_item_wait_arrow(uint8_t item_no);
+
 /* --- R3.9: nonlinear A (make_game_nonlinear.asm) --- */
 
 /* reset_makar_position / reset_medli_position: when Makar (option 1, d_a_npc_cb1) or Medli (option 2,
