@@ -15,6 +15,9 @@
 #include "JAZelAudio/JAIZelBasic.h"
 #include "SSystem/SComponent/c_xyz.h"
 #include "d/d_com_inf_game.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 #include "d/d_bg_s_movebg_actor.h"
 #include "d/d_bg_w.h"
 #include "d/d_item.h"
@@ -277,7 +280,13 @@ BOOL daObjMknjD::Act_c::Create() {
     attention_info.distances[fopAc_Attn_TYPE_SPEAK_e] = 0x3D;
     cLib_onBit<u32>(attention_info.flags, fopAc_Attn_ACTION_SPEAK_e | fopAc_Attn_TALKFLAG_CHECK_e);
 
+#if TARGET_PC
+    // pc_rando(R3.9): make_game_nonlinear.asm d_a_obj_mknjd 0x96C (the tablet acts as if its song is
+    // owned); original: if (!checkItemGet(mGiveItemNo, TRUE))
+    if (!pc_rando() && !checkItemGet(mGiveItemNo, TRUE)) {
+#else
     if (!checkItemGet(mGiveItemNo, TRUE)) {
+#endif
         m043F = 8;
         eventInfo.setXyCheckCB(daObjMknjD_XyCheckCB);
         eventInfo.setXyEventCB(daObjMknjD_XyEventCB);
@@ -895,7 +904,13 @@ BOOL daObjMknjD::Act_c::Execute(Mtx** i_mtx) {
             privateCut();
 
             if (!dComIfGp_event_runCheck()) {
+#if TARGET_PC
+                // pc_rando(R3.9): make_game_nonlinear.asm d_a_obj_mknjd 0x205C; original:
+                // if (checkItemGet(mGiveItemNo, TRUE))
+                if (pc_rando() || checkItemGet(mGiveItemNo, TRUE)) {
+#else
                 if (checkItemGet(mGiveItemNo, TRUE)) {
+#endif
                     m043F = 0;
                 }
                 else {
@@ -913,7 +928,13 @@ BOOL daObjMknjD::Act_c::Execute(Mtx** i_mtx) {
                 player->offPlayerNoDraw();
                 dComIfGp_event_reset();
 
+#if TARGET_PC
+                // pc_rando(R3.9): make_game_nonlinear.asm d_a_obj_mknjd 0x20D4; original:
+                // if (checkItemGet(mGiveItemNo, TRUE))
+                if (pc_rando() || checkItemGet(mGiveItemNo, TRUE)) {
+#else
                 if (checkItemGet(mGiveItemNo, TRUE)) {
+#endif
                     m043F = 0;
                 }
                 else {

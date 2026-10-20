@@ -11,6 +11,9 @@
 #include "res/Object/Gdemo20.h"
 #include "d/d_bg_s_func.h"
 #include "d/d_com_inf_game.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 #include "f_op/f_op_actor_mng.h"
 
 typedef void (daWarpdm20_c::*EventInitFunc)(int);
@@ -122,7 +125,13 @@ void daWarpdm20_c::CreateInit() {
 
     mEventIdx = dComIfGp_evmng_getEventIdx("TO_HYRULE_WARP", 0xff);
 
+#if TARGET_PC
+    // pc_rando(R3.9): make_game_nonlinear.asm d_a_warpdm20 0x68C (Forsaken Fortress 2 stays: the FF3 bit
+    // is never set); original: if ZELDA_AWAKENED, onEventBit(0x1820)
+    if (!pc_rando() && dComIfGs_isEventBit(dSv_event_flag_c::ZELDA_AWAKENED)) {
+#else
     if (dComIfGs_isEventBit(dSv_event_flag_c::ZELDA_AWAKENED)) {
+#endif
         dComIfGs_onEventBit(dSv_event_flag_c::UNK_1820);
     }
 }

@@ -1,0 +1,8 @@
+# R3.9 (docs/RANDOMIZER_PLAN.md): nonlinear A, make_game_nonlinear.asm items 1-11. Plain runs check that a
+# non-randomized game is unchanged, forced runs the randomizer's behaviour; Outset's fresh save (no boat) and
+# the sailing preset at Windfall (the boat's checkOutRange and "get in" offer).
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44:206 --env COS_RANDO_SMOKE=nonlinA
+rando 0 --stage sea:44:206 --env COS_RANDO_SMOKE=nonlinA --env COS_RANDO_FORCE=1
+rando 0 --stage sea:11:0 --preset sailing --env COS_RANDO_SMOKE=nonlinA
+rando 0 --stage sea:11:0 --preset sailing --env COS_RANDO_SMOKE=nonlinA --env COS_RANDO_FORCE=1

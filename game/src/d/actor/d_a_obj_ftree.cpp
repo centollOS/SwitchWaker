@@ -6,6 +6,9 @@
 #include "d/dolzel_rel.h" // IWYU pragma: keep
 #include "d/actor/d_a_obj_ftree.h"
 #include "d/d_com_inf_game.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 #include "d/d_item_data.h"
 #include "d/d_cc_d.h"
 #include "d/d_kankyo.h"
@@ -317,7 +320,13 @@ BOOL daObjFtree::Act_c::PlayStopColorAnimation() {
 
 /* 0000093C-00000A1C       .text set_first_stat__Q210daObjFtree5Act_cFv */
 void daObjFtree::Act_c::set_first_stat() {
+#if TARGET_PC
+    // pc_rando(R3.9): make_game_nonlinear.asm d_a_obj_ftree 0xA4C (withered trees before Farore's Pearl);
+    // original: if (dComIfGs_isSymbol(2))
+    if (pc_rando() || dComIfGs_isSymbol(2)) {
+#else
     if (dComIfGs_isSymbol(2)) {
+#endif
         if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_0102)) {
             process_init(3, 0);
             mScaleMul = 1.0f;

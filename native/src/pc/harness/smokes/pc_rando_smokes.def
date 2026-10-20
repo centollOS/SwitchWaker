@@ -8,3 +8,4 @@ PC_RANDO_SMOKE(null, randoSmokeNull) // R0.1: the switch, the defaults and activ
 PC_RANDO_SMOKE(items, randoSmokeItems) // R0.8: item dispatch overrides and item/shop table snapshots
 PC_RANDO_SMOKE(msg, randoSmokeMsg) // R0.12: the message overlay (3906 text, new 849, d_msg)
 PC_RANDO_SMOKE(swop, randoSmokeSwop) // R3.7: custom actors SwOp and DngSw
+PC_RANDO_SMOKE(nonlinA, randoSmokeNonlinA) // R3.9: nonlinear A (make_game_nonlinear.asm items 1-11)

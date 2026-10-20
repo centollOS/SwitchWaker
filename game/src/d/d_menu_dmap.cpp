@@ -24,6 +24,7 @@
 #include <stdio.h>
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
 #endif
 
 dMd_HIO_c g_mdHIO;
@@ -521,8 +522,15 @@ void dMenu_Dmap_c::treasureSet() {
             ) &&
             (dComIfGs_getPlayerPriestFlag() == 1 || dComIfGs_getPlayerPriestFlag() == 2)
 #else
+#if TARGET_PC
+            // pc_rando(R3.9): make_game_nonlinear.asm 0x801A9A6C/0x801A9AA8 (Medli and Makar stay on the
+            // dungeon map after the Master Sword); original: !dComIfGs_isCollect(0, 2) / (0, 3)
+            (saveTbl == dSv_save_c::STAGE_ET && (pc_rando() || !dComIfGs_isCollect(0, 2)) && dComIfGs_getPlayerPriestFlag() == 2) ||
+            (saveTbl == dSv_save_c::STAGE_WT && (pc_rando() || !dComIfGs_isCollect(0, 3)) && dComIfGs_getPlayerPriestFlag() == 1)
+#else
             (saveTbl == dSv_save_c::STAGE_ET && !dComIfGs_isCollect(0, 2) && dComIfGs_getPlayerPriestFlag() == 2) ||
             (saveTbl == dSv_save_c::STAGE_WT && !dComIfGs_isCollect(0, 3) && dComIfGs_getPlayerPriestFlag() == 1)
+#endif
 #endif
         ) {
 #if VERSION == VERSION_DEMO

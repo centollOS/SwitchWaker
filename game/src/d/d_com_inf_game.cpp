@@ -25,6 +25,7 @@
 #include "d/actor/d_a_ship.h"
 #if TARGET_PC
 #include "pc/pc_harness.h"
+#include "pc/pc_rando.h"
 #endif
 
 dComIfG_inf_c g_dComIfG_gameInfo;
@@ -1428,6 +1429,13 @@ void dComIfGs_gameStart() {
 
 /* 80054CC0-80054E9C       .text dComIfGs_copyPlayerRecollectionData__Fv */
 void dComIfGs_copyPlayerRecollectionData() {
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R3.9): make_game_nonlinear.asm 0x80054CC0 blr (the recollection fights leave the
+        // inventory alone); original: the function body below
+        return;
+    }
+#endif
     s32 tbl;
     dSv_player_status_c_c stts;
 
@@ -1459,6 +1467,13 @@ void dComIfGs_copyPlayerRecollectionData() {
 
 /* 80054E9C-80055318       .text dComIfGs_setPlayerRecollectionData__Fv */
 void dComIfGs_setPlayerRecollectionData() {
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R3.9): make_game_nonlinear.asm 0x80054E9C blr (the recollection fights leave the
+        // inventory alone); original: the function body below
+        return;
+    }
+#endif
 #if VERSION > VERSION_JPN
     daArrow_c::setKeepType(daArrow_c::TYPE_NORMAL);
 #endif
@@ -1598,6 +1613,13 @@ void dComIfGs_setPlayerRecollectionData() {
 
 /* 80055318-80055580       .text dComIfGs_revPlayerRecollectionData__Fv */
 void dComIfGs_revPlayerRecollectionData() {
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R3.9): make_game_nonlinear.asm 0x80055318 blr (the recollection fights leave the
+        // inventory alone); original: the function body below
+        return;
+    }
+#endif
     if (dComIfGp_getPlayerInfoBufferStageNo() != 0) {
         dComIfGp_setPlayerInfoBufferStageNo(0);
     } else {
@@ -1699,6 +1721,13 @@ void dComIfGs_revPlayerRecollectionData() {
 
 /* 80055580-8005586C       .text dComIfGs_exchangePlayerRecollectionData__Fv */
 void dComIfGs_exchangePlayerRecollectionData() {
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R3.9): make_game_nonlinear.asm 0x80055580 blr (the recollection fights leave the
+        // inventory alone); original: the function body below
+        return;
+    }
+#endif
     if (dComIfGp_getPlayerInfoBufferStageNo() == 0) {
         return;
     }

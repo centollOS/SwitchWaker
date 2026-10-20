@@ -7,6 +7,9 @@
 #include "d/actor/d_a_npc_bj1.h"
 #include "d/actor/d_a_jbo.h"
 #include "d/d_com_inf_game.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 #include "d/d_demo.h"
 #include "d/d_kankyo_wether.h"
 #include "d/d_path.h"
@@ -165,7 +168,13 @@ void daNpc_Bj1_c::nodePrpControl(J3DNode* node, J3DModel* model) {
 
 /* 00000664-00000710       .text init_BJ4_0__11daNpc_Bj1_cFv */
 bool daNpc_Bj1_c::init_BJ4_0() {
+#if TARGET_PC
+    // pc_rando(R3.9): make_game_nonlinear.asm d_a_npc_bj1 0x784 (Koroks act as if Farore's Pearl is
+    // owned); original: dComIfGs_isSymbol(dSymbol_FARORE_e) == 0
+    bool result = !pc_rando() && dComIfGs_isSymbol(dSymbol_FARORE_e) == 0;
+#else
     bool result = dComIfGs_isSymbol(dSymbol_FARORE_e) == 0;
+#endif
     if (result) {
         result = dComIfGs_isEventBit(0x1801) != 0;
         if (result) {
@@ -177,7 +186,13 @@ bool daNpc_Bj1_c::init_BJ4_0() {
 
 /* 00000710-000007D4       .text init_BJ6_0__11daNpc_Bj1_cFv */
 bool daNpc_Bj1_c::init_BJ6_0() {
+#if TARGET_PC
+    // pc_rando(R3.9): make_game_nonlinear.asm d_a_npc_bj1 0x830 (Koroks act as if Farore's Pearl is
+    // owned); original: dComIfGs_isSymbol(dSymbol_FARORE_e) == 0
+    bool result = !pc_rando() && dComIfGs_isSymbol(dSymbol_FARORE_e) == 0;
+#else
     bool result = dComIfGs_isSymbol(dSymbol_FARORE_e) == 0;
+#endif
     if (result) {
         result = dComIfGs_isEventBit(0x1801) != 0;
         if (result) {
@@ -201,7 +216,13 @@ bool daNpc_Bj1_c::init_BJ7_0() {
 
 /* 00000864-00000910       .text init_BJX_0__11daNpc_Bj1_cFv */
 bool daNpc_Bj1_c::init_BJX_0() {
+#if TARGET_PC
+    // pc_rando(R3.9): make_game_nonlinear.asm d_a_npc_bj1 0x984 (Koroks act as if Farore's Pearl is
+    // owned); original: dComIfGs_isSymbol(dSymbol_FARORE_e) == 0
+    bool result = !pc_rando() && dComIfGs_isSymbol(dSymbol_FARORE_e) == 0;
+#else
     bool result = dComIfGs_isSymbol(dSymbol_FARORE_e) == 0;
+#endif
     if (result) {
         result = dComIfGs_isEventBit(0x1801) != 0;
         if (result) {
@@ -213,7 +234,13 @@ bool daNpc_Bj1_c::init_BJX_0() {
 
 /* 00000910-00000998       .text init_BJX_1__11daNpc_Bj1_cFv */
 bool daNpc_Bj1_c::init_BJX_1() {
+#if TARGET_PC
+    // pc_rando(R3.9): make_game_nonlinear.asm d_a_npc_bj1 0xA30 (Koroks act as if Farore's Pearl is
+    // owned); original: dComIfGs_isSymbol(dSymbol_FARORE_e) != 0
+    bool result = pc_rando() || dComIfGs_isSymbol(dSymbol_FARORE_e) != 0;
+#else
     bool result = dComIfGs_isSymbol(dSymbol_FARORE_e) != 0;
+#endif
     if (result) {
         set_action(&daNpc_Bj1_c::wait_action1, NULL);
     }
@@ -1048,7 +1075,13 @@ u32 daNpc_Bj1_c::getMsg_BJ7_0() {
     if (mPresentItem != 0xFF) {
         return 0x1421;
     }
+#if TARGET_PC
+    // pc_rando(R3.9): make_game_nonlinear.asm d_a_npc_bj1 0x2200 (getMsg_BJ7_0 acts as if Farore's Pearl
+    // is owned); original: if (dComIfGs_isSymbol(dSymbol_FARORE_e))
+    if (pc_rando() || dComIfGs_isSymbol(dSymbol_FARORE_e)) {
+#else
     if (dComIfGs_isSymbol(dSymbol_FARORE_e)) {
+#endif
         if (dComIfGs_isEventBit(0xD08) == 0) {
             return 0x1433;
         }

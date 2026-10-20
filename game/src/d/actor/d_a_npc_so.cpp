@@ -17,6 +17,9 @@
 #include "f_op/f_op_kankyo_mng.h"
 #include "f_op/f_op_camera.h"
 #include "res/Object/So.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 class daNpc_So_HIO_c : public mDoHIO_entry_c {
 public:
@@ -1792,7 +1795,13 @@ cPhs_State daNpc_So_c::_create() {
             return cPhs_ERROR_e;
         }
 #else
+#if TARGET_PC
+        // pc_rando(R3.9): make_game_nonlinear.asm d_a_npc_so 0x3FD8 (fishmen before Gohma); original:
+        // if (dComIfGs_isStageBossEnemy(STAGE_DRC) == 0) error
+        if (!pc_rando() && dComIfGs_isStageBossEnemy(dSv_save_c::STAGE_DRC) == 0) {
+#else
         if (dComIfGs_isStageBossEnemy(dSv_save_c::STAGE_DRC) == 0) {
+#endif
             return cPhs_ERROR_e;
         }
 #endif
