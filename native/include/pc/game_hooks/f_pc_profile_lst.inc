@@ -518,6 +518,9 @@ process_profile_definition* g_fpcPfLst_ProfileList[] = {
     &g_profile_SCP.base.base,
     &g_profile_PB.base.base,
     &g_profile_GAMEOVER.base.base,
+    // Randomizer custom actors (docs/RANDOMIZER_PLAN.md R3.7): wwrando's SwOp and DngSw RELs.
+    &g_profile_SWITCH_OP.base.base,
+    &g_profile_DUNGEON_FLAG_SW.base.base,
     NULL,
 };
 
