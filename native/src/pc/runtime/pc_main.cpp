@@ -25,6 +25,7 @@
 #include "pc/pc_aspect.h"
 #include "pc/pc_game_id.h"
 #include "pc/pc_button_remap.h"
+#include "pc/pc_rando_hooks.h"
 
 #include "JSystem/JKernel/JKRHeap.h"
 #include "m_Do/m_Do_audio.h"
@@ -210,6 +211,8 @@ using namespace pc;
 
 extern "C" {
 
+const char* pc_user_path(void) { return sUserPath; } // randomizer R0.7 (pc_rando_hooks.h)
+
 OSThread* pc_main_thread(void) {
     return COSSdkGetDefaultThread();
 }
@@ -327,6 +330,10 @@ void pc_aurora_init(int argc, char* argv[]) {
     }
     // The save/load sweep (pc_save_sweep.cpp) writes and reads its own card.
     if (saveSweepWantsRunCard()) {
+        prepareRunCard(gConfig.smoke);
+    }
+    // COS_SMOKE=rando, COS_RANDO_SMOKE=slot (randomizer R0.7): its own card, for the sidecars.
+    if (pc_rando_smoke_wants_run_card()) {
         prepareRunCard(gConfig.smoke);
     }
 
