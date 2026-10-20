@@ -20,6 +20,14 @@ extern "C" {
 
 /* --- R0.1: no hooks (the switch itself is pc_rando.h) --- */
 
+/* --- R0.8: item dispatch (game_hooks/pc_rando_hooks_items.cpp; registries in
+   features/rando/pc_rando_items.h) --- */
+/* execItemGet under pc_rando(): the override registered for `item_no`, else item_func_ptr. */
+void pc_rando_exec_item_get(uint8_t item_no);
+/* checkItemGet under pc_rando(): the getcheck override, else item_getcheck_func_ptr; -1 gives
+   `default_val`. */
+int pc_rando_check_item_get(uint8_t item_no, int default_val);
+
 #ifdef __cplusplus
 }
 #endif
