@@ -12,6 +12,7 @@
 #include "pc/pc_qol.h"
 #include "pc/pc_rando.h"
 #include "pc/pc_rando_hooks.h"
+#include "pc/pc_rando_modes.h"
 #endif
 
 typedef void (ItemGetFunc)();
@@ -2916,7 +2917,12 @@ u8 getItemNoByLife(u8 itemNo) {
     int max = dComIfGs_getMaxLife() & 0xFC;
 #endif
     u8 lifePercent = (100 * life) / max;
+#if TARGET_PC
+    // pc_rando(R6.15): hero_mode.asm 0x800C7D4C nop (hearts become rupees at any health); original: lifePercent != 100
+    if (pc_rando() ? (!pc_rando_hero_mode() && lifePercent != 100) : lifePercent != 100) {
+#else
     if (lifePercent != 100) {
+#endif
         return itemNo;
     }
     if (itemNo == dItemNo_HEART_e) {

@@ -18,6 +18,9 @@
 #include "f_op/f_op_actor_mng.h"
 #include "d/d_cc_uty.h"
 #include "d/d_bg_s_lin_chk.h"
+#if TARGET_PC
+#include "pc/pc_rando_modes.h"
+#endif
 #include "JSystem/JUtility/JUTReport.h"
 
 class kiHIO_c : public JORReflexible {
@@ -835,7 +838,12 @@ void ki_fail_move(ki_class* i_this) {
 #if VERSION == VERSION_DEMO
             if (dComIfGs_getLife() <= 4) {
 #else
+#if !TARGET_PC
             if (dComIfGs_getLife() <= 8) {
+#else
+            // pc_rando(R6.15): hero_mode.asm d_a_ki.rel 0x326C b 0x3278 (skip the low-health heart); original: dComIfGs_getLife() <= 8
+            if (pc_rando() ? (!pc_rando_hero_mode() && dComIfGs_getLife() <= 8) : dComIfGs_getLife() <= 8) {
+#endif
 #endif
                 dropType = daDisItem_HEART_e;
             } else if (cM_rndF(1.0f) < 0.5f) {

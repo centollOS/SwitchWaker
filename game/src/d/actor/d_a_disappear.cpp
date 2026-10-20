@@ -9,6 +9,9 @@
 #include "f_op/f_op_actor_mng.h"
 #include "d/d_com_inf_game.h"
 #include "d/d_s_play.h"
+#if TARGET_PC
+#include "pc/pc_rando_modes.h"
+#endif
 
 /* 800E79C0-800E79C8       .text daDisappear_Draw__FP15disappear_class */
 static BOOL daDisappear_Draw(disappear_class*) {
@@ -36,7 +39,16 @@ static BOOL daDisappear_Execute(disappear_class* i_this) {
                         dItemNo_ARROW_10_e,
                     };
                     if (dropType < daDisItem_HEART_e + ARRAY_SSIZE(ki_item_d)) {
+#if TARGET_PC
+                        // pc_rando(R6.15): hero_mode.asm 0x8038B0C0 ki_item_d[0] = green rupee; original: ki_item_d[dropType - daDisItem_HEART_e]
+                        u32 itemNo = ki_item_d[dropType - daDisItem_HEART_e];
+                        if (pc_rando()) {
+                            itemNo = pc_rando_hero_drop((u8)itemNo);
+                        }
+                        fopAcM_createItem(&i_this->current.pos, itemNo, -1, -1, daItemType_0_e, NULL, daItemAct_4_e);
+#else
                         fopAcM_createItem(&i_this->current.pos, ki_item_d[dropType - daDisItem_HEART_e], -1, -1, daItemType_0_e, NULL, daItemAct_4_e);
+#endif
                     }
                 }
                 else {

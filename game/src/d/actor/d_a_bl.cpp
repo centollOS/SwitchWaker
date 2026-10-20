@@ -21,6 +21,9 @@
 #include "SSystem/SComponent/c_lib.h"
 #include "SSystem/SComponent/c_math.h"
 #include "res/Object/Bl.h"
+#if TARGET_PC
+#include "pc/pc_rando_modes.h"
+#endif
 
 /* 00000078-00000178       .text draw_SUB__FP8bl_class */
 void draw_SUB(bl_class* i_this) {
@@ -1662,7 +1665,12 @@ void action_normal_skull(bl_class* i_this) {
         *(cXyz*)&i_this->m6BC = pos;
         smoke_set(i_this);
         for (int i = 0; i < (int)cM_rndF(1.99f); i++) {
+#if TARGET_PC
+            // pc_rando(R6.15): hero_mode.asm d_a_bl.rel 0x50C4 li r4, 0x01 (green rupee); original: 0 (heart)
+            fopAcM_createItem(&actor->current.pos, pc_rando() ? pc_rando_hero_drop(0) : 0, -1, -1, 0, NULL, 4, NULL);
+#else
             fopAcM_createItem(&actor->current.pos, 0, -1, -1, 0, NULL, 4, NULL);
+#endif
         }
         i_this->mSph.OffTgSetBit();
         i_this->mSph.OffCoSetBit();
