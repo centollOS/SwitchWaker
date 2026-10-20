@@ -14,6 +14,9 @@
 #include "f_op/f_op_camera.h"
 #include "res/Object/Ysbwp00.h"
 #include "res/Object/Gtfglow.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 namespace daWarpf_prm {
     static inline u32 getSetType(daWarpf_c* i_this) { return fopAcM_GetParam(i_this) >> 0x1C; }
@@ -207,6 +210,13 @@ bool daWarpf_c::_delete() {
 
 /* 00000B58-00000C34       .text checkEndDemo__9daWarpf_cFv */
 BOOL daWarpf_c::checkEndDemo() {
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R3.11): remove_cutscenes.asm d_a_warpf 0xC3C (li r3, 1; blr): the post-boss warp
+        // cutscene counts as seen; original: the per-stage check below
+        return TRUE;
+    }
+#endif
     BOOL ret = 0;
 
     switch (mStageNo) {

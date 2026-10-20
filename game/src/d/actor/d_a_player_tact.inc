@@ -605,7 +605,8 @@ BOOL daPy_lk_c::procTactPlay() {
 #if TARGET_PC
         // QoL "Canciones sin repetición" (pc_qol.h; BetterWW song_no_replay.asm): no wait for the
         // "You conducted..." box to close
-        if (pc_qol(PC_QOL_NO_SONG_REPLAY) || msg_p == NULL || msg_p->mStatus == fopMsgStts_BOX_CLOSED_e) {
+        // pc_rando(R3.11): remove_cutscenes.asm 0x8014ECE0 (nop); original: the QoL option alone
+        if (pc_rando() || pc_qol(PC_QOL_NO_SONG_REPLAY) || msg_p == NULL || msg_p->mStatus == fopMsgStts_BOX_CLOSED_e) {
 #else
         if (msg_p == NULL || msg_p->mStatus == fopMsgStts_BOX_CLOSED_e) {
 #endif
@@ -671,7 +672,8 @@ BOOL daPy_lk_c::procTactPlay() {
         }
 #if TARGET_PC
     // QoL "Canciones sin repetición" (song_no_replay.asm): no wait for the conducting animation to end
-    } else if (pc_qol(PC_QOL_NO_SONG_REPLAY) || mFrameCtrlUnder[UNDER_MOVE0_e].getRate() < 0.01f) {
+    // pc_rando(R3.11): remove_cutscenes.asm 0x8014EF28 (nop); original: the QoL option alone
+    } else if (pc_rando() || pc_qol(PC_QOL_NO_SONG_REPLAY) || mFrameCtrlUnder[UNDER_MOVE0_e].getRate() < 0.01f) {
 #else
     } else if (mFrameCtrlUnder[UNDER_MOVE0_e].getRate() < 0.01f) {
 #endif

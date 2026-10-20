@@ -576,6 +576,18 @@ void daPy_lk_c::setGetItemSound(u16 param_1, BOOL param_2) {
     {
         mDoAud_subBgmStart(JA_BGM_ITEM_GET_S);
         dComIfGp_setMesgBgmOn();
+#if TARGET_PC
+    // pc_rando(R3.11): remove_cutscenes.asm 0x8012E3A4 (b 0x8012E3E8: every chest gets the good-item
+    // jingle) and flexible_item_locations.asm 0x8012E3E8 (check_play_special_item_get_music: pearl
+    // and song music); original: param_2 picks the small jingle, else JA_BGM_ITEM_GET
+    } else if (pc_rando() ? FALSE : param_2) {
+        seStartSystem(JA_SE_ME_ITEM_GET_S);
+        dComIfGp_setMesgBgmOn2();
+    } else {
+        mDoAud_subBgmStart(pc_rando() ? pc_rando_item_get_bgm(param_1) : JA_BGM_ITEM_GET);
+        dComIfGp_setMesgBgmOn();
+    }
+#else
     } else if (param_2) {
         seStartSystem(JA_SE_ME_ITEM_GET_S);
         dComIfGp_setMesgBgmOn2();
@@ -583,6 +595,7 @@ void daPy_lk_c::setGetItemSound(u16 param_1, BOOL param_2) {
         mDoAud_subBgmStart(JA_BGM_ITEM_GET);
         dComIfGp_setMesgBgmOn();
     }
+#endif
 }
 #endif
 

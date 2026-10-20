@@ -11,6 +11,9 @@
 #include "m_Do/m_Do_lib.h"
 #include "d/actor/d_a_npc_uk.h"
 #include "d/d_snap.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 static fpc_ProcID l_msgId;
 static msg_class* l_msg;
@@ -1098,7 +1101,14 @@ u8 daNpc_Mk_c::visitTalkInit() {
         dComIfGs_onEventBit(dSv_event_flag_c::UNK_1E04);
         return 12;
     }
+#if TARGET_PC
+    // pc_rando(R3.11): flexible_item_locations.asm d_a_npc_mk 0x2C2C (b 0x2C7C): no Picto Box hint
+    // after talking to Lenzo (wrong under rando, and it blocks hide and seek); original:
+    // isEventBit(UNK_1208)
+    if((pc_rando() ? FALSE : dComIfGs_isEventBit(dSv_event_flag_c::UNK_1208)) && !dComIfGs_checkGetItem(dItemNo_PICTO_BOX_e) && !dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e)) {
+#else
     if(dComIfGs_isEventBit(dSv_event_flag_c::UNK_1208) && !dComIfGs_checkGetItem(dItemNo_PICTO_BOX_e) && !dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e)) {
+#endif
         mEventIdx = eventInfo.getEventId();
         mState = STATE_DEMO03;
         demo03();
@@ -1117,7 +1127,13 @@ void daNpc_Mk_c::visitSetEvent() {
         }
     }
 
+#if TARGET_PC
+    // pc_rando(R3.11): flexible_item_locations.asm d_a_npc_mk 0x2D0C (b 0x2D48); original:
+    // isEventBit(UNK_1208)
+    if((pc_rando() ? FALSE : dComIfGs_isEventBit(dSv_event_flag_c::UNK_1208)) && !dComIfGs_checkGetItem(dItemNo_PICTO_BOX_e) && !dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e)) {
+#else
     if(dComIfGs_isEventBit(dSv_event_flag_c::UNK_1208) && !dComIfGs_checkGetItem(dItemNo_PICTO_BOX_e) && !dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e)) {
+#endif
         eventInfo.setEventName("MK_TALK2");
         return;
     }
@@ -1186,7 +1202,14 @@ bool daNpc_Mk_c::visit01() {
                 mOrderFlags &= ~0x01; // is this an inline?
             }
 
+#if TARGET_PC
+            // pc_rando(R3.11): remove_cutscenes.asm d_a_npc_mk 0x2F80 (b 0x2FD8): Ivan no longer starts
+            // the Joy Pendant cutscene by himself (talking to a Killer Bee still does); original: the
+            // condition without pc_rando()
+            if (!pc_rando() && dComIfGs_isEventBit(dSv_event_flag_c::UNK_1F80) && !dComIfGs_isEventBit(dSv_event_flag_c::UNK_1E02) && dComIfGs_isTmpBit(dSv_event_flag_c::UNK_0580)) {
+#else
             if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_1F80) && !dComIfGs_isEventBit(dSv_event_flag_c::UNK_1E02) && dComIfGs_isTmpBit(dSv_event_flag_c::UNK_0580)) {
+#endif
                 SetOrder(0x2);
                 eventInfo.setEventName("MK_TALK4");
             } else {

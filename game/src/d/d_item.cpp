@@ -10,6 +10,7 @@
 #include "d/d_item_data.h"
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 
 typedef void (ItemGetFunc)();
@@ -1085,16 +1086,37 @@ void item_func_triforce8() {
 /* 800C43D8-800C4408       .text item_func_pearl1__Fv */
 void item_func_pearl1() {
     dComIfGs_onSymbol(dSymbol_NAYRU_e);
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R3.11): remove_cutscenes.asm 0x800C43F4 (give_pearl_and_raise_totg_if_necessary): the
+        // pearl is placed at once, and the tower rises with the third; original: onSymbol only
+        pc_rando_place_pearl(dSymbol_NAYRU_e);
+    }
+#endif
 }
 
 /* 800C4408-800C4438       .text item_func_pearl2__Fv */
 void item_func_pearl2() {
     dComIfGs_onSymbol(dSymbol_DIN_e);
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R3.11): remove_cutscenes.asm 0x800C4424 (give_pearl_and_raise_totg_if_necessary): the
+        // pearl is placed at once, and the tower rises with the third; original: onSymbol only
+        pc_rando_place_pearl(dSymbol_DIN_e);
+    }
+#endif
 }
 
 /* 800C4438-800C4468       .text item_func_pearl3__Fv */
 void item_func_pearl3() {
     dComIfGs_onSymbol(dSymbol_FARORE_e);
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R3.11): remove_cutscenes.asm 0x800C4454 (give_pearl_and_raise_totg_if_necessary): the
+        // pearl is placed at once, and the tower rises with the third; original: onSymbol only
+        pc_rando_place_pearl(dSymbol_FARORE_e);
+    }
+#endif
 }
 
 /* 800C4468-800C446C       .text item_func_knowledge_tf__Fv */

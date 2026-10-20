@@ -17,6 +17,9 @@
 #include "m_Do/m_Do_controller_pad.h"
 #include "d/actor/d_a_player_main.h"
 #include "res/Object/Cb.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 class daNpc_Cb1_HIO_c : public JORReflexible {
 public:
@@ -2941,7 +2944,13 @@ BOOL daNpc_Cb1_c::init() {
         gravity = -0.1f;
     }
     else if(isTypeBossDie()) {
+#if TARGET_PC
+        // pc_rando(R3.11): remove_cutscenes.asm d_a_npc_cb1 0x80B8 (li r3, 1): no thank-you event after
+        // Kalle Demos (a rare softlock); original: dComIfGs_isStageBossEnemy(STAGE_FW)
+        setNpcAction((pc_rando() || dComIfGs_isStageBossEnemy(dSv_save_c::STAGE_FW)) ? &daNpc_Cb1_c::waitNpcAction : &daNpc_Cb1_c::rescueNpcAction, NULL);
+#else
         setNpcAction(dComIfGs_isStageBossEnemy(dSv_save_c::STAGE_FW) ? &daNpc_Cb1_c::waitNpcAction : &daNpc_Cb1_c::rescueNpcAction, NULL);
+#endif
     }
     else if(!isTypeEkaze() && !isTypeKaze() && shipRideCheck()) {
         attention_info.distances[fopAc_Attn_TYPE_TALK_e] = 0xAF;

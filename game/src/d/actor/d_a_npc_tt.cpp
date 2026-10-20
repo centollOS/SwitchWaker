@@ -9,6 +9,9 @@
 #include "res/Object/Tt.h"
 #include "d/d_snap.h"
 #include "d/actor/d_a_player_main.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 static fpc_ProcID l_msgId;
 static msg_class* l_msg;
@@ -334,7 +337,12 @@ void daNpc_Tt_c::demoInitPatten() {
     if(cnt != NULL) {
         field_0xE7A = *cnt;
     } else {
+#if TARGET_PC
+        // pc_rando(R3.11): remove_cutscenes.asm d_a_npc_tt 0xC68 (li r0, 1): Tott dances once; original: 2
+        field_0xE7A = pc_rando() ? 1 : 2;
+#else
         field_0xE7A = 2;
+#endif
     }
 }
 

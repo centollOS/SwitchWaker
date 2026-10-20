@@ -18,6 +18,7 @@
 #include "d/d_snap.h"
 #include "res/Object/Bgn.h"
 #if TARGET_PC
+#include "pc/pc_rando.h"
 // Aurora's dolphin/gf/GFGeometry.h lacks the TWW-only GFSetCullMode; the GF.h forwarder adds it
 // (cos_gf_extras.h).
 #include "dolphin/gf/GF.h"
@@ -3354,7 +3355,13 @@ static BOOL daBgn_Execute(bgn_class* i_this) {
     i_this->m02B5 = l_HIO.m024;
     if (i_this->mCC90 == 2) {
         i_this->mCC90 = 0;
+#if TARGET_PC
+        // pc_rando(R3.11): remove_cutscenes.asm d_a_bgn 0xB1E0 (li r6, -1): no layer override, so the
+        // rope is there (the new game marks the cutscene seen); original: layer 9
+        dComIfGp_setNextStage("GanonK", 4, 0, pc_rando() ? -1 : 9);
+#else
         dComIfGp_setNextStage("GanonK", 4, 0, 9);
+#endif
         dComIfGs_onEventBit(dSv_event_flag_c::UNK_3F10);
     }
     return TRUE;

@@ -35,6 +35,7 @@
 #if TARGET_PC
 #include "helpers/endian.h"
 #include "pc/pc_qol.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 #include "d/d_material.h"
 #include "JSystem/J3DGraphLoader/J3DAnmLoader.h"
