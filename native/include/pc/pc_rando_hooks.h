@@ -89,6 +89,7 @@ void pc_rando_msg_hook_entry(uint16_t msg_no, void* entry);
 /* daItem_c::mode_wait under pc_rando(): 1 when field item `item_no` moves with itemActionForArrow
    (wwrando: ids 0x20-0x44 and every id above 0x4B), else its vanilla case. */
 int pc_rando_field_item_wait_arrow(uint8_t item_no);
+
 /* --- R3.3: progressive items (make_items_progressive.asm; pc_rando_hooks_progressive.cpp, tier
    tables in features/rando/pc_rando_progressive.h) --- */
 /* convert_progressive_item_id: for a progressive id, the id of the tier the save gets next (sword
@@ -97,6 +98,7 @@ int pc_rando_field_item_wait_arrow(uint8_t item_no);
    item-get check) and by R3.1's starting gear loop. Like the asm, it compares the whole value, so a
    value outside 0..0xFF comes back unchanged. */
 int pc_rando_convert_progressive_item_id(int item_no);
+
 /* --- R3.6: Tingle Statues (asm group G4; game_hooks/pc_rando_hooks_tingle.cpp, tables in
    features/rando/pc_rando_tingle.h) --- */
 /* check_tingle_statue_owned (custom_funcs.asm): replaces dComIfGs_isStageTbox(stage, 0xF) at the
@@ -136,6 +138,7 @@ uint32_t pc_rando_item_get_bgm(uint16_t item);
    adds their table edits and item-get messages. Called once at static init by R0.8's table binding
    (pc_rando_hooks_items.cpp), which also makes the linker keep the file. No game/ hunk calls it. */
 void pc_rando_dungeon_items_register(void);
+
 /* --- R3.13: misc features (misc_rando_features.asm, tweaks.py add_new_bog_warp and
    fix_message_closing_sound_on_quest_status_screen; game_hooks/pc_rando_hooks_misc.cpp) --- */
 /* custom_isTbox_for_unloaded_stage_save_info: 1 when chest flag `no` (0-31) is set in the SAVED stage

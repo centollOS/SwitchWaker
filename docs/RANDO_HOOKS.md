@@ -90,6 +90,7 @@ the port's tables are constant-initialized and the edits are applied later, at a
 | game/src/d/actor/d_a_item.cpp:55 | `daItem_c::getYOffset`: the Big Key (own case, split from the Small Key's) and the default case return 23.0 | ?: | getYOffset 0x800F4CD0 `lfs f1, -0x5E7C(rtoc)` (23.0) and jump table 0x8038C8B8 entry 0x4E |
 | game/src/d/actor/d_a_item.cpp:789 | `daItem_c::itemGetExecute`: a `default:` case sets `STATUS_INIT_GET_DEMO` (the item-get demo, as the Small Key) | add | jump table 0x8038CA6C entries 0x800F6C8C -> 0x800F675C, `bgt 0x800F675C` at 0x800F6468 |
 | game/src/d/actor/d_a_item.cpp:1289 | `daItem_c::mode_wait`: ids 0x20-0x44 and 0x4C+ use `itemActionForArrow` (`pc_rando_field_item_wait_arrow`) | if/else | jump table 0x8038CC7C ids 0x20-0x44 -> 0x800F8160, `bgt 0x800F8160` at 0x800F8138 |
+
 ## R3.3
 
 Progressive items (asm group G2). Hook body: `pc_rando_convert_progressive_item_id`
@@ -106,6 +107,7 @@ registry (no hunk); message 101+0xB1 goes in R0.12's overlay at every activation
 | game/src/d/actor/d_a_shop_item.cpp | `daShopItem_c::_create`: `m_itemNo` is the next tier of the params' item | `?:` | `make_items_progressive.asm` d_a_shop_item 0x8B8 / 0x9C0 `convert_progressive_item_id_for_shop_item` |
 | game/src/d/actor/d_a_npc_bs1.cpp | `daNpc_Bs1_c::next_msgStatus`: the two `checkItemGet` calls that decide the item-get animation use the next tier (bait bag slot; Rock Spire slots) | `?:` | `make_items_progressive.asm` d_a_npc_bs1 0x1D00 / 0x1F3C `custom_getSelectItemNo_progressive` |
 | game/src/d/d_item.cpp | `item_func_bow`, `item_func_bomb_bag`: the 30/30 arrow and bomb writes; `item_func_deku_leaf`: the 16/16 magic adds (original code under `if (!pc_rando())`) | if/else | `tweaks.py` `make_items_progressive` nops 0x800C346C/70, 0x800C36C0/C4, 0x800C375C/68 |
+
 ## R3.6
 
 The Tingle Statues (asm group G4). Owning a statue becomes its event bit 0x6A04-0x6A40 (set by the
@@ -256,6 +258,7 @@ means `pc_rando() || pc_qol(PC_QOL_FIX_BUGS)`.
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | - | no hunks in `game/`: the 22 per-dungeon item IDs are item-get overrides through R0.8's `execItemGet` dispatch, table edits (`pc_rando_table_edit`) and overlay messages (`game_hooks/pc_rando_hooks_dungeon_items.cpp`, `features/rando/pc_rando_dungeon_items.{h,cpp}`) | - | `tweaks.py` `allow_dungeon_items_to_appear_anywhere`; `custom_funcs.asm` `generic_on_dungeon_bit`, `generic_small_key_item_get_func` and the 22 `*_item_get_func` wrappers |
+
 ## R3.13
 
 Misc features (`misc_rando_features.asm`, plus `tweaks.py` `add_new_bog_warp` and
