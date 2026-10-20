@@ -11,20 +11,30 @@
 //      time (the item's message waits for the fanfare, which plays in real time: uncapped runs go
 //      through many more frames), A every kTalkFrames for the item's message. Shots every kShotEvery frames while it runs.
 // Exit 0 when the chest's event ends, else 1.
+// The randomizer (R3.8, docs/RANDOMIZER_PLAN.md): with pc_rando() on (COS_RANDO_FORCE=1) this big chest
+// must open short (wwrando's d_a_tbox): its event is DEFAULT_TREASURE_A and its open animation the light
+// wood chest's (Dalways BOXOPENSHORTBOX); off, DEFAULT_TREASURE and BOXOPENBOX. Either way the event must
+// give the Spoils Bag.
 #include "pc_internal.h"
+
+#include "pc/pc_rando.h"
 
 #include "d/d_camera.h"
 #include "d/d_com_inf_game.h"
 #include "d/d_event_data.h"
 #include "d/d_event_manager.h"
+#include "d/actor/d_a_tbox.h"
+#include "d/d_item_data.h"
 #include "f_op/f_op_actor_mng.h"
 #include "f_pc/f_pc_layer.h"
 #include "f_pc/f_pc_manager.h"
 #include "f_pc/f_pc_node.h"
 #include "f_pc/f_pc_name.h"
+#include "res/Object/Dalways.h"
 
 #include <dolphin/pad.h>
 
+#include <cstdio>
 #include <cstring>
 #include <unistd.h>
 
@@ -46,6 +56,8 @@ bool sChecked = false;
 unsigned int sSince = 0;
 unsigned int sEventFrames = 0;
 uint64_t sEventStartNs = 0;
+fpc_ProcID sChestId = fpcM_ERROR_PROCESS_ID_e;
+char sEventName[64] = "";
 
 void* isPlayScene(void* proc, void*) {
     return fpcM_GetName(proc) == fpcNm_PLAY_SCENE_e ? proc : nullptr;
@@ -61,6 +73,51 @@ void finish(unsigned int frames, bool ok) {
     captureFrame(frames, shotSink, nullptr);
     writef(STDERR_FILENO, "[cos] chest: %s\n", ok ? "PASS" : "FAIL");
     pc_exit(ok ? PC_EXIT_REACHED : PC_EXIT_CHECK_FAILED);
+}
+
+const char* eventName() {
+    dEvt_control_c* ev = g_dComIfG_gameInfo.play.getEvent();
+    if (ev->mEventId != -1) {
+        dEvDtEvent_c* data = dComIfGp_getPEvtManager()->getEventData(ev->mEventId);
+        if (data != nullptr) {
+            return data->getName();
+        }
+    }
+    return "(none)";
+}
+
+// The checks of the open itself (see the header): the event's name, the chest's open animation and
+// the item. Returns false (logged) on a mismatch.
+bool checkOpen() {
+    const bool rando = pc_rando() != 0;
+    const char* wantEvent = rando ? "DEFAULT_TREASURE_A" : "DEFAULT_TREASURE";
+    bool ok = true;
+    if (strcmp(sEventName, wantEvent) != 0) {
+        writef(STDERR_FILENO, "[cos] chest: FAIL the event was \"%s\", expected \"%s\" (pc_rando %d)\n", sEventName,
+               wantEvent, (int)rando);
+        ok = false;
+    }
+    daTbox_c* tbox = (daTbox_c*)fopAcM_SearchByID(sChestId);
+    if (tbox == nullptr) {
+        writef(STDERR_FILENO, "[cos] chest: FAIL the chest (process %u) is gone\n", (unsigned)sChestId);
+        ok = false;
+    } else {
+        const int wantBck = rando ? dRes_INDEX_DALWAYS_BCK_BOXOPENSHORTBOX_e : dRes_INDEX_DALWAYS_BCK_BOXOPENBOX_e;
+        J3DAnmTransform* want = (J3DAnmTransform*)dComIfG_getObjectRes("Dalways", wantBck);
+        if (tbox->mOpenAnm.getBckAnm() != want) {
+            writef(STDERR_FILENO, "[cos] chest: FAIL the open animation is not Dalways bck 0x%X\n", wantBck);
+            ok = false;
+        }
+    }
+    if (!dComIfGs_checkGetItem(dItemNo_SPOILS_BAG_e)) {
+        writef(STDERR_FILENO, "[cos] chest: FAIL the Spoils Bag was not given\n");
+        ok = false;
+    }
+    if (ok) {
+        writef(STDERR_FILENO, "[cos] chest: event \"%s\", open bck 0x%X, Spoils Bag owned (pc_rando %d)\n", sEventName,
+               rando ? dRes_INDEX_DALWAYS_BCK_BOXOPENSHORTBOX_e : dRes_INDEX_DALWAYS_BCK_BOXOPENBOX_e, (int)rando);
+    }
+    return ok;
 }
 
 void logEvent(unsigned int frames) {
@@ -127,6 +184,7 @@ void chestFrame(unsigned int frames) {
             fpcLy_SetCurrentLayer(&((process_node_class*)fpcM_Search(isPlayScene, nullptr))->mLayer);
             const fpc_ProcID id =
                 fopAcM_create(fpcNm_TBOX_e, 0xFF200200, &pos, fopAcM_GetRoomNo(player), &angle);
+            sChestId = id;
             fpcLy_SetCurrentLayer(saved);
             writef(STDERR_FILENO, "[cos] chest: frame %u: chest created in front of the player, process %u\n",
                    frames, (unsigned)id);
@@ -157,6 +215,7 @@ void chestFrame(unsigned int frames) {
         if (dComIfGp_event_runCheck()) {
             writef(STDERR_FILENO, "[cos] chest: frame %u: an event started after %u frames\n", frames, sSince);
             logEvent(frames);
+            snprintf(sEventName, sizeof(sEventName), "%s", eventName());
             sState = kEvent;
             sSince = 0;
             sEventStartNs = monotonicNs();
@@ -175,7 +234,7 @@ void chestFrame(unsigned int frames) {
         }
         if (!dComIfGp_event_runCheck()) {
             writef(STDERR_FILENO, "[cos] chest: frame %u: the chest's event ended after %u frames\n", frames, sSince);
-            finish(frames, true);
+            finish(frames, checkOpen());
         } else if ((monotonicNs() - sEventStartNs) / 1e9 >= kEventSeconds) {
             logEvent(frames);
             writef(STDERR_FILENO, "[cos] chest: FAIL the chest's event did not end in %.0f s\n", kEventSeconds);

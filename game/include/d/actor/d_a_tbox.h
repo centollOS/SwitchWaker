@@ -10,6 +10,9 @@
 #include "d/d_bg_s_acch.h"
 #include "f_op/f_op_actor_mng.h"
 #include "m_Do/m_Do_hostIO.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 class daTbox_c : public fopAc_ac_c {
 public:
@@ -66,6 +69,11 @@ public:
     BOOL checkRoomDisp(int);
     s32 getShapeType();
     s32 getFuncType();
+#if TARGET_PC
+    // pc_rando(R3.8): wwrando asm/actors/d_a_tbox.cpp getIsTrap (param bit 0x40, the trap flag; used by
+    // R6.5's trap chests); original: none, vanilla chests have no trap flag
+    bool getIsTrap() { return pc_rando() && (fopAcM_GetParam(this) & 0x40) != 0; }
+#endif
     BOOL checkNormal();
     BOOL CreateHeap();
     void CreateInit();
