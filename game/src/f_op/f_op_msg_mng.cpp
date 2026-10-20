@@ -18,6 +18,7 @@
 #include "m_Do/m_Do_controller_pad.h"
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 #include <stdio.h>
 #if VERSION <= VERSION_JPN
@@ -1511,6 +1512,11 @@ JMSMesgEntry_c fopMsgM_msgGet_c::getMesgEntry(mesg_header* i_head) {
     // QoL "Texto instantáneo" (pc_qol.h; wwrando make_all_text_instant: every message's initial
     // draw type 1, instant)
     JMSMesgEntry_c entry = info->mEntries[mMsgIdx];
+    if (pc_rando()) {
+        // pc_rando(R0.12): bmg.py add_new_message / Message fields (tweaks.py, hints.py); original:
+        // the BMG's INF1 entry
+        pc_rando_msg_hook_entry(mMsgNo, &entry);
+    }
     if (pc_qol(PC_QOL_INSTANT_TEXT)) {
         entry.mDrawType = 1;
     }
@@ -1539,6 +1545,17 @@ const char* fopMsgM_msgGet_c::getMessage(mesg_header* i_head) {
         }
     }
 
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R0.12): bmg.py msg.string / add_new_message (tweaks.py, hints.py); original: the
+        // BMG's text (NULL when it has no such message)
+        const char* text = pc_rando_msg_hook_text(mMsgNo);
+        if (text != NULL) {
+            ret = text;
+            mResMsgNo = mMsgNo;
+        }
+    }
+#endif
     return ret;
 }
 
@@ -1586,6 +1603,11 @@ JMSMesgEntry_c fopMsgM_itemMsgGet_c::getMesgEntry(mesg_header* i_head) {
 #if TARGET_PC
     // QoL "Texto instantáneo": as fopMsgM_msgGet_c::getMesgEntry
     JMSMesgEntry_c entry = info->mEntries[mMsgIdx];
+    if (pc_rando()) {
+        // pc_rando(R0.12): bmg.py add_new_message / Message fields (tweaks.py, hints.py); original:
+        // the BMG's INF1 entry
+        pc_rando_msg_hook_entry(mMsgNo, &entry);
+    }
     if (pc_qol(PC_QOL_INSTANT_TEXT)) {
         entry.mDrawType = 1;
     }
@@ -1612,6 +1634,17 @@ const char* fopMsgM_itemMsgGet_c::getMessage(mesg_header* i_head) {
 
     const char* result = &data[info->mEntries[mMsgIdx].mDataOffs];
     mResMsgNo = info->mEntries[mMsgIdx].mMsgNo;
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R0.12): bmg.py msg.string / add_new_message (tweaks.py, hints.py); original: the
+        // BMG's text (the last message's when it has no such message)
+        const char* text = pc_rando_msg_hook_text(mMsgNo);
+        if (text != NULL) {
+            result = text;
+            mResMsgNo = mMsgNo;
+        }
+    }
+#endif
     return result;
 }
 
