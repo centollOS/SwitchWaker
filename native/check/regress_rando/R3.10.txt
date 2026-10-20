@@ -1,0 +1,5 @@
+# R3.10 (docs/RANDOMIZER_PLAN.md): make_game_nonlinear.asm items 12-22, each hunk with the randomizer
+# off (original game) and on, on Outset; forced, only the randomizer half.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=nonlinB
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=nonlinB --env COS_RANDO_FORCE=1

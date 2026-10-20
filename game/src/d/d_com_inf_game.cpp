@@ -27,6 +27,9 @@
 #include "pc/pc_harness.h"
 #include "pc/pc_rando.h"
 #endif
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 dComIfG_inf_c g_dComIfG_gameInfo;
 
@@ -220,6 +223,14 @@ int dComIfG_play_c::getLayerNo(int i_roomNo) {
                 return layer | 2;
             }
         } else if (strcmp(dComIfGp_getStartStageName(), "Hyrule") == 0) {
+#if TARGET_PC
+            if (pc_rando()) {
+                // pc_rando(R3.10): make_game_nonlinear.asm 0x80052668 (getLayerNo, b 0x80052850: Hyrule
+                // keeps the day/night layer, so its Moblins and Darknuts stay); original: the shard
+                // and event bit checks below
+                return layer;
+            }
+#endif
             if (
                 dComIfGs_getTriforceNum() == 8
 #if VERSION == VERSION_DEMO

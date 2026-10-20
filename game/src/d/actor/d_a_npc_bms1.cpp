@@ -17,6 +17,18 @@
 #include "JSystem/J3DGraphAnimator/J3DJoint.h"
 #include "JSystem/JUtility/JUTAssert.h"
 #include "res/Object/Bms.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+
+// pc_rando(R3.10): make_game_nonlinear.asm d_a_npc_bms1 0x1B9C (shop_talk), 0x2064/0x20B4 (CreateInit),
+// 0x36A0/0x36EC (_create), 0x3E3C (CreateHeap): each checkItemGet(0x69, 1) (Nayru's Pearl) becomes
+// li r3, 1, so the low prices hold from the start; original: checkItemGet(0x69, 1). Those six calls are
+// this unit's only ones with item 0x69, so the macro below changes exactly them.
+static BOOL daNpc_Bms1_checkItemGet(u8 i_itemNo, int i_flag) {
+    return (pc_rando() && i_itemNo == dItemNo_PEARL_NAYRU_e) ? TRUE : checkItemGet(i_itemNo, i_flag);
+}
+#define checkItemGet(i_itemNo, i_flag) daNpc_Bms1_checkItemGet(i_itemNo, i_flag)
+#endif
 
 static dCcD_SrcCyl l_cyl_src = {
     // dCcD_SrcGObjInf

@@ -9,6 +9,9 @@
 #include "d/d_letter.h"
 #include "d/d_snap.h"
 #include "res/Object/Bm.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 class daNpc_Bm1_childHIO_c : public mDoHIO_entry_c {
 public:
@@ -659,7 +662,13 @@ bool daNpc_Bm1_c::init_BMD_0() {
 
 /* 00001030-00001084       .text init_BMD_1__11daNpc_Bm1_cFv */
 bool daNpc_Bm1_c::init_BMD_1() {
+#if TARGET_PC
+    // pc_rando(R3.10): make_game_nonlinear.asm d_a_npc_bm1 0x1150 (init_BMD_1, b 0x115C: ignore event bit
+    // 0x1620); original: if (dComIfGs_isEventBit(UNK_1620))
+    if (!pc_rando() && dComIfGs_isEventBit(dSv_event_flag_c::UNK_1620)) {
+#else
     if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_1620)) {
+#endif
         return false;
     }
     return init_BMC_0();

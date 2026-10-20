@@ -5,6 +5,9 @@
 
 #include "d/dolzel_rel.h" // IWYU pragma: keep
 #include "d/actor/d_a_obj_hsehi1.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 #include "d/actor/d_a_player.h"
 #include "res/Object/Hsehi1.h"
 #include "res/Object/Hsehi2.h"
@@ -684,6 +687,14 @@ void daObj_hsh_c::initialDeleteEvent(int) {
 BOOL daObj_hsh_c::actionDeleteEvent(int) {
     if (cLib_calcTimer(&mAppearDeleteTimer) == 0) {
         drawStop();
+#if TARGET_PC
+        if (pc_rando()) {
+            // pc_rando(R3.10): make_game_nonlinear.asm d_a_obj_hsehi1 0x1E60
+            // (set_item_obtained_from_totg_tablet_event_bit: the tablet, not the east servant, sets
+            // 0x2510); original: nothing
+            dComIfGs_onEventBit(dSv_event_flag_c::UNK_2510);
+        }
+#endif
         return TRUE;
     }
 
