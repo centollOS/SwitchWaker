@@ -3,7 +3,7 @@
 
     python3 -I native/tools/divergence_census.py [--out docs/GAME_DIVERGENCE.md] [--fetch | --offline]
 
-Compares game/ at HEAD with the import commit (ce41ca9: snrubrm/tww b09eebc, unchanged) and writes
+Compares game/ at HEAD with the import commit (ed1058e: snrubrm/tww b09eebc, unchanged) and writes
 a Markdown report: every file that differs, its host-guarded blocks (`#if TARGET_PC` and the other
 guard macros in GUARD_RE), the changed lines outside any guard (edits to decompiled code that are not
 marked; the identity annotations of game/include/helpers such as BE(T) are counted apart), the
@@ -24,7 +24,7 @@ import re
 import subprocess
 import sys
 
-IMPORT_COMMIT = "ce41ca9"
+IMPORT_COMMIT = "ed1058e"  # "Import the game decompilation source for a native port" (was ce41ca9 before the history rewrite)
 FORK_URL = "https://github.com/snrubrm/tww.git"
 FORK_COMMIT = "b09eebc39852e18397031d9a563a8eae124f21f1"
 UPSTREAM_URL = "https://github.com/zeldaret/tww.git"
