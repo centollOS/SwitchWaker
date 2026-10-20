@@ -76,7 +76,10 @@ void randoSmokeItems(unsigned int frames) {
     const int forced = pc_rando_forced();
     randoSmokeCheck(kName, forced ? "forced boot: tables snapshotted" : "plain boot: tables not snapshotted",
                     pc_rando_tables_applied() == forced);
-    // Under COS_RANDO_FORCE no edit is registered yet, so the tables hold their boot bytes either way.
+    // Drop the seed-independent edits later steps register at boot (R2.11's field items), so this smoke
+    // sees only its own; under COS_RANDO_FORCE that also puts the snapshot (the boot bytes) back, so the
+    // tables hold their boot bytes either way.
+    pc_rando_table_edits_clear();
     saveBoot();
 
     pc_rando_item_override(kId, overrideItem);

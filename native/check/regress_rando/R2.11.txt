@@ -1,0 +1,9 @@
+# R2.11 (docs/RANDOMIZER_PLAN.md): any item anywhere. The static checks (171 field models, the fixed get
+# models, item_info) plus a sample through the item-get demo as a field item and from a chest: an item
+# that used the default cases (0x20), Master Sword (0x39), Big Key (0x4E, Y offset), a song (0x6D),
+# Hurricane Spin (0xAA), Magic Meter (0xB1), a treasure chart (0xC2). Forced boot for the second line.
+# The whole list (342 items, about 25 minutes uncapped):
+#   run.sh rando --stage Asoko:0:0:2 --uncapped --timeout 3600 --env COS_RANDO_SMOKE=fielditems
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Asoko:0:0:2 --uncapped --env COS_RANDO_SMOKE=fielditems --env COS_FIELDITEMS=0x20,0x39,0x4E,0x6D,0xAA,0xB1,0xC2
+rando 0 --stage Asoko:0:0:2 --uncapped --env COS_RANDO_SMOKE=fielditems --env COS_FIELDITEMS=0x3E,0x72 --env COS_RANDO_FORCE=1
