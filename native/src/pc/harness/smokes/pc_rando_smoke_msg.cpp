@@ -158,7 +158,9 @@ void randoSmokeMsg(unsigned int frames) {
         fopMsgM_messageGet(buf, kShop);
         randoSmokeCheck(kName, "deactivate: 3906 is the BMG's text again", strcmp(buf, sVanilla) == 0);
     } else {
-        randoSmokeCheck(kName, "forced: the overlay stays", pc_rando_msg_count() == 2);
+        // Other steps' messages (e.g. R3.3's 278) are in the overlay too: check this smoke's two.
+        randoSmokeCheck(kName, "forced: the overlay stays",
+                        pc_rando_msg_find(kShop) != nullptr && pc_rando_msg_find(kNew) != nullptr);
     }
     randoSmokeEnd(kName);
 }

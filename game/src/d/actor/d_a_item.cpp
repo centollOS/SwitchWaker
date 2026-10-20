@@ -14,6 +14,10 @@
 #include "f_op/f_op_camera_mng.h"
 #include "m_Do/m_Do_mtx.h"
 #include "m_Do/m_Do_controller_pad.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
+#endif
 
 s32 daItem_c::m_timer_max = 10000;
 
@@ -217,6 +221,14 @@ void daItem_c::CreateInit() {
 cPhs_State daItem_c::_daItem_create() {
     fopAcM_ct(this, daItem_c);
     
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R3.3): make_items_progressive.asm 0x800F5550 convert_progressive_item_id_for_daItem_create
+        // (the field item's params byte becomes the next tier); original: params kept
+        fopAcM_SetParam(this, (fopAcM_GetParam(this) & ~0xFFu) |
+                                  pc_rando_convert_progressive_item_id((int)daItem_prm::getItemNo(this)));
+    }
+#endif
     m_itemNo = daItem_prm::getItemNo(this);
     
     if (!dItem_data::getFieldArc(m_itemNo)) {

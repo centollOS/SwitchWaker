@@ -23,6 +23,7 @@
 #if TARGET_PC
 #include "pc/pc_qol.h"
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 
 class daNpc_Bs1_childHIO_c {
@@ -838,7 +839,14 @@ u16 daNpc_Bs1_c::next_msgStatus(u32* pMsgNo) {
                     m76C[mShopItems.mSelectedItemIdx] = 1;
                 }
 
+#if TARGET_PC
+                // pc_rando(R3.3): make_items_progressive.asm d_a_npc_bs1 0x1D00 custom_getSelectItemNo_progressive
+                // (the item-get animation plays for a tier 2+ item); original: mShopItems.getSelectItemNo()
+                int itemNo = pc_rando() ? pc_rando_convert_progressive_item_id(mShopItems.getSelectItemNo())
+                                        : mShopItems.getSelectItemNo();
+#else
                 int itemNo = mShopItems.getSelectItemNo();
+#endif
                 if(!checkItemGet(itemNo, FALSE)) {
                     m82A = 3;
                     msgStatus = fopMsgStts_MSG_ENDS_e;
@@ -914,7 +922,14 @@ u16 daNpc_Bs1_c::next_msgStatus(u32* pMsgNo) {
                 }
 
                 // these int casts are probably fake
+#if TARGET_PC
+                // pc_rando(R3.3): make_items_progressive.asm d_a_npc_bs1 0x1F3C custom_getSelectItemNo_progressive
+                // (Rock Spire shop slots); original: (int)mShopItems.getSelectItemNo()
+                if(!checkItemGet(pc_rando() ? (int)pc_rando_convert_progressive_item_id(mShopItems.getSelectItemNo())
+                                            : (int)mShopItems.getSelectItemNo(), FALSE)) {
+#else
                 if(!checkItemGet((int)mShopItems.getSelectItemNo(), FALSE)) {
+#endif
                     m82A = 3;
                     msgStatus = fopMsgStts_MSG_ENDS_e;
                     break;

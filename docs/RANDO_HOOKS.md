@@ -47,6 +47,23 @@ pure `pc_rando_msg.cpp`.
 | game/src/f_op/f_op_msg_mng.cpp:1509 | `fopMsgM_msgGet_c::getMesgEntry` (1509), `fopMsgM_itemMsgGet_c::getMesgEntry` (1601): the overlay's INF1 entry fields (or the new-message defaults) replace the BMG entry before the instant-text QoL | add | gclib `bmg.py` `add_new_message` / `Message` fields, set in `tweaks.py` and `randomizers/hints.py` |
 | game/src/f_op/f_op_msg_mng.cpp:1530 | `fopMsgM_msgGet_c::getMessage` (1530), `fopMsgM_itemMsgGet_c::getMessage` (1621): the overlay's encoded text replaces the BMG text (and serves numbers the BMG lacks; `mResMsgNo` = the asked number) | add | `msg.string = ...` / `add_new_message` (`tweaks.py`, `randomizers/hints.py`, `randomizers/boss_reqs.py`) |
 
+## R3.3
+
+Progressive items (asm group G2). Hook body: `pc_rando_convert_progressive_item_id`
+(`native/include/pc/pc_rando_hooks.h`, `native/src/pc/game_hooks/pc_rando_hooks_progressive.cpp`; tier
+tables in the pure `features/rando/pc_rando_progressive.cpp`). The 8 progressive item functions and
+`normal_magic_meter_item_func` are registered on the 20 progressive ids through R0.8's override
+registry (no hunk); message 101+0xB1 goes in R0.12's overlay at every activation.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/f_op/f_op_actor_mng.cpp | `fopAcM_createDemoItem`: the item id becomes the next tier before the params are built | add | `make_items_progressive.asm` 0x80026A24 `convert_progressive_item_id_for_createDemoItem` |
+| game/src/d/actor/d_a_item.cpp | `daItem_c::_daItem_create`: the params' item byte becomes the next tier before `m_itemNo` is read | add | `make_items_progressive.asm` 0x800F5550 `convert_progressive_item_id_for_daItem_create` |
+| game/src/d/actor/d_a_player_dproc.inc | `daPy_lk_c::dProcGetItem_init`: `item_no` (event param or `dComIfGp_event_getGtItm`) becomes the next tier; one hunk after both reads | add | `make_items_progressive.asm` 0x8012E7B8 / 0x8012E7DC `convert_progressive_item_id_for_dProcGetItem_init_1/2` |
+| game/src/d/actor/d_a_shop_item.cpp | `daShopItem_c::_create`: `m_itemNo` is the next tier of the params' item | `?:` | `make_items_progressive.asm` d_a_shop_item 0x8B8 / 0x9C0 `convert_progressive_item_id_for_shop_item` |
+| game/src/d/actor/d_a_npc_bs1.cpp | `daNpc_Bs1_c::next_msgStatus`: the two `checkItemGet` calls that decide the item-get animation use the next tier (bait bag slot; Rock Spire slots) | `?:` | `make_items_progressive.asm` d_a_npc_bs1 0x1D00 / 0x1F3C `custom_getSelectItemNo_progressive` |
+| game/src/d/d_item.cpp | `item_func_bow`, `item_func_bomb_bag`: the 30/30 arrow and bomb writes; `item_func_deku_leaf`: the 16/16 magic adds (original code under `if (!pc_rando())`) | if/else | `tweaks.py` `make_items_progressive` nops 0x800C346C/70, 0x800C36C0/C4, 0x800C375C/68 |
+
 ## R3.7
 
 The custom actors SwOp (0x1F6) and DngSw (0x1F7). New port-only units and registrations, each inside

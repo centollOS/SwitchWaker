@@ -764,8 +764,17 @@ void item_func_camera2() {
 void item_func_bow() {
     dComIfGs_onGetItem(dInvSlot_BOW_e, 0);
     dComIfGs_setItem(dInvSlot_BOW_e, dItemNo_BOW_e);
+#if TARGET_PC
+    if (!pc_rando()) {
+        // pc_rando(R3.3): tweaks.py make_items_progressive nops 0x800C346C/0x800C3470 (the rando new
+        // game starts with 30 arrows, and the quiver upgrades must stay); original: set 30/30 arrows
+        dComIfGs_setArrowNum(30);
+        dComIfGs_setArrowMax(30);
+    }
+#else
     dComIfGs_setArrowNum(30);
     dComIfGs_setArrowMax(30);
+#endif
 }
 
 /* 800C3484-800C34C4       .text item_func_pwr_groove__Fv */
@@ -823,8 +832,17 @@ void item_func_warasibe_bag() {
 void item_func_bomb_bag() {
     dComIfGs_onGetItem(dInvSlot_BOMB_e, 0);
     dComIfGs_setItem(dInvSlot_BOMB_e, dItemNo_BOMB_BAG_e);
+#if TARGET_PC
+    if (!pc_rando()) {
+        // pc_rando(R3.3): tweaks.py make_items_progressive nops 0x800C36C0/0x800C36C4 (the rando new
+        // game starts with 30 bombs, and the bomb bag upgrades must stay); original: set 30/30 bombs
+        dComIfGs_setBombNum(30);
+        dComIfGs_setBombMax(30);
+    }
+#else
     dComIfGs_setBombNum(30);
     dComIfGs_setBombMax(30);
+#endif
 }
 
 /* 800C36D8-800C36DC       .text item_func_fuku__Fv */
@@ -841,8 +859,17 @@ void item_func_hummer() {
 void item_func_deku_leaf() {
     dComIfGs_onGetItem(dInvSlot_DEKU_LEAF_e, 0);
     dComIfGs_setItem(dInvSlot_DEKU_LEAF_e, dItemNo_DEKU_LEAF_e);
+#if TARGET_PC
+    if (!pc_rando()) {
+        // pc_rando(R3.3): tweaks.py make_items_progressive nops 0x800C375C/0x800C3768 (magic is the
+        // separate Progressive Magic Meter); original: add 16 max and 16 current magic
+        dComIfGp_setItemMaxMagicCount(16);
+        dComIfGp_setItemMagicCount(16);
+    }
+#else
     dComIfGp_setItemMaxMagicCount(16);
     dComIfGp_setItemMagicCount(16);
+#endif
 }
 
 /* 800C377C-800C3928       .text item_func_magic_arrow__Fv */
