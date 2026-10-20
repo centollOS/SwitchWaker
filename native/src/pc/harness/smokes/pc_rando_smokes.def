@@ -1,0 +1,7 @@
+// The randomizer's in-game smokes (docs/RANDOMIZER_PLAN.md, "Tests"), run as
+//   native/tools/run.sh rando [--stage ...] --env COS_RANDO_SMOKE=<name>
+// pc_rando_smokes.cpp includes this list as an X-macro: PC_RANDO_SMOKE(<name>, <function>), where
+// <name> is the COS_RANDO_SMOKE value and <function> is pc::<function>(unsigned int frames),
+// defined in that step's own smokes/pc_rando_smoke_<name>.cpp and called every game frame
+// (pc_rando_smokes.h). Append-only: each step adds one line; on a merge keep both sides.
+PC_RANDO_SMOKE(null, randoSmokeNull) // R0.1: the switch, the defaults and activation

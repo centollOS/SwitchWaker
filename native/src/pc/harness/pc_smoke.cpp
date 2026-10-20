@@ -361,6 +361,7 @@ const Smoke kSmokes[] = {
     {"menu-backdrop", kInGame},
     {"stage-hop", kInGame},
     {"event-sweep", kInGame},
+    {"rando", kInGame}, // the randomizer's smokes, COS_RANDO_SMOKE=<name> (smokes/pc_rando_smokes.def)
 };
 
 const Smoke* findSmoke(const char* name) {
