@@ -518,5 +518,8 @@ extern msg_process_profile_definition g_profile_OPERATE_WIND;
 extern msg_process_profile_definition g_profile_SCP;
 extern msg_process_profile_definition g_profile_PB;
 extern msg_process_profile_definition g_profile_GAMEOVER;
+// Randomizer custom actors (docs/RANDOMIZER_PLAN.md R3.7).
+extern actor_process_profile_definition g_profile_SWITCH_OP;
+extern actor_process_profile_definition g_profile_DUNGEON_FLAG_SW;
 
 #endif /* PC_GAME_HOOKS_F_PC_PROFILE_LST_H */

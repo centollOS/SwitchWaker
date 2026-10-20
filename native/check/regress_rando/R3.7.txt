@@ -1,0 +1,3 @@
+# R3.7 (docs/RANDOMIZER_PLAN.md): the randomizer's custom actors SwOp and DngSw in a booted game.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=swop

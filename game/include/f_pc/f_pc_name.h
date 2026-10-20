@@ -517,6 +517,11 @@ enum {
     /* 0x01F3 */ fpcNm_SCP_e,
     /* 0x01F4 */ fpcNm_PB_e,
     /* 0x01F5 */ fpcNm_GAMEOVER_e,
+#if TARGET_PC
+    // pc_rando(R3.7): wwrando custom_data.asm custom_DynamicNameTable (SwOp, DngSw); original: none
+    /* 0x01F6 */ fpcNm_SWITCH_OP_e,
+    /* 0x01F7 */ fpcNm_DUNGEON_FLAG_SW_e,
+#endif
     fpcNm_MAX_NUM_e,
 
     fpcNm_INVALID_e = 0x7FFF,

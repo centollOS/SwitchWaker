@@ -1268,6 +1268,11 @@ static dStage_objectNameInf l_objectName[] = {
     OBJNAME("Grass", fpcNm_GRASS_e, 255, 0),
     OBJNAME("Vrbox", fpcNm_VRBOX_e, 255, 0),
     OBJNAME("Vrbox2", fpcNm_VRBOX2_e, 255, 0),
+#if TARGET_PC
+    // pc_rando(R3.7): wwrando custom_data.asm custom_l_objectName (vanilla data never names them); original: none
+    OBJNAME("SwOp", fpcNm_SWITCH_OP_e, 255, 0),
+    OBJNAME("DngSw", fpcNm_DUNGEON_FLAG_SW_e, 255, 0),
+#endif
     OBJNAME("EndCode", fpcNm_PLAY_SCENE_e, 255, 0),
 };
 
