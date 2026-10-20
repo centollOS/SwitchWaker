@@ -22,6 +22,10 @@
 #include "stdio.h"
 #include "string.h"
 #include "dolphin/os/OSCache.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
+#endif
 
 /* 8006D804-8006D824       .text __ct__11dRes_info_cFv */
 dRes_info_c::dRes_info_c()
@@ -63,6 +67,12 @@ int dRes_info_c::set(char const* pArcName, char const* pArcPath, u8 direction, J
         return false;
 
     strncpy(mArchiveName, pArcName, 14);
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R0.10): wwrando opens stage files by their disc path (randomizer.py get_arc "files/res/Stage/<stage>/<arc>.arc"); the port records the archive directory for loadResource; original: none
+        pc_rando_res_hook_set(this, pArcPath);
+    }
+#endif
     return true;
 }
 
@@ -371,6 +381,12 @@ int dRes_info_c::loadResource() {
             }
 
 next:
+#if TARGET_PC
+            if (pc_rando() && pRes != NULL) {
+                // pc_rando(R0.10): wwrando edits stage.dzs / room.dzr / event_list.dat on disc (randomizer.py get_arc + arc.get_file, save_randomized_iso); the port patches the raw bytes here; original: mRes keeps the archive's bytes
+                pRes = pc_rando_res_hook_loaded(this, mArchiveName, mpArchive, *pResType, pArcFinder->mEntryName, pRes);
+            }
+#endif
             mRes[pArcFinder->mEntryFileIndex] = pRes;
         }
 

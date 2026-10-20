@@ -36,6 +36,18 @@ Columns: file, function, guard form, wwrando reference.
 | game/src/d/d_item.cpp | `execItemGet`: `pc_rando_exec_item_get` (override registry `pc_rando_item_override`, else `item_func_ptr`) | add | tweaks.py `make_items_progressive`, `allow_dungeon_items_to_appear_anywhere`, `update_tingle_statue_item_get_funcs` (`item_func_ptr` writes) |
 | game/src/d/d_item.cpp | `checkItemGet`: `pc_rando_check_item_get` (override registry `pc_rando_item_getcheck_override`, else `item_getcheck_func_ptr`) | add | `item_getcheck_func_ptr` counterpart of the same redirects |
 
+## R0.10
+
+The archive-load hook (`native/src/pc/features/rando/pc_rando_resources.h`, plan D8). Hook bodies:
+`pc_rando_res_hook_set` (pure `pc_rando_resources.cpp`) and `pc_rando_res_hook_loaded`
+(`native/src/pc/game_hooks/pc_rando_hooks_resources.cpp`). Patchers register through
+`pc_rando_register_dzx_patcher` / `pc_rando_register_res_patcher`, from the init functions listed in
+`native/src/pc/features/rando/pc_rando_patchers.def`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/d_resorce.cpp | `dRes_info_c::set` (records the archive directory, so `ma2room`/`ma3room` and every stage are told apart) and `dRes_info_c::loadResource` (each file stored in `mRes[]` goes through the patchers, which edit the raw bytes or replace them with a copy on the archive heap) | add | `randomizer.py` `get_arc` + `arc.get_file(..., DZx / EventList)`, written back by `save_randomized_iso` |
+
 ## R0.12
 
 The message overlay (`native/src/pc/features/rando/pc_rando_msg.h`, plan D10). Hook bodies:

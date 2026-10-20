@@ -1,0 +1,7 @@
+# R0.10 (docs/RANDOMIZER_PLAN.md): the archive-load hook on Tetra's ship (Asoko layer 2): plain (no
+# file dispatched, vanilla chest), forced identity (stored bytes hash as the raw ones), forced item
+# (edited chest item and a chest appended through a grown copy of stage.dzs).
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Asoko:0:0:2 --env COS_RANDO_SMOKE=dzx
+rando 0 --stage Asoko:0:0:2 --env COS_RANDO_SMOKE=dzx --env COS_RANDO_FORCE=1
+rando 0 --stage Asoko:0:0:2 --env COS_RANDO_SMOKE=dzx --env COS_RANDO_FORCE=1 --env COS_RANDO_DZX_MODE=item
