@@ -28,3 +28,9 @@ Columns: file, function, guard form, wwrando reference.
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | - | no hunks in `game/`: the switch (`native/include/pc/pc_rando.h`), the `rando` smoke and the test plumbing | - | - |
+
+## R4.2
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| - | no hunks in `game/`: the text input is port code (`features/rando/pc_rando_text.{h,cpp}`, `game_hooks/pc_rando_hooks_text.cpp`, `cos_switch_text_input*` in `switch/native/source/cos_switch.{h,cpp}`, small hooks in `native/src/pc/features/pc_menu.cpp`) | - | `wwr_ui` seed and permalink fields; `randomizer.py` `sanitize_seed`, `decode_permalink` |

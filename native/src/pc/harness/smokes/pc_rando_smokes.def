@@ -5,3 +5,4 @@
 // defined in that step's own smokes/pc_rando_smoke_<name>.cpp and called every game frame
 // (pc_rando_smokes.h). Append-only: each step adds one line; on a merge keep both sides.
 PC_RANDO_SMOKE(null, randoSmokeNull) // R0.1: the switch, the defaults and activation
+PC_RANDO_SMOKE(text, randoSmokeText) // R4.2: the text input (seed grid through the menu, permalink import)

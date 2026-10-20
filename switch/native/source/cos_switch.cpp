@@ -44,6 +44,7 @@
 #include <cerrno>
 #include <ctime>
 #include <dirent.h>
+#include <pthread.h>
 #include <string>
 #include <vector>
 #include <cstdarg>
@@ -800,6 +801,129 @@ void cos_switch_show_error(const char* text) {
         const Result rc = errorApplicationShow(&c);
         sayf("[switch] error message shown (rc 0x%x)\n", rc);
     }
+}
+
+// ---- the randomizer's text input (cos_switch.h; docs/RANDOMIZER_PLAN.md step R4.2) ---------------
+
+namespace {
+
+int sTextKind = 0; // the kind being typed (the check callback has no user pointer)
+
+bool textCharOk(int kind, char c) {
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
+        return true;
+    }
+    return c != '\0' && strchr(kind == 0 ? "-_'%." : "+/=", c) != nullptr;
+}
+
+SwkbdTextCheckResult textCheck(char* text, size_t size) {
+    for (const char* p = text; *p != '\0'; p++) {
+        if (!textCharOk(sTextKind, *p)) {
+            snprintf(text, size, "%s",
+                     sTextKind == 0 ? "Only letters, digits and - _ ' % . / Solo letras, cifras y - _ ' % ."
+                                    : "Only letters, digits and + / = / Solo letras, cifras y + / =");
+            return SwkbdTextCheckResult_Bad;
+        }
+    }
+    return SwkbdTextCheckResult_OK;
+}
+
+struct TextJob {
+    std::atomic<int> state{-2}; // -2 idle, 2 running, else the result waiting for _poll
+    char header[64] = {};
+    char initial[512] = {};
+    int maxLen = 0;
+    int kind = 0;
+    char out[512] = {};
+} sTextJob;
+
+void* textThread(void*) {
+    const int r = cos_switch_text_input(sTextJob.header, sTextJob.initial, sTextJob.maxLen, sTextJob.kind,
+                                        sTextJob.out, sizeof(sTextJob.out));
+    sTextJob.state.store(r);
+    return nullptr;
+}
+
+} // namespace
+
+int cos_switch_text_input(const char* header, const char* initial, int max_len, int kind, char* out,
+                          size_t size) {
+    if (size > 0) {
+        out[0] = '\0';
+    }
+    if (appletGetAppletType() != AppletType_Application) {
+        sayf("[switch] keyboard not shown (needs title mode)\n");
+        return -1;
+    }
+    SwkbdConfig kbd;
+    Result rc = swkbdCreate(&kbd, 0);
+    if (R_FAILED(rc)) {
+        sayf("[switch] keyboard: swkbdCreate failed (rc 0x%x)\n", rc);
+        return -1;
+    }
+    sTextKind = kind;
+    swkbdConfigMakePresetDefault(&kbd); // QWERTY, the OK button on Enter
+    swkbdConfigSetHeaderText(&kbd, header != nullptr ? header : "");
+    swkbdConfigSetInitialText(&kbd, initial != nullptr ? initial : "");
+    swkbdConfigSetStringLenMax(&kbd, (u32)(max_len > 0 ? max_len : 42));
+    swkbdConfigSetKeySetDisableBitmask(&kbd, SwkbdKeyDisableBitmask_Space | SwkbdKeyDisableBitmask_At |
+                                                 SwkbdKeyDisableBitmask_Backslash |
+                                                 (kind == 0 ? SwkbdKeyDisableBitmask_ForwardSlash
+                                                            : SwkbdKeyDisableBitmask_Percent));
+    swkbdConfigSetTextCheckCallback(&kbd, textCheck);
+    rc = swkbdShow(&kbd, out, size);
+    swkbdClose(&kbd);
+    if (rc == MAKERESULT(Module_Libnx, LibnxError_LibAppletBadExit)) {
+        sayf("[switch] keyboard: cancelled\n");
+        return 0;
+    }
+    if (R_FAILED(rc)) {
+        sayf("[switch] keyboard: swkbdShow failed (rc 0x%x)\n", rc);
+        return -1;
+    }
+    sayf("[switch] keyboard: %zu characters\n", strlen(out));
+    return 1;
+}
+
+int cos_switch_text_input_start(const char* header, const char* initial, int max_len, int kind) {
+    if (appletGetAppletType() != AppletType_Application) {
+        return 0;
+    }
+    int idle = -2;
+    if (!sTextJob.state.compare_exchange_strong(idle, 2)) {
+        return 0; // still open (or its result not taken)
+    }
+    snprintf(sTextJob.header, sizeof(sTextJob.header), "%s", header != nullptr ? header : "");
+    snprintf(sTextJob.initial, sizeof(sTextJob.initial), "%s", initial != nullptr ? initial : "");
+    sTextJob.maxLen = max_len;
+    sTextJob.kind = kind;
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, 64 * 1024);
+    pthread_t thread;
+    const int err = pthread_create(&thread, &attr, textThread, nullptr);
+    pthread_attr_destroy(&attr);
+    if (err != 0) {
+        sayf("[switch] keyboard: no thread (%d)\n", err);
+        sTextJob.state.store(-2);
+        return 0;
+    }
+    pthread_detach(thread);
+    return 1;
+}
+
+int cos_switch_text_input_poll(char* out, size_t size) {
+    const int s = sTextJob.state.load();
+    if (s == 2 || s == -2) {
+        return s == 2 ? 2 : -1;
+    }
+    if (s == 1) {
+        snprintf(out, size, "%s", sTextJob.out);
+    } else if (size > 0) {
+        out[0] = '\0';
+    }
+    sTextJob.state.store(-2);
+    return s;
 }
 
 void cos_switch_exit(int code) {

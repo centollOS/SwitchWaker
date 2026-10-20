@@ -1,0 +1,4 @@
+# R4.2 (docs/RANDOMIZER_PLAN.md): the randomizer's text input. The D-pad grid, hosted by the options menu,
+# types "TestSeed1" from an input script; an empty input is cancelled with B; permalink.txt is imported.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44:206 --input native/check/input/rando-text.txt --env COS_RANDO_SMOKE=text
