@@ -1,0 +1,5 @@
+# R6.15 (docs/RANDOMIZER_PLAN.md): the small modes' hunks (hero mode, remove_music, switch targeting,
+# low-health beep/animation) off and on, on land; on the boat also the inverted sea compass.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=modes
+rando 0 --preset sailing --env COS_RANDO_SMOKE=modes

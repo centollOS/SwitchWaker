@@ -17,6 +17,9 @@
 #include "JSystem/JAudio/JASWaveBankMgr.h"
 #include "JSystem/JKernel/JKRSolidHeap.h"
 #include "d/d_com_inf_game.h"
+#if TARGET_PC
+#include "pc/pc_rando_modes.h"
+#endif
 
 JAIZelBasic* JAIZelBasic::zel_basic;
 u32 jai_rnd_seed = 0x12345678;
@@ -611,6 +614,10 @@ void JAIZelBasic::processHeartGaugeSound() {
             if (field_0x0034 <= 2) {
                 seStart(JA_SE_ALMOST_DIE_ALERM_3, NULL, 0, 0, 1.0f, 1.0f, -1.0f, -1.0f, 0);
             } else if (field_0x0034 <= 4) {
+#if TARGET_PC
+                // pc_rando(R6.15): remove_low_health_beep_anim.asm 0x802A2FA0 (no 1-heart beep while max health < 8); original: the seStart alone
+                if (!(pc_rando() && pc_rando_mute_low_health_beep(field_0x0034, dComIfGs_getMaxLife())))
+#endif
                 seStart(JA_SE_ALMOST_DIE_ALERM_2, NULL, 0, 0, 1.0f, 1.0f, -1.0f, -1.0f, 0);
             } else if (field_0x0034 <= 6) {
                 seStart(JA_SE_ALMOST_DIE_ALERM_1, NULL, 0, 0, 1.0f, 1.0f, -1.0f, -1.0f, 0);
@@ -725,6 +732,12 @@ void JAIZelBasic::bgmStreamPrepare(u32 soundID) {
 
 /* 802A33D0-802A34A4       .text bgmStreamPlay__11JAIZelBasicFv */
 void JAIZelBasic::bgmStreamPlay() {
+#if TARGET_PC
+    // pc_rando(R6.15): remove_music.asm 0x802A33D0 bgmStreamPlay blr (boss defeat fanfare); original: the function body
+    if (pc_rando() && pc_rando_remove_music()) {
+        return;
+    }
+#endif
     OSReport("[JAIZelBasic::bgmStreamPlay] \n");
     if (field_0x0063) {
         return;
@@ -755,6 +768,12 @@ void JAIZelBasic::bgmStreamPlay() {
 
 /* 802A34A4-802A4658       .text bgmStart__11JAIZelBasicFUlUll */
 void JAIZelBasic::bgmStart(u32 i_bgmNum, u32 i_fadeTime, s32 param_3) {
+#if TARGET_PC
+    // pc_rando(R6.15): remove_music.asm 0x802A34A4 bgmStart blr (background and boss music); original: the function body
+    if (pc_rando() && pc_rando_remove_music()) {
+        return;
+    }
+#endif
     field_0x00be = 0;
     if (field_0x0063 != 0) {
         return;
@@ -1228,6 +1247,12 @@ void JAIZelBasic::mainBgmStopOnly(u32 param_1) {
 
 /* 802A47B8-802A4CDC       .text subBgmStart__11JAIZelBasicFUl */
 void JAIZelBasic::subBgmStart(u32 i_bgmNum) {
+#if TARGET_PC
+    // pc_rando(R6.15): remove_music.asm 0x802A47B8 subBgmStart blr (miniboss music, item get jingles); original: the function body
+    if (pc_rando() && pc_rando_remove_music()) {
+        return;
+    }
+#endif
     field_0x00be = 0;
     if (field_0x0063 != 0) {
         return;
@@ -1412,6 +1437,12 @@ void JAIZelBasic::subBgmStopInner() {
 #pragma push
 #pragma opt_common_subs off
 void JAIZelBasic::bgmNowBattle(f32 i_dist) {
+#if TARGET_PC
+    // pc_rando(R6.15): remove_music.asm 0x802A4EB8 bgmNowBattle blr (combat music); original: the function body
+    if (pc_rando() && pc_rando_remove_music()) {
+        return;
+    }
+#endif
     if (field_0x0063 != 0) {
         return;
     }

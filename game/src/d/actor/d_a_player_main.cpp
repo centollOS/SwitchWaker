@@ -35,6 +35,7 @@
 #if TARGET_PC
 #include "helpers/endian.h"
 #include "pc/pc_qol.h"
+#include "pc/pc_rando_modes.h"
 #endif
 #include "d/d_material.h"
 #include "JSystem/J3DGraphLoader/J3DAnmLoader.h"
@@ -5016,7 +5017,12 @@ void daPy_lk_c::setDamagePoint(f32 amount) {
 /* 8011029C-80110338       .text setDamagePoint__9daPy_lk_cFf */
 BOOL daPy_lk_c::setDamagePoint(f32 amount) {
     if (!checkNoDamageMode()) {
+#if TARGET_PC
+        // pc_rando(R6.15): hero_mode.asm 0x801102D0 multiply_damage_amount; original: amount
+        dComIfGp_setItemLifeCount(pc_rando() ? pc_rando_hero_damage(amount) : amount);
+#else
         dComIfGp_setItemLifeCount(amount);
+#endif
         if (amount < 0.0f) {
             offNoResetFlg1(daPyFlg1_SOUP_POWER_UP);
 #if VERSION > VERSION_JPN
@@ -5642,6 +5648,12 @@ BOOL daPy_lk_c::checkRestHPAnime() {
           dComIfGs_getLife() <= m_HIO->mMove.m.field_0xE) ||
          mDemo.getDemoMode() == daPy_demo_c::DEMO_UNK_018_e))
     {
+#if TARGET_PC
+        // pc_rando(R6.15): remove_low_health_beep_anim.asm 0x80111EE0 remove_low_health_anim_at_full_health; original: return true
+        if (pc_rando() && pc_rando_skip_low_health_anim(dComIfGs_getLife(), dComIfGs_getMaxLife())) {
+            return false;
+        }
+#endif
         return true;
     }
     return false;

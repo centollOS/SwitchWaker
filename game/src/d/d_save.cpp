@@ -6,6 +6,9 @@
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "d/d_save.h"
 #include "d/d_save_init.h"
+#if TARGET_PC
+#include "pc/pc_rando_modes.h"
+#endif
 #include "d/d_com_inf_game.h"
 #include "d/d_item_data.h"
 #include "m_Do/m_Do_MemCardRWmng.h"
@@ -1002,7 +1005,12 @@ void dSv_player_config_c::init() {
         mDoAud_setOutputMode(1);
     }
 
+#if TARGET_PC
+    // pc_rando(R6.15): custom_funcs.asm option_targeting_mode (tweaks.py set_default_targeting_mode_to_switch); original: 0
+    mAttentionType = pc_rando() ? pc_rando_targeting_mode(0) : 0;
+#else
     mAttentionType = 0;
+#endif
     mVibration = 1;
 }
 

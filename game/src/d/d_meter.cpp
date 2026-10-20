@@ -6,6 +6,7 @@
 #include "d/dolzel.h" // IWYU pragma: keep
 #if TARGET_PC
 #include "pc/pc_aspect.h"
+#include "pc/pc_rando_modes.h"
 #include "pc/game_hooks.h" // dMeter_pc*: the widescreen HUD (pc_meter_hooks.cpp)
 #endif
 #include "d/d_meter.h"
@@ -5579,7 +5580,12 @@ void dMeter_compassGetOnProc(sub_meter_class* i_Meter) {
         break;
     }
     s16 angle = fopAcM_SearchByName(fpcNm_SHIP_e)->shape_angle.y + 0x8000;
+#if TARGET_PC
+    // pc_rando(R6.15): invert_sea_compass_x_axis.asm 0x801FD37C nop (the neg); original: -angle
+    f32 dVar3 = ((pc_rando() && pc_rando_invert_sea_compass() ? angle : -angle) * 180.0f) / 0x8000;
+#else
     f32 dVar3 = (-angle * 180.0f) / 0x8000;
+#endif
     f32 time = -dComIfGs_getTime() - 90.0f;
     dMeter_compassRotate(&i_Meter->field_0x1670, &i_Meter->field_0x16a8, time);
     dMeter_compassRotate(&i_Meter->field_0x1248, &i_Meter->field_0x12f0, dVar3);
