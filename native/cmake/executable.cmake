@@ -93,6 +93,39 @@ if (TARGET cos_sdk)
     set_target_properties(cos_pc_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endif ()
 
+# Randomizer unit tests (docs/RANDOMIZER_PLAN.md step R0.1, "Tests"; native/check/rando/README.md):
+# every native/check/rando/test_<step>.cpp is its own executable cos_rando_test_<step> (e.g.
+# test_R0_1.cpp -> cos_rando_test_R0_1), so parallel steps never edit a shared list. Each prints "ok"
+# and exits 0 when its checks pass; native/tools/regress.sh runs them all. cos_rando_tests builds
+# every one:  ninja -C build/native-mac cos_rando_tests
+# They link cos_rando_core, a second, separate compile of native/src/pc/features/rando/pc_rando*.cpp
+# (the same files are in cos_pc for the game), and nothing else: not cos_pc, whose global operator
+# new goes to the JKR heaps, and no game or SDK library. Strict link, so a test can only pull objects
+# that need no game symbol: the pure generator and data code, and pc_rando.cpp, which must stay
+# free of game calls. COS_RANDO_FIXTURE_DIR is native/check/rando/fixtures (rando_test.h;
+# COS_RANDO_FIXTURES overrides it at run time).
+file(GLOB _rando_core_sources CONFIGURE_DEPENDS "${COS_NATIVE_ROOT}/src/pc/features/rando/pc_rando*.cpp")
+file(GLOB _rando_tests CONFIGURE_DEPENDS "${COS_NATIVE_ROOT}/check/rando/test_*.cpp")
+list(SORT _rando_core_sources)
+list(SORT _rando_tests)
+add_custom_target(cos_rando_tests)
+if (_rando_core_sources)
+    add_library(cos_rando_core STATIC EXCLUDE_FROM_ALL ${_rando_core_sources})
+    target_link_libraries(cos_rando_core PUBLIC cos_game_headers)
+    target_include_directories(cos_rando_core PUBLIC "${COS_NATIVE_ROOT}/src/pc/features/rando")
+    foreach (_t IN LISTS _rando_tests)
+        get_filename_component(_stem "${_t}" NAME_WE)
+        string(REGEX REPLACE "^test_" "" _step "${_stem}")
+        add_executable(cos_rando_test_${_step} "${_t}")
+        target_link_libraries(cos_rando_test_${_step} PRIVATE cos_rando_core)
+        target_include_directories(cos_rando_test_${_step} PRIVATE "${COS_NATIVE_ROOT}/check/rando")
+        target_compile_definitions(cos_rando_test_${_step} PRIVATE
+                COS_RANDO_FIXTURE_DIR="${COS_NATIVE_ROOT}/check/rando/fixtures")
+        set_target_properties(cos_rando_test_${_step} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+        add_dependencies(cos_rando_tests cos_rando_test_${_step})
+    endforeach ()
+endif ()
+
 if (NOT TARGET cos_sdk)
     message(STATUS "cos_native: executable switchwaker disabled (needs COS_WITH_AURORA=ON, i.e. cos_sdk)")
     return()

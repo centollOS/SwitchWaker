@@ -58,6 +58,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+The built-in randomizer (`docs/RANDOMIZER_PLAN.md`, `native/src/pc/features/rando/`,
+`native/include/pc/pc_rando*.h`, `native/tools/rando/` and the hunks `docs/RANDO_HOOKS.md` lists) is a
+port of [wwrando](https://github.com/LagoLunatic/wwrando) (LagoLunatic, at `9775811`, version
+`1.10.0_9775811`) under the MIT license above. Its logic data (`logic/item_locations.txt`,
+`logic/macros.txt`, `logic/item_types.py`, `data/item_names.txt`, `data/island_names.txt`, the seed
+name word lists in `seedgen/`, and the option, chart and boss tables) is converted into checked-in
+tables under `native/src/pc/features/rando/generated/`, each with a header naming its source commit;
+its seed generator, assembly patches and tweaks are rewritten in C++ and in the decompiled
+functions. Test fixtures in `native/check/rando/fixtures/` are produced by running wwrando's own
+code (the oracle in `native/tools/rando/`) and contain no game data. No wwrando asset (textures,
+models, archives) is shipped.
+
 Everything else is the project's own code under the MIT license (`LICENSE`), copyright Pulpparty
 and depende3000, and the SwitchWaker contributors.
 

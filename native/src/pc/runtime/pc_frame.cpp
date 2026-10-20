@@ -1733,6 +1733,7 @@ void pc_frame_end(void) {
     stageHopFrame(frames);
     cameraInvertFrame(frames);
     pictoBoxFrame(frames);
+    randoSmokeFrame(frames); // COS_SMOKE=rando (smokes/pc_rando_smokes.cpp)
     fileSelectFrame(frames);
     newGameFrame(frames);
     precompileFrame(frames);
