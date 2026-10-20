@@ -3711,9 +3711,17 @@ void fopMsgM_msgDataProc_c::stringSet() {
         if (bmgData[count] == 0x1A) {
             if ((u8)bmgData[count + 2] == 0xFF && (u8)bmgData[count + 3] == 0 && (u8)bmgData[count + 4] == MsgSpclCode_COLOR) {
 #if VERSION > VERSION_JPN
+#if TARGET_PC
+                // pc_rando(R3.13): misc_rando_features.asm 0x80032590 (the special warp colours also for the new
+                // message 848, the FF warp's confirmation); original: messages 0x42-0x4B only
+                if (mesgEntry->mMsgNo == 0x42 || mesgEntry->mMsgNo == 0x43 || mesgEntry->mMsgNo == 0x44 || mesgEntry->mMsgNo == 0x45 ||
+                    mesgEntry->mMsgNo == 0x46 || mesgEntry->mMsgNo == 0x47 || mesgEntry->mMsgNo == 0x48 || mesgEntry->mMsgNo == 0x49 ||
+                    mesgEntry->mMsgNo == 0x4A || mesgEntry->mMsgNo == 0x4B || (pc_rando() && mesgEntry->mMsgNo == 848))
+#else
                 if (mesgEntry->mMsgNo == 0x42 || mesgEntry->mMsgNo == 0x43 || mesgEntry->mMsgNo == 0x44 || mesgEntry->mMsgNo == 0x45 ||
                     mesgEntry->mMsgNo == 0x46 || mesgEntry->mMsgNo == 0x47 || mesgEntry->mMsgNo == 0x48 || mesgEntry->mMsgNo == 0x49 ||
                     mesgEntry->mMsgNo == 0x4A || mesgEntry->mMsgNo == 0x4B)
+#endif
                 {
                     static const u32 colorTable[9] = {
                         0x000000FF,

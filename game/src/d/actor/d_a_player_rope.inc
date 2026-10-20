@@ -788,9 +788,12 @@ BOOL daPy_lk_c::procRopeSwing() {
     else {
         // QoL "Girar al balancearse" (pc_qol.h; BetterWW swing_turn.asm, turn_while_swinging): the main
         // stick's X turns the player 64 * x units a frame while swinging, none under a quarter of it
-        if (pc_qol(PC_QOL_SWING_TURN)) {
-            const int turn = (int)(64.0f * CPad_GET_STICK_POS_X(0));
-            if (turn >= 64 / 4 || turn <= -(64 / 4)) {
+        // pc_rando(R3.13): misc_rando_features.asm 0x80145648 turn_while_swinging (forced on, with wwrando's
+        // base rate 100 a frame, none under 25); original: pc_qol(PC_QOL_SWING_TURN) and 64
+        if (pc_rando() || pc_qol(PC_QOL_SWING_TURN)) {
+            const int base = pc_rando() ? 100 : 64;
+            const int turn = (int)((float)base * CPad_GET_STICK_POS_X(0));
+            if (turn >= base / 4 || turn <= -(base / 4)) {
                 shape_angle.y -= turn;
                 current.angle.y = shape_angle.y;
             }

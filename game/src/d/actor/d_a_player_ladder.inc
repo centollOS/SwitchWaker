@@ -117,7 +117,13 @@ BOOL daPy_lk_c::procLadderUpStart_init() {
     speed.y = 0.0f;
     mNormalSpeed = 0.0f;
     speedF = 0.0f;
+#if TARGET_PC
+    // pc_rando(R3.13): misc_rando_features.asm 0x8013344C ladder_up_check_unequip_held_item (a held enemy
+    // weapon is kept on the ladder, not put away); original: mEquipItem == daPyItem_NONE_e
+    if (mEquipItem == daPyItem_NONE_e || (pc_rando() && mEquipItem == daPyItem_BOKO_e)) {
+#else
     if (mEquipItem == daPyItem_NONE_e) {
+#endif
         if (checkEquipAnime()) {
             resetActAnimeUpper(UPPER_MOVE2_e, -1.0f);
         }
@@ -242,7 +248,13 @@ BOOL daPy_lk_c::procLadderDownStart_init() {
     speedF = 0.0f;
     shape_angle.y = m352C + 0x8000;
     current.angle.y = m352C;
+#if TARGET_PC
+    // pc_rando(R3.13): misc_rando_features.asm 0x8013389C ladder_down_check_unequip_held_item (a held enemy
+    // weapon is kept on the ladder, not put away); original: mEquipItem == daPyItem_NONE_e
+    if (mEquipItem == daPyItem_NONE_e || (pc_rando() && mEquipItem == daPyItem_BOKO_e)) {
+#else
     if (mEquipItem == daPyItem_NONE_e) {
+#endif
         if (checkEquipAnime()) {
             resetActAnimeUpper(UPPER_MOVE2_e, -1.0f);
         }

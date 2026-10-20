@@ -55,6 +55,32 @@ extern const cursorTable_t g_cursorTable[FMAP_WARP_COUNT] = {
 };
 #endif
 
+#if TARGET_PC
+// pc_rando(R3.13): custom_data.asm ballad_of_gales_warp_table and ballad_of_gales_warp_float_bank,
+// tweaks.py add_new_bog_warp (a 10th Ballad of Gales warp, to Forsaken Fortress at grid -3,-3, left of
+// and below warp 0); original: g_cursorTable, g_mfHIO.mWarpSpotPos*/mWarpSpotScale* and 9 warps
+static const cursorTable_t l_pcRandoCursorTable[FMAP_WARP_COUNT + 1] = {
+    /* 0 */ {-2, -2, 0,  9,  1,  9,  7},
+    /* 1 */ { 0, -2, 1,  0,  2, -1,  7},
+    /* 2 */ { 2, -2, 2,  1, -1,  0,  7},
+    /* 3 */ {-2,  0, 3, -1,  4,  7,  8},
+    /* 4 */ { 1,  0, 4,  3, -1,  7,  8},
+    /* 5 */ { 2,  2, 5,  8, -1,  4,  6},
+    /* 6 */ {-2,  3, 6,  5, -1,  8, -1},
+    /* 7 */ {-1, -1, 7, -1, -1,  0,  3},
+    /* 8 */ { 0,  2, 8, -1,  5,  3,  6},
+    /* 9 */ {-3, -3, 9, -1,  0, -1,  0},
+};
+static const f32 l_pcRandoWarpSpotPosX[FMAP_WARP_COUNT + 1] = {-193, -82, 30, -193, -26, 30, -193, -137, -83, -249};
+static const f32 l_pcRandoWarpSpotPosY[FMAP_WARP_COUNT + 1] = {-137, -137, -137, -25, -25, 86, 145, -80, 86, -193};
+static const f32 l_pcRandoWarpSpotScaleSel = 1.6f;
+static const f32 l_pcRandoWarpSpotScale = 0.75f;
+// The number of warp targets: 10 under the randomizer.
+static int pcRandoWarpCount() { return pc_rando() ? FMAP_WARP_COUNT + 1 : FMAP_WARP_COUNT; }
+// The cursor table the warp code reads.
+static const cursorTable_t* pcRandoCursorTable() { return pc_rando() ? l_pcRandoCursorTable : g_cursorTable; }
+#endif
+
 extern const u32 hist[] = {
     'mR01', 'mR02', 'mR03', 'mR04', 'mR05', 'mR06', 'mR07',
     'mR08', 'mR09', 'mR0A', 'mR0B', 'mR0C', 'mR0D', 'mR0E',
@@ -2393,6 +2419,14 @@ BOOL dMenu_Fmap_c::paneTranceZoomMap(s16 i_frame, u8 i_max, f32 i_transStartX, f
     for (int i = 0; i < ARRAY_SSIZE(mSc1xPanes); i++) {
         childPaneMoveSp(&mSc1xPanes[i], &mClbPane, alpha, scale, scale);
     }
+#if TARGET_PC
+    // pc_rando(R3.13): tweaks.py add_new_bog_warp 0x801B6E6C (paneTranceZoomMap's count 9 -> 10). That loop
+    // walks the 9 sc1x panes, so wwrando's 10th pass moves the member that follows them, mLnk3Pane, the same
+    // way; kept for parity; original: no 10th pass
+    if (pc_rando()) {
+        childPaneMoveSp(&mLnk3Pane, &mClbPane, alpha, scale, scale);
+    }
+#endif
 
     childPaneMoveSp(&mR01bPane, &mClbPane, alpha, scale, scale);
     childPaneMoveSp(&mStm1Pane, &mClbPane, alpha, scale, scale);
@@ -2617,7 +2651,12 @@ bool dMenu_Fmap_c::_open_warpMode() {
 
     if (ret == TRUE) {
         mFrameTimer = 0;
+#if TARGET_PC
+        // pc_rando(R3.13): tweaks.py add_new_bog_warp 0x801B7988 (_open_warpMode: 10 warps); original: FMAP_WARP_COUNT
+        for (int i = 0; i < pcRandoWarpCount(); i++) {
+#else
         for (int i = 0; i < FMAP_WARP_COUNT; i++) {
+#endif
             mWrapSpotEmitters[i]->playDrawParticle();
         }
         mWrapBackEmitter->clearStatus(JPAEmtrStts_StopDraw);
@@ -2664,9 +2703,17 @@ void dMenu_Fmap_c::init_warpMode() {
     mWrapBackEmitter->setStatus(JPAEmtrStts_StopDraw);
 
     int i = DEMO_SELECT(1, 0);
+#if TARGET_PC
+    // pc_rando(R3.13): tweaks.py add_new_bog_warp 0x801B7C80 and 0x801B7C28/3C/44 (init_warpMode: 10 warps,
+    // positions from ballad_of_gales_warp_float_bank); original: FMAP_WARP_COUNT, g_mfHIO.mWarpSpotPosX/Y
+    for (; i < pcRandoWarpCount() + DEMO_SELECT(1, 0); i++) {
+        spotEmitter.x = pc_rando() ? l_pcRandoWarpSpotPosX[i-DEMO_SELECT(1, 0)] : g_mfHIO.mWarpSpotPosX[i-DEMO_SELECT(1, 0)];
+        spotEmitter.y = pc_rando() ? l_pcRandoWarpSpotPosY[i-DEMO_SELECT(1, 0)] : g_mfHIO.mWarpSpotPosY[i-DEMO_SELECT(1, 0)];
+#else
     for (; i < FMAP_WARP_COUNT + DEMO_SELECT(1, 0); i++) {
         spotEmitter.x = g_mfHIO.mWarpSpotPosX[i-DEMO_SELECT(1, 0)];
         spotEmitter.y = g_mfHIO.mWarpSpotPosY[i-DEMO_SELECT(1, 0)];
+#endif
         spotEmitter.z = 0.0f;
         setWrapSpotEmitter(i-DEMO_SELECT(1, 0), spotEmitter);
         mWrapSpotEmitters[i-DEMO_SELECT(1, 0)]->stopDrawParticle();
@@ -2723,7 +2770,13 @@ void dMenu_Fmap_c::wrapMove() {
             } else if (msgNo == 8) {
                 msgNo = 0x42;
             } else {
+#if TARGET_PC
+                // pc_rando(R3.13): misc_rando_features.asm 0x801B80EC (the FF warp's confirmation is the new
+                // message 848); original: msgNo += 0x45
+                msgNo = pc_rando() && msgNo == 9 ? 848 : msgNo + 0x45;
+#else
                 msgNo += 0x45;
+#endif
             }
 #endif
         } else {
@@ -2757,7 +2810,12 @@ void dMenu_Fmap_c::wrapMove() {
         paneTranceWarpMsg(&mYsk0Pane, mFrameTimer, g_mfHIO.mWarpMsgAnimFrame, g_mfHIO.mWarpYesNoPosY, 0.0f, 0, 0);
         paneTranceWarpMsg(&mNok0Pane, mFrameTimer, g_mfHIO.mWarpMsgAnimFrame, g_mfHIO.mWarpYesNoPosY, 0.0f, 0, 0);
         areaTextChangeAnimeInit();
+#if TARGET_PC
+        // pc_rando(R3.13): tweaks.py add_new_bog_warp 0x801B8414 (wrapMove: 10 warps); original: FMAP_WARP_COUNT
+        for (int i = 0; i < pcRandoWarpCount(); i++) {
+#else
         for (int i = 0; i < FMAP_WARP_COUNT; i++) {
+#endif
             mWrapSpotEmitters[i]->stopDrawParticle();
         }
         mWarpProcIdx = WARP_PROC_SEL_WIN_FADE_IN;
@@ -2769,7 +2827,12 @@ void dMenu_Fmap_c::wrapMove() {
             }
             mMapClose = true;
             stopWrapBackEmitter();
+#if TARGET_PC
+            // pc_rando(R3.13): tweaks.py add_new_bog_warp 0x801B84D0 (wrapMove: 10 warps); original: FMAP_WARP_COUNT
+            for (int i = 0; i < pcRandoWarpCount(); i++) {
+#else
             for (int i = 0; i < FMAP_WARP_COUNT; i++) {
+#endif
                 mWrapSpotEmitters[i]->stopDrawParticle();
                 stopWrapSpotEmitter(i);
             }
@@ -2882,7 +2945,12 @@ void dMenu_Fmap_c::wrapSelWinFadeOut() {
     mFrameTimer++;
     if (backAlpha == TRUE && msg == TRUE && msg2 == TRUE && yesMove == TRUE && noMove == TRUE) {
         mFrameTimer = 0;
+#if TARGET_PC
+        // pc_rando(R3.13): tweaks.py add_new_bog_warp 0x801B9020 (wrapSelWinFadeOut: 10 warps); original: FMAP_WARP_COUNT
+        for (int i = 0; i < pcRandoWarpCount(); i++) {
+#else
         for (int i = 0; i < FMAP_WARP_COUNT; i++) {
+#endif
             mWrapSpotEmitters[i]->playDrawParticle();
         }
         mWarpProcIdx = WARP_PROC_MOVE;
@@ -2906,7 +2974,12 @@ void dMenu_Fmap_c::wrapSelWarp() {
 
         mMapClose = true;
         stopWrapBackEmitter();
+#if TARGET_PC
+        // pc_rando(R3.13): tweaks.py add_new_bog_warp 0x801B9230 (wrapSelWarp: 10 warps); original: FMAP_WARP_COUNT
+        for (int i = 0; i < pcRandoWarpCount(); i++) {
+#else
         for (int i = 0; i < FMAP_WARP_COUNT; i++) {
+#endif
             mWrapSpotEmitters[i]->stopDrawParticle();
             stopWrapSpotEmitter(i);
         }
@@ -2922,6 +2995,25 @@ void dMenu_Fmap_c::warpAreaAnime0() {
     cXyz pos;
     scale.z = 0.0f;
     pos.z = 0.0f;
+#if TARGET_PC
+    // pc_rando(R3.13): tweaks.py add_new_bog_warp 0x801B936C and 0x801B9360/78/80/A4/C8 (warpAreaAnime0: 10
+    // warps, positions and scales from ballad_of_gales_warp_float_bank); original: FMAP_WARP_COUNT and g_mfHIO
+    for (int i = 0; i < pcRandoWarpCount(); i++) {
+        pos.x = pc_rando() ? l_pcRandoWarpSpotPosX[i] : g_mfHIO.mWarpSpotPosX[i];
+        pos.y = pc_rando() ? l_pcRandoWarpSpotPosY[i] : g_mfHIO.mWarpSpotPosY[i];
+        mWrapSpotEmitters[i]->setGlobalTranslation(pos);
+
+        if (i == warpAreaNo) {
+            scale.x = pc_rando() ? l_pcRandoWarpSpotScaleSel : g_mfHIO.mWarpSpotScaleSel;
+            scale.y = scale.x;
+            mWrapSpotEmitters[i]->setGlobalParticleScale(scale);
+        } else {
+            scale.x = pc_rando() ? l_pcRandoWarpSpotScale : g_mfHIO.mWarpSpotScale;
+            scale.y = scale.x;
+            mWrapSpotEmitters[i]->setGlobalParticleScale(scale);
+        }
+    }
+#else
     for (int i = 0; i < FMAP_WARP_COUNT; i++) {
         pos.x = g_mfHIO.mWarpSpotPosX[i];
         pos.y = g_mfHIO.mWarpSpotPosY[i];
@@ -2937,6 +3029,7 @@ void dMenu_Fmap_c::warpAreaAnime0() {
             mWrapSpotEmitters[i]->setGlobalParticleScale(scale);
         }
     }
+#endif
 }
 
 /* 801B940C-801B94F4       .text paneTranceWarpMsg__12dMenu_Fmap_cFP18fopMsgM_pane_classsUcffUci */
@@ -3017,12 +3110,22 @@ void dMenu_Fmap_c::warpSelCursorAnime() {
 
 /* 801B96D8-801B96F0       .text getWarpAreaGridX__12dMenu_Fmap_cFi */
 s8 dMenu_Fmap_c::getWarpAreaGridX(int i_no) {
+#if TARGET_PC
+    // pc_rando(R3.13): tweaks.py add_new_bog_warp 0x801B96DC (ballad_of_gales_warp_table); original: g_cursorTable
+    return pcRandoCursorTable()[i_no].gridX;
+#else
     return g_cursorTable[i_no].gridX;
+#endif
 }
 
 /* 801B96F0-801B970C       .text getWarpAreaGridY__12dMenu_Fmap_cFi */
 s8 dMenu_Fmap_c::getWarpAreaGridY(int i_no) {
+#if TARGET_PC
+    // pc_rando(R3.13): tweaks.py add_new_bog_warp 0x801B96F0 (ballad_of_gales_warp_table); original: g_cursorTable
+    return pcRandoCursorTable()[i_no].gridY;
+#else
     return g_cursorTable[i_no].gridY;
+#endif
 }
 
 /* 801B970C-801B9724       .text getWarpAreaNo__12dMenu_Fmap_cFPC13cursorTable_t */
@@ -3073,12 +3176,24 @@ int dMenu_Fmap_c::getWarpAreaNoRight(const cursorTable_t* i_table) {
 /* 801B9784-801B97DC       .text getWarpAreaTablePtr__12dMenu_Fmap_cFScSc */
 const cursorTable_t* dMenu_Fmap_c::getWarpAreaTablePtr(s8 i_gridX, s8 i_gridY) {
     const cursorTable_t* table = NULL;
+#if TARGET_PC
+    // pc_rando(R3.13): tweaks.py add_new_bog_warp 0x801B979C and 0x801B9790 (getWarpAreaTablePtr: 10 warps in
+    // ballad_of_gales_warp_table); original: FMAP_WARP_COUNT, g_cursorTable
+    const cursorTable_t* cursorTable = pcRandoCursorTable();
+    for (int i = 0; i < pcRandoWarpCount(); i++) {
+        if (cursorTable[i].gridX == i_gridX && cursorTable[i].gridY == i_gridY) {
+            table = &cursorTable[i];
+            break;
+        }
+    }
+#else
     for (int i = 0; i < FMAP_WARP_COUNT; i++) {
         if (g_cursorTable[i].gridX == i_gridX && g_cursorTable[i].gridY == i_gridY) {
             table = &g_cursorTable[i];
             break;
         }
     }
+#endif
     return table;
 }
 
