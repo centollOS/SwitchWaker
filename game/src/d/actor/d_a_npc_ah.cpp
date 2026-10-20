@@ -9,6 +9,9 @@
 #include "d/d_com_lib_game.h"
 #include "d/d_snap.h"
 #include "res/Object/Ah.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 const char daNpcAh_c::m_arcname[] = "Ah"; 
 
@@ -164,7 +167,12 @@ static cPhs_State phase_1(daNpcAh_c* i_this) {
     u8 prmArg = i_this->getPrmArg0();
     switch (prmArg) {
         case 2:
+#if TARGET_PC
+            // pc_rando(R3.13): misc_rando_features.asm d_a_npc_ah 0x85C (Old Man Ho Ho never leaves: the stone head above Savage Labyrinth is not checked); original: fopAcM_isSwitch
+            if(pc_rando() ? FALSE : fopAcM_isSwitch(i_this, 0x6c)){
+#else
             if(fopAcM_isSwitch(i_this, 0x6c)){
+#endif
                 return cPhs_STOP_e;
             }
             if(!dComIfGs_isEventBit(dSv_event_flag_c::UNK_0520)){
@@ -172,12 +180,22 @@ static cPhs_State phase_1(daNpcAh_c* i_this) {
             }
             break;
         case 5:
+#if TARGET_PC
+            // pc_rando(R3.13): misc_rando_features.asm d_a_npc_ah 0x8A8 (Old Man Ho Ho never leaves: the Cabana Octo is not checked); original: fopAcM_isSwitch
+            if(pc_rando() ? FALSE : fopAcM_isSwitch(i_this, 0x10)){
+#else
             if(fopAcM_isSwitch(i_this, 0x10)){
+#endif
                 return cPhs_STOP_e;
             }
             break;
         case 9:
+#if TARGET_PC
+            // pc_rando(R3.13): misc_rando_features.asm d_a_npc_ah 0x8D8 (Old Man Ho Ho never leaves: the Two-Eye Reef Octo is not checked); original: fopAcM_isSwitch
+            if(pc_rando() ? FALSE : fopAcM_isSwitch(i_this, i_this->getSwBit())){
+#else
             if(fopAcM_isSwitch(i_this, i_this->getSwBit())){
+#endif
                 return cPhs_STOP_e;
             }
             break;
@@ -360,13 +378,28 @@ static MoveProc_t moveProc[]={
 bool daNpcAh_c::_execute() {
     switch (getPrmArg0()) {
         case 2:
+#if TARGET_PC
+            // pc_rando(R3.13): misc_rando_features.asm d_a_npc_ah 0x1018 (Old Man Ho Ho never leaves: the stone head above Savage Labyrinth is not checked); original: fopAcM_isSwitch
+            if(pc_rando() ? FALSE : fopAcM_isSwitch(this, 0x6c)) fopAcM_delete(this);
+#else
             if(fopAcM_isSwitch(this, 0x6c)) fopAcM_delete(this);
+#endif
             break;
         case 5:
+#if TARGET_PC
+            // pc_rando(R3.13): misc_rando_features.asm d_a_npc_ah 0x1044 (Old Man Ho Ho never leaves: the Cabana Octo is not checked); original: fopAcM_isSwitch
+            if(pc_rando() ? FALSE : fopAcM_isSwitch(this, 0x10)) fopAcM_delete(this);
+#else
             if(fopAcM_isSwitch(this, 0x10)) fopAcM_delete(this);
+#endif
             break;
         case 9:
+#if TARGET_PC
+            // pc_rando(R3.13): misc_rando_features.asm d_a_npc_ah 0x1078 (Old Man Ho Ho never leaves: the Two-Eye Reef Octo is not checked); original: fopAcM_isSwitch
+            if(pc_rando() ? FALSE : fopAcM_isSwitch(this, getSwBit() & 0xff)) fopAcM_delete(this);
+#else
             if(fopAcM_isSwitch(this, getSwBit() & 0xff)) fopAcM_delete(this);
+#endif
             break;
     }
     chkAttention();

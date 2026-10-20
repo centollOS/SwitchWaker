@@ -17,6 +17,9 @@
 #include "SSystem/SComponent/c_counter.h"
 #include "d/d_snap.h"
 #include "m_Do/m_Do_lib.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 static daNpc_Ls1_HIO_c l_HIO;
 static fopAc_ac_c* l_check_inf[20];
@@ -2125,7 +2128,13 @@ BOOL daNpc_Ls1_c::wait_action1(void* param_1) {
             m7CC[0] = get_playerEvnPos(0);
             m7CC[1] = get_playerEvnPos(1);
             m856++;
+#if TARGET_PC
+            // pc_rando(R3.13): misc_rando_features.asm d_a_npc_ls1 0x3E88 (Aryll does not take the lookout's
+            // states 1-3 when 0x2A80, HAS_HEROS_CLOTHES, is set: always state 4); original: the 0x2A80 check
+            if (pc_rando() ? FALSE : dComIfGs_isEventBit(dSv_event_flag_c::UNK_2A80)) {
+#else
             if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_2A80)) {
+#endif
                 if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_0001)) {
                     setStt(3);
                 } else {
@@ -2505,7 +2514,13 @@ BOOL daNpc_Ls1_c::bodyCreateHeap() {
         return FALSE;
     }
 
+#if TARGET_PC
+    // pc_rando(R3.13): misc_rando_features.asm d_a_npc_ls1 0x4F04 (Aryll always wears her pirate outfit, not
+    // only in the Second Quest); original: mType == 4 || dComIfGs_getClearCount() != 0
+    if (pc_rando() || mType == 4 || dComIfGs_getClearCount() != 0) {
+#else
     if (mType == 4 || dComIfGs_getClearCount() != 0) {
+#endif
         ResTIMG* tex_info_p = (ResTIMG*) dComIfG_getObjectIDRes(mArcName, dRes_ID_LS_BTI_LSBODY02_e);
         
         J3DTexture* a_texture = a_mdl_dat->getTexture();

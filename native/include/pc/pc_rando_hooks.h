@@ -136,6 +136,17 @@ uint32_t pc_rando_item_get_bgm(uint16_t item);
    adds their table edits and item-get messages. Called once at static init by R0.8's table binding
    (pc_rando_hooks_items.cpp), which also makes the linker keep the file. No game/ hunk calls it. */
 void pc_rando_dungeon_items_register(void);
+/* --- R3.13: misc features (misc_rando_features.asm, tweaks.py add_new_bog_warp and
+   fix_message_closing_sound_on_quest_status_screen; game_hooks/pc_rando_hooks_misc.cpp) --- */
+/* custom_isTbox_for_unloaded_stage_save_info: 1 when chest flag `no` (0-31) is set in the SAVED stage
+   memory of stage `stage_no` (dSv_save_c's mMemory[stage_no], not the loaded stage's copy), else 0.
+   Outset's alternate BGM tests (13, 5): the Pirate Ship chest that held the bombs. */
+int pc_rando_isTbox_unloaded(int stage_no, int no);
+/* The two new messages, added to the message overlay at every activation (pc_rando_add_listener):
+   848 "Warp to Forsaken Fortress?" (the 10th Ballad of Gales warp's confirmation) and 704, the blank
+   description of the quest screen's Options button. Exposed for the smoke; returns 1 when both were
+   added. */
+int pc_rando_misc_add_messages(void);
 
 #ifdef __cplusplus
 }

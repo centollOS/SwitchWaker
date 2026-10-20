@@ -20,3 +20,4 @@ PC_RANDO_SMOKE(fielditems, randoSmokeFielditems) // R2.11: any item anywhere (fi
 PC_RANDO_SMOKE(progressive, randoSmokeProgressive) // R3.3: progressive items (tiers, item funcs, no-ops, demo/shop/field items, message 278)
 PC_RANDO_SMOKE(dkeys, randoSmokeDkeys) // R3.4: the 22 per-dungeon item IDs (keys, Big Keys, maps, compasses)
 PC_RANDO_SMOKE(tingle, randoSmokeTingle) // R3.6: Tingle Statues (item funcs, owned checks, Tingle Island statue, Ankle reward)
+PC_RANDO_SMOKE(bog, randoSmokeBog) // R3.13: the Ballad of Gales 10th warp to Forsaken Fortress, messages 848/704, isTbox_unloaded

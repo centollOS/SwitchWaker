@@ -20,6 +20,7 @@
 #if TARGET_PC
 #include "pc/pc_qol.h"
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #include "pc/pc_rando_modes.h"
 #endif
 
@@ -515,7 +516,12 @@ void JAIZelBasic::zeldaGFrameWork() {
             } else if (field_0x00bc == 3) {
                 u32 bgm;
 #if VERSION > VERSION_DEMO
+#if TARGET_PC
+                // pc_rando(R3.13): misc_rando_features.asm 0x802A2BE4 (zeldaGFrameWork: Outset's alternate theme follows the Pirate Ship chest, stage 13 flag 5, since Aryll is on the ship); original: checkEventBit(0xE20)
+                if (mIslandRoomNo == 0x2C && (pc_rando() ? pc_rando_isTbox_unloaded(13, 5) : checkEventBit(0xE20)) == 1) {
+#else
                 if (mIslandRoomNo == 0x2C && checkEventBit(0xE20) == 1) {
+#endif
                     bgm = JA_BGM_ISLAND_LINK_3;
                 } else
 #endif
@@ -3764,7 +3770,12 @@ void JAIZelBasic::startIsleBgm() {
     }
     u32 bgmNum;
 #if VERSION > VERSION_DEMO
+#if TARGET_PC
+    // pc_rando(R3.13): misc_rando_features.asm 0x802AA2E4 (startIsleBgm: Outset's alternate theme follows the Pirate Ship chest, stage 13 flag 5, since Aryll is on the ship); original: checkEventBit(0xE20)
+    if (mIslandRoomNo == dIsleRoom_OutsetIsland_e && (pc_rando() ? pc_rando_isTbox_unloaded(13, 5) : checkEventBit(0xe20)) == 1) {
+#else
     if (mIslandRoomNo == dIsleRoom_OutsetIsland_e && checkEventBit(0xe20) == 1) {
+#endif
         bgmNum = JA_BGM_ISLAND_LINK_3;
     } else
 #endif
@@ -3844,9 +3855,16 @@ void JAIZelBasic::setScene(s32 sceneNum, s32 roomNo, s32 param_3, s32 layerNo) {
                     bgmNum = JA_BGM_ISLAND_LINK_0;
                 } else if (checkEventBit(1) == 1 && checkEventBit(0x101) == 0) {
                     bgmNum = JA_BGM_ISLAND_LINK_2;
+#if TARGET_PC
+                // pc_rando(R3.13): misc_rando_features.asm 0x802AA4CC and 0x802AA4E8 (setScene: Outset's alternate theme follows the Pirate Ship chest, stage 13 flag 5, since Aryll is on the ship); original: checkEventBit(0xE20)
+                } else if (checkEventBit(0x101) == 1 && (pc_rando() ? pc_rando_isTbox_unloaded(13, 5) : checkEventBit(0xe20)) == 0) {
+                    bgmNum = 0;
+                } else if ((pc_rando() ? pc_rando_isTbox_unloaded(13, 5) : checkEventBit(0xe20)) == 1) {
+#else
                 } else if (checkEventBit(0x101) == 1 && checkEventBit(0xe20) == 0) {
                     bgmNum = 0;
                 } else if (checkEventBit(0xe20) == 1) {
+#endif
                     bgmNum = JA_BGM_ISLAND_LINK_3;
                 } else {
                     bgmNum = m_isle_info[mIslandRoomNo].bgmNum;

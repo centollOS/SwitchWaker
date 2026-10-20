@@ -256,6 +256,39 @@ means `pc_rando() || pc_qol(PC_QOL_FIX_BUGS)`.
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | - | no hunks in `game/`: the 22 per-dungeon item IDs are item-get overrides through R0.8's `execItemGet` dispatch, table edits (`pc_rando_table_edit`) and overlay messages (`game_hooks/pc_rando_hooks_dungeon_items.cpp`, `features/rando/pc_rando_dungeon_items.{h,cpp}`) | - | `tweaks.py` `allow_dungeon_items_to_appear_anywhere`; `custom_funcs.asm` `generic_on_dungeon_bit`, `generic_small_key_item_get_func` and the 22 `*_item_get_func` wrappers |
+## R3.13
+
+Misc features (`misc_rando_features.asm`, plus `tweaks.py` `add_new_bog_warp` and
+`fix_message_closing_sound_on_quest_status_screen`). The two new messages (848 for the FF warp's
+confirmation, 704 for the quest screen) are overlay records added by a listener in
+`native/src/pc/game_hooks/pc_rando_hooks_misc.cpp` at every activation; they need no hunk.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/include/d/d_menu_fmap.h | `dMenu_Fmap_c::mWrapSpotEmitters` (one more slot for the 10th warp; layout only) | `#if TARGET_PC` | tweaks.py add_new_bog_warp (emitter list has room for 12 on the GameCube) |
+| game/src/d/d_menu_fmap.cpp | `l_pcRandoCursorTable`, `l_pcRandoWarpSpotPos*`, `pcRandoWarpCount`, `pcRandoCursorTable` (data and helpers) | `?:` | custom_data.asm ballad_of_gales_warp_table, ballad_of_gales_warp_float_bank |
+| game/src/d/d_menu_fmap.cpp | `paneTranceZoomMap` (10th pass: `mLnk3Pane`, the member after the 9 sc1x panes) | `add` | tweaks.py add_new_bog_warp 0x801B6E6C |
+| game/src/d/d_menu_fmap.cpp | `_open_warpMode` | `?:` | tweaks.py add_new_bog_warp 0x801B7988 |
+| game/src/d/d_menu_fmap.cpp | `init_warpMode` | `?:` | tweaks.py add_new_bog_warp 0x801B7C80, 0x801B7C28/3C/44 |
+| game/src/d/d_menu_fmap.cpp | `wrapMove` (message 848 for warp 9; 2 loops) | `?:` | misc_rando_features.asm 0x801B80EC; tweaks.py add_new_bog_warp 0x801B8414, 0x801B84D0 |
+| game/src/d/d_menu_fmap.cpp | `wrapSelWinFadeOut` | `?:` | tweaks.py add_new_bog_warp 0x801B9020 |
+| game/src/d/d_menu_fmap.cpp | `wrapSelWarp` | `?:` | tweaks.py add_new_bog_warp 0x801B9230 |
+| game/src/d/d_menu_fmap.cpp | `warpAreaAnime0` | `?:` | tweaks.py add_new_bog_warp 0x801B936C, 0x801B9360/78/80/A4/C8 |
+| game/src/d/d_menu_fmap.cpp | `getWarpAreaGridX`, `getWarpAreaGridY` | `?:` | tweaks.py add_new_bog_warp 0x801B96DC, 0x801B96F0 |
+| game/src/d/d_menu_fmap.cpp | `getWarpAreaTablePtr` | `?:` | tweaks.py add_new_bog_warp 0x801B979C, 0x801B9790 |
+| game/src/f_op/f_op_msg_mng.cpp | `fopMsgM_msgDataProc_c::stringSet` (warp colours for 848) | `\|\|` | misc_rando_features.asm 0x80032590 |
+| game/src/JAZelAudio/JAIZelBasic.cpp | `zeldaGFrameWork` | `?:` | misc_rando_features.asm 0x802A2BE4 (custom_isTbox_for_unloaded_stage_save_info 13, 5) |
+| game/src/JAZelAudio/JAIZelBasic.cpp | `startIsleBgm` | `?:` | misc_rando_features.asm 0x802AA2E4 |
+| game/src/JAZelAudio/JAIZelBasic.cpp | `setScene` (2 checks) | `?:` | misc_rando_features.asm 0x802AA4CC, 0x802AA4E8 |
+| game/src/d/actor/d_a_obj_canon.cpp | `daObj_Canon_c::checkTgHit` | `?:` | misc_rando_features.asm d_a_obj_canon 0x7D0 |
+| game/src/d/actor/d_a_player_fan.inc | `daPy_lk_c::setShapeFanLeaf` | `\|\|` | misc_rando_features.asm 0x8014BDF8 |
+| game/src/d/actor/d_a_player_main.cpp | `daPy_lk_c::execute` (door drop of an enemy weapon) | `?:` | misc_rando_features.asm 0x80121B18 |
+| game/src/d/actor/d_a_player_ladder.inc | `procLadderUpStart_init`, `procLadderDownStart_init` | `\|\|` | misc_rando_features.asm 0x8013344C, 0x8013389C |
+| game/src/d/actor/d_a_npc_ah.cpp | `phase_1` (3 checks) | `?:` | misc_rando_features.asm d_a_npc_ah 0x85C, 0x8A8, 0x8D8 |
+| game/src/d/actor/d_a_npc_ah.cpp | `daNpcAh_c::_execute` (3 checks) | `?:` | misc_rando_features.asm d_a_npc_ah 0x1018, 0x1044, 0x1078 |
+| game/src/d/actor/d_a_npc_ls1.cpp | `daNpc_Ls1_c::wait_action1` | `?:` | misc_rando_features.asm d_a_npc_ls1 0x3E88 |
+| game/src/d/actor/d_a_npc_ls1.cpp | `daNpc_Ls1_c::bodyCreateHeap` | `\|\|` | misc_rando_features.asm d_a_npc_ls1 0x4F04 |
+| game/src/d/actor/d_a_player_rope.inc | `daPy_lk_c::procRopeSwing` (QoL swing turn forced on, base 100) | `\|\|` | misc_rando_features.asm 0x80145648 turn_while_swinging |
 
 ## R4.2
 

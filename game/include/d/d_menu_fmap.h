@@ -387,7 +387,13 @@ private:
     /* 0x50D0 */ JUTFont* mFont;
     /* 0x50D4 */ JUTFont* mRFont;
     /* 0x50D8 */ JPABaseEmitter* mWrapBackEmitter;
+#if TARGET_PC
+    // pc_rando(R3.13): tweaks.py add_new_bog_warp (the 10th Ballad of Gales warp's emitter uses the room
+    // after the 9 on the GameCube, which the host's 8-byte pointers do not leave); original: [FMAP_WARP_COUNT]
+    /* 0x50DC */ JPABaseEmitter* mWrapSpotEmitters[FMAP_WARP_COUNT + 1];
+#else
     /* 0x50DC */ JPABaseEmitter* mWrapSpotEmitters[FMAP_WARP_COUNT];
+#endif
     /* 0x5100 */ u8 padding_0x5100[0x510C - 0x5100];
     /* 0x510C */ bool mMapClose;
     /* 0x510D */ u8 mSelCursorBufIdx;

@@ -1,0 +1,6 @@
+# R3.13 misc features (docs/RANDOMIZER_PLAN.md): the Ballad of Gales' 10th warp to Forsaken Fortress,
+# messages 848/704 and isTbox_unloaded. On the boat (sailing preset): with the randomizer the warp map
+# has 10 targets, left from warp 0 reaches FF, its confirmation is message 848 and the warp lands on
+# sea room 1; without it the map is the original 9 targets and warp 0 lands on sea room 9.
+rando 0 --preset sailing --env COS_RANDO_SMOKE=bog
+rando 0 --preset sailing --env COS_RANDO_SMOKE=bog --env COS_RANDO_FORCE=1
