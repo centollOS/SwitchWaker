@@ -3476,13 +3476,13 @@ static BOOL daMo2_Execute(mo2_class* i_this) {
         if (i_this->m05B6 != 0) {
             i_this->m05B6--;
         }
-        if (
 #if TARGET_PC
-            // pc_rando(R3.10): make_game_nonlinear.asm d_a_mo2 0xAD70 (daMo2_Execute, b 0xADD0: skip the
-            // 4 sword checks, so no jail); original: the 4 isCollect sword checks alone
-            pc_rando() ||
+        // pc_rando(R3.10): make_game_nonlinear.asm d_a_mo2 0xAD70 (daMo2_Execute, b 0xADD0: skip the
+        // 4 sword checks, so no jail); original kept in #else
+        if (pc_rando() || dComIfGs_isCollect(0, 0) || dComIfGs_isCollect(0, 1) || dComIfGs_isCollect(0, 2) || dComIfGs_isCollect(0, 3)) {
+#else
+        if (dComIfGs_isCollect(0, 0) || dComIfGs_isCollect(0, 1) || dComIfGs_isCollect(0, 2) || dComIfGs_isCollect(0, 3)) {
 #endif
-            dComIfGs_isCollect(0, 0) || dComIfGs_isCollect(0, 1) || dComIfGs_isCollect(0, 2) || dComIfGs_isCollect(0, 3)) {
             rouya_mode = 0;
         } else {
             rouya_mode = 1;
@@ -4151,13 +4151,13 @@ static cPhs_State daMo2_Create(fopAc_ac_c* a_this) {
 #if VERSION == VERSION_DEMO
     if (dComIfGs_isCollect(0, 0) || dComIfGs_isCollect(0, 1) || dComIfGs_isCollect(0, 2))
 #else
-    if (
 #if TARGET_PC
-        // pc_rando(R3.10): make_game_nonlinear.asm d_a_mo2 0xBF2C (daMo2_Create, b 0xBF8C: skip the 4
-        // sword checks, so no jail); original: the 4 isCollect sword checks alone
-        pc_rando() ||
+    // pc_rando(R3.10): make_game_nonlinear.asm d_a_mo2 0xBF2C (daMo2_Create, b 0xBF8C: skip the 4
+    // sword checks, so no jail); original kept in #else
+    if (pc_rando() || dComIfGs_isCollect(0, 0) || dComIfGs_isCollect(0, 1) || dComIfGs_isCollect(0, 2) || dComIfGs_isCollect(0, 3))
+#else
+    if (dComIfGs_isCollect(0, 0) || dComIfGs_isCollect(0, 1) || dComIfGs_isCollect(0, 2) || dComIfGs_isCollect(0, 3))
 #endif
-        dComIfGs_isCollect(0, 0) || dComIfGs_isCollect(0, 1) || dComIfGs_isCollect(0, 2) || dComIfGs_isCollect(0, 3))
 #endif
     {
         rouya_mode = 0;
