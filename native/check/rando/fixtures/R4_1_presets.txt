@@ -1,0 +1,12 @@
+# R4.1 preset vectors (cos_rando_test_R4_1): "<case> <permalink for seed TestSeed1>", made by wwrando
+# 1.10.0_9775811 (MIT) from the worktree root with
+#   cd ref/wwrando && PYTHONPATH=../../build/rando-deps/gclib:. ../../build/rando-venv/bin/python
+# defaults: Options(); all: every progression_* True; short: only progression_dungeons and
+# progression_free_gifts True; custom: sword_mode Swordless, starting_gear [Bombs, Progressive Bow x2]
+# (randomized_gear the rest of INVENTORY_ITEMS, sorted), progression_dungeons False, required_bosses False,
+# num_location_hints 0, prioritize_remote_hints False, starting_hcs 5 (what ensure_valid_combination_of_options
+# leaves of the test's settings).
+defaults MS4xMC4wXzk3NzU4MTEAVGVzdFNlZWQxAEkQUBgAAPsCyCUAAAAAAAEAQQCAAA==
+all MS4xMC4wXzk3NzU4MTEAVGVzdFNlZWQxAP//fxgAAPsCyCUAAAAAAAEAQQCAAA==
+short MS4xMC4wXzk3NzU4MTEAVGVzdFNlZWQxAAEQABgAAPsCyCUAAAAAAAEAQQCAAA==
+custom MS4xMC4wXzk3NzU4MTEAVGVzdFNlZWQxAEgQUBoAAHsAyIUAAAAAAACAAAAAAQ==

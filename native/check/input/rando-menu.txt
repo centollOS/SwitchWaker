@@ -1,0 +1,36 @@
+# COS_SMOKE=rando COS_RANDO_SMOKE=menu (native/src/pc/harness/smokes/pc_rando_smoke_menu.cpp, plan step
+# R4.1), with --stage sea:44:206 (Outset; the player is in the room from about frame 291). The menu reads
+# this script (randoMenuSetScripted); the smoke checks the settings at fixed frames between the keys.
+# frame buttons stickX stickY
+# open the menu, R four times: Controles, Rendimiento, Calidad de vida, Randomizer
+400 L+R+Z 0 0
+403 - 0 0
+406 R 0 0
+408 - 0 0
+410 R 0 0
+412 - 0 0
+414 R 0 0
+416 - 0 0
+418 R 0 0
+420 - 0 0
+# the first row, "Preajuste": right (All checks, checked at 440), right (Short, 460), right (the
+# defaults, wrapping, 480), left (Short again, 500)
+430 RIGHT 0 0
+432 - 0 0
+450 RIGHT 0 0
+452 - 0 0
+470 RIGHT 0 0
+472 - 0 0
+490 LEFT 0 0
+492 - 0 0
+# down to "Categoría: mazmorras", A turns it off (checked at 520: Required bosses greyed out)
+510 DOWN 0 0
+512 - 0 0
+514 A 0 0
+516 - 0 0
+# A turns it back on (checked at 540)
+534 A 0 0
+536 - 0 0
+# B closes the menu (checked at 580)
+570 B 0 0
+572 - 0 0

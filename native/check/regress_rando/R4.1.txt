@@ -1,0 +1,7 @@
+# R4.1 (docs/RANDOMIZER_PLAN.md): the randomizer's settings and its options-menu tab. An input script opens
+# the menu's Randomizer tab and cycles the preset row (All checks, Short, defaults, back to Short); the smoke
+# checks the COS_RANDO_* settings and the settings file after each, the validation rules (Required bosses
+# greyed out and refused without the dungeons category, the sword rules of the starting gear editor) and
+# that the validated settings give wwrando's permalink.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44:206 --input native/check/input/rando-menu.txt --env COS_RANDO_SMOKE=menu
