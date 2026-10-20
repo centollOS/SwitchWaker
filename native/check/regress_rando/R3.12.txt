@@ -1,0 +1,7 @@
+# R3.12 (docs/RANDOMIZER_PLAN.md): vanilla bug fixes and the ReDead switch, driven on Outset with the
+# Skull Hammer on X. Plain: the original behaviour; forced rando and QoL item 15: the fixes (the
+# ReDead switch only under rando).
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=bugfixes --env COS_BOOT_ITEMS=33
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=bugfixes --env COS_BOOT_ITEMS=33 --env COS_RANDO_FORCE=1
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=bugfixes --env COS_BOOT_ITEMS=33 --env COS_QOL_FIX_BUGS=1

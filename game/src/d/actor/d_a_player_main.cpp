@@ -36,6 +36,7 @@
 #include "helpers/endian.h"
 #include "pc/pc_qol.h"
 #include "pc/pc_rando_hooks.h"
+#include "pc/pc_rando.h"
 #endif
 #include "d/d_material.h"
 #include "JSystem/J3DGraphLoader/J3DAnmLoader.h"
@@ -4312,9 +4313,18 @@ BOOL daPy_lk_c::checkNextActionFromButton() {
                     m_old_fdata->initOldFrameMorf(5.0f, 0, CL_NUM_JNTS_e);
                     return true;
                 }
+#if TARGET_PC
+            // pc_rando(R3.12): fix_vanilla_bugs.asm check_can_defend (main.dol 0x8010E288); original: dComIfGs_getSelectEquip(1) == dItemNo_NONE_e
+            // Defending also with the Skull Hammer in hand when no shield is owned.
+            } else if ((dComIfGs_getSelectEquip(1) == dItemNo_NONE_e &&
+                        !((pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) && mEquipItem == dItemNo_SKULL_HAMMER_e)) ||
+                       mEquipItem == daPyItem_NONE_e)
+            {
+#else
             } else if (dComIfGs_getSelectEquip(1) == dItemNo_NONE_e ||
                        mEquipItem == daPyItem_NONE_e)
             {
+#endif
                 if (checkModeFlg(ModeFlg_00000001)) {
                     dComIfGp_setRStatus(dActStts_CROUCH_e);
                     if (spActionButton()) {
@@ -4369,7 +4379,13 @@ void daPy_lk_c::setShieldGuard() {
     f32 local_18 = m_pbCalc[PART_UPPER_e]->getRatio(2);
     if (checkGuardSlip() ||
         (!checkEquipAnime() && !checkGrabAnime() && checkAttentionLock() && mEquipItem != daPyItem_BOKO_e &&
+#if TARGET_PC
+         // pc_rando(R3.12): fix_vanilla_bugs.asm check_can_defend (main.dol 0x8010E504); original: checkShieldEquip()
+         (checkShieldEquip() || ((pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) && mEquipItem == dItemNo_SKULL_HAMMER_e)) &&
+         checkGuardAccept() &&
+#else
          checkShieldEquip() && checkGuardAccept() &&
+#endif
          (mActorKeepEquip.getID() == fpcM_ERROR_PROCESS_ID_e || mActorKeepEquip.getActor() != NULL)))
     {
         dComIfGp_setRStatus(dActStts_DEFEND_e);

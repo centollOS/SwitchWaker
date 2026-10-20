@@ -132,6 +132,9 @@ Every fix in BetterWW's `fix_vanilla_bugs.asm`, and what `necessary_fixes.asm` a
 port (`docs/GAME_DIVERGENCE.md`, bugs B1-B39: those are host bugs, not the original's). The rule: a fix
 is **always on** only if the bug crashes the port and the fix changes nothing in normal play; every
 other one changes what the original does in some case, so it is behind the toggle (off by default).
+In a randomized file every toggled fix is on whatever the toggle says (`pc_rando() ||`, randomizer
+step R3.12, `docs/RANDO_HOOKS.md`), as wwrando always applies them; the rows marked R3.12 are
+wwrando's newer fixes, added to the same toggle.
 
 | Fix (BetterWW) | Decomp | Decision |
 |---|---|---|
@@ -146,6 +149,14 @@ other one changes what the original does in some case, so it is behind the toggl
 | Jalhalla's Poes and Light Arrows | `Big_pow_down_check` (`d_a_pw.cpp`): a Poe dying to a Light Arrow keeps health > 0 and never counts for Jalhalla | Toggle: such a Poe counts; one that rejoins Jalhalla stops dying |
 | Respawning Magtails and Light Arrows | `damage_check` (`d_a_mt.cpp`): a Light Arrow in the head does not set `m1CBC`, so the Magtail does not come back | Toggle |
 | Phantom Ganon's trigger in the Forsaken Fortress | `start` (`d_a_fganon.cpp`): an XZ circle with no height limit | Toggle: not while the player is 1000 or more above him. Mostly a randomizer case (entrances), harmless in normal play |
+| Sub-BGM after leaving a stage (wwrando, newer than BetterWW; randomizer step R3.12) | `dScnPly_Delete` (`d_s_play.cpp`): Mothula's and the Stalfos' miniboss music, or the Outset whirlpool's, outlive the stage | Toggle (forced on under rando): `mDoAud_subBgmStop()` when the stage unloads |
+| Arrow hit callback (R3.12) | `daArrow_c::procMove`: an arrow stopped in an actor still takes hits; a second actor (Big Octo's eye) desyncs the hit actor from the joint index: NaN position, an assert | Toggle (forced on under rando): the callback is cleared when it stops in an actor |
+| Sunrise tune (R3.12) | `JAIZelBasic::processTime`: 5:59 AM's tune cuts the playing BGM (a Big Octo's battle music) | Toggle (forced on under rando): started without stopping the BGM, as `processMorningToNormal` does |
+| Skull Hammer guard (R3.12) | `daPy_lk_c::checkNextActionFromButton`, `setShieldGuard`: no defence without a shield | Toggle (forced on under rando): the hammer in hand defends too |
+| Ganondorf's reflect event (R3.12) | `daArrow_c::ShieldReflect`: a Light Arrow reflected in phase 1 can clash with the event that knocks Zelda out | Toggle (forced on under rando): the reflect event (aim, sparkle) only at 25 health or less; the arrow still hurts him |
+| Helmaroc King's landing (R3.12) | `landing` (`d_a_bdk.cpp`): stuck on the tower geometry while landing (after jumping back in as it closes), a softlock | Toggle (forced on under rando): after 10 seconds in landing substates 1-2 he flies up and tries again (the timer is in the upper half of his parameters, unused) |
+| Enemy weapon after a chest (R3.12) | `daBoko_c::procCarry`: with no floor found, the weapon's Y was set to 50 (absolute; a typo for "+ 50") | Toggle (forced on under rando): it stays at the player's feet |
+| Sam's "Decorate the Town" (R3.12) | `daNpcPeople_c::isUo1FdaiAll`: given the Delivery Bag outdoors, no pedestal has spawned and 0 == 0 counts as decorated | Toggle (forced on under rando): at least one pedestal is needed |
 | Island LoD models' heap estimate, JKRHeap warnings (`d_a_lod_bg`) | A GameCube heap-fragmentation measure and debug-console noise | Not done: the port's heaps are host-sized (`docs/GAME_DIVERGENCE.md`), nothing to fix |
 | `necessary_fixes.asm`, active parts | the new-game save init (`init_save_with_tweaks`: with BetterWW's settings it sets nothing), the void out zone before the Forbidden Woods kept after Farore's Pearl, the custom models' arc pointers, Stalfos immune to Light Arrows, the rainbow 500-rupee, custom text commands, cannons dying to one boomerang hit | Not done: randomizer design or cosmetic changes, not bugs of the original (the rainbow rupee and the one-hit cannons are listed under "Not implemented") |
 | `misc_rando_features.asm`, active parts | warp message colours for a custom message, a ChuChu float moved for recolouring, the missing-particle warning text | Not done: only serve randomizer features |

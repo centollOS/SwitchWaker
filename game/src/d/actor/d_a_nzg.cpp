@@ -8,6 +8,9 @@
 #include "d/d_path.h"
 #include "d/d_s_play.h"
 #include "res/Object/Nzg.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 /* 00000078-000000E4       .text daNZG_Draw__FP9nzg_class */
 static BOOL daNZG_Draw(nzg_class* i_this) {
@@ -39,9 +42,23 @@ static f32 dummy40(int arg1) {
 void nzg_00_move(nzg_class* i_this) {
     fopAc_ac_c* actor = &i_this->actor;
 
+#if TARGET_PC
+    if (i_this->m2C2[0] != 0) {
+        return;
+    }
+    if (i_this->m2BE >= i_this->m2C0) {
+        if (pc_rando()) {
+            // pc_rando(R3.12): flexible_enemies.asm rat_hole_all_rats_dead (d_a_nzg 0x1FC); original: return
+            // Every rat it may spawn is out: the hole stops counting as a living enemy.
+            fopAcM_SetGroup(actor, fopAc_ACTOR_e);
+        }
+        return;
+    }
+#else
     if (i_this->m2C2[0] != 0 || i_this->m2BE >= i_this->m2C0) {
         return;
     }
+#endif
 
     i_this->mCyl.SetC(actor->current.pos);
     i_this->mCyl.SetH(REG8_F(11) + 40.0f);
@@ -160,6 +177,14 @@ static BOOL useHeapInit(fopAc_ac_c* i_this) {
 static cPhs_State daNZG_Create(fopAc_ac_c* i_this) {
     nzg_class* nzg_this = (nzg_class*)i_this;
     fopAcM_ct_Retail(i_this, nzg_class);
+#if TARGET_PC
+    if (pc_rando() && fopAcM_IsFirstCreating(i_this)) {
+        // pc_rando(R3.12): flexible_enemies.asm g_profile_NZG actor type 2 (d_a_nzg 0xD08); original: fopAc_ACTOR_e from the profile
+        // The rat hole counts as an enemy (its rats spawn late, so a "defeat every enemy" room
+        // entered through a door was cleared at once) until it has spawned every rat.
+        fopAcM_SetGroup(i_this, fopAc_ENEMY_e);
+    }
+#endif
     cPhs_State phase_state = dComIfG_resLoad(&nzg_this->mPhs, "NZG");
     if (phase_state == cPhs_COMPLEATE_e) {
         fopAcM_ct_Demo(i_this, nzg_class);

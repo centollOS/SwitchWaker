@@ -26,6 +26,7 @@
 #include "SSystem/SComponent/c_math.h"
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
 #endif
 
 enum daPW__BehaviorType {
@@ -238,7 +239,8 @@ BOOL Big_pow_down_check(pw_class* i_this) {
 #if TARGET_PC
     // QoL "Arreglar fallos del juego original" (BetterWW fix_vanilla_bugs.asm, poe_fix_light_arrows_bug):
     // a Poe dying to a Light Arrow (its health is not 0) also counts for Jalhalla
-    const bool fixBugs = pc_qol(PC_QOL_FIX_BUGS) != 0;
+    // pc_rando(R3.12): fix_vanilla_bugs.asm poe_fix_light_arrows_bug (d_a_pw 0x8CC/0x900), always applied by wwrando; original: pc_qol(PC_QOL_FIX_BUGS)
+    const bool fixBugs = pc_rando() || pc_qol(PC_QOL_FIX_BUGS);
     if (i_this->health > 0 && !(fixBugs && i_this->mEnemyIce.mLightShrinkTimer > 0)) {
         return FALSE;
     }

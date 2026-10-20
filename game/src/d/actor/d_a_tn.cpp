@@ -21,6 +21,9 @@
 #include "d/d_material.h"
 #include "res/Object/Tn.h"
 #include "JSystem/JUtility/JUTReport.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 enum Action {
     ACTION_JYUNKAI = 0,
@@ -3460,6 +3463,17 @@ static BOOL daTn_Execute(tn_class* i_this) {
     }
     if (actor->home.pos.y - actor->current.pos.y > 4000.0f) {
         fopAcM_delete(actor);
+#if TARGET_PC
+        if (pc_rando()) {
+            // pc_rando(R3.12): flexible_enemies.asm darknut_set_death_switch (d_a_tn 0xB17C); original: none (added)
+            // A Darknut that fell 4000 below its home also sets its death switch and its
+            // temporary death flag, as any other death does.
+            fopAcM_onActor(actor);
+            if (i_this->mDisableSpawnOnDeathSwitch != 0) {
+                dComIfGs_onSwitch(i_this->mDisableSpawnOnDeathSwitch, fopAcM_GetRoomNo(actor));
+            }
+        }
+#endif
         return TRUE;
     }
     u8 r25 = 0;

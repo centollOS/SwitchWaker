@@ -14,6 +14,7 @@
 #include "res/Object/Ks.h"
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
 #endif
 
 static int KS_ALL_COUNT = 0;
@@ -132,7 +133,8 @@ void naraku_check(ks_class* i_this) {
 #if TARGET_PC
     // QoL "Arreglar fallos del juego original" (BetterWW fix_vanilla_bugs.asm): no ground under the
     // Morth (it fell out of the map) counts as the void-out ground, so it is deleted too
-    if ((pc_qol(PC_QOL_FIX_BUGS) && i_this->mAcch.GetGroundH() == -G_CM3D_F_INF) ||
+    // pc_rando(R3.12): fix_vanilla_bugs.asm Morths out of bounds (d_a_ks 0x678), always applied by wwrando; original: pc_qol(PC_QOL_FIX_BUGS)
+    if (((pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) && i_this->mAcch.GetGroundH() == -G_CM3D_F_INF) ||
         (i_this->mAcch.GetGroundH() != -G_CM3D_F_INF && dComIfG_Bgsp()->ChkPolySafe(i_this->mAcch.m_gnd) && dComIfG_Bgsp()->GetGroundCode(i_this->mAcch.m_gnd) == 4)) {
 #else
     if (i_this->mAcch.GetGroundH() != -G_CM3D_F_INF && dComIfG_Bgsp()->ChkPolySafe(i_this->mAcch.m_gnd) && dComIfG_Bgsp()->GetGroundCode(i_this->mAcch.m_gnd) == 4) {

@@ -22,6 +22,10 @@
 #include "m_Do/m_Do_ext.h"
 #include "m_Do/m_Do_hostIO.h"
 #include "m_Do/m_Do_graphic.h"
+#if TARGET_PC
+#include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
+#endif
 
 enum ActionStatus {
     ACTION_FLY = 0,
@@ -753,6 +757,13 @@ static void landing(bdk_class* i_this) {
         case -2:
         case 0:
             {
+#if TARGET_PC
+                if (pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) {
+                    // pc_rando(R3.12): fix_vanilla_bugs.asm initialize_helmaroc_king_landing_timer (d_a_bdk 0x24D4); original: none (added)
+                    // A landing timer in the parameters' upper half (unused): see the end of landing().
+                    fopAcM_SetParam(actor, fopAcM_GetParam(actor) & 0xFFFF);
+                }
+#endif
                 s16 angle = fopAcM_searchPlayerAngleY(actor);
                 cMtx_YrotS(*calc_mtx, angle);
                 diff2.x = 0.0f;
@@ -879,6 +890,19 @@ static void landing(bdk_class* i_this) {
             eff_hane_set(i_this, &i_this->m1168, eff_hane_num, 0);
         }
     }
+#if TARGET_PC
+    if ((pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) && i_this->mState > 0 && i_this->mState < 3) {
+        // pc_rando(R3.12): fix_vanilla_bugs.asm check_helmaroc_king_landing_timeout (d_a_bdk 0x2AD0); original: none (added)
+        // Helmaroc King stuck on the tower while trying to land (after jumping back in as it
+        // closes) gives up after 10 seconds in substates 1-2 and flies up to try again.
+        u32 timer = (fopAcM_GetParam(actor) >> 16) + 1;
+        fopAcM_SetParam(actor, (fopAcM_GetParam(actor) & 0xFFFF) | ((timer & 0xFFFF) << 16));
+        if ((s16)timer > 10 * 30) {
+            i_this->mAction = ACTION_UP_FLY;
+            i_this->mState = 0;
+        }
+    }
+#endif
 }
 
 /* 000029F4-00002F64       .text wait__FP9bdk_class */
