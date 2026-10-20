@@ -1,0 +1,7 @@
+# R3.4 (docs/RANDOMIZER_PLAN.md): the 22 per-dungeon item IDs (keys, Big Keys, maps, compasses):
+# outside the dungeons (plain and forced), inside DRC (key display on) and in DRC's boss room (off).
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=dkeys
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=dkeys --env COS_RANDO_FORCE=1
+rando 0 --stage M_NewD2:0 --env COS_RANDO_SMOKE=dkeys
+rando 0 --stage M_DragB:0 --env COS_RANDO_SMOKE=dkeys

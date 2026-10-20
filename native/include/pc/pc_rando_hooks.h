@@ -61,6 +61,13 @@ void pc_rando_place_pearl(int symbol);
    JA_BGM_ITEM_GET. */
 uint32_t pc_rando_item_get_bgm(uint16_t item);
 
+/* --- R3.4: dungeon items (game_hooks/pc_rando_hooks_dungeon_items.cpp; table and decisions in
+   features/rando/pc_rando_dungeon_items.h) --- */
+/* Registers the 22 per-dungeon item-get overrides (pc_rando_items.h) and the activation listener that
+   adds their table edits and item-get messages. Called once at static init by R0.8's table binding
+   (pc_rando_hooks_items.cpp), which also makes the linker keep the file. No game/ hunk calls it. */
+void pc_rando_dungeon_items_register(void);
+
 #ifdef __cplusplus
 }
 #endif

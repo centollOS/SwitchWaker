@@ -76,7 +76,10 @@ void randoSmokeItems(unsigned int frames) {
     const int forced = pc_rando_forced();
     randoSmokeCheck(kName, forced ? "forced boot: tables snapshotted" : "plain boot: tables not snapshotted",
                     pc_rando_tables_applied() == forced);
-    // Under COS_RANDO_FORCE no edit is registered yet, so the tables hold their boot bytes either way.
+    // Start from an empty edit registry: under COS_RANDO_FORCE, later steps' modules (R3.4's dungeon
+    // items) have already registered and applied their edits at boot. Clearing puts the snapshot back,
+    // so the tables hold their boot bytes either way.
+    pc_rando_table_edits_clear();
     saveBoot();
 
     pc_rando_item_override(kId, overrideItem);
