@@ -1,0 +1,3 @@
+# R3.20 (docs/RANDOMIZER_PLAN.md): word wrap with the real message font, compared with gclib.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=wrap
