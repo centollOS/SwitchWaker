@@ -7,8 +7,8 @@
 // and gets no controller input (Aurora's PADBlockInput; the buttons still held when it closes are
 // ignored until released). Other scenes (title, name entry) keep running behind it, without input.
 //
-// One ImGui window with five tabs, Gráficos, Controles, Rendimiento, Calidad de vida and Depuración
-// (in that order on screen, kTabOrder), navigated by the controller (D-pad or stick: row and value;
+// One ImGui window with six tabs, Gráficos, Controles, Rendimiento, Calidad de vida, Randomizer and
+// Depuración (in that order on screen, kTabOrder; Randomizer: features/rando/pc_rando_settings.h), navigated by the controller (D-pad or stick: row and value;
 // A: change / confirm; B: back / close; L/R: tab), the keyboard (arrows, Enter, Esc, Q/E) or the mouse
 // (click a tab, a row, a value). The menu reads the controllers itself (SDL gamepads, labels of the
 // face buttons respected, so A is A on a Switch-style layout too), plus the COS_INPUT script in
@@ -40,6 +40,7 @@
 #include "pc/pc_qol.h"
 #include "features/pc_button_remap_map.h"
 #include "features/rando/pc_rando_text_ui.h"
+#include "features/rando/pc_rando_settings.h"
 
 #include "d/d_com_inf_game.h"
 #include "d/d_kankyo.h"
@@ -737,7 +738,8 @@ enum class RowKind {
     QolBetterWW,
     QolOriginal,
     Remap,
-    RemapRestore
+    RemapRestore,
+    Rando // a row of the Randomizer tab: action = its index in randoMenuRows() (pc_rando_settings.h)
 };
 
 struct Row {
@@ -747,12 +749,13 @@ struct Row {
 };
 
 // Indexed by PcSettingTab; kTabOrder is the order on screen (and of L/R).
+// Depuración stays last (input scripts press L from Gráficos to reach it).
 const char* const kTabNames[PC_SETTING_TABS] = {"Gráficos", "Rendimiento", "Calidad de vida", "Depuración",
-                                                "Controles"};
+                                                "Controles", "Randomizer"};
 const char* const kTabNamesEn[PC_SETTING_TABS] = {"Graphics", "Performance", "Quality of life", "Debug",
-                                                  "Controls"};
+                                                  "Controls", "Randomizer"};
 const int kTabOrder[PC_SETTING_TABS] = {PC_SETTING_TAB_GRAPHICS, PC_SETTING_TAB_CONTROLS, PC_SETTING_TAB_PERFORMANCE,
-                                        PC_SETTING_TAB_QOL, PC_SETTING_TAB_DEBUG};
+                                        PC_SETTING_TAB_QOL, PC_SETTING_TAB_RANDO, PC_SETTING_TAB_DEBUG};
 
 // The position on screen of a tab.
 int tabPosition(int tab) {
@@ -805,8 +808,27 @@ bool inPlay() {
     return fpcM_Search(isPlayScene, nullptr) != nullptr;
 }
 
+// A row of the Randomizer tab (RowKind::Rando).
+RandoRow randoRowOf(const Row& r) {
+    return randoMenuRowAt(r.action);
+}
+
+// Left/right change the row's value, and A cycles it forward (else A is the row's action).
+bool rowCycles(const Row& r) {
+    return r.kind == RowKind::Setting || r.kind == RowKind::EditMode ||
+           (r.kind == RowKind::Rando && randoRowCycles(randoRowOf(r)));
+}
+
 std::vector<Row> rowsOf(int tab) {
     std::vector<Row> rows;
+    if (tab == PC_SETTING_TAB_RANDO) {
+        // Its own rows (presets, the options, the starting gear editor, R4.3's actions).
+        const int n = (int)randoMenuRows().size();
+        for (int i = 0; i < n; i++) {
+            rows.push_back({RowKind::Rando, nullptr, i});
+        }
+        return rows;
+    }
     if (tab == PC_SETTING_TAB_GRAPHICS) {
         rows.push_back({RowKind::EditMode});
     }
@@ -1132,6 +1154,13 @@ void activate(const Row& r, int dir) {
             toast(T("Controles por defecto restaurados", "Default controls restored"));
         }
         break;
+    case RowKind::Rando: {
+        const std::string text = randoRowActivate(randoRowOf(r), dir, pc_ui_spanish());
+        if (!text.empty()) {
+            toast(text);
+        }
+        break;
+    }
     }
 }
 
@@ -1219,11 +1248,11 @@ void handleInput(uint32_t keys) {
         m.scrollToRow = true;
     }
     if (p & kConfirm) {
-        activate(rows[row], rows[row].kind == RowKind::Setting || rows[row].kind == RowKind::EditMode ? 1 : 0);
+        activate(rows[row], rowCycles(rows[row]) ? 1 : 0);
     }
     if (p & (kLeft | kRight)) {
         const Row& r = rows[row];
-        if (r.kind == RowKind::Setting || r.kind == RowKind::EditMode) {
+        if (rowCycles(r)) {
             activate(r, (p & kLeft) ? -1 : 1);
         }
     }
@@ -1246,6 +1275,7 @@ std::string rowLabel(const Row& r) {
     case RowKind::QolOriginal: return T("Valores originales", "Original values");
     case RowKind::RemapRestore: return T("Restaurar controles por defecto", "Restore default controls");
     case RowKind::Remap: return settingLabel(r.desc);
+    case RowKind::Rando: return randoRowLabel(randoRowOf(r), pc_ui_spanish());
     case RowKind::Setting: break;
     }
     std::string s = settingLabel(r.desc);
@@ -1278,12 +1308,16 @@ std::string rowValue(const Row& r) {
         const int input = pc_button_remap_current(r.action);
         return choiceLabel(r.desc, pc::remap::inputValue((pc::remap::Input)input));
     }
+    case RowKind::Rando: return randoRowValue(randoRowOf(r), pc_ui_spanish());
     case RowKind::Setting: break;
     }
     return choiceLabel(r.desc, pc_settings_get_mode(r.desc->key, rowMode(r.desc)));
 }
 
 std::string rowNote(const Row& r) {
+    if (r.kind == RowKind::Rando) {
+        return randoRowDisabled(randoRowOf(r), pc_ui_spanish()); // greyed out: why
+    }
     if (r.kind != RowKind::Setting && r.kind != RowKind::Remap) {
         return "";
     }
@@ -1349,6 +1383,7 @@ std::string rowHelp(const Row& r) {
                      "cancels.");
         }
         break;
+    case RowKind::Rando: return randoRowHelp(randoRowOf(r), pc_ui_spanish());
     case RowKind::Setting: break;
     }
     const char* descHelp = settingHelp(r.desc);
@@ -1466,26 +1501,31 @@ void drawMenu() {
                 const Row& r = rows[i];
                 const bool locked =
                     (r.kind == RowKind::Setting || r.kind == RowKind::Remap) && pc_settings_locked(r.desc->key);
+                // A Randomizer row another option turns off (or the environment, or the region) is greyed.
+                const bool greyed = r.kind == RowKind::Rando && !rowNote(r).empty();
                 ImGui::PushID(i);
-                if (locked) {
+                if (locked || greyed) {
                     ImGui::PushStyleColor(ImGuiCol_Text, kDim);
                 }
                 const std::string label = rowLabel(r);
                 if (ImGui::Selectable(label.c_str(), i == row, ImGuiSelectableFlags_AllowDoubleClick)) {
                     if (row == i) {
-                        activate(r, r.kind == RowKind::Setting || r.kind == RowKind::EditMode ? 1 : 0);
+                        activate(r, rowCycles(r) ? 1 : 0);
                     }
                     row = i;
                 }
                 ImGui::SameLine(valueX);
                 const std::string value = rowValue(r);
-                ImGui::TextColored(i == row ? kAccent : ImVec4(1, 1, 1, 1), "%s%s%s", i == row ? "< " : "",
-                                   value.c_str(), i == row ? " >" : "");
-                if (locked) {
+                ImGui::TextColored(greyed ? kDim : i == row ? kAccent : ImVec4(1, 1, 1, 1), "%s%s%s",
+                                   i == row ? "< " : "", value.c_str(), i == row ? " >" : "");
+                if (locked || greyed) {
                     ImGui::PopStyleColor();
                 }
                 const std::string note = rowNote(r);
-                if (!note.empty()) {
+                if (greyed) {
+                    ImGui::SameLine();
+                    ImGui::TextColored(kDim, "%s", T("[n/d]", "[n/a]"));
+                } else if (!note.empty()) {
                     // A short mark here; the whole note is in the help line of the selected row.
                     const bool pending = r.kind == RowKind::Setting && pc_settings_restart_pending(r.desc->key);
                     ImGui::SameLine();
@@ -1848,6 +1888,7 @@ void menuInit() {
             pc_settings_register(&d);
         }
     }
+    randoSettingsRegister(); // the Randomizer tab's COS_RANDO_* settings
     m.editMode = pc_settings_mode();
     sSmoke.on = gConfig.smoke != nullptr && strcmp(gConfig.smoke, "options-menu") == 0;
     if (sSmoke.on) {
@@ -1889,7 +1930,8 @@ void menuFrame() {
         setOpen(true);
         m.waitRelease = false; // the menu was not opened by a key
     }
-    const uint32_t keys = (sSmoke.on || randoTextScripted() ? readScript() : 0) | readGamepads() | readKeyboard();
+    const uint32_t keys =
+        (sSmoke.on || randoTextScripted() || randoMenuScripted() ? readScript() : 0) | readGamepads() | readKeyboard();
     captureFrame();
     handleInput(keys);
     if (!m.open) {
