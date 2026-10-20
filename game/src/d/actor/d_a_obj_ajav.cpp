@@ -6,6 +6,9 @@
 #include "d/dolzel_rel.h" // IWYU pragma: keep
 #include "d/actor/d_a_obj_ajav.h"
 #include "res/Object/Ajav.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 static cXyz l_daObjAjav_co_offset[3] = {
     cXyz(0.0f, 2550.0f, 200.0f),
@@ -467,7 +470,13 @@ cPhs_State daObjAjav::Act_c::_create() {
 
     mSwNo = fopAcM_GetParam(this) & 0xFF;
     mbResLoaded = false;
+#if TARGET_PC
+    // pc_rando(R3.10): make_game_nonlinear.asm d_a_obj_ajav 0x1568 (nop the Endless Night branch);
+    // original: if (check_ev() && !check_sw(mSwNo))
+    if ((pc_rando() || check_ev()) && !check_sw(mSwNo)) {
+#else
     if (check_ev() && !check_sw(mSwNo)) {
+#endif
         rt = dComIfG_resLoad(&mPhs, M_arcname);
         if (rt == cPhs_COMPLEATE_e) {
             if (fopAcM_entrySolidHeap(this, Act_c::solidHeapCB, 0)) {

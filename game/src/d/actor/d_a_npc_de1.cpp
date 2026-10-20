@@ -14,6 +14,9 @@
 #include "JSystem/JUtility/JUTAssert.h"
 #include "res/Object/De.h"
 #include <string.h>
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 static daNpc_De1_HIO_c l_HIO;
 static fopAc_ac_c* l_check_inf[100];
 static int l_check_wrk;
@@ -367,6 +370,19 @@ u16 daNpc_De1_c::next_msgStatus(u32* msg) {
 }
 u32 daNpc_De1_c::getMsg() {
     u32 msg = 0;
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R3.10): make_game_nonlinear.asm d_a_npc_de1 0xDB0 (getMsg, b 0xE18: straight to the
+        // Island Koroks dialogue, for any sub type, without event bit 0x1C40); original: the switch below
+        if (mMet) {
+            msg = 0x13AC;
+        } else {
+            mMet = 1;
+            msg = 0x13A8;
+        }
+        return msg;
+    }
+#endif
     switch (mSubType) {
     case 0:
         if (dComIfGs_checkGetItem(dItemNo_TELESCOPE_e)) {

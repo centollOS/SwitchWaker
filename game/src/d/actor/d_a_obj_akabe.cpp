@@ -11,6 +11,9 @@
 #include "res/Object/NBOX.h"
 #include "d/d_com_inf_game.h"
 #include "m_Do/m_Do_mtx.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 namespace daObjAkabe {
 
@@ -134,7 +137,13 @@ bool Act_c::chk_appear() {
         return true;
     s32 swSaveNo = prm_get_swSave();
     if (swSaveNo == 0xFF) {
+#if TARGET_PC
+        // pc_rando(R3.10): make_game_nonlinear.asm d_a_obj_akabe 0x650 (li r3, 0: the sword-only wall
+        // never appears); original: return dComIfGs_checkCollect(0) == 0
+        return pc_rando() ? false : dComIfGs_checkCollect(0) == 0;
+#else
         return dComIfGs_checkCollect(0) == 0;
+#endif
     } else {
         return !fopAcM_isSwitch(this, swSaveNo);
     }

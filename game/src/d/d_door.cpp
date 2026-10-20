@@ -11,6 +11,9 @@
 #include "res/Object/Hkyo.h"
 #include "d/actor/d_a_player.h"
 #include "SSystem/SComponent/c_angle.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 /* 8006B39C-8006B3A8       .text getSwbit__12dDoor_info_cFv */
 u8 dDoor_info_c::getSwbit() {
@@ -794,13 +797,25 @@ void dDoor_hkyo_c::proc(dDoor_info_c* door) {
             setAnm(3);
         break;
     case 3:
+#if TARGET_PC
+        // pc_rando(R3.10): make_game_nonlinear.asm 0x8006D618 (dDoor_hkyo_c::proc, nop: the west door
+        // ignores the Command Melody); original: the condition without pc_rando()
+        if ((!pc_rando() && !dComIfGs_isTact(mDoAud_MELODY_COMMAND_MELODY_e)) || dComIfGs_isEventBit(dSv_event_flag_c::UNK_1704))
+#else
         if (!dComIfGs_isTact(mDoAud_MELODY_COMMAND_MELODY_e) || dComIfGs_isEventBit(dSv_event_flag_c::UNK_1704))
+#endif
             setAnm(0);
         else
             setAnm(3);
         break;
     case 2:
+#if TARGET_PC
+        // pc_rando(R3.10): make_game_nonlinear.asm 0x8006D674 (dDoor_hkyo_c::proc, nop: the north door
+        // ignores the west servant's return); original: the condition without pc_rando()
+        if ((!pc_rando() && !dComIfGs_isEventBit(dSv_event_flag_c::UNK_1704)) || dComIfGs_isEventBit(dSv_event_flag_c::UNK_1B01))
+#else
         if (!dComIfGs_isEventBit(dSv_event_flag_c::UNK_1704) || dComIfGs_isEventBit(dSv_event_flag_c::UNK_1B01))
+#endif
             setAnm(0);
         else
             setAnm(3);

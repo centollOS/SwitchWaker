@@ -15,6 +15,9 @@
 #include "JSystem/JUtility/JUTAssert.h"
 #include <string.h>
 #include <math.h>
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 STATIC_ASSERT(sizeof(daNpc_Co1_c) == 0x864);
 static daNpc_Co1_HIO_c l_HIO;
@@ -63,7 +66,13 @@ void daNpc_Co1_c::nodeCo1Control(J3DNode* node, J3DModel* model) {
 
 /* 00000370-00000410       .text init_CO1_0__11daNpc_Co1_cFv */
 bool daNpc_Co1_c::init_CO1_0() {
+#if TARGET_PC
+    // pc_rando(R3.10): make_game_nonlinear.asm d_a_npc_co1 0x498 (li r31, 0; b 0x4E8: gone without Din's
+    // Pearl); original: bool result = dComIfGs_isSymbol(1) == FALSE
+    bool result = pc_rando() ? false : dComIfGs_isSymbol(1) == FALSE;
+#else
     bool result = dComIfGs_isSymbol(1) == FALSE;
+#endif
     if (result) {
 #if VERSION > VERSION_DEMO
         fopAcM_OffStatus(this, fopAcStts_NOCULLEXEC_e);

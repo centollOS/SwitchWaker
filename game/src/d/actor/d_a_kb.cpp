@@ -16,6 +16,9 @@
 #include "res/Object/Kb.h"
 #include "d/d_snap.h"
 #include "d/d_vibration.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 // Several functions use the same joint index for the tail on both the normal and big pig models
 // Because of this, PG_JNT_J_PG_TAIL_e *must* match the value of PG_BIG_JNT_J_PG_TAIL_e
@@ -370,7 +373,13 @@ void pl_attack_hit_check(kb_class* i_this) {
             atInfo.mpObj = i_this->mSph.GetTgHitObj();
             cc_at_check(actor, &atInfo);
 
+#if TARGET_PC
+            // pc_rando(R3.10): make_game_nonlinear.asm d_a_kb 0x1460 (pl_attack_hit_check, b 0x146C: act as
+            // if a sword is equipped); original: health reset to 10 when no sword is equipped
+            if(!pc_rando() && dComIfGs_getSelectEquip(0) == dItemNo_NONE_e) {
+#else
             if(dComIfGs_getSelectEquip(0) == dItemNo_NONE_e) {
+#endif
                 actor->health = 10;
             }
 
@@ -1200,7 +1209,13 @@ void carry_move(kb_class* i_this) {
                 i_this->m4B4 = 0.0f;
                 actor->speed.set(0.0f, 0.0f, 0.0f);
 
+#if TARGET_PC
+                // pc_rando(R3.10): make_game_nonlinear.asm d_a_kb 0x3C1C (carry_move, nop the no-sword
+                // branch); original: health drops only with a sword equipped
+                if(pc_rando() || dComIfGs_getSelectEquip(0) != dItemNo_NONE_e) {
+#else
                 if(dComIfGs_getSelectEquip(0) != dItemNo_NONE_e) {
+#endif
                     actor->health -= 1;
                 }
             }

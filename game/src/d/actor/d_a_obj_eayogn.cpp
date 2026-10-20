@@ -12,6 +12,9 @@
 #include "d/d_com_inf_game.h"
 #include "m_Do/m_Do_ext.h"
 #include "m_Do/m_Do_mtx.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 const char daObjEayogn_c::M_arcname[7] = "Eayogn";
 
@@ -87,7 +90,13 @@ bool daObjEayogn_c::_delete() {
 
 /* 00000330-00000360       .text check_ev_bit__13daObjEayogn_cCFv */
 BOOL daObjEayogn_c::check_ev_bit() const {
+#if TARGET_PC
+    // pc_rando(R3.10): make_game_nonlinear.asm d_a_obj_eayogn 0x40C (check_ev_bit returns false);
+    // original: return dComIfGs_isSymbol(dSymbol_DIN_e)
+    return pc_rando() ? FALSE : dComIfGs_isSymbol(dSymbol_DIN_e);
+#else
     return dComIfGs_isSymbol(dSymbol_DIN_e);
+#endif
 }
 
 /* 00000360-000003E8       .text init_mtx__13daObjEayogn_cFv */

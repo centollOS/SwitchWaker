@@ -9,6 +9,9 @@
 #include "d/actor/d_a_player_main.h"
 #include "d/actor/d_a_ship.h"
 #include "res/Object/Auzu.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 namespace daObjAuzu {
 namespace {
@@ -113,7 +116,13 @@ bool daObjAuzu::Act_c::_delete() {
 /* 00000498-000004E8       .text is_exist__Q29daObjAuzu5Act_cCFv */
 bool daObjAuzu::Act_c::is_exist() const {
     if (mType == 0) {
+#if TARGET_PC
+        // pc_rando(R3.10): make_game_nonlinear.asm d_a_obj_auzu 0x580 (is_exist, b 0x5B0: always true);
+        // original: return dComIfGs_isEventBit(ENDLESS_NIGHT)
+        return pc_rando() || dComIfGs_isEventBit(dSv_event_flag_c::ENDLESS_NIGHT);
+#else
         return dComIfGs_isEventBit(dSv_event_flag_c::ENDLESS_NIGHT);
+#endif
     }
     return true;
 }
