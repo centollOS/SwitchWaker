@@ -6,6 +6,7 @@
 #include "d/dolzel.h" // IWYU pragma: keep
 #if TARGET_PC
 #include "pc/pc_aspect.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 #include "d/d_menu_collect.h"
 #include "dolphin/types.h"
@@ -369,7 +370,13 @@ void dMenu_Collect_c::screenSet() {
 
     {
         JKRArchive* archive = dComIfGp_getItemIconArchive();
+#if TARGET_PC
+        // pc_rando(R3.6): tweaks.py show_number_of_tingle_statues_on_quest_status_screen (DOL string
+        // 0x8035F469: the chart icon becomes the Tingle Statue icon); original: "cmap_treasure2.bti"
+        JKRReadTypeResource(mMapTexBuffer, 0xc00, 'TIMG', pc_rando() ? "tingle_figure.bti" : "cmap_treasure2.bti", archive);
+#else
         JKRReadTypeResource(mMapTexBuffer, 0xc00, 'TIMG', "cmap_treasure2.bti", archive);
+#endif
 #if VERSION <= VERSION_JPN
         DCFlushRangeNoSync(mMapTexBuffer, 0xc00);
 #else
@@ -428,10 +435,20 @@ void dMenu_Collect_c::screenSet() {
 
     char print_format[0x10];
 
+#if TARGET_PC
+    // pc_rando(R3.6): misc_rando_features.asm 0x8019CAC0/0x8019CAFC (the counter shows
+    // get_num_owned_tingle_statues); original: dComIfGs_getCollectMapNum()
+    const int collectNum = pc_rando() ? pc_rando_tingle_statue_count() : dComIfGs_getCollectMapNum();
+    sprintf(print_format, "rupy_num_%02d.bti", collectNum / 10);
+    ((J2DPicture*)mC48.pane)->changeTexture(print_format, 0);
+
+    sprintf(print_format, "rupy_num_%02d.bti", collectNum % 10);
+#else
     sprintf(print_format, "rupy_num_%02d.bti", dComIfGs_getCollectMapNum() / 10);
     ((J2DPicture*)mC48.pane)->changeTexture(print_format, 0);
 
     sprintf(print_format, "rupy_num_%02d.bti", dComIfGs_getCollectMapNum() % 10);
+#endif
     ((J2DPicture*)mC80.pane)->changeTexture(print_format, 0);
 }
 

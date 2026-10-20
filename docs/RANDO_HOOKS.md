@@ -106,6 +106,23 @@ registry (no hunk); message 101+0xB1 goes in R0.12's overlay at every activation
 | game/src/d/actor/d_a_shop_item.cpp | `daShopItem_c::_create`: `m_itemNo` is the next tier of the params' item | `?:` | `make_items_progressive.asm` d_a_shop_item 0x8B8 / 0x9C0 `convert_progressive_item_id_for_shop_item` |
 | game/src/d/actor/d_a_npc_bs1.cpp | `daNpc_Bs1_c::next_msgStatus`: the two `checkItemGet` calls that decide the item-get animation use the next tier (bait bag slot; Rock Spire slots) | `?:` | `make_items_progressive.asm` d_a_npc_bs1 0x1D00 / 0x1F3C `custom_getSelectItemNo_progressive` |
 | game/src/d/d_item.cpp | `item_func_bow`, `item_func_bomb_bag`: the 30/30 arrow and bomb writes; `item_func_deku_leaf`: the 16/16 magic adds (original code under `if (!pc_rando())`) | if/else | `tweaks.py` `make_items_progressive` nops 0x800C346C/70, 0x800C36C0/C4, 0x800C375C/68 |
+## R3.6
+
+The Tingle Statues (asm group G4). Owning a statue becomes its event bit 0x6A04-0x6A40 (set by the
+item functions of 0xA3-0xA7, registered as R0.8 item-get overrides in
+`native/src/pc/game_hooks/pc_rando_hooks_tingle.cpp`) instead of its dungeon chest's opened flag 0xF.
+The statue sites pick `pc_rando_tingle_statue_owned` (check_tingle_statue_owned) or the original
+`dComIfGs_isStageTbox` with one `pc_rando() ?` per function; the quest-screen texts 503/703 go in the
+message overlay at activation (`features/rando/pc_rando_tingle.cpp`).
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_obj_vtil.cpp | `daObjVtil_c::check_ev_bit` (the Tingle Island statue appears) | ?: | flexible_item_locations.asm d_a_obj_vtil 0x820 |
+| game/src/d/actor/d_a_npc_tc.cpp | `daNpc_Tc_HIO_c` ctor (×5), `existTcMonument` (×5), `next_msgStatusBlue` (×5) | ?: (function pointer) | flexible_item_locations.asm d_a_npc_tc 0x2F8-0x338, 0x1578-0x15C8, 0x193C-0x198C |
+| game/src/d/actor/d_a_npc_tc_msg_red.inc | `getMsgRed` (×5: an `add` block before the version branches, returning the USA/PAL result with the owned check), `checkMonumentFee`, `checkMonumentPay` (?:) | add, ?: | flexible_item_locations.asm d_a_npc_tc 0x58CC-0x598C, 0x5A54, 0x5C50 |
+| game/src/d/actor/d_a_agb.cpp | `daAgb_c::FlagsSend` (×5, statues told to the GBA) | ?: (function pointer) | flexible_item_locations.asm main.dol 0x800D14D8-0x800D1570 |
+| game/src/d/actor/d_a_agbsw0.cpp | `daAgbsw0_c::MoveCheck` conditions 9-D | ?: (function pointer) | flexible_item_locations.asm d_a_agbsw0 0x359C-0x360C |
+| game/src/d/d_menu_collect.cpp | `dMenu_Collect_c::screenSet`: chart counter = owned statues, chart icon = `tingle_figure.bti` | ?: | misc_rando_features.asm 0x8019CAC0/0x8019CAFC get_num_owned_tingle_statues; tweaks.py show_number_of_tingle_statues_on_quest_status_screen (DOL 0x8035F469) |
 
 ## R3.7
 

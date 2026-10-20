@@ -25,6 +25,9 @@
 #include "d/actor/d_a_npc_cb1.h"
 #include "d/actor/d_a_bomb.h"
 #include "stdio.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 
 class daAgb_HIO_c : public mDoHIO_entry_c {
 public:
@@ -1185,11 +1188,25 @@ void daAgb_c::FlagsSend(u32 stage_type) {
     } else {
         mFlags.field_0xb_6 = 0;
     }
+#if TARGET_PC
+    {
+        // pc_rando(R3.6): flexible_item_locations.asm main.dol 0x800D14D8-0x800D1570 (FlagsSend tells
+        // the GBA the owned statues through check_tingle_statue_owned); original:
+        // dComIfGs_isTbox(stage, 0xF)
+        BOOL (*isStatue)(int, int) = pc_rando() ? pc_rando_tingle_statue_owned : dComIfGs_isStageTbox;
+        mFlags.field_0x3_4 = isStatue(dSv_save_c::STAGE_DRC, 0xF) != FALSE;
+        mFlags.field_0x3_3 = isStatue(dSv_save_c::STAGE_FW, 0xF) != FALSE;
+        mFlags.field_0x3_2 = isStatue(dSv_save_c::STAGE_TOTG, 0xF) != FALSE;
+        mFlags.field_0x3_1 = isStatue(dSv_save_c::STAGE_ET, 0xF) != FALSE;
+        mFlags.field_0x3_0 = isStatue(dSv_save_c::STAGE_WT, 0xF) != FALSE;
+    }
+#else
     mFlags.field_0x3_4 = dComIfGs_isTbox(dSv_save_c::STAGE_DRC, 0xF) != FALSE;
     mFlags.field_0x3_3 = dComIfGs_isTbox(dSv_save_c::STAGE_FW, 0xF) != FALSE;
     mFlags.field_0x3_2 = dComIfGs_isTbox(dSv_save_c::STAGE_TOTG, 0xF) != FALSE;
     mFlags.field_0x3_1 = dComIfGs_isTbox(dSv_save_c::STAGE_ET, 0xF) != FALSE;
     mFlags.field_0x3_0 = dComIfGs_isTbox(dSv_save_c::STAGE_WT, 0xF) != FALSE;
+#endif
     mFlags.field_0x4 = (field_0x65c + 29) / 30;
     mFlags.field_0x6_0 = dKy_get_dayofweek();
     mFlags.field_0x6_3 = dKy_getdaytime_hour();
