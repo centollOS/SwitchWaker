@@ -19,6 +19,9 @@
 #include "res/Object/Mo2.h"
 #include "f_op/f_op_camera.h"
 #include "m_Do/m_Do_controller_pad.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 enum Action {
     ACTION_JYUNKAI = 0,
@@ -3408,6 +3411,17 @@ static BOOL daMo2_Execute(mo2_class* i_this) {
     }
     if (i_this->m2970 != 0 || (actor->home.pos.y - actor->current.pos.y > 4000.0f)) {
         fopAcM_delete(actor);
+#if TARGET_PC
+        if (pc_rando()) {
+            // pc_rando(R3.12): flexible_enemies.asm moblin_set_death_switch (d_a_mo2 0xAB28); original: none (added)
+            // A Moblin that fell 4000 below its home also sets its death switch and its
+            // temporary death flag, as any other death does.
+            fopAcM_onActor(actor);
+            if (i_this->mDeathSwitch != 0) {
+                dComIfGs_onSwitch(i_this->mDeathSwitch, fopAcM_GetRoomNo(actor));
+            }
+        }
+#endif
         return TRUE;
     }
     if (i_this->m2A4A != 0) {

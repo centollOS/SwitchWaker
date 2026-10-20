@@ -16,6 +16,10 @@
 #include "d/d_bg_s_lin_chk.h"
 #include "d/d_s_play.h"
 #include "SSystem/SComponent/c_counter.h"
+#if TARGET_PC
+#include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
+#endif
 
 u32 daBoko_c::m_bound_se[] = {
     /* Type_BOKO_STICK_e    */ JA_SE_CM_BOKOBOU_BOUND,
@@ -704,7 +708,16 @@ BOOL daBoko_c::procCarry() {
 
             if (i == 3) {
                 current.pos = linkFootPos;
+#if TARGET_PC
+                if (!(pc_rando() || pc_qol(PC_QOL_FIX_BUGS))) {
+                    // pc_rando(R3.12): fix_vanilla_bugs.asm d_a_boko 0x26A8 (nop); original: current.pos.y = 50.0f
+                    // Under the fix the weapon stays at the player's feet: the original (a typo
+                    // for "+ 50") put it at the absolute height 50, out of the room.
+                    current.pos.y = 50.0f;
+                }
+#else
                 current.pos.y = 50.0f;
+#endif
             }
 
             old.pos = current.pos;

@@ -14,6 +14,10 @@
 #include "d/d_jnt_hit.h"
 #include "d/d_s_play.h"
 #include "res/Object/Link.h"
+#if TARGET_PC
+#include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
+#endif
 
 s16 daArrow_c::m_count;
 
@@ -326,7 +330,16 @@ void daArrow_c::ShieldReflect() {
     fopAc_ac_c* ganondorf;
     if (fopAcM_SearchByName(fpcNm_GND_e, &ganondorf)) {
         dAttention_c& attention = dComIfGp_getAttention();
+#if TARGET_PC
+        // pc_rando(R3.12): fix_vanilla_bugs.asm check_ganondorf_in_phase_3 (main.dol 0x800D4EBC); original: no health check
+        // The reflect event (aim at his chest, sparkle) only from phase 3 (25 health or less): a
+        // reflected Light Arrow in phase 1 could clash with the event that knocks Zelda out. The
+        // arrow is still reflected and still hurts him.
+        if (attention.LockonTruth() && attention.LockonTarget(0) == ganondorf &&
+            !((pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) && ganondorf->health > 25)) {
+#else
         if (attention.LockonTruth() && attention.LockonTarget(0) == ganondorf) {
+#endif
             cXyz ganondorfChestPos = ganondorf->current.pos;
 #if VERSION == VERSION_DEMO
             ganondorfChestPos.y += 130.0f + REG8_F(0);
@@ -734,6 +747,15 @@ BOOL daArrow_c::procMove() {
             mpModel->setBaseTRMtx(mDoMtx_stack_c::get());
             fopAcM_seStartCurrent(this, JA_SE_LK_ARROW_REBOUND, 0x20);
         } else if (hitType == 2) { // Hit a joint
+#if TARGET_PC
+            if (pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) {
+                // pc_rando(R3.12): fix_vanilla_bugs.asm zero_out_arrow_on_hit_callback (main.dol 0x800D6194); original: none (added)
+                // A stopped arrow takes no more hits: a later hit on another actor (Big Octo,
+                // then its eye) set mHitActorProcID without mHitJointIndex, and the stop matrix
+                // then read past that actor's joints (NaN position, an assert).
+                mAtCps.SetAtHitCallback(NULL);
+            }
+#endif
             fopAcM_SetParam(this, 2);
             mCurrProcFunc = &daArrow_c::procStop_Actor;
             

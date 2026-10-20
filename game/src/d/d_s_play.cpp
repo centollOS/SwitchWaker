@@ -41,6 +41,8 @@
 #include <stdio.h>
 #if TARGET_PC
 #include "pc/pc_harness.h"
+#include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
 #endif
 
 static const int PRELOAD_RES_MAX = 0x23;
@@ -1139,6 +1141,14 @@ static BOOL dScnPly_Delete(dScnPly_ply_c* i_this) {
         }
     }
     
+#if TARGET_PC
+    if (pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) {
+        // pc_rando(R3.12): fix_vanilla_bugs.asm stop_sub_bgm_when_unloading_stage (main.dol 0x80235340); original: none (added)
+        // The sub-BGM (miniboss music, item jingles) stops with the stage: Mothula's and the
+        // Stalfos' miniboss music no longer outlive their rooms, nor the Outset whirlpool's.
+        mDoAud_subBgmStop();
+    }
+#endif
     dComIfGp_init();
     
     return TRUE;

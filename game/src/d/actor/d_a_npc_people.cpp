@@ -23,6 +23,10 @@
 #include "res/Object/Um.h"
 #include "res/Object/Sa.h"
 #include "res/Object/Ug.h"
+#if TARGET_PC
+#include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
+#endif
 
 enum NpcNo_e {
     /* 0x00 */ NPC_UO1,
@@ -8279,6 +8283,14 @@ int daNpcPeople_c::getWindDir() {
 
 /* 0000917C-000091B8       .text isUo1FdaiAll__13daNpcPeople_cFv */
 BOOL daNpcPeople_c::isUo1FdaiAll() {
+#if TARGET_PC
+    if (pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) {
+        // pc_rando(R3.12): fix_vanilla_bugs.asm sam_decorate_town_require_pedestals_to_exist (d_a_npc_people 0x9260); original: getMaxDaiza() == getDaizaSetItemNum()
+        // Sam needs at least one pedestal in the stage: given the Delivery Bag outdoors, the
+        // pedestals have not spawned yet and both counters are 0.
+        return daDai_c::getMaxDaiza() != 0 && daDai_c::getMaxDaiza() == daDai_c::getDaizaSetItemNum() ? TRUE : FALSE;
+    }
+#endif
     return daDai_c::getMaxDaiza() == daDai_c::getDaizaSetItemNum() ? TRUE : FALSE;
 }
 

@@ -22,6 +22,7 @@
 #include "m_Do/m_Do_controller_pad.h"
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
 #endif
 
 class daNpc_Bs1_childHIO_c {
@@ -1007,7 +1008,8 @@ u32 daNpc_Bs1_c::getMsg() {
                         // QoL "Arreglar fallos del juego original" (BetterWW fix_vanilla_bugs.asm):
                         // Beedle does not buy Blue Chu Jelly (selling it can leave too little for
                         // Doctor Bandam's blue potion): the answer for an item he does not buy
-                        if (pc_qol(PC_QOL_FIX_BUGS)) {
+                        // pc_rando(R3.12): fix_vanilla_bugs.asm Beedle and Blue Chu Jelly (d_a_npc_bs1 0x214C), always applied by wwrando; original: pc_qol(PC_QOL_FIX_BUGS)
+                        if (pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) {
                             msgNo = 0xF75;
                             break;
                         }

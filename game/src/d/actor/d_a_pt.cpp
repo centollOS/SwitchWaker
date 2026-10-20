@@ -29,6 +29,7 @@
 #include "res/Object/Pt.h"
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
 #endif
 
 static bool hio_set;
@@ -1404,7 +1405,8 @@ static cPhs_State daPt_Create(fopAc_ac_c* a_this) {
         // QoL "Arreglar fallos del juego original" (BetterWW fix_vanilla_bugs.asm,
         // miniblin_set_death_switch_when_light_arrowed): a Miniblin that does not come back sets its
         // switch also when a Light Arrow kills it (enemy_ice sets mDeathSwitch; it was left 0)
-        if (pc_qol(PC_QOL_FIX_BUGS) && i_this->mBehaviorType != 0) {
+        // pc_rando(R3.12): fix_vanilla_bugs.asm miniblin_set_death_switch_when_light_arrowed (d_a_pt 0x4B44), always applied by wwrando; original: pc_qol(PC_QOL_FIX_BUGS)
+        if ((pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) && i_this->mBehaviorType != 0) {
             i_this->mEnemyIce.mDeathSwitch = i_this->mDisableRespawnSwitch;
         }
 #endif

@@ -18,6 +18,9 @@
 #include "d/d_s_play.h"
 #include "d/d_item_data.h"
 #include "m_Do/m_Do_controller_pad.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 class daRd_HIO_c : public mDoHIO_entry_c {
 public:
@@ -843,6 +846,17 @@ void daRd_c::modeDeath() {
     }
     
     fopAcM_onActor(this);
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R3.12): flexible_enemies.asm redead_set_death_switch (d_a_rd 0x1FBC); original: none (added)
+        // The new "disable spawn on death" switch (params 0x00FF0000, unused in vanilla data:
+        // 0 and 0xFF are none) is set when the ReDead dies.
+        u8 sw = (fopAcM_GetParam(this) >> 16) & 0xFF;
+        if (sw != 0xFF && sw != 0) {
+            dComIfGs_onSwitch(sw, fopAcM_GetRoomNo(this));
+        }
+    }
+#endif
     
     // Do not consider the ReDead to be a living enemy while its death animation is playing out.
     fopAcM_SetGroup(this, fopAc_ENV_e);
@@ -1913,6 +1927,20 @@ cPhs_State daRd_c::_create() {
             return cPhs_ERROR_e;
         }
         
+#if TARGET_PC
+        if (pc_rando()) {
+            // pc_rando(R3.12): flexible_enemies.asm redead_check_disable_spawn_switch (d_a_rd 0x4874); original: none (added)
+            // The switch (params 0x00FF0000) also goes to the Light Arrow death (enemy_ice), and
+            // a ReDead whose switch is set does not spawn.
+            u8 sw = (fopAcM_GetParam(this) >> 16) & 0xFF;
+            if (sw != 0xFF && sw != 0) {
+                mEnemyIce.mDeathSwitch = sw;
+                if (dComIfGs_isSwitch(sw, fopAcM_GetRoomNo(this))) {
+                    return cPhs_ERROR_e;
+                }
+            }
+        }
+#endif
         createInit();
     }
     

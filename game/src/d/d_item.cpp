@@ -10,6 +10,7 @@
 #include "d/d_item_data.h"
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
 #endif
 
 typedef void (ItemGetFunc)();
@@ -734,7 +735,8 @@ void item_func_camera2() {
     // QoL "Arreglar fallos del juego original" (BetterWW fix_vanilla_bugs.asm,
     // deluxe_picto_box_item_func_fix_equipped_picto_box): an X/Y/Z button holding the Picto Box
     // now holds the Deluxe Picto Box (it kept the old one until the item menu set it again)
-    if (pc_qol(PC_QOL_FIX_BUGS)) {
+    // pc_rando(R3.12): fix_vanilla_bugs.asm deluxe_picto_box_item_func_fix_equipped_picto_box (main.dol 0x800C3420), always applied by wwrando; original: pc_qol(PC_QOL_FIX_BUGS)
+    if (pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) {
         for (int i = 0; i < 3; i++) {
             if (dComIfGp_getSelectItem(i) == dItemNo_PICTO_BOX_e) {
                 g_dComIfG_gameInfo.play.setSelectItem(i, dItemNo_DELUXE_PICTO_BOX_e);

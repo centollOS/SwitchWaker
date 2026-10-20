@@ -17,6 +17,10 @@
 #include "JSystem/JAudio/JASWaveBankMgr.h"
 #include "JSystem/JKernel/JKRSolidHeap.h"
 #include "d/d_com_inf_game.h"
+#if TARGET_PC
+#include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
+#endif
 
 JAIZelBasic* JAIZelBasic::zel_basic;
 u32 jai_rnd_seed = 0x12345678;
@@ -4574,7 +4578,14 @@ void JAIZelBasic::processTime() {
         if (field_0x0030 < DEMO_SELECT(0x1200, 0x1400) && time >= DEMO_SELECT(0x1200, 0x1400)) {
             mainBgmStopOnly(JAIZelParam::JAI_ZEL_NIGHT_FADEOUT_TIME);
         } else if (field_0x0030 < 0x53b && time >= 0x53b) {
+#if TARGET_PC
+            // pc_rando(R3.12): fix_vanilla_bugs.asm (main.dol 0x802ABEF8, li r6, 1); original: bgmStart(JA_BGM_MORNING, 0, 0)
+            // The sunrise tune does not cut the BGM playing (a Big Octo's battle music), as
+            // processMorningToNormal already starts the sea BGM.
+            bgmStart(JA_BGM_MORNING, 0, (pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) ? 1 : 0);
+#else
             bgmStart(JA_BGM_MORNING, 0, 0);
+#endif
             field_0x0032 = 1;
         }
     }

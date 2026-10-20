@@ -20,6 +20,7 @@
 #include "f_op/f_op_camera.h"
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
 #endif
 
 fganon_class* master;
@@ -1129,7 +1130,8 @@ void start(fganon_class* i_this) {
             // QoL "Arreglar fallos del juego original" (BetterWW fix_vanilla_bugs.asm,
             // phantom_ganon_check_link_within_y_diff): not while the player is 1000 or more above
             // him (the trigger was an endless column over his spot)
-            if (distXZ < i_this->m2BD * 10.0f && !(pc_qol(PC_QOL_FIX_BUGS) && offset.y >= 1000.0f)) {
+            // pc_rando(R3.12): fix_vanilla_bugs.asm phantom_ganon_check_link_within_y_diff (d_a_fganon 0x4F50), always applied by wwrando; original: pc_qol(PC_QOL_FIX_BUGS)
+            if (distXZ < i_this->m2BD * 10.0f && !((pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) && offset.y >= 1000.0f)) {
 #else
             if (distXZ < i_this->m2BD * 10.0f) {
 #endif

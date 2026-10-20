@@ -13,6 +13,7 @@
 #include "res/Object/St.h"
 #if TARGET_PC
 #include "pc/pc_qol.h"
+#include "pc/pc_rando.h"
 #endif
 
 enum BehaviorType {
@@ -2514,7 +2515,29 @@ static BOOL daSt_Execute(st_class* i_this) {
         return TRUE;
     }
     if ((i_this->m02FA != 0) || (actor->home.pos.y - actor->current.pos.y > 4000.0f)) {
+#if TARGET_PC
+        if (pc_rando()) {
+            // pc_rando(R3.12): flexible_enemies.asm stalfos_set_death_switch (d_a_st 0x845C); original: fopAcM_delete(actor)
+            // A Stalfos that fell 4000 below its home dies in 5 frames (mCountdownToDeath, so a
+            // lower body sees its upper body go), sets its death switch and temporary death flag
+            // (not the lower body alone: its upper body does) and drops its mace.
+            i_this->mCountdownToDeath = 5;
+            if (i_this->mActionState != 0x21) {
+                fopAcM_onActor(actor);
+                if (i_this->mDeathSwitch != 0) {
+                    dComIfGs_onSwitch(i_this->mDeathSwitch, fopAcM_GetRoomNo(actor));
+                }
+                fopAc_ac_c* mace = fopAcM_SearchByID(i_this->mHeldWeaponEntityId);
+                if (mace != NULL) {
+                    fopAcM_cancelCarryNow(mace);
+                }
+            }
+        } else {
+            fopAcM_delete(actor);
+        }
+#else
         fopAcM_delete(actor);
+#endif
         return TRUE;
     }
     if (i_this->m2364 != 0) {
@@ -2558,7 +2581,8 @@ static BOOL daSt_Execute(st_class* i_this) {
         // QoL "Arreglar fallos del juego original" (BetterWW fix_vanilla_bugs.asm,
         // stalfos_kill_lower_body_when_upper_body_light_arrowed): the upper body dying to a Light
         // Arrow takes the lower body with it (it stayed, unkillable)
-        if (pc_qol(PC_QOL_FIX_BUGS) && upperBody != NULL && upperBody->mEnemyIce.mLightShrinkTimer != 0 &&
+        // pc_rando(R3.12): fix_vanilla_bugs.asm stalfos_kill_lower_body_when_upper_body_light_arrowed (d_a_st 0x85CC), always applied by wwrando; original: pc_qol(PC_QOL_FIX_BUGS)
+        if ((pc_rando() || pc_qol(PC_QOL_FIX_BUGS)) && upperBody != NULL && upperBody->mEnemyIce.mLightShrinkTimer != 0 &&
             i_this->mEnemyIce.mLightShrinkTimer == 0) {
             i_this->mEnemyIce.mLightShrinkTimer = 1;
         }
