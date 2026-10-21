@@ -37,7 +37,7 @@ extern "C" {
 /* tweaks.py skip_wakeup_intro_and_start_at_dock: the new game's spawn id (vanilla 206). */
 #define PCR_START_SPAWN 0
 /* start_ship_at_outset: the island room whose SHIP 0 entry the Ship ACTR copies (sea/Room44, Outset).
-   R6.7 (starting island) changes the room. */
+   The default; R6.7 (starting island): pc_rando_start_room() is the seed's room. */
 #define PCR_START_ROOM 44
 /* prevent_fire_mountain_lava_softlock: the Ship ACTR's y on a new game. */
 #define PCR_START_SHIP_Y (-500000.0f)

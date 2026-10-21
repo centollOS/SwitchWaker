@@ -78,7 +78,13 @@ void dSv_player_status_b_c::init() {
 /* 80058B84-80058BC8       .text init__25dSv_player_return_place_cFv */
 void dSv_player_return_place_c::init() {
     strcpy(mName, "sea");
+#if TARGET_PC
+    // pc_rando(R6.7): starting_island.py _save -> tweaks.py set_new_game_starting_room (DOL 0x80058BA7,
+    // the seed's starting island); original: dIsleRoom_OutsetIsland_e
+    mRoomNo = pc_rando() ? pc_rando_start_room() : dIsleRoom_OutsetIsland_e;
+#else
     mRoomNo = dIsleRoom_OutsetIsland_e;
+#endif
 #if TARGET_PC
     // pc_rando(R3.2): tweaks.py skip_wakeup_intro_and_start_at_dock (DOL 0x80058BAF, spawn 0 on the
     // dock instead of the wakeup event on Aryll's lookout); original: 206

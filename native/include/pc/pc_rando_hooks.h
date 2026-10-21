@@ -343,6 +343,13 @@ void pc_rando_tbox_spring_trap_init(void* tbox);
    ground checks and ends the cut. */
 void pc_rando_tbox_spring_trap(void* tbox);
 
+/* --- R6.7: starting island (randomizers/starting_island.py _save: tweaks.py
+   set_new_game_starting_room, change_ship_starting_island; game_hooks/pc_rando_hooks_start.cpp) --- */
+/* The active seed's starting island: a sea room 1-49 (starting_island_room), PCR_START_ROOM (44,
+   Outset) when no seed is active or its room is out of range. The new game's return-place room and
+   the island whose SHIP 0 the sea stage's Ship ACTR copies. */
+int pc_rando_start_room(void);
+
 #ifdef __cplusplus
 }
 #endif
