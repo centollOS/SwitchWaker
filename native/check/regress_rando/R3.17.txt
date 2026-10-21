@@ -1,0 +1,17 @@
+# R3.17 (docs/RANDOMIZER_PLAN.md): the pirate ship at Windfall (tweaks.py add_pirate_ship_to_windfall).
+# The smoke COS_RANDO_SMOKE=pirateship (native/src/pc/harness/smokes/pc_rando_smoke_pirateship.cpp).
+# Windfall (sea room 11): rando: the room file holds the edit and a live ship with door type 0 stands
+# at the layer-2 ship's place; vanilla: nothing patched, no such ship.
+# Asoko (layers 2 and 3): rando: the 3 files hold the edits, Aryll and 3 SwOps live, no Niko, Ashut
+# on 0xC4, messages 3008 (as wwrando on the disc's BMG and font, fixture R3_17_pirate_ship_game.txt),
+# 849 and 850, the BGM scene's wave slot 0x0E = IsleLink_0.aw; the player put in the chest room starts
+# AryllOpensDoor after the SwOp's delay, it plays (849, 850) and ends with 0xC1 and 0xC4 set. Vanilla:
+# nothing patched, Niko there, no event in the chest room, 0xC4 clear. The rotation line activates a
+# real placement (R0_6_rotation.json) instead of COS_RANDO_FORCE.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:11:0 --env COS_RANDO_SMOKE=pirateship
+rando 0 --stage sea:11:0 --env COS_RANDO_SMOKE=pirateship --env COS_RANDO_FORCE=1
+rando 0 --stage Asoko:0:0:2 --env COS_RANDO_SMOKE=pirateship
+rando 0 --stage Asoko:0:0:2 --env COS_RANDO_SMOKE=pirateship --env COS_RANDO_FORCE=1
+rando 0 --stage Asoko:0:0:3 --env COS_RANDO_SMOKE=pirateship --env COS_RANDO_FORCE=1
+rando 0 --stage Asoko:0:0:2 --env COS_RANDO_SMOKE=pirateship --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json

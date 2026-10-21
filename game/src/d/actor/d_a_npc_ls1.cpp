@@ -724,7 +724,14 @@ void daNpc_Ls1_c::setAnm_NUM(int i_anmNum, BOOL param_2) {
     };
 
     if (param_2) {
+#if TARGET_PC
+        // pc_rando(R3.17): tweaks.py add_pirate_ship_to_windfall d_a_npc_ls1.rel 0x5D18 + 4*0x10 + 1 = 5
+        // (animation 4, arms behind her back, shows the smug face); original: a_anm_prm_tbl[i_anmNum].btpNum
+        init_texPttrnAnm(pc_rando() && i_anmNum == ANMNUM_WAIT05_e ? (s8)BTPNUM_NGWARAI_e : a_anm_prm_tbl[i_anmNum].btpNum,
+                         true);
+#else
         init_texPttrnAnm(a_anm_prm_tbl[i_anmNum].btpNum, true);
+#endif
     }
 
     setAnm_anm(&a_anm_prm_tbl[i_anmNum]);

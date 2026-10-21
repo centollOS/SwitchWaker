@@ -43,3 +43,4 @@ PC_RANDO_SMOKE(addchest, randoSmokeAddchest) // R2.10: the 4 added chests (recor
 PC_RANDO_SMOKE(start, randoSmokeStart) // R3.2: rando-start (real new game with a pending seed: dock spawn 0, 3 hearts, sword, clothes, the boat at Outset; load/game-over/NG+ hunks)
 PC_RANDO_SMOKE(evser, randoSmokeEvser) // R3.14: the event_list.dat serializer (every stage round-trips byte-identical; add event + action = wwrando; a grown file read by dEvent_manager_c)
 PC_RANDO_SMOKE(zephos, randoSmokeZephos) // R3.19: Zephos (TACT_HT shortened, played to its end, only the placed item) and the auction intro (AUCTION_START)
+PC_RANDO_SMOKE(pirateship, randoSmokePirateship) // R3.17: the pirate ship at Windfall (the ship on sea/Room11; Asoko: Aryll, AryllOpensDoor when trapped, door switch 0xC4, messages, voice wave)

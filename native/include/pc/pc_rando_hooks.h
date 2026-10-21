@@ -318,6 +318,21 @@ void pc_rando_start_init(void);
    was patched since boot. */
 int pc_rando_start_ship_spawn(float* x, float* z, uint16_t* yRot, int* patched);
 
+/* --- R3.17: the pirate ship at Windfall (tweaks.py add_pirate_ship_to_windfall; the stage and event
+   edits are archive patchers in features/rando/pc_rando_tweak_pirate_ship.h; game side in
+   game_hooks/pc_rando_hooks_pirate_ship.cpp) --- */
+/* JAIZelBasic::setScene under pc_rando(): the second dynamic scene wave of stage BGM entry `sceneNum`
+   (`vanilla`: m_scene_info[sceneNum].field_0x3). For Asoko (0x0C) the free slot 0x0E, filled with
+   IsleLink_0.aw (0x19, Aryll's voice) on first use (main.dol 0x8039C30C + 0xC*4 + 3 and
+   0x8039C2E4 + 0xE*2); `vanilla` for every other entry, or when the slot is not free. */
+uint8_t pc_rando_pirate_ship_scene_wave2(int sceneNum, uint8_t vanilla);
+/* Puts messages 3008, 849 and 850 into the overlay from the message font and the BMG's entry of 3008.
+   Returns the number set (3), 0 while the font or the BMG is not loaded. The archive patcher calls it
+   after each activation; exposed for the smoke. */
+int pc_rando_pirate_ship_build_messages(void);
+/* Registers the patchers (listed in pc_rando_patchers.def). Idempotent. */
+void pc_rando_pirate_ship_init(void);
+
 #ifdef __cplusplus
 }
 #endif
