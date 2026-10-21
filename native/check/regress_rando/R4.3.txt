@@ -1,0 +1,8 @@
+# R4.3 (docs/RANDOMIZER_PLAN.md): a seed generated from the options menu. The smoke presses the Randomizer
+# tab's Generate row with COS_RANDO_SEED=TestSeed1: the worker thread runs while the frames go on, the result
+# is the pending seed (its hash on the row), the sidecar is in the run's card folder and the D5 logs in
+# <run dir>/user/rando. check_gen_run.py runs that smoke and requires its sidecar and logs to equal
+# wwrando's TestSeed1 (ww_export.py, hints aside); it needs the oracle venv (native/tools/rando/setup_oracle.sh).
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44:206 --env COS_RANDO_SMOKE=gen --env COS_RANDO_SEED=TestSeed1
+script 0 python3 -I native/tools/rando/check_gen_run.py
