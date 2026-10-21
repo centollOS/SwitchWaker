@@ -1516,7 +1516,7 @@ void dMenu_Fmap_c::aramCmapDatRead() {
     if (pc_rando() && pat != NULL) {
         // pc_rando(R6.6): charts.py ChartRandomizer._save (each chart record gets the texture id,
         // sector and 4 random positions of its island's vanilla chart); original: the disc's CmapDat.bin
-        pc_rando_charts_cmapdat_loaded(pat, archive->getResSize(pat));
+        pc_rando_charts_cmapdat_loaded(pat);
     }
 #endif
     initCmapDatPnt(pat);

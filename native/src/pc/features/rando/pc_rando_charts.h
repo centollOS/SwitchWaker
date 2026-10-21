@@ -64,9 +64,10 @@ int pc_rando_chart_island_of_sector(int sectorX, int sectorY);
 int pc_rando_charts_apply_cmapdat(uint8_t* data, size_t size, const char* const islandCharts[50]);
 
 /* The game hunk in dMenu_Fmap_c::aramCmapDatRead (under pc_rando()): patches the loaded CmapDat.bin
-   for the active seed. Calling it again on the buffer it patched last (unchanged since) does nothing
-   (PCR_CHARTS_ALREADY). */
-void pc_rando_charts_cmapdat_loaded(void* data, size_t size);
+   for the active seed. Its size is taken from its record count (at most 0x400 records): the aram
+   archive's getResSize gives the packed size, not the loaded one. Calling it again on the buffer it
+   patched last (unchanged since) does nothing (PCR_CHARTS_ALREADY). */
+void pc_rando_charts_cmapdat_loaded(void* data);
 /* The result of the last pc_rando_charts_cmapdat_loaded and the buffer it saw (smokes). */
 int pc_rando_charts_cmapdat_status(void);
 const void* pc_rando_charts_cmapdat_buffer(void);

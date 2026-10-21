@@ -206,7 +206,7 @@ int pc_rando_charts_apply_cmapdat(uint8_t* data, size_t size, const char* const 
     return PCR_CHARTS_PATCHED;
 }
 
-void pc_rando_charts_cmapdat_loaded(void* p, size_t size) {
+void pc_rando_charts_cmapdat_loaded(void* p) {
     if (!pc_rando()) {
         return;
     }
@@ -218,7 +218,9 @@ void pc_rando_charts_cmapdat_loaded(void* p, size_t size) {
         sCmapStatus = PCR_CHARTS_NO_SEED;
         return;
     }
-    const size_t recs = data != nullptr && size >= 4 ? (size_t)be32(data) * PCR_CMAP_RECORD_SIZE : 0;
+    const uint32_t num = data != nullptr ? be32(data) : 0;
+    const size_t recs = num <= 0x400 ? (size_t)num * PCR_CMAP_RECORD_SIZE : 0;
+    const size_t size = 4 + recs;
     if (data != nullptr && p == last && sCmapStatus != PCR_CHARTS_NOT_RUN &&
         sPatchedSize != 0 && recs == sPatchedSize && 4 + recs <= size &&
         memcmp(data + 4, sPatchedImage, recs) == 0 && sCmapStatus != PCR_CHARTS_MISMATCH) {

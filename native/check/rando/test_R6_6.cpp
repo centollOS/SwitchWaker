@@ -247,25 +247,25 @@ void checkCmap(const PcRandoSeed& seed) {
     pc_rando_charts_reset();
     {
         Cmap d = makeCmap();
-        pc_rando_charts_cmapdat_loaded(d.data.data(), d.data.size());
+        pc_rando_charts_cmapdat_loaded(d.data.data());
         RT_CHECK_EQ(pc_rando_charts_cmapdat_status(), PCR_CHARTS_NOT_RUN); // pc_rando() is 0
         RT_CHECK(d.data == vanilla.data);
     }
     pc_rando_set_active(&seed, nullptr);
     {
         Cmap d = makeCmap();
-        pc_rando_charts_cmapdat_loaded(d.data.data(), d.data.size());
+        pc_rando_charts_cmapdat_loaded(d.data.data());
         RT_CHECK_EQ(pc_rando_charts_cmapdat_status(), PCR_CHARTS_PATCHED);
         RT_CHECK(d.data == c.data);
         RT_CHECK(pc_rando_charts_cmapdat_buffer() == d.data.data());
         const uint8_t* v44 = pc_rando_charts_vanilla_record(44);
         RT_CHECK(v44 != nullptr && memcmp(v44, findNumber(vanilla.data, 4), PCR_CMAP_RECORD_SIZE) == 0);
-        pc_rando_charts_cmapdat_loaded(d.data.data(), d.data.size());
+        pc_rando_charts_cmapdat_loaded(d.data.data());
         RT_CHECK_EQ(pc_rando_charts_cmapdat_status(), PCR_CHARTS_ALREADY);
         RT_CHECK(d.data == c.data);
         // A fresh read into the same buffer (the menu freed and reloaded it) is patched again.
         d.data = vanilla.data;
-        pc_rando_charts_cmapdat_loaded(d.data.data(), d.data.size());
+        pc_rando_charts_cmapdat_loaded(d.data.data());
         RT_CHECK_EQ(pc_rando_charts_cmapdat_status(), PCR_CHARTS_PATCHED);
         RT_CHECK(d.data == c.data);
     }

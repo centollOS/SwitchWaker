@@ -1,10 +1,17 @@
 // COS_SMOKE=rando COS_RANDO_SMOKE=charts (docs/RANDOMIZER_PLAN.md step R6.6): randomized charts
-// (features/rando/pc_rando_charts.h). Boot on the boat at Outset with a randomize_charts seed:
+// (features/rando/pc_rando_charts.h). Boot on the boat at Outset:
 //   run.sh rando --stage sea:44:206 --preset sailing --env COS_RANDO_SMOKE=charts
-//                --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_6_seed_A.json
-// or without a placement and with --env COS_CHARTS_VANILLA=1 (pc_rando() stays 0: all vanilla).
-// Once the play scene has run 10 frames, with C the seed's chart for island 44 (Outset; vanilla:
-// Triforce Chart 4) and k its owned index (0xFF - item id):
+//                [--env COS_CHARTS_SEED=native/check/rando/fixtures/R6_6_seed_A.json]
+//                [--env COS_CHARTS_VANILLA=1]
+// Once the play scene has run 10 frames the smoke activates the seed COS_CHARTS_SEED (a
+// randomize_charts placement; relative paths from the repository root; default R6_6_seed_A.json)
+// as a loaded randomized slot does (pc_rando_slot_activate), unless COS_CHARTS_VANILLA=1 (pc_rando()
+// stays 0: all must stay vanilla), and sails to sea room 44 again (point 100, on the boat) so that
+// its room.dzr is loaded under the seed. (A debug boot with COS_RANDO_PLACEMENT at sea room 44 hits
+// a PACKAGE event assert in dEvDtStaff_c::specialProcPackage, with any placement, also R0.6's
+// identity; not a charts problem, so the smoke does not boot that way.) 30 frames after arriving,
+// with C the seed's chart for island 44 (Outset; vanilla: Triforce Chart 4) and k its owned index
+// (0xFF - item id):
 //   1. the salvage: sea/Room44's salvage_type 0 SCOBs were patched at load (4 points, index k), and
 //      the salvage registry (daSalvage_c::mTagData_p) holds Outset's sunken treasure point with save
 //      number k (vanilla: 4, and the patcher never ran);
@@ -25,6 +32,7 @@
 #include "features/rando/pc_rando_charts.h"
 #include "features/rando/pc_rando_data.h"
 #include "features/rando/pc_rando_seedfile.h"
+#include "features/rando/pc_rando_slot.h"
 
 #include "JSystem/JKernel/JKRArchive.h"
 #include "d/actor/d_a_salvage.h"
@@ -32,6 +40,11 @@
 #include "d/d_menu_fmap.h"
 #include "d/d_menu_fmapSv.h"
 #include "d/d_salvage.h"
+#include "f_pc/f_pc_manager.h"
+#include "f_pc/f_pc_name.h"
+
+#include <dolphin/pad.h>
+#include <cstdio>
 
 #include <cstdlib>
 #include <cstring>
@@ -80,10 +93,73 @@ const uint8_t* recordOf(void* pat, int number) {
     return (const uint8_t*)p;
 }
 
-bool sDone = false;
+constexpr int kSeaPoint = 100; // a corner spawn of every sea room (mode 2: on the boat)
+constexpr unsigned int kArriveFrames = 1200;
+constexpr unsigned int kSettleFrames = 30;
+constexpr unsigned int kTalkFrames = 30;
+
+enum State { kOff, kArrive, kSettle, kDone };
+State sState = kOff;
+bool sVanilla = false;
+unsigned int sSince = 0;
+unsigned int sEventFrames = 0;
+fpc_ProcID sScene = fpcM_ERROR_PROCESS_ID_e;
+PcRandoSeed sSeed;
+
+void* isPlayScene(void* proc, void*) {
+    return fpcM_GetName(proc) == fpcNm_PLAY_SCENE_e ? proc : nullptr;
+}
+
+fpc_ProcID playSceneId() {
+    void* s = fpcM_Search(isPlayScene, nullptr);
+    return s != nullptr ? fpcM_GetID(s) : fpcM_ERROR_PROCESS_ID_e;
+}
+
+bool readText(const std::string& path, std::string* out) {
+    FILE* f = fopen(path.c_str(), "rb");
+    if (f == nullptr) {
+        return false;
+    }
+    char buf[8192];
+    size_t n;
+    while ((n = fread(buf, 1, sizeof buf, f)) > 0) {
+        out->append(buf, n);
+    }
+    fclose(f);
+    return true;
+}
+
+// The seed file: as given, else from the repository root (<root>/native/src/pc/harness/smokes/<this>).
+bool loadSeed() {
+    const char* p = getenv("COS_CHARTS_SEED");
+    const std::string path = p != nullptr && p[0] != '\0' ? p : "native/check/rando/fixtures/R6_6_seed_A.json";
+    std::string text;
+    bool ok = readText(path, &text);
+    if (!ok && path[0] != '/') {
+        std::string root = __FILE__;
+        for (int up = 0; up < 6; up++) {
+            const size_t slash = root.find_last_of('/');
+            root.resize(slash == std::string::npos ? 0 : slash);
+        }
+        ok = !root.empty() && readText(root + "/" + path, &text);
+    }
+    if (!randoSmokeCheck(kName, "seed file read", ok)) {
+        return false;
+    }
+    std::string err;
+    if (!randoSmokeCheck(kName, "seed parsed", pc_rando_seed_parse(text, &sSeed, &err))) {
+        writef(STDERR_FILENO, "[cos] rando-smoke charts: %s\n", err.c_str());
+        return false;
+    }
+    const bool on = pc_rando_slot_activate(sSeed, &err);
+    if (!on) {
+        writef(STDERR_FILENO, "[cos] rando-smoke charts: activate: %s\n", err.c_str());
+    }
+    return randoSmokeCheck(kName, "seed activated", on);
+}
 
 void run() {
-    const bool vanilla = getenv("COS_CHARTS_VANILLA") != nullptr && strcmp(getenv("COS_CHARTS_VANILLA"), "1") == 0;
+    const bool vanilla = sVanilla;
     const PcRandoSeed* seed = pc_rando_seed();
     char what[160];
     randoSmokeCheck(kName, vanilla ? "pc_rando() off" : "pc_rando() on with a seed",
@@ -206,12 +282,56 @@ void run() {
 
 void randoSmokeCharts(unsigned int frames) {
     (void)frames;
-    if (sDone || !randoSmokeInPlay(10)) {
+    switch (sState) {
+    case kOff: {
+        if (!randoSmokeInPlay(10)) {
+            return;
+        }
+        const char* v = getenv("COS_CHARTS_VANILLA");
+        sVanilla = v != nullptr && strcmp(v, "1") == 0;
+        if (!sVanilla && !loadSeed()) {
+            sState = kDone;
+            randoSmokeEnd(kName);
+        }
+        pc_rando_charts_reset();
+        sScene = playSceneId();
+        sSince = 0;
+        writef(STDERR_FILENO, "[cos] rando-smoke charts: to sea room %d point %d\n", kRoom, kSeaPoint);
+        dComIfGp_setNextStage("sea", (s16)kSeaPoint, (s8)kRoom);
+        sState = kArrive;
         return;
     }
-    sDone = true;
-    run();
-    randoSmokeEnd(kName);
+    case kArrive: {
+        const fpc_ProcID id = playSceneId();
+        if (id == fpcM_ERROR_PROCESS_ID_e || id == sScene || dComIfGp_getPlayer(0) == nullptr ||
+            strcmp(dComIfGp_getStartStageName(), "sea") != 0 || dComIfGp_roomControl_getStayNo() != kRoom) {
+            if (++sSince > kArriveFrames) {
+                randoSmokeCheck(kName, "sea room 44 came up again", false);
+                sState = kDone;
+                randoSmokeEnd(kName);
+            }
+            return;
+        }
+        sSince = 0;
+        sState = kSettle;
+        return;
+    }
+    case kSettle:
+        if (dComIfGp_event_runCheck()) {
+            setDrivenPad(true, ++sEventFrames % kTalkFrames < 2 ? PAD_BUTTON_A : 0, 0, 0);
+            return;
+        }
+        setDrivenPad(true, 0, 0, 0);
+        if (++sSince < kSettleFrames) {
+            return;
+        }
+        sState = kDone;
+        setDrivenPad(false, 0, 0, 0);
+        run();
+        randoSmokeEnd(kName);
+    case kDone:
+        return;
+    }
 }
 
 } // namespace pc

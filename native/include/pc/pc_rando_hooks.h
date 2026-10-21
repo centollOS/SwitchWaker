@@ -346,9 +346,9 @@ void pc_rando_tbox_spring_trap(void* tbox);
 /* --- R6.6: charts (charts.py ChartRandomizer._save; features/rando/pc_rando_charts.h, which also
    holds the sea/Room1-49 salvage SCOB patcher) --- */
 /* dMenu_Fmap_c::aramCmapDatRead under pc_rando(): patches the CmapDat.bin just read (big-endian disc
-   bytes, `size` bytes) for the active seed's charts. A second call on the same, already patched
-   buffer changes nothing. */
-void pc_rando_charts_cmapdat_loaded(void* data, size_t size);
+   bytes; its size is its record count's, as the archive's getResSize gives the packed size) for the
+   active seed's charts. A second call on the same, already patched buffer changes nothing. */
+void pc_rando_charts_cmapdat_loaded(void* data);
 
 #ifdef __cplusplus
 }
