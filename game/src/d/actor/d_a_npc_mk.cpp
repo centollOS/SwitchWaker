@@ -13,6 +13,7 @@
 #include "d/d_snap.h"
 #if TARGET_PC
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_locs.h"
 #endif
 
 static fpc_ProcID l_msgId;
@@ -820,7 +821,13 @@ bool daNpc_Mk_c::demoProc() {
                 fopAcM_OnStatus(this, fopAcStts_SHOWMAP_e);
                 break;
             case 13: {
+#if TARGET_PC
+                // pc_rando(R2.6): item_locations.txt Ivan - Catch Killer Bees, d_a_npc_mk.rel@20CB; original: dItemNo_HEART_PIECE_e
+                fpc_ProcID itemID = fopAcM_createItemForPresentDemo(
+                    &current.pos, pc_rando_loc_item(PCR_LOC_WINDFALL_ISLAND_IVAN_CATCH_KILLER_BEES, dItemNo_HEART_PIECE_e));
+#else
                 fpc_ProcID itemID = fopAcM_createItemForPresentDemo(&current.pos, dItemNo_HEART_PIECE_e);
+#endif
 
                 if (itemID != fpcM_ERROR_PROCESS_ID_e) {
                     dComIfGp_event_setItemPartnerId(itemID);

@@ -22,6 +22,10 @@
 #include "SSystem/SComponent/c_lib.h"
 #include "SSystem/SComponent/c_math.h"
 #include "res/Object/bigelf.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_locs.h"
+#endif
 
 static fpc_ProcID l_msgId;
 static msg_class* l_msg;
@@ -211,7 +215,13 @@ BOOL daBigelf_c::demoProcFlDelete() {
             dComIfGp_evmng_cutEnd(mStaffId);
             if (chkFlag(0x1)) {
                 clrFlag(0x1);
+#if TARGET_PC
+                // pc_rando(R2.6): flexible_item_locations.asm d_a_bigelf 0x7C4/0x7D0 (nop: the Big Octo
+                // fairy gives her placed item instead); original: getType() == 6
+                if (!pc_rando() && getType() == 6) {
+#else
                 if (getType() == 6) {
+#endif
                     dComIfGp_setItemMaxMagicCount(0x20);
                     dComIfGp_setItemMagicCount(0x20);
                 }
@@ -756,6 +766,23 @@ u16 daBigelf_c::next_msgStatus(unsigned long* pMsgNo) {
     switch (*pMsgNo) {
     case 0x2EE8:
         (*pMsgNo)++;
+#if TARGET_PC
+        if (pc_rando()) {
+            // pc_rando(R2.6): flexible_item_locations.asm d_a_bigelf 0x217C (a constant item per fairy
+            // index, read from the placement); original: the next wallet/bomb bag/quiver tier below
+            static const u16 l_rando_loc[6] = {
+                PCR_LOC_NORTHERN_FAIRY_ISLAND_GREAT_FAIRY, PCR_LOC_OUTSET_ISLAND_GREAT_FAIRY,
+                PCR_LOC_EASTERN_FAIRY_ISLAND_GREAT_FAIRY,  PCR_LOC_SOUTHERN_FAIRY_ISLAND_GREAT_FAIRY,
+                PCR_LOC_WESTERN_FAIRY_ISLAND_GREAT_FAIRY,  PCR_LOC_THORNED_FAIRY_ISLAND_GREAT_FAIRY,
+            };
+            static const u8 l_rando_vanilla[6] = {
+                dItemNo_MAX_RUPEE_UP1_e, dItemNo_MAX_RUPEE_UP2_e, dItemNo_MAX_BOMB_UP1_e,
+                dItemNo_MAX_BOMB_UP2_e,  dItemNo_MAX_ARROW_UP1_e, dItemNo_MAX_ARROW_UP2_e,
+            };
+            u8 type = getType();
+            mGivenItem = type < 6 ? pc_rando_loc_item(l_rando_loc[type], l_rando_vanilla[type]) : dItemNo_RED_RUPEE_e;
+        } else
+#endif
         switch (getType()) {
         case 0:
         case 1:

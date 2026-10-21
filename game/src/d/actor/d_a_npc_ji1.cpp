@@ -14,6 +14,10 @@
 #include "d/d_snap.h"
 #include "d/d_lib.h"
 #include "f_op/f_op_msg.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_locs.h"
+#endif
 
 static BOOL daNpc_Ji1_setHairAngle(daNpc_Ji1_c*);
 
@@ -1514,7 +1518,12 @@ void daNpc_Ji1_c::createItem() {
         itemNo = dItemNo_SILVER_RUPEE_e;
     }
     else {
+#if TARGET_PC
+        // pc_rando(R2.6): item_locations.txt Orca - Hit 500 Times, d_a_npc_ji1.rel@42F7; original: dItemNo_HEART_PIECE_e
+        itemNo = pc_rando_loc_item(PCR_LOC_OUTSET_ISLAND_ORCA_HIT_500_TIMES, dItemNo_HEART_PIECE_e);
+#else
         itemNo = dItemNo_HEART_PIECE_e;
+#endif
         dComIfGs_onEventBit(dSv_event_flag_c::UNK_0F10);
     }
 

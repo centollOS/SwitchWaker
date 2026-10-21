@@ -12,7 +12,9 @@
 #include "d/actor/d_a_obj_smplbg.h"
 #include "d/d_lib.h"
 #if TARGET_PC
+#include "pc/pc_rando.h"
 #include "pc/pc_rando_hooks.h"
+#include "pc/pc_rando_locs.h"
 #endif
 
 class daNpc_Tc_HIO_c : public mDoHIO_entry_c{

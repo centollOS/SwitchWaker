@@ -1,0 +1,7 @@
+# R2.6 (docs/RANDOMIZER_PLAN.md): code locations A. T1 (the 15 sites, randomizer off and on, and
+# forced), then T2: the Outset Great Fairy's arrival event, original game and with a placed Piece of Heart.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=codeA
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=codeA --env COS_RANDO_FORCE=1
+rando 0 --stage Fairy04:0 --env COS_RANDO_SMOKE=codeA --env COS_CODEA_T2=off
+rando 0 --stage Fairy04:0 --env COS_RANDO_SMOKE=codeA --env COS_CODEA_T2=on
