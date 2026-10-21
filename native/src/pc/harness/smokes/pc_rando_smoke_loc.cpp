@@ -1,11 +1,13 @@
 // COS_SMOKE=rando COS_RANDO_SMOKE=loc (docs/RANDOMIZER_PLAN.md R2.1, "The location sweep"): the item
-// locations of the stages the run visits, checked against the placement. Initial version: the chests
-// (features/rando/pc_rando_place_dzx.h). R2.12 adds its driver; R2.2-R2.10 add their location kinds.
+// locations of the stages the run visits, checked against the placement: the chests
+// (features/rando/pc_rando_place_dzx.h). R2.12's sweep tool drives it (see below); the other location
+// kinds have their own smokes (actr, scob, ...), which the sweep tool runs as well.
 //
 //   run.sh rando --stage <stage>:<room>[:<point>[:<layer>]] --env COS_RANDO_SMOKE=loc
 //                [--env COS_RANDO_PLACEMENT=<placement.json>]
 //                [--env COS_RANDO_LOC_HOPS=<stage>:<room>:<point>[:<layer>],...]
 //                [--env COS_RANDO_LOC_OPEN=<location>,...] [--env COS_RANDO_LOC_ALL=1]
+//                [--env COS_RANDO_LOC_EXPECT=<location>,...] [--env COS_RANDO_LOC_EVENTS=<bit>,...]
 //
 // The run stops at the boot stage, then at every COS_RANDO_LOC_HOPS entry in order (a scene change as
 // the doors make it, dComIfGp_setNextStage). At each stop, kSettle frames after the new play scene's
@@ -32,6 +34,13 @@
 // also looked up from the repo's root (regress lines run from anywhere).
 // After the last stop it prints the coverage (chest keys whose record and actor were checked) and,
 // with COS_RANDO_LOC_ALL=1, requires every chest key's record and actor to have been checked.
+// The sweep driver (R2.12, native/tools/rando/location_sweep.py, which also parses the check lines):
+//   COS_RANDO_LOC_EXPECT: each of these locations (as COS_RANDO_LOC_OPEN names them) must have had
+//     every one of its chest keys' record and live chest checked ok by the end, so a stop that lands
+//     elsewhere (another room, layer or stage) fails instead of checking nothing;
+//   COS_RANDO_LOC_EVENTS: story event bits (hex, e.g. 2A80) set on the file at the start and again
+//     before each hop, for targets whose actors exist only after an event (sweep_targets.json
+//     "events"); they take effect from the first hop's stage load on, not on the boot stage.
 // Exit 0 when every check held, else 1.
 #include "pc_rando_smokes.h"
 
@@ -121,6 +130,8 @@ struct PendingOpen {
 std::vector<PendingOpen> sPending; // T2 chests live at this stop
 
 std::vector<uint8_t> sRecordOk; // per key: 1 once its record was checked ok
+std::vector<int> sExpect;       // R2.12: PCR_LOC_* whose chest keys must all be checked (EXPECT)
+std::vector<uint16_t> sEvents;  // R2.12: event bits set before each hop (EVENTS)
 std::vector<uint8_t> sActorOk;  // per key: 1 once its live chest was checked ok
 
 void* findPlayScene(void* proc, void*) {
@@ -390,8 +401,9 @@ void parseStops() {
     }
 }
 
-void parseOpen() {
-    const char* list = getenv("COS_RANDO_LOC_OPEN");
+// A comma-separated list of locations (PCR_LOC_* names, with or without the prefix, or numbers).
+void parseLocList(const char* var, std::vector<int>* out) {
+    const char* list = getenv(var);
     if (list == nullptr) {
         return;
     }
@@ -413,17 +425,57 @@ void parseOpen() {
                 }
             }
             if (loc < 0 || loc >= PCR_LOC_COUNT) {
+                char what[96];
                 writef(STDERR_FILENO, "[cos] rando-smoke loc: unknown location \"%s\"\n", item.c_str());
-                randoSmokeCheck(kName, "COS_RANDO_LOC_OPEN names known locations", false);
+                snprintf(what, sizeof what, "%s names known locations", var);
+                randoSmokeCheck(kName, what, false);
             } else {
-                sOpen.push_back(loc);
-                sOpenDone.push_back(false);
+                out->push_back(loc);
             }
         }
         if (end == std::string::npos) {
             break;
         }
         pos = end + 1;
+    }
+}
+
+void parseOpen() {
+    parseLocList("COS_RANDO_LOC_OPEN", &sOpen);
+    sOpenDone.assign(sOpen.size(), false);
+}
+
+// R2.12: COS_RANDO_LOC_EVENTS, hex event bits ("2A80,0F80").
+void parseEvents() {
+    const char* list = getenv("COS_RANDO_LOC_EVENTS");
+    if (list == nullptr) {
+        return;
+    }
+    std::string s = list;
+    size_t pos = 0;
+    while (pos <= s.size()) {
+        size_t end = s.find(',', pos);
+        std::string item = s.substr(pos, end == std::string::npos ? std::string::npos : end - pos);
+        if (!item.empty()) {
+            char* rest = nullptr;
+            const unsigned long v = strtoul(item.c_str(), &rest, 16);
+            if (rest == nullptr || *rest != '\0' || v == 0 || v > 0xFFFF) {
+                writef(STDERR_FILENO, "[cos] rando-smoke loc: bad event bit \"%s\" (hex)\n", item.c_str());
+                randoSmokeCheck(kName, "COS_RANDO_LOC_EVENTS parses", false);
+            } else {
+                sEvents.push_back((uint16_t)v);
+            }
+        }
+        if (end == std::string::npos) {
+            break;
+        }
+        pos = end + 1;
+    }
+}
+
+void setEvents() {
+    for (uint16_t bit : sEvents) {
+        dComIfGs_onEventBit(bit);
     }
 }
 
@@ -473,6 +525,18 @@ void report() {
         randoSmokeCheck(kName, "COS_RANDO_LOC_ALL: every chest key's record and live chest checked",
                         nRec == nKeys && nAct == nKeys);
     }
+    for (int loc : sExpect) {
+        int n = 0, ok = 0;
+        for (size_t i = 0; i < keys.size; i++) {
+            if (isChestKey(keys[i]) && keys[i].loc == loc) {
+                n++;
+                ok += sRecordOk[i] && sActorOk[i];
+            }
+        }
+        char what[192];
+        snprintf(what, sizeof what, "EXPECT %s: %d/%d chest keys' record and live chest checked", locName(loc), ok, n);
+        randoSmokeCheck(kName, what, n > 0 && ok == n);
+    }
     for (size_t j = 0; j < sOpen.size(); j++) {
         if (!sOpenDone[j]) {
             char what[160];
@@ -492,6 +556,7 @@ void hopOrEnd(unsigned int frames) {
     writef(STDERR_FILENO, "[cos] rando-smoke loc: frame %u: to %s room %d point %d layer %d\n", frames, s.stage.c_str(),
            s.room, s.point, s.layer);
     sOldScene = playSceneId();
+    setEvents();
     dComIfGp_setNextStage(s.stage.c_str(), (s16)s.point, (s8)s.room, (s8)s.layer);
     sState = kArrive;
     sSince = 0;
@@ -543,12 +608,15 @@ void randoSmokeLoc(unsigned int frames) {
         sStop = 0;
         parseStops();
         parseOpen();
+        parseLocList("COS_RANDO_LOC_EXPECT", &sExpect);
+        parseEvents();
+        setEvents();
         const char* all = getenv("COS_RANDO_LOC_ALL");
         sAll = all != nullptr && strcmp(all, "1") == 0;
         sRecordOk.assign(pcr::location_keys().size, 0);
         sActorOk.assign(pcr::location_keys().size, 0);
-        writef(STDERR_FILENO, "[cos] rando-smoke loc: %zu stops, %zu chests to open, pc_rando() %d\n", sStops.size(),
-               sOpen.size(), pc_rando());
+        writef(STDERR_FILENO, "[cos] rando-smoke loc: %zu stops, %zu chests to open, %zu expected, %zu event bits, pc_rando() %d\n",
+               sStops.size(), sOpen.size(), sExpect.size(), sEvents.size(), pc_rando());
     }
     sSince++;
     fopAc_ac_c* player = dComIfGp_getPlayer(0);
