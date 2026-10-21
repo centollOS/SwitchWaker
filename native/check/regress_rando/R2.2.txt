@@ -1,0 +1,17 @@
+# R2.2 (docs/RANDOMIZER_PLAN.md): field items, pots and stone heads (smoke actr). T1 (the patched ACTR
+# records hold the placed item, the live actors carry it, the tweaks) plus T2 (the item-get event gives
+# the placed item and its item_func runs) on the rotation placement: a pot (DRC Pot Room, Earth God's
+# Lyric), the Headstone Island piece of heart spot (a treasure chart) and a stone head (WT hidden upper
+# room, a compass), and with the identity placement the Headstone Island piece of heart itself. The last line boots the stone head room without a placement: nothing is patched and
+# the stone heads keep vanilla's NOCULLEXEC status. The placement path is relative to the repository
+# root, where regress.sh is run from. T1 on the other 13 rooms (one run each, about 7 s):
+#   for st in M_NewD2:13:4 M_NewD2:3:6 M_NewD2:10:15 M_NewD2:0:5 Omori:0:1 kindan:1:0 kindan:7:0 \
+#             Siren:3:0 Siren:17:0 M_Dai:2:2 M_Dai:8:10 M_Dai:13:14 kaze:7:7; do
+#     native/tools/run.sh rando --stage $st --env COS_RANDO_SMOKE=actr \
+#       --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json; done
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage M_NewD2:6:9 --env COS_RANDO_SMOKE=actr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_ACTR_T2=pot
+rando 0 --stage sea:45:1 --env COS_RANDO_SMOKE=actr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_ACTR_T2=item
+rando 0 --stage kaze:1:1 --env COS_RANDO_SMOKE=actr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_ACTR_T2=homen
+rando 0 --stage sea:45:1 --env COS_RANDO_SMOKE=actr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_identity.json --env COS_ACTR_T2=item
+rando 0 --stage kaze:1:1 --env COS_RANDO_SMOKE=actr

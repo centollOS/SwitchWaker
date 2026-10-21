@@ -29,6 +29,9 @@
 #include "f_op/f_op_actor_mng.h"
 #include "f_op/f_op_camera.h"
 #include "f_op/f_op_kankyo_mng.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 namespace daTsubo {
 
@@ -2209,7 +2212,17 @@ void Act_c::damaged(int arg1, cBgS_PolyInfo* arg2, bool arg3, const cXyz* arg4) 
     s32 itemNo = prm_get_itemNo();
     s32 itemBitNo = prm_get_itemSave();
     csXyz sp08(0, home.angle.y, 0);
+#if TARGET_PC
+    const int pcRandoItemNo = (mPrmZ >> 8) & 0xFF;
+    if (pc_rando() && pcRandoItemNo != 0xFF && pcRandoItemNo != 0x00) {
+        // pc_rando(R2.2): flexible_item_locations.asm d_a_tsubo 0x3E7C create_pot_item (item z_rot & 0xFF00, fopAcM_createItem type 3 action 5); original: fopAcM_createItemFromTable(itemNo, ..., 0, &sp08, arg1)
+        fopAcM_createItem(&current.pos, pcRandoItemNo, itemBitNo, fopAcM_GetHomeRoomNo(this), 3, &sp08, 5, NULL);
+    } else {
+        fopAcM_createItemFromTable(&current.pos, itemNo, itemBitNo, fopAcM_GetHomeRoomNo(this), 0, &sp08, arg1, NULL);
+    }
+#else
     fopAcM_createItemFromTable(&current.pos, itemNo, itemBitNo, fopAcM_GetHomeRoomNo(this), 0, &sp08, arg1, NULL);
+#endif
     fopAcM_cancelCarryNow(this);
     fopAcM_cancelHookCarryNow(this);
 

@@ -6,3 +6,4 @@
 // archive is dispatched; patchers then run in registration order. Append-only: each step adds its
 // line; on a merge keep both sides.
 PC_RANDO_PATCHER(pc_rando_place_dzx_init) // R2.1: the placement in stage.dzs / room.dzr (chests; pc_rando_place_dzx.h)
+PC_RANDO_PATCHER(pc_rando_place_actr_init) // R2.2: field items, pots, stone heads (ACTR) and their tweaks

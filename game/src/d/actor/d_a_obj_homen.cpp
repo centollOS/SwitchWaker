@@ -9,6 +9,9 @@
 #include "d/d_com_inf_game.h"
 #include "res/Object/Homen.h"
 #include "f_op/f_op_actor_mng.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 namespace daObjHomen {
 
@@ -264,6 +267,12 @@ bool Act_c::create_heap() {
 /* 000002B4-000005B0       .text _create__Q210daObjHomen5Act_cFv */
 cPhs_State Act_c::_create() {
     fopAcM_ct(this, Act_c);
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R2.2): tweaks.py fix_stone_head_bugs (d_a_obj_homen.rel 0x3450 profile status &= ~0x80); original: the profile's fopAcStts_NOCULLEXEC_e stays set
+        fopAcM_OffStatus(this, fopAcStts_NOCULLEXEC_e);
+    }
+#endif
     
     if (param_get_sw() != 0xFF && is_switch() == true) {
         return cPhs_ERROR_e;
@@ -453,6 +462,19 @@ void Act_c::make_enemy() {
 void Act_c::make_item() {
     csXyz sp08(0, 0, 0);
     cXyz sp10(1.0f, 1.0f, 1.0f);
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R2.2): flexible_item_locations.asm d_a_obj_homen 0x16DC (no 0x3F check) and 0x1728 create_stone_head_item (item home x_rot & 0xFF, fopAcM_createItem type 3 action 5); original: fopAcM_createItemFromTable when param_get_item() != 0x3F
+        const int pcRandoItemNo = (u16)home.angle.x & 0xFF;
+        if (pcRandoItemNo != 0xFF && pcRandoItemNo != 0x00) {
+            fopAcM_createItem(&current.pos, pcRandoItemNo, param_get_itembit(), fopAcM_GetRoomNo(this), 3, &sp08, 5, &sp10);
+        } else {
+            fopAcM_createItemFromTable(&current.pos, param_get_item(), param_get_itembit(), fopAcM_GetRoomNo(this),
+                                       daItemType_0_e, &sp08, daItemAct_1_e, &sp10);
+        }
+        return;
+    }
+#endif
     if (param_get_item() != 0x3F) {
         fopAcM_createItemFromTable(
             &current.pos,
