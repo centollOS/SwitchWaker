@@ -1,0 +1,185 @@
+// Unit test of plan step R4.3: the background seed generation (pc_rando_genjob.h) the options menu
+// runs (pc_rando_menu.cpp).
+//   - a job for TestSeed1 at wwrando's defaults runs on its worker thread (the thread hooks run there
+//     once each, the progress reaches its total), a second start is refused until the result is
+//     taken, and the result is the placement of fixtures/R0_6_TestSeed1.json (ww_export.py
+//     TestSeed1);
+//   - its files: the spoiler and non-spoiler logs in the log folder (created with its parents), each
+//     ending with the D5 trailer, and the sidecar <card dir>/switchwaker-rando-<hash32>.json, which
+//     parses back to the result's placement and hash;
+//   - a failing job (hints refused: allowMissingHints off) writes the error log and removes the
+//     earlier run's logs of that seed; no sidecar.
+#include <atomic>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <pthread.h>
+#include <string>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include "pc_rando_gen.h"
+#include "pc_rando_genjob.h"
+#include "pc_rando_seedfile.h"
+#include "pc_rando_spoiler.h"
+#include "rando_test.h"
+
+namespace {
+
+std::atomic<int> sEnter{0}, sExit{0};
+std::atomic<bool> sEnterOffMain{false};
+pthread_t sMain;
+
+void hookEnter() {
+    sEnter++;
+    sEnterOffMain = !pthread_equal(pthread_self(), sMain);
+}
+
+void hookExit() {
+    sExit++;
+}
+
+bool exists(const std::string& path) {
+    struct stat st;
+    return stat(path.c_str(), &st) == 0;
+}
+
+std::string readAll(const std::string& path) {
+    std::string out;
+    FILE* f = std::fopen(path.c_str(), "rb");
+    if (f == nullptr) {
+        return out;
+    }
+    char buf[65536];
+    size_t n;
+    while ((n = std::fread(buf, 1, sizeof buf, f)) > 0) {
+        out.append(buf, n);
+    }
+    std::fclose(f);
+    return out;
+}
+
+bool endsWith(const std::string& s, const std::string& tail) {
+    return s.size() >= tail.size() && s.compare(s.size() - tail.size(), tail.size(), tail) == 0;
+}
+
+pcr::GenRequest request(const char* seed, bool allowMissingHints) {
+    pcr::GenRequest req;
+    req.seed = seed;
+    req.allowMissingHints = allowMissingHints;
+    req.version = "test-R4.3";
+    return req;
+}
+
+} // namespace
+
+int main() {
+    sMain = pthread_self();
+    char tmpl[] = "/tmp/cos_rando_R4_3_XXXXXX";
+    const char* root = mkdtemp(tmpl);
+    if (!RT_CHECK(root != nullptr)) {
+        return rt::finish();
+    }
+    pcr::GenJobPaths paths;
+    paths.logDir = std::string(root) + "/user/rando";
+    paths.cardDir = std::string(root) + "/user/USA/Card A";
+
+    PcRandoSeed want;
+    {
+        std::string text, err;
+        RT_CHECK(rt::readFixture("R0_6_TestSeed1.json", text));
+        RT_CHECK(pc_rando_seed_parse(text, &want, &err));
+    }
+
+    pcr::GenJobThreadHooks hooks;
+    hooks.enter = hookEnter;
+    hooks.exit = hookExit;
+    pcr::genJobSetThreadHooks(hooks);
+
+    // ---- success -------------------------------------------------------------------------------
+    RT_CHECK(pcr::genJobProgress().state == pcr::GenJobState::Idle);
+    std::string err;
+    RT_CHECK(pcr::genJobStart(request("TestSeed1", true), paths, &err));
+    RT_CHECK(!pcr::genJobStart(request("Other", true), paths, &err));
+    RT_CHECK(!err.empty());
+    pcr::genJobWait();
+    pcr::GenJobProgress p = pcr::genJobProgress();
+    RT_CHECK(p.state == pcr::GenJobState::Done);
+    RT_CHECK(p.total > 0);
+    RT_CHECK_EQ(p.done, p.total);
+    RT_CHECK(!p.text.empty());
+    RT_CHECK(!pcr::genJobStart(request("Other", true), paths, &err)); // the result is not taken yet
+    pcr::GenJobResult res;
+    RT_CHECK(pcr::genJobTake(&res));
+    RT_CHECK(!pcr::genJobTake(&res));
+    RT_CHECK(pcr::genJobProgress().state == pcr::GenJobState::Idle);
+    RT_CHECK_EQ(sEnter.load(), 1);
+    RT_CHECK_EQ(sExit.load(), 1);
+    RT_CHECK(sEnterOffMain.load());
+
+    RT_CHECK(res.gen.ok);
+    RT_CHECK(res.gen.hintsMissing);
+    RT_CHECK_EQ(res.version, std::string("test-R4.3"));
+    RT_CHECK(res.seconds > 0.0);
+    RT_CHECK_EQ(res.fileError, std::string());
+    RT_CHECK_EQ(res.gen.seed.seed, std::string("TestSeed1"));
+    RT_CHECK_EQ(res.gen.seed.permalink, want.permalink);
+    RT_CHECK(memcmp(res.gen.seed.locations, want.locations, sizeof want.locations) == 0);
+    RT_CHECK(res.gen.seed.location_names == want.location_names);
+
+    const std::string trailer = pcr::logTrailer("test-R4.3");
+    const std::string spoiler = paths.logDir + "/" + pcr::logFileName("TestSeed1", "Spoiler Log");
+    const std::string nonSpoiler = paths.logDir + "/" + pcr::logFileName("TestSeed1", "Non-Spoiler Log");
+    const std::string errorLog = paths.logDir + "/" + pcr::logFileName("TestSeed1", "Error Log");
+    RT_CHECK_EQ(res.spoilerPath, spoiler);
+    RT_CHECK_EQ(res.nonSpoilerPath, nonSpoiler);
+    RT_CHECK_EQ(res.errorPath, std::string());
+    RT_CHECK_EQ(readAll(spoiler), res.gen.spoilerLog + trailer);
+    RT_CHECK_EQ(readAll(nonSpoiler), res.gen.nonSpoilerLog + trailer);
+    RT_CHECK(endsWith(readAll(spoiler), "Generated by SwitchWaker test-R4.3\n"));
+    RT_CHECK(readAll(spoiler).find("Seed: TestSeed1") != std::string::npos);
+    RT_CHECK(!exists(errorLog));
+
+    const std::string sidecar = paths.cardDir + "/" + pc_rando_seed_sidecar_name(res.gen.seed);
+    RT_CHECK_EQ(res.sidecarPath, sidecar);
+    {
+        const std::string text = readAll(sidecar);
+        RT_CHECK_EQ(text, res.gen.placementJson);
+        PcRandoSeed back;
+        RT_CHECK(pc_rando_seed_parse(text, &back, &err));
+        RT_CHECK(memcmp(back.hash, res.gen.seed.hash, sizeof back.hash) == 0);
+        RT_CHECK(memcmp(back.locations, want.locations, sizeof want.locations) == 0);
+    }
+
+    // ---- failure: the error log replaces the earlier logs of the seed ----------------------------
+    RT_CHECK(pcr::genJobStart(request("TestSeed1", false), paths, &err));
+    pcr::genJobWait();
+    pcr::GenJobResult bad;
+    RT_CHECK(pcr::genJobTake(&bad));
+    RT_CHECK(!bad.gen.ok);
+    RT_CHECK(bad.gen.unsupported);
+    RT_CHECK_EQ(bad.errorPath, errorLog);
+    RT_CHECK_EQ(bad.sidecarPath, std::string());
+    RT_CHECK_EQ(bad.spoilerPath, std::string());
+    RT_CHECK(!exists(spoiler));
+    RT_CHECK(!exists(nonSpoiler));
+    {
+        const std::string text = readAll(errorLog);
+        RT_CHECK(text.find("Error on seed TestSeed1:\nNot supported yet: hints") != std::string::npos);
+        RT_CHECK(endsWith(text, trailer));
+    }
+    RT_CHECK_EQ(sEnter.load(), 2);
+    RT_CHECK_EQ(sExit.load(), 2);
+
+    // ---- mkdir -p --------------------------------------------------------------------------------
+    RT_CHECK(pcr::genJobMakeDirs(std::string(root) + "/a/b/c"));
+    RT_CHECK(pcr::genJobMakeDirs(std::string(root) + "/a/b/c"));
+    RT_CHECK(!pcr::genJobMakeDirs(errorLog + "/x")); // a file in the way
+    RT_CHECK(!pcr::genJobMakeDirs(""));
+
+    std::string cmd = std::string("rm -rf '") + root + "'";
+    if (std::system(cmd.c_str()) != 0) {
+        std::fprintf(stderr, "note: could not remove %s\n", root);
+    }
+    return rt::finish();
+}
