@@ -361,6 +361,12 @@ int pc_rando_sword_stage_load(void);
 /* Messages 1128 and 1590 in the overlay iff the seed is Swordless (update_text_for_swordless).
    Called by an activation listener; exposed for the smoke. Returns 1 when they are set. */
 int pc_rando_sword_sync_texts(void);
+/* --- R6.6: charts (charts.py ChartRandomizer._save; features/rando/pc_rando_charts.h, which also
+   holds the sea/Room1-49 salvage SCOB patcher) --- */
+/* dMenu_Fmap_c::aramCmapDatRead under pc_rando(): patches the CmapDat.bin just read (big-endian disc
+   bytes; its size is its record count's, as the archive's getResSize gives the packed size) for the
+   active seed's charts. A second call on the same, already patched buffer changes nothing. */
+void pc_rando_charts_cmapdat_loaded(void* data);
 
 #ifdef __cplusplus
 }

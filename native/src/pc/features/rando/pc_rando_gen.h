@@ -11,10 +11,10 @@
 // ones are pigs (one choice, the prologue pig colour), items and hints.
 //
 // What is ported: pigs, extra starting items (R6.4) and items (R1.4) completely; the spoiler,
-// non-spoiler and error logs (R1.5).
+// non-spoiler and error logs (R1.5); charts (R6.6, pc_rando_gen_charts.h).
 // What is not ported yet, refused with a "not supported yet" error (GenResult::unsupported) instead
 // of a seed that would differ from wwrando's:
-//   - randomize_charts (R6.6), required_bosses (R6.8), any randomize_*_entrances (R6.10-R6.11),
+//   - required_bosses (R6.8), any randomize_*_entrances (R6.10-R6.11),
 //     randomize_starting_island (R6.7), randomize_enemies (R7.3), randomize_enemy_palettes (R7.2);
 // Hints (R5.1, pc_rando_gen_hints.h) always run, as wwrando's HintsRandomizer is always enabled (the
 // Big Octo Great Fairy hint is generated even with every hint placement off); the placement gets a

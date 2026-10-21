@@ -609,3 +609,14 @@ as owned. Checked by the `swordless` smoke.
 | game/src/d/actor/d_a_fganon.cpp | `damage_check`: in a Swordless seed Phantom Ganon is hurt by the Skull Hammer (AT bit 0x00010000) with no Master Sword check | `?:` (`#if`/`#else`, original in `#else`) | swordless.asm d_a_fganon.rel 0x5EE0 (`rlwinm. r0, r0, 0, 15, 15`), 0x5EF0 (`b 0x5F0C`) |
 | game/src/d/d_s_play.cpp | `phase_4`, GTower branch after the bow is taken: `pc_rando_sword_ganondorf_stage` (the Hero's Sword when none is equipped) | `if` | swordless.asm give_temporary_sword_during_ganondorf_fight_in_swordless (main.dol 0x80235F10) |
 | game/src/d/d_s_play.cpp | `phase_4`, other stages before the bow check: `pc_rando_sword_stage_load` (Ojhous: the Hero's Sword and the bow check skipped; elsewhere: the equipped sword removed when none is owned) | `?:` (`#if`/`#else`, original in `#else`) | swordless.asm give_temporary_sword_in_orcas_house_in_swordless (0x8023607C), remove_temporary_sword_when_loading_stage_in_swordless (0x80236084) |
+
+## R6.6
+
+Randomized charts (`randomize_charts`; charts.py `ChartRandomizer._save`). The salvage half (every
+`d_a_salvage` SCOB with salvage_type 0 in sea/Room1-49 gets the island's new chart index) is an
+archive patcher in `features/rando/pc_rando_charts.cpp`; the sea chart half is the hunk below, its
+body `pc_rando_charts_cmapdat_loaded` in the same file.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/d_menu_fmap.cpp | `dMenu_Fmap_c::aramCmapDatRead`: `pc_rando_charts_cmapdat_loaded` on the CmapDat.bin just read (texture id, sector and 4 random positions per chart) | add | randomizers/charts.py `ChartRandomizer._save` (wwlib/charts.py `Chart.save_changes`) |
