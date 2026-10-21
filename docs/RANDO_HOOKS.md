@@ -573,3 +573,16 @@ chest type nibble, the `DEFAULT_TREASURE_TRAP` event per stage) are archive patc
 | game/src/d/actor/d_a_tbox.cpp | `demoProc` (SPRING_TRAP each frame: `pc_rando_tbox_spring_trap` = demoProcSpringTrap; else the default cut end) | `if/else` | asm/actors/d_a_tbox.cpp `demoProcSpringTrap` |
 | game/src/d/actor/d_a_tbox.cpp | `actionOpenWait` (a trap chest creates no item) | `if/else` (`#else` original) | asm/actors/d_a_tbox.cpp `actionOpenWait` |
 | game/src/d/actor/d_a_tbox.cpp | `actionOpenWait` (event `DEFAULT_TREASURE_TRAP` for a trap chest, ahead of R3.8's `DEFAULT_TREASURE_A`) | `if` | asm/actors/d_a_tbox.cpp `actionOpenWait` |
+
+## R6.7
+
+Starting island (`randomizers/starting_island.py`). The generator draws `choice` of sea rooms 2-49
+(`pc_rando_gen.cpp`, written as `starting_island_room`); at runtime `pc_rando_start_room()`
+(`game_hooks/pc_rando_hooks_start.cpp`) returns the active seed's room, 44 without the option.
+`_save`'s `change_ship_starting_island(room)` is not a hunk: R3.2's sea `stage.dzs` patcher now copies
+the SHIP 0 entry of that room (read from the disc once per room) instead of always Room44's.
+`set_new_game_starting_spawn_id(0)` is R3.2's hunk. Checked by the `island` smoke.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/d_save.cpp | `dSv_player_return_place_c::init` (the new game's room is `pc_rando_start_room()` instead of Outset) | `?:` (`#if`/`#else`, original in `#else`) | `tweaks.py` `set_new_game_starting_room` (DOL 0x80058BA7) |

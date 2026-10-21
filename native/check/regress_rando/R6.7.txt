@@ -1,0 +1,7 @@
+# R6.7 (docs/RANDOMIZER_PLAN.md): starting island. 20 golden seeds with randomize_starting_island
+# (wwrando's choice of sea room 2-49, the spoiler's "Starting island" section), and target
+# "rando-start" with the option: a real new game with the TestSeed1 island seed (sea room 15) lands on
+# that island's spawn 0 with the boat at its SHIP 0. Its own empty run card. Not forced.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 20 --golden --preset starting_island
+rando 0 --input native/check/input/new-game-skip-intro.txt --env COS_RANDO_SMOKE=island
