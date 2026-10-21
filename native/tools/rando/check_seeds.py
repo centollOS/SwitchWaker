@@ -142,8 +142,10 @@ def check_one(job):
 
   logs_dir = os.path.join(out_dir, "ww_" + seed)
   opts = oc.make_options(values)
-  r = oc.make_randomizer(seed, opts, logs_dir=logs_dir)
   try:
+    # WWRandomizer.__init__ already raises some errors (TooFewProgressionLocationsError), so
+    # building the randomizer sits inside the try too.
+    r = oc.make_randomizer(seed, opts, logs_dir=logs_dir)
     oc.randomize(r)
   except Exception as e:  # wwrando raised
     msg = str(e).split("\n")[0]

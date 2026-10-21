@@ -207,6 +207,15 @@ int main(int argc, char** argv) {
             if (logs && !res.errorLog.empty()) {
                 writeFile(outDir + "/" + pcr::logFileName(name, "Error Log"), res.errorLog + trailer);
             }
+            // Files of an earlier successful run of this seed in the same --out would sit next to
+            // the error log and look current.
+            if (jsonPath.empty()) {
+                std::remove((outDir + "/" + name + ".json").c_str());
+            }
+            if (logs) {
+                std::remove((outDir + "/" + pcr::logFileName(name, "Spoiler Log")).c_str());
+                std::remove((outDir + "/" + pcr::logFileName(name, "Non-Spoiler Log")).c_str());
+            }
             if (rc == 0 || (res.unsupported && rc == 1)) {
                 rc = res.unsupported ? 3 : 1;
             }
@@ -217,13 +226,16 @@ int main(int argc, char** argv) {
             return 2;
         }
         if (logs) {
-            if (!res.spoilerLog.empty() &&
-                !writeFile(outDir + "/" + pcr::logFileName(name, "Spoiler Log"), res.spoilerLog + trailer)) {
+            if (res.spoilerLog.empty()) {
+                std::remove((outDir + "/" + pcr::logFileName(name, "Spoiler Log")).c_str());
+            } else if (!writeFile(outDir + "/" + pcr::logFileName(name, "Spoiler Log"), res.spoilerLog + trailer)) {
                 return 2;
             }
             if (!writeFile(outDir + "/" + pcr::logFileName(name, "Non-Spoiler Log"), res.nonSpoilerLog + trailer)) {
                 return 2;
             }
+            // A stale error log from an earlier failed run of this seed in the same --out.
+            std::remove((outDir + "/" + pcr::logFileName(name, "Error Log")).c_str());
         }
         if (!quiet && path != "-") {
             std::printf("ok %s %08x %s\n", name.c_str(), (unsigned)pc_rando_seed_hash32(res.seed), path.c_str());

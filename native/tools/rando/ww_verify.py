@@ -17,7 +17,8 @@ entrances, extra starting items) and checks:
   4. at least N copies of each progress item sit in progress-eligible, non-banned locations
      (count-based: duplicates such as wallets can be split between progress and nonprogress);
   5. reachability: owning everything reachable until a fixpoint reaches
-     'Can Reach and Defeat Ganondorf' and every non-banned progress location.
+     'Can Reach and Defeat Ganondorf' and every non-banned progress location (sunken treasures
+     only when their chart is a progress item, as wwrando guarantees nothing more).
 
 --validity-only runs checks 1 and 3 only (for test placements such as make_test_placement.py's
 rotation, which need not be beatable). Entrance structure rules (nesting, safety entrance) are not
@@ -36,6 +37,7 @@ import argparse  # noqa: E402
 import collections  # noqa: E402
 import contextlib  # noqa: E402
 import json  # noqa: E402
+import re  # noqa: E402
 
 REQUIRED_KEYS = ("format", "options", "locations")
 
@@ -176,7 +178,21 @@ def verify(d, validity_only=False):
     beatable = L.check_requirement_met("Can Reach and Defeat Ganondorf")
   if not beatable:
     errors.append("NOT BEATABLE")
-  unreach_prog = sorted(l for l in remaining if l in progress_locs and l not in banned)
+  # A sunken treasure whose chart is not a progress item (its chart category is off) holds no
+  # guarantee: wwrando's fill treats it as inaccessible and the chart, placed as a nonprogress
+  # item, may sit anywhere (items.py only prints "Inaccessible locations"). Only sunken treasures
+  # whose chart is progress must be reachable.
+  progress_items = set(L.unplaced_progress_items)
+
+  def must_reach(loc):
+    if loc not in progress_locs or loc in banned:
+      return False
+    if "Sunken Treasure" not in L.item_locations[loc]["Types"]:
+      return True
+    m = re.search(r"Chart for Island (\d+)", str(L.item_locations[loc]["Need"]))  # parsed tokens
+    return m is None or L.macros["Chart for Island " + m.group(1)][0] in progress_items
+
+  unreach_prog = sorted(l for l in remaining if must_reach(l))
   if unreach_prog:
     errors.append(f"{len(unreach_prog)} progress locations unreachable")
   return {
