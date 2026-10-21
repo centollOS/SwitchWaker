@@ -4,7 +4,9 @@
 // 1128, 1590). The d_a_fganon part (hammer damage) is a hunk in d_a_fganon.cpp's damage_check. The
 // pool (R1.4) and the new-game sword and barrier bits (R3.1) are earlier steps'. Declared in
 // native/include/pc/pc_rando_hooks.h (section R6.3); called only under pc_rando() from the hunks
-// listed in docs/RANDO_HOOKS.md, section R6.3.
+// listed in docs/RANDO_HOOKS.md, section R6.3. The two texts go in the message overlay at every
+// activation of a Swordless seed (a listener, as pc_rando_hooks_keybag.cpp does; the overlay is cleared
+// when pc_rando() turns 0). The phase_4 hunks reference this file, so the linker keeps the listener.
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "pc/pc_rando_hooks.h"
 
@@ -36,6 +38,17 @@ void equipHerosSword() {
     dComIfGs_setSelectEquip(0, dItemNo_SWORD_e); // li r0, 0x38; stb r0, 0xE (r4)
 }
 
+void onRando(int active) {
+    if (active) {
+        pc_rando_sword_sync_texts();
+    }
+}
+
+// Registered before main; under COS_RANDO_FORCE=1 the listener runs at once (default config: no texts).
+struct Register {
+    Register() { pc_rando_add_listener(onRando); }
+} sRegister;
+
 } // namespace
 
 extern "C" int pc_rando_swordless(void) {
@@ -44,8 +57,8 @@ extern "C" int pc_rando_swordless(void) {
 
 extern "C" int pc_rando_sword_sync_texts(void) {
     if (!pc_rando_swordless()) {
-        // Only for a forced boot, whose overlay outlives a change of config (the overlay is cleared
-        // when pc_rando() turns 0); no other step writes these two messages.
+        // A re-activation with another config (a forced boot, a smoke) keeps the overlay; no other step
+        // writes these two messages.
         pc_rando_msg_remove(1128);
         pc_rando_msg_remove(1590);
         return 0;
@@ -65,7 +78,6 @@ extern "C" int pc_rando_sword_sync_texts(void) {
 }
 
 extern "C" void pc_rando_sword_ganondorf_stage(void) {
-    pc_rando_sword_sync_texts();
     if (!pc_rando_swordless()) {
         return;
     }
@@ -76,7 +88,6 @@ extern "C" void pc_rando_sword_ganondorf_stage(void) {
 }
 
 extern "C" int pc_rando_sword_stage_load(void) {
-    pc_rando_sword_sync_texts();
     if (!pc_rando_swordless()) {
         return 1;
     }

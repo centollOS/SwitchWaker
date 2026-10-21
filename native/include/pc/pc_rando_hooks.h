@@ -349,20 +349,17 @@ void pc_rando_tbox_spring_trap(void* tbox);
 int pc_rando_swordless(void);
 /* phase_4 (d_s_play.cpp) under pc_rando(), in its GTower branch after the bow is taken
    (give_temporary_sword_during_ganondorf_fight_in_swordless, main.dol 0x80235F10): in a Swordless
-   seed with no sword equipped, equips the Hero's Sword (0x38) for the Ganondorf fight. Also syncs
-   the swordless texts. */
+   seed with no sword equipped, equips the Hero's Sword (0x38) for the Ganondorf fight. */
 void pc_rando_sword_ganondorf_stage(void);
 /* phase_4 under pc_rando(), in the branch for every other stage, before its bow check
    (give_temporary_sword_in_orcas_house_in_swordless 0x8023607C and
    remove_temporary_sword_when_loading_stage_in_swordless 0x80236084). In a Swordless seed: in
    Ojhous with no sword equipped, equips the Hero's Sword and returns 0 (the asm then skips the bow
    check); elsewhere (or in Ojhous with a sword equipped) unequips the sword when no sword is owned
-   (collect byte 0 is 0) and returns 1. In other seeds returns 1 and changes nothing. Also syncs the
-   swordless texts. */
+   (collect byte 0 is 0) and returns 1. In other seeds returns 1 and changes nothing. */
 int pc_rando_sword_stage_load(void);
 /* Messages 1128 and 1590 in the overlay iff the seed is Swordless (update_text_for_swordless).
-   Called by the two hooks above at every stage load; exposed for the smoke. Returns 1 when they are
-   set. */
+   Called by an activation listener; exposed for the smoke. Returns 1 when they are set. */
 int pc_rando_sword_sync_texts(void);
 
 #ifdef __cplusplus
