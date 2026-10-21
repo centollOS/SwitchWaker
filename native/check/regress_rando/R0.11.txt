@@ -1,0 +1,6 @@
+# R0.11 (docs/RANDOMIZER_PLAN.md): the event_list.dat in-place patcher on Windfall's House of Wealth
+# (Orichh): plain (no file dispatched, dEvent_manager_c reads Gp1_Get_Itm actor 2 action 1 prm0 0xEE),
+# forced (change_event_item to 0x07 on the raw bytes; dEvent_manager_c reads 0x07).
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Orichh:0 --env COS_RANDO_SMOKE=event
+rando 0 --stage Orichh:0 --env COS_RANDO_SMOKE=event --env COS_RANDO_FORCE=1
