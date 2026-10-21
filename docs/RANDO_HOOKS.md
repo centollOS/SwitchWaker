@@ -573,3 +573,14 @@ chest type nibble, the `DEFAULT_TREASURE_TRAP` event per stage) are archive patc
 | game/src/d/actor/d_a_tbox.cpp | `demoProc` (SPRING_TRAP each frame: `pc_rando_tbox_spring_trap` = demoProcSpringTrap; else the default cut end) | `if/else` | asm/actors/d_a_tbox.cpp `demoProcSpringTrap` |
 | game/src/d/actor/d_a_tbox.cpp | `actionOpenWait` (a trap chest creates no item) | `if/else` (`#else` original) | asm/actors/d_a_tbox.cpp `actionOpenWait` |
 | game/src/d/actor/d_a_tbox.cpp | `actionOpenWait` (event `DEFAULT_TREASURE_TRAP` for a trap chest, ahead of R3.8's `DEFAULT_TREASURE_A`) | `if` | asm/actors/d_a_tbox.cpp `actionOpenWait` |
+
+## R6.2
+
+Key-lunacy needs no hunk. The generator already follows `options.keylunacy` (R1.3/R1.4: no dungeon
+item prerandomization, `check_item_valid_in_location` drops the own-dungeon rule, and the logic's
+`Option "keylunacy"` requirements). At runtime the dungeon items are R3.4's 22 item IDs, whose item
+funcs already pick the stage by where the player is.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| - | no hunks in `game/` (smoke: `pc_rando_smoke_dkeys.cpp` step 6; golden: `check_seeds.py` keylunacy presets) | - | `randomizers/items.py` keylunacy branches; `custom_funcs.asm` `generic_small_key_item_get_func` |

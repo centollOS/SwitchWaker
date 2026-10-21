@@ -25,6 +25,11 @@ Presets (--preset, default "default"); name=<json> pairs are applied after the p
   all_categories   every progression_* option on
   dungeons_only    progression_dungeons only
   no_dungeons      the defaults without progression_dungeons
+  keylunacy        the defaults with keylunacy (R6.2: dungeon items join the main pools)
+  keylunacy_all    every progression_* option on, with keylunacy
+  keylunacy_dungeons_only  progression_dungeons only, with keylunacy
+  keylunacy_no_dungeons    the defaults without progression_dungeons, with keylunacy (dungeon items
+                   become nonprogress items placed anywhere)
 
 Hints are not ported (R5), so the CLI runs with --allow-missing-hints. The wwrando side runs in J
 worker processes (default 4), each importing wwrando once (about 0.5 s per seed and check).
@@ -71,7 +76,15 @@ def preset_values(name):
     return {p: p == "progression_dungeons" for p in prog}
   if name == "no_dungeons":
     return {"progression_dungeons": False}
-  oc.die(f"unknown preset '{name}' (default, all_categories, dungeons_only, no_dungeons)")
+  # R6.2: key-lunacy on top of a base preset.
+  if name.startswith("keylunacy"):
+    base = name[len("keylunacy_"):] if name.startswith("keylunacy_") else "default"
+    if base in ("default", "all", "dungeons_only", "no_dungeons"):
+      values = preset_values("all_categories" if base == "all" else base)
+      values["keylunacy"] = True
+      return values
+  oc.die(f"unknown preset '{name}' (default, all_categories, dungeons_only, no_dungeons, keylunacy, "
+         "keylunacy_all, keylunacy_dungeons_only, keylunacy_no_dungeons)")
 
 
 def log_names(seed):
