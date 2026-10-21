@@ -558,3 +558,18 @@ so a vanilla game never reads it. Checked by the `pirateship` smoke and `cos_ran
 |---|---|---|---|
 | game/src/JAZelAudio/JAIZelBasic.cpp | `JAIZelBasic::setScene`: the stage entry's second dynamic scene wave through `pc_rando_pirate_ship_scene_wave2` (Asoko, entry 0x0C: slot 0x0E, IsleLink_0.aw) | `?:` (`#if`/`#else`, original in `#else`) | main.dol 0x8039C30C + 0xC*4 + 3 = 0x0E, 0x8039C2E4 + 0xE*2 = 0x19 |
 | game/src/d/actor/d_a_npc_ls1.cpp | `daNpc_Ls1_c::setAnm_NUM`: animation 4 (`ANMNUM_WAIT05_e`) uses facial animation 5 (`BTPNUM_NGWARAI_e`) | `?:` (`#if`/`#else`, original in `#else`) | d_a_npc_ls1.rel 0x5D18 + 4*0x10 + 1 = 5 (`a_anm_prm_tbl$4744[4].btpNum`) |
+
+## R6.5
+
+Trap chests (`trap_chests`) and chest type matches contents. The file edits (params bit 0x40, the
+chest type nibble, the `DEFAULT_TREASURE_TRAP` event per stage) are archive patchers in
+`features/rando/pc_rando_trap.cpp`; the game side is below, its bodies in
+`game_hooks/pc_rando_hooks_trap.cpp`. `getIsTrap` itself is R3.8's.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_tbox.cpp | `demoProc` (action table gains "SPRING_TRAP"; the count passed to `getMyActIdx` is 5 only under pc_rando()) | `#if`, `?:` | asm/actors/d_a_tbox.cpp `demoProc` |
+| game/src/d/actor/d_a_tbox.cpp | `demoProc` (SPRING_TRAP init: timer 0, smoke 0x029D; `pc_rando_tbox_spring_trap_init`) | `if` | asm/actors/d_a_tbox.cpp `demoProc` DEMO_PROC_SPRING_TRAP |
+| game/src/d/actor/d_a_tbox.cpp | `demoProc` (SPRING_TRAP each frame: `pc_rando_tbox_spring_trap` = demoProcSpringTrap; else the default cut end) | `if/else` | asm/actors/d_a_tbox.cpp `demoProcSpringTrap` |
+| game/src/d/actor/d_a_tbox.cpp | `actionOpenWait` (a trap chest creates no item) | `if/else` (`#else` original) | asm/actors/d_a_tbox.cpp `actionOpenWait` |
+| game/src/d/actor/d_a_tbox.cpp | `actionOpenWait` (event `DEFAULT_TREASURE_TRAP` for a trap chest, ahead of R3.8's `DEFAULT_TREASURE_A`) | `if` | asm/actors/d_a_tbox.cpp `actionOpenWait` |

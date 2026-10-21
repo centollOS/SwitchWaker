@@ -1,0 +1,10 @@
+# R6.5 (docs/RANDOMIZER_PLAN.md): trap chests and chest type matches contents. The smoke
+# COS_RANDO_SMOKE=trap (native/src/pc/harness/smokes/pc_rando_smoke_trap.cpp) boots Link's house with
+# the placement fixtures/R6_5_trap_placement.json (R0.6's identity with "Ice Trap Chest" under Link's
+# house, trap_chests and chest_type_matches_contents on; a relative path is taken from the repo's
+# root), goes to LinkUG and checks the chest (trap bit, metal type, the disc's item kept), LinkUG's
+# event_list.dat against wwrando's add_trap_chest_event_to_stage (fixtures/R6_5_wwrando_disc.txt),
+# then opens it: DEFAULT_TREASURE_TRAP, frozen and thawed, 2 quarter hearts of damage, no item.
+# Untrapped chests and a game without a seed are R3.8's chest lines and R2.1's loc lines.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage LinkRM:0:0 --timeout 400 --env COS_RANDO_SMOKE=trap --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_5_trap_placement.json

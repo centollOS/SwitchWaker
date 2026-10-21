@@ -1,0 +1,515 @@
+trap_src 0000004000000001000000f000000003000001e0000000040000032000000002000003a000000000000003a000000002000003a800000000000000000000000044454641554c545f54524541535552455f410000000000000000000000000000000000000000000000000000000000000000000100000002ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000003ffffffffffffffff00000002ffffffffffffffff000000000000000000000000000000000000000000000000000000004c696e6b00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000545245415355524500000000000000000000000000000000000000000000000000000000000000010000000300000000000000020000000000000000000000000000000000000000000000000000000043414d45524100000000000000000000000000000000000000000000000000000000000000000002000000050000000200000003000000000000000000000000000000000000000000000000000000003031306f70656e5f7472656173757265000000000000000000000000000000000000000000000000ffffffffffffffffffffffff000000010000000000000001000000000000000000000000000000003031316765745f6974656d0000000000000000000000000000000000000000000000000000000001ffffffffffffffffffffffff0000000200000001ffffffff000000000000000000000000000000004f50454e5f53484f5254000000000000000000000000000000000000000000000000000000000002ffffffffffffffffffffffff00000004ffffffffffffffff0000000000000000000000000000000050415553450000000000000000000000000000000000000000000000000000000000000000000003ffffffffffffffffffffffff00000006ffffffffffffffff0000000000000000000000000000000070726d300000000000000000000000000000000000000000000000000000000000000000000000030000000000000001ffffffff00000000000000000000000070726d300000000000000000000000000000000000000000000000000000000000000001000000030000000100000001ffffffff00000000000000000000000000000001000000ff
+trap_out 0000004000000002000001a000000007000003d00000000d000007e000000004000008e000000000000008e000000004000008f000000000000000000000000044454641554c545f54524541535552455f410000000000000000000000000000000000000000000000000000000000000000000100000002ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000003ffffffffffffffff00000002ffffffffffffffff0000000000000000000000000000000000000000000000000000000044454641554c545f54524541535552455f54524150000000000000000000000000000001000000000000000000000003000000040000000500000006ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000004ffffffffffffffff00000011ffffffffffffffff000000000000000000000000000000000000000000000000000000004c696e6b00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000545245415355524500000000000000000000000000000000000000000000000000000000000000010000000300000000000000020000000000000000000000000000000000000000000000000000000043414d4552410000000000000000000000000000000000000000000000000000000000000000000200000005000000020000000300000000000000000000000000000000000000000000000000000000545245415355524500000000000000000000000000000000000000000000000000000000000000030000000700000000000000040000000000000000000000000000000000000000000000000000000054494d454b45455045520000000000000000000000000000000000000000000000000000000000040000000b0000000400000007000000000000000000000000000000000000000000000000000000004c696e6b0000000000000000000000000000000000000000000000000000000000000000000000050000000d00000000000000090000000000000000000000000000000000000000000000000000000043414d4552410000000000000000000000000000000000000000000000000000000000000000000600000012000000020000000c000000000000000000000000000000000000000000000000000000003031306f70656e5f7472656173757265000000000000000000000000000000000000000000000000ffffffffffffffffffffffff000000010000000000000001000000000000000000000000000000003031316765745f6974656d0000000000000000000000000000000000000000000000000000000001ffffffffffffffffffffffff0000000200000001ffffffff000000000000000000000000000000004f50454e5f53484f5254000000000000000000000000000000000000000000000000000000000002ffffffffffffffffffffffff00000004ffffffffffffffff0000000000000000000000000000000050415553450000000000000000000000000000000000000000000000000000000000000000000003ffffffffffffffffffffffff00000006ffffffffffffffff000000000000000000000000000000004f50454e5f53484f5254000000000000000000000000000000000000000000000000000000000004ffffffffffffffffffffffff00000008ffffffff0000000500000000000000000000000000000000535052494e475f545241500000000000000000000000000000000000000000000000000000000005ffffffffffffffffffffffff00000009ffffffff000000060000000000000000000000000000000057414954000000000000000000000000000000000000000000000000000000000000000000000006ffffffffffffffffffffffff0000000affffffffffffffff0000000000000000000000000000000057414954000000000000000000000000000000000000000000000000000000000000000000000007ffffffffffffffffffffffff0000000cffffffff0000000800000000000000000000000000000000434f554e54444f574e000000000000000000000000000000000000000000000000000000000000080000000effffffffffffffff0000001000000002ffffffff000000000000000000000000000000003031306f70656e5f7472656173757265000000000000000000000000000000000000000000000009ffffffffffffffffffffffff0000000e000000030000000a0000000000000000000000000000000030353772645f73746f7000000000000000000000000000000000000000000000000000000000000affffffffffffffffffffffff0000000fffffffff0000000b000000000000000000000000000000003032347375727072697365640000000000000000000000000000000000000000000000000000000b00000010ffffffffffffffff00000011ffffffffffffffff000000000000000000000000000000005041555345000000000000000000000000000000000000000000000000000000000000000000000cffffffffffffffffffffffff00000013ffffffffffffffff0000000000000000000000000000000070726d300000000000000000000000000000000000000000000000000000000000000000000000030000000000000001ffffffff00000000000000000000000070726d300000000000000000000000000000000000000000000000000000000000000001000000030000000100000001ffffffff00000000000000000000000054696d657200000000000000000000000000000000000000000000000000000000000002000000030000000200000001ffffffff00000000000000000000000070726d300000000000000000000000000000000000000000000000000000000000000003000000030000000300000001ffffffff00000000000000000000000000000001000000ff0000005c00000001
+seed A R6_5_seed_A.json
+ctmc A 2 0 Outset Island - Underneath Link's House
+ctmc A 0 0 Outset Island - Mesa the Grasscutter's House
+ctmc A 0 0 Outset Island - Jabun's Cave
+ctmc A 0 0 Outset Island - Savage Labyrinth - Floor 30
+ctmc A 0 0 Outset Island - Savage Labyrinth - Floor 50
+ctmc A 0 0 Windfall Island - Jail - Maze Chest
+ctmc A 0 0 Windfall Island - Lenzo's House - Left Chest
+ctmc A 0 0 Windfall Island - Lenzo's House - Right Chest
+ctmc A 2 0 Windfall Island - House of Wealth Chest
+ctmc A 0 0 Windfall Island - Transparent Chest
+ctmc A 0 0 Windfall Island - Pirate Ship
+ctmc A 0 0 Dragon Roost Island - Chest on Top of Boulder
+ctmc A 0 0 Dragon Roost Island - Fly Across Platforms Around Island
+ctmc A 0 0 Dragon Roost Island - Secret Cave
+ctmc A 1 0 Dragon Roost Cavern - First Room
+ctmc A 1 0 Dragon Roost Cavern - Alcove With Water Jugs
+ctmc A 2 0 Dragon Roost Cavern - Boarded Up Chest
+ctmc A 1 0 Dragon Roost Cavern - Chest Across Lava Pit
+ctmc A 0 0 Dragon Roost Cavern - Rat Room
+ctmc A 1 0 Dragon Roost Cavern - Rat Room Boarded Up Chest
+ctmc A 0 0 Dragon Roost Cavern - Dark Room
+ctmc A 0 0 Dragon Roost Cavern - Tingle Chest in Hub Room
+ctmc A 2 0 Dragon Roost Cavern - Pot Room Chest
+ctmc A 0 0 Dragon Roost Cavern - Miniboss
+ctmc A 0 0 Dragon Roost Cavern - Under Rope Bridge
+ctmc A 0 0 Dragon Roost Cavern - Tingle Statue Chest
+ctmc A 2 1 Dragon Roost Cavern - Big Key Chest
+ctmc A 0 0 Dragon Roost Cavern - Boss Stairs Right Chest
+ctmc A 1 0 Dragon Roost Cavern - Boss Stairs Left Chest
+ctmc A 0 0 Forest Haven - Small Island Chest
+ctmc A 1 0 Forbidden Woods - First Room
+ctmc A 0 0 Forbidden Woods - Inside Hollow Tree's Mouth
+ctmc A 2 0 Forbidden Woods - Climb to Top Using Boko Baba Bulbs
+ctmc A 2 0 Forbidden Woods - Hole in Tree
+ctmc A 0 0 Forbidden Woods - Morth Pit
+ctmc A 2 0 Forbidden Woods - Vine Maze Left Chest
+ctmc A 0 0 Forbidden Woods - Vine Maze Right Chest
+ctmc A 2 0 Forbidden Woods - Tall Room Before Miniboss
+ctmc A 2 0 Forbidden Woods - Mothula Miniboss Room
+ctmc A 0 0 Forbidden Woods - Past Seeds Hanging by Vines
+ctmc A 2 1 Forbidden Woods - Chest Across Red Hanging Flower
+ctmc A 0 0 Forbidden Woods - Tingle Statue Chest
+ctmc A 1 0 Forbidden Woods - Chest in Locked Tree Trunk
+ctmc A 0 0 Forbidden Woods - Big Key Chest
+ctmc A 0 0 Forbidden Woods - Double Mothula Room
+ctmc A 0 0 Greatfish Isle - Hidden Chest
+ctmc A 1 0 Tower of the Gods - Chest Behind Bombable Walls
+ctmc A 0 0 Tower of the Gods - Hop Across Floating Boxes
+ctmc A 0 0 Tower of the Gods - Light Two Torches
+ctmc A 1 0 Tower of the Gods - Skulls Room Chest
+ctmc A 2 0 Tower of the Gods - Shoot Eye Above Skulls Room Chest
+ctmc A 0 0 Tower of the Gods - Tingle Statue Chest
+ctmc A 2 1 Tower of the Gods - First Chest Guarded by Armos Knights
+ctmc A 0 0 Tower of the Gods - Darknut Miniboss Room
+ctmc A 0 0 Tower of the Gods - Second Chest Guarded by Armos Knights
+ctmc A 2 0 Tower of the Gods - Floating Platforms Room
+ctmc A 1 0 Tower of the Gods - Top of Floating Platforms Room
+ctmc A 0 0 Tower of the Gods - Big Key Chest
+ctmc A 2 0 Hyrule - Master Sword Chamber
+ctmc A 0 0 Forsaken Fortress - Phantom Ganon
+ctmc A 0 0 Forsaken Fortress - Chest Outside Upper Jail Cell
+ctmc A 2 0 Forsaken Fortress - Chest Inside Lower Jail Cell
+ctmc A 2 0 Forsaken Fortress - Chest Guarded By Bokoblin
+ctmc A 2 0 Forsaken Fortress - Chest on Bed
+ctmc A 0 0 Mother and Child Isles - Inside Mother Isle
+ctmc A 0 0 Fire Mountain - Cave - Chest
+ctmc A 0 0 Fire Mountain - Lookout Platform Chest
+ctmc A 0 0 Fire Mountain - Lookout Platform - Destroy the Cannons
+ctmc A 0 0 Ice Ring Isle - Frozen Chest
+ctmc A 2 0 Ice Ring Isle - Cave - Chest
+ctmc A 0 0 Ice Ring Isle - Inner Cave - Chest
+ctmc A 0 0 Headstone Island - Submarine
+ctmc A 1 0 Earth Temple - Transparent Chest In Warp Pot Room
+ctmc A 0 0 Earth Temple - Transparent Chest in First Crypt
+ctmc A 0 0 Earth Temple - Chest Behind Destructible Walls
+ctmc A 0 0 Earth Temple - Chest In Three Blocks Room
+ctmc A 1 0 Earth Temple - Chest Behind Statues
+ctmc A 1 0 Earth Temple - Stalfos Miniboss Room
+ctmc A 0 0 Earth Temple - Tingle Statue Chest
+ctmc A 0 0 Earth Temple - End of Foggy Room With Floormasters
+ctmc A 1 0 Earth Temple - Kill All Floormasters in Foggy Room
+ctmc A 0 0 Earth Temple - Chest in Third Crypt
+ctmc A 0 0 Earth Temple - Many Mirrors Room Right Chest
+ctmc A 0 0 Earth Temple - Many Mirrors Room Left Chest
+ctmc A 0 0 Earth Temple - Stalfos Crypt Room
+ctmc A 0 0 Earth Temple - Big Key Chest
+ctmc A 2 0 Wind Temple - Chest Between Two Dirt Patches
+ctmc A 0 0 Wind Temple - Tingle Statue Chest
+ctmc A 0 0 Wind Temple - Chest Behind Stone Head
+ctmc A 0 0 Wind Temple - Chest in Left Alcove
+ctmc A 1 0 Wind Temple - Big Key Chest
+ctmc A 0 0 Wind Temple - Chest In Many Cyclones Room
+ctmc A 1 0 Wind Temple - Chest In Middle Of Hub Room
+ctmc A 1 0 Wind Temple - Spike Wall Room - First Chest
+ctmc A 2 1 Wind Temple - Spike Wall Room - Destroy All Cracked Floors
+ctmc A 2 0 Wind Temple - Wizzrobe Miniboss Room
+ctmc A 0 0 Wind Temple - Chest at Top of Hub Room
+ctmc A 0 0 Wind Temple - Chest Behind Seven Armos
+ctmc A 0 0 Wind Temple - Kill All Enemies in Tall Basement Room
+ctmc A 2 0 Ganon's Tower - Maze Chest
+ctmc A 0 0 The Great Sea - Ghost Ship
+ctmc A 0 0 Private Oasis - Chest at Top of Waterfall
+ctmc A 0 0 Private Oasis - Cabana Labyrinth - Lower Floor Chest
+ctmc A 0 0 Private Oasis - Cabana Labyrinth - Upper Floor Chest
+ctmc A 0 0 Needle Rock Isle - Chest
+ctmc A 2 0 Needle Rock Isle - Cave
+ctmc A 0 0 Angular Isles - Peak
+ctmc A 0 0 Angular Isles - Cave
+ctmc A 0 0 Boating Course - Raft
+ctmc A 0 0 Boating Course - Cave
+ctmc A 0 0 Stone Watcher Island - Cave
+ctmc A 0 0 Stone Watcher Island - Lookout Platform Chest
+ctmc A 0 0 Stone Watcher Island - Lookout Platform - Destroy the Cannons
+ctmc A 2 0 Islet of Steel - Interior
+ctmc A 0 0 Islet of Steel - Lookout Platform - Defeat the Enemies
+ctmc A 0 0 Overlook Island - Cave
+ctmc A 2 1 Bird's Peak Rock - Cave
+ctmc A 0 0 Pawprint Isle - Chuchu Cave - Chest
+ctmc A 2 0 Pawprint Isle - Chuchu Cave - Behind Left Boulder
+ctmc A 2 0 Pawprint Isle - Chuchu Cave - Behind Right Boulder
+ctmc A 2 0 Pawprint Isle - Chuchu Cave - Scale the Wall
+ctmc A 0 0 Pawprint Isle - Wizzrobe Cave
+ctmc A 0 0 Pawprint Isle - Lookout Platform - Defeat the Enemies
+ctmc A 0 0 Thorned Fairy Island - Northeastern Lookout Platform - Destroy the Cannons
+ctmc A 0 0 Thorned Fairy Island - Southwestern Lookout Platform - Defeat the Enemies
+ctmc A 0 0 Eastern Fairy Island - Lookout Platform - Defeat the Cannons and Enemies
+ctmc A 0 0 Western Fairy Island - Lookout Platform
+ctmc A 0 0 Southern Fairy Island - Lookout Platform - Destroy the Northwest Cannons
+ctmc A 0 0 Southern Fairy Island - Lookout Platform - Destroy the Southeast Cannons
+ctmc A 0 0 Northern Fairy Island - Submarine
+ctmc A 0 0 Diamond Steppe Island - Warp Maze Cave - First Chest
+ctmc A 0 0 Diamond Steppe Island - Warp Maze Cave - Second Chest
+ctmc A 0 0 Bomb Island - Cave
+ctmc A 0 0 Bomb Island - Lookout Platform - Defeat the Enemies
+ctmc A 0 0 Bomb Island - Submarine
+ctmc A 0 0 Rock Spire Isle - Cave
+ctmc A 0 0 Rock Spire Isle - Western Lookout Platform - Destroy the Cannons
+ctmc A 0 0 Rock Spire Isle - Eastern Lookout Platform - Destroy the Cannons
+ctmc A 0 0 Rock Spire Isle - Center Lookout Platform
+ctmc A 0 0 Shark Island - Cave
+ctmc A 2 0 Cliff Plateau Isles - Cave
+ctmc A 2 0 Cliff Plateau Isles - Highest Isle
+ctmc A 0 0 Cliff Plateau Isles - Lookout Platform
+ctmc A 0 0 Crescent Moon Island - Chest
+ctmc A 0 0 Crescent Moon Island - Submarine
+ctmc A 0 0 Horseshoe Island - Play Golf
+ctmc A 0 0 Horseshoe Island - Cave
+ctmc A 0 0 Horseshoe Island - Northwestern Lookout Platform
+ctmc A 0 0 Horseshoe Island - Southeastern Lookout Platform
+ctmc A 0 0 Flight Control Platform - Submarine
+ctmc A 0 0 Star Island - Cave
+ctmc A 0 0 Star Island - Lookout Platform
+ctmc A 0 0 Star Belt Archipelago - Lookout Platform
+ctmc A 0 0 Five-Star Isles - Lookout Platform - Destroy the Cannons
+ctmc A 0 0 Five-Star Isles - Raft
+ctmc A 0 0 Five-Star Isles - Submarine
+ctmc A 0 0 Seven-Star Isles - Center Lookout Platform
+ctmc A 0 0 Seven-Star Isles - Northern Lookout Platform
+ctmc A 0 0 Seven-Star Isles - Southern Lookout Platform
+ctmc A 0 0 Cyclops Reef - Destroy the Cannons and Gunboats
+ctmc A 0 0 Cyclops Reef - Lookout Platform - Defeat the Enemies
+ctmc A 0 0 Two-Eye Reef - Destroy the Cannons and Gunboats
+ctmc A 0 0 Two-Eye Reef - Lookout Platform
+ctmc A 0 0 Three-Eye Reef - Destroy the Cannons and Gunboats
+ctmc A 0 0 Four-Eye Reef - Destroy the Cannons and Gunboats
+ctmc A 0 0 Five-Eye Reef - Destroy the Cannons
+ctmc A 0 0 Five-Eye Reef - Lookout Platform
+ctmc A 0 0 Six-Eye Reef - Destroy the Cannons and Gunboats
+ctmc A 0 0 Six-Eye Reef - Lookout Platform - Destroy the Cannons
+ctmc A 0 0 Six-Eye Reef - Submarine
+seed B R6_5_seed_B.json
+ctmc B 0 0 Outset Island - Underneath Link's House
+ctmc B 2 0 Outset Island - Mesa the Grasscutter's House
+ctmc B 0 0 Outset Island - Jabun's Cave
+ctmc B 0 0 Outset Island - Savage Labyrinth - Floor 30
+ctmc B 0 0 Outset Island - Savage Labyrinth - Floor 50
+ctmc B 0 0 Windfall Island - Jail - Maze Chest
+ctmc B 0 0 Windfall Island - Lenzo's House - Left Chest
+ctmc B 0 0 Windfall Island - Lenzo's House - Right Chest
+ctmc B 0 0 Windfall Island - House of Wealth Chest
+ctmc B 0 0 Windfall Island - Transparent Chest
+ctmc B 0 0 Windfall Island - Pirate Ship
+ctmc B 0 0 Dragon Roost Island - Chest on Top of Boulder
+ctmc B 0 0 Dragon Roost Island - Fly Across Platforms Around Island
+ctmc B 0 0 Dragon Roost Island - Secret Cave
+ctmc B 1 0 Dragon Roost Cavern - First Room
+ctmc B 1 0 Dragon Roost Cavern - Alcove With Water Jugs
+ctmc B 1 0 Dragon Roost Cavern - Boarded Up Chest
+ctmc B 2 0 Dragon Roost Cavern - Chest Across Lava Pit
+ctmc B 1 0 Dragon Roost Cavern - Rat Room
+ctmc B 0 0 Dragon Roost Cavern - Rat Room Boarded Up Chest
+ctmc B 1 0 Dragon Roost Cavern - Dark Room
+ctmc B 0 0 Dragon Roost Cavern - Tingle Chest in Hub Room
+ctmc B 0 0 Dragon Roost Cavern - Pot Room Chest
+ctmc B 0 0 Dragon Roost Cavern - Miniboss
+ctmc B 2 0 Dragon Roost Cavern - Under Rope Bridge
+ctmc B 0 0 Dragon Roost Cavern - Tingle Statue Chest
+ctmc B 2 0 Dragon Roost Cavern - Big Key Chest
+ctmc B 0 0 Dragon Roost Cavern - Boss Stairs Right Chest
+ctmc B 2 0 Dragon Roost Cavern - Boss Stairs Left Chest
+ctmc B 0 0 Forest Haven - Small Island Chest
+ctmc B 0 0 Forbidden Woods - First Room
+ctmc B 0 0 Forbidden Woods - Inside Hollow Tree's Mouth
+ctmc B 0 0 Forbidden Woods - Climb to Top Using Boko Baba Bulbs
+ctmc B 0 0 Forbidden Woods - Hole in Tree
+ctmc B 0 0 Forbidden Woods - Morth Pit
+ctmc B 0 0 Forbidden Woods - Vine Maze Left Chest
+ctmc B 0 0 Forbidden Woods - Vine Maze Right Chest
+ctmc B 0 0 Forbidden Woods - Tall Room Before Miniboss
+ctmc B 0 0 Forbidden Woods - Mothula Miniboss Room
+ctmc B 0 0 Forbidden Woods - Past Seeds Hanging by Vines
+ctmc B 0 0 Forbidden Woods - Chest Across Red Hanging Flower
+ctmc B 0 0 Forbidden Woods - Tingle Statue Chest
+ctmc B 0 0 Forbidden Woods - Chest in Locked Tree Trunk
+ctmc B 0 0 Forbidden Woods - Big Key Chest
+ctmc B 0 0 Forbidden Woods - Double Mothula Room
+ctmc B 0 0 Greatfish Isle - Hidden Chest
+ctmc B 2 0 Tower of the Gods - Chest Behind Bombable Walls
+ctmc B 2 0 Tower of the Gods - Hop Across Floating Boxes
+ctmc B 1 0 Tower of the Gods - Light Two Torches
+ctmc B 1 0 Tower of the Gods - Skulls Room Chest
+ctmc B 2 0 Tower of the Gods - Shoot Eye Above Skulls Room Chest
+ctmc B 0 0 Tower of the Gods - Tingle Statue Chest
+ctmc B 2 0 Tower of the Gods - First Chest Guarded by Armos Knights
+ctmc B 0 0 Tower of the Gods - Darknut Miniboss Room
+ctmc B 1 0 Tower of the Gods - Second Chest Guarded by Armos Knights
+ctmc B 2 0 Tower of the Gods - Floating Platforms Room
+ctmc B 0 0 Tower of the Gods - Top of Floating Platforms Room
+ctmc B 2 0 Tower of the Gods - Big Key Chest
+ctmc B 2 0 Hyrule - Master Sword Chamber
+ctmc B 0 0 Forsaken Fortress - Phantom Ganon
+ctmc B 0 0 Forsaken Fortress - Chest Outside Upper Jail Cell
+ctmc B 0 0 Forsaken Fortress - Chest Inside Lower Jail Cell
+ctmc B 0 0 Forsaken Fortress - Chest Guarded By Bokoblin
+ctmc B 0 0 Forsaken Fortress - Chest on Bed
+ctmc B 2 0 Mother and Child Isles - Inside Mother Isle
+ctmc B 0 0 Fire Mountain - Cave - Chest
+ctmc B 0 0 Fire Mountain - Lookout Platform Chest
+ctmc B 0 0 Fire Mountain - Lookout Platform - Destroy the Cannons
+ctmc B 0 0 Ice Ring Isle - Frozen Chest
+ctmc B 2 0 Ice Ring Isle - Cave - Chest
+ctmc B 0 0 Ice Ring Isle - Inner Cave - Chest
+ctmc B 0 0 Headstone Island - Submarine
+ctmc B 0 0 Earth Temple - Transparent Chest In Warp Pot Room
+ctmc B 0 0 Earth Temple - Transparent Chest in First Crypt
+ctmc B 0 0 Earth Temple - Chest Behind Destructible Walls
+ctmc B 0 0 Earth Temple - Chest In Three Blocks Room
+ctmc B 0 0 Earth Temple - Chest Behind Statues
+ctmc B 0 0 Earth Temple - Stalfos Miniboss Room
+ctmc B 0 0 Earth Temple - Tingle Statue Chest
+ctmc B 0 0 Earth Temple - End of Foggy Room With Floormasters
+ctmc B 0 0 Earth Temple - Kill All Floormasters in Foggy Room
+ctmc B 0 0 Earth Temple - Chest in Third Crypt
+ctmc B 0 0 Earth Temple - Many Mirrors Room Right Chest
+ctmc B 0 0 Earth Temple - Many Mirrors Room Left Chest
+ctmc B 0 0 Earth Temple - Stalfos Crypt Room
+ctmc B 0 0 Earth Temple - Big Key Chest
+ctmc B 2 0 Wind Temple - Chest Between Two Dirt Patches
+ctmc B 0 0 Wind Temple - Tingle Statue Chest
+ctmc B 2 1 Wind Temple - Chest Behind Stone Head
+ctmc B 1 0 Wind Temple - Chest in Left Alcove
+ctmc B 2 0 Wind Temple - Big Key Chest
+ctmc B 0 0 Wind Temple - Chest In Many Cyclones Room
+ctmc B 0 0 Wind Temple - Chest In Middle Of Hub Room
+ctmc B 1 0 Wind Temple - Spike Wall Room - First Chest
+ctmc B 0 0 Wind Temple - Spike Wall Room - Destroy All Cracked Floors
+ctmc B 2 1 Wind Temple - Wizzrobe Miniboss Room
+ctmc B 2 0 Wind Temple - Chest at Top of Hub Room
+ctmc B 2 0 Wind Temple - Chest Behind Seven Armos
+ctmc B 1 0 Wind Temple - Kill All Enemies in Tall Basement Room
+ctmc B 2 0 Ganon's Tower - Maze Chest
+ctmc B 0 0 The Great Sea - Ghost Ship
+ctmc B 0 0 Private Oasis - Chest at Top of Waterfall
+ctmc B 2 0 Private Oasis - Cabana Labyrinth - Lower Floor Chest
+ctmc B 2 1 Private Oasis - Cabana Labyrinth - Upper Floor Chest
+ctmc B 0 0 Needle Rock Isle - Chest
+ctmc B 2 0 Needle Rock Isle - Cave
+ctmc B 0 0 Angular Isles - Peak
+ctmc B 2 0 Angular Isles - Cave
+ctmc B 0 0 Boating Course - Raft
+ctmc B 0 0 Boating Course - Cave
+ctmc B 0 0 Stone Watcher Island - Cave
+ctmc B 0 0 Stone Watcher Island - Lookout Platform Chest
+ctmc B 0 0 Stone Watcher Island - Lookout Platform - Destroy the Cannons
+ctmc B 2 0 Islet of Steel - Interior
+ctmc B 0 0 Islet of Steel - Lookout Platform - Defeat the Enemies
+ctmc B 0 0 Overlook Island - Cave
+ctmc B 2 0 Bird's Peak Rock - Cave
+ctmc B 2 0 Pawprint Isle - Chuchu Cave - Chest
+ctmc B 0 0 Pawprint Isle - Chuchu Cave - Behind Left Boulder
+ctmc B 2 0 Pawprint Isle - Chuchu Cave - Behind Right Boulder
+ctmc B 0 0 Pawprint Isle - Chuchu Cave - Scale the Wall
+ctmc B 0 0 Pawprint Isle - Wizzrobe Cave
+ctmc B 0 0 Pawprint Isle - Lookout Platform - Defeat the Enemies
+ctmc B 0 0 Thorned Fairy Island - Northeastern Lookout Platform - Destroy the Cannons
+ctmc B 0 0 Thorned Fairy Island - Southwestern Lookout Platform - Defeat the Enemies
+ctmc B 0 0 Eastern Fairy Island - Lookout Platform - Defeat the Cannons and Enemies
+ctmc B 0 0 Western Fairy Island - Lookout Platform
+ctmc B 0 0 Southern Fairy Island - Lookout Platform - Destroy the Northwest Cannons
+ctmc B 0 0 Southern Fairy Island - Lookout Platform - Destroy the Southeast Cannons
+ctmc B 0 0 Northern Fairy Island - Submarine
+ctmc B 2 1 Diamond Steppe Island - Warp Maze Cave - First Chest
+ctmc B 2 1 Diamond Steppe Island - Warp Maze Cave - Second Chest
+ctmc B 2 0 Bomb Island - Cave
+ctmc B 0 0 Bomb Island - Lookout Platform - Defeat the Enemies
+ctmc B 0 0 Bomb Island - Submarine
+ctmc B 0 0 Rock Spire Isle - Cave
+ctmc B 0 0 Rock Spire Isle - Western Lookout Platform - Destroy the Cannons
+ctmc B 0 0 Rock Spire Isle - Eastern Lookout Platform - Destroy the Cannons
+ctmc B 0 0 Rock Spire Isle - Center Lookout Platform
+ctmc B 0 0 Shark Island - Cave
+ctmc B 0 0 Cliff Plateau Isles - Cave
+ctmc B 2 0 Cliff Plateau Isles - Highest Isle
+ctmc B 0 0 Cliff Plateau Isles - Lookout Platform
+ctmc B 2 0 Crescent Moon Island - Chest
+ctmc B 0 0 Crescent Moon Island - Submarine
+ctmc B 0 0 Horseshoe Island - Play Golf
+ctmc B 0 0 Horseshoe Island - Cave
+ctmc B 0 0 Horseshoe Island - Northwestern Lookout Platform
+ctmc B 0 0 Horseshoe Island - Southeastern Lookout Platform
+ctmc B 0 0 Flight Control Platform - Submarine
+ctmc B 0 0 Star Island - Cave
+ctmc B 0 0 Star Island - Lookout Platform
+ctmc B 0 0 Star Belt Archipelago - Lookout Platform
+ctmc B 0 0 Five-Star Isles - Lookout Platform - Destroy the Cannons
+ctmc B 0 0 Five-Star Isles - Raft
+ctmc B 0 0 Five-Star Isles - Submarine
+ctmc B 0 0 Seven-Star Isles - Center Lookout Platform
+ctmc B 0 0 Seven-Star Isles - Northern Lookout Platform
+ctmc B 0 0 Seven-Star Isles - Southern Lookout Platform
+ctmc B 0 0 Cyclops Reef - Destroy the Cannons and Gunboats
+ctmc B 0 0 Cyclops Reef - Lookout Platform - Defeat the Enemies
+ctmc B 0 0 Two-Eye Reef - Destroy the Cannons and Gunboats
+ctmc B 0 0 Two-Eye Reef - Lookout Platform
+ctmc B 0 0 Three-Eye Reef - Destroy the Cannons and Gunboats
+ctmc B 0 0 Four-Eye Reef - Destroy the Cannons and Gunboats
+ctmc B 0 0 Five-Eye Reef - Destroy the Cannons
+ctmc B 0 0 Five-Eye Reef - Lookout Platform
+ctmc B 0 0 Six-Eye Reef - Destroy the Cannons and Gunboats
+ctmc B 0 0 Six-Eye Reef - Lookout Platform - Destroy the Cannons
+ctmc B 0 0 Six-Eye Reef - Submarine
+seed C R6_5_seed_C.json
+ctmc C 2 0 Outset Island - Underneath Link's House
+ctmc C 2 0 Outset Island - Mesa the Grasscutter's House
+ctmc C 0 0 Outset Island - Jabun's Cave
+ctmc C 0 0 Outset Island - Savage Labyrinth - Floor 30
+ctmc C 0 0 Outset Island - Savage Labyrinth - Floor 50
+ctmc C 0 0 Windfall Island - Jail - Maze Chest
+ctmc C 1 0 Windfall Island - Lenzo's House - Left Chest
+ctmc C 2 0 Windfall Island - Lenzo's House - Right Chest
+ctmc C 2 0 Windfall Island - House of Wealth Chest
+ctmc C 0 0 Windfall Island - Transparent Chest
+ctmc C 2 0 Windfall Island - Pirate Ship
+ctmc C 0 0 Dragon Roost Island - Chest on Top of Boulder
+ctmc C 0 0 Dragon Roost Island - Fly Across Platforms Around Island
+ctmc C 0 0 Dragon Roost Island - Secret Cave
+ctmc C 0 0 Dragon Roost Cavern - First Room
+ctmc C 2 0 Dragon Roost Cavern - Alcove With Water Jugs
+ctmc C 2 0 Dragon Roost Cavern - Boarded Up Chest
+ctmc C 1 0 Dragon Roost Cavern - Chest Across Lava Pit
+ctmc C 2 0 Dragon Roost Cavern - Rat Room
+ctmc C 2 0 Dragon Roost Cavern - Rat Room Boarded Up Chest
+ctmc C 0 0 Dragon Roost Cavern - Dark Room
+ctmc C 0 0 Dragon Roost Cavern - Tingle Chest in Hub Room
+ctmc C 0 0 Dragon Roost Cavern - Pot Room Chest
+ctmc C 0 0 Dragon Roost Cavern - Miniboss
+ctmc C 0 0 Dragon Roost Cavern - Under Rope Bridge
+ctmc C 0 0 Dragon Roost Cavern - Tingle Statue Chest
+ctmc C 0 0 Dragon Roost Cavern - Big Key Chest
+ctmc C 0 0 Dragon Roost Cavern - Boss Stairs Right Chest
+ctmc C 0 0 Dragon Roost Cavern - Boss Stairs Left Chest
+ctmc C 0 0 Forest Haven - Small Island Chest
+ctmc C 2 0 Forbidden Woods - First Room
+ctmc C 0 0 Forbidden Woods - Inside Hollow Tree's Mouth
+ctmc C 2 0 Forbidden Woods - Climb to Top Using Boko Baba Bulbs
+ctmc C 0 0 Forbidden Woods - Hole in Tree
+ctmc C 2 0 Forbidden Woods - Morth Pit
+ctmc C 0 0 Forbidden Woods - Vine Maze Left Chest
+ctmc C 2 0 Forbidden Woods - Vine Maze Right Chest
+ctmc C 2 0 Forbidden Woods - Tall Room Before Miniboss
+ctmc C 0 0 Forbidden Woods - Mothula Miniboss Room
+ctmc C 0 0 Forbidden Woods - Past Seeds Hanging by Vines
+ctmc C 0 0 Forbidden Woods - Chest Across Red Hanging Flower
+ctmc C 0 0 Forbidden Woods - Tingle Statue Chest
+ctmc C 0 0 Forbidden Woods - Chest in Locked Tree Trunk
+ctmc C 0 0 Forbidden Woods - Big Key Chest
+ctmc C 0 0 Forbidden Woods - Double Mothula Room
+ctmc C 0 0 Greatfish Isle - Hidden Chest
+ctmc C 0 0 Tower of the Gods - Chest Behind Bombable Walls
+ctmc C 2 0 Tower of the Gods - Hop Across Floating Boxes
+ctmc C 0 0 Tower of the Gods - Light Two Torches
+ctmc C 0 0 Tower of the Gods - Skulls Room Chest
+ctmc C 0 0 Tower of the Gods - Shoot Eye Above Skulls Room Chest
+ctmc C 0 0 Tower of the Gods - Tingle Statue Chest
+ctmc C 0 0 Tower of the Gods - First Chest Guarded by Armos Knights
+ctmc C 0 0 Tower of the Gods - Darknut Miniboss Room
+ctmc C 0 0 Tower of the Gods - Second Chest Guarded by Armos Knights
+ctmc C 0 0 Tower of the Gods - Floating Platforms Room
+ctmc C 0 0 Tower of the Gods - Top of Floating Platforms Room
+ctmc C 0 0 Tower of the Gods - Big Key Chest
+ctmc C 2 0 Hyrule - Master Sword Chamber
+ctmc C 1 0 Forsaken Fortress - Phantom Ganon
+ctmc C 0 0 Forsaken Fortress - Chest Outside Upper Jail Cell
+ctmc C 2 0 Forsaken Fortress - Chest Inside Lower Jail Cell
+ctmc C 0 0 Forsaken Fortress - Chest Guarded By Bokoblin
+ctmc C 2 0 Forsaken Fortress - Chest on Bed
+ctmc C 1 0 Mother and Child Isles - Inside Mother Isle
+ctmc C 0 0 Fire Mountain - Cave - Chest
+ctmc C 0 0 Fire Mountain - Lookout Platform Chest
+ctmc C 0 0 Fire Mountain - Lookout Platform - Destroy the Cannons
+ctmc C 0 0 Ice Ring Isle - Frozen Chest
+ctmc C 0 0 Ice Ring Isle - Cave - Chest
+ctmc C 0 0 Ice Ring Isle - Inner Cave - Chest
+ctmc C 0 0 Headstone Island - Submarine
+ctmc C 2 0 Earth Temple - Transparent Chest In Warp Pot Room
+ctmc C 2 0 Earth Temple - Transparent Chest in First Crypt
+ctmc C 0 0 Earth Temple - Chest Behind Destructible Walls
+ctmc C 1 0 Earth Temple - Chest In Three Blocks Room
+ctmc C 0 0 Earth Temple - Chest Behind Statues
+ctmc C 0 0 Earth Temple - Stalfos Miniboss Room
+ctmc C 0 0 Earth Temple - Tingle Statue Chest
+ctmc C 0 0 Earth Temple - End of Foggy Room With Floormasters
+ctmc C 2 0 Earth Temple - Kill All Floormasters in Foggy Room
+ctmc C 0 0 Earth Temple - Chest in Third Crypt
+ctmc C 0 0 Earth Temple - Many Mirrors Room Right Chest
+ctmc C 0 0 Earth Temple - Many Mirrors Room Left Chest
+ctmc C 0 0 Earth Temple - Stalfos Crypt Room
+ctmc C 0 0 Earth Temple - Big Key Chest
+ctmc C 0 0 Wind Temple - Chest Between Two Dirt Patches
+ctmc C 0 0 Wind Temple - Tingle Statue Chest
+ctmc C 0 0 Wind Temple - Chest Behind Stone Head
+ctmc C 0 0 Wind Temple - Chest in Left Alcove
+ctmc C 0 0 Wind Temple - Big Key Chest
+ctmc C 0 0 Wind Temple - Chest In Many Cyclones Room
+ctmc C 0 0 Wind Temple - Chest In Middle Of Hub Room
+ctmc C 0 0 Wind Temple - Spike Wall Room - First Chest
+ctmc C 0 0 Wind Temple - Spike Wall Room - Destroy All Cracked Floors
+ctmc C 0 0 Wind Temple - Wizzrobe Miniboss Room
+ctmc C 0 0 Wind Temple - Chest at Top of Hub Room
+ctmc C 2 0 Wind Temple - Chest Behind Seven Armos
+ctmc C 0 0 Wind Temple - Kill All Enemies in Tall Basement Room
+ctmc C 2 0 Ganon's Tower - Maze Chest
+ctmc C 1 0 The Great Sea - Ghost Ship
+ctmc C 2 1 Private Oasis - Chest at Top of Waterfall
+ctmc C 0 0 Private Oasis - Cabana Labyrinth - Lower Floor Chest
+ctmc C 1 0 Private Oasis - Cabana Labyrinth - Upper Floor Chest
+ctmc C 0 0 Needle Rock Isle - Chest
+ctmc C 0 0 Needle Rock Isle - Cave
+ctmc C 0 0 Angular Isles - Peak
+ctmc C 1 0 Angular Isles - Cave
+ctmc C 0 0 Boating Course - Raft
+ctmc C 0 0 Boating Course - Cave
+ctmc C 0 0 Stone Watcher Island - Cave
+ctmc C 0 0 Stone Watcher Island - Lookout Platform Chest
+ctmc C 0 0 Stone Watcher Island - Lookout Platform - Destroy the Cannons
+ctmc C 2 0 Islet of Steel - Interior
+ctmc C 0 0 Islet of Steel - Lookout Platform - Defeat the Enemies
+ctmc C 0 0 Overlook Island - Cave
+ctmc C 1 0 Bird's Peak Rock - Cave
+ctmc C 2 0 Pawprint Isle - Chuchu Cave - Chest
+ctmc C 2 0 Pawprint Isle - Chuchu Cave - Behind Left Boulder
+ctmc C 0 0 Pawprint Isle - Chuchu Cave - Behind Right Boulder
+ctmc C 2 0 Pawprint Isle - Chuchu Cave - Scale the Wall
+ctmc C 0 0 Pawprint Isle - Wizzrobe Cave
+ctmc C 0 0 Pawprint Isle - Lookout Platform - Defeat the Enemies
+ctmc C 0 0 Thorned Fairy Island - Northeastern Lookout Platform - Destroy the Cannons
+ctmc C 0 0 Thorned Fairy Island - Southwestern Lookout Platform - Defeat the Enemies
+ctmc C 0 0 Eastern Fairy Island - Lookout Platform - Defeat the Cannons and Enemies
+ctmc C 0 0 Western Fairy Island - Lookout Platform
+ctmc C 0 0 Southern Fairy Island - Lookout Platform - Destroy the Northwest Cannons
+ctmc C 0 0 Southern Fairy Island - Lookout Platform - Destroy the Southeast Cannons
+ctmc C 0 0 Northern Fairy Island - Submarine
+ctmc C 0 0 Diamond Steppe Island - Warp Maze Cave - First Chest
+ctmc C 1 0 Diamond Steppe Island - Warp Maze Cave - Second Chest
+ctmc C 1 0 Bomb Island - Cave
+ctmc C 0 0 Bomb Island - Lookout Platform - Defeat the Enemies
+ctmc C 0 0 Bomb Island - Submarine
+ctmc C 0 0 Rock Spire Isle - Cave
+ctmc C 0 0 Rock Spire Isle - Western Lookout Platform - Destroy the Cannons
+ctmc C 0 0 Rock Spire Isle - Eastern Lookout Platform - Destroy the Cannons
+ctmc C 0 0 Rock Spire Isle - Center Lookout Platform
+ctmc C 0 0 Shark Island - Cave
+ctmc C 2 0 Cliff Plateau Isles - Cave
+ctmc C 0 0 Cliff Plateau Isles - Highest Isle
+ctmc C 0 0 Cliff Plateau Isles - Lookout Platform
+ctmc C 2 0 Crescent Moon Island - Chest
+ctmc C 0 0 Crescent Moon Island - Submarine
+ctmc C 0 0 Horseshoe Island - Play Golf
+ctmc C 2 1 Horseshoe Island - Cave
+ctmc C 0 0 Horseshoe Island - Northwestern Lookout Platform
+ctmc C 0 0 Horseshoe Island - Southeastern Lookout Platform
+ctmc C 2 1 Flight Control Platform - Submarine
+ctmc C 0 0 Star Island - Cave
+ctmc C 0 0 Star Island - Lookout Platform
+ctmc C 0 0 Star Belt Archipelago - Lookout Platform
+ctmc C 0 0 Five-Star Isles - Lookout Platform - Destroy the Cannons
+ctmc C 0 0 Five-Star Isles - Raft
+ctmc C 0 0 Five-Star Isles - Submarine
+ctmc C 0 0 Seven-Star Isles - Center Lookout Platform
+ctmc C 0 0 Seven-Star Isles - Northern Lookout Platform
+ctmc C 0 0 Seven-Star Isles - Southern Lookout Platform
+ctmc C 2 1 Cyclops Reef - Destroy the Cannons and Gunboats
+ctmc C 0 0 Cyclops Reef - Lookout Platform - Defeat the Enemies
+ctmc C 0 0 Two-Eye Reef - Destroy the Cannons and Gunboats
+ctmc C 0 0 Two-Eye Reef - Lookout Platform
+ctmc C 0 0 Three-Eye Reef - Destroy the Cannons and Gunboats
+ctmc C 0 0 Four-Eye Reef - Destroy the Cannons and Gunboats
+ctmc C 0 0 Five-Eye Reef - Destroy the Cannons
+ctmc C 0 0 Five-Eye Reef - Lookout Platform
+ctmc C 0 0 Six-Eye Reef - Destroy the Cannons and Gunboats
+ctmc C 2 1 Six-Eye Reef - Lookout Platform - Destroy the Cannons
+ctmc C 0 0 Six-Eye Reef - Submarine

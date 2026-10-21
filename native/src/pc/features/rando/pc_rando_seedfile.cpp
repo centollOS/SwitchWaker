@@ -2,6 +2,8 @@
 // no game headers or calls (cos_rando_core links it into the unit tests without game code).
 #include "pc_rando_seedfile.h"
 
+#include "pc_rando_data.h"
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -175,6 +177,22 @@ bool itemId(const std::string& name, const char* where, uint8_t* out, std::strin
     return true;
 }
 
+// R6.5: a trap chest ("Ice Trap Chest", items.py change_chest_item) keeps the chest's own item id
+// (wwrando sets only the trap flag, never item_id), so the location's item id is its original item;
+// the trap itself is read from the item name (pc_rando_trap.h).
+bool locationItemId(const std::string& name, const std::string& location, uint8_t* out, std::string* err) {
+    static const char kTrap[] = " Trap Chest";
+    const size_t n = sizeof kTrap - 1;
+    if (name.size() > n && name.compare(name.size() - n, n, kTrap) == 0) {
+        const int loc = pcr::location_index(location.c_str());
+        if (loc < 0) {
+            return failWith(err, location + ": a trap chest at an unknown location");
+        }
+        return itemId(pcr::locations()[(size_t)loc].original_item, location.c_str(), out, err);
+    }
+    return itemId(name, location.c_str(), out, err);
+}
+
 bool parseInto(std::string_view text, PcRandoSeed* s, std::string* err) {
     pcr::Json root;
     std::string jerr;
@@ -284,7 +302,7 @@ bool parseInto(std::string_view text, PcRandoSeed* s, std::string* err) {
         if (!v.isString()) {
             return failWith(err, "\"locations\": \"" + locations->keyAt(i) + "\" is not an item name");
         }
-        if (!itemId(v.text(), locations->keyAt(i).c_str(), &s->locations[i], err)) {
+        if (!locationItemId(v.text(), locations->keyAt(i), &s->locations[i], err)) {
             return false;
         }
         s->location_names.push_back(locations->keyAt(i));

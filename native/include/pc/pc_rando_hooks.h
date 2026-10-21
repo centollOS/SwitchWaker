@@ -333,6 +333,16 @@ int pc_rando_pirate_ship_build_messages(void);
 /* Registers the patchers (listed in pc_rando_patchers.def). Idempotent. */
 void pc_rando_pirate_ship_init(void);
 
+/* --- R6.5: trap chests (asm/actors/d_a_tbox.cpp demoProc SPRING_TRAP; game_hooks/pc_rando_hooks_trap.cpp,
+   the file edits in features/rando/pc_rando_trap.h) --- */
+/* daTbox_c::demoProc, SPRING_TRAP's first frame under pc_rando(): the trap timer (mOpenTimer) back to
+   0 and the smoke (particle 0x029D) on the chest. `tbox` is the daTbox_c. */
+void pc_rando_tbox_spring_trap_init(void* tbox);
+/* daTbox_c::demoProc, every SPRING_TRAP frame under pc_rando() (demoProcSpringTrap): frame 5 freezes
+   the player and takes 2 quarter hearts, 0x30 stops the smoke, 0x60 thaws him, 0x64 restores his
+   ground checks and ends the cut. */
+void pc_rando_tbox_spring_trap(void* tbox);
+
 #ifdef __cplusplus
 }
 #endif
