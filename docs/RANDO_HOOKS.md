@@ -529,3 +529,15 @@ those code bytes too). Checked by the `addchest` smoke and `cos_rando_test_R2_10
 |---|---|---|---|
 | game/src/d/actor/d_a_demo00.cpp | `daDemo00_c::execute` (demo item parameter, `field_0x29c == 5`): `l_itemNo[0]` Master Sword Chamber, `[5]` Jabun's Cave, `[8]` Inside Mother Isle give their placed items through `pc_rando_added_chests_demo_item` | `?:` (`#if`/`#else`, original in `#else`) | item_locations.txt main.dol@8035BD34/8035BD39/8035BD3C |
 | game/src/d/actor/d_a_npc_md.cpp | `daNpc_Md_c::initialLetterEvent` (`mCurEvent == 1`, item 0x25): Dragon Roost Cavern - Miniboss | `?:` (`#if`/`#else`, `pc_rando_loc_item`) | item_locations.txt d_a_npc_md.rel@AF2F |
+
+## R3.19
+
+Zephos, the auction intro and Zephos's double song. The two event edits (`tweaks.py`
+`shorten_zephos_event`: sea `TACT_HT` Hr/Link actions[0:7], CAMERA actions[0:5], ending flags = the
+last actions' flags; `shorten_auction_intro_event`: Orichh `AUCTION_START` CAMERA actions[3] and [4]
+removed) are a `.dat` patcher on R0.10's archive-load dispatcher (`features/rando/pc_rando_tweak_zephos.{h,cpp}`)
+and need no hunk.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_npc_hr.cpp | `daNpc_Hr_c::demoProcTact0` (the hard-coded `execItemGet(dItemNo_WINDS_REQUIEM_e)` skipped) | `#if TARGET_PC` `if/else` | `flexible_item_locations.asm` d_a_npc_hr 0x1164 |

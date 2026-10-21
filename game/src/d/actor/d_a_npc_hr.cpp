@@ -13,6 +13,9 @@
 #include "d/actor/d_a_tornado.h"
 #include "d/d_item.h"
 #include "f_op/f_op_actor_mng.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 static fpc_ProcID l_msgId;
 static msg_class* l_msg;
@@ -461,7 +464,17 @@ BOOL daNpc_Hr_c::demoProcTact0() {
             if (dComIfGp_checkMesgCancelButton()) {
                 setFlag(HR_FLAG_00000200);
             } else {
+#if TARGET_PC
+                // pc_rando(R3.19): flexible_item_locations.asm d_a_npc_hr 0x1164 (b 0x116C); original: execItemGet(dItemNo_WINDS_REQUIEM_e)
+                // The Wind Shrine's item comes only from TACT_HT's 059get_dance / 011get_item cut
+                // (the placed item), not also from Zephos's hard-coded Wind's Requiem.
+                if (pc_rando()) {
+                } else {
+                    execItemGet(dItemNo_WINDS_REQUIEM_e);
+                }
+#else
                 execItemGet(dItemNo_WINDS_REQUIEM_e);
+#endif
             }
             dComIfGp_evmng_cutEnd(mStaffIdx);
             clrFlag(HR_FLAG_00000002);

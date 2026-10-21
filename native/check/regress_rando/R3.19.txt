@@ -1,0 +1,11 @@
+# R3.19 (docs/RANDOMIZER_PLAN.md): Zephos and the auction intro. Sea room 13: the Wind Shrine's
+# TACT_HT ordered through Zephos's X-button talk and played to its end with a driven pad (the
+# Wind's Requiem conducted on the C-stick); plain: the vanilla event (28 Hr cuts, the song learnt);
+# forced: the shortened event (7/7/5 cuts, ending flags) with a stand-in Piece of Heart at Link's
+# 059get_dance gives only that item (no hard-coded Wind's Requiem from daNpc_Hr_c::demoProcTact0).
+# Orichh: AUCTION_START's CAMERA chain, 13 cuts plain, 11 forced (the pan and the pause after it).
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:13:5 --env COS_RANDO_SMOKE=zephos
+rando 0 --stage sea:13:5 --env COS_RANDO_SMOKE=zephos --env COS_RANDO_FORCE=1
+rando 0 --stage Orichh:0 --env COS_RANDO_SMOKE=zephos
+rando 0 --stage Orichh:0 --env COS_RANDO_SMOKE=zephos --env COS_RANDO_FORCE=1
