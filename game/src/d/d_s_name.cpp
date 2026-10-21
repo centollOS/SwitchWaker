@@ -1231,6 +1231,11 @@ void dScnName_c::FileSelectMainNormal() {
 #if TARGET_PC
             // pc_rando(R0.7): plan D7 (a slot with a rando record activates its sidecar); original: none
             pc_rando_slot_card_loaded();
+            if (pc_rando()) {
+                // pc_rando(R3.2): misc_rando_features.asm fully_refill_magic_meter_and_cap_health_on_load_save
+                // 0x80231B08 (magic refilled, HP capped at the max rounded down to a heart); original: none
+                pc_rando_start_on_load();
+            }
 #endif
             if (dFs_c->isDataExtra(dFs_c->getSelectNum()) && !dComIfGs_isEventBit(dSv_event_flag_c::UNK_3510)) {
                 field_0x1bb9 = 1;

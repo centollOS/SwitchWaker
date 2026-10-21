@@ -1,0 +1,6 @@
+# R3.2 (docs/RANDOMIZER_PLAN.md), target "rando-start": a real new game with a pending seed starts on
+# Outset's dock (spawn 0) with 3 hearts, the sword and Hero's clothes, and the boat next to the dock
+# (sea/Room44 SHIP 0, after the y -500000 lava fix); plus the load, game-over, file-select and New
+# Game+ hunks. Its own empty run card. Not forced.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --input native/check/input/new-game-skip-intro.txt --env COS_RANDO_SMOKE=start

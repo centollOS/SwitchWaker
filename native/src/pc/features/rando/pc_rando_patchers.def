@@ -13,3 +13,4 @@ PC_RANDO_PATCHER(pc_rando_tweak_stages_b_init) // R3.16: stage tweaks B (failsaf
 PC_RANDO_PATCHER(pc_rando_posttext_patchers_init) // R3.21: builds the post-randomization texts at the first archive load when the activation came before the message archive (debug boot)
 PC_RANDO_PATCHER(pc_rando_place_event_init) // R2.4: the 11 event item locations (event_list.dat change_event_item; pc_rando_place_event.h)
 PC_RANDO_PATCHER(pc_rando_tweak_added_chests_init) // R2.10: the 4 added chests (Jabun, Medli, Master Sword, Mother Isle), their room edits and the ajav_uzu event
+PC_RANDO_PATCHER(pc_rando_start_init) // R3.2: start_ship_at_outset + prevent_fire_mountain_lava_softlock (sea/Stage Ship ACTR; game_hooks/pc_rando_hooks_start.cpp)

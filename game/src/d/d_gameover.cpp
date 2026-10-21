@@ -6,6 +6,8 @@
 #include "d/dolzel.h" // IWYU pragma: keep
 #if TARGET_PC
 #include "pc/pc_aspect.h"
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 #include "d/d_gameover.h"
 #include "d/d_meter.h"
@@ -120,7 +122,13 @@ BOOL dGameover_c::_execute() {
 #else
         if (dMs_c->_open()) {
             mState = 4;
+#if TARGET_PC
+            // pc_rando(R3.2): misc_rando_features.asm gameover_continue_reset_life 0x8018E7D0 (min of 3
+            // hearts and the max rounded down to a heart); original: 12
+            dComIfGs_setLife(pc_rando() ? pc_rando_start_gameover_life(dComIfGs_getMaxLife()) : 12);
+#else
             dComIfGs_setLife(12);
+#endif
         }
 #endif
     } else if (mState == 4) {

@@ -466,6 +466,25 @@ hook after `dComIfGs_init`, which calls `pc_rando_new_game_init`
 |---|---|---|---|
 | - | no hunks in `game/`: `pc_rando_new_game_init`, called from `pc_rando_slot_new_game_end` / `pc_rando_slot_debug_boot_end` (`native/src/pc/game_hooks/pc_rando_hooks_slot.cpp`) | - | `custom_funcs.asm` `init_save_with_tweaks`, `init_starting_gear`; `reveal_sea_chart.asm` 0x8005B2CC |
 
+## R3.2
+
+Health, magic, clothes and the start spawn (`misc_rando_features.asm`, `make_game_nonlinear.asm`
+`reinit`, `tweaks.py` `skip_wakeup_intro_and_start_at_dock`). Hook bodies in
+`native/src/pc/game_hooks/pc_rando_hooks_start.cpp`, pure part in
+`native/src/pc/features/rando/pc_rando_start.{h,cpp}`. `start_ship_at_outset` and
+`prevent_fire_mountain_lava_softlock` are not hunks: a dzx patcher on R0.10's dispatcher moves the
+sea `stage.dzs` "Ship" ACTR to sea/Room44's SHIP 0 (read from the disc once) and sets its y to -500000.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/d_save.cpp | `dSv_player_status_a_c::init` (max HP `starting_quarter_hearts`, HP rounded down to a heart) | `if/else` | `misc_rando_features.asm` `set_starting_health` 0x800589A8 |
+| game/src/d/d_save.cpp | `dSv_player_return_place_c::init` (spawn 0 instead of 206) | `?:` | `tweaks.py` `skip_wakeup_intro_and_start_at_dock` (DOL 0x80058BAF) |
+| game/src/d/d_save.cpp | `dSv_info_c::reinit` (4 blocks: Lenzo's register, jail chest, Deluxe Picto Box, the two camera owned bits) | `if (!pc_rando())` | `make_game_nonlinear.asm` 0x8005D78C, 0x8005D7A4, 0x8005D7FC, 0x8005D81C, 0x8005D82C |
+| game/src/d/d_file_select.cpp | `dFile_select_c::makeRecInfo` (a blank slot shows the starting HP; `pc_rando_start_file_select_life` returns the saved value unless the slot is blank and `pc_rando()` or a pending seed is on) | hook returning the vanilla value | `misc_rando_features.asm` `get_current_health_for_file_select_screen` 0x80182504, `get_max_health_for_file_select_screen` 0x80182544 |
+| game/src/d/d_s_name.cpp | `dScnName_c::FileSelectMainNormal` (after R0.7's load hook: magic refilled, HP capped) | `add` | `misc_rando_features.asm` `fully_refill_magic_meter_and_cap_health_on_load_save` 0x80231B08 |
+| game/src/d/actor/d_a_player_main.cpp | `daPy_lk_c::playerInit` (casual clothes iff `heros_clothes != 1`) | `?:` | `misc_rando_features.asm` `check_player_in_casual_clothes` 0x80125AD8 |
+| game/src/d/d_gameover.cpp | `dGameover_c::_execute` (continue HP min(12, max rounded down)) | `?:` | `misc_rando_features.asm` `gameover_continue_reset_life` 0x8018E7D0 |
+
 ## R3.5
 
 Key bag text (`tweaks.py` `implement_key_bag`, `misc_rando_features.asm`

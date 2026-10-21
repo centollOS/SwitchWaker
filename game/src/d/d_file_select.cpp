@@ -20,6 +20,9 @@
 #include "m_Do/m_Do_hostIO.h"
 #include "m_Do/m_Do_controller_pad.h"
 #include <stdio.h>
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 
 dFs_HIO_c g_fsHIO;
 
@@ -650,7 +653,18 @@ void dFile_select_c::makeRecInfo(u8 i_dataNo) {
 
     dSv_save_c_PACKED* saveData = (dSv_save_c_PACKED*)&mSaveDataPtr[i_dataNo * sizeof(card_gamedata)];
 
+#if TARGET_PC
+    // pc_rando(R3.2): misc_rando_features.asm get_current_health_for_file_select_screen 0x80182504 and
+    // get_max_health_for_file_select_screen 0x80182544 (a blank slot shows the starting HP; the hook
+    // returns the saved value unless the slot is blank and pc_rando() or a pending seed is on);
+    // original: the saved mLife and mMaxLife
+    u16 curHealth = pc_rando_start_file_select_life(saveData->mPlayer.mInfo.mPlayerName[0],
+                                                    saveData->mPlayer.mPlayerStatusA.mLife, 0);
+    const u16 maxHealth = pc_rando_start_file_select_life(saveData->mPlayer.mInfo.mPlayerName[0],
+                                                          saveData->mPlayer.mPlayerStatusA.mMaxLife, 1);
+#else
     u16 curHealth = saveData->mPlayer.mPlayerStatusA.mLife;
+#endif
 
     int curHearts = curHealth / 4;
     int healthMod4 = curHealth % 4;
@@ -660,7 +674,11 @@ void dFile_select_c::makeRecInfo(u8 i_dataNo) {
 
     // display hearts
     for(i = 0; i < 0x14; i++) {
+#if TARGET_PC
+        if(i < maxHealth / 4) {
+#else
         if(i < saveData->mPlayer.mPlayerStatusA.mMaxLife / 4) {
+#endif
             field_0x828[i].pane->show();
             field_0xc88[i].pane->show();
 
