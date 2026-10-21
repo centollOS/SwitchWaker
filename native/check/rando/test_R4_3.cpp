@@ -7,8 +7,9 @@
 //   - its files: the spoiler and non-spoiler logs in the log folder (created with its parents), each
 //     ending with the D5 trailer, and the sidecar <card dir>/switchwaker-rando-<hash32>.json, which
 //     parses back to the result's placement and hash;
-//   - a failing job (hints refused: allowMissingHints off) writes the error log and removes the
-//     earlier run's logs of that seed; no sidecar.
+//   - a failing job (an option not ported yet, randomize_enemy_palettes, refused) writes the error
+//     log and removes the earlier run's logs of that seed; no sidecar. (Before R5.1 this was the
+//     hints refusal with allowMissingHints off; hints are generated since R5.1.)
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
@@ -152,7 +153,11 @@ int main() {
     }
 
     // ---- failure: the error log replaces the earlier logs of the seed ----------------------------
-    RT_CHECK(pcr::genJobStart(request("TestSeed1", false), paths, &err));
+    {
+        pcr::GenRequest badReq = request("TestSeed1", true);
+        badReq.options.randomize_enemy_palettes = true; // refused until R7.2
+        RT_CHECK(pcr::genJobStart(badReq, paths, &err));
+    }
     pcr::genJobWait();
     pcr::GenJobResult bad;
     RT_CHECK(pcr::genJobTake(&bad));
@@ -165,7 +170,7 @@ int main() {
     RT_CHECK(!exists(nonSpoiler));
     {
         const std::string text = readAll(errorLog);
-        RT_CHECK(text.find("Error on seed TestSeed1:\nNot supported yet: hints") != std::string::npos);
+        RT_CHECK(text.find("Error on seed TestSeed1:\nNot supported yet: randomize_enemy_palettes") != std::string::npos);
         RT_CHECK(endsWith(text, trailer));
     }
     RT_CHECK_EQ(sEnter.load(), 2);
