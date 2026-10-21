@@ -1,0 +1,12 @@
+# R6.8 (docs/RANDOMIZER_PLAN.md): required bosses mode, generator half (pc_rando_gen_bosses.cpp, a
+# port of boss_reqs.py's _randomize). The unit test cos_rando_test_R6_8 (run by regress with the other
+# cos_rando_test_*) checks wwrando's vectors (fixtures/R6_8_bossreqs.txt). These lines generate seeds
+# with required bosses on and require them golden against wwrando 1.10.0_9775811 (placement, required
+# boss locations, banned-location fill, spoiler sections; hints aside): 2 and 4 required bosses at the
+# defaults (1 raises TooFewProgressionLocationsError there, on both sides), 1 and 6 with every category.
+# "script" runs the rest of the line from the repository root; it needs the oracle venv
+# (native/tools/rando/setup_oracle.sh).
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 10 --golden --prefix RegRB2_ required_bosses=true num_required_bosses=2
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 10 --golden --prefix RegRB4_ required_bosses=true num_required_bosses=4
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 10 --golden --preset all_categories --prefix RegRBA1_ required_bosses=true num_required_bosses=1
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 10 --golden --preset all_categories --prefix RegRBA6_ required_bosses=true num_required_bosses=6

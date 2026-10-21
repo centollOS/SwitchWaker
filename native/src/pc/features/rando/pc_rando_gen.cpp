@@ -5,6 +5,7 @@
 
 #include <string.h>
 
+#include "pc_rando_gen_bosses.h"
 #include "pc_rando_gen_charts.h"
 #include "pc_rando_gen_extra.h"
 #include "pc_rando_gen_hints.h"
@@ -78,9 +79,6 @@ std::string unsupportedOptionsError(const Options& o, bool allowMissingHints) {
                "). Turn the option off to generate a seed.";
     };
     // In randomizer.py's order of the randomizers.
-    if (o.required_bosses) {
-        return refuse("required_bosses", "R6.8");
-    }
     if (o.randomize_dungeon_entrances || o.randomize_secret_cave_entrances || o.randomize_miniboss_entrances ||
         o.randomize_boss_entrances || o.randomize_secret_cave_inner_entrances ||
         o.randomize_fairy_fountain_entrances) {
@@ -193,8 +191,8 @@ bool generate(const GenRequest& req, GenResult& out) {
 
     traceBegin(out.sanitizedSeed);
 
-    // randomize(): the randomizers in order. boss_reqs and entrances are disabled here (refused
-    // above when on).
+    // randomize(): the randomizers in order. entrances are disabled here (refused above when
+    // on).
     if (o.randomize_charts) {
         // ChartRandomizer (R6.6): a fresh RNG, _randomize, then logic.update_chart_macros().
         PyRandom rng;
@@ -204,6 +202,20 @@ bool generate(const GenRequest& req, GenResult& out) {
             return fail("ChartRandomizer: the island chart table does not hold 49 islands");
         }
         logic.updateChartMacros();
+    }
+    if (logic.state().bossReqsEnabled) {
+        // RequiredBossesRandomizer (R6.8): progress weight 0.
+        PyRandom rng;
+        newRandomizerRng(rng, out.sanitizedSeed, o, req.seedKey);
+        traceAttach(rng, "RequiredBossesRandomizer");
+        RequiredBosses rb;
+        std::string err;
+        if (!randomizeRequiredBosses(logic, rng, rb, &err)) {
+            return fail(err);
+        }
+        in.requiredDungeons = rb.requiredDungeons;
+        in.bannedDungeons = rb.bannedDungeons;
+        in.requiredBosses = rb.requiredBosses;
     }
     if (o.randomize_starting_island) {
         // StartingIslandRandomizer (R6.7); disabled it keeps room 44 (Outset).
