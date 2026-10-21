@@ -69,7 +69,8 @@ def main():
       src = os.path.join(os.path.dirname(paths["spoiler"]), name)
       if os.path.exists(src):
         shutil.copy(src, os.path.join(ours, name))
-    _, problems = check_seeds.check_one((seed, {}, os.path.join(ours, seed + ".json"), None, tmp, True))
+    _, problems = check_seeds.check_one((seed, {}, os.path.join(ours, seed + ".json"), None, tmp, True,
+                                          False))  # hints: the menu generates without them
     for p in problems:
       print(f"FAIL {seed}: {p}")
     if problems:

@@ -122,7 +122,9 @@ void finish() {
     randoSmokeCheck(kName, "seed TestSeed1", l.seed == "TestSeed1");
     char line[160];
     snprintf(line, sizeof line, "the frames went on (frames %u-%u, %.3f s)", l.startFrame, l.endFrame, l.seconds);
-    randoSmokeCheck(kName, line, l.endFrame > l.startFrame);
+    // A generation shorter than a frame (about 6 ms at the defaults without hints) can end before
+    // the next frame, so the frame count only has to move when it took longer than that.
+    randoSmokeCheck(kName, line, l.endFrame > l.startFrame || (l.endFrame == l.startFrame && l.seconds < 1.0 / 60));
 
     const PcRandoSeed* pending = pc_rando_slot_pending();
     randoSmokeCheck(kName, "the result is the pending seed", pending != nullptr && pending->seed == "TestSeed1");
