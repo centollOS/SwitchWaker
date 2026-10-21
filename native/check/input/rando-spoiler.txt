@@ -1,0 +1,24 @@
+# COS_SMOKE=rando COS_RANDO_SMOKE=spoiler (native/src/pc/harness/smokes/pc_rando_smoke_spoiler.cpp;
+# docs/RANDOMIZER_PLAN.md step R4.5), with --stage sea:44:206. The smoke generates TestSeed1, then at
+# frame 520 presses A on the Randomizer tab's "Spoiler log..." row: the options menu shows the
+# confirmation (shot 530). This script, read by the menu (randoMenuSetScripted):
+#   540 A: show; DOWN, DOWN, RIGHT: the cursor on "Sphere 2" (checked at 570, shot 580);
+#   600 R: the "Locations by zone" section; RIGHT, RIGHT: the third zone (checked at 620, shot 630);
+#   650 B: the page closes (checked at 660).
+# frame buttons stickX stickY
+540 A 0 0
+542 - 0 0
+550 DOWN 0 0
+552 - 0 0
+554 DOWN 0 0
+556 - 0 0
+558 RIGHT 0 0
+560 - 0 0
+600 R 0 0
+602 - 0 0
+604 RIGHT 0 0
+606 - 0 0
+608 RIGHT 0 0
+610 - 0 0
+650 B 0 0
+652 - 0 0

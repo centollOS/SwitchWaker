@@ -89,9 +89,10 @@ void start() {
     const int randomRow = actionRow(rows, "Random seed");
     const int permalinkRow = actionRow(rows, "Paste permalink");
     const int genRow = actionRow(rows, "Generate");
+    // (later steps' rows may follow Generate: R4.5's "Spoiler log...")
     randoSmokeCheck(kName, "the four seed rows, in order, after the options",
                     seedRow > 0 && randomRow == seedRow + 1 && permalinkRow == seedRow + 2 && genRow == seedRow + 3 &&
-                        genRow == (int)rows.size() - 1 && rows[seedRow - 1].kind == RandoRowKind::Option);
+                        rows[seedRow - 1].kind == RandoRowKind::Option);
     if (genRow < 0) {
         randoSmokeEnd(kName);
     }
