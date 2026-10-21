@@ -41,3 +41,4 @@ PC_RANDO_SMOKE(posttext, randoSmokePosttext) // R3.21: post-randomization texts 
 PC_RANDO_SMOKE(evloc, randoSmokeEvloc) // R2.4: the 11 event locations (T1 event_list.dat actions read back, T2 an event gives the placed item), Orca site, Hurricane Spin bit 0x6901
 PC_RANDO_SMOKE(addchest, randoSmokeAddchest) // R2.10: the 4 added chests (records, live chests, T2 opening) and their room/event edits; vanilla by content hash
 PC_RANDO_SMOKE(start, randoSmokeStart) // R3.2: rando-start (real new game with a pending seed: dock spawn 0, 3 hearts, sword, clothes, the boat at Outset; load/game-over/NG+ hunks)
+PC_RANDO_SMOKE(evser, randoSmokeEvser) // R3.14: the event_list.dat serializer (every stage round-trips byte-identical; add event + action = wwrando; a grown file read by dEvent_manager_c)
