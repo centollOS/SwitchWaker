@@ -1,0 +1,7 @@
+# R3.14 (docs/RANDOMIZER_PLAN.md): the event_list.dat serializer. Every stage's Stage.arc
+# event_list.dat reads and serializes byte-identical, matches wwrando's save, and with one event and
+# one action added equals wwrando's save of the same edits (fixtures/R3_14_wwrando_disc.txt, hashes
+# only); forced: Orichh's file grown by a patcher is read back through dEvent_manager_c.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Orichh:0 --env COS_RANDO_SMOKE=evser
+rando 0 --stage Orichh:0 --env COS_RANDO_SMOKE=evser --env COS_RANDO_FORCE=1
