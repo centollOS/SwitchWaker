@@ -48,8 +48,8 @@ std::string pc_rando_slot_sidecar_name(const uint8_t hash[16]);
 // update_starting_gear with options.starting_gear + extra_starting_items, set_starting_health,
 // set_num_starting_triforce_shards, should_start_with_heros_clothes, enable_hero_mode, the D14 tweak
 // options, option_targeting_mode, skip_rematch_bosses) and the R6.15 modes (remove_music,
-// invert_sea_compass_x_axis). Values missing from the options keep the defaults. Not covered: the
-// prologue pigs bitfield (PigsRandomizer's RNG output, not in the placement schema; default 0x04).
+// invert_sea_compass_x_axis). Values missing from the options keep the defaults. The
+// prologue pigs bitfield comes from the extra key "captured_pigs_bitfield" (R1.6; default 0x04).
 // Returns false with *err when a starting item name is unknown or the gear is too long.
 bool pc_rando_slot_config_from_seed(const PcRandoSeed& seed, PcRandoConfig* cfg, PcRandoModes* modes,
                                     std::string* err);

@@ -126,6 +126,14 @@ if (_rando_core_sources)
         set_target_properties(cos_rando_test_${_step} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
         add_dependencies(cos_rando_tests cos_rando_test_${_step})
     endforeach ()
+    # cos_rando_cli (plan step R1.6): the seed generator on the host, for the oracle batch
+    # (native/tools/rando/check_seeds.py). Never cross-compiled.
+    if (NOT CMAKE_CROSSCOMPILING)
+        add_executable(cos_rando_cli "${COS_NATIVE_ROOT}/check/rando/cli.cpp")
+        target_link_libraries(cos_rando_cli PRIVATE cos_rando_core)
+        set_target_properties(cos_rando_cli PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+        add_dependencies(cos_rando_tests cos_rando_cli)
+    endif ()
 endif ()
 
 if (NOT TARGET cos_sdk)
