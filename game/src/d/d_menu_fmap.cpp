@@ -355,6 +355,14 @@ void dMenu_Fmap_c::_create() {
     fmapDl.scrn = new J2DScreen();
     JUT_ASSERT(VERSION_SELECT(594, 560, 571, 571), fmapDl.scrn != NULL);
     fmapDl.scrn->set("f_map.blo", dComIfGp_getFmapResArchive());
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R6.9): boss_reqs.py show_quest_markers_on_sea_chart_for_dungeons (f_map.blo quest
+        // marker PIC1 panes: visible, position and rotation of each required boss's island);
+        // original: the disc's f_map.blo panes
+        pc_rando_bossreq_fmap_markers(fmapDl.scrn);
+    }
+#endif
 
     outFont = new dDlst_2DOutFont_c();
     JUT_ASSERT(VERSION_SELECT(598, 564, 575, 575), outFont != NULL);

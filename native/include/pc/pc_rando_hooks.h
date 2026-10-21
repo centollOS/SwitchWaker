@@ -373,6 +373,19 @@ void pc_rando_charts_cmapdat_loaded(void* data);
    Outset) when no seed is active or its room is out of range. The new game's return-place room and
    the island whose SHIP 0 the sea stage's Ship ACTR copies. */
 int pc_rando_start_room(void);
+/* --- R6.9: required bosses at runtime (boss_reqs.py RequiredBossesRandomizer._save;
+   game_hooks/pc_rando_hooks_bossreq.cpp, the GanonL/Room0 patcher in features/rando/pc_rando_bossreq.h) --- */
+/* dMenu_Fmap_c::_create under pc_rando(), right after f_map.blo is built into `screen` (a J2DScreen*)
+   and before the panes are captured: shows the quest marker of each required boss of the active
+   seed at its island (show_quest_markers_on_sea_chart_for_dungeons: visible, position, rotation).
+   Returns the number of markers set (0 for a seed without required bosses). */
+int pc_rando_bossreq_fmap_markers(void* screen);
+/* Puts message 851 (the locked door's TagMsg text) in the overlay, wrapped with the message font.
+   Returns 1 when set, 0 while the font is not loaded. The archive patcher calls it after each
+   activation of a seed with required bosses; exposed for the smoke. */
+int pc_rando_bossreq_build_message(void);
+/* Registers the patchers (listed in pc_rando_patchers.def). Idempotent. */
+void pc_rando_bossreq_hooks_init(void);
 
 #ifdef __cplusplus
 }
