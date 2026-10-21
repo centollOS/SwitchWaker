@@ -541,3 +541,18 @@ and need no hunk.
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | game/src/d/actor/d_a_npc_hr.cpp | `daNpc_Hr_c::demoProcTact0` (the hard-coded `execItemGet(dItemNo_WINDS_REQUIEM_e)` skipped) | `#if TARGET_PC` `if/else` | `flexible_item_locations.asm` d_a_npc_hr 0x1164 |
+
+## R6.5
+
+Trap chests (`trap_chests`) and chest type matches contents. The file edits (params bit 0x40, the
+chest type nibble, the `DEFAULT_TREASURE_TRAP` event per stage) are archive patchers in
+`features/rando/pc_rando_trap.cpp`; the game side is below, its bodies in
+`game_hooks/pc_rando_hooks_trap.cpp`. `getIsTrap` itself is R3.8's.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_tbox.cpp | `demoProc` (action table gains "SPRING_TRAP"; the count passed to `getMyActIdx` is 5 only under pc_rando()) | `#if`, `?:` | asm/actors/d_a_tbox.cpp `demoProc` |
+| game/src/d/actor/d_a_tbox.cpp | `demoProc` (SPRING_TRAP init: timer 0, smoke 0x029D; `pc_rando_tbox_spring_trap_init`) | `if` | asm/actors/d_a_tbox.cpp `demoProc` DEMO_PROC_SPRING_TRAP |
+| game/src/d/actor/d_a_tbox.cpp | `demoProc` (SPRING_TRAP each frame: `pc_rando_tbox_spring_trap` = demoProcSpringTrap; else the default cut end) | `if/else` | asm/actors/d_a_tbox.cpp `demoProcSpringTrap` |
+| game/src/d/actor/d_a_tbox.cpp | `actionOpenWait` (a trap chest creates no item) | `if/else` (`#else` original) | asm/actors/d_a_tbox.cpp `actionOpenWait` |
+| game/src/d/actor/d_a_tbox.cpp | `actionOpenWait` (event `DEFAULT_TREASURE_TRAP` for a trap chest, ahead of R3.8's `DEFAULT_TREASURE_A`) | `if` | asm/actors/d_a_tbox.cpp `actionOpenWait` |

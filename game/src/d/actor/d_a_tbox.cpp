@@ -21,6 +21,7 @@
 #include "m_Do/m_Do_mtx.h"
 #if TARGET_PC
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 
 #define FUNC_TYPE_NORMAL 0
@@ -769,15 +770,28 @@ s32 daTbox_c::demoProc() {
         "OPEN",
         "APPEAR",
         "OPEN_SHORT",
+#if TARGET_PC
+        // pc_rando(R6.5): wwrando asm/actors/d_a_tbox.cpp demoProc action_table "SPRING_TRAP" (read only
+        // under pc_rando(): the count below); original: 4 actions
+        "SPRING_TRAP",
+#endif
     };
     enum {
         ACT_WAIT,
         ACT_OPEN,
         ACT_APPEAR,
         ACT_OPEN_SHORT,
+#if TARGET_PC
+        ACT_SPRING_TRAP,
+#endif
     };
 
+#if TARGET_PC
+    // pc_rando(R6.5): wwrando asm/actors/d_a_tbox.cpp demoProc getMyActIdx(..., 5, ...); original: 4
+    int actionIdx = dComIfGp_evmng_getMyActIdx(mStaffId, action_table, pc_rando() ? ARRAY_SIZE(action_table) : 4, FALSE, 0);
+#else
     int actionIdx = dComIfGp_evmng_getMyActIdx(mStaffId, action_table, ARRAY_SIZE(action_table), FALSE, 0);
+#endif
     BOOL bIsAdvance = dComIfGp_evmng_getIsAddvance(mStaffId);
 
     if (bIsAdvance) {
@@ -809,6 +823,15 @@ s32 daTbox_c::demoProc() {
             case ACT_OPEN_SHORT:
                 OpenInit_com();
                 break;
+#if TARGET_PC
+            // pc_rando(R6.5): wwrando asm/actors/d_a_tbox.cpp demoProc DEMO_PROC_SPRING_TRAP init (timer 0,
+            // smoke 0x029D; game_hooks/pc_rando_hooks_trap.cpp); original: no such action
+            case ACT_SPRING_TRAP:
+                if (pc_rando()) {
+                    pc_rando_tbox_spring_trap_init(this);
+                }
+                break;
+#endif
         }
     }
 
@@ -847,6 +870,17 @@ s32 daTbox_c::demoProc() {
                 }
             }
             break;
+#if TARGET_PC
+        // pc_rando(R6.5): wwrando asm/actors/d_a_tbox.cpp demoProcSpringTrap (freeze, 2 damage, thaw;
+        // game_hooks/pc_rando_hooks_trap.cpp); original: the default case
+        case ACT_SPRING_TRAP:
+            if (pc_rando()) {
+                pc_rando_tbox_spring_trap(this);
+            } else {
+                dComIfGp_evmng_cutEnd(mStaffId);
+            }
+            break;
+#endif
         default:
             dComIfGp_evmng_cutEnd(mStaffId);
             break;
@@ -971,12 +1005,25 @@ BOOL daTbox_c::actionOpenWait() {
     if (eventInfo.checkCommandDoor()) {
         dComIfGp_event_onEventFlag(0x04);
 
+#if TARGET_PC
+        // pc_rando(R6.5): wwrando asm/actors/d_a_tbox.cpp actionOpenWait: a trap chest creates no item;
+        // original: the item is always created
+        if (!(pc_rando() && getIsTrap())) {
+            u8 itemNo = getItemNo();
+            fpc_ProcID itemPID = fopAcM_createItemForTrBoxDemo(&current.pos, itemNo);
+
+            if (itemPID != fpcM_ERROR_PROCESS_ID_e) {
+                dComIfGp_event_setItemPartnerId(itemPID);
+            }
+        }
+#else
         u8 itemNo = getItemNo();
         fpc_ProcID itemPID = fopAcM_createItemForTrBoxDemo(&current.pos, itemNo);
 
         if (itemPID != fpcM_ERROR_PROCESS_ID_e) {
             dComIfGp_event_setItemPartnerId(itemPID);
         }
+#endif
 
 #if TARGET_PC
         // pc_rando(R3.8): wwrando asm/actors/d_a_tbox.cpp actionOpenWait drops the big chest path (no
@@ -1008,9 +1055,14 @@ BOOL daTbox_c::actionOpenWait() {
         eventInfo.onCondition(dEvtCnd_CANDOOR_e);
 
 #if TARGET_PC
+        // pc_rando(R6.5): wwrando asm/actors/d_a_tbox.cpp actionOpenWait: a trap chest uses
+        // DEFAULT_TREASURE_TRAP (added to the stage by features/rando/pc_rando_trap.cpp); original: none
+        if (pc_rando() && getIsTrap()) {
+            eventInfo.setEventName("DEFAULT_TREASURE_TRAP");
+        }
         // pc_rando(R3.8): wwrando asm/actors/d_a_tbox.cpp actionOpenWait: every chest uses the short
         // DEFAULT_TREASURE_A; original: getShapeType() == 0
-        if (pc_rando() || getShapeType() == 0) {
+        else if (pc_rando() || getShapeType() == 0) {
 #else
         if (getShapeType() == 0) {
 #endif
