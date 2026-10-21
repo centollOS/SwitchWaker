@@ -316,3 +316,16 @@ is not 1.0; `remove_music` and `invert_sea_compass_x_axis` are `PcRandoModes` (`
 | game/src/JAZelAudio/JAIZelBasic.cpp | `JAIZelBasic::processHeartGaugeSound` | `add` (skips the 1-heart `seStart`) | `remove_low_health_beep_anim.asm` 0x802A2FA0 |
 | game/src/d/d_meter.cpp | `dMeter_compassGetOnProc` | `?:` | `invert_sea_compass_x_axis.asm` 0x801FD37C |
 | game/src/d/d_save.cpp | `dSv_player_config_c::init` | `?:` | `custom_funcs.asm` `option_targeting_mode` (`set_default_targeting_mode_to_switch`) |
+
+## R2.2
+
+Field items, pots and stone heads. The ACTR entries themselves are patched by the dzx patcher
+`features/rando/pc_rando_place_actr.{h,cpp}` (listed in `pc_rando_patchers.def`), which also applies
+`fix_deku_leaf_model` and `make_dungeon_joy_pendant_locations_flexible`; the hunks below read the item
+parameters wwrando adds to pots and stone heads.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_tsubo.cpp | `daTsubo::Act_c::damaged` | `if/else` (+ `#else` original) | `flexible_item_locations.asm` d_a_tsubo.rel 0x3E7C `create_pot_item` |
+| game/src/d/actor/d_a_obj_homen.cpp | `daObjHomen::Act_c::make_item` | `add` (return; the original follows) | `flexible_item_locations.asm` d_a_obj_homen.rel 0x16DC nop, 0x1728 `create_stone_head_item` |
+| game/src/d/actor/d_a_obj_homen.cpp | `daObjHomen::Act_c::_create` | `add` | `tweaks.py` `fix_stone_head_bugs` (d_a_obj_homen.rel 0x3450 profile status &= ~0x80) |
