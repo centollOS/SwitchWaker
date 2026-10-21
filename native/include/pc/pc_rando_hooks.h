@@ -274,6 +274,33 @@ void pc_rando_posttext_register(void);
    the number of messages set. */
 int pc_rando_posttext_build(void);
 
+/* --- R3.2: health, magic, clothes, start spawn (misc_rando_features.asm set_starting_health and the
+   file-select / load / game-over HP patches; tweaks.py skip_wakeup_intro_and_start_at_dock,
+   start_ship_at_outset, prevent_fire_mountain_lava_softlock; game_hooks/pc_rando_hooks_start.cpp,
+   pure part in features/rando/pc_rando_start.h) --- */
+/* dSv_player_status_a_c::init under pc_rando(): the new file's current HP (starting_quarter_hearts
+   rounded down to a whole heart; the max is starting_quarter_hearts itself). */
+uint16_t pc_rando_start_new_life(void);
+/* dGameover_c::_execute under pc_rando(): the continue HP, min(12, max rounded down to a heart). */
+uint16_t pc_rando_start_gameover_life(uint16_t maxLife);
+/* dFile_select_c::makeRecInfo (get_current/max_health_for_file_select_screen): the HP a slot shows.
+   `saved` is the slot's saved mLife (isMax 0) or mMaxLife (isMax 1); a slot is blank when the first
+   byte of its player name is 0. Returns `saved` unless the slot is blank and the rando arm is on
+   (pc_rando(), or a pending seed that the next New Game consumes: at file select pc_rando() is 0),
+   then the starting HP of that config (current rounded down to a whole heart). */
+uint16_t pc_rando_start_file_select_life(char firstNameChar, uint16_t saved, int isMax);
+/* dScnName_c::FileSelectMainNormal after card_to_memory and R0.7's load hook, under pc_rando():
+   fully_refill_magic_meter_and_cap_health_on_load_save (magic = max magic, HP capped at the max
+   rounded down to a whole heart). */
+void pc_rando_start_on_load(void);
+/* Registers the sea/Stage stage.dzs patcher (the Ship ACTR; listed in pc_rando_patchers.def).
+   Idempotent. */
+void pc_rando_start_init(void);
+/* For the smoke: the island room's SHIP 0 spawn that the patcher copies (read from the disc once).
+   Returns 1 and fills x/z/yRot when it was read. `patched` (may be NULL) gets how often the Ship ACTR
+   was patched since boot. */
+int pc_rando_start_ship_spawn(float* x, float* z, uint16_t* yRot, int* patched);
+
 #ifdef __cplusplus
 }
 #endif

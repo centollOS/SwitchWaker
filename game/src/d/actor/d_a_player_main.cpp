@@ -12486,7 +12486,15 @@ void daPy_lk_c::playerInit() {
         // Modify the linktexS3TC texture in Link's model to be the casual clothes texture.
         texture->setResTIMG(tex_no, *linktex_casual);
         
+#if TARGET_PC
+        // pc_rando(R3.2): misc_rando_features.asm check_player_in_casual_clothes 0x80125AD8 (casual
+        // clothes iff should_start_with_heros_clothes != 1, not by New Game+); original: the event-bit
+        // and clear-count test of the #else
+        if (pc_rando() ? pc_rando_cfg()->heros_clothes != 1
+                       : (!dComIfGs_isEventBit(dSv_event_flag_c::UNK_2A80) || dComIfGs_getClearCount() != 0)) {
+#else
         if (!dComIfGs_isEventBit(dSv_event_flag_c::UNK_2A80) || dComIfGs_getClearCount() != 0) {
+#endif
             onNoResetFlg1(daPyFlg1_CASUAL_CLOTHES);
         }
         if (checkNoResetFlg1(daPyFlg1_CASUAL_CLOTHES)) {

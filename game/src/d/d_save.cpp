@@ -8,6 +8,7 @@
 #include "d/d_save_init.h"
 #if TARGET_PC
 #include "pc/pc_rando_modes.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 #include "d/d_com_inf_game.h"
 #include "d/d_item_data.h"
@@ -26,8 +27,20 @@
 
 /* 800589A8-80058B54       .text init__21dSv_player_status_a_cFv */
 void dSv_player_status_a_c::init() {
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R3.2): misc_rando_features.asm set_starting_health 0x800589A8 (max HP from
+        // starting_quarter_hearts, current HP rounded down to a whole heart); original: 12 and 12
+        mMaxLife = pc_rando_cfg()->starting_quarter_hearts;
+        mLife = pc_rando_start_new_life();
+    } else {
+        mMaxLife = 12;
+        mLife = 12;
+    }
+#else
     mMaxLife = 12;
     mLife = 12;
+#endif
     field_0x8 = 0;
 
     for (int i = 0; i < ARRAY_SIZE(mSelectItem); i++) {
@@ -66,7 +79,13 @@ void dSv_player_status_b_c::init() {
 void dSv_player_return_place_c::init() {
     strcpy(mName, "sea");
     mRoomNo = dIsleRoom_OutsetIsland_e;
+#if TARGET_PC
+    // pc_rando(R3.2): tweaks.py skip_wakeup_intro_and_start_at_dock (DOL 0x80058BAF, spawn 0 on the
+    // dock instead of the wakeup event on Aryll's lookout); original: 206
+    mPoint = pc_rando() ? 0 : 206;
+#else
     mPoint = 206;
+#endif
 }
 
 /* 80058BC8-80058C60       .text set__25dSv_player_return_place_cFPCcScUc */
@@ -1467,12 +1486,28 @@ void dSv_info_c::reinit() {
     }
 
 #if VERSION > VERSION_DEMO
+#if TARGET_PC
+    if (!pc_rando()) {
+        // pc_rando(R3.2): make_game_nonlinear.asm reinit 0x8005D78C (nop: Lenzo's assistant quest is
+        // not marked done); original: this setEventReg, unconditional
+        dComIfGs_setEventReg(dSv_event_flag_c::UNK_C407, 7);
+    }
+#else
     dComIfGs_setEventReg(dSv_event_flag_c::UNK_C407, 7);
+#endif
 #endif
 
     dComIfGs_setClearCount(clearCount);
 
+#if TARGET_PC
+    if (!pc_rando()) {
+        // pc_rando(R3.2): make_game_nonlinear.asm reinit 0x8005D7A4 (nop: the Windfall jail chest is not
+        // flagged open); original: this onSaveTbox, unconditional
+        dComIfGs_onSaveTbox(dSv_save_c::STAGE_MISC, 0x00);
+    }
+#else
     dComIfGs_onSaveTbox(dSv_save_c::STAGE_MISC, 0x00);
+#endif
     dComIfGs_onSaveSwitch(dSv_save_c::STAGE_SEA, 0x47);
     dComIfGs_onSaveSwitch(dSv_save_c::STAGE_SEA, 0x5E);
 
@@ -1485,12 +1520,30 @@ void dSv_info_c::reinit() {
 
     dComIfGs_setRandomSalvagePoint(3);
 
+#if TARGET_PC
+    if (!pc_rando()) {
+        // pc_rando(R3.2): make_game_nonlinear.asm reinit 0x8005D7FC (nop: no Deluxe Picto Box in the
+        // save's inventory; the dComIfGp_setItem below stays, as in wwrando); original: this setItem,
+        // unconditional
+        dComIfGs_setItem(dInvSlot_CAMERA_e, dItemNo_DELUXE_PICTO_BOX_e);
+    }
+#else
     dComIfGs_setItem(dInvSlot_CAMERA_e, dItemNo_DELUXE_PICTO_BOX_e);
+#endif
     dComIfGp_setItem(dInvSlot_CAMERA_e, dItemNo_DELUXE_PICTO_BOX_e);
 
 #if VERSION > VERSION_DEMO
+#if TARGET_PC
+    if (!pc_rando()) {
+        // pc_rando(R3.2): make_game_nonlinear.asm reinit 0x8005D81C / 0x8005D82C (nop: the Picto Box and
+        // Deluxe Picto Box are not marked owned); original: these two onGetItem, unconditional
+        dComIfGs_onGetItem(dInvSlot_CAMERA_e, 0);
+        dComIfGs_onGetItem(dInvSlot_CAMERA_e, 1);
+    }
+#else
     dComIfGs_onGetItem(dInvSlot_CAMERA_e, 0);
     dComIfGs_onGetItem(dInvSlot_CAMERA_e, 1);
+#endif
 
     dComIfGs_setPictureNum(pictureNum);
 
