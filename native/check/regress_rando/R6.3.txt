@@ -1,0 +1,10 @@
+# R6.3 (docs/RANDOMIZER_PLAN.md): sword modes, the game side of Swordless. The smoke
+# COS_RANDO_SMOKE=swordless (native/src/pc/harness/smokes/pc_rando_smoke_swordless.cpp) hops
+# sea -> GTower (plain: no sword) -> GTower (Swordless: the temporary Hero's Sword, the bow taken) ->
+# sea (removed, the bow back) -> Ojhous (the Hero's Sword, the bow not given back) -> sea (removed) ->
+# sea (an owned sword is kept), and checks messages 1128/1590 in the overlay only while Swordless.
+# The pool and the new-game barrier bits are checked by golden seeds (check_seeds.py --golden with
+# sword_mode="Swordless" / "No Starting Sword") and R3.1's newgame smoke.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=swordless
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=swordless --env COS_RANDO_FORCE=1

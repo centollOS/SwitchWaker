@@ -14,15 +14,17 @@
 //      the bow given back; the bow slot is emptied; -> Ojhous;
 //   4. Ojhous: the Hero's Sword is equipped again (give_temporary_sword_in_orcas_house_in_swordless) and
 //      the bow slot was not given back on this load; -> sea;
-//   5. sea: removed again, the bow given back; then the save owns a sword (collect bit 0x01) with the Hero's Sword equipped;
-//      -> sea;
+//   5. sea: removed again, the bow given back; then the save owns a sword (collect bit 0x01) with the
+//      Hero's Sword equipped; -> sea;
 //   6. sea: an owned sword is not removed. A Start-with-sword config is then activated: 1128/1590
 //      leave the overlay.
 // Each stop's checks use the state at the first frame its play scene is found (phase_4 has run, the
-// actors not yet). GTower's opening event (debug hop) gives the Full Power Master Sword and keeps it
-// equipped while the scene runs, so after a GTower stop the stop's arrival state is put back in the
-// frames between the GTower scene's end and the next scene's phase_4. Event bit 0x2D01 is set for the GTower hops (a debug hop into GTower needs it, as
-// native/tools/combat_sweep.py boots it). The save state the smoke changes is restored before it ends. Exit 0 when all hold, else 1.
+// actors not yet). GTower's opening demo in a debug hop gives the Full Power Master Sword (d_a_demo00
+// l_itemNo[2]) after that, so after a GTower stop the stop's arrival state is put back in the frames
+// between the GTower scene's end and the next scene's phase_4. Event bit 0x2D01 is set for the GTower
+// hops (a debug hop into GTower needs it, as native/tools/combat_sweep.py boots it); GTower is entered
+// at point 1. The equipped sword is written as the hook writes it (the byte alone). The save state the
+// smoke changes is restored before it ends. Exit 0 when all hold, else 1.
 #include "pc_rando_smokes.h"
 
 #include "d/dolzel.h" // IWYU pragma: keep
@@ -214,8 +216,8 @@ void hop() {
     sPresent = 0;
 }
 
-// Undoes what GTower's opening event gave (it keeps equipping the sword while the GTower scene runs),
-// so the next stop sees phase_4's state.
+// Undoes what GTower's opening demo gave after the stop's arrival, so the next stop sees phase_4's
+// state.
 void restore() {
     setEquip(sRestoreEquip);
     setCollect0(sRestoreCollect);
