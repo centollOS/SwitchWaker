@@ -25,6 +25,10 @@ Presets (--preset, default "default"); name=<json> pairs are applied after the p
   all_categories   every progression_* option on
   dungeons_only    progression_dungeons only
   no_dungeons      the defaults without progression_dungeons
+  extra_start      (R6.4) 2 extra starting items, 7 starting Pieces of Heart, 8 Triforce Shards
+  extra_start_all  (R6.4) every category on (charts, letters) and 3 extra starting items
+  extra_start_keys (R6.4) 3 extra starting items, key-lunacy, No Starting Sword, 1 Heart
+                   Container and 44 Pieces of Heart
 
 Hints are not ported (R5), so the CLI runs with --allow-missing-hints. The wwrando side runs in J
 worker processes (default 4), each importing wwrando once (about 0.5 s per seed and check).
@@ -71,7 +75,15 @@ def preset_values(name):
     return {p: p == "progression_dungeons" for p in prog}
   if name == "no_dungeons":
     return {"progression_dungeons": False}
-  oc.die(f"unknown preset '{name}' (default, all_categories, dungeons_only, no_dungeons)")
+  if name == "extra_start":
+    return {"num_extra_starting_items": 2, "starting_pohs": 7, "num_starting_triforce_shards": 8}
+  if name == "extra_start_all":
+    return dict({p: True for p in prog}, num_extra_starting_items=3)
+  if name == "extra_start_keys":
+    return {"num_extra_starting_items": 3, "keylunacy": True, "sword_mode": "No Starting Sword",
+            "starting_hcs": 1, "starting_pohs": 44}
+  oc.die(f"unknown preset '{name}' (default, all_categories, dungeons_only, no_dungeons, extra_start, "
+         "extra_start_all, extra_start_keys)")
 
 
 def log_names(seed):

@@ -5,6 +5,7 @@
 
 #include <string.h>
 
+#include "pc_rando_gen_extra.h"
 #include "pc_rando_gen_items.h"
 #include "pc_rando_json.h"
 #include "pc_rando_logic.h"
@@ -75,9 +76,6 @@ std::string unsupportedOptionsError(const Options& o, bool allowMissingHints) {
     }
     if (o.randomize_starting_island) {
         return refuse("randomize_starting_island", "R6.7");
-    }
-    if (o.num_extra_starting_items > 0) {
-        return refuse("num_extra_starting_items above 0", "R6.4");
     }
     if (o.randomize_enemies) {
         return refuse("randomize_enemies", "R7.3");
@@ -172,6 +170,9 @@ bool generate(const GenRequest& req, GenResult& out) {
 
     Progress prog{req};
     prog.total = kWeightItems + kWeightHints; // pigs weigh 0
+    if (o.num_extra_starting_items > 0) {
+        prog.total += kWeightExtraStartItems;
+    }
     prog.report("Randomizing...");
 
     // WWRandomizer.__init__: the Logic, the progress location count check, the start probes.
@@ -196,7 +197,16 @@ bool generate(const GenRequest& req, GenResult& out) {
         traceAttach(rng, "PigsRandomizer");
         out.pigsBitfield = randomizePigs(rng);
     }
-    // extra_start_items, enemies, palettes: disabled (refused above when on).
+    if (o.num_extra_starting_items > 0) {
+        // ExtraStartingItemsRandomizer (R6.4): on the main Logic, into logic.state().randomStartingItems.
+        prog.report("Randomizing...");
+        std::string err;
+        if (!runExtraStartingItemsRandomizer(logic, out.sanitizedSeed, req.seedKey, &err)) {
+            return fail(err);
+        }
+        prog.done += kWeightExtraStartItems;
+    }
+    // enemies, palettes: disabled (refused above when on).
     {
         prog.report("Randomizing items...");
         ItemFillResult res;
