@@ -316,3 +316,16 @@ is not 1.0; `remove_music` and `invert_sea_compass_x_axis` are `PcRandoModes` (`
 | game/src/JAZelAudio/JAIZelBasic.cpp | `JAIZelBasic::processHeartGaugeSound` | `add` (skips the 1-heart `seStart`) | `remove_low_health_beep_anim.asm` 0x802A2FA0 |
 | game/src/d/d_meter.cpp | `dMeter_compassGetOnProc` | `?:` | `invert_sea_compass_x_axis.asm` 0x801FD37C |
 | game/src/d/d_save.cpp | `dSv_player_config_c::init` | `?:` | `custom_funcs.asm` `option_targeting_mode` (`set_default_targeting_mode_to_switch`) |
+
+## R3.1
+
+New-game state (`custom_funcs.asm` `init_save_with_tweaks`, `reveal_sea_chart.asm`). No hunk in `game/`:
+wwrando's call site (`misc_rando_features.asm` 0x8005D618 in `dSv_info_c::init`) is replaced by R0.7's
+hook after `dComIfGs_init`, which calls `pc_rando_new_game_init`
+(`native/src/pc/game_hooks/pc_rando_hooks_newgame.cpp`, tables in
+`native/src/pc/features/rando/pc_rando_newgame.{h,cpp}`) for a randomized new file only.
+`reveal_sea_chart.asm`'s change to `dSv_player_map_c::init` is a write to the new save there too.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| - | no hunks in `game/`: `pc_rando_new_game_init`, called from `pc_rando_slot_new_game_end` / `pc_rando_slot_debug_boot_end` (`native/src/pc/game_hooks/pc_rando_hooks_slot.cpp`) | - | `custom_funcs.asm` `init_save_with_tweaks`, `init_starting_gear`; `reveal_sea_chart.asm` 0x8005B2CC |

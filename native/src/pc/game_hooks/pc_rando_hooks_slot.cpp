@@ -81,6 +81,8 @@ void newGameEnd(const char* who) {
         pc_rando_slot_record_write(reserve, seed->hash, sNewGameFlags);
         pc::writef(STDERR_FILENO, "[cos] rando slot: %s: record written (%s)\n", who,
                    pc_rando_slot_sidecar_name(seed->hash).c_str());
+        // R3.1: init_save_with_tweaks (custom_funcs.asm), after the plain init above.
+        pc_rando_new_game_init();
     } else if (pc_rando_slot_record_clear_stale(reserve)) {
         pc::writef(STDERR_FILENO, "[cos] rando slot: %s: vanilla new file: stale rando record cleared\n", who);
     }

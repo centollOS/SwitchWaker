@@ -52,7 +52,9 @@
 extern "C" int pc_rando_smoke_wants_run_card(void) {
     const char* smoke = getenv("COS_SMOKE");
     const char* name = getenv("COS_RANDO_SMOKE");
-    return smoke != nullptr && strcmp(smoke, "rando") == 0 && name != nullptr && strcmp(name, "slot") == 0;
+    // R3.1: the newgame smoke writes a sidecar too.
+    return smoke != nullptr && strcmp(smoke, "rando") == 0 && name != nullptr &&
+           (strcmp(name, "slot") == 0 || strcmp(name, "newgame") == 0);
 }
 
 namespace pc {

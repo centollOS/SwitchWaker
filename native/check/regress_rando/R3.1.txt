@@ -1,0 +1,4 @@
+# R3.1 (docs/RANDOMIZER_PLAN.md): the new-game state of a randomized file (init_save_with_tweaks),
+# vanilla new games unchanged; its own run card for the sidecar. Not forced: it checks "off".
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=newgame
