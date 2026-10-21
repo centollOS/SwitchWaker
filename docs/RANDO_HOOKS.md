@@ -482,3 +482,16 @@ Key bag text (`tweaks.py` `implement_key_bag`, `misc_rando_features.asm`
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | - | no hunks in `game/`: the stage tweaks are a dzx patcher and a dzb patcher on R0.10's archive-load dispatcher (`features/rando/pc_rando_tweak_stages_a.{h,cpp}`, `game_hooks/pc_rando_hooks_stages_a.cpp`). The plan's hunk at `d_a_bg.cpp:206` is not needed: `room.dzb` passes through `pc_rando_res_hook_loaded` after `cBgS::ConvDzb`, before `dBgW::Set` reads it | - | `tweaks.py` `remove_forsaken_fortress_2_cutscenes`, `add_ganons_tower_warp_to_ff2`, `remove_makar_kidnapping_event`, `disable_invisible_walls`, `prevent_door_boulder_softlocks`, `fix_ghost_ship_chest_crash`, `fix_totg_warp_out_spawn_pos`, `remove_phantom_ganon_requirement_from_eye_reefs`, `fix_forsaken_fortress_door_softlock`, `fix_helmaroc_king_table_softlock`, `prevent_fairy_island_softlocks` |
+
+## R2.4
+
+The 11 event item locations and Hurricane Spin (asm group G5.6). The event actions are patched in
+`event_list.dat` at archive load by the pure `features/rando/pc_rando_place_event.cpp` (wwrando's
+`change_event_item`; no `game/` hunk). Hurricane Spin (0xAA) gets an item-get override that sets the
+unused event bit 0x6901 (`native/src/pc/game_hooks/pc_rando_hooks_event.cpp`), and the spin attack
+tests that bit. Its field and get models are R2.11's (plan D12).
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_npc_ji1.cpp | `daNpc_Ji1_c::createItem`: the Hurricane Spin branch gives `pc_rando_loc_item(PCR_LOC_OUTSET_ISLAND_ORCA_GIVE_10_KNIGHTS_CRESTS, 0xAA)` | `pc_rando_loc_item` (`#if TARGET_PC`, `#else` original) | `item_locations.txt` path `rels/d_a_npc_ji1.rel@4267` |
+| game/src/d/actor/d_a_player_sword.inc | `daPy_lk_c::procCutTurnMove_init`: Hurricane Spin is usable when `pc_rando_hurricane_spin_owned()` (bit 0x6901) instead of bit 0x0B20 | `?:` (+ `#else` original) | `flexible_item_locations.asm` 0x80158C08 (`li r4, 0x6901`), item_func_ptr[0xAA] = `hurricane_spin_item_func` |

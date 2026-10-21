@@ -1506,7 +1506,12 @@ void daNpc_Ji1_c::createItem() {
         itemNo = dItemNo_SWORD_e;
     }
     else if(field_0xD7B == 1) {
+#if TARGET_PC
+        // pc_rando(R2.4): item_locations.txt Orca - Give 10 Knight's Crests, d_a_npc_ji1.rel@4267; original: dItemNo_HURRICANE_SPIN_e
+        itemNo = pc_rando_loc_item(PCR_LOC_OUTSET_ISLAND_ORCA_GIVE_10_KNIGHTS_CRESTS, dItemNo_HURRICANE_SPIN_e);
+#else
         itemNo = dItemNo_HURRICANE_SPIN_e;
+#endif
     }
     else if(dComIfGs_getEventReg(dSv_event_flag_c::UNK_D003) == 1) {
         itemNo = dItemNo_PURPLE_RUPEE_e;
