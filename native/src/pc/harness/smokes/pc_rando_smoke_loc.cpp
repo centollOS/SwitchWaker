@@ -354,7 +354,9 @@ void checkStop() {
             for (const PendingOpen& p : sPending) {
                 queued = queued || p.idx == (int)j;
             }
-            if (!queued && sOpen[j] == k.loc && actOk) {
+            // Only a chest of the stay room: a multi-path location's other chests may stand out of
+            // bounds (R3.15 moves the Ghost Ship's unused room 0/1 chests by x += 2000).
+            if (!queued && sOpen[j] == k.loc && actOk && chest != nullptr && (int)chest->mRoomNo == stay) {
                 sPending.push_back({(int)j, (int)i, fopAcM_GetID(chest), want});
             }
         }
