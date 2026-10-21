@@ -541,3 +541,20 @@ and need no hunk.
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | game/src/d/actor/d_a_npc_hr.cpp | `daNpc_Hr_c::demoProcTact0` (the hard-coded `execItemGet(dItemNo_WINDS_REQUIEM_e)` skipped) | `#if TARGET_PC` `if/else` | `flexible_item_locations.asm` d_a_npc_hr 0x1164 |
+
+## R3.17
+
+The pirate ship at Windfall (`tweaks.py` `add_pirate_ship_to_windfall`). The stage edits (sea/Room11's
+ship on the default layer with door type 0; Asoko/Room0: Niko removed from layers 2 and 3, Aryll
+`Ls1`, `SW_C00` 0xC3, the three `SwOp`s and `Ashut` on switch 0xC4; Asoko `stage.dzs` EVNT
+`AryllOpensDoor`) and the new event in Asoko's `event_list.dat` are archive patchers on R0.10's
+dispatcher (`features/rando/pc_rando_tweak_pirate_ship.{h,cpp}`); messages 3008, 849 and 850 are
+overlay records (R0.12) built by `game_hooks/pc_rando_hooks_pirate_ship.cpp`. The two hunks below are
+wwrando's main.dol and REL writes. The wave slot itself (`JAIZelBasic::m_dy_wave_set_2nd[0x0E][0]` =
+0x19) is written by the hook on first use: the slot is free (no stage or island entry points at it),
+so a vanilla game never reads it. Checked by the `pirateship` smoke and `cos_rando_test_R3_17`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/JAZelAudio/JAIZelBasic.cpp | `JAIZelBasic::setScene`: the stage entry's second dynamic scene wave through `pc_rando_pirate_ship_scene_wave2` (Asoko, entry 0x0C: slot 0x0E, IsleLink_0.aw) | `?:` (`#if`/`#else`, original in `#else`) | main.dol 0x8039C30C + 0xC*4 + 3 = 0x0E, 0x8039C2E4 + 0xE*2 = 0x19 |
+| game/src/d/actor/d_a_npc_ls1.cpp | `daNpc_Ls1_c::setAnm_NUM`: animation 4 (`ANMNUM_WAIT05_e`) uses facial animation 5 (`BTPNUM_NGWARAI_e`) | `?:` (`#if`/`#else`, original in `#else`) | d_a_npc_ls1.rel 0x5D18 + 4*0x10 + 1 = 5 (`a_anm_prm_tbl$4744[4].btpNum`) |

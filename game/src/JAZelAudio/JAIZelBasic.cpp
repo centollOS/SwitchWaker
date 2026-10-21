@@ -4052,7 +4052,15 @@ void JAIZelBasic::setScene(s32 sceneNum, s32 roomNo, s32 param_3, s32 layerNo) {
             bgmNum = expandSceneBgmNum(bgmNum);
         }
         var1 = m_scene_info[sceneNum].field_0x2;
+#if TARGET_PC
+        // pc_rando(R3.17): tweaks.py add_pirate_ship_to_windfall main.dol 0x8039C30C + 0xC*4 + 3 = 0x0E and
+        // 0x8039C2E4 + 0xE*2 = 0x19 (Asoko loads IsleLink_0.aw, Aryll's voice, through the free second
+        // dynamic scene wave slot 0x0E); original: m_scene_info[sceneNum].field_0x3
+        var2 = pc_rando() ? pc_rando_pirate_ship_scene_wave2(sceneNum, m_scene_info[sceneNum].field_0x3)
+                          : m_scene_info[sceneNum].field_0x3;
+#else
         var2 = m_scene_info[sceneNum].field_0x3;
+#endif
     }
     sceneChange(bgmNum, var1, var2, param_3);
     field_0x022d = 0;
