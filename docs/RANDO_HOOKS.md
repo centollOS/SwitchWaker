@@ -482,3 +482,15 @@ Key bag text (`tweaks.py` `implement_key_bag`, `misc_rando_features.asm`
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | - | no hunks in `game/`: the stage tweaks are a dzx patcher and a dzb patcher on R0.10's archive-load dispatcher (`features/rando/pc_rando_tweak_stages_a.{h,cpp}`, `game_hooks/pc_rando_hooks_stages_a.cpp`). The plan's hunk at `d_a_bg.cpp:206` is not needed: `room.dzb` passes through `pc_rando_res_hook_loaded` after `cBgS::ConvDzb`, before `dBgW::Set` reads it | - | `tweaks.py` `remove_forsaken_fortress_2_cutscenes`, `add_ganons_tower_warp_to_ff2`, `remove_makar_kidnapping_event`, `disable_invisible_walls`, `prevent_door_boulder_softlocks`, `fix_ghost_ship_chest_crash`, `fix_totg_warp_out_spawn_pos`, `remove_phantom_ganon_requirement_from_eye_reefs`, `fix_forsaken_fortress_door_softlock`, `fix_helmaroc_king_table_softlock`, `prevent_fairy_island_softlocks` |
+
+## R3.19
+
+Zephos, the auction intro and Zephos's double song. The two event edits (`tweaks.py`
+`shorten_zephos_event`: sea `TACT_HT` Hr/Link actions[0:7], CAMERA actions[0:5], ending flags = the
+last actions' flags; `shorten_auction_intro_event`: Orichh `AUCTION_START` CAMERA actions[3] and [4]
+removed) are a `.dat` patcher on R0.10's archive-load dispatcher (`features/rando/pc_rando_tweak_zephos.{h,cpp}`)
+and need no hunk.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_npc_hr.cpp | `daNpc_Hr_c::demoProcTact0` (the hard-coded `execItemGet(dItemNo_WINDS_REQUIEM_e)` skipped) | `#if TARGET_PC` `if/else` | `flexible_item_locations.asm` d_a_npc_hr 0x1164 |

@@ -11,3 +11,4 @@ PC_RANDO_PATCHER(pc_rando_place_scob_init) // R2.3: SCOB item locations (salvage
 PC_RANDO_PATCHER(pc_rando_stages_a_init) // R3.15: stage tweaks A (game_hooks/pc_rando_hooks_stages_a.cpp)
 PC_RANDO_PATCHER(pc_rando_tweak_stages_b_init) // R3.16: stage tweaks B (failsafe and boss-door spawns, panning cutscenes, FH warp, magic jars, hint sign)
 PC_RANDO_PATCHER(pc_rando_posttext_patchers_init) // R3.21: builds the post-randomization texts at the first archive load when the activation came before the message archive (debug boot)
+PC_RANDO_PATCHER(pc_rando_tweak_zephos_init) // R3.19: shorten_zephos_event (sea TACT_HT) and shorten_auction_intro_event (Orichh AUCTION_START)
