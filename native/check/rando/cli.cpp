@@ -17,7 +17,7 @@
 //                           <DIR>/<seed>.json
 //   --json PATH             the placement's path instead (one seed only; '-' for stdout)
 //   --no-logs               write only the placement
-//   --allow-missing-hints   generate without hints (step R5 is not ported; pc_rando_gen.h)
+//   --allow-missing-hints   generate without hints (faster; same placement; pc_rando_gen.h)
 //   --seed-key KEY          SEED_KEY for do_not_generate_spoiler_log seeds (default: the port's, D2)
 //   --sw-version V          the version written into the placement and the log trailer (default dev)
 //   --time                  print the generation time of each seed on stderr
