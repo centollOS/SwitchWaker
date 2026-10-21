@@ -5,6 +5,7 @@
 
 #include <string.h>
 
+#include "pc_rando_gen_charts.h"
 #include "pc_rando_gen_items.h"
 #include "pc_rando_json.h"
 #include "pc_rando_logic.h"
@@ -62,9 +63,6 @@ std::string unsupportedOptionsError(const Options& o, bool allowMissingHints) {
                "). Turn the option off to generate a seed.";
     };
     // In randomizer.py's order of the randomizers.
-    if (o.randomize_charts) {
-        return refuse("randomize_charts", "R6.6");
-    }
     if (o.required_bosses) {
         return refuse("required_bosses", "R6.8");
     }
@@ -187,8 +185,18 @@ bool generate(const GenRequest& req, GenResult& out) {
 
     traceBegin(out.sanitizedSeed);
 
-    // randomize(): the randomizers in order. charts, boss_reqs, entrances and starting_island are
-    // disabled here (refused above when on).
+    // randomize(): the randomizers in order. boss_reqs, entrances and starting_island are disabled
+    // here (refused above when on).
+    if (o.randomize_charts) {
+        // ChartRandomizer (R6.6): a fresh RNG, _randomize, then logic.update_chart_macros().
+        PyRandom rng;
+        newRandomizerRng(rng, out.sanitizedSeed, o, req.seedKey);
+        traceAttach(rng, "ChartRandomizer");
+        if (!randomizeCharts(rng, logic.state().islandCharts)) {
+            return fail("ChartRandomizer: the island chart table does not hold 49 islands");
+        }
+        logic.updateChartMacros();
+    }
     {
         // PigsRandomizer (always enabled).
         PyRandom rng;
