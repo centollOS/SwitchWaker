@@ -1,16 +1,16 @@
 // COS_SMOKE=rando COS_RANDO_SMOKE=msg (docs/RANDOMIZER_PLAN.md step R0.12): the message overlay in a
 // booted game, e.g. run.sh rando --stage sea:44 --env COS_RANDO_SMOKE=msg. Once the play scene has run
 // 10 frames:
-//   1. the overlay is built while the file is not randomized: new text for vanilla message 3906 (a
+//   1. the overlay is built while the file is not randomized: new text for vanilla message 3908 (a
 //      shop description) and a new message 849 (wwrando's Aryll line, bottom text box);
-//   2. with pc_rando() 0 (a plain boot) the game still reads the BMG: fopMsgM_messageGet(3906) gives
+//   2. with pc_rando() 0 (a plain boot) the game still reads the BMG: fopMsgM_messageGet(3908) gives
 //      the vanilla text and fopMsgM_msgGet_c finds no message 849;
 //   3. pc_rando_set_active: fopMsgM_messageGet returns the overlay texts (tags stripped, as for BMG
 //      text), both message getters return the overlay bytes, 849's INF1 entry is the overlay's and
-//      3906 keeps its BMG entry;
+//      3908 keeps its BMG entry;
 //   4. message 849 is shown (fopMsgM_messageSet): the d_msg process reads the overlay's text and
 //      entry and runs 90 frames;
-//   5. pc_rando_deactivate: the overlay is cleared (unless COS_RANDO_FORCE=1) and 3906 reads the BMG
+//   5. pc_rando_deactivate: the overlay is cleared (unless COS_RANDO_FORCE=1) and 3908 reads the BMG
 //      again.
 // Exit 0 when all hold, else 1.
 #include "pc_rando_smokes.h"
@@ -37,7 +37,9 @@ namespace pc {
 namespace {
 
 constexpr const char* kName = "msg";
-constexpr u16 kShop = 3906;
+// The Hyoi Pear description: no randomizer step rewrites it (R3.21 rewrites 3906, the 20-Rupee item
+// of Beedle's shop, at every activation).
+constexpr u16 kShop = 3908;
 constexpr u16 kNew = 849;
 constexpr const char* kShopText = "Rando " PCR_MSG_COLOR_RED "shop" PCR_MSG_COLOR_DEFAULT " text\nline two";
 constexpr const char* kShopPlain = "Rando shop text\nline two";
@@ -71,39 +73,39 @@ void staticChecks(unsigned int frames) {
     char buf[1024];
     JMSMesgEntry_c vanillaEntry;
     const char* vanillaText = nullptr;
-    const bool have3906 = entryOf(kShop, &vanillaEntry, &vanillaText);
-    randoSmokeCheck(kName, "BMG has message 3906", have3906);
+    const bool have3908 = entryOf(kShop, &vanillaEntry, &vanillaText);
+    randoSmokeCheck(kName, "BMG has message 3908", have3908);
 
     // 1. build while inactive
     PcRandoMsgEntry e;
     pc_rando_msg_entry_defaults(&e);
     e.text_alignment = 4; // tweaks.py: bottom text box
-    randoSmokeCheck(kName, "set_text 3906", pc_rando_msg_set_text(kShop, kShopText) == PCR_MSG_OK);
+    randoSmokeCheck(kName, "set_text 3908", pc_rando_msg_set_text(kShop, kShopText) == PCR_MSG_OK);
     randoSmokeCheck(kName, "add 849", pc_rando_msg_add(kNew, &e, kNewText) == PCR_MSG_OK);
 
     // 2. not randomized: the BMG
     if (!forced) {
         fopMsgM_messageGet(sVanilla, kShop);
-        randoSmokeCheck(kName, "inactive: 3906 is the BMG's text", sVanilla[0] != '\0' && strcmp(sVanilla, kShopPlain) != 0);
+        randoSmokeCheck(kName, "inactive: 3908 is the BMG's text", sVanilla[0] != '\0' && strcmp(sVanilla, kShopPlain) != 0);
         fopMsgM_msgGet_c get;
         mesg_header* head = get.getMesgHeader(kNew);
         randoSmokeCheck(kName, "inactive: no message 849", head != nullptr && get.getMessage(head) == nullptr);
-        writef(STDERR_FILENO, "[cos] rando-smoke msg: vanilla 3906: \"%.60s\"\n", sVanilla);
+        writef(STDERR_FILENO, "[cos] rando-smoke msg: vanilla 3908: \"%.60s\"\n", sVanilla);
     }
 
     // 3. randomized: the overlay
     pc_rando_set_active(nullptr, nullptr);
     fopMsgM_messageGet(buf, kShop);
-    randoSmokeCheck(kName, "messageGet 3906 is the overlay text", strcmp(buf, kShopPlain) == 0);
+    randoSmokeCheck(kName, "messageGet 3908 is the overlay text", strcmp(buf, kShopPlain) == 0);
     fopMsgM_messageGet(buf, kNew);
     randoSmokeCheck(kName, "messageGet 849 is the overlay text", strcmp(buf, kNewText) == 0);
 
     JMSMesgEntry_c entry;
     const char* text = nullptr;
-    randoSmokeCheck(kName, "msgGet 3906 gives the overlay bytes",
+    randoSmokeCheck(kName, "msgGet 3908 gives the overlay bytes",
                     entryOf(kShop, &entry, &text) && text == pc_rando_msg_hook_text(kShop));
-    randoSmokeCheck(kName, "3906 keeps its BMG entry",
-                    have3906 && memcmp(&entry, &vanillaEntry, sizeof entry) == 0);
+    randoSmokeCheck(kName, "3908 keeps its BMG entry",
+                    have3908 && memcmp(&entry, &vanillaEntry, sizeof entry) == 0);
     randoSmokeCheck(kName, "msgGet 849 gives the overlay bytes",
                     entryOf(kNew, &entry, &text) && text == pc_rando_msg_hook_text(kNew));
     randoSmokeCheck(kName, "849 entry is the overlay's",
@@ -156,7 +158,7 @@ void randoSmokeMsg(unsigned int frames) {
         randoSmokeCheck(kName, "deactivate clears the overlay", pc_rando_msg_count() == 0);
         char buf[1024];
         fopMsgM_messageGet(buf, kShop);
-        randoSmokeCheck(kName, "deactivate: 3906 is the BMG's text again", strcmp(buf, sVanilla) == 0);
+        randoSmokeCheck(kName, "deactivate: 3908 is the BMG's text again", strcmp(buf, sVanilla) == 0);
     } else {
         // Other steps' messages (e.g. R3.3's 278, R3.4's dungeon item messages, R3.6's 503/703, R3.13's
         // 848/704) are in the overlay too: check this smoke's two records rather than the count.

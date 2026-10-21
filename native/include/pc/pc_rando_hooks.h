@@ -262,6 +262,18 @@ void pc_rando_stages_a_init(void);
 struct PcRandoResFile;
 void pc_rando_stages_a_patch_dzb(struct PcRandoResFile* file);
 
+/* --- R3.21: post-randomization texts (tweaks.py update_shop_item_descriptions and the other
+   seed-dependent message rewrites; game_hooks/pc_rando_hooks_posttext.cpp, texts built by
+   features/rando/pc_rando_posttext.h) --- */
+/* Registers the activation listener that builds the texts. Called once at static init by R0.8's table
+   binding (pc_rando_hooks_items.cpp), which also makes the linker keep the file. No game/ hunk calls
+   it. */
+void pc_rando_posttext_register(void);
+/* Builds the texts for the active seed from the BMG, the placement and the message font and puts them
+   in the message overlay (the listener calls it at every activation; exposed for the smoke). Returns
+   the number of messages set. */
+int pc_rando_posttext_build(void);
+
 #ifdef __cplusplus
 }
 #endif
