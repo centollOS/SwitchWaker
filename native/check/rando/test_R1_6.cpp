@@ -190,7 +190,6 @@ void testRefusals() {
     };
     const Case cases[] = {
         {pcr::OPT_randomize_charts, 1, "R6.6"},
-        {pcr::OPT_required_bosses, 1, "R6.8"},
         {pcr::OPT_randomize_dungeon_entrances, 1, "R6.10"},
         {pcr::OPT_randomize_secret_cave_entrances, 1, "R6.10"},
         {pcr::OPT_randomize_miniboss_entrances, 1, "R6.10"},

@@ -10,10 +10,11 @@
 // so a disabled one draws nothing and changes nothing. At wwrando's default options the enabled
 // ones are pigs (one choice, the prologue pig colour), items and hints.
 //
-// What is ported: pigs and items (R1.4) completely; the spoiler, non-spoiler and error logs (R1.5).
+// What is ported: pigs and items (R1.4) completely; the spoiler, non-spoiler and error logs (R1.5);
+// required bosses (R6.8, pc_rando_gen_bosses.h).
 // What is not ported yet, refused with a "not supported yet" error (GenResult::unsupported) instead
 // of a seed that would differ from wwrando's:
-//   - randomize_charts (R6.6), required_bosses (R6.8), any randomize_*_entrances (R6.10-R6.11),
+//   - randomize_charts (R6.6), any randomize_*_entrances (R6.10-R6.11),
 //     randomize_starting_island (R6.7), num_extra_starting_items > 0 (R6.4),
 //     randomize_enemies (R7.3), randomize_enemy_palettes (R7.2);
 //   - hints (R5). HintsRandomizer is always enabled in wwrando (the Big Octo Great Fairy hint is

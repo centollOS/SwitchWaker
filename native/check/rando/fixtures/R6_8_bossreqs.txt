@@ -1,0 +1,275 @@
+version	1.10.0_9775811
+case	BossReqA1
+opt	num_required_bosses	1
+opt	required_bosses	1
+initerror	Not enough progress locations to place all progress items.\n\nTotal progress items: 56\nProgress locations with current options: 119\nMaximum Required Bosses Mode banned locations: 71\n\nYou need to check more of the progress location options in order to give the randomizer enough space to place all the items.
+endcase
+case	BossReqA2
+opt	num_required_bosses	2
+opt	required_bosses	1
+list	required_boss_item_locations	Tower of the Gods - Gohdan Heart Container|Earth Temple - Jalhalla Heart Container
+list	required_dungeons	Tower of the Gods|Earth Temple
+list	required_bosses	Gohdan|Jalhalla
+list	banned_dungeons	Dragon Roost Cavern|Forbidden Woods|Forsaken Fortress|Wind Temple
+list	banned_bosses	Gohma|Kalle Demos|Helmaroc King|Molgera
+locs	banned_locations	56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,114,115,116,117,118,119,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,173,175,176
+macro	Can Access Item Location "Tower of the Gods - Gohdan Heart Container" & Can Access Item Location "Earth Temple - Jalhalla Heart Container"
+endcase
+case	BossReqA3
+opt	num_required_bosses	3
+opt	required_bosses	1
+list	required_boss_item_locations	Forbidden Woods - Kalle Demos Heart Container|Earth Temple - Jalhalla Heart Container|Dragon Roost Cavern - Gohma Heart Container
+list	required_dungeons	Dragon Roost Cavern|Forbidden Woods|Earth Temple
+list	required_bosses	Gohma|Kalle Demos|Jalhalla
+list	banned_dungeons	Tower of the Gods|Forsaken Fortress|Wind Temple
+list	banned_bosses	Gohdan|Helmaroc King|Molgera
+locs	banned_locations	97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,114,115,116,117,118,119,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,175,176
+macro	Can Access Item Location "Forbidden Woods - Kalle Demos Heart Container" & Can Access Item Location "Earth Temple - Jalhalla Heart Container" & Can Access Item Location "Dragon Roost Cavern - Gohma Heart Container"
+endcase
+case	BossReqA4
+opt	required_bosses	1
+list	required_boss_item_locations	Tower of the Gods - Gohdan Heart Container|Forsaken Fortress - Helmaroc King Heart Container|Earth Temple - Jalhalla Heart Container|Wind Temple - Molgera Heart Container
+list	required_dungeons	Tower of the Gods|Forsaken Fortress|Earth Temple|Wind Temple
+list	required_bosses	Gohdan|Helmaroc King|Jalhalla|Molgera
+list	banned_dungeons	Dragon Roost Cavern|Forbidden Woods
+list	banned_bosses	Gohma|Kalle Demos
+locs	banned_locations	56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,173
+macro	Can Access Item Location "Tower of the Gods - Gohdan Heart Container" & Can Access Item Location "Forsaken Fortress - Helmaroc King Heart Container" & Can Access Item Location "Earth Temple - Jalhalla Heart Container" & Can Access Item Location "Wind Temple - Molgera Heart Container"
+endcase
+case	BossReqA5
+opt	num_required_bosses	5
+opt	required_bosses	1
+list	required_boss_item_locations	Forsaken Fortress - Helmaroc King Heart Container|Tower of the Gods - Gohdan Heart Container|Forbidden Woods - Kalle Demos Heart Container|Earth Temple - Jalhalla Heart Container|Wind Temple - Molgera Heart Container
+list	required_dungeons	Forbidden Woods|Tower of the Gods|Forsaken Fortress|Earth Temple|Wind Temple
+list	required_bosses	Kalle Demos|Gohdan|Helmaroc King|Jalhalla|Molgera
+list	banned_dungeons	Dragon Roost Cavern
+list	banned_bosses	Gohma
+locs	banned_locations	56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75
+macro	Can Access Item Location "Forsaken Fortress - Helmaroc King Heart Container" & Can Access Item Location "Tower of the Gods - Gohdan Heart Container" & Can Access Item Location "Forbidden Woods - Kalle Demos Heart Container" & Can Access Item Location "Earth Temple - Jalhalla Heart Container" & Can Access Item Location "Wind Temple - Molgera Heart Container"
+endcase
+case	BossReqA6
+opt	num_required_bosses	6
+opt	required_bosses	1
+list	required_boss_item_locations	Forbidden Woods - Kalle Demos Heart Container|Dragon Roost Cavern - Gohma Heart Container|Earth Temple - Jalhalla Heart Container|Forsaken Fortress - Helmaroc King Heart Container|Tower of the Gods - Gohdan Heart Container|Wind Temple - Molgera Heart Container
+list	required_dungeons	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Forsaken Fortress|Earth Temple|Wind Temple
+list	required_bosses	Gohma|Kalle Demos|Gohdan|Helmaroc King|Jalhalla|Molgera
+list	banned_dungeons	
+list	banned_bosses	
+locs	banned_locations	
+macro	Can Access Item Location "Forbidden Woods - Kalle Demos Heart Container" & Can Access Item Location "Dragon Roost Cavern - Gohma Heart Container" & Can Access Item Location "Earth Temple - Jalhalla Heart Container" & Can Access Item Location "Forsaken Fortress - Helmaroc King Heart Container" & Can Access Item Location "Tower of the Gods - Gohdan Heart Container" & Can Access Item Location "Wind Temple - Molgera Heart Container"
+endcase
+case	BossReqB1
+opt	num_required_bosses	1
+opt	required_bosses	1
+initerror	Not enough progress locations to place all progress items.\n\nTotal progress items: 56\nProgress locations with current options: 119\nMaximum Required Bosses Mode banned locations: 71\n\nYou need to check more of the progress location options in order to give the randomizer enough space to place all the items.
+endcase
+case	BossReqB2
+opt	num_required_bosses	2
+opt	required_bosses	1
+list	required_boss_item_locations	Wind Temple - Molgera Heart Container|Forbidden Woods - Kalle Demos Heart Container
+list	required_dungeons	Forbidden Woods|Wind Temple
+list	required_bosses	Kalle Demos|Molgera
+list	banned_dungeons	Dragon Roost Cavern|Tower of the Gods|Forsaken Fortress|Earth Temple
+list	banned_bosses	Gohma|Gohdan|Helmaroc King|Jalhalla
+locs	banned_locations	56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,114,115,116,117,118,119,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,167,175,176
+macro	Can Access Item Location "Wind Temple - Molgera Heart Container" & Can Access Item Location "Forbidden Woods - Kalle Demos Heart Container"
+endcase
+case	BossReqB3
+opt	num_required_bosses	3
+opt	required_bosses	1
+list	required_boss_item_locations	Dragon Roost Cavern - Gohma Heart Container|Forsaken Fortress - Helmaroc King Heart Container|Earth Temple - Jalhalla Heart Container
+list	required_dungeons	Dragon Roost Cavern|Forsaken Fortress|Earth Temple
+list	required_bosses	Gohma|Helmaroc King|Jalhalla
+list	banned_dungeons	Forbidden Woods|Tower of the Gods|Wind Temple
+list	banned_bosses	Kalle Demos|Gohdan|Molgera
+locs	banned_locations	78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,173
+macro	Can Access Item Location "Dragon Roost Cavern - Gohma Heart Container" & Can Access Item Location "Forsaken Fortress - Helmaroc King Heart Container" & Can Access Item Location "Earth Temple - Jalhalla Heart Container"
+endcase
+case	BossReqB4
+opt	required_bosses	1
+list	required_boss_item_locations	Forbidden Woods - Kalle Demos Heart Container|Tower of the Gods - Gohdan Heart Container|Earth Temple - Jalhalla Heart Container|Dragon Roost Cavern - Gohma Heart Container
+list	required_dungeons	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple
+list	required_bosses	Gohma|Kalle Demos|Gohdan|Jalhalla
+list	banned_dungeons	Forsaken Fortress|Wind Temple
+list	banned_bosses	Helmaroc King|Molgera
+locs	banned_locations	114,115,116,117,118,119,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,175,176
+macro	Can Access Item Location "Forbidden Woods - Kalle Demos Heart Container" & Can Access Item Location "Tower of the Gods - Gohdan Heart Container" & Can Access Item Location "Earth Temple - Jalhalla Heart Container" & Can Access Item Location "Dragon Roost Cavern - Gohma Heart Container"
+endcase
+case	BossReqB5
+opt	num_required_bosses	5
+opt	required_bosses	1
+list	required_boss_item_locations	Dragon Roost Cavern - Gohma Heart Container|Wind Temple - Molgera Heart Container|Forsaken Fortress - Helmaroc King Heart Container|Forbidden Woods - Kalle Demos Heart Container|Tower of the Gods - Gohdan Heart Container
+list	required_dungeons	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Forsaken Fortress|Wind Temple
+list	required_bosses	Gohma|Kalle Demos|Gohdan|Helmaroc King|Molgera
+list	banned_dungeons	Earth Temple
+list	banned_bosses	Jalhalla
+locs	banned_locations	130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,167
+macro	Can Access Item Location "Dragon Roost Cavern - Gohma Heart Container" & Can Access Item Location "Wind Temple - Molgera Heart Container" & Can Access Item Location "Forsaken Fortress - Helmaroc King Heart Container" & Can Access Item Location "Forbidden Woods - Kalle Demos Heart Container" & Can Access Item Location "Tower of the Gods - Gohdan Heart Container"
+endcase
+case	BossReqB6
+opt	num_required_bosses	6
+opt	required_bosses	1
+list	required_boss_item_locations	Dragon Roost Cavern - Gohma Heart Container|Forbidden Woods - Kalle Demos Heart Container|Earth Temple - Jalhalla Heart Container|Wind Temple - Molgera Heart Container|Forsaken Fortress - Helmaroc King Heart Container|Tower of the Gods - Gohdan Heart Container
+list	required_dungeons	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Forsaken Fortress|Earth Temple|Wind Temple
+list	required_bosses	Gohma|Kalle Demos|Gohdan|Helmaroc King|Jalhalla|Molgera
+list	banned_dungeons	
+list	banned_bosses	
+locs	banned_locations	
+macro	Can Access Item Location "Dragon Roost Cavern - Gohma Heart Container" & Can Access Item Location "Forbidden Woods - Kalle Demos Heart Container" & Can Access Item Location "Earth Temple - Jalhalla Heart Container" & Can Access Item Location "Wind Temple - Molgera Heart Container" & Can Access Item Location "Forsaken Fortress - Helmaroc King Heart Container" & Can Access Item Location "Tower of the Gods - Gohdan Heart Container"
+endcase
+case	BossReqC1
+opt	num_required_bosses	1
+opt	required_bosses	1
+initerror	Not enough progress locations to place all progress items.\n\nTotal progress items: 56\nProgress locations with current options: 119\nMaximum Required Bosses Mode banned locations: 71\n\nYou need to check more of the progress location options in order to give the randomizer enough space to place all the items.
+endcase
+case	BossReqC2
+opt	num_required_bosses	2
+opt	required_bosses	1
+list	required_boss_item_locations	Earth Temple - Jalhalla Heart Container|Forsaken Fortress - Helmaroc King Heart Container
+list	required_dungeons	Forsaken Fortress|Earth Temple
+list	required_bosses	Helmaroc King|Jalhalla
+list	banned_dungeons	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Wind Temple
+list	banned_bosses	Gohma|Kalle Demos|Gohdan|Molgera
+locs	banned_locations	56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,173
+macro	Can Access Item Location "Earth Temple - Jalhalla Heart Container" & Can Access Item Location "Forsaken Fortress - Helmaroc King Heart Container"
+endcase
+case	BossReqC3
+opt	num_required_bosses	3
+opt	required_bosses	1
+list	required_boss_item_locations	Tower of the Gods - Gohdan Heart Container|Wind Temple - Molgera Heart Container|Forbidden Woods - Kalle Demos Heart Container
+list	required_dungeons	Forbidden Woods|Tower of the Gods|Wind Temple
+list	required_bosses	Kalle Demos|Gohdan|Molgera
+list	banned_dungeons	Dragon Roost Cavern|Forsaken Fortress|Earth Temple
+list	banned_bosses	Gohma|Helmaroc King|Jalhalla
+locs	banned_locations	56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,114,115,116,117,118,119,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,167,175,176
+macro	Can Access Item Location "Tower of the Gods - Gohdan Heart Container" & Can Access Item Location "Wind Temple - Molgera Heart Container" & Can Access Item Location "Forbidden Woods - Kalle Demos Heart Container"
+endcase
+case	BossReqC4
+opt	required_bosses	1
+list	required_boss_item_locations	Forbidden Woods - Kalle Demos Heart Container|Dragon Roost Cavern - Gohma Heart Container|Tower of the Gods - Gohdan Heart Container|Earth Temple - Jalhalla Heart Container
+list	required_dungeons	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple
+list	required_bosses	Gohma|Kalle Demos|Gohdan|Jalhalla
+list	banned_dungeons	Forsaken Fortress|Wind Temple
+list	banned_bosses	Helmaroc King|Molgera
+locs	banned_locations	114,115,116,117,118,119,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,175,176
+macro	Can Access Item Location "Forbidden Woods - Kalle Demos Heart Container" & Can Access Item Location "Dragon Roost Cavern - Gohma Heart Container" & Can Access Item Location "Tower of the Gods - Gohdan Heart Container" & Can Access Item Location "Earth Temple - Jalhalla Heart Container"
+endcase
+case	BossReqC5
+opt	num_required_bosses	5
+opt	required_bosses	1
+list	required_boss_item_locations	Forbidden Woods - Kalle Demos Heart Container|Forsaken Fortress - Helmaroc King Heart Container|Tower of the Gods - Gohdan Heart Container|Dragon Roost Cavern - Gohma Heart Container|Wind Temple - Molgera Heart Container
+list	required_dungeons	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Forsaken Fortress|Wind Temple
+list	required_bosses	Gohma|Kalle Demos|Gohdan|Helmaroc King|Molgera
+list	banned_dungeons	Earth Temple
+list	banned_bosses	Jalhalla
+locs	banned_locations	130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,167
+macro	Can Access Item Location "Forbidden Woods - Kalle Demos Heart Container" & Can Access Item Location "Forsaken Fortress - Helmaroc King Heart Container" & Can Access Item Location "Tower of the Gods - Gohdan Heart Container" & Can Access Item Location "Dragon Roost Cavern - Gohma Heart Container" & Can Access Item Location "Wind Temple - Molgera Heart Container"
+endcase
+case	BossReqC6
+opt	num_required_bosses	6
+opt	required_bosses	1
+list	required_boss_item_locations	Forsaken Fortress - Helmaroc King Heart Container|Tower of the Gods - Gohdan Heart Container|Forbidden Woods - Kalle Demos Heart Container|Dragon Roost Cavern - Gohma Heart Container|Wind Temple - Molgera Heart Container|Earth Temple - Jalhalla Heart Container
+list	required_dungeons	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Forsaken Fortress|Earth Temple|Wind Temple
+list	required_bosses	Gohma|Kalle Demos|Gohdan|Helmaroc King|Jalhalla|Molgera
+list	banned_dungeons	
+list	banned_bosses	
+locs	banned_locations	
+macro	Can Access Item Location "Forsaken Fortress - Helmaroc King Heart Container" & Can Access Item Location "Tower of the Gods - Gohdan Heart Container" & Can Access Item Location "Forbidden Woods - Kalle Demos Heart Container" & Can Access Item Location "Dragon Roost Cavern - Gohma Heart Container" & Can Access Item Location "Wind Temple - Molgera Heart Container" & Can Access Item Location "Earth Temple - Jalhalla Heart Container"
+endcase
+case	BossReqAll1
+opt	num_required_bosses	1
+opt	progression_battlesquid	1
+opt	progression_big_octos_gunboats	1
+opt	progression_combat_secret_caves	1
+opt	progression_dungeon_secrets	1
+opt	progression_eye_reef_chests	1
+opt	progression_island_puzzles	1
+opt	progression_long_sidequests	1
+opt	progression_mail	1
+opt	progression_minigames	1
+opt	progression_platforms_rafts	1
+opt	progression_savage_labyrinth	1
+opt	progression_short_sidequests	1
+opt	progression_spoils_trading	1
+opt	progression_submarines	1
+opt	progression_tingle_chests	1
+opt	progression_treasure_charts	1
+opt	progression_triforce_charts	1
+opt	required_bosses	1
+list	required_boss_item_locations	Tower of the Gods - Gohdan Heart Container
+list	required_dungeons	Tower of the Gods
+list	required_bosses	Gohdan
+list	banned_dungeons	Dragon Roost Cavern|Forbidden Woods|Forsaken Fortress|Earth Temple|Wind Temple
+list	banned_bosses	Gohma|Kalle Demos|Helmaroc King|Jalhalla|Molgera
+locs	banned_locations	56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,114,115,116,117,118,119,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,167,173,175,176
+macro	Can Access Item Location "Tower of the Gods - Gohdan Heart Container"
+endcase
+case	BossReqAll3
+opt	num_required_bosses	3
+opt	progression_battlesquid	1
+opt	progression_big_octos_gunboats	1
+opt	progression_combat_secret_caves	1
+opt	progression_dungeon_secrets	1
+opt	progression_eye_reef_chests	1
+opt	progression_island_puzzles	1
+opt	progression_long_sidequests	1
+opt	progression_mail	1
+opt	progression_minigames	1
+opt	progression_platforms_rafts	1
+opt	progression_savage_labyrinth	1
+opt	progression_short_sidequests	1
+opt	progression_spoils_trading	1
+opt	progression_submarines	1
+opt	progression_tingle_chests	1
+opt	progression_treasure_charts	1
+opt	progression_triforce_charts	1
+opt	required_bosses	1
+list	required_boss_item_locations	Forsaken Fortress - Helmaroc King Heart Container|Tower of the Gods - Gohdan Heart Container|Forbidden Woods - Kalle Demos Heart Container
+list	required_dungeons	Forbidden Woods|Tower of the Gods|Forsaken Fortress
+list	required_bosses	Kalle Demos|Gohdan|Helmaroc King
+list	banned_dungeons	Dragon Roost Cavern|Earth Temple|Wind Temple
+list	banned_bosses	Gohma|Jalhalla|Molgera
+locs	banned_locations	56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,167
+macro	Can Access Item Location "Forsaken Fortress - Helmaroc King Heart Container" & Can Access Item Location "Tower of the Gods - Gohdan Heart Container" & Can Access Item Location "Forbidden Woods - Kalle Demos Heart Container"
+endcase
+case	BossReqAll5
+opt	num_required_bosses	5
+opt	progression_battlesquid	1
+opt	progression_big_octos_gunboats	1
+opt	progression_combat_secret_caves	1
+opt	progression_dungeon_secrets	1
+opt	progression_eye_reef_chests	1
+opt	progression_island_puzzles	1
+opt	progression_long_sidequests	1
+opt	progression_mail	1
+opt	progression_minigames	1
+opt	progression_platforms_rafts	1
+opt	progression_savage_labyrinth	1
+opt	progression_short_sidequests	1
+opt	progression_spoils_trading	1
+opt	progression_submarines	1
+opt	progression_tingle_chests	1
+opt	progression_treasure_charts	1
+opt	progression_triforce_charts	1
+opt	required_bosses	1
+list	required_boss_item_locations	Wind Temple - Molgera Heart Container|Tower of the Gods - Gohdan Heart Container|Earth Temple - Jalhalla Heart Container|Dragon Roost Cavern - Gohma Heart Container|Forsaken Fortress - Helmaroc King Heart Container
+list	required_dungeons	Dragon Roost Cavern|Tower of the Gods|Forsaken Fortress|Earth Temple|Wind Temple
+list	required_bosses	Gohma|Gohdan|Helmaroc King|Jalhalla|Molgera
+list	banned_dungeons	Forbidden Woods
+list	banned_bosses	Kalle Demos
+locs	banned_locations	78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,173
+macro	Can Access Item Location "Wind Temple - Molgera Heart Container" & Can Access Item Location "Tower of the Gods - Gohdan Heart Container" & Can Access Item Location "Earth Temple - Jalhalla Heart Container" & Can Access Item Location "Dragon Roost Cavern - Gohma Heart Container" & Can Access Item Location "Forsaken Fortress - Helmaroc King Heart Container"
+endcase
+case	BossReqKL
+opt	keylunacy	1
+opt	num_required_bosses	2
+opt	required_bosses	1
+list	required_boss_item_locations	Earth Temple - Jalhalla Heart Container|Wind Temple - Molgera Heart Container
+list	required_dungeons	Earth Temple|Wind Temple
+list	required_bosses	Jalhalla|Molgera
+list	banned_dungeons	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Forsaken Fortress
+list	banned_bosses	Gohma|Kalle Demos|Gohdan|Helmaroc King
+locs	banned_locations	56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,114,115,116,117,118,119,173,175,176
+macro	Can Access Item Location "Earth Temple - Jalhalla Heart Container" & Can Access Item Location "Wind Temple - Molgera Heart Container"
+endcase
+end

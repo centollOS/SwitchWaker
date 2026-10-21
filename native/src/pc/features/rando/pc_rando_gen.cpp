@@ -5,6 +5,7 @@
 
 #include <string.h>
 
+#include "pc_rando_gen_bosses.h"
 #include "pc_rando_gen_items.h"
 #include "pc_rando_json.h"
 #include "pc_rando_logic.h"
@@ -64,9 +65,6 @@ std::string unsupportedOptionsError(const Options& o, bool allowMissingHints) {
     // In randomizer.py's order of the randomizers.
     if (o.randomize_charts) {
         return refuse("randomize_charts", "R6.6");
-    }
-    if (o.required_bosses) {
-        return refuse("required_bosses", "R6.8");
     }
     if (o.randomize_dungeon_entrances || o.randomize_secret_cave_entrances || o.randomize_miniboss_entrances ||
         o.randomize_boss_entrances || o.randomize_secret_cave_inner_entrances ||
@@ -187,8 +185,22 @@ bool generate(const GenRequest& req, GenResult& out) {
 
     traceBegin(out.sanitizedSeed);
 
-    // randomize(): the randomizers in order. charts, boss_reqs, entrances and starting_island are
-    // disabled here (refused above when on).
+    // randomize(): the randomizers in order. charts, entrances and starting_island are disabled here
+    // (refused above when on).
+    if (logic.state().bossReqsEnabled) {
+        // RequiredBossesRandomizer (R6.8): progress weight 0.
+        PyRandom rng;
+        newRandomizerRng(rng, out.sanitizedSeed, o, req.seedKey);
+        traceAttach(rng, "RequiredBossesRandomizer");
+        RequiredBosses rb;
+        std::string err;
+        if (!randomizeRequiredBosses(logic, rng, rb, &err)) {
+            return fail(err);
+        }
+        in.requiredDungeons = rb.requiredDungeons;
+        in.bannedDungeons = rb.bannedDungeons;
+        in.requiredBosses = rb.requiredBosses;
+    }
     {
         // PigsRandomizer (always enabled).
         PyRandom rng;
