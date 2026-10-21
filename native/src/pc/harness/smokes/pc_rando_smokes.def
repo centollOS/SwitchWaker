@@ -28,3 +28,4 @@ PC_RANDO_SMOKE(loc, randoSmokeLoc) // R2.1: locations T1 (patched records + live
 PC_RANDO_SMOKE(actr, randoSmokeActr) // R2.2: field items, pots, stone heads (T1 records and live actors, T2 item-get)
 PC_RANDO_SMOKE(scob, randoSmokeScob) // R2.3: SCOB locations (salvage, Big Octo, Gunboat, dig spot), Needle Rock flags, salvage light and dig hunks
 PC_RANDO_SMOKE(bossitem, randoSmokeBossitem) // R2.5: boss Heart Containers (Bitem, createItemForBoss, disappear cloud, item_func_utuwa_heart)
+PC_RANDO_SMOKE(codeA, randoSmokeCodeA) // R2.6: code locations A (Great Fairies, Orca 500 hits, Tingle, Ankle, Ivan, Mrs. Marie)

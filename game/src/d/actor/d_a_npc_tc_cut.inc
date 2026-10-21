@@ -135,17 +135,32 @@ void daNpc_Tc_c::cutPresentProc(int i_staffIdx) {
     int itemNo;
     switch(temp) {
         case 0:
+#if TARGET_PC
+            // pc_rando(R2.6): item_locations.txt Jail - Tingle - First Gift, d_a_npc_tc.rel@6117; original: dItemNo_TINGLE_TUNER_e
+            itemNo = pc_rando_loc_item(PCR_LOC_WINDFALL_ISLAND_JAIL_TINGLE_FIRST_GIFT, dItemNo_TINGLE_TUNER_e);
+#else
             itemNo = dItemNo_TINGLE_TUNER_e;
+#endif
             break;
 
         case 1:
+#if TARGET_PC
+            // pc_rando(R2.6): item_locations.txt Jail - Tingle - Second Gift, d_a_npc_tc.rel@611F; original: dItemNo_COLLECT_MAP_35_e
+            itemNo = pc_rando_loc_item(PCR_LOC_WINDFALL_ISLAND_JAIL_TINGLE_SECOND_GIFT, dItemNo_COLLECT_MAP_35_e);
+#else
             itemNo = dItemNo_COLLECT_MAP_35_e;
+#endif
             break;
 
         case 2:
             if (mType == TYPE_RED) {
                 if (checkAllMonumentFee()) {
+#if TARGET_PC
+                    // pc_rando(R2.6): item_locations.txt Ankle - Reward for All Tingle Statues, d_a_npc_tc.rel@6143; original: dItemNo_TINGLE_RUPEE_6_e
+                    itemNo = pc_rando_loc_item(PCR_LOC_TINGLE_ISLAND_ANKLE_REWARD_FOR_ALL_TINGLE_STATUES, dItemNo_TINGLE_RUPEE_6_e);
+#else
                     itemNo = dItemNo_TINGLE_RUPEE_6_e;
+#endif
                 } else {
                     switch (checkAllMonumentPay()) {
                         case 1:

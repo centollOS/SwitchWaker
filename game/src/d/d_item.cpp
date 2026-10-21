@@ -1486,7 +1486,18 @@ void item_func_magic_power() {
 
 /* 800C4D0C-800C4D24       .text item_func_max_mp_up1__Fv */
 void item_func_max_mp_up1() {
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R2.6): flexible_item_locations.asm 0x800C4D14 (li r0, 32; sth to both counts:
+        // max and current MP set to 32, a refill); original: dComIfGp_setItemMaxMagicCount(32)
+        g_dComIfG_gameInfo.play.mItemMagicCount = 32;
+        g_dComIfG_gameInfo.play.mItemMaxMagicCount = 32;
+    } else {
+        dComIfGp_setItemMaxMagicCount(32);
+    }
+#else
     dComIfGp_setItemMaxMagicCount(32);
+#endif
 }
 
 /* 800C4D24-800C4D3C       .text item_func_tincle_rupee1__Fv */

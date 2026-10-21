@@ -76,6 +76,26 @@ pure `pc_rando_msg.cpp`.
 | game/src/f_op/f_op_msg_mng.cpp:1509 | `fopMsgM_msgGet_c::getMesgEntry` (1509), `fopMsgM_itemMsgGet_c::getMesgEntry` (1601): the overlay's INF1 entry fields (or the new-message defaults) replace the BMG entry before the instant-text QoL | add | gclib `bmg.py` `add_new_message` / `Message` fields, set in `tweaks.py` and `randomizers/hints.py` |
 | game/src/f_op/f_op_msg_mng.cpp:1530 | `fopMsgM_msgGet_c::getMessage` (1530), `fopMsgM_itemMsgGet_c::getMessage` (1621): the overlay's encoded text replaces the BMG text (and serves numbers the BMG lacks; `mResMsgNo` = the asked number) | add | `msg.string = ...` / `add_new_message` (`tweaks.py`, `randomizers/hints.py`, `randomizers/boss_reqs.py`) |
 
+## R2.6
+
+Code locations A: the 15 locations whose item is a constant in an actor's code (Code keys of
+`native/include/pc/pc_rando_locs.h`). Each site reads `pc_rando_loc_item(PCR_LOC_<name>, vanilla)`.
+Checked by the `codeA` smoke (`native/src/pc/harness/smokes/pc_rando_smoke_codeA.cpp`).
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_bigelf.cpp | `daBigelf_c::next_msgStatus` (0x2EE8): the placed item of the fairy's `getType()` 0-5 (Northern, Outset, Eastern, Southern, Western, Thorned), red rupee for any other type, instead of the next wallet/bomb bag/quiver tier | if/else | flexible_item_locations.asm d_a_bigelf 0x217C |
+| game/src/d/actor/d_a_bigelf.cpp | `daBigelf_c::demoProcFlDelete`: the Big Octo fairy (type 6) no longer adds 32 max and current magic | `if/else` (`!pc_rando() &&`) | flexible_item_locations.asm d_a_bigelf 0x7C4/0x7D0 (nop) |
+| game/src/d/d_item.cpp | `item_func_max_mp_up1`: pending max and current magic both set to 32 (a refill) instead of max += 32 | if/else | flexible_item_locations.asm main.dol 0x800C4D14 |
+| game/src/d/actor/d_a_npc_ji1.cpp | `daNpc_Ji1_c::createItem`: Orca - Hit 500 Times | `if/else` (`#if`/`#else`, `pc_rando_loc_item`) | item_locations.txt d_a_npc_ji1.rel@42F7 |
+| game/src/d/actor/d_a_npc_tc_cut.inc | `daNpc_Tc_c::cutPresentProc`: ItemType 0 Tingle First Gift, 1 Tingle Second Gift, 2 (all statues paid) Ankle's reward | `if/else` (`#if`/`#else`, `pc_rando_loc_item`) | item_locations.txt d_a_npc_tc.rel@6117/611F/6143 |
+| game/src/d/actor/d_a_npc_mk.cpp | `daNpc_Mk_c::demoProc` case 13: Ivan - Catch Killer Bees | `if/else` (`#if`/`#else`, `pc_rando_loc_item`) | item_locations.txt d_a_npc_mk.rel@20CB |
+| game/src/d/actor/d_a_npc_ho.cpp | `daNpc_Ho_c::next_msgStatus` (0x271E, 0x275C, 0x2743, 0x2751): Mrs. Marie - Catch Killer Bees, Give 1, 21 and 40 Joy Pendants | `if/else` (`#if`/`#else`, `pc_rando_loc_item`) | item_locations.txt d_a_npc_ho.rel@0A07/0B4B/0B77/0C87 |
+
+`game/src/d/actor/d_a_npc_tc.cpp` only gains the `pc/pc_rando.h` and `pc/pc_rando_locs.h` includes
+for its `.inc`. `pc_rando_loc_item` returns the vanilla constant when `pc_rando()` is 0, so the
+`#if`/`#else` sites are vanilla-equivalent; the `#else` keeps the original line for the census.
+
 ## R2.11
 
 Any item anywhere (tweaks.py `allow_all_items_to_be_field_items`, always applied by wwrando). The table

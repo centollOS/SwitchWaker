@@ -10,6 +10,7 @@
 #include "m_Do/m_Do_controller_pad.h"
 #if TARGET_PC
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_locs.h"
 #endif
 
 static fpc_ProcID l_msgId;
@@ -241,7 +242,12 @@ u16 daNpc_Ho_c::next_msgStatus(u32* pMsgNo) {
             break;
         case 0x271E:
             mNextMessageId = 0x2748;
+#if TARGET_PC
+            // pc_rando(R2.6): item_locations.txt Mrs. Marie - Catch Killer Bees, d_a_npc_ho.rel@0A07; original: dItemNo_PURPLE_RUPEE_e
+            mItemNum = pc_rando_loc_item(PCR_LOC_WINDFALL_ISLAND_MRS_MARIE_CATCH_KILLER_BEES, dItemNo_PURPLE_RUPEE_e);
+#else
             mItemNum = dItemNo_PURPLE_RUPEE_e;
+#endif
             *pMsgNo = *pMsgNo + 1;
             mState = HO_STATE_TALK_03;
             break;
@@ -307,7 +313,12 @@ u16 daNpc_Ho_c::next_msgStatus(u32* pMsgNo) {
             break;
         case 0x275C:
             mNextMessageId = 0x275D;
+#if TARGET_PC
+            // pc_rando(R2.6): item_locations.txt Mrs. Marie - Give 1 Joy Pendant, d_a_npc_ho.rel@0B4B; original: dItemNo_RED_RUPEE_e
+            mItemNum = pc_rando_loc_item(PCR_LOC_WINDFALL_ISLAND_MRS_MARIE_GIVE_1_JOY_PENDANT, dItemNo_RED_RUPEE_e);
+#else
             mItemNum = dItemNo_RED_RUPEE_e;
+#endif
             msgStatus = fopMsgStts_MSG_ENDS_e;
             break;
         case 0x2742:
@@ -316,7 +327,12 @@ u16 daNpc_Ho_c::next_msgStatus(u32* pMsgNo) {
             break;
         case 0x2743:
             mNextMessageId = 0x2744;
+#if TARGET_PC
+            // pc_rando(R2.6): item_locations.txt Mrs. Marie - Give 21 Joy Pendants, d_a_npc_ho.rel@0B77; original: dItemNo_CABANA_DEED_e
+            mItemNum = pc_rando_loc_item(PCR_LOC_WINDFALL_ISLAND_MRS_MARIE_GIVE_21_JOY_PENDANTS, dItemNo_CABANA_DEED_e);
+#else
             mItemNum = dItemNo_CABANA_DEED_e;
+#endif
             msgStatus = fopMsgStts_MSG_ENDS_e;
             dComIfGs_onEventBit(dSv_event_flag_c::UNK_1C08);
             dComIfGs_onTmpBit(dSv_event_tmp_flag_c::UNK_0104);
@@ -351,7 +367,12 @@ u16 daNpc_Ho_c::next_msgStatus(u32* pMsgNo) {
         }
         case 0x2751:
             mNextMessageId = 0x2752;
+#if TARGET_PC
+            // pc_rando(R2.6): item_locations.txt Mrs. Marie - Give 40 Joy Pendants, d_a_npc_ho.rel@0C87; original: dItemNo_HEROS_CHARM_e
+            mItemNum = pc_rando_loc_item(PCR_LOC_WINDFALL_ISLAND_MRS_MARIE_GIVE_40_JOY_PENDANTS, dItemNo_HEROS_CHARM_e);
+#else
             mItemNum = dItemNo_HEROS_CHARM_e;
+#endif
             msgStatus = fopMsgStts_MSG_ENDS_e;
             dComIfGs_onEventBit(dSv_event_flag_c::UNK_1C04);
             break;
