@@ -21,6 +21,7 @@
 #if TARGET_PC
 #include "pc/pc_qol.h"
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 
 fganon_class* master;
@@ -1468,9 +1469,17 @@ void damage_check(fganon_class* i_this) {
                     pPos = i_this->mCyl.GetTgHitPosP();
                     atInfo.pParticlePos = pPos;
                     atInfo.mpActor = at_power_check(&atInfo);
+#if TARGET_PC
+                    // pc_rando(R6.3): swordless.asm d_a_fganon 0x5EE0 (test AT bit 0x00010000 hammer, not 0x00000002 sword) and 0x5EF0 (skip the Master Sword check); original: the sword test in the #else
+                    if((atInfo.mpObj != NULL) && (pc_rando_swordless() ? atInfo.mpObj->ChkAtType(AT_TYPE_SKULL_HAMMER) != 0 :
+                                                  (atInfo.mpObj->ChkAtType(AT_TYPE_SWORD) && (dComIfGs_getSelectEquip(0) == dItemNo_MASTER_SWORD_1_e ||
+                                                                                              dComIfGs_getSelectEquip(0) == dItemNo_MASTER_SWORD_3_e ||
+                                                                                              dComIfGs_getSelectEquip(0) == dItemNo_MASTER_SWORD_2_e)))) {
+#else
                     if((atInfo.mpObj != NULL) && (atInfo.mpObj->ChkAtType(AT_TYPE_SWORD)) && (dComIfGs_getSelectEquip(0) == dItemNo_MASTER_SWORD_1_e ||
                                                                                               dComIfGs_getSelectEquip(0) == dItemNo_MASTER_SWORD_3_e ||
                                                                                               dComIfGs_getSelectEquip(0) == dItemNo_MASTER_SWORD_2_e)) {
+#endif
                         atInfo.mpActor = cc_at_check(a_this, &atInfo);
                         if (atInfo.mbDead) {
                             dComIfGp_particle_set(dPa_name::ID_AK_JN_CRITICALHITFLASH, &a_this->eyePos, NULL);

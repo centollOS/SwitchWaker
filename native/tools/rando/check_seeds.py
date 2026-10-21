@@ -25,6 +25,8 @@ Presets (--preset, default "default"); name=<json> pairs are applied after the p
   all_categories   every progression_* option on
   dungeons_only    progression_dungeons only
   no_dungeons      the defaults without progression_dungeons
+  no_starting_sword  sword_mode "No Starting Sword" (R6.3: the 3 Progressive Swords join the pool)
+  swordless        sword_mode "Swordless" (R6.3: no swords, no Hurricane Spin)
 
 Hints are not ported (R5), so the CLI runs with --allow-missing-hints. The wwrando side runs in J
 worker processes (default 4), each importing wwrando once (about 0.5 s per seed and check).
@@ -71,7 +73,12 @@ def preset_values(name):
     return {p: p == "progression_dungeons" for p in prog}
   if name == "no_dungeons":
     return {"progression_dungeons": False}
-  oc.die(f"unknown preset '{name}' (default, all_categories, dungeons_only, no_dungeons)")
+  if name == "no_starting_sword":
+    return {"sword_mode": "No Starting Sword"}
+  if name == "swordless":
+    return {"sword_mode": "Swordless"}
+  oc.die(f"unknown preset '{name}' (default, all_categories, dungeons_only, no_dungeons, "
+         "no_starting_sword, swordless)")
 
 
 def log_names(seed):
