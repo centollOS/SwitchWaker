@@ -44,6 +44,7 @@
 #include "features/rando/pc_rando_items.h"
 #include "features/rando/pc_rando_lockeys.h"
 #include "features/rando/pc_rando_place_event.h"
+#include "features/rando/pc_rando_tweak_totg.h"
 
 #include "d/actor/d_a_npc_ji1.h"
 #include "d/d_com_inf_game.h"
@@ -200,8 +201,14 @@ void t1() {
         const int wantPrm0 = !pc_rando() ? k.prm0 : isSong(item) ? item - PCR_EVL_SONG_FIRST : item;
         snprintf(what, sizeof what, "%s actor %u action %u reads '%s' prm0 %d (want '%s' %d)", k.event,
                  (unsigned)k.actor, (unsigned)k.action, cut, prm0, wantName, wantPrm0);
+        // R3.18 re-serializes Siren's event_list.dat after this placement (as wwrando's save does), which
+        // renumbers the global action indexes; the cut is then found by its chain only.
+        PcRandoTotgStatus totg;
+        pc_rando_tweak_totg_status(PCR_TOTG_EVL, &totg);
+        const bool renumbered = strcmp(k.stage, "Siren") == 0 && totg.applied > 0;
         randoSmokeCheck(kName, what,
-                        read && strcmp(cut, wantName) == 0 && prm0 == wantPrm0 && cutIdx == (int)k.gaction);
+                        read && strcmp(cut, wantName) == 0 && prm0 == wantPrm0 &&
+                            (cutIdx == (int)k.gaction || renumbered));
     }
     snprintf(what, sizeof what, "%s: %d event key(s) checked", stage, n);
     randoSmokeCheck(kName, what, n > 0);
