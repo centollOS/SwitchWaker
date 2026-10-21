@@ -164,6 +164,15 @@ bool pc_rando_slot_config_from_seed(const PcRandoSeed& seed, PcRandoConfig* cfg,
         }
         c.starting_magic = (uint8_t)(16 * magic);
     }
+    // PigsRandomizer.captured_pigs_bitfield (R1.6 writes it as an extra top-level key; a placement
+    // without it, e.g. from ww_export.py, keeps the default 0x04).
+    if (const pcr::Json* v = seed.extra.find("captured_pigs_bitfield"); v != nullptr && v->isInteger()) {
+        const int64_t pigs = v->asInt();
+        if (pigs != 0x01 && pigs != 0x02 && pigs != 0x04) {
+            return failWith(err, "captured_pigs_bitfield is not 1, 2 or 4");
+        }
+        c.pigs_bitfield = (uint8_t)pigs;
+    }
     *cfg = c;
     if (modes != nullptr) {
         *modes = m;

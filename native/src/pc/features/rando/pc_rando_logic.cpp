@@ -982,6 +982,15 @@ bool Logic::checkItemIsUseful(int item, const std::vector<int>& inaccessible) {
     }
     auto finish = [&](bool useful) {
         removeOwnedItem(item);
+        // cached_items_are_useful[item_name] = ...: a dict store, so a result computed deeper in the
+        // recursion for the same item (a prerandomized copy of it) is overwritten, not kept (R1.6 fix:
+        // appending made the lookup above return the inner result).
+        for (auto& c : mUsefulCache) {
+            if (c.first == item) {
+                c.second = useful ? 1 : 0;
+                return useful;
+            }
+        }
         mUsefulCache.emplace_back(item, useful ? 1 : 0);
         return useful;
     };

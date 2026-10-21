@@ -1,0 +1,5 @@
+# R1.6 (docs/RANDOMIZER_PLAN.md): the seed generator against wwrando 1.10.0_9775811. 20 default seeds
+# from cos_rando_cli must pass ww_verify and be golden (same placement, pigs and logs, hints aside).
+# "script" runs the rest of the line from the repository root (native/tools/regress.sh); it needs
+# the oracle venv (native/tools/rando/setup_oracle.sh).
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 20 --golden

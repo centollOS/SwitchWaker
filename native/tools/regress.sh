@@ -174,7 +174,9 @@ fi
 # --- game runs ------------------------------------------------------------------------------------
 # regress_targets.txt and regress_rando/*.txt: "<target> <expected exit> [extra run.sh options]";
 # # starts a comment.
-# The special target no-disc runs switchwaker with COS_DISC=/nonexistent.
+# The special target no-disc runs switchwaker with COS_DISC=/nonexistent. The special target
+# script runs the rest of the line as a command from the repository root instead of run.sh (a
+# host-only check such as the randomizer's oracle batch, regress_rando/R1.6.txt).
 run_one() { # line
     local target expect opts rc
     read -r target expect opts <<< "$1"
@@ -185,6 +187,9 @@ run_one() { # line
     local log="$out/run-$target-$tag.log"
     if [ "$target" = no-disc ]; then
         COS_DISC=/nonexistent "$build/switchwaker" > "$log" 2>&1
+        rc=$?
+    elif [ "$target" = script ]; then
+        (cd "$repo" && bash -c "$opts") > "$log" 2>&1
         rc=$?
     else
         local pace="--uncapped"
@@ -200,7 +205,7 @@ run_one() { # line
     fi
 }
 export -f run_one
-export out build script_dir capped
+export out build script_dir capped repo
 
 # NUL-separated with -n 1, not -I {}: BSD xargs -I caps the replaced line at 255 bytes and aborts
 # the whole run on a longer line (regress_rando/R2.1.txt has one).
