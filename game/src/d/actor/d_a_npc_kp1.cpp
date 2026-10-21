@@ -9,6 +9,11 @@
 #include "d/d_snap.h"
 #include "m_Do/m_Do_lib.h"
 #include "res/Object/Kp.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
+#include "pc/pc_rando_locs.h"
+#endif
 static daNpc_Kp1_HIO_c l_HIO;
 daNpc_Kp1_HIO_c::daNpc_Kp1_HIO_c() {
     static hio_prm_c a_prm_tbl = {0x1FFE, 0x38E0, (s16)0xF448, (s16)0xC720, 0, 0, 0, 0, 1500, 1024, 170.0f, 0};
@@ -389,10 +394,20 @@ u32 daNpc_Kp1_c::getMsg() {
         mGaveHeart = 0;
         return 0x1E9E;
     }
+#if TARGET_PC
+    // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_kp1 0x11D8 (getMsg, b 0x1210: she never acts as if the quest is complete); original: if (dComIfGs_isGetItemReserve(15) && ...)
+    if (!pc_rando() && dComIfGs_isGetItemReserve(15) && !dComIfGs_checkReserveItem(dItemNo_MOBLINS_LETTER_e)) {
+#else
     if (dComIfGs_isGetItemReserve(15) && !dComIfGs_checkReserveItem(dItemNo_MOBLINS_LETTER_e)) {
+#endif
         return dComIfGs_getEventReg(0xCCFF) >= 1 ? 0x1E84 : 0x1E83;
     }
+#if TARGET_PC
+    // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_kp1 0x1214/0x1218 (getMsg, isEventBit 0x6A01); original: dComIfGs_isGetItemReserve(14)
+    if (pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_MAGGIE) : dComIfGs_isGetItemReserve(14)) {
+#else
     if (dComIfGs_isGetItemReserve(14)) {
+#endif
         return dComIfGs_isGetItemBeast(0) ? 0x1E87 : 0x1E88;
     }
     return mRefused ? 0x1E93 : 0x1E8A;
@@ -511,7 +526,16 @@ bool daNpc_Kp1_c::event_action() {
     bool result = false;
     switch (mEventAction) {
     case 0: {
+#if TARGET_PC
+            // pc_rando(R2.7): item_locations.txt d_a_npc_kp1.rel@17D7 (Maggie - Free Item); original: dItemNo_MAGGIES_LETTER_e
+            fpc_ProcID id = fopAcM_createItemForPresentDemo(&current.pos, pc_rando() ? pc_rando_loc_item(PCR_LOC_WINDFALL_ISLAND_MAGGIE_FREE_ITEM, dItemNo_MAGGIES_LETTER_e) : dItemNo_MAGGIES_LETTER_e, 0, -1, -1, NULL, NULL);
+            if (pc_rando()) {
+                // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_kp1 0x17EC maggie_give_item_and_set_event_bit; original: none
+                dComIfGs_onEventBit(PC_RANDO_BIT_MAGGIE);
+            }
+#else
             fpc_ProcID id = fopAcM_createItemForPresentDemo(&current.pos, dItemNo_MAGGIES_LETTER_e, 0, -1, -1, NULL, NULL);
+#endif
             if (id != fpcM_ERROR_PROCESS_ID_e) {
                 dComIfGp_event_setItemPartnerId(id);
                 result = true;
@@ -519,7 +543,12 @@ bool daNpc_Kp1_c::event_action() {
             break;
         }
     case 1: {
+#if TARGET_PC
+            // pc_rando(R2.7): item_locations.txt d_a_npc_kp1.rel@1817 (Maggie - Delivery Reward); original: dItemNo_HEART_PIECE_e
+            fpc_ProcID id = fopAcM_createItemForPresentDemo(&current.pos, pc_rando() ? pc_rando_loc_item(PCR_LOC_WINDFALL_ISLAND_MAGGIE_DELIVERY_REWARD, dItemNo_HEART_PIECE_e) : dItemNo_HEART_PIECE_e, 0, -1, -1, NULL, NULL);
+#else
             fpc_ProcID id = fopAcM_createItemForPresentDemo(&current.pos, dItemNo_HEART_PIECE_e, 0, -1, -1, NULL, NULL);
+#endif
             if (id != fpcM_ERROR_PROCESS_ID_e) {
                 dComIfGp_event_setItemPartnerId(id);
                 result = true;

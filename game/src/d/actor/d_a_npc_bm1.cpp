@@ -11,6 +11,7 @@
 #include "res/Object/Bm.h"
 #if TARGET_PC
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 
 class daNpc_Bm1_childHIO_c : public mDoHIO_entry_c {
@@ -636,7 +637,12 @@ bool daNpc_Bm1_c::init_BMC_1() {
 /* 00000F04-00000FB0       .text init_BMC_2__11daNpc_Bm1_cFv */
 bool daNpc_Bm1_c::init_BMC_2() {
     bool result = false;
+#if TARGET_PC
+    // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_bm1 0x1020/0x1024 (init_BMC_2, isEventBit 0x6A02); original: dComIfGs_isGetItemReserve(0x0F)
+    if (!(pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_POSTMAN) : dComIfGs_isGetItemReserve(0x0F))) {
+#else
     if (!dComIfGs_isGetItemReserve(0x0F)) {
+#endif
         result = dComIfGs_isEventBit(dSv_event_flag_c::UNK_1808);
         if (result) {
             set_action(&daNpc_Bm1_c::wait_action5, NULL);
@@ -1195,6 +1201,12 @@ void daNpc_Bm1_c::eventOrder() {
     } else if (condition >= 3) {
         mEventIdx = condition - 3;
         fopAcM_orderOtherEventId(this, mEventIdTable[mEventIdx]);
+#if TARGET_PC
+        if (pc_rando() && mEventIdx == 0) {
+            // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_bm1 0x225C rito_cafe_postman_start_event_and_set_event_bit (event index 0: the cafe postman's gift); original: none
+            dComIfGs_onEventBit(PC_RANDO_BIT_POSTMAN);
+        }
+#endif
     }
 }
 
@@ -1679,7 +1691,12 @@ u32 daNpc_Bm1_c::getMsg_BMC_2() {
     if (m87C != 0) {
         return 0x1EF7;
     }
+#if TARGET_PC
+    // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_bm1 0x3178/0x317C (getMsg_BMC_2, isEventBit 0x6A02); original: dComIfGs_isGetItemReserve(0xF)
+    if (pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_POSTMAN) : dComIfGs_isGetItemReserve(0xF)) {
+#else
     if (dComIfGs_isGetItemReserve(0xF)) {
+#endif
         return 0x1EF9;
     }
     return dComIfGs_isEventBit(dSv_event_flag_c::UNK_1908) ? 0x1EF2 : 0x1EF0;

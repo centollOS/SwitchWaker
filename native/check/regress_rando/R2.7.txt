@@ -1,0 +1,7 @@
+# R2.7 (docs/RANDOMIZER_PLAN.md): code locations B, the Windfall NPCs. T1 on the 15 code locations
+# (the item each hunk uses, Maggie's two demo items created for real) and the done-state probes of the
+# event bits 0x6904/0x6910/0x6920/0x6980/0x6A01/0x6A02, with the randomizer off (original game) and
+# on; forced, only the randomizer half.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:11 --env COS_RANDO_SMOKE=windfall
+rando 0 --stage sea:11 --env COS_RANDO_SMOKE=windfall --env COS_RANDO_FORCE=1

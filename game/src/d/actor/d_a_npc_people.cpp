@@ -26,6 +26,7 @@
 #if TARGET_PC
 #include "pc/pc_qol.h"
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 
 enum NpcNo_e {
@@ -4276,7 +4277,12 @@ static cPhs_State phase_1(daNpcPeople_c* i_this) {
     switch(i_this->getNpcNo()) {
         case NPC_UB4:
             if(strcmp(dComIfGp_getStartStageName(), "Ocmera") == 0) {
+#if TARGET_PC
+                // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_people 0x8D4/0x8D8 (phase_1, isEventBit 0x6904); original: dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_20_e)
+                if((pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_POMPIE_VERA) : dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_20_e)) || arg0 != dComIfGp_getStartStagePoint()) {
+#else
                 if(dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_20_e) || arg0 != dComIfGp_getStartStagePoint()) {
+#endif
                     return cPhs_STOP_e;
                 }
 
@@ -4596,7 +4602,12 @@ cPhs_State daNpcPeople_c::createInit() {
     m_jnt.setParam(mpNpcDat->field_0x04, mpNpcDat->field_0x06, mpNpcDat->field_0x0C, mpNpcDat->field_0x0E, mpNpcDat->field_0x00, mpNpcDat->field_0x02, mpNpcDat->field_0x08, mpNpcDat->field_0x0A, mpNpcDat->field_0x10);
 
     if(mNpcNo == NPC_UM3 && !mbIsNight) {
+#if TARGET_PC
+        // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_people 0x14CC/0x14D0 (createInit, isEventBit 0x6910; the result is unused); original: dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e)
+        pc_rando() ? (void)dComIfGs_isEventBit(PC_RANDO_BIT_KAMO) : (void)dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e);
+#else
         dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e);
+#endif
     }
 
     m79D = mpNpcDat->field_0x5A;
@@ -4831,7 +4842,12 @@ bool daNpcPeople_c::_execute() {
 
                     break;
                 case NPC_UM3:
+#if TARGET_PC
+                    // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_people 0x1C34/0x1C38 (_execute, isEventBit 0x6910); original: dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e)
+                    if(!(pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_KAMO) : dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e)) && (mAnmFlag & 0x3)) {
+#else
                     if(!dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e) && (mAnmFlag & 0x3)) {
+#endif
                         mAnmFlag &= ~0x3;
                         u8 rand = getRand(8);
                         if(rand == m794) {
@@ -6058,13 +6074,24 @@ void daNpcPeople_c::eventGetItemInit(int staffIdx) {
     int itemNo;
     int* pItemIdx = dComIfGp_evmng_getMyIntegerP(staffIdx, "ItemNo");
     if(pItemIdx) {
+#if TARGET_PC
+        // pc_rando(R2.7): item_locations.txt d_a_npc_people.rel@C54B-C55F (l_get_item_no: Sam, Pompie and Vera, Minenco, Linda and Anton, Kreeb, Kamo); original: itemNo = l_get_item_no[*pItemIdx]
+        itemNo = pc_rando() ? pc_rando_people_item(*pItemIdx, l_get_item_no[*pItemIdx]) : l_get_item_no[*pItemIdx];
+#else
         itemNo = l_get_item_no[*pItemIdx];
+#endif
     }
     else {
         itemNo = m75C;
     }
 
     fpc_ProcID itemPID = fopAcM_createItemForPresentDemo(&current.pos, itemNo, 0, -1, fopAcM_GetRoomNo(this));
+#if TARGET_PC
+    if (pc_rando() && pItemIdx) {
+        // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_people 0x4BEC create_item_and_set_event_bit_for_townsperson (0x6904/0x6908/0x6910 for indices 1/2/5); original: none
+        pc_rando_people_item_given(*pItemIdx);
+    }
+#endif
     if (itemPID != fpcM_ERROR_PROCESS_ID_e) {
         dComIfGp_event_setItemPartnerId(itemPID);
     }
@@ -6560,7 +6587,12 @@ u16 daNpcPeople_c::next_msgStatus(u32* pMsgNo) {
                         if(!dComIfGs_isEventBit(l_item_chk_sa3[m792])) {
                             m734++;
                             *pMsgNo = *m734;
+#if TARGET_PC
+                            // pc_rando(R2.7): item_locations.txt d_a_npc_people.rel@C21B/C21F/C223/C227 (l_item_id_sa3, Kane's gate rewards); original: m75C = l_item_id_sa3[m792]
+                            m75C = pc_rando() ? pc_rando_kane_item(m792, l_item_id_sa3[m792]) : l_item_id_sa3[m792];
+#else
                             m75C = l_item_id_sa3[m792];
+#endif
                             dComIfGs_onEventBit(l_item_chk_sa3[m792]);
                         }
                         else {
@@ -6790,7 +6822,12 @@ u32 daNpcPeople_c::getMsg() {
                 else if(!isColor()) {
                     m734 = l_msg_xy_ub4_no_color;
                 }
+#if TARGET_PC
+                // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_people 0x6170/0x6174 (getMsg, isEventBit 0x6908); original: dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_16_e)
+                else if(!(pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_MINENCO) : dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_16_e))) {
+#else
                 else if(!dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_16_e)) {
+#endif
                     m734 = l_msg_xy_ub4_get_item;
 #if VERSION > VERSION_JPN
                     dComIfGs_onEventBit(dSv_event_flag_c::UNK_2504);
@@ -7142,7 +7179,12 @@ u32 daNpcPeople_c::getMsg() {
                     else if(!dComIfGs_isEventBit(dSv_event_flag_c::UNK_2310)) {
                         m734 = l_msg_um3_no_nazo_talk;
                     }
+#if TARGET_PC
+                    // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_people 0x6C50/0x6C54 (getMsg, isEventBit 0x6910); original: dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e)
+                    else if(pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_KAMO) : dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e)) {
+#else
                     else if(dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e)) {
+#endif
                         m734 = l_msg_um3_map15;
                     }
                     else {
@@ -7156,7 +7198,12 @@ u32 daNpcPeople_c::getMsg() {
                 else if(!dComIfGs_isEventBit(dSv_event_flag_c::UNK_2308)) {
                     m734 = l_msg_um3_no_look_moon;
                 }
+#if TARGET_PC
+                // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_people 0x6CC4/0x6CC8 (getMsg, isEventBit 0x6910); original: dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e)
+                else if((pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_KAMO) : dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e)) && dComIfGs_isEventBit(dSv_event_flag_c::UNK_2280)) {
+#else
                 else if(dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e) && dComIfGs_isEventBit(dSv_event_flag_c::UNK_2280)) {
+#endif
                     m734 = l_msg_um3_map15_n;
                 }
                 else {
@@ -7966,7 +8013,12 @@ void daNpcPeople_c::setWaitAnm() {
     if(mNpcNo == NPC_UB3 && m789 != 0) {
         setAnmTbl(l_npc_anm_wait, 0);
     }
+#if TARGET_PC
+    // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_people 0x88A4/0x88A8 (setWaitAnm, isEventBit 0x6910); original: dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e)
+    else if(mNpcNo == NPC_UM3 && !mbIsNight && (pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_KAMO) : dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e))) {
+#else
     else if(mNpcNo == NPC_UM3 && !mbIsNight && dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e)) {
+#endif
         setAnmTbl(l_npc_anm_um3_wait3, 1);
     }
     else if(mNpcNo == NPC_UW2 && m793 == 1) {
@@ -8017,7 +8069,12 @@ s16 daNpcPeople_c::XyCheckCB(int i_itemBtn) {
 
             break;
         case NPC_UM3:
+#if TARGET_PC
+            // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_people 0x8A5C/0x8A60 (XyCheckCB, isEventBit 0x6910); original: dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e)
+            if(!mbIsNight && isPhoto(itemNo) && dComIfGs_isEventBit(dSv_event_flag_c::UNK_2310) && !(pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_KAMO) : dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e))) {
+#else
             if(!mbIsNight && isPhoto(itemNo) && dComIfGs_isEventBit(dSv_event_flag_c::UNK_2310) && !dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_15_e)) {
+#endif
                 return true;
             }
 
@@ -8263,7 +8320,12 @@ BOOL daNpcPeople_c::chkEndEvent() {
 
 /* 000090D0-00009100       .text is1GetMap20__13daNpcPeople_cFv */
 BOOL daNpcPeople_c::is1GetMap20() {
+#if TARGET_PC
+    // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_people 0x91C0/0x91C4 (is1GetMap20, isEventBit 0x6904); original: dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_20_e)
+    return (pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_POMPIE_VERA) : dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_20_e)) ? TRUE : FALSE;
+#else
     return dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_20_e) ? TRUE : FALSE;
+#endif
 }
 
 /* 00009100-00009144       .text is1DayGetMap20__13daNpcPeople_cFv */
