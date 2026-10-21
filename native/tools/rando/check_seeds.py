@@ -42,6 +42,10 @@ name=<json> pairs are applied after the preset:
   keylunacy_dungeons_only  progression_dungeons only, with keylunacy
   keylunacy_no_dungeons    the defaults without progression_dungeons, with keylunacy (dungeon items
                    become nonprogress items placed anywhere)
+  extra_start      (R6.4) 2 extra starting items, 7 starting Pieces of Heart, 8 Triforce Shards
+  extra_start_all  (R6.4) every category on (charts, letters) and 3 extra starting items
+  extra_start_keys (R6.4) 3 extra starting items, key-lunacy, No Starting Sword, 1 Heart
+                   Container and 44 Pieces of Heart
 
 The CLI runs with --allow-missing-hints unless --hints is given (R5.1): then our hints are generated
 and the spoiler log must be byte-identical including its Hints section (ww_verify_hints.py checks
@@ -95,7 +99,7 @@ def r6_1_presets():
 
 def all_presets():
   return (["default", "dungeons_only", "no_dungeons"] + r6_1_presets()
-          + ["keylunacy", "keylunacy_all", "keylunacy_dungeons_only", "keylunacy_no_dungeons"])
+          + ["keylunacy", "keylunacy_all", "keylunacy_dungeons_only", "keylunacy_no_dungeons", "extra_start", "extra_start_all", "extra_start_keys"])
 
 
 def preset_values(name):
@@ -125,6 +129,13 @@ def preset_values(name):
       values = preset_values("all_categories" if base == "all" else base)
       values["keylunacy"] = True
       return values
+  if name == "extra_start":
+    return {"num_extra_starting_items": 2, "starting_pohs": 7, "num_starting_triforce_shards": 8}
+  if name == "extra_start_all":
+    return dict({p: True for p in prog}, num_extra_starting_items=3)
+  if name == "extra_start_keys":
+    return {"num_extra_starting_items": 3, "keylunacy": True, "sword_mode": "No Starting Sword",
+            "starting_hcs": 1, "starting_pohs": 44}
   oc.die(f"unknown preset '{name}' (--list-presets lists them)")
 
 
