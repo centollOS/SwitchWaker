@@ -465,3 +465,14 @@ hook after `dComIfGs_init`, which calls `pc_rando_new_game_init`
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | - | no hunks in `game/`: `pc_rando_new_game_init`, called from `pc_rando_slot_new_game_end` / `pc_rando_slot_debug_boot_end` (`native/src/pc/game_hooks/pc_rando_hooks_slot.cpp`) | - | `custom_funcs.asm` `init_save_with_tweaks`, `init_starting_gear`; `reveal_sea_chart.asm` 0x8005B2CC |
+
+## R3.5
+
+Key bag text (`tweaks.py` `implement_key_bag`, `misc_rando_features.asm`
+`check_run_new_text_commands` / `exec_curr_num_keys_text_command`). Messages 403 ("Key Bag") and 603
+(the description with the five commands) are overlay records added by a listener in
+`native/src/pc/game_hooks/pc_rando_hooks_keybag.cpp` at every activation; they need no hunk.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/f_op/f_op_msg_mng.cpp | `fopMsgM_msgDataProc_c::stringSet` (new tag cases 0x4B-0x4F through `pc_rando_text_command`) | `#if TARGET_PC` `add` (`else if (pc_rando() && ...)`) | `misc_rando_features.asm` 0x80033E74 |
