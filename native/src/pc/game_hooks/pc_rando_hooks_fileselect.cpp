@@ -1,7 +1,9 @@
 // The randomizer on the file select and the "Clean unused seed files" row (docs/RANDOMIZER_PLAN.md
 // step R4.4, decisions D3 and D15; API in features/rando/pc_rando_fileselect.h, the hook declared in
 // native/include/pc/pc_rando_hooks.h). Reading only: a vanilla slot (no rando record) and a blank slot
-// with no pending seed show nothing, and the game's data is never written.
+// with no pending seed show nothing, and the game's data is never written. Everything here allocates
+// host memory (JKRPcHostAllocScope): the hook runs in the file select's draw with the scene's heap
+// current, and that heap is gone when the cache is next freed.
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "features/rando/pc_rando_fileselect.h"
 #include "features/rando/pc_rando_menu.h"
@@ -146,6 +148,7 @@ void randoFileSelectMenuInit() {
 }
 
 std::string randoCleanSidecars(bool es, pcr::SidecarCleanResult* out) {
+    JKRPcHostAllocScope hostAlloc;
     pcr::SidecarCleanResult r;
     std::string toast;
     if (randoGenBusy()) {
@@ -193,6 +196,7 @@ std::string randoCleanSidecars(bool es, pcr::SidecarCleanResult* out) {
 extern "C" void pc_rando_file_select_draw(const uint8_t* saveData, uint8_t selectNum, uint8_t proc) {
     using namespace pc;
     using K = pcr::FileInfoKind;
+    JKRPcHostAllocScope hostAlloc;
     const unsigned int now = pc_frame_count();
     if (sInfo.frame == 0 || now > sInfo.frame + kNewVisitFrames) {
         sCache.clear();

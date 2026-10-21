@@ -1,0 +1,7 @@
+# R4.4 (docs/RANDOMIZER_PLAN.md), the plan's target "rando-newgame": a real new game with a pending seed
+# (new-game-skip-intro.txt) binds it to the slot (record in mReserve, sidecar, pending consumed); the
+# file select's randomizer line (blank slot + pending seed, a rando slot, its copy, a vanilla slot, a
+# missing sidecar); reload of slot 1 and of its copy in slot 2 is randomized with the same placement;
+# "Clean unused seed files" removes only orphans. Its own empty run card. Not forced.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --input native/check/input/new-game-skip-intro.txt --env COS_RANDO_SMOKE=newfile
