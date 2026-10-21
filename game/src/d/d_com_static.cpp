@@ -28,6 +28,9 @@
 #include "d/actor/d_a_steam_tag.h"
 #include "d/actor/d_a_ykgr.h"
 #include "d/actor/d_a_tag_kb_item.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 #include "d/actor/d_a_tag_waterlevel.h"
 #include "d/actor/d_a_title.h"
 #include "d/actor/d_a_wind_tag.h"
@@ -417,6 +420,19 @@ void daTagKbItem_c::dig_main() {
     ) {
         angle.y = cM_rndF((f32)0x7FFE);
         s8 roomNo = current.roomNo;
+#if TARGET_PC
+        if (pc_rando()) {
+            // pc_rando(R2.3): flexible_item_locations.asm 0x80056C0C dig_main: custom_createItem
+            // (fopAcM_createItem, type 3, action 5) so the field model of any placed item is loaded, and
+            // the 5 instructions setting status 0x4000 on the item are nopped; the speed arguments are
+            // still computed (same random draws); original: fopAcM_fastCreateItem + fopAcStts_UNK4000_e
+            f32 speedF = cM_rndF(5.0f);
+            f32 speedY = 60.0f + cM_rndFX(5.0f);
+            (void)speedF;
+            (void)speedY;
+            fopAcM_createItem(&mpActor->current.pos, mItemNo, mItemBitNo, roomNo, daItemType_3_e, &angle,
+                              daItemAct_BOSS_DISAPPEAR_e, &scale);
+        } else {
         daItem_c* item = (daItem_c*)fopAcM_fastCreateItem(
             &mpActor->current.pos, mItemNo, roomNo, &angle,
             &scale, cM_rndF(5.0f), 60.0f + cM_rndFX(5.0f), -6.0f, mItemBitNo
@@ -424,6 +440,16 @@ void daTagKbItem_c::dig_main() {
         if (item) {
             fopAcM_OnStatus(item, fopAcStts_UNK4000_e);
         }
+        }
+#else
+        daItem_c* item = (daItem_c*)fopAcM_fastCreateItem(
+            &mpActor->current.pos, mItemNo, roomNo, &angle,
+            &scale, cM_rndF(5.0f), 60.0f + cM_rndFX(5.0f), -6.0f, mItemBitNo
+        );
+        if (item) {
+            fopAcM_OnStatus(item, fopAcStts_UNK4000_e);
+        }
+#endif
 #if VERSION <= VERSION_JPN
         fopAcM_delete(this);
 #else

@@ -329,3 +329,14 @@ parameters wwrando adds to pots and stone heads.
 | game/src/d/actor/d_a_tsubo.cpp | `daTsubo::Act_c::damaged` | `if/else` (+ `#else` original) | `flexible_item_locations.asm` d_a_tsubo.rel 0x3E7C `create_pot_item` |
 | game/src/d/actor/d_a_obj_homen.cpp | `daObjHomen::Act_c::make_item` | `add` (return; the original follows) | `flexible_item_locations.asm` d_a_obj_homen.rel 0x16DC nop, 0x1728 `create_stone_head_item` |
 | game/src/d/actor/d_a_obj_homen.cpp | `daObjHomen::Act_c::_create` | `add` | `tweaks.py` `fix_stone_head_bugs` (d_a_obj_homen.rel 0x3450 profile status &= ~0x80) |
+
+## R2.3
+
+SCOB item locations (salvage points, Big Octos, Gunboats, the black-soil dig spot) are written into
+room.dzr at archive load by `features/rando/pc_rando_place_scob.cpp` (a dzx patcher, not a hunk), which
+also applies `fix_needle_rock_island_salvage_flags` (sea/Room29 light-ring salvage flags 8 and 9).
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_salvage.cpp | `daSalvage_c::proc_wait` (ray of light: chart index + 0x61 instead of `getItemNo`) | `?:` (+ `#else` original) | flexible_item_locations.asm d_a_salvage 0x10C0 |
+| game/src/d/d_com_static.cpp | `daTagKbItem_c::dig_main` (`fopAcM_createItem` type 3 action 5, no status 0x4000) | `if (pc_rando()) {new} else {original}` (+ `#else` original) | flexible_item_locations.asm 0x80056C0C, custom_funcs.asm `custom_createItem` |
