@@ -452,3 +452,16 @@ Molgera). So `fopAcM_createDisappear`, `daDisappear_Execute` and the 6 boss file
 | game/src/f_op/f_op_actor_mng.cpp | `fopAcM_createItemForBoss`: the boss location's item and item flag 0x15 | `add` (+ the original switch after it) | `flexible_item_locations.asm` 0x80026A90/0x80026AB0 (nop the `li r4, 8`), 0x80026A94/0x80026AB4 (`li r5, 0x15`) |
 | game/src/d/actor/d_a_boss_item.cpp | `daBossItem_Create`: passes its stage number instead of 1 | `?:` (+ `#else` original) | `flexible_item_locations.asm` d_a_boss_item 0x1C4 (`lbz r4, 0xB2(r30)`) |
 | game/src/d/d_item.cpp | `item_func_utuwa_heart`: the boss-item flag (`dComIfGs_onStageLife`) only when `!pc_rando()` | if/else (+ `#else` original) | `flexible_item_locations.asm` nops 0x800C2FAC/0x800C2FC4 |
+
+## R3.1
+
+New-game state (`custom_funcs.asm` `init_save_with_tweaks`, `reveal_sea_chart.asm`). No hunk in `game/`:
+wwrando's call site (`misc_rando_features.asm` 0x8005D618 in `dSv_info_c::init`) is replaced by R0.7's
+hook after `dComIfGs_init`, which calls `pc_rando_new_game_init`
+(`native/src/pc/game_hooks/pc_rando_hooks_newgame.cpp`, tables in
+`native/src/pc/features/rando/pc_rando_newgame.{h,cpp}`) for a randomized new file only.
+`reveal_sea_chart.asm`'s change to `dSv_player_map_c::init` is a write to the new save there too.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| - | no hunks in `game/`: `pc_rando_new_game_init`, called from `pc_rando_slot_new_game_end` / `pc_rando_slot_debug_boot_end` (`native/src/pc/game_hooks/pc_rando_hooks_slot.cpp`) | - | `custom_funcs.asm` `init_save_with_tweaks`, `init_starting_gear`; `reveal_sea_chart.asm` 0x8005B2CC |

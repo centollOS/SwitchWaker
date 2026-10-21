@@ -33,3 +33,4 @@ PC_RANDO_SMOKE(windfall, randoSmokeWindfall) // R2.7: Windfall NPC code location
 PC_RANDO_SMOKE(ftree, randoSmokeFtree) // R2.8: the Withered Trees heart part as a placed item (custom_createItem, momentum, place, give)
 PC_RANDO_SMOKE(codec, randoSmokeCodec) // R2.8: code locations C lookups (T1: auction, Battlesquid, Barrel Shooting, Bird-Man, Goron, mailbox, Withered Trees, Zunari, Doc Bandam)
 PC_RANDO_SMOKE(shop, randoSmokeShop) // R2.9: Beedle shops (placed items in the shop lists, buying, the Bait Bag slot bit, uniqueness bit)
+PC_RANDO_SMOKE(newgame, randoSmokeNewgame) // R3.1: new-game state (init_save_with_tweaks: items, counts, event bits, switches, chart)

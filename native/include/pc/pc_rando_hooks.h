@@ -231,6 +231,18 @@ int pc_rando_shop_slot_loc(int slot);
 uint8_t pc_rando_shop_slot_vanilla(int slot);
 int pc_rando_shop_register_edits(void);
 
+/* --- R3.1: new-game state (custom_funcs.asm init_save_with_tweaks, reveal_sea_chart.asm;
+   game_hooks/pc_rando_hooks_newgame.cpp, tables in features/rando/pc_rando_newgame.h) --- */
+/* Under pc_rando(), right after dComIfGs_init of a randomized new file: what init_save_with_tweaks
+   adds after dSv_save_c::init (sword mode, Sail, Wind Waker, Wind's Requiem, Pirate's Charm, 30
+   arrows and bombs, starting magic, starting gear through convert_progressive_item_id and
+   execItemGet, story event bits, pigs register, targeting mode, stage switches, boss-intro bits,
+   spoils/bait ever owned, Triforce Shards, rematch bits) and, with reveal_full_sea_chart, every
+   sector charted. Uses pc_rando_cfg(). Called by R0.7's pc_rando_slot_new_game_end and
+   pc_rando_slot_debug_boot_end (pc_rando_hooks_slot.cpp) after the record is written; no game/ hunk
+   calls it. A no-op when pc_rando() is 0. */
+void pc_rando_new_game_init(void);
+
 #ifdef __cplusplus
 }
 #endif
