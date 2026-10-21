@@ -1,0 +1,12 @@
+# R6.9 (docs/RANDOMIZER_PLAN.md): required bosses at runtime (boss_reqs.py RequiredBossesRandomizer._save).
+# The smoke COS_RANDO_SMOKE=bossreq (native/src/pc/harness/smokes/pc_rando_smoke_bossreq.cpp) in the
+# Puppet Ganon stairway (GanonL room 0). With R0_6_abc_full.json (required bosses Gohma, Kalle Demos,
+# Gohdan, Helmaroc King): the room holds DngSw (mask 0x3C), 2 SwOps, ALLdie on 0x26, TagMsg and NBOX10;
+# message 851 = wwrando's on the disc's font; the sea chart's 4 quest markers at wwrando's places; the
+# door switch 0x19 stays clear with the enemies dead until the last required boss is dead, then opens.
+# Vanilla, COS_RANDO_FORCE (no seed) and a seed without required bosses: nothing patched, no marker.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage GanonL:0:0 --env COS_RANDO_SMOKE=bossreq --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_abc_full.json
+rando 0 --stage GanonL:0:0 --env COS_RANDO_SMOKE=bossreq
+rando 0 --stage GanonL:0:0 --env COS_RANDO_SMOKE=bossreq --env COS_RANDO_FORCE=1
+rando 0 --stage GanonL:0:0 --env COS_RANDO_SMOKE=bossreq --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_TestSeed1.json

@@ -53,3 +53,4 @@ PC_RANDO_SMOKE(charts, randoSmokeCharts) // R6.6: randomized charts (sea/Room44 
 PC_RANDO_SMOKE(island, randoSmokeIsland) // R6.7: starting island (a real new game with a randomize_starting_island seed lands on its island: return place, spawn 0, the boat at the island's SHIP 0)
 PC_RANDO_SMOKE(newfile, randoSmokeNewfile) // R4.4: new file binding (pending seed -> record), the file-select line, reload and a copied slot randomized, Clean unused seed files
 PC_RANDO_SMOKE(spoiler, randoSmokeSpoiler) // R4.5: the spoiler viewer (a generated TestSeed1: the row, the confirmation, spheres from its log, locations by zone, L/R and B through the menu; shots)
+PC_RANDO_SMOKE(bossreq, randoSmokeBossreq) // R6.9: required bosses at runtime (GanonL/Room0 DngSw/SwOps/ALLdie 0x26/TagMsg/NBOX10, message 851, sea chart quest markers, the door opens only once the required bosses are dead)

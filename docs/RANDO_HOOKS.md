@@ -665,3 +665,20 @@ model (spoiler log parser, locations by zone, pager) is `features/rando/pc_rando
 Checked by the `spoiler` smoke (shots 530, 580, 630) and `cos_rando_test_R4_5`. wwrando reference:
 `randomizer.py` `write_spoiler_log` (`randomizers/items.py` `write_progression_spheres_to_log`,
 `write_item_location_spoilers_to_log`).
+
+## R6.9
+
+Required bosses at runtime (`required_bosses`; boss_reqs.py `RequiredBossesRandomizer._save`). The
+Puppet Ganon door's condition is data, as wwrando writes it, not a hunk: an archive patcher in
+`features/rando/pc_rando_bossreq.cpp` edits GanonL/Room0 `room.dzr` (ALLdie sets 0x26 instead of the
+door's 0x19; appended DngSw with the required bosses' stage mask setting 0x25, SwOp AND 0x25+0x26 ->
+0x19, SwOp NAND 0x25 -> 0xE5, TagMsg 851 at the door on spawn switch 0xE5, NBOX10 wall behind it
+disabled by 0x25), with step R3.7's actors. Message 851 goes in the overlay from
+`game_hooks/pc_rando_hooks_bossreq.cpp`. The sea chart's quest markers are the hunk below, its body
+`pc_rando_bossreq_fmap_markers` (same file): the PIC1 panes of the required bosses are shown, moved to
+their island's sector (through the seed's entrance map) and rotated as wwrando's f_map.blo bytes. A
+seed without required bosses changes nothing. Checked by the `bossreq` smoke.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/d_menu_fmap.cpp | `dMenu_Fmap_c::_create`, right after `f_map.blo` is built: `pc_rando_bossreq_fmap_markers` (the required bosses' quest marker panes: visible, position, rotation) | add | randomizers/boss_reqs.py `show_quest_markers_on_sea_chart_for_dungeons` (f_map.blo 0x43B0 + i*0x40: +9, +0x10, +0x12, +0x19) |
