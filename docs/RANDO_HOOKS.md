@@ -316,3 +316,18 @@ is not 1.0; `remove_music` and `invert_sea_compass_x_axis` are `PcRandoModes` (`
 | game/src/JAZelAudio/JAIZelBasic.cpp | `JAIZelBasic::processHeartGaugeSound` | `add` (skips the 1-heart `seStart`) | `remove_low_health_beep_anim.asm` 0x802A2FA0 |
 | game/src/d/d_meter.cpp | `dMeter_compassGetOnProc` | `?:` | `invert_sea_compass_x_axis.asm` 0x801FD37C |
 | game/src/d/d_save.cpp | `dSv_player_config_c::init` | `?:` | `custom_funcs.asm` `option_targeting_mode` (`set_default_targeting_mode_to_switch`) |
+
+## R2.5
+
+The 6 boss Heart Container locations (asm group G5.3). One lookup instead of wwrando's per-boss
+patches: under `pc_rando()`, `fopAcM_createItemForBoss` spawns `pc_rando_boss_item(unused)`
+(`native/include/pc/pc_rando_hooks.h`, `native/src/pc/game_hooks/pc_rando_hooks_boss.cpp`; stage ->
+location table in the pure `features/rando/pc_rando_boss_items.cpp`), keyed by the stage number 2-7
+that `daBossItem` now passes, or by the loaded stage for the other callers (the disappear cloud, Gohdan,
+Molgera). So `fopAcM_createDisappear`, `daDisappear_Execute` and the 6 boss files need no hunk.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/f_op/f_op_actor_mng.cpp | `fopAcM_createItemForBoss`: the boss location's item and item flag 0x15 | `add` (+ the original switch after it) | `flexible_item_locations.asm` 0x80026A90/0x80026AB0 (nop the `li r4, 8`), 0x80026A94/0x80026AB4 (`li r5, 0x15`) |
+| game/src/d/actor/d_a_boss_item.cpp | `daBossItem_Create`: passes its stage number instead of 1 | `?:` (+ `#else` original) | `flexible_item_locations.asm` d_a_boss_item 0x1C4 (`lbz r4, 0xB2(r30)`) |
+| game/src/d/d_item.cpp | `item_func_utuwa_heart`: the boss-item flag (`dComIfGs_onStageLife`) only when `!pc_rando()` | if/else (+ `#else` original) | `flexible_item_locations.asm` nops 0x800C2FAC/0x800C2FC4 |

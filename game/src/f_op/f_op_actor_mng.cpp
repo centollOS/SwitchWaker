@@ -983,6 +983,15 @@ fpc_ProcID fopAcM_createDemoItem(cXyz* pos, int i_itemNo, int i_itemBitNo, csXyz
 
 /* 80026A68-80026ADC       .text fopAcM_createItemForBoss__FP4cXyziiP5csXyzP4cXyzi */
 fpc_ProcID fopAcM_createItemForBoss(cXyz* pos, int unused, int roomNo, csXyz* angle, cXyz* scale, int param_6) {
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R2.5): flexible_item_locations.asm 0x80026A90/0x80026AB0 (the item comes from the
+        // argument; here the boss's location, keyed by the stage in `unused` or the loaded stage) and
+        // 0x80026A94/0x80026AB4 (item flag 0x15); original: dItemNo_HEART_CONTAINER_e, item flag -1
+        return fopAcM_createItem(pos, pc_rando_boss_item(unused), 0x15, roomNo, daItemType_3_e, angle,
+                                 param_6 == 1 ? daItemAct_BOSS_e : daItemAct_BOSS_DISAPPEAR_e, scale);
+    }
+#endif
     switch (param_6) {
     case 1:
         return fopAcM_createItem(pos, dItemNo_HEART_CONTAINER_e, -1, roomNo, daItemType_3_e, angle, daItemAct_BOSS_e, scale);

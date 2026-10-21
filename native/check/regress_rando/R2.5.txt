@@ -1,0 +1,8 @@
+# R2.5 (docs/RANDOMIZER_PLAN.md): the boss Heart Container locations in Gohma's and Molgera's rooms:
+# Bitem (loaded stage and stage 2), createItemForBoss direct, the disappear cloud and
+# item_func_utuwa_heart, vanilla, with a placement, and vanilla again; then the rando round alone under
+# COS_RANDO_FORCE=1 (placement set, no activation).
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage M_DragB:0 --env COS_RANDO_SMOKE=bossitem
+rando 0 --stage kazeB:0 --env COS_RANDO_SMOKE=bossitem
+rando 0 --stage M_DragB:0 --env COS_RANDO_SMOKE=bossitem --env COS_RANDO_FORCE=1

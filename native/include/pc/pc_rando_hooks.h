@@ -151,6 +151,15 @@ int pc_rando_isTbox_unloaded(int stage_no, int no);
    added. */
 int pc_rando_misc_add_messages(void);
 
+/* --- R2.5: boss Heart Containers (flexible_item_locations.asm; game_hooks/pc_rando_hooks_boss.cpp,
+   table in features/rando/pc_rando_boss_items.h) --- */
+/* The item fopAcM_createItemForBoss spawns under pc_rando(): the item placed at the Heart Container
+   location of the boss of stage `key` when it is a boss stage number (2-7, passed by daBossItem),
+   else of the loaded stage's save table (the disappear cloud and Gohdan/Molgera pass 0; the sea
+   stands for Forsaken Fortress). 0x08 (Heart Container) when that stage has no boss or no placement
+   is set. */
+uint8_t pc_rando_boss_item(int key);
+
 #ifdef __cplusplus
 }
 #endif

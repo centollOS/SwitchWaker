@@ -610,6 +610,18 @@ void item_func_utuwa_heart() {
 #if VERSION == VERSION_DEMO
     dComIfGs_onStageLife();
 #else
+#if TARGET_PC
+    if (!pc_rando()) {
+        // pc_rando(R2.5): flexible_item_locations.asm nops 0x800C2FAC/0x800C2FC4 (a Heart Container
+        // found elsewhere must not take the dungeon's boss item away); original: set the boss-item flag
+        stage_stag_info_class* stag_info = dComIfGp_getStageStagInfo();
+        if (dStage_stagInfo_GetSaveTbl(stag_info) == dSv_save_c::STAGE_SEA) {
+            dComIfGs_onStageLife(dSv_save_c::STAGE_FF);
+        } else {
+            dComIfGs_onStageLife();
+        }
+    }
+#else
     stage_stag_info_class* stag_info = dComIfGp_getStageStagInfo();
     if (dStage_stagInfo_GetSaveTbl(stag_info) == dSv_save_c::STAGE_SEA) {
         // Didn't get the Heart Container immediately after defeating Helmaroc King.
@@ -618,6 +630,7 @@ void item_func_utuwa_heart() {
     } else {
         dComIfGs_onStageLife();
     }
+#endif
 #endif
 }
 
