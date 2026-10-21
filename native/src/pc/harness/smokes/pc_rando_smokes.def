@@ -24,3 +24,4 @@ PC_RANDO_SMOKE(bog, randoSmokeBog) // R3.13: the Ballad of Gales 10th warp to Fo
 PC_RANDO_SMOKE(wrap, randoSmokeWrap) // R3.20: word wrap with the real message font against gclib (fixture R3_20_wrap_font.txt)
 PC_RANDO_SMOKE(menu, randoSmokeMenu) // R4.1: the Randomizer tab (presets, validation rules, starting gear)
 PC_RANDO_SMOKE(event, randoSmokeEvent) // R0.11: the event_list.dat in-place patcher (Orichh Gp1_Get_Itm prm0 read back by dEvent_manager_c)
+PC_RANDO_SMOKE(loc, randoSmokeLoc) // R2.1: locations T1 (patched records + live actors) and T2 (open a chest); chests for now
