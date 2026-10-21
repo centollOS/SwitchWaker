@@ -252,6 +252,16 @@ void pc_rando_new_game_init(void);
    pc_rando(). The same file adds messages 403/603 to the overlay at every activation. */
 int pc_rando_text_command(int code, char* out, size_t cap);
 
+/* --- R3.15: stage tweaks A (features/rando/pc_rando_tweak_stages_a.h; game_hooks/
+   pc_rando_hooks_stages_a.cpp) --- */
+/* Registers the dzx patcher pc_rando_stages_a_patch and the dzb patcher below (listed in
+   features/rando/pc_rando_patchers.def; also called by the smoke). Idempotent. */
+void pc_rando_stages_a_init(void);
+/* tweaks.py fix_forsaken_fortress_door_softlock: sea/Room1 room.dzb (after cBgS::ConvDzb), face
+   0x1493's property index becomes 0x11. A res patcher for 'DZB ' files. */
+struct PcRandoResFile;
+void pc_rando_stages_a_patch_dzb(struct PcRandoResFile* file);
+
 #ifdef __cplusplus
 }
 #endif

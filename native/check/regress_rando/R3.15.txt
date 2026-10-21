@@ -1,0 +1,20 @@
+# R3.15 (docs/RANDOMIZER_PLAN.md): stage tweaks A, one boot per tweaked room. Each forced line checks
+# every edited record of the room's files (raw bytes against the stored ones, through R0.10's
+# dispatcher); the plain line checks that nothing is dispatched and the Helmaroc table is still there.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage M2tower:0:16 --env COS_RANDO_SMOKE=stagesA
+rando 0 --stage M2tower:0:16 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage sea:1:0 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage kaze:3:3 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage M_NewD2:2:5 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage M_NewD2:13:4 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage M_NewD2:14:5 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage PShip:2:0 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage sea:26:0 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage sea:15:1 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage sea:24:100 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage sea:46:100 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage sea:22:100 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage sea:8:100 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage sea:37:100 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1
+rando 0 --stage sea:25:100 --env COS_RANDO_SMOKE=stagesA --env COS_RANDO_FORCE=1

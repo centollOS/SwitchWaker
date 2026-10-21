@@ -35,3 +35,4 @@ PC_RANDO_SMOKE(codec, randoSmokeCodec) // R2.8: code locations C lookups (T1: au
 PC_RANDO_SMOKE(shop, randoSmokeShop) // R2.9: Beedle shops (placed items in the shop lists, buying, the Bait Bag slot bit, uniqueness bit)
 PC_RANDO_SMOKE(newgame, randoSmokeNewgame) // R3.1: new-game state (init_save_with_tweaks: items, counts, event bits, switches, chart)
 PC_RANDO_SMOKE(keybag, randoSmokeKeybag) // R3.5: the key bag text (messages 403/603, stringSet tag cases 0x4B-0x4F)
+PC_RANDO_SMOKE(stagesA, randoSmokeStagesA) // R3.15: stage tweaks A (FF2, GT warp, Makar, walls, boulders, ghost ship, TotG, eye reefs, Helmaroc table, fairy island, FF door dzb)

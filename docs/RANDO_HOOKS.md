@@ -476,3 +476,9 @@ Key bag text (`tweaks.py` `implement_key_bag`, `misc_rando_features.asm`
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | game/src/f_op/f_op_msg_mng.cpp | `fopMsgM_msgDataProc_c::stringSet` (new tag cases 0x4B-0x4F through `pc_rando_text_command`) | `#if TARGET_PC` `add` (`else if (pc_rando() && ...)`) | `misc_rando_features.asm` 0x80033E74 |
+
+## R3.15
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| - | no hunks in `game/`: the stage tweaks are a dzx patcher and a dzb patcher on R0.10's archive-load dispatcher (`features/rando/pc_rando_tweak_stages_a.{h,cpp}`, `game_hooks/pc_rando_hooks_stages_a.cpp`). The plan's hunk at `d_a_bg.cpp:206` is not needed: `room.dzb` passes through `pc_rando_res_hook_loaded` after `cBgS::ConvDzb`, before `dBgW::Set` reads it | - | `tweaks.py` `remove_forsaken_fortress_2_cutscenes`, `add_ganons_tower_warp_to_ff2`, `remove_makar_kidnapping_event`, `disable_invisible_walls`, `prevent_door_boulder_softlocks`, `fix_ghost_ship_chest_crash`, `fix_totg_warp_out_spawn_pos`, `remove_phantom_ganon_requirement_from_eye_reefs`, `fix_forsaken_fortress_door_softlock`, `fix_helmaroc_king_table_softlock`, `prevent_fairy_island_softlocks` |
