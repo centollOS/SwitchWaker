@@ -10,6 +10,7 @@ into the game or needed by players.
 | `setup_oracle.sh` | creates `build/rando-venv` and `build/rando-deps/gclib` |
 | `ww_export.py` | golden placement JSON for a seed (or permalink) and options |
 | `ww_verify.py` | checks any placement JSON with wwrando's Logic (valid, complete, beatable) |
+| `ww_verify_hints.py` | checks our placements' hints (valid; with `--golden` identical to wwrando's) |
 | `ww_trace.py` | logs every RNG draw per randomizer, for call-by-call diffs against our generator |
 | `make_test_placement.py` | standard placements `identity`, `rotation`, `seed` for runtime tests |
 | `oracle_common.py` | shared helpers (paths, venv re-exec, options, JSON) |
@@ -158,4 +159,8 @@ python3 -I native/tools/rando/make_test_placement.py --kind seed --seed TestSeed
 
 - R1.6 `check_seeds.py --cli <cos_rando_cli> --n N --preset P [--golden]` runs our CLI, then
   `ww_verify.py` on each seed, and with `--golden` compares `locations` with `ww_export.py`.
+- R5.1 `ww_verify_hints.py --cli <cos_rando_cli> --n N [--golden] [name=<json> ...]` (or placement
+  files) checks every hint against the placement with wwrando's Logic and, with `--golden`, requires
+  the `hints` value to equal wwrando's HintsRandomizer state. `check_seeds.py --hints` generates the
+  hints too and compares the spoiler log's Hints section byte for byte.
 - On a mismatch, diff `ww_trace.py` with our `COS_RANDO_TRACE=1` output.

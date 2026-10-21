@@ -18,8 +18,13 @@ put back as prerandomized items as the item fill leaves them):
   - a hint marked "required" points at a location required for a path goal (removing its item breaks
     it: check_location_required_for_paths), one marked "not required" at a location that is not
     required for any path goal;
-  - barren zones hold no required item: no non-banned progress location of the zone
-    (get_all_zones_for_item_location) is required for any path goal;
+  - barren zones hold no useful item: no non-banned progress location of the zone
+    (get_all_zones_for_item_location) holds an item that may be used to beat the seed, by
+    wwrando's definition (the closure of get_item_names_by_req_name from 'Can Reach and Defeat
+    Ganondorf', recomputed here). That closure is an approximation: items_needed skips what the
+    starting state already satisfies, so wwrando itself sometimes calls a zone barren although one of
+    its items is required (e.g. a song that is only needed behind an OR). Such cases are counted as
+    "strict" notes, not failures, when the location is required but not in the closure;
   - every path hint names a zone holding a location required for the hinted goal (dungeon locations
     by dungeon, the others by entrance zone), and not a dungeon key without key-lunacy;
   - the placements are the enabled ones in wwrando's order; the fishmen (49), Ho Ho (10, the same
@@ -112,9 +117,9 @@ def verify_hints(d):
 
   h = d.get("hints")
   if not isinstance(h, dict):
-    return ["the placement has no hints"]
+    return ["the placement has no hints"], []
   if h.get("format") != HINTS_FORMAT:
-    return [f"hints format {h.get('format')!r} is not {HINTS_FORMAT}"]
+    return [f"hints format {h.get('format')!r} is not {HINTS_FORMAT}"], []
 
   opts = oc.make_options(d["options"], strict=False)
   r = oc.make_randomizer(d.get("seed") or "x", opts)
@@ -147,6 +152,24 @@ def verify_hints(d):
 
   problems = []
 
+  # wwrando's "useful" closure (get_barren_zones), recomputed from the placement.
+  progress_items = {}
+  for loc in progress:
+    if locs[loc] in L.all_progress_items:
+      progress_items.setdefault(locs[loc], []).append(loc)
+  hr.path_logic.load_simulated_playthrough_state(hr.path_logic_initial_state)
+  queue = list(hr.path_logic.get_item_names_by_req_name("Can Reach and Defeat Ganondorf"))
+  seen, useful = set(), set()
+  while queue:
+    item = queue.pop()
+    if item in seen or item not in progress_items or (L.is_dungeon_item(item) and not opts.keylunacy):
+      continue
+    seen.add(item)
+    for loc in progress_items[item]:
+      queue += hr.path_logic.get_item_names_by_req_name(f'Can Access Item Location "{loc}"')
+      useful.add(loc)
+  notes = []
+
   def check_importance(what, cands, imp):
     if imp == "required" and not any(required_for(c) for c in cands):
       problems.append(f"{what}: marked required but no such location is required")
@@ -174,8 +197,12 @@ def verify_hints(d):
       if reward is not None:
         problems.append(f"{what}: a barren hint has a reward")
       for loc in progress:
-        if place in ent.get_all_zones_for_item_location(loc) and required_for(loc):
-          problems.append(f"{what}: {loc} ({locs[loc]}) is required for {sorted(required_for(loc))}")
+        if place not in ent.get_all_zones_for_item_location(loc):
+          continue
+        if loc in useful:
+          problems.append(f"{what}: {loc} ({locs[loc]}) is useful (needed to beat the seed)")
+        elif required_for(loc):
+          notes.append(f"strict: barren {place} holds {loc} ({locs[loc]}), required for {sorted(required_for(loc))}")
     elif t == "path":
       goal = GOAL_FOR_REWARD.get(reward)
       if goal is None or goal not in goals:
@@ -239,7 +266,7 @@ def verify_hints(d):
         problems.append("hoho: uneven lists or hints not from hoho_hints")
   if "korl_hints" in pl and h.get("korl") != pl["korl_hints"]:
     problems.append("korl: not the korl_hints list")
-  return problems
+  return problems, notes
 
 
 # ---------------------------------------------------------------------------------------------
@@ -253,8 +280,9 @@ def worker_init():
 def check_one(job):
   name, path, golden = job
   d = oc.read_json(path)
+  notes = []
   try:
-    problems = verify_hints(d)
+    problems, notes = verify_hints(d)
   except Exception as e:  # a wwrando helper raised on our data
     problems = [f"verify raised {type(e).__name__}: {e}"]
   if golden and isinstance(d.get("hints"), dict):
@@ -270,7 +298,7 @@ def check_one(job):
         for k in sorted(set(want) | set(d["hints"])):
           if d["hints"].get(k) != want.get(k):
             problems.append(f"golden: hints key {k!r} differs from wwrando's")
-  return name, problems
+  return name, problems, notes
 
 
 def main():
@@ -310,7 +338,7 @@ def main():
       ap.error("give placement files or --cli")
     jobs = [(os.path.basename(f), f, a.golden) for f in a.args]
 
-  failures = 0
+  failures = noted = 0
   missing = [j for j in jobs if not os.path.isfile(j[1])]
   for j in missing:
     print(f"FAIL {j[0]}: no placement ({j[1]})")
@@ -318,13 +346,16 @@ def main():
   jobs = [j for j in jobs if os.path.isfile(j[1])]
   ctx = multiprocessing.get_context("spawn")
   with ctx.Pool(processes=max(1, a.jobs), initializer=worker_init) as pool:
-    for name, problems in pool.imap_unordered(check_one, jobs):
+    for name, problems, notes in pool.imap_unordered(check_one, jobs):
       for pr in problems[:8]:
         print(f"FAIL {name}: {pr}")
+      for n in notes[:4]:
+        print(f"note {name}: {n}")
       failures += bool(problems)
+      noted += bool(notes)
   total = len(jobs) + len(missing)
   print(f"ww_verify_hints: {total} placements, {total - failures} passed"
-        f"{' (golden)' if a.golden else ''}, {failures} failed")
+        f"{' (golden)' if a.golden else ''}, {failures} failed, {noted} with strict notes")
   if out_dir and not a.keep:
     shutil.rmtree(out_dir, ignore_errors=True)
   return 0 if failures == 0 else 1

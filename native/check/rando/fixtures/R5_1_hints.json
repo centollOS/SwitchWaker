@@ -1,0 +1,4244 @@
+[
+ {
+  "seed": "TestSeed1",
+  "options": {},
+  "hints": {
+   "format": 1,
+   "savage_labyrinth": [
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 30",
+     "reward": "Purple Rupee",
+     "importance": null
+    },
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 50",
+     "reward": "Fill-Up Coupon",
+     "importance": null
+    }
+   ],
+   "octo_fairy": {
+    "type": "item",
+    "place": "Forest Haven",
+    "reward": "Command Melody",
+    "importance": "required"
+   },
+   "placements": {
+    "fishmen_hints": [
+     {
+      "type": "item",
+      "place": "Forest Haven",
+      "reward": "Wind God's Aria",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "The Great Sea",
+      "reward": "Skull Hammer",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Pawprint Isle",
+      "reward": "Wind Tingle Statue",
+      "importance": "not required"
+     },
+     {
+      "type": "item",
+      "place": "Angular Isles",
+      "reward": "Triforce Shard 4",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Dragon Roost Island",
+      "reward": "Progressive Sword",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Cliff Plateau Isles",
+      "reward": "Bombs",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Rock Spire Isle",
+      "reward": "Earth God's Lyric",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Private Oasis",
+      "reward": "Triforce Shard 7",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Wind Temple - Big Key Chest",
+      "reward": "WT Small Key",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Wind Temple - Chest Behind Seven Armos",
+      "reward": "Joy Pendant",
+      "importance": null
+     }
+    ],
+    "hoho_hints": [
+     {
+      "type": "item",
+      "place": "Thorned Fairy Island",
+      "reward": "Iron Boots",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "The Great Sea",
+      "reward": "Ghost Ship Chart",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Gale Isle",
+      "reward": "Progressive Shield",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Pawprint Isle",
+      "reward": "Triforce Shard 8",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Islet of Steel",
+      "reward": "Progressive Wallet",
+      "importance": "possibly required"
+     },
+     {
+      "type": "item",
+      "place": "Dragon Roost Island",
+      "reward": "Forbidden Tingle Statue",
+      "importance": "not required"
+     },
+     {
+      "type": "item",
+      "place": "Rock Spire Isle",
+      "reward": "Earth Tingle Statue",
+      "importance": "not required"
+     },
+     {
+      "type": "location",
+      "place": "Forbidden Woods - Chest in Locked Tree Trunk",
+      "reward": "FW Big Key",
+      "importance": "not required"
+     },
+     {
+      "type": "location",
+      "place": "Bomb Island - Cave",
+      "reward": "Orange Rupee",
+      "importance": null
+     },
+     {
+      "type": "location",
+      "place": "Ganon's Tower - Maze Chest",
+      "reward": "Heart Container",
+      "importance": null
+     }
+    ]
+   },
+   "fishmen": [
+    {
+     "type": "item",
+     "place": "Angular Isles",
+     "reward": "Triforce Shard 4",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Pawprint Isle",
+     "reward": "Wind Tingle Statue",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Progressive Sword",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Rock Spire Isle",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Private Oasis",
+     "reward": "Triforce Shard 7",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Skull Hammer",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Cliff Plateau Isles",
+     "reward": "Bombs",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Big Key Chest",
+     "reward": "WT Small Key",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Wind God's Aria",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Wind God's Aria",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Private Oasis",
+     "reward": "Triforce Shard 7",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Progressive Sword",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Pawprint Isle",
+     "reward": "Wind Tingle Statue",
+     "importance": "not required"
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Big Key Chest",
+     "reward": "WT Small Key",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Angular Isles",
+     "reward": "Triforce Shard 4",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Pawprint Isle",
+     "reward": "Wind Tingle Statue",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Private Oasis",
+     "reward": "Triforce Shard 7",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Big Key Chest",
+     "reward": "WT Small Key",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Skull Hammer",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Skull Hammer",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Rock Spire Isle",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Rock Spire Isle",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Cliff Plateau Isles",
+     "reward": "Bombs",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Cliff Plateau Isles",
+     "reward": "Bombs",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Pawprint Isle",
+     "reward": "Wind Tingle Statue",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Pawprint Isle",
+     "reward": "Wind Tingle Statue",
+     "importance": "not required"
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Big Key Chest",
+     "reward": "WT Small Key",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Chest Behind Seven Armos",
+     "reward": "Joy Pendant",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Rock Spire Isle",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Progressive Sword",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Progressive Sword",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Rock Spire Isle",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Wind God's Aria",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Angular Isles",
+     "reward": "Triforce Shard 4",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Progressive Sword",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Wind God's Aria",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Chest Behind Seven Armos",
+     "reward": "Joy Pendant",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Skull Hammer",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Angular Isles",
+     "reward": "Triforce Shard 4",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Private Oasis",
+     "reward": "Triforce Shard 7",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Skull Hammer",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Chest Behind Seven Armos",
+     "reward": "Joy Pendant",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Cliff Plateau Isles",
+     "reward": "Bombs",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Private Oasis",
+     "reward": "Triforce Shard 7",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Big Key Chest",
+     "reward": "WT Small Key",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Cliff Plateau Isles",
+     "reward": "Bombs",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Wind God's Aria",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Chest Behind Seven Armos",
+     "reward": "Joy Pendant",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Angular Isles",
+     "reward": "Triforce Shard 4",
+     "importance": "required"
+    }
+   ],
+   "hoho": [
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Dragon Roost Island",
+       "reward": "Forbidden Tingle Statue",
+       "importance": "not required"
+      }
+     ],
+     "look_island": 13
+    },
+    {
+     "hints": [
+      {
+       "type": "location",
+       "place": "Ganon's Tower - Maze Chest",
+       "reward": "Heart Container",
+       "importance": null
+      }
+     ],
+     "look_island": 26
+    },
+    {
+     "hints": [
+      {
+       "type": "location",
+       "place": "Forbidden Woods - Chest in Locked Tree Trunk",
+       "reward": "FW Big Key",
+       "importance": "not required"
+      }
+     ],
+     "look_island": 41
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Thorned Fairy Island",
+       "reward": "Iron Boots",
+       "importance": "required"
+      }
+     ],
+     "look_island": 28
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Rock Spire Isle",
+       "reward": "Earth Tingle Statue",
+       "importance": "not required"
+      }
+     ],
+     "look_island": 16
+    },
+    {
+     "hints": [
+      {
+       "type": "location",
+       "place": "Bomb Island - Cave",
+       "reward": "Orange Rupee",
+       "importance": null
+      }
+     ],
+     "look_island": 34
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Pawprint Isle",
+       "reward": "Triforce Shard 8",
+       "importance": "required"
+      }
+     ],
+     "look_island": 12
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Gale Isle",
+       "reward": "Progressive Shield",
+       "importance": "required"
+      }
+     ],
+     "look_island": 4
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "The Great Sea",
+       "reward": "Ghost Ship Chart",
+       "importance": "required"
+      }
+     ],
+     "look_island": null
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Islet of Steel",
+       "reward": "Progressive Wallet",
+       "importance": "possibly required"
+      }
+     ],
+     "look_island": 30
+    }
+   ]
+  }
+ },
+ {
+  "seed": "HintSeed7",
+  "options": {},
+  "hints": {
+   "format": 1,
+   "savage_labyrinth": [
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 30",
+     "reward": "Treasure Chart 17",
+     "importance": null
+    },
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 50",
+     "reward": "Joy Pendant",
+     "importance": null
+    }
+   ],
+   "octo_fairy": {
+    "type": "item",
+    "place": "Pawprint Isle",
+    "reward": "Progressive Shield",
+    "importance": "required"
+   },
+   "placements": {
+    "fishmen_hints": [
+     {
+      "type": "item",
+      "place": "The Great Sea",
+      "reward": "Hookshot",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Windfall Island",
+      "reward": "Goddess Tingle Statue",
+      "importance": "not required"
+     },
+     {
+      "type": "item",
+      "place": "Dragon Roost Island",
+      "reward": "Iron Boots",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "The Great Sea",
+      "reward": "Deku Leaf",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Dragon Roost Island",
+      "reward": "Cabana Deed",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Headstone Island",
+      "reward": "Progressive Sword",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Cliff Plateau Isles",
+      "reward": "Command Melody",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Dragon Roost Cavern - Miniboss",
+      "reward": "DRC Big Key",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+      "reward": "Treasure Chart 15",
+      "importance": null
+     },
+     {
+      "type": "location",
+      "place": "Needle Rock Isle - Cave",
+      "reward": "Yellow Rupee",
+      "importance": null
+     }
+    ],
+    "hoho_hints": [
+     {
+      "type": "item",
+      "place": "Dragon Roost Island",
+      "reward": "Ghost Ship Chart",
+      "importance": "not required"
+     },
+     {
+      "type": "item",
+      "place": "Gale Isle",
+      "reward": "Earth God's Lyric",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Mother and Child Isles",
+      "reward": "Progressive Bow",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Eastern Fairy Island",
+      "reward": "Triforce Shard 3",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Forsaken Fortress",
+      "reward": "Nayru's Pearl",
+      "importance": "not required"
+     },
+     {
+      "type": "item",
+      "place": "Forsaken Fortress Sector",
+      "reward": "Wind God's Aria",
+      "importance": "not required"
+     },
+     {
+      "type": "item",
+      "place": "Headstone Island",
+      "reward": "Triforce Shard 5",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Diamond Steppe Island",
+      "reward": "Triforce Shard 2",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Islet of Steel - Interior",
+      "reward": "Grappling Hook",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Earth Temple - Big Key Chest",
+      "reward": "ET Big Key",
+      "importance": "required"
+     }
+    ]
+   },
+   "fishmen": [
+    {
+     "type": "item",
+     "place": "Cliff Plateau Isles",
+     "reward": "Command Melody",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Iron Boots",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Cabana Deed",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+     "reward": "Treasure Chart 15",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Dragon Roost Cavern - Miniboss",
+     "reward": "DRC Big Key",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Hookshot",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Deku Leaf",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Dragon Roost Cavern - Miniboss",
+     "reward": "DRC Big Key",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+     "reward": "Treasure Chart 15",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Hookshot",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Cliff Plateau Isles",
+     "reward": "Command Melody",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+     "reward": "Treasure Chart 15",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Iron Boots",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Deku Leaf",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Cliff Plateau Isles",
+     "reward": "Command Melody",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Needle Rock Isle - Cave",
+     "reward": "Yellow Rupee",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Cabana Deed",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Headstone Island",
+     "reward": "Progressive Sword",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Cliff Plateau Isles",
+     "reward": "Command Melody",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+     "reward": "Treasure Chart 15",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+     "reward": "Treasure Chart 15",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Iron Boots",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Goddess Tingle Statue",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Goddess Tingle Statue",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Headstone Island",
+     "reward": "Progressive Sword",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Goddess Tingle Statue",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Cliff Plateau Isles",
+     "reward": "Command Melody",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Needle Rock Isle - Cave",
+     "reward": "Yellow Rupee",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Dragon Roost Cavern - Miniboss",
+     "reward": "DRC Big Key",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Deku Leaf",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Hookshot",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Goddess Tingle Statue",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Deku Leaf",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Needle Rock Isle - Cave",
+     "reward": "Yellow Rupee",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Hookshot",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Iron Boots",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Cabana Deed",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Headstone Island",
+     "reward": "Progressive Sword",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Hookshot",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Needle Rock Isle - Cave",
+     "reward": "Yellow Rupee",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Cabana Deed",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "The Great Sea",
+     "reward": "Deku Leaf",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Dragon Roost Cavern - Miniboss",
+     "reward": "DRC Big Key",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Goddess Tingle Statue",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Headstone Island",
+     "reward": "Progressive Sword",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Headstone Island",
+     "reward": "Progressive Sword",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Cabana Deed",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Dragon Roost Cavern - Miniboss",
+     "reward": "DRC Big Key",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Iron Boots",
+     "importance": "required"
+    }
+   ],
+   "hoho": [
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Forsaken Fortress Sector",
+       "reward": "Wind God's Aria",
+       "importance": "not required"
+      }
+     ],
+     "look_island": 1
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Forsaken Fortress",
+       "reward": "Nayru's Pearl",
+       "importance": "not required"
+      }
+     ],
+     "look_island": null
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Mother and Child Isles",
+       "reward": "Progressive Bow",
+       "importance": "required"
+      }
+     ],
+     "look_island": 9
+    },
+    {
+     "hints": [
+      {
+       "type": "location",
+       "place": "Islet of Steel - Interior",
+       "reward": "Grappling Hook",
+       "importance": "required"
+      }
+     ],
+     "look_island": 30
+    },
+    {
+     "hints": [
+      {
+       "type": "location",
+       "place": "Earth Temple - Big Key Chest",
+       "reward": "ET Big Key",
+       "importance": "required"
+      }
+     ],
+     "look_island": 45
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Diamond Steppe Island",
+       "reward": "Triforce Shard 2",
+       "importance": "required"
+      }
+     ],
+     "look_island": 36
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Eastern Fairy Island",
+       "reward": "Triforce Shard 3",
+       "importance": "required"
+      }
+     ],
+     "look_island": 19
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Headstone Island",
+       "reward": "Triforce Shard 5",
+       "importance": "required"
+      }
+     ],
+     "look_island": 45
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Gale Isle",
+       "reward": "Earth God's Lyric",
+       "importance": "required"
+      }
+     ],
+     "look_island": 4
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Dragon Roost Island",
+       "reward": "Ghost Ship Chart",
+       "importance": "not required"
+      }
+     ],
+     "look_island": 13
+    }
+   ]
+  }
+ },
+ {
+  "seed": "Heavy5",
+  "options": {
+   "num_path_hints": 6,
+   "num_barren_hints": 6,
+   "num_item_hints": 5,
+   "num_location_hints": 6,
+   "korl_hints": true,
+   "prioritize_remote_hints": true,
+   "hint_importance": true,
+   "cryptic_hints": true
+  },
+  "hints": {
+   "format": 1,
+   "savage_labyrinth": [
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 30",
+     "reward": "Red Chu Jelly",
+     "importance": null
+    },
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 50",
+     "reward": "Purple Rupee",
+     "importance": null
+    }
+   ],
+   "octo_fairy": {
+    "type": "item",
+    "place": "Bomb Island",
+    "reward": "Earth Tingle Statue",
+    "importance": "required"
+   },
+   "placements": {
+    "fishmen_hints": [
+     {
+      "type": "path",
+      "place": "The Great Sea",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "path",
+      "place": "Wind Temple",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Crescent Moon Island",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Thorned Fairy Island",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "item",
+      "place": "Forest Haven",
+      "reward": "Din's Pearl",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Ganon's Tower - Maze Chest",
+      "reward": "Treasure Chart 23",
+      "importance": null
+     },
+     {
+      "type": "location",
+      "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+      "reward": "Orange Rupee",
+      "importance": null
+     }
+    ],
+    "hoho_hints": [
+     {
+      "type": "path",
+      "place": "Pawprint Isle",
+      "reward": "Hyrule",
+      "importance": null
+     },
+     {
+      "type": "path",
+      "place": "Pawprint Isle",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Northern Fairy Island",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Private Oasis",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "item",
+      "place": "Forest Haven",
+      "reward": "Progressive Bow",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Rock Spire Isle",
+      "reward": "Nayru's Pearl",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Outset Island - Great Fairy",
+      "reward": "Piece of Heart",
+      "importance": null
+     },
+     {
+      "type": "location",
+      "place": "Angular Isles - Cave",
+      "reward": "Triforce Shard 7",
+      "importance": "required"
+     }
+    ],
+    "korl_hints": [
+     {
+      "type": "path",
+      "place": "Forsaken Fortress",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "path",
+      "place": "Dragon Roost Cavern",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Eastern Fairy Island",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Cliff Plateau Isles",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "item",
+      "place": "Dragon Roost Island",
+      "reward": "Goddess Tingle Statue",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Windfall Island",
+      "reward": "Farore's Pearl",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Earth Temple - Stalfos Miniboss Room",
+      "reward": "Piece of Heart",
+      "importance": null
+     },
+     {
+      "type": "location",
+      "place": "Tingle Island - Ankle - Reward for All Tingle Statues",
+      "reward": "Ghost Ship Chart",
+      "importance": "required"
+     }
+    ]
+   },
+   "fishmen": [
+    {
+     "type": "location",
+     "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+     "reward": "Orange Rupee",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+     "reward": "Orange Rupee",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Din's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "barren",
+     "place": "Crescent Moon Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+     "reward": "Orange Rupee",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Thorned Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Ganon's Tower - Maze Chest",
+     "reward": "Treasure Chart 23",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Ganon's Tower - Maze Chest",
+     "reward": "Treasure Chart 23",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Thorned Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "The Great Sea",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+     "reward": "Orange Rupee",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Din's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Ganon's Tower - Maze Chest",
+     "reward": "Treasure Chart 23",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+     "reward": "Orange Rupee",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Thorned Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "The Great Sea",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Din's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "path",
+     "place": "The Great Sea",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Thorned Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "The Great Sea",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "The Great Sea",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Crescent Moon Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Din's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Ganon's Tower - Maze Chest",
+     "reward": "Treasure Chart 23",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Crescent Moon Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Din's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Din's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "barren",
+     "place": "Crescent Moon Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Crescent Moon Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Ganon's Tower - Maze Chest",
+     "reward": "Treasure Chart 23",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Thorned Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Din's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Ganon's Tower - Maze Chest",
+     "reward": "Treasure Chart 23",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+     "reward": "Orange Rupee",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "The Great Sea",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "The Great Sea",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Crescent Moon Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Ganon's Tower - Maze Chest",
+     "reward": "Treasure Chart 23",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - First Chest Guarded by Armos Knights",
+     "reward": "Orange Rupee",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Crescent Moon Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Thorned Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Thorned Fairy Island",
+     "reward": null,
+     "importance": null
+    }
+   ],
+   "hoho": [
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Pawprint Isle",
+       "reward": "Ganondorf",
+       "importance": null
+      }
+     ],
+     "look_island": 12
+    },
+    {
+     "hints": [
+      {
+       "type": "barren",
+       "place": "Northern Fairy Island",
+       "reward": null,
+       "importance": null
+      }
+     ],
+     "look_island": 3
+    },
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Pawprint Isle",
+       "reward": "Ganondorf",
+       "importance": null
+      }
+     ],
+     "look_island": 12
+    },
+    {
+     "hints": [
+      {
+       "type": "location",
+       "place": "Angular Isles - Cave",
+       "reward": "Triforce Shard 7",
+       "importance": "required"
+      }
+     ],
+     "look_island": 47
+    },
+    {
+     "hints": [
+      {
+       "type": "barren",
+       "place": "Private Oasis",
+       "reward": null,
+       "importance": null
+      }
+     ],
+     "look_island": 33
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Rock Spire Isle",
+       "reward": "Nayru's Pearl",
+       "importance": "required"
+      }
+     ],
+     "look_island": 16
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Forest Haven",
+       "reward": "Progressive Bow",
+       "importance": "required"
+      }
+     ],
+     "look_island": 41
+    },
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Pawprint Isle",
+       "reward": "Hyrule",
+       "importance": null
+      }
+     ],
+     "look_island": 12
+    },
+    {
+     "hints": [
+      {
+       "type": "location",
+       "place": "Outset Island - Great Fairy",
+       "reward": "Piece of Heart",
+       "importance": null
+      }
+     ],
+     "look_island": 44
+    },
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Pawprint Isle",
+       "reward": "Hyrule",
+       "importance": null
+      }
+     ],
+     "look_island": 12
+    }
+   ],
+   "korl": [
+    {
+     "type": "path",
+     "place": "Forsaken Fortress",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Dragon Roost Cavern",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Eastern Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Cliff Plateau Isles",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Goddess Tingle Statue",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Farore's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Earth Temple - Stalfos Miniboss Room",
+     "reward": "Piece of Heart",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Tingle Island - Ankle - Reward for All Tingle Statues",
+     "reward": "Ghost Ship Chart",
+     "importance": "required"
+    }
+   ]
+  }
+ },
+ {
+  "seed": "Heavy12",
+  "options": {
+   "num_path_hints": 6,
+   "num_barren_hints": 6,
+   "num_item_hints": 5,
+   "num_location_hints": 6,
+   "korl_hints": true,
+   "prioritize_remote_hints": true,
+   "hint_importance": true,
+   "cryptic_hints": true
+  },
+  "hints": {
+   "format": 1,
+   "savage_labyrinth": [
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 30",
+     "reward": "Red Rupee",
+     "importance": null
+    },
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 50",
+     "reward": "Heart Container",
+     "importance": null
+    }
+   ],
+   "octo_fairy": {
+    "type": "item",
+    "place": "Rock Spire Isle",
+    "reward": "Earth Tingle Statue",
+    "importance": "not required"
+   },
+   "placements": {
+    "fishmen_hints": [
+     {
+      "type": "path",
+      "place": "Bomb Island",
+      "reward": "Hyrule",
+      "importance": null
+     },
+     {
+      "type": "path",
+      "place": "Earth Temple",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Crescent Moon Island",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Northern Fairy Island",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "item",
+      "place": "Diamond Steppe Island",
+      "reward": "Nayru's Pearl",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Dragon Roost Island",
+      "reward": "Bombs",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Earth Temple - Stalfos Miniboss Room",
+      "reward": "ET Big Key",
+      "importance": "not required"
+     },
+     {
+      "type": "location",
+      "place": "Forbidden Woods - Big Key Chest",
+      "reward": "FW Dungeon Map",
+      "importance": null
+     }
+    ],
+    "hoho_hints": [
+     {
+      "type": "path",
+      "place": "Dragon Roost Cavern",
+      "reward": "Hyrule",
+      "importance": null
+     },
+     {
+      "type": "path",
+      "place": "Mother and Child Isles",
+      "reward": "Hyrule",
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Angular Isles",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Eastern Fairy Island",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "item",
+      "place": "Tower of the Gods Sector",
+      "reward": "Boomerang",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Windfall Island",
+      "reward": "Ghost Ship Chart",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Tingle Island - Ankle - Reward for All Tingle Statues",
+      "reward": "Orange Rupee",
+      "importance": null
+     },
+     {
+      "type": "location",
+      "place": "Tower of the Gods - Hop Across Floating Boxes",
+      "reward": "Skull Necklace",
+      "importance": null
+     }
+    ],
+    "korl_hints": [
+     {
+      "type": "path",
+      "place": "Dragon Roost Cavern",
+      "reward": "Hyrule",
+      "importance": null
+     },
+     {
+      "type": "path",
+      "place": "Rock Spire Isle",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Wind Temple",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Private Oasis",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "item",
+      "place": "Windfall Island",
+      "reward": "Deku Leaf",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Ganon's Tower - Maze Chest",
+      "reward": "Progressive Picto Box",
+      "importance": null
+     },
+     {
+      "type": "location",
+      "place": "Needle Rock Isle - Cave",
+      "reward": "Triforce Shard 3",
+      "importance": "required"
+     }
+    ]
+   },
+   "fishmen": [
+    {
+     "type": "barren",
+     "place": "Northern Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Earth Temple - Stalfos Miniboss Room",
+     "reward": "ET Big Key",
+     "importance": "not required"
+    },
+    {
+     "type": "path",
+     "place": "Earth Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Diamond Steppe Island",
+     "reward": "Nayru's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "barren",
+     "place": "Crescent Moon Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Bomb Island",
+     "reward": "Hyrule",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Bomb Island",
+     "reward": "Hyrule",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Forbidden Woods - Big Key Chest",
+     "reward": "FW Dungeon Map",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Earth Temple - Stalfos Miniboss Room",
+     "reward": "ET Big Key",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Bombs",
+     "importance": "required"
+    },
+    {
+     "type": "barren",
+     "place": "Crescent Moon Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Earth Temple - Stalfos Miniboss Room",
+     "reward": "ET Big Key",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Bombs",
+     "importance": "required"
+    },
+    {
+     "type": "path",
+     "place": "Bomb Island",
+     "reward": "Hyrule",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Diamond Steppe Island",
+     "reward": "Nayru's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "barren",
+     "place": "Northern Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Northern Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Bombs",
+     "importance": "required"
+    },
+    {
+     "type": "path",
+     "place": "Bomb Island",
+     "reward": "Hyrule",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Crescent Moon Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Forbidden Woods - Big Key Chest",
+     "reward": "FW Dungeon Map",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Diamond Steppe Island",
+     "reward": "Nayru's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Forbidden Woods - Big Key Chest",
+     "reward": "FW Dungeon Map",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Diamond Steppe Island",
+     "reward": "Nayru's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "path",
+     "place": "Earth Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Earth Temple - Stalfos Miniboss Room",
+     "reward": "ET Big Key",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Bombs",
+     "importance": "required"
+    },
+    {
+     "type": "path",
+     "place": "Bomb Island",
+     "reward": "Hyrule",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Northern Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Earth Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Crescent Moon Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Bomb Island",
+     "reward": "Hyrule",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Crescent Moon Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Earth Temple - Stalfos Miniboss Room",
+     "reward": "ET Big Key",
+     "importance": "not required"
+    },
+    {
+     "type": "location",
+     "place": "Forbidden Woods - Big Key Chest",
+     "reward": "FW Dungeon Map",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Diamond Steppe Island",
+     "reward": "Nayru's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Earth Temple - Stalfos Miniboss Room",
+     "reward": "ET Big Key",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Bombs",
+     "importance": "required"
+    },
+    {
+     "type": "path",
+     "place": "Earth Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Bomb Island",
+     "reward": "Hyrule",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Earth Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Diamond Steppe Island",
+     "reward": "Nayru's Pearl",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Forbidden Woods - Big Key Chest",
+     "reward": "FW Dungeon Map",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Bombs",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Forbidden Woods - Big Key Chest",
+     "reward": "FW Dungeon Map",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Northern Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Crescent Moon Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Northern Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Earth Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    }
+   ],
+   "hoho": [
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Mother and Child Isles",
+       "reward": "Hyrule",
+       "importance": null
+      }
+     ],
+     "look_island": 9
+    },
+    {
+     "hints": [
+      {
+       "type": "barren",
+       "place": "Angular Isles",
+       "reward": null,
+       "importance": null
+      }
+     ],
+     "look_island": 47
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Tower of the Gods Sector",
+       "reward": "Boomerang",
+       "importance": "required"
+      }
+     ],
+     "look_island": 26
+    },
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Dragon Roost Cavern",
+       "reward": "Hyrule",
+       "importance": null
+      }
+     ],
+     "look_island": null
+    },
+    {
+     "hints": [
+      {
+       "type": "location",
+       "place": "Tingle Island - Ankle - Reward for All Tingle Statues",
+       "reward": "Orange Rupee",
+       "importance": null
+      }
+     ],
+     "look_island": 17
+    },
+    {
+     "hints": [
+      {
+       "type": "barren",
+       "place": "Eastern Fairy Island",
+       "reward": null,
+       "importance": null
+      }
+     ],
+     "look_island": 19
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Windfall Island",
+       "reward": "Ghost Ship Chart",
+       "importance": "required"
+      }
+     ],
+     "look_island": 11
+    },
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Dragon Roost Cavern",
+       "reward": "Hyrule",
+       "importance": null
+      }
+     ],
+     "look_island": null
+    },
+    {
+     "hints": [
+      {
+       "type": "location",
+       "place": "Tower of the Gods - Hop Across Floating Boxes",
+       "reward": "Skull Necklace",
+       "importance": null
+      }
+     ],
+     "look_island": 26
+    },
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Mother and Child Isles",
+       "reward": "Hyrule",
+       "importance": null
+      }
+     ],
+     "look_island": 9
+    }
+   ],
+   "korl": [
+    {
+     "type": "path",
+     "place": "Dragon Roost Cavern",
+     "reward": "Hyrule",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Rock Spire Isle",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Wind Temple",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Private Oasis",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Deku Leaf",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Ganon's Tower - Maze Chest",
+     "reward": "Progressive Picto Box",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Needle Rock Isle - Cave",
+     "reward": "Triforce Shard 3",
+     "importance": "required"
+    }
+   ]
+  }
+ },
+ {
+  "seed": "KeyHints3",
+  "options": {
+   "num_path_hints": 6,
+   "num_barren_hints": 6,
+   "num_item_hints": 5,
+   "num_location_hints": 6,
+   "korl_hints": true,
+   "prioritize_remote_hints": true,
+   "hint_importance": true,
+   "cryptic_hints": true,
+   "keylunacy": true
+  },
+  "hints": {
+   "format": 1,
+   "savage_labyrinth": [
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 30",
+     "reward": "Silver Rupee",
+     "importance": null
+    },
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 50",
+     "reward": "Piece of Heart",
+     "importance": null
+    }
+   ],
+   "octo_fairy": {
+    "type": "item",
+    "place": "Headstone Island",
+    "reward": "Triforce Shard 7",
+    "importance": "required"
+   },
+   "placements": {
+    "fishmen_hints": [
+     {
+      "type": "path",
+      "place": "Wind Temple",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "path",
+      "place": "Dragon Roost Cavern",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Southern Fairy Island",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Ice Ring Isle",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "item",
+      "place": "Headstone Island",
+      "reward": "Grappling Hook",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Forest Haven",
+      "reward": "Triforce Shard 5",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Tower of the Gods - Hop Across Floating Boxes",
+      "reward": "Triforce Chart 2",
+      "importance": null
+     },
+     {
+      "type": "location",
+      "place": "Wind Temple - Kill All Enemies in Tall Basement Room",
+      "reward": "Progressive Wallet",
+      "importance": "possibly required"
+     }
+    ],
+    "hoho_hints": [
+     {
+      "type": "path",
+      "place": "Western Fairy Island",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "path",
+      "place": "Mother and Child Isles",
+      "reward": "Hyrule",
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Thorned Fairy Island",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Angular Isles",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "item",
+      "place": "The Great Sea",
+      "reward": "Earth God's Lyric",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Ganon's Tower - Maze Chest",
+      "reward": "Silver Rupee",
+      "importance": null
+     },
+     {
+      "type": "location",
+      "place": "Needle Rock Isle - Cave",
+      "reward": "ET Small Key",
+      "importance": "required"
+     }
+    ],
+    "korl_hints": [
+     {
+      "type": "path",
+      "place": "Tower of the Gods",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "path",
+      "place": "Earth Temple",
+      "reward": "Hyrule",
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Tingle Island",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Islet of Steel",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "item",
+      "place": "Diamond Steppe Island",
+      "reward": "ET Small Key",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Headstone Island",
+      "reward": "Progressive Sword",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Pawprint Isle - Chuchu Cave - Scale the Wall",
+      "reward": "WT Big Key",
+      "importance": "not required"
+     },
+     {
+      "type": "location",
+      "place": "Dragon Roost Cavern - Miniboss",
+      "reward": "Joy Pendant",
+      "importance": null
+     }
+    ]
+   },
+   "fishmen": [
+    {
+     "type": "barren",
+     "place": "Southern Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Triforce Shard 5",
+     "importance": "required"
+    },
+    {
+     "type": "barren",
+     "place": "Ice Ring Isle",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Triforce Shard 5",
+     "importance": "required"
+    },
+    {
+     "type": "barren",
+     "place": "Ice Ring Isle",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Headstone Island",
+     "reward": "Grappling Hook",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Kill All Enemies in Tall Basement Room",
+     "reward": "Progressive Wallet",
+     "importance": "possibly required"
+    },
+    {
+     "type": "barren",
+     "place": "Ice Ring Isle",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Southern Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Southern Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Dragon Roost Cavern",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Kill All Enemies in Tall Basement Room",
+     "reward": "Progressive Wallet",
+     "importance": "possibly required"
+    },
+    {
+     "type": "item",
+     "place": "Headstone Island",
+     "reward": "Grappling Hook",
+     "importance": "required"
+    },
+    {
+     "type": "path",
+     "place": "Dragon Roost Cavern",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Southern Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - Hop Across Floating Boxes",
+     "reward": "Triforce Chart 2",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Dragon Roost Cavern",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Southern Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Dragon Roost Cavern",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Southern Fairy Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Triforce Shard 5",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Headstone Island",
+     "reward": "Grappling Hook",
+     "importance": "required"
+    },
+    {
+     "type": "barren",
+     "place": "Ice Ring Isle",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - Hop Across Floating Boxes",
+     "reward": "Triforce Chart 2",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Kill All Enemies in Tall Basement Room",
+     "reward": "Progressive Wallet",
+     "importance": "possibly required"
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - Hop Across Floating Boxes",
+     "reward": "Triforce Chart 2",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Kill All Enemies in Tall Basement Room",
+     "reward": "Progressive Wallet",
+     "importance": "possibly required"
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Triforce Shard 5",
+     "importance": "required"
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Headstone Island",
+     "reward": "Grappling Hook",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Triforce Shard 5",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - Hop Across Floating Boxes",
+     "reward": "Triforce Chart 2",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Headstone Island",
+     "reward": "Grappling Hook",
+     "importance": "required"
+    },
+    {
+     "type": "path",
+     "place": "Dragon Roost Cavern",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - Hop Across Floating Boxes",
+     "reward": "Triforce Chart 2",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Tower of the Gods - Hop Across Floating Boxes",
+     "reward": "Triforce Chart 2",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Kill All Enemies in Tall Basement Room",
+     "reward": "Progressive Wallet",
+     "importance": "possibly required"
+    },
+    {
+     "type": "location",
+     "place": "Wind Temple - Kill All Enemies in Tall Basement Room",
+     "reward": "Progressive Wallet",
+     "importance": "possibly required"
+    },
+    {
+     "type": "barren",
+     "place": "Ice Ring Isle",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Dragon Roost Cavern",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Headstone Island",
+     "reward": "Grappling Hook",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Triforce Shard 5",
+     "importance": "required"
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Wind Temple",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Ice Ring Isle",
+     "reward": null,
+     "importance": null
+    }
+   ],
+   "hoho": [
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "The Great Sea",
+       "reward": "Earth God's Lyric",
+       "importance": "required"
+      }
+     ],
+     "look_island": null
+    },
+    {
+     "hints": [
+      {
+       "type": "location",
+       "place": "Ganon's Tower - Maze Chest",
+       "reward": "Silver Rupee",
+       "importance": null
+      }
+     ],
+     "look_island": 26
+    },
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Western Fairy Island",
+       "reward": "Ganondorf",
+       "importance": null
+      }
+     ],
+     "look_island": 15
+    },
+    {
+     "hints": [
+      {
+       "type": "barren",
+       "place": "Thorned Fairy Island",
+       "reward": null,
+       "importance": null
+      }
+     ],
+     "look_island": 28
+    },
+    {
+     "hints": [
+      {
+       "type": "barren",
+       "place": "Angular Isles",
+       "reward": null,
+       "importance": null
+      }
+     ],
+     "look_island": 47
+    },
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Western Fairy Island",
+       "reward": "Ganondorf",
+       "importance": null
+      }
+     ],
+     "look_island": 15
+    },
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Mother and Child Isles",
+       "reward": "Hyrule",
+       "importance": null
+      }
+     ],
+     "look_island": 9
+    },
+    {
+     "hints": [
+      {
+       "type": "barren",
+       "place": "Thorned Fairy Island",
+       "reward": null,
+       "importance": null
+      }
+     ],
+     "look_island": 28
+    },
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Mother and Child Isles",
+       "reward": "Hyrule",
+       "importance": null
+      }
+     ],
+     "look_island": 9
+    },
+    {
+     "hints": [
+      {
+       "type": "location",
+       "place": "Needle Rock Isle - Cave",
+       "reward": "ET Small Key",
+       "importance": "required"
+      }
+     ],
+     "look_island": 29
+    }
+   ],
+   "korl": [
+    {
+     "type": "path",
+     "place": "Tower of the Gods",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Earth Temple",
+     "reward": "Hyrule",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Tingle Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Islet of Steel",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Diamond Steppe Island",
+     "reward": "ET Small Key",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Headstone Island",
+     "reward": "Progressive Sword",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Pawprint Isle - Chuchu Cave - Scale the Wall",
+     "reward": "WT Big Key",
+     "importance": "not required"
+    },
+    {
+     "type": "location",
+     "place": "Dragon Roost Cavern - Miniboss",
+     "reward": "Joy Pendant",
+     "importance": null
+    }
+   ]
+  }
+ },
+ {
+  "seed": "AllCats2",
+  "options": {
+   "num_path_hints": 4,
+   "num_barren_hints": 4,
+   "hint_importance": true,
+   "progression_dungeons": true,
+   "progression_tingle_chests": true,
+   "progression_dungeon_secrets": true,
+   "progression_puzzle_secret_caves": true,
+   "progression_combat_secret_caves": true,
+   "progression_savage_labyrinth": true,
+   "progression_great_fairies": true,
+   "progression_short_sidequests": true,
+   "progression_long_sidequests": true,
+   "progression_spoils_trading": true,
+   "progression_minigames": true,
+   "progression_battlesquid": true,
+   "progression_free_gifts": true,
+   "progression_mail": true,
+   "progression_platforms_rafts": true,
+   "progression_submarines": true,
+   "progression_eye_reef_chests": true,
+   "progression_big_octos_gunboats": true,
+   "progression_triforce_charts": true,
+   "progression_treasure_charts": true,
+   "progression_expensive_purchases": true,
+   "progression_island_puzzles": true,
+   "progression_misc": true
+  },
+  "hints": {
+   "format": 1,
+   "savage_labyrinth": [
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 30",
+     "reward": "Heart Container",
+     "importance": null
+    },
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 50",
+     "reward": "Progressive Sword",
+     "importance": "required"
+    }
+   ],
+   "octo_fairy": {
+    "type": "item",
+    "place": "Pawprint Isle",
+    "reward": "Treasure Chart 21",
+    "importance": "required"
+   },
+   "placements": {
+    "fishmen_hints": [
+     {
+      "type": "path",
+      "place": "Six-Eye Reef",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "path",
+      "place": "Mailbox",
+      "reward": "Hyrule",
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Stone Watcher Island",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Fire Mountain",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "item",
+      "place": "Dragon Roost Island",
+      "reward": "Deku Leaf",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Windfall Island",
+      "reward": "Triforce Chart 4",
+      "importance": "not required"
+     },
+     {
+      "type": "item",
+      "place": "Windfall Island",
+      "reward": "Treasure Chart 36",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Dragon Roost Island",
+      "reward": "Empty Bottle",
+      "importance": "possibly required"
+     },
+     {
+      "type": "item",
+      "place": "Rock Spire Isle",
+      "reward": "Grappling Hook",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Dragon Roost Island",
+      "reward": "Treasure Chart 41",
+      "importance": "not required"
+     },
+     {
+      "type": "item",
+      "place": "Forest Haven",
+      "reward": "Triforce Chart 7",
+      "importance": "not required"
+     },
+     {
+      "type": "location",
+      "place": "Windfall Island - Minenco - Miss Windfall Photo",
+      "reward": "Treasure Chart 29",
+      "importance": "not required"
+     },
+     {
+      "type": "location",
+      "place": "Windfall Island - Battlesquid - Under 20 Shots Prize",
+      "reward": "Orange Rupee",
+      "importance": null
+     },
+     {
+      "type": "location",
+      "place": "Islet of Steel - Interior",
+      "reward": "Piece of Heart",
+      "importance": null
+     }
+    ],
+    "hoho_hints": [
+     {
+      "type": "path",
+      "place": "Three-Eye Reef",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "path",
+      "place": "Outset Island",
+      "reward": "Ganondorf",
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Northern Fairy Island",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "barren",
+      "place": "Ganon's Tower",
+      "reward": null,
+      "importance": null
+     },
+     {
+      "type": "item",
+      "place": "Rock Spire Isle",
+      "reward": "Treasure Chart 8",
+      "importance": "not required"
+     },
+     {
+      "type": "item",
+      "place": "Thorned Fairy Island",
+      "reward": "Earth Tingle Statue",
+      "importance": "not required"
+     },
+     {
+      "type": "item",
+      "place": "Boating Course",
+      "reward": "Treasure Chart 16",
+      "importance": "not required"
+     },
+     {
+      "type": "item",
+      "place": "Headstone Island",
+      "reward": "Treasure Chart 18",
+      "importance": "not required"
+     },
+     {
+      "type": "item",
+      "place": "Star Island",
+      "reward": "Progressive Shield",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Forsaken Fortress",
+      "reward": "Progressive Magic Meter",
+      "importance": "possibly required"
+     },
+     {
+      "type": "item",
+      "place": "Windfall Island",
+      "reward": "Command Melody",
+      "importance": "required"
+     },
+     {
+      "type": "item",
+      "place": "Dragon Roost Island",
+      "reward": "Treasure Chart 23",
+      "importance": "required"
+     },
+     {
+      "type": "location",
+      "place": "Five-Eye Reef - Destroy the Cannons",
+      "reward": "Treasure Chart 25",
+      "importance": "not required"
+     },
+     {
+      "type": "location",
+      "place": "Bomb Island - Cave",
+      "reward": "Submarine Chart",
+      "importance": null
+     }
+    ]
+   },
+   "fishmen": [
+    {
+     "type": "path",
+     "place": "Mailbox",
+     "reward": "Hyrule",
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Mailbox",
+     "reward": "Hyrule",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Deku Leaf",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Deku Leaf",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Deku Leaf",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Treasure Chart 36",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Islet of Steel - Interior",
+     "reward": "Piece of Heart",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Treasure Chart 36",
+     "importance": "required"
+    },
+    {
+     "type": "path",
+     "place": "Six-Eye Reef",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Windfall Island - Battlesquid - Under 20 Shots Prize",
+     "reward": "Orange Rupee",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Empty Bottle",
+     "importance": "possibly required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Empty Bottle",
+     "importance": "possibly required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Triforce Chart 4",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Rock Spire Isle",
+     "reward": "Grappling Hook",
+     "importance": "required"
+    },
+    {
+     "type": "path",
+     "place": "Mailbox",
+     "reward": "Hyrule",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Treasure Chart 41",
+     "importance": "not required"
+    },
+    {
+     "type": "barren",
+     "place": "Fire Mountain",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Rock Spire Isle",
+     "reward": "Grappling Hook",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Windfall Island - Minenco - Miss Windfall Photo",
+     "reward": "Treasure Chart 29",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Triforce Chart 4",
+     "importance": "not required"
+    },
+    {
+     "type": "location",
+     "place": "Windfall Island - Battlesquid - Under 20 Shots Prize",
+     "reward": "Orange Rupee",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Fire Mountain",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Stone Watcher Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Treasure Chart 41",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Treasure Chart 36",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Treasure Chart 36",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Triforce Chart 4",
+     "importance": "not required"
+    },
+    {
+     "type": "path",
+     "place": "Six-Eye Reef",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Stone Watcher Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Triforce Chart 7",
+     "importance": "not required"
+    },
+    {
+     "type": "barren",
+     "place": "Stone Watcher Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Deku Leaf",
+     "importance": "required"
+    },
+    {
+     "type": "location",
+     "place": "Windfall Island - Battlesquid - Under 20 Shots Prize",
+     "reward": "Orange Rupee",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Triforce Chart 7",
+     "importance": "not required"
+    },
+    {
+     "type": "location",
+     "place": "Islet of Steel - Interior",
+     "reward": "Piece of Heart",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Stone Watcher Island",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Windfall Island - Minenco - Miss Windfall Photo",
+     "reward": "Treasure Chart 29",
+     "importance": "not required"
+    },
+    {
+     "type": "barren",
+     "place": "Fire Mountain",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "path",
+     "place": "Mailbox",
+     "reward": "Hyrule",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Empty Bottle",
+     "importance": "possibly required"
+    },
+    {
+     "type": "location",
+     "place": "Islet of Steel - Interior",
+     "reward": "Piece of Heart",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Triforce Chart 4",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Forest Haven",
+     "reward": "Triforce Chart 7",
+     "importance": "not required"
+    },
+    {
+     "type": "item",
+     "place": "Dragon Roost Island",
+     "reward": "Treasure Chart 41",
+     "importance": "not required"
+    },
+    {
+     "type": "path",
+     "place": "Six-Eye Reef",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "item",
+     "place": "Rock Spire Isle",
+     "reward": "Grappling Hook",
+     "importance": "required"
+    },
+    {
+     "type": "path",
+     "place": "Six-Eye Reef",
+     "reward": "Ganondorf",
+     "importance": null
+    },
+    {
+     "type": "barren",
+     "place": "Fire Mountain",
+     "reward": null,
+     "importance": null
+    },
+    {
+     "type": "location",
+     "place": "Windfall Island - Minenco - Miss Windfall Photo",
+     "reward": "Treasure Chart 29",
+     "importance": "not required"
+    }
+   ],
+   "hoho": [
+    {
+     "hints": [
+      {
+       "type": "barren",
+       "place": "Northern Fairy Island",
+       "reward": null,
+       "importance": null
+      },
+      {
+       "type": "location",
+       "place": "Five-Eye Reef - Destroy the Cannons",
+       "reward": "Treasure Chart 25",
+       "importance": "not required"
+      }
+     ],
+     "look_island": 3
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Forsaken Fortress",
+       "reward": "Progressive Magic Meter",
+       "importance": "possibly required"
+      },
+      {
+       "type": "item",
+       "place": "Thorned Fairy Island",
+       "reward": "Earth Tingle Statue",
+       "importance": "not required"
+      }
+     ],
+     "look_island": 28
+    },
+    {
+     "hints": [
+      {
+       "type": "barren",
+       "place": "Ganon's Tower",
+       "reward": null,
+       "importance": null
+      },
+      {
+       "type": "location",
+       "place": "Bomb Island - Cave",
+       "reward": "Submarine Chart",
+       "importance": null
+      }
+     ],
+     "look_island": 26
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Headstone Island",
+       "reward": "Treasure Chart 18",
+       "importance": "not required"
+      },
+      {
+       "type": "barren",
+       "place": "Ganon's Tower",
+       "reward": null,
+       "importance": null
+      }
+     ],
+     "look_island": 45
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Boating Course",
+       "reward": "Treasure Chart 16",
+       "importance": "not required"
+      },
+      {
+       "type": "barren",
+       "place": "Northern Fairy Island",
+       "reward": null,
+       "importance": null
+      }
+     ],
+     "look_island": 48
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Star Island",
+       "reward": "Progressive Shield",
+       "importance": "required"
+      },
+      {
+       "type": "item",
+       "place": "Rock Spire Isle",
+       "reward": "Treasure Chart 8",
+       "importance": "not required"
+      }
+     ],
+     "look_island": 2
+    },
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Three-Eye Reef",
+       "reward": "Ganondorf",
+       "importance": null
+      },
+      {
+       "type": "item",
+       "place": "Windfall Island",
+       "reward": "Command Melody",
+       "importance": "required"
+      }
+     ],
+     "look_island": 22
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Rock Spire Isle",
+       "reward": "Treasure Chart 8",
+       "importance": "not required"
+      },
+      {
+       "type": "path",
+       "place": "Three-Eye Reef",
+       "reward": "Ganondorf",
+       "importance": null
+      }
+     ],
+     "look_island": 16
+    },
+    {
+     "hints": [
+      {
+       "type": "path",
+       "place": "Outset Island",
+       "reward": "Ganondorf",
+       "importance": null
+      },
+      {
+       "type": "item",
+       "place": "Dragon Roost Island",
+       "reward": "Treasure Chart 23",
+       "importance": "required"
+      }
+     ],
+     "look_island": 44
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Thorned Fairy Island",
+       "reward": "Earth Tingle Statue",
+       "importance": "not required"
+      },
+      {
+       "type": "path",
+       "place": "Outset Island",
+       "reward": "Ganondorf",
+       "importance": null
+      }
+     ],
+     "look_island": 28
+    }
+   ]
+  }
+ },
+ {
+  "seed": "OneHint1",
+  "options": {
+   "num_item_hints": 1,
+   "num_location_hints": 0,
+   "num_path_hints": 0,
+   "num_barren_hints": 0,
+   "fishmen_hints": true,
+   "hoho_hints": true,
+   "korl_hints": true
+  },
+  "hints": {
+   "format": 1,
+   "savage_labyrinth": [
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 30",
+     "reward": "Orange Rupee",
+     "importance": null
+    },
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 50",
+     "reward": "Purple Rupee",
+     "importance": null
+    }
+   ],
+   "octo_fairy": {
+    "type": "item",
+    "place": "The Great Sea",
+    "reward": "Nayru's Pearl",
+    "importance": "required"
+   },
+   "placements": {
+    "fishmen_hints": [
+     {
+      "type": "item",
+      "place": "Windfall Island",
+      "reward": "Earth God's Lyric",
+      "importance": "required"
+     }
+    ],
+    "hoho_hints": [
+     {
+      "type": "item",
+      "place": "Windfall Island",
+      "reward": "Earth God's Lyric",
+      "importance": "required"
+     }
+    ],
+    "korl_hints": [
+     {
+      "type": "item",
+      "place": "Windfall Island",
+      "reward": "Earth God's Lyric",
+      "importance": "required"
+     }
+    ]
+   },
+   "fishmen": [
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    },
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    }
+   ],
+   "hoho": [
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Windfall Island",
+       "reward": "Earth God's Lyric",
+       "importance": "required"
+      }
+     ],
+     "look_island": 11
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Windfall Island",
+       "reward": "Earth God's Lyric",
+       "importance": "required"
+      }
+     ],
+     "look_island": 11
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Windfall Island",
+       "reward": "Earth God's Lyric",
+       "importance": "required"
+      }
+     ],
+     "look_island": 11
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Windfall Island",
+       "reward": "Earth God's Lyric",
+       "importance": "required"
+      }
+     ],
+     "look_island": 11
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Windfall Island",
+       "reward": "Earth God's Lyric",
+       "importance": "required"
+      }
+     ],
+     "look_island": 11
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Windfall Island",
+       "reward": "Earth God's Lyric",
+       "importance": "required"
+      }
+     ],
+     "look_island": 11
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Windfall Island",
+       "reward": "Earth God's Lyric",
+       "importance": "required"
+      }
+     ],
+     "look_island": 11
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Windfall Island",
+       "reward": "Earth God's Lyric",
+       "importance": "required"
+      }
+     ],
+     "look_island": 11
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Windfall Island",
+       "reward": "Earth God's Lyric",
+       "importance": "required"
+      }
+     ],
+     "look_island": 11
+    },
+    {
+     "hints": [
+      {
+       "type": "item",
+       "place": "Windfall Island",
+       "reward": "Earth God's Lyric",
+       "importance": "required"
+      }
+     ],
+     "look_island": 11
+    }
+   ],
+   "korl": [
+    {
+     "type": "item",
+     "place": "Windfall Island",
+     "reward": "Earth God's Lyric",
+     "importance": "required"
+    }
+   ]
+  }
+ },
+ {
+  "seed": "NoPlacements4",
+  "options": {
+   "fishmen_hints": false,
+   "hoho_hints": false,
+   "korl_hints": false
+  },
+  "hints": {
+   "format": 1,
+   "savage_labyrinth": [
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 30",
+     "reward": "Piece of Heart",
+     "importance": null
+    },
+    {
+     "type": "fixed_location",
+     "place": "Outset Island - Savage Labyrinth - Floor 50",
+     "reward": "Piece of Heart",
+     "importance": null
+    }
+   ],
+   "octo_fairy": {
+    "type": "item",
+    "place": "Forest Haven",
+    "reward": "Earth Tingle Statue",
+    "importance": "required"
+   },
+   "placements": {}
+  }
+ }
+]
