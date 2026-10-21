@@ -34,8 +34,15 @@ bool swordEquipped() {
     return dComIfGs_getSelectEquip(0) != dItemNo_NONE_e;
 }
 
+// The asm writes the byte (stb r0, 0xE): dSv_player_status_a_c::setSelectEquip, not
+// dComIfGs_setSelectEquip, which also marks the sword as owned (onCollect) and would make the
+// temporary sword permanent.
+void setEquippedSword(u8 item) {
+    g_dComIfG_gameInfo.save.getPlayer().getPlayerStatusA().setSelectEquip(0, item);
+}
+
 void equipHerosSword() {
-    dComIfGs_setSelectEquip(0, dItemNo_SWORD_e); // li r0, 0x38; stb r0, 0xE (r4)
+    setEquippedSword(dItemNo_SWORD_e); // li r0, 0x38; stb r0, 0xE (r4)
 }
 
 void onRando(int active) {
@@ -101,7 +108,7 @@ extern "C" int pc_rando_sword_stage_load(void) {
     // remove_temporary_sword_when_loading_stage_in_swordless: lbz r0, 0xB4 (r29) is the owned swords
     // bitfield, dSv_player_collect_c::mCollect[0].
     if (g_dComIfG_gameInfo.save.getPlayer().getCollect().checkCollect(0) == 0) {
-        dComIfGs_setSelectEquip(0, dItemNo_NONE_e);
+        setEquippedSword(dItemNo_NONE_e); // li r0, 0xFF; stb r0, 0xE (r29)
     }
     return 1;
 }
