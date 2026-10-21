@@ -1,0 +1,8 @@
+# R3.21 (docs/RANDOMIZER_PLAN.md): the post-randomization texts against wwrando's tweaks.py for the
+# rotation placement (fixture R3_21_posttext_game.txt): activated by the smoke on a plain boot, and
+# forced. The debug-boot path (texts built again at the first archive load) is checked by hand with
+#   run.sh rando --stage sea:44 --env COS_RANDO_SMOKE=posttext \
+#     --env COS_RANDO_PLACEMENT=$PWD/native/check/rando/fixtures/R0_6_rotation.json
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=posttext
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=posttext --env COS_RANDO_FORCE=1
