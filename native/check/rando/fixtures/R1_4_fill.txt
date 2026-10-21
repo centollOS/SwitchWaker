@@ -1,0 +1,6196 @@
+version	1.10.0_9775811
+case	default1	TestSeed1
+draws	591
+loc	0	Progressive Bow
+loc	1	Goddess Tingle Statue
+loc	2	Skull Necklace
+loc	3	Silver Rupee
+loc	4	Progressive Bow
+loc	5	Silver Rupee
+loc	6	Piece of Heart
+loc	7	Purple Rupee
+loc	8	Fill-Up Coupon
+loc	9	Hyoi Pear
+loc	10	Grappling Hook
+loc	11	Orange Rupee
+loc	12	Piece of Heart
+loc	13	Note to Mom
+loc	14	Knight's Crest
+loc	15	Heart Container
+loc	16	Orange Rupee
+loc	17	Piece of Heart
+loc	18	Piece of Heart
+loc	19	Piece of Heart
+loc	20	Red Rupee
+loc	21	Silver Rupee
+loc	22	Silver Rupee
+loc	23	Blue Rupee
+loc	24	Golden Feather
+loc	25	Deku Leaf
+loc	26	Skull Necklace
+loc	27	Light Ring Chart
+loc	28	Hyoi Pear
+loc	29	Purple Rupee
+loc	30	Farore's Pearl
+loc	31	Piece of Heart
+loc	32	Hyoi Pear
+loc	33	Knight's Crest
+loc	34	Purple Rupee
+loc	35	Skull Necklace
+loc	36	Joy Pendant
+loc	37	Skull Necklace
+loc	38	Joy Pendant
+loc	39	Golden Feather
+loc	40	Rainbow Rupee
+loc	41	Blue Rupee
+loc	42	Orange Rupee
+loc	43	Treasure Chart 9
+loc	44	Knight's Crest
+loc	45	Spoils Bag
+loc	46	Joy Pendant
+loc	47	Orange Rupee
+loc	48	Treasure Chart 15
+loc	49	Red Rupee
+loc	50	Octo Chart
+loc	51	Joy Pendant
+loc	52	Piece of Heart
+loc	53	Treasure Chart 36
+loc	54	Silver Rupee
+loc	55	Heart Container
+loc	56	DRC Small Key
+loc	57	Boomerang
+loc	58	Red Rupee
+loc	59	DRC Small Key
+loc	60	Forbidden Tingle Statue
+loc	61	DRC Small Key
+loc	62	DRC Small Key
+loc	63	Treasure Chart 12
+loc	64	Cabana Deed
+loc	65	Piece of Heart
+loc	66	Skull Necklace
+loc	67	DRC Compass
+loc	68	Piece of Heart
+loc	69	DRC Big Key
+loc	70	Purple Rupee
+loc	71	DRC Dungeon Map
+loc	72	Treasure Chart 6
+loc	73	Progressive Sword
+loc	74	Orange Rupee
+loc	75	Delivery Bag
+loc	76	Treasure Chart 18
+loc	77	Treasure Chart 1
+loc	78	Bait Bag
+loc	79	Treasure Chart 20
+loc	80	Treasure Chart 5
+loc	81	Orange Rupee
+loc	82	Triforce Shard 6
+loc	83	Empty Bottle
+loc	84	FW Compass
+loc	85	FW Small Key
+loc	86	Skull Necklace
+loc	87	Submarine Chart
+loc	88	Wind God's Aria
+loc	89	Command Melody
+loc	90	Empty Bottle
+loc	91	Purple Rupee
+loc	92	FW Big Key
+loc	93	FW Dungeon Map
+loc	94	Piece of Heart
+loc	95	Joy Pendant
+loc	96	Purple Rupee
+loc	97	TotG Compass
+loc	98	Orange Rupee
+loc	99	Treasure Chart 16
+loc	100	TotG Small Key
+loc	101	Piece of Heart
+loc	102	Piece of Heart
+loc	103	Progressive Picto Box
+loc	104	Treasure Chart 29
+loc	105	TotG Small Key
+loc	106	TotG Dungeon Map
+loc	107	Treasure Chart 7
+loc	108	TotG Big Key
+loc	109	Triforce Shard 5
+loc	110	Piece of Heart
+loc	111	Hookshot
+loc	112	Orange Rupee
+loc	113	Orange Rupee
+loc	114	Triforce Chart 3
+loc	115	Empty Bottle
+loc	116	Treasure Chart 31
+loc	117	FF Compass
+loc	118	FF Dungeon Map
+loc	119	Yellow Rupee
+loc	120	Piece of Heart
+loc	121	Treasure Chart 28
+loc	122	Piece of Heart
+loc	123	Golden Feather
+loc	124	Piece of Heart
+loc	125	Triforce Chart 1
+loc	126	Progressive Wallet
+loc	127	Treasure Chart 39
+loc	128	Piece of Heart
+loc	129	Silver Rupee
+loc	130	Orange Rupee
+loc	131	Green Rupee
+loc	132	ET Small Key
+loc	133	ET Small Key
+loc	134	ET Dungeon Map
+loc	135	Piece of Heart
+loc	136	Skull Necklace
+loc	137	Red Rupee
+loc	138	Telescope
+loc	139	Piece of Heart
+loc	140	ET Small Key
+loc	141	Triforce Chart 8
+loc	142	ET Compass
+loc	143	Din's Pearl
+loc	144	Purple Rupee
+loc	145	ET Big Key
+loc	146	Piece of Heart
+loc	147	Treasure Chart 41
+loc	148	Progressive Shield
+loc	149	Maggie's Letter
+loc	150	Joy Pendant
+loc	151	WT Compass
+loc	152	WT Small Key
+loc	153	WT Small Key
+loc	154	Piece of Heart
+loc	155	Magic Armor
+loc	156	WT Big Key
+loc	157	Triforce Chart 5
+loc	158	Progressive Sword
+loc	159	Golden Feather
+loc	160	WT Dungeon Map
+loc	161	Joy Pendant
+loc	162	Yellow Rupee
+loc	163	Triforce Shard 1
+loc	164	Heart Container
+loc	165	Silver Rupee
+loc	166	Beedle's Chart
+loc	167	Treasure Chart 27
+loc	168	Piece of Heart
+loc	169	Silver Rupee
+loc	170	Heart Container
+loc	171	Silver Rupee
+loc	172	Silver Rupee
+loc	173	Skull Necklace
+loc	174	Triforce Chart 6
+loc	175	Progressive Magic Meter
+loc	176	Purple Rupee
+loc	177	Platform Chart
+loc	178	Triforce Chart 7
+loc	179	Ghost Ship Chart
+loc	180	Joy Pendant
+loc	181	Piece of Heart
+loc	182	Skull Hammer
+loc	183	Purple Rupee
+loc	184	Triforce Shard 7
+loc	185	Treasure Chart 13
+loc	186	Moblin's Letter
+loc	187	Treasure Chart 37
+loc	188	Piece of Heart
+loc	189	Golden Feather
+loc	190	Treasure Chart 19
+loc	191	Golden Feather
+loc	192	Red Chu Jelly
+loc	193	Triforce Shard 4
+loc	194	Silver Rupee
+loc	195	All-Purpose Bait
+loc	196	Treasure Chart 10
+loc	197	Silver Rupee
+loc	198	Piece of Heart
+loc	199	Progressive Wallet
+loc	200	Tingle Tuner
+loc	201	Golden Feather
+loc	202	Great Fairy Chart
+loc	203	Heart Container
+loc	204	Wind Tingle Statue
+loc	205	Triforce Shard 8
+loc	206	Secret Cave Chart
+loc	207	Golden Feather
+loc	208	Orange Rupee
+loc	209	Iron Boots
+loc	210	Silver Rupee
+loc	211	Progressive Quiver
+loc	212	Nayru's Pearl
+loc	213	Piece of Heart
+loc	214	Progressive Bow
+loc	215	Piece of Heart
+loc	216	Triforce Shard 3
+loc	217	Treasure Chart 26
+loc	218	Treasure Chart 34
+loc	219	Dragon Tingle Statue
+loc	220	Triforce Chart 2
+loc	221	Skull Necklace
+loc	222	Piece of Heart
+loc	223	Treasure Chart 17
+loc	224	Progressive Sword
+loc	225	Orange Rupee
+loc	226	Orange Rupee
+loc	227	Hyoi Pear
+loc	228	Progressive Quiver
+loc	229	Silver Rupee
+loc	230	Triforce Shard 2
+loc	231	Earth Tingle Statue
+loc	232	Earth God's Lyric
+loc	233	Treasure Chart 38
+loc	234	Silver Rupee
+loc	235	Piece of Heart
+loc	236	Progressive Bomb Bag
+loc	237	Orange Rupee
+loc	238	Purple Rupee
+loc	239	Bombs
+loc	240	Green Chu Jelly
+loc	241	Power Bracelets
+loc	242	Treasure Chart 21
+loc	243	Yellow Rupee
+loc	244	Piece of Heart
+loc	245	Joy Pendant
+loc	246	Treasure Chart 8
+loc	247	Red Rupee
+loc	248	Piece of Heart
+loc	249	Piece of Heart
+loc	250	Orange Rupee
+loc	251	Treasure Chart 32
+loc	252	Tingle's Chart
+loc	253	Hurricane Spin
+loc	254	Boko Baba Seed
+loc	255	Golden Feather
+loc	256	Treasure Chart 30
+loc	257	Treasure Chart 2
+loc	258	Red Rupee
+loc	259	Progressive Bomb Bag
+loc	260	Triforce Chart 4
+loc	261	Treasure Chart 25
+loc	262	Hero's Charm
+loc	263	Piece of Heart
+loc	264	Piece of Heart
+loc	265	Piece of Heart
+loc	266	Treasure Chart 24
+loc	267	Treasure Chart 23
+loc	268	Heart Container
+loc	269	Red Rupee
+loc	270	Treasure Chart 33
+loc	271	Purple Rupee
+loc	272	Empty Bottle
+loc	273	Piece of Heart
+loc	274	Orange Rupee
+loc	275	Red Rupee
+loc	276	Treasure Chart 40
+loc	277	Orange Rupee
+loc	278	Orange Rupee
+loc	279	Red Rupee
+loc	280	Orange Rupee
+loc	281	Orange Rupee
+loc	282	Treasure Chart 4
+loc	283	Piece of Heart
+loc	284	Red Rupee
+loc	285	Yellow Rupee
+loc	286	Orange Rupee
+loc	287	Orange Rupee
+loc	288	Piece of Heart
+loc	289	Piece of Heart
+loc	290	Purple Rupee
+loc	291	Red Rupee
+loc	292	Treasure Chart 14
+loc	293	Piece of Heart
+loc	294	Red Rupee
+loc	295	Purple Rupee
+loc	296	Treasure Chart 35
+loc	297	Purple Rupee
+loc	298	Orange Rupee
+loc	299	Treasure Chart 3
+loc	300	Orange Rupee
+loc	301	Piece of Heart
+loc	302	Treasure Chart 22
+loc	303	Orange Rupee
+loc	304	Treasure Chart 11
+loc	305	Orange Rupee
+loc	306	Orange Rupee
+loc	307	Purple Rupee
+loc	308	Purple Rupee
+loc	309	Piece of Heart
+loc	310	Orange Rupee
+loc	311	Progressive Picto Box
+loc	312	Orange Rupee
+loc	313	Joy Pendant
+loc	314	Piece of Heart
+loc	315	Orange Rupee
+loc	316	Purple Rupee
+loc	317	Orange Rupee
+loc	318	Piece of Heart
+loc	319	Red Rupee
+endcase
+case	default2	GummyAliveTrust
+draws	592
+loc	0	Heart Container
+loc	1	Bombs
+loc	2	Orange Rupee
+loc	3	Silver Rupee
+loc	4	Skull Necklace
+loc	5	Blue Rupee
+loc	6	Piece of Heart
+loc	7	Treasure Chart 4
+loc	8	Treasure Chart 9
+loc	9	Iron Boots
+loc	10	Bait Bag
+loc	11	Maggie's Letter
+loc	12	Yellow Rupee
+loc	13	Piece of Heart
+loc	14	Fill-Up Coupon
+loc	15	Red Chu Jelly
+loc	16	Piece of Heart
+loc	17	Piece of Heart
+loc	18	Knight's Crest
+loc	19	Silver Rupee
+loc	20	Joy Pendant
+loc	21	Empty Bottle
+loc	22	Treasure Chart 12
+loc	23	Treasure Chart 20
+loc	24	Triforce Chart 8
+loc	25	Treasure Chart 26
+loc	26	Joy Pendant
+loc	27	Tingle's Chart
+loc	28	Orange Rupee
+loc	29	Piece of Heart
+loc	30	Triforce Shard 1
+loc	31	Silver Rupee
+loc	32	Progressive Bomb Bag
+loc	33	Piece of Heart
+loc	34	Silver Rupee
+loc	35	Purple Rupee
+loc	36	Orange Rupee
+loc	37	Piece of Heart
+loc	38	Hyoi Pear
+loc	39	Silver Rupee
+loc	40	Skull Necklace
+loc	41	Joy Pendant
+loc	42	Treasure Chart 28
+loc	43	Hyoi Pear
+loc	44	Piece of Heart
+loc	45	Golden Feather
+loc	46	Golden Feather
+loc	47	Blue Rupee
+loc	48	Light Ring Chart
+loc	49	Orange Rupee
+loc	50	Treasure Chart 15
+loc	51	Silver Rupee
+loc	52	Purple Rupee
+loc	53	Treasure Chart 19
+loc	54	Treasure Chart 11
+loc	55	Piece of Heart
+loc	56	DRC Small Key
+loc	57	DRC Small Key
+loc	58	Orange Rupee
+loc	59	Triforce Chart 5
+loc	60	DRC Small Key
+loc	61	DRC Small Key
+loc	62	Orange Rupee
+loc	63	DRC Big Key
+loc	64	Triforce Shard 2
+loc	65	Silver Rupee
+loc	66	Hurricane Spin
+loc	67	DRC Dungeon Map
+loc	68	Treasure Chart 32
+loc	69	Progressive Bow
+loc	70	Silver Rupee
+loc	71	Cabana Deed
+loc	72	Progressive Bomb Bag
+loc	73	DRC Compass
+loc	74	Silver Rupee
+loc	75	Earth God's Lyric
+loc	76	Silver Rupee
+loc	77	Skull Necklace
+loc	78	Platform Chart
+loc	79	FW Small Key
+loc	80	Power Bracelets
+loc	81	Treasure Chart 31
+loc	82	Orange Rupee
+loc	83	Purple Rupee
+loc	84	Progressive Bow
+loc	85	Orange Rupee
+loc	86	Piece of Heart
+loc	87	Magic Armor
+loc	88	Joy Pendant
+loc	89	FW Big Key
+loc	90	Heart Container
+loc	91	Progressive Wallet
+loc	92	All-Purpose Bait
+loc	93	FW Compass
+loc	94	FW Dungeon Map
+loc	95	Triforce Chart 6
+loc	96	Heart Container
+loc	97	Purple Rupee
+loc	98	Piece of Heart
+loc	99	TotG Big Key
+loc	100	TotG Small Key
+loc	101	Piece of Heart
+loc	102	Secret Cave Chart
+loc	103	Beedle's Chart
+loc	104	Treasure Chart 25
+loc	105	TotG Small Key
+loc	106	Treasure Chart 41
+loc	107	TotG Dungeon Map
+loc	108	TotG Compass
+loc	109	Progressive Magic Meter
+loc	110	Silver Rupee
+loc	111	Triforce Shard 6
+loc	112	Progressive Sword
+loc	113	Treasure Chart 1
+loc	114	FF Dungeon Map
+loc	115	Forbidden Tingle Statue
+loc	116	Treasure Chart 21
+loc	117	Progressive Picto Box
+loc	118	FF Compass
+loc	119	Triforce Shard 3
+loc	120	Joy Pendant
+loc	121	Purple Rupee
+loc	122	Piece of Heart
+loc	123	Treasure Chart 18
+loc	124	Piece of Heart
+loc	125	Silver Rupee
+loc	126	Triforce Shard 5
+loc	127	Triforce Chart 3
+loc	128	Yellow Rupee
+loc	129	Red Rupee
+loc	130	ET Small Key
+loc	131	Treasure Chart 14
+loc	132	ET Small Key
+loc	133	ET Small Key
+loc	134	ET Dungeon Map
+loc	135	Treasure Chart 40
+loc	136	Piece of Heart
+loc	137	ET Compass
+loc	138	Purple Rupee
+loc	139	ET Big Key
+loc	140	Treasure Chart 22
+loc	141	Orange Rupee
+loc	142	Piece of Heart
+loc	143	Orange Rupee
+loc	144	Skull Necklace
+loc	145	Skull Necklace
+loc	146	Purple Rupee
+loc	147	Piece of Heart
+loc	148	WT Dungeon Map
+loc	149	Piece of Heart
+loc	150	Progressive Quiver
+loc	151	Treasure Chart 37
+loc	152	Nayru's Pearl
+loc	153	WT Small Key
+loc	154	Yellow Rupee
+loc	155	Great Fairy Chart
+loc	156	WT Compass
+loc	157	Treasure Chart 2
+loc	158	WT Small Key
+loc	159	WT Big Key
+loc	160	Red Rupee
+loc	161	Progressive Sword
+loc	162	Piece of Heart
+loc	163	Progressive Sword
+loc	164	Piece of Heart
+loc	165	Piece of Heart
+loc	166	Treasure Chart 5
+loc	167	Joy Pendant
+loc	168	Purple Rupee
+loc	169	Triforce Chart 2
+loc	170	Piece of Heart
+loc	171	Treasure Chart 7
+loc	172	Red Rupee
+loc	173	Piece of Heart
+loc	174	Golden Feather
+loc	175	Purple Rupee
+loc	176	Green Rupee
+loc	177	Empty Bottle
+loc	178	Piece of Heart
+loc	179	Triforce Shard 4
+loc	180	Red Rupee
+loc	181	Knight's Crest
+loc	182	Delivery Bag
+loc	183	Knight's Crest
+loc	184	Piece of Heart
+loc	185	Boomerang
+loc	186	Green Chu Jelly
+loc	187	Piece of Heart
+loc	188	Treasure Chart 38
+loc	189	Piece of Heart
+loc	190	Earth Tingle Statue
+loc	191	Piece of Heart
+loc	192	Skull Necklace
+loc	193	Moblin's Letter
+loc	194	Skull Necklace
+loc	195	Piece of Heart
+loc	196	Piece of Heart
+loc	197	Hyoi Pear
+loc	198	Golden Feather
+loc	199	Farore's Pearl
+loc	200	Treasure Chart 8
+loc	201	Orange Rupee
+loc	202	Dragon Tingle Statue
+loc	203	Skull Hammer
+loc	204	Triforce Shard 8
+loc	205	Wind Tingle Statue
+loc	206	Ghost Ship Chart
+loc	207	Rainbow Rupee
+loc	208	Treasure Chart 13
+loc	209	Piece of Heart
+loc	210	Triforce Chart 4
+loc	211	Piece of Heart
+loc	212	Hookshot
+loc	213	Octo Chart
+loc	214	Triforce Shard 7
+loc	215	Triforce Chart 1
+loc	216	Grappling Hook
+loc	217	Empty Bottle
+loc	218	Treasure Chart 23
+loc	219	Progressive Shield
+loc	220	Golden Feather
+loc	221	Deku Leaf
+loc	222	Hyoi Pear
+loc	223	Progressive Bow
+loc	224	Wind God's Aria
+loc	225	Treasure Chart 3
+loc	226	Skull Necklace
+loc	227	Piece of Heart
+loc	228	Joy Pendant
+loc	229	Orange Rupee
+loc	230	Goddess Tingle Statue
+loc	231	Command Melody
+loc	232	Din's Pearl
+loc	233	Spoils Bag
+loc	234	Treasure Chart 17
+loc	235	Telescope
+loc	236	Purple Rupee
+loc	237	Treasure Chart 6
+loc	238	Progressive Wallet
+loc	239	Piece of Heart
+loc	240	Tingle Tuner
+loc	241	Note to Mom
+loc	242	Golden Feather
+loc	243	Hero's Charm
+loc	244	Piece of Heart
+loc	245	Heart Container
+loc	246	Treasure Chart 39
+loc	247	Silver Rupee
+loc	248	Piece of Heart
+loc	249	Orange Rupee
+loc	250	Treasure Chart 36
+loc	251	Treasure Chart 27
+loc	252	Piece of Heart
+loc	253	Golden Feather
+loc	254	Golden Feather
+loc	255	Silver Rupee
+loc	256	Treasure Chart 34
+loc	257	Orange Rupee
+loc	258	Joy Pendant
+loc	259	Red Rupee
+loc	260	Joy Pendant
+loc	261	Orange Rupee
+loc	262	Skull Necklace
+loc	263	Boko Baba Seed
+loc	264	Silver Rupee
+loc	265	Golden Feather
+loc	266	Treasure Chart 35
+loc	267	Orange Rupee
+loc	268	Progressive Quiver
+loc	269	Treasure Chart 29
+loc	270	Piece of Heart
+loc	271	Treasure Chart 33
+loc	272	Piece of Heart
+loc	273	Orange Rupee
+loc	274	Purple Rupee
+loc	275	Red Rupee
+loc	276	Orange Rupee
+loc	277	Joy Pendant
+loc	278	Treasure Chart 24
+loc	279	Progressive Picto Box
+loc	280	Red Rupee
+loc	281	Submarine Chart
+loc	282	Orange Rupee
+loc	283	Yellow Rupee
+loc	284	Piece of Heart
+loc	285	Yellow Rupee
+loc	286	Purple Rupee
+loc	287	Purple Rupee
+loc	288	Red Rupee
+loc	289	Orange Rupee
+loc	290	Triforce Chart 7
+loc	291	Yellow Rupee
+loc	292	Joy Pendant
+loc	293	Purple Rupee
+loc	294	Orange Rupee
+loc	295	Purple Rupee
+loc	296	Empty Bottle
+loc	297	Purple Rupee
+loc	298	Yellow Rupee
+loc	299	Treasure Chart 10
+loc	300	Orange Rupee
+loc	301	Treasure Chart 30
+loc	302	Orange Rupee
+loc	303	Joy Pendant
+loc	304	Purple Rupee
+loc	305	Heart Container
+loc	306	Orange Rupee
+loc	307	Red Rupee
+loc	308	Piece of Heart
+loc	309	Treasure Chart 16
+loc	310	Purple Rupee
+loc	311	Piece of Heart
+loc	312	Orange Rupee
+loc	313	Purple Rupee
+loc	314	Purple Rupee
+loc	315	Orange Rupee
+loc	316	Piece of Heart
+loc	317	Piece of Heart
+loc	318	Orange Rupee
+loc	319	Heart Container
+endcase
+case	default3	R1.4-seed-3
+draws	627
+loc	0	Hookshot
+loc	1	Command Melody
+loc	2	Joy Pendant
+loc	3	Orange Rupee
+loc	4	Progressive Sword
+loc	5	Treasure Chart 10
+loc	6	Silver Rupee
+loc	7	Piece of Heart
+loc	8	Piece of Heart
+loc	9	Piece of Heart
+loc	10	Progressive Bow
+loc	11	Skull Necklace
+loc	12	Golden Feather
+loc	13	Treasure Chart 13
+loc	14	Piece of Heart
+loc	15	Empty Bottle
+loc	16	Progressive Wallet
+loc	17	Treasure Chart 35
+loc	18	Progressive Magic Meter
+loc	19	Empty Bottle
+loc	20	Silver Rupee
+loc	21	Orange Rupee
+loc	22	Joy Pendant
+loc	23	Piece of Heart
+loc	24	Silver Rupee
+loc	25	Skull Hammer
+loc	26	Secret Cave Chart
+loc	27	Purple Rupee
+loc	28	Piece of Heart
+loc	29	Purple Rupee
+loc	30	Bombs
+loc	31	Beedle's Chart
+loc	32	Hyoi Pear
+loc	33	Purple Rupee
+loc	34	Treasure Chart 6
+loc	35	Tingle Tuner
+loc	36	Heart Container
+loc	37	Triforce Chart 6
+loc	38	Golden Feather
+loc	39	Joy Pendant
+loc	40	Silver Rupee
+loc	41	Joy Pendant
+loc	42	Piece of Heart
+loc	43	Knight's Crest
+loc	44	Orange Rupee
+loc	45	Purple Rupee
+loc	46	Treasure Chart 21
+loc	47	Silver Rupee
+loc	48	Boko Baba Seed
+loc	49	Skull Necklace
+loc	50	Platform Chart
+loc	51	Great Fairy Chart
+loc	52	Treasure Chart 28
+loc	53	Joy Pendant
+loc	54	Hyoi Pear
+loc	55	Orange Rupee
+loc	56	DRC Small Key
+loc	57	DRC Small Key
+loc	58	Piece of Heart
+loc	59	DRC Dungeon Map
+loc	60	DRC Small Key
+loc	61	DRC Small Key
+loc	62	Triforce Chart 1
+loc	63	DRC Compass
+loc	64	Golden Feather
+loc	65	Piece of Heart
+loc	66	Tingle's Chart
+loc	67	Progressive Bow
+loc	68	Forbidden Tingle Statue
+loc	69	DRC Big Key
+loc	70	Silver Rupee
+loc	71	Telescope
+loc	72	Red Rupee
+loc	73	Cabana Deed
+loc	74	Treasure Chart 4
+loc	75	Treasure Chart 19
+loc	76	Triforce Chart 8
+loc	77	Hurricane Spin
+loc	78	Purple Rupee
+loc	79	Purple Rupee
+loc	80	Piece of Heart
+loc	81	Silver Rupee
+loc	82	All-Purpose Bait
+loc	83	Silver Rupee
+loc	84	Golden Feather
+loc	85	Treasure Chart 32
+loc	86	Treasure Chart 36
+loc	87	Heart Container
+loc	88	FW Compass
+loc	89	FW Big Key
+loc	90	FW Small Key
+loc	91	Treasure Chart 29
+loc	92	Treasure Chart 30
+loc	93	FW Dungeon Map
+loc	94	Piece of Heart
+loc	95	Orange Rupee
+loc	96	Skull Necklace
+loc	97	TotG Small Key
+loc	98	Purple Rupee
+loc	99	TotG Dungeon Map
+loc	100	TotG Compass
+loc	101	Hyoi Pear
+loc	102	TotG Big Key
+loc	103	Knight's Crest
+loc	104	Treasure Chart 14
+loc	105	TotG Small Key
+loc	106	Purple Rupee
+loc	107	Treasure Chart 31
+loc	108	Triforce Shard 7
+loc	109	Grappling Hook
+loc	110	Moblin's Letter
+loc	111	Golden Feather
+loc	112	Hyoi Pear
+loc	113	Yellow Rupee
+loc	114	Iron Boots
+loc	115	Treasure Chart 39
+loc	116	Delivery Bag
+loc	117	FF Compass
+loc	118	FF Dungeon Map
+loc	119	Wind God's Aria
+loc	120	Goddess Tingle Statue
+loc	121	Heart Container
+loc	122	Piece of Heart
+loc	123	Silver Rupee
+loc	124	Skull Necklace
+loc	125	Piece of Heart
+loc	126	Orange Rupee
+loc	127	Maggie's Letter
+loc	128	Golden Feather
+loc	129	Treasure Chart 5
+loc	130	ET Small Key
+loc	131	Skull Necklace
+loc	132	ET Small Key
+loc	133	ET Small Key
+loc	134	ET Dungeon Map
+loc	135	ET Big Key
+loc	136	Deku Leaf
+loc	137	Progressive Bomb Bag
+loc	138	Orange Rupee
+loc	139	Dragon Tingle Statue
+loc	140	Joy Pendant
+loc	141	Treasure Chart 1
+loc	142	Skull Necklace
+loc	143	ET Compass
+loc	144	Nayru's Pearl
+loc	145	Progressive Bow
+loc	146	Triforce Shard 2
+loc	147	Wind Tingle Statue
+loc	148	Piece of Heart
+loc	149	Green Chu Jelly
+loc	150	Piece of Heart
+loc	151	WT Big Key
+loc	152	Progressive Sword
+loc	153	WT Small Key
+loc	154	Orange Rupee
+loc	155	Joy Pendant
+loc	156	Piece of Heart
+loc	157	WT Compass
+loc	158	WT Small Key
+loc	159	Piece of Heart
+loc	160	Treasure Chart 34
+loc	161	Triforce Shard 1
+loc	162	WT Dungeon Map
+loc	163	Boomerang
+loc	164	Triforce Chart 5
+loc	165	Progressive Bomb Bag
+loc	166	Joy Pendant
+loc	167	Orange Rupee
+loc	168	Piece of Heart
+loc	169	Progressive Picto Box
+loc	170	Piece of Heart
+loc	171	Silver Rupee
+loc	172	Piece of Heart
+loc	173	Piece of Heart
+loc	174	Red Rupee
+loc	175	Triforce Chart 7
+loc	176	Treasure Chart 16
+loc	177	Piece of Heart
+loc	178	Treasure Chart 25
+loc	179	Orange Rupee
+loc	180	Spoils Bag
+loc	181	Note to Mom
+loc	182	Earth Tingle Statue
+loc	183	Golden Feather
+loc	184	Golden Feather
+loc	185	Piece of Heart
+loc	186	Red Rupee
+loc	187	Rainbow Rupee
+loc	188	Piece of Heart
+loc	189	Treasure Chart 7
+loc	190	Bait Bag
+loc	191	Orange Rupee
+loc	192	Octo Chart
+loc	193	Farore's Pearl
+loc	194	Piece of Heart
+loc	195	Treasure Chart 27
+loc	196	Silver Rupee
+loc	197	Blue Rupee
+loc	198	Treasure Chart 40
+loc	199	Submarine Chart
+loc	200	Piece of Heart
+loc	201	Treasure Chart 37
+loc	202	Din's Pearl
+loc	203	Progressive Sword
+loc	204	Progressive Wallet
+loc	205	Triforce Shard 4
+loc	206	Treasure Chart 33
+loc	207	Treasure Chart 23
+loc	208	Treasure Chart 8
+loc	209	Triforce Shard 8
+loc	210	Piece of Heart
+loc	211	Skull Necklace
+loc	212	Triforce Shard 3
+loc	213	Piece of Heart
+loc	214	Triforce Shard 6
+loc	215	Silver Rupee
+loc	216	Progressive Shield
+loc	217	Empty Bottle
+loc	218	Orange Rupee
+loc	219	Ghost Ship Chart
+loc	220	Hero's Charm
+loc	221	Silver Rupee
+loc	222	Piece of Heart
+loc	223	Purple Rupee
+loc	224	Yellow Rupee
+loc	225	Empty Bottle
+loc	226	Treasure Chart 24
+loc	227	Yellow Rupee
+loc	228	Piece of Heart
+loc	229	Skull Necklace
+loc	230	Triforce Shard 5
+loc	231	Earth God's Lyric
+loc	232	Power Bracelets
+loc	233	Orange Rupee
+loc	234	Treasure Chart 15
+loc	235	Piece of Heart
+loc	236	Silver Rupee
+loc	237	Treasure Chart 3
+loc	238	Orange Rupee
+loc	239	Knight's Crest
+loc	240	Piece of Heart
+loc	241	Heart Container
+loc	242	Orange Rupee
+loc	243	Fill-Up Coupon
+loc	244	Red Chu Jelly
+loc	245	Golden Feather
+loc	246	Green Rupee
+loc	247	Piece of Heart
+loc	248	Triforce Chart 3
+loc	249	Skull Necklace
+loc	250	Treasure Chart 12
+loc	251	Purple Rupee
+loc	252	Progressive Quiver
+loc	253	Progressive Picto Box
+loc	254	Treasure Chart 9
+loc	255	Blue Rupee
+loc	256	Piece of Heart
+loc	257	Treasure Chart 17
+loc	258	Red Rupee
+loc	259	Joy Pendant
+loc	260	Piece of Heart
+loc	261	Magic Armor
+loc	262	Piece of Heart
+loc	263	Silver Rupee
+loc	264	Red Rupee
+loc	265	Triforce Chart 2
+loc	266	Light Ring Chart
+loc	267	Piece of Heart
+loc	268	Orange Rupee
+loc	269	Treasure Chart 2
+loc	270	Piece of Heart
+loc	271	Piece of Heart
+loc	272	Piece of Heart
+loc	273	Joy Pendant
+loc	274	Treasure Chart 20
+loc	275	Purple Rupee
+loc	276	Orange Rupee
+loc	277	Red Rupee
+loc	278	Yellow Rupee
+loc	279	Purple Rupee
+loc	280	Orange Rupee
+loc	281	Treasure Chart 11
+loc	282	Orange Rupee
+loc	283	Treasure Chart 41
+loc	284	Triforce Chart 4
+loc	285	Red Rupee
+loc	286	Purple Rupee
+loc	287	Purple Rupee
+loc	288	Orange Rupee
+loc	289	Purple Rupee
+loc	290	Orange Rupee
+loc	291	Orange Rupee
+loc	292	Joy Pendant
+loc	293	Treasure Chart 26
+loc	294	Purple Rupee
+loc	295	Treasure Chart 22
+loc	296	Orange Rupee
+loc	297	Yellow Rupee
+loc	298	Orange Rupee
+loc	299	Orange Rupee
+loc	300	Red Rupee
+loc	301	Piece of Heart
+loc	302	Purple Rupee
+loc	303	Heart Container
+loc	304	Orange Rupee
+loc	305	Piece of Heart
+loc	306	Orange Rupee
+loc	307	Red Rupee
+loc	308	Purple Rupee
+loc	309	Heart Container
+loc	310	Purple Rupee
+loc	311	Orange Rupee
+loc	312	Orange Rupee
+loc	313	Progressive Quiver
+loc	314	Orange Rupee
+loc	315	Piece of Heart
+loc	316	Treasure Chart 18
+loc	317	Purple Rupee
+loc	318	Treasure Chart 38
+loc	319	Piece of Heart
+endcase
+case	default4	ZeldaSwitch
+draws	520
+loc	0	Heart Container
+loc	1	Joy Pendant
+loc	2	Orange Rupee
+loc	3	Silver Rupee
+loc	4	Forbidden Tingle Statue
+loc	5	Treasure Chart 24
+loc	6	Orange Rupee
+loc	7	Heart Container
+loc	8	Joy Pendant
+loc	9	Grappling Hook
+loc	10	Earth God's Lyric
+loc	11	Silver Rupee
+loc	12	Red Rupee
+loc	13	Knight's Crest
+loc	14	Silver Rupee
+loc	15	Treasure Chart 22
+loc	16	Purple Rupee
+loc	17	Orange Rupee
+loc	18	Red Rupee
+loc	19	Silver Rupee
+loc	20	Secret Cave Chart
+loc	21	Purple Rupee
+loc	22	Rainbow Rupee
+loc	23	Treasure Chart 34
+loc	24	Treasure Chart 18
+loc	25	Farore's Pearl
+loc	26	Orange Rupee
+loc	27	Silver Rupee
+loc	28	Purple Rupee
+loc	29	Treasure Chart 12
+loc	30	Treasure Chart 7
+loc	31	Purple Rupee
+loc	32	Hyoi Pear
+loc	33	Progressive Bomb Bag
+loc	34	Silver Rupee
+loc	35	Joy Pendant
+loc	36	Skull Necklace
+loc	37	Treasure Chart 14
+loc	38	Golden Feather
+loc	39	Skull Necklace
+loc	40	Golden Feather
+loc	41	Purple Rupee
+loc	42	Piece of Heart
+loc	43	Golden Feather
+loc	44	Piece of Heart
+loc	45	Green Chu Jelly
+loc	46	Note to Mom
+loc	47	Purple Rupee
+loc	48	Red Rupee
+loc	49	Purple Rupee
+loc	50	Triforce Shard 2
+loc	51	Joy Pendant
+loc	52	Piece of Heart
+loc	53	Skull Necklace
+loc	54	Triforce Chart 5
+loc	55	Golden Feather
+loc	56	DRC Small Key
+loc	57	DRC Compass
+loc	58	Blue Rupee
+loc	59	DRC Small Key
+loc	60	DRC Small Key
+loc	61	Iron Boots
+loc	62	Triforce Chart 2
+loc	63	DRC Small Key
+loc	64	Triforce Shard 1
+loc	65	Piece of Heart
+loc	66	Skull Necklace
+loc	67	Treasure Chart 27
+loc	68	Treasure Chart 5
+loc	69	Treasure Chart 11
+loc	70	Orange Rupee
+loc	71	Purple Rupee
+loc	72	DRC Big Key
+loc	73	DRC Dungeon Map
+loc	74	Piece of Heart
+loc	75	Treasure Chart 35
+loc	76	All-Purpose Bait
+loc	77	Hero's Charm
+loc	78	Progressive Sword
+loc	79	Piece of Heart
+loc	80	FW Small Key
+loc	81	Progressive Quiver
+loc	82	Bait Bag
+loc	83	Piece of Heart
+loc	84	Wind God's Aria
+loc	85	Progressive Shield
+loc	86	Triforce Chart 3
+loc	87	FW Big Key
+loc	88	Piece of Heart
+loc	89	FW Compass
+loc	90	Skull Necklace
+loc	91	Piece of Heart
+loc	92	FW Dungeon Map
+loc	93	Treasure Chart 10
+loc	94	Joy Pendant
+loc	95	Wind Tingle Statue
+loc	96	Treasure Chart 37
+loc	97	TotG Big Key
+loc	98	Piece of Heart
+loc	99	Cabana Deed
+loc	100	TotG Small Key
+loc	101	Treasure Chart 41
+loc	102	Skull Hammer
+loc	103	Empty Bottle
+loc	104	Heart Container
+loc	105	Hookshot
+loc	106	TotG Dungeon Map
+loc	107	TotG Small Key
+loc	108	Progressive Bow
+loc	109	Treasure Chart 36
+loc	110	Treasure Chart 28
+loc	111	TotG Compass
+loc	112	Goddess Tingle Statue
+loc	113	Piece of Heart
+loc	114	Command Melody
+loc	115	FF Compass
+loc	116	FF Dungeon Map
+loc	117	Orange Rupee
+loc	118	Piece of Heart
+loc	119	Silver Rupee
+loc	120	Piece of Heart
+loc	121	Empty Bottle
+loc	122	Orange Rupee
+loc	123	Treasure Chart 26
+loc	124	Purple Rupee
+loc	125	Silver Rupee
+loc	126	Progressive Wallet
+loc	127	Treasure Chart 16
+loc	128	Boko Baba Seed
+loc	129	Skull Necklace
+loc	130	Triforce Shard 5
+loc	131	Knight's Crest
+loc	132	ET Small Key
+loc	133	Joy Pendant
+loc	134	Spoils Bag
+loc	135	ET Dungeon Map
+loc	136	Treasure Chart 32
+loc	137	ET Big Key
+loc	138	Magic Armor
+loc	139	ET Small Key
+loc	140	ET Small Key
+loc	141	Tingle Tuner
+loc	142	Golden Feather
+loc	143	Tingle's Chart
+loc	144	ET Compass
+loc	145	Golden Feather
+loc	146	Yellow Rupee
+loc	147	Submarine Chart
+loc	148	WT Small Key
+loc	149	Silver Rupee
+loc	150	Purple Rupee
+loc	151	WT Small Key
+loc	152	Orange Rupee
+loc	153	WT Big Key
+loc	154	Progressive Sword
+loc	155	Skull Necklace
+loc	156	Triforce Chart 7
+loc	157	Treasure Chart 30
+loc	158	Silver Rupee
+loc	159	WT Dungeon Map
+loc	160	Progressive Sword
+loc	161	WT Compass
+loc	162	Triforce Shard 7
+loc	163	Triforce Shard 8
+loc	164	Octo Chart
+loc	165	Treasure Chart 19
+loc	166	Silver Rupee
+loc	167	Orange Rupee
+loc	168	Treasure Chart 38
+loc	169	Golden Feather
+loc	170	Piece of Heart
+loc	171	Silver Rupee
+loc	172	Silver Rupee
+loc	173	Joy Pendant
+loc	174	Piece of Heart
+loc	175	Piece of Heart
+loc	176	Treasure Chart 33
+loc	177	Piece of Heart
+loc	178	Yellow Rupee
+loc	179	Deku Leaf
+loc	180	Silver Rupee
+loc	181	Treasure Chart 8
+loc	182	Nayru's Pearl
+loc	183	Orange Rupee
+loc	184	Power Bracelets
+loc	185	Hurricane Spin
+loc	186	Treasure Chart 2
+loc	187	Treasure Chart 23
+loc	188	Piece of Heart
+loc	189	Piece of Heart
+loc	190	Orange Rupee
+loc	191	Joy Pendant
+loc	192	Knight's Crest
+loc	193	Progressive Bow
+loc	194	Joy Pendant
+loc	195	Piece of Heart
+loc	196	Orange Rupee
+loc	197	Piece of Heart
+loc	198	Treasure Chart 21
+loc	199	Boomerang
+loc	200	Treasure Chart 9
+loc	201	Red Rupee
+loc	202	Piece of Heart
+loc	203	Piece of Heart
+loc	204	Golden Feather
+loc	205	Treasure Chart 17
+loc	206	Progressive Bow
+loc	207	Fill-Up Coupon
+loc	208	Empty Bottle
+loc	209	Triforce Shard 3
+loc	210	Silver Rupee
+loc	211	Piece of Heart
+loc	212	Ghost Ship Chart
+loc	213	Piece of Heart
+loc	214	Triforce Shard 4
+loc	215	Yellow Rupee
+loc	216	Dragon Tingle Statue
+loc	217	Platform Chart
+loc	218	Piece of Heart
+loc	219	Earth Tingle Statue
+loc	220	Heart Container
+loc	221	Piece of Heart
+loc	222	Blue Rupee
+loc	223	Maggie's Letter
+loc	224	Golden Feather
+loc	225	Red Chu Jelly
+loc	226	Progressive Wallet
+loc	227	Treasure Chart 29
+loc	228	Orange Rupee
+loc	229	Beedle's Chart
+loc	230	Piece of Heart
+loc	231	Triforce Shard 6
+loc	232	Din's Pearl
+loc	233	Triforce Chart 1
+loc	234	Triforce Chart 4
+loc	235	Hyoi Pear
+loc	236	Progressive Quiver
+loc	237	Light Ring Chart
+loc	238	Bombs
+loc	239	Delivery Bag
+loc	240	Hyoi Pear
+loc	241	Progressive Picto Box
+loc	242	Telescope
+loc	243	Heart Container
+loc	244	Green Rupee
+loc	245	Skull Necklace
+loc	246	Hyoi Pear
+loc	247	Orange Rupee
+loc	248	Red Rupee
+loc	249	Piece of Heart
+loc	250	Treasure Chart 3
+loc	251	Skull Necklace
+loc	252	Heart Container
+loc	253	Orange Rupee
+loc	254	Piece of Heart
+loc	255	Piece of Heart
+loc	256	Orange Rupee
+loc	257	Purple Rupee
+loc	258	Joy Pendant
+loc	259	Treasure Chart 15
+loc	260	Treasure Chart 13
+loc	261	Purple Rupee
+loc	262	Piece of Heart
+loc	263	Treasure Chart 25
+loc	264	Orange Rupee
+loc	265	Piece of Heart
+loc	266	Orange Rupee
+loc	267	Red Rupee
+loc	268	Purple Rupee
+loc	269	Treasure Chart 31
+loc	270	Orange Rupee
+loc	271	Treasure Chart 40
+loc	272	Treasure Chart 4
+loc	273	Joy Pendant
+loc	274	Piece of Heart
+loc	275	Piece of Heart
+loc	276	Red Rupee
+loc	277	Orange Rupee
+loc	278	Triforce Chart 6
+loc	279	Joy Pendant
+loc	280	Treasure Chart 1
+loc	281	Treasure Chart 20
+loc	282	Orange Rupee
+loc	283	Red Rupee
+loc	284	Treasure Chart 39
+loc	285	Purple Rupee
+loc	286	Piece of Heart
+loc	287	Orange Rupee
+loc	288	Triforce Chart 8
+loc	289	Empty Bottle
+loc	290	Piece of Heart
+loc	291	Orange Rupee
+loc	292	Yellow Rupee
+loc	293	Piece of Heart
+loc	294	Piece of Heart
+loc	295	Purple Rupee
+loc	296	Piece of Heart
+loc	297	Red Rupee
+loc	298	Red Rupee
+loc	299	Piece of Heart
+loc	300	Purple Rupee
+loc	301	Progressive Picto Box
+loc	302	Orange Rupee
+loc	303	Yellow Rupee
+loc	304	Piece of Heart
+loc	305	Treasure Chart 6
+loc	306	Piece of Heart
+loc	307	Progressive Magic Meter
+loc	308	Great Fairy Chart
+loc	309	Purple Rupee
+loc	310	Piece of Heart
+loc	311	Orange Rupee
+loc	312	Purple Rupee
+loc	313	Progressive Bomb Bag
+loc	314	Red Rupee
+loc	315	Red Rupee
+loc	316	Purple Rupee
+loc	317	Moblin's Letter
+loc	318	Orange Rupee
+loc	319	Purple Rupee
+endcase
+case	default5	Crestfallen'Pumpkin
+draws	609
+loc	0	Progressive Shield
+loc	1	Golden Feather
+loc	2	Orange Rupee
+loc	3	Orange Rupee
+loc	4	Triforce Shard 8
+loc	5	Piece of Heart
+loc	6	Piece of Heart
+loc	7	Purple Rupee
+loc	8	Fill-Up Coupon
+loc	9	Piece of Heart
+loc	10	Hyoi Pear
+loc	11	Golden Feather
+loc	12	Orange Rupee
+loc	13	Joy Pendant
+loc	14	Piece of Heart
+loc	15	Treasure Chart 7
+loc	16	Silver Rupee
+loc	17	Silver Rupee
+loc	18	Golden Feather
+loc	19	Silver Rupee
+loc	20	Yellow Rupee
+loc	21	Skull Necklace
+loc	22	Red Rupee
+loc	23	Iron Boots
+loc	24	Submarine Chart
+loc	25	Triforce Shard 7
+loc	26	Treasure Chart 8
+loc	27	Progressive Wallet
+loc	28	Platform Chart
+loc	29	Progressive Bomb Bag
+loc	30	Golden Feather
+loc	31	Skull Necklace
+loc	32	Piece of Heart
+loc	33	Piece of Heart
+loc	34	Green Rupee
+loc	35	Golden Feather
+loc	36	Heart Container
+loc	37	Treasure Chart 11
+loc	38	Skull Necklace
+loc	39	Purple Rupee
+loc	40	Purple Rupee
+loc	41	Skull Necklace
+loc	42	Piece of Heart
+loc	43	Magic Armor
+loc	44	Heart Container
+loc	45	Red Rupee
+loc	46	Skull Necklace
+loc	47	Orange Rupee
+loc	48	Red Rupee
+loc	49	Joy Pendant
+loc	50	Wind Tingle Statue
+loc	51	Piece of Heart
+loc	52	Piece of Heart
+loc	53	Silver Rupee
+loc	54	Telescope
+loc	55	Purple Rupee
+loc	56	DRC Small Key
+loc	57	DRC Small Key
+loc	58	Octo Chart
+loc	59	Blue Rupee
+loc	60	DRC Small Key
+loc	61	DRC Big Key
+loc	62	DRC Small Key
+loc	63	Bombs
+loc	64	Yellow Rupee
+loc	65	Treasure Chart 34
+loc	66	Rainbow Rupee
+loc	67	Triforce Shard 4
+loc	68	DRC Dungeon Map
+loc	69	Triforce Chart 2
+loc	70	Piece of Heart
+loc	71	Earth Tingle Statue
+loc	72	Treasure Chart 9
+loc	73	DRC Compass
+loc	74	Progressive Quiver
+loc	75	Golden Feather
+loc	76	Treasure Chart 20
+loc	77	Light Ring Chart
+loc	78	Triforce Chart 6
+loc	79	Purple Rupee
+loc	80	FW Dungeon Map
+loc	81	Treasure Chart 15
+loc	82	FW Compass
+loc	83	FW Small Key
+loc	84	Piece of Heart
+loc	85	Piece of Heart
+loc	86	Orange Rupee
+loc	87	Hookshot
+loc	88	Progressive Magic Meter
+loc	89	Earth God's Lyric
+loc	90	Joy Pendant
+loc	91	Treasure Chart 3
+loc	92	Hyoi Pear
+loc	93	Treasure Chart 18
+loc	94	FW Big Key
+loc	95	Progressive Sword
+loc	96	Purple Rupee
+loc	97	TotG Small Key
+loc	98	Note to Mom
+loc	99	Progressive Bow
+loc	100	Triforce Shard 1
+loc	101	TotG Dungeon Map
+loc	102	TotG Small Key
+loc	103	Piece of Heart
+loc	104	TotG Compass
+loc	105	Piece of Heart
+loc	106	Purple Rupee
+loc	107	TotG Big Key
+loc	108	Triforce Shard 2
+loc	109	Silver Rupee
+loc	110	Treasure Chart 14
+loc	111	Treasure Chart 26
+loc	112	Progressive Sword
+loc	113	Piece of Heart
+loc	114	Purple Rupee
+loc	115	FF Dungeon Map
+loc	116	FF Compass
+loc	117	Nayru's Pearl
+loc	118	Piece of Heart
+loc	119	Progressive Sword
+loc	120	Piece of Heart
+loc	121	Piece of Heart
+loc	122	Joy Pendant
+loc	123	Treasure Chart 29
+loc	124	Treasure Chart 37
+loc	125	Treasure Chart 22
+loc	126	Orange Rupee
+loc	127	Piece of Heart
+loc	128	Boko Baba Seed
+loc	129	Hurricane Spin
+loc	130	Grappling Hook
+loc	131	Piece of Heart
+loc	132	Deku Leaf
+loc	133	ET Small Key
+loc	134	ET Small Key
+loc	135	Skull Necklace
+loc	136	Silver Rupee
+loc	137	ET Dungeon Map
+loc	138	Purple Rupee
+loc	139	ET Compass
+loc	140	ET Small Key
+loc	141	Treasure Chart 27
+loc	142	Tingle Tuner
+loc	143	Purple Rupee
+loc	144	Piece of Heart
+loc	145	ET Big Key
+loc	146	Golden Feather
+loc	147	Progressive Bow
+loc	148	Dragon Tingle Statue
+loc	149	Red Chu Jelly
+loc	150	Piece of Heart
+loc	151	WT Small Key
+loc	152	WT Small Key
+loc	153	Cabana Deed
+loc	154	WT Big Key
+loc	155	Green Chu Jelly
+loc	156	Piece of Heart
+loc	157	Hero's Charm
+loc	158	WT Compass
+loc	159	Silver Rupee
+loc	160	WT Dungeon Map
+loc	161	Treasure Chart 23
+loc	162	Great Fairy Chart
+loc	163	Skull Necklace
+loc	164	Orange Rupee
+loc	165	Hyoi Pear
+loc	166	Silver Rupee
+loc	167	Silver Rupee
+loc	168	Treasure Chart 40
+loc	169	Triforce Chart 7
+loc	170	Treasure Chart 38
+loc	171	Maggie's Letter
+loc	172	Silver Rupee
+loc	173	Treasure Chart 10
+loc	174	Knight's Crest
+loc	175	Silver Rupee
+loc	176	Triforce Chart 1
+loc	177	Silver Rupee
+loc	178	Progressive Wallet
+loc	179	Progressive Bow
+loc	180	Hyoi Pear
+loc	181	Red Rupee
+loc	182	Skull Hammer
+loc	183	Orange Rupee
+loc	184	Farore's Pearl
+loc	185	Bait Bag
+loc	186	Piece of Heart
+loc	187	Golden Feather
+loc	188	Heart Container
+loc	189	Piece of Heart
+loc	190	Piece of Heart
+loc	191	Piece of Heart
+loc	192	Blue Rupee
+loc	193	Treasure Chart 13
+loc	194	Treasure Chart 35
+loc	195	Orange Rupee
+loc	196	Treasure Chart 28
+loc	197	Heart Container
+loc	198	Piece of Heart
+loc	199	Triforce Chart 8
+loc	200	Skull Necklace
+loc	201	Empty Bottle
+loc	202	Orange Rupee
+loc	203	Heart Container
+loc	204	Red Rupee
+loc	205	Orange Rupee
+loc	206	Delivery Bag
+loc	207	Tingle's Chart
+loc	208	Skull Necklace
+loc	209	Power Bracelets
+loc	210	Treasure Chart 2
+loc	211	Treasure Chart 25
+loc	212	Yellow Rupee
+loc	213	Treasure Chart 6
+loc	214	Din's Pearl
+loc	215	Heart Container
+loc	216	Treasure Chart 17
+loc	217	Piece of Heart
+loc	218	Spoils Bag
+loc	219	Command Melody
+loc	220	Treasure Chart 33
+loc	221	Triforce Shard 3
+loc	222	Orange Rupee
+loc	223	Treasure Chart 1
+loc	224	Progressive Quiver
+loc	225	Joy Pendant
+loc	226	Triforce Shard 5
+loc	227	Joy Pendant
+loc	228	Knight's Crest
+loc	229	Progressive Bomb Bag
+loc	230	Ghost Ship Chart
+loc	231	Boomerang
+loc	232	Goddess Tingle Statue
+loc	233	All-Purpose Bait
+loc	234	Orange Rupee
+loc	235	Golden Feather
+loc	236	Empty Bottle
+loc	237	Silver Rupee
+loc	238	Forbidden Tingle Statue
+loc	239	Triforce Shard 6
+loc	240	Triforce Chart 3
+loc	241	Wind God's Aria
+loc	242	Joy Pendant
+loc	243	Treasure Chart 5
+loc	244	Orange Rupee
+loc	245	Silver Rupee
+loc	246	Moblin's Letter
+loc	247	Piece of Heart
+loc	248	Joy Pendant
+loc	249	Silver Rupee
+loc	250	Piece of Heart
+loc	251	Treasure Chart 39
+loc	252	Piece of Heart
+loc	253	Piece of Heart
+loc	254	Beedle's Chart
+loc	255	Orange Rupee
+loc	256	Treasure Chart 4
+loc	257	Triforce Chart 4
+loc	258	Knight's Crest
+loc	259	Piece of Heart
+loc	260	Joy Pendant
+loc	261	Treasure Chart 30
+loc	262	Secret Cave Chart
+loc	263	Progressive Picto Box
+loc	264	Yellow Rupee
+loc	265	Piece of Heart
+loc	266	Purple Rupee
+loc	267	Orange Rupee
+loc	268	Purple Rupee
+loc	269	Orange Rupee
+loc	270	Piece of Heart
+loc	271	Treasure Chart 41
+loc	272	Joy Pendant
+loc	273	Orange Rupee
+loc	274	Orange Rupee
+loc	275	Progressive Picto Box
+loc	276	Treasure Chart 19
+loc	277	Piece of Heart
+loc	278	Piece of Heart
+loc	279	Red Rupee
+loc	280	Yellow Rupee
+loc	281	Treasure Chart 21
+loc	282	Treasure Chart 24
+loc	283	Orange Rupee
+loc	284	Joy Pendant
+loc	285	Orange Rupee
+loc	286	Treasure Chart 32
+loc	287	Red Rupee
+loc	288	Piece of Heart
+loc	289	Purple Rupee
+loc	290	Purple Rupee
+loc	291	Orange Rupee
+loc	292	Treasure Chart 31
+loc	293	Purple Rupee
+loc	294	Purple Rupee
+loc	295	Piece of Heart
+loc	296	Piece of Heart
+loc	297	Yellow Rupee
+loc	298	Red Rupee
+loc	299	Empty Bottle
+loc	300	Red Rupee
+loc	301	Orange Rupee
+loc	302	Triforce Chart 5
+loc	303	Empty Bottle
+loc	304	Orange Rupee
+loc	305	Purple Rupee
+loc	306	Piece of Heart
+loc	307	Piece of Heart
+loc	308	Orange Rupee
+loc	309	Yellow Rupee
+loc	310	Treasure Chart 12
+loc	311	Piece of Heart
+loc	312	Orange Rupee
+loc	313	Treasure Chart 36
+loc	314	Red Rupee
+loc	315	Red Rupee
+loc	316	Orange Rupee
+loc	317	Treasure Chart 16
+loc	318	Purple Rupee
+loc	319	Red Rupee
+endcase
+case	default6	a
+draws	590
+loc	0	Golden Feather
+loc	1	Purple Rupee
+loc	2	Golden Feather
+loc	3	Skull Necklace
+loc	4	Triforce Shard 7
+loc	5	All-Purpose Bait
+loc	6	Treasure Chart 37
+loc	7	Piece of Heart
+loc	8	Silver Rupee
+loc	9	Rainbow Rupee
+loc	10	Power Bracelets
+loc	11	Yellow Rupee
+loc	12	Piece of Heart
+loc	13	Piece of Heart
+loc	14	Piece of Heart
+loc	15	Tingle Tuner
+loc	16	Piece of Heart
+loc	17	Treasure Chart 23
+loc	18	Piece of Heart
+loc	19	Treasure Chart 24
+loc	20	Joy Pendant
+loc	21	Piece of Heart
+loc	22	Purple Rupee
+loc	23	Progressive Shield
+loc	24	Octo Chart
+loc	25	Progressive Sword
+loc	26	Piece of Heart
+loc	27	Treasure Chart 1
+loc	28	Treasure Chart 22
+loc	29	Great Fairy Chart
+loc	30	Progressive Bow
+loc	31	Orange Rupee
+loc	32	Piece of Heart
+loc	33	Treasure Chart 5
+loc	34	Heart Container
+loc	35	Progressive Quiver
+loc	36	Piece of Heart
+loc	37	Orange Rupee
+loc	38	Hyoi Pear
+loc	39	Red Rupee
+loc	40	Silver Rupee
+loc	41	Joy Pendant
+loc	42	Piece of Heart
+loc	43	Piece of Heart
+loc	44	Triforce Chart 3
+loc	45	Piece of Heart
+loc	46	Progressive Wallet
+loc	47	Joy Pendant
+loc	48	Purple Rupee
+loc	49	Orange Rupee
+loc	50	Silver Rupee
+loc	51	Treasure Chart 13
+loc	52	Red Rupee
+loc	53	Treasure Chart 33
+loc	54	Piece of Heart
+loc	55	Triforce Chart 1
+loc	56	DRC Small Key
+loc	57	DRC Small Key
+loc	58	Knight's Crest
+loc	59	DRC Small Key
+loc	60	DRC Small Key
+loc	61	Platform Chart
+loc	62	Bombs
+loc	63	Command Melody
+loc	64	Empty Bottle
+loc	65	Treasure Chart 6
+loc	66	Piece of Heart
+loc	67	DRC Dungeon Map
+loc	68	Knight's Crest
+loc	69	DRC Compass
+loc	70	Empty Bottle
+loc	71	Skull Necklace
+loc	72	Progressive Sword
+loc	73	DRC Big Key
+loc	74	Telescope
+loc	75	Piece of Heart
+loc	76	Piece of Heart
+loc	77	Piece of Heart
+loc	78	Treasure Chart 15
+loc	79	Treasure Chart 3
+loc	80	Ghost Ship Chart
+loc	81	Red Rupee
+loc	82	Piece of Heart
+loc	83	FW Small Key
+loc	84	Piece of Heart
+loc	85	Progressive Picto Box
+loc	86	Treasure Chart 14
+loc	87	FW Big Key
+loc	88	Joy Pendant
+loc	89	Piece of Heart
+loc	90	FW Dungeon Map
+loc	91	Orange Rupee
+loc	92	FW Compass
+loc	93	Skull Necklace
+loc	94	Triforce Chart 4
+loc	95	Orange Rupee
+loc	96	Green Chu Jelly
+loc	97	TotG Compass
+loc	98	Empty Bottle
+loc	99	Triforce Shard 1
+loc	100	Tingle's Chart
+loc	101	TotG Small Key
+loc	102	Orange Rupee
+loc	103	Spoils Bag
+loc	104	Treasure Chart 21
+loc	105	Treasure Chart 27
+loc	106	TotG Dungeon Map
+loc	107	TotG Big Key
+loc	108	TotG Small Key
+loc	109	Silver Rupee
+loc	110	Treasure Chart 2
+loc	111	Grappling Hook
+loc	112	Triforce Chart 6
+loc	113	Golden Feather
+loc	114	FF Compass
+loc	115	Triforce Shard 2
+loc	116	Goddess Tingle Statue
+loc	117	Piece of Heart
+loc	118	FF Dungeon Map
+loc	119	Triforce Shard 8
+loc	120	Note to Mom
+loc	121	Orange Rupee
+loc	122	Treasure Chart 25
+loc	123	Knight's Crest
+loc	124	Golden Feather
+loc	125	Progressive Bomb Bag
+loc	126	Orange Rupee
+loc	127	Orange Rupee
+loc	128	Orange Rupee
+loc	129	Heart Container
+loc	130	ET Compass
+loc	131	Golden Feather
+loc	132	ET Dungeon Map
+loc	133	ET Small Key
+loc	134	ET Small Key
+loc	135	Wind Tingle Statue
+loc	136	Triforce Shard 3
+loc	137	Wind God's Aria
+loc	138	Treasure Chart 12
+loc	139	ET Small Key
+loc	140	Joy Pendant
+loc	141	Magic Armor
+loc	142	Purple Rupee
+loc	143	Treasure Chart 35
+loc	144	ET Big Key
+loc	145	Forbidden Tingle Statue
+loc	146	Din's Pearl
+loc	147	Dragon Tingle Statue
+loc	148	WT Small Key
+loc	149	Golden Feather
+loc	150	Joy Pendant
+loc	151	Nayru's Pearl
+loc	152	Farore's Pearl
+loc	153	Treasure Chart 29
+loc	154	Progressive Magic Meter
+loc	155	Submarine Chart
+loc	156	Heart Container
+loc	157	WT Dungeon Map
+loc	158	Progressive Bow
+loc	159	WT Compass
+loc	160	WT Big Key
+loc	161	WT Small Key
+loc	162	Green Rupee
+loc	163	Orange Rupee
+loc	164	Progressive Bow
+loc	165	Piece of Heart
+loc	166	Hyoi Pear
+loc	167	Silver Rupee
+loc	168	Hero's Charm
+loc	169	Golden Feather
+loc	170	Orange Rupee
+loc	171	Silver Rupee
+loc	172	Treasure Chart 17
+loc	173	Skull Necklace
+loc	174	Golden Feather
+loc	175	Piece of Heart
+loc	176	Skull Necklace
+loc	177	Golden Feather
+loc	178	Hookshot
+loc	179	Progressive Wallet
+loc	180	Moblin's Letter
+loc	181	Red Rupee
+loc	182	Treasure Chart 28
+loc	183	Piece of Heart
+loc	184	Progressive Sword
+loc	185	Progressive Bomb Bag
+loc	186	Heart Container
+loc	187	Triforce Chart 8
+loc	188	Skull Necklace
+loc	189	Treasure Chart 11
+loc	190	Purple Rupee
+loc	191	Beedle's Chart
+loc	192	Piece of Heart
+loc	193	Skull Hammer
+loc	194	Silver Rupee
+loc	195	Silver Rupee
+loc	196	Piece of Heart
+loc	197	Blue Rupee
+loc	198	Piece of Heart
+loc	199	Deku Leaf
+loc	200	Treasure Chart 8
+loc	201	Treasure Chart 32
+loc	202	Treasure Chart 4
+loc	203	Blue Rupee
+loc	204	Bait Bag
+loc	205	Triforce Shard 4
+loc	206	Treasure Chart 16
+loc	207	Yellow Rupee
+loc	208	Treasure Chart 34
+loc	209	Orange Rupee
+loc	210	Secret Cave Chart
+loc	211	Treasure Chart 7
+loc	212	Treasure Chart 40
+loc	213	Skull Necklace
+loc	214	Delivery Bag
+loc	215	Joy Pendant
+loc	216	Boomerang
+loc	217	Purple Rupee
+loc	218	Fill-Up Coupon
+loc	219	Purple Rupee
+loc	220	Treasure Chart 26
+loc	221	Piece of Heart
+loc	222	Silver Rupee
+loc	223	Triforce Shard 5
+loc	224	Joy Pendant
+loc	225	Maggie's Letter
+loc	226	Earth Tingle Statue
+loc	227	Silver Rupee
+loc	228	Silver Rupee
+loc	229	Silver Rupee
+loc	230	Treasure Chart 31
+loc	231	Triforce Shard 6
+loc	232	Iron Boots
+loc	233	Purple Rupee
+loc	234	Heart Container
+loc	235	Silver Rupee
+loc	236	Heart Container
+loc	237	Treasure Chart 30
+loc	238	Cabana Deed
+loc	239	Earth God's Lyric
+loc	240	Progressive Quiver
+loc	241	Piece of Heart
+loc	242	Piece of Heart
+loc	243	Hyoi Pear
+loc	244	Piece of Heart
+loc	245	Piece of Heart
+loc	246	Hyoi Pear
+loc	247	Triforce Chart 5
+loc	248	Piece of Heart
+loc	249	Orange Rupee
+loc	250	Treasure Chart 18
+loc	251	Joy Pendant
+loc	252	Treasure Chart 38
+loc	253	Boko Baba Seed
+loc	254	Piece of Heart
+loc	255	Yellow Rupee
+loc	256	Orange Rupee
+loc	257	Treasure Chart 36
+loc	258	Treasure Chart 39
+loc	259	Silver Rupee
+loc	260	Red Chu Jelly
+loc	261	Purple Rupee
+loc	262	Skull Necklace
+loc	263	Piece of Heart
+loc	264	Purple Rupee
+loc	265	Skull Necklace
+loc	266	Piece of Heart
+loc	267	Red Rupee
+loc	268	Piece of Heart
+loc	269	Treasure Chart 20
+loc	270	Progressive Picto Box
+loc	271	Silver Rupee
+loc	272	Orange Rupee
+loc	273	Purple Rupee
+loc	274	Orange Rupee
+loc	275	Orange Rupee
+loc	276	Yellow Rupee
+loc	277	Red Rupee
+loc	278	Piece of Heart
+loc	279	Piece of Heart
+loc	280	Piece of Heart
+loc	281	Empty Bottle
+loc	282	Piece of Heart
+loc	283	Orange Rupee
+loc	284	Orange Rupee
+loc	285	Orange Rupee
+loc	286	Purple Rupee
+loc	287	Orange Rupee
+loc	288	Yellow Rupee
+loc	289	Joy Pendant
+loc	290	Treasure Chart 19
+loc	291	Orange Rupee
+loc	292	Purple Rupee
+loc	293	Orange Rupee
+loc	294	Red Rupee
+loc	295	Piece of Heart
+loc	296	Treasure Chart 10
+loc	297	Joy Pendant
+loc	298	Joy Pendant
+loc	299	Purple Rupee
+loc	300	Red Rupee
+loc	301	Triforce Chart 7
+loc	302	Red Rupee
+loc	303	Orange Rupee
+loc	304	Red Rupee
+loc	305	Hurricane Spin
+loc	306	Piece of Heart
+loc	307	Triforce Chart 2
+loc	308	Purple Rupee
+loc	309	Light Ring Chart
+loc	310	Purple Rupee
+loc	311	Yellow Rupee
+loc	312	Treasure Chart 9
+loc	313	Purple Rupee
+loc	314	Purple Rupee
+loc	315	Orange Rupee
+loc	316	Purple Rupee
+loc	317	Joy Pendant
+loc	318	Treasure Chart 41
+loc	319	Yellow Rupee
+endcase
+case	default7	2023
+draws	601
+loc	0	Earth Tingle Statue
+loc	1	Progressive Wallet
+loc	2	Treasure Chart 25
+loc	3	Silver Rupee
+loc	4	Wind Tingle Statue
+loc	5	Progressive Quiver
+loc	6	Purple Rupee
+loc	7	Hyoi Pear
+loc	8	Treasure Chart 8
+loc	9	Skull Necklace
+loc	10	Deku Leaf
+loc	11	Knight's Crest
+loc	12	Hyoi Pear
+loc	13	Joy Pendant
+loc	14	Piece of Heart
+loc	15	Treasure Chart 22
+loc	16	Red Chu Jelly
+loc	17	Skull Necklace
+loc	18	Golden Feather
+loc	19	Orange Rupee
+loc	20	Silver Rupee
+loc	21	Treasure Chart 7
+loc	22	Piece of Heart
+loc	23	Grappling Hook
+loc	24	Piece of Heart
+loc	25	Treasure Chart 10
+loc	26	Orange Rupee
+loc	27	Skull Necklace
+loc	28	Light Ring Chart
+loc	29	Triforce Chart 8
+loc	30	Nayru's Pearl
+loc	31	Piece of Heart
+loc	32	Triforce Chart 6
+loc	33	Heart Container
+loc	34	Piece of Heart
+loc	35	Yellow Rupee
+loc	36	Silver Rupee
+loc	37	Treasure Chart 24
+loc	38	All-Purpose Bait
+loc	39	Red Rupee
+loc	40	Silver Rupee
+loc	41	Purple Rupee
+loc	42	Purple Rupee
+loc	43	Skull Necklace
+loc	44	Skull Necklace
+loc	45	Orange Rupee
+loc	46	Piece of Heart
+loc	47	Red Rupee
+loc	48	Green Rupee
+loc	49	Orange Rupee
+loc	50	Green Chu Jelly
+loc	51	Treasure Chart 16
+loc	52	Purple Rupee
+loc	53	Piece of Heart
+loc	54	Orange Rupee
+loc	55	Orange Rupee
+loc	56	DRC Small Key
+loc	57	Orange Rupee
+loc	58	Piece of Heart
+loc	59	DRC Small Key
+loc	60	DRC Compass
+loc	61	DRC Small Key
+loc	62	Treasure Chart 14
+loc	63	DRC Small Key
+loc	64	Bait Bag
+loc	65	Silver Rupee
+loc	66	Note to Mom
+loc	67	Triforce Shard 6
+loc	68	DRC Big Key
+loc	69	Delivery Bag
+loc	70	Piece of Heart
+loc	71	Treasure Chart 5
+loc	72	Ghost Ship Chart
+loc	73	DRC Dungeon Map
+loc	74	Skull Necklace
+loc	75	Piece of Heart
+loc	76	Orange Rupee
+loc	77	Heart Container
+loc	78	Forbidden Tingle Statue
+loc	79	FW Dungeon Map
+loc	80	Piece of Heart
+loc	81	Joy Pendant
+loc	82	Rainbow Rupee
+loc	83	Treasure Chart 37
+loc	84	FW Big Key
+loc	85	FW Small Key
+loc	86	Golden Feather
+loc	87	Treasure Chart 32
+loc	88	Triforce Shard 5
+loc	89	Joy Pendant
+loc	90	Treasure Chart 3
+loc	91	Empty Bottle
+loc	92	Purple Rupee
+loc	93	Farore's Pearl
+loc	94	FW Compass
+loc	95	Treasure Chart 4
+loc	96	Silver Rupee
+loc	97	TotG Small Key
+loc	98	Silver Rupee
+loc	99	TotG Dungeon Map
+loc	100	Orange Rupee
+loc	101	Treasure Chart 9
+loc	102	TotG Compass
+loc	103	Silver Rupee
+loc	104	Triforce Shard 2
+loc	105	TotG Small Key
+loc	106	Secret Cave Chart
+loc	107	Boko Baba Seed
+loc	108	Piece of Heart
+loc	109	TotG Big Key
+loc	110	Orange Rupee
+loc	111	Triforce Shard 4
+loc	112	Triforce Chart 2
+loc	113	Hurricane Spin
+loc	114	Purple Rupee
+loc	115	Progressive Sword
+loc	116	Silver Rupee
+loc	117	FF Compass
+loc	118	FF Dungeon Map
+loc	119	Treasure Chart 20
+loc	120	Triforce Shard 8
+loc	121	Golden Feather
+loc	122	Orange Rupee
+loc	123	Triforce Chart 1
+loc	124	Treasure Chart 41
+loc	125	Triforce Chart 3
+loc	126	Dragon Tingle Statue
+loc	127	Blue Rupee
+loc	128	Treasure Chart 21
+loc	129	Golden Feather
+loc	130	Earth God's Lyric
+loc	131	Piece of Heart
+loc	132	ET Small Key
+loc	133	ET Small Key
+loc	134	Purple Rupee
+loc	135	Progressive Sword
+loc	136	ET Compass
+loc	137	Yellow Rupee
+loc	138	Maggie's Letter
+loc	139	ET Dungeon Map
+loc	140	ET Small Key
+loc	141	Treasure Chart 38
+loc	142	Triforce Chart 7
+loc	143	Golden Feather
+loc	144	Silver Rupee
+loc	145	Silver Rupee
+loc	146	ET Big Key
+loc	147	Treasure Chart 28
+loc	148	WT Small Key
+loc	149	Empty Bottle
+loc	150	Golden Feather
+loc	151	Piece of Heart
+loc	152	WT Small Key
+loc	153	WT Dungeon Map
+loc	154	Heart Container
+loc	155	Submarine Chart
+loc	156	Piece of Heart
+loc	157	Piece of Heart
+loc	158	Tingle Tuner
+loc	159	Joy Pendant
+loc	160	WT Compass
+loc	161	Moblin's Letter
+loc	162	WT Big Key
+loc	163	Treasure Chart 11
+loc	164	Piece of Heart
+loc	165	Silver Rupee
+loc	166	Beedle's Chart
+loc	167	Progressive Wallet
+loc	168	Octo Chart
+loc	169	Progressive Magic Meter
+loc	170	Piece of Heart
+loc	171	Golden Feather
+loc	172	Blue Rupee
+loc	173	Piece of Heart
+loc	174	Treasure Chart 13
+loc	175	Purple Rupee
+loc	176	Silver Rupee
+loc	177	Cabana Deed
+loc	178	Command Melody
+loc	179	Piece of Heart
+loc	180	Piece of Heart
+loc	181	Hyoi Pear
+loc	182	Hookshot
+loc	183	Yellow Rupee
+loc	184	Iron Boots
+loc	185	Empty Bottle
+loc	186	Piece of Heart
+loc	187	Piece of Heart
+loc	188	Treasure Chart 40
+loc	189	Joy Pendant
+loc	190	Progressive Sword
+loc	191	Skull Necklace
+loc	192	Treasure Chart 34
+loc	193	Triforce Shard 7
+loc	194	Triforce Chart 5
+loc	195	Skull Necklace
+loc	196	Hyoi Pear
+loc	197	Tingle's Chart
+loc	198	Progressive Picto Box
+loc	199	Progressive Bomb Bag
+loc	200	Knight's Crest
+loc	201	Purple Rupee
+loc	202	Triforce Shard 1
+loc	203	Wind God's Aria
+loc	204	Treasure Chart 23
+loc	205	Goddess Tingle Statue
+loc	206	Skull Hammer
+loc	207	Treasure Chart 35
+loc	208	Treasure Chart 29
+loc	209	Progressive Bow
+loc	210	Treasure Chart 36
+loc	211	Treasure Chart 17
+loc	212	Boomerang
+loc	213	Piece of Heart
+loc	214	Piece of Heart
+loc	215	Treasure Chart 15
+loc	216	Piece of Heart
+loc	217	Progressive Bomb Bag
+loc	218	Joy Pendant
+loc	219	Bombs
+loc	220	Red Rupee
+loc	221	Power Bracelets
+loc	222	Orange Rupee
+loc	223	Red Rupee
+loc	224	Treasure Chart 31
+loc	225	Piece of Heart
+loc	226	Piece of Heart
+loc	227	Piece of Heart
+loc	228	Joy Pendant
+loc	229	Treasure Chart 27
+loc	230	Triforce Shard 3
+loc	231	Progressive Bow
+loc	232	Din's Pearl
+loc	233	Piece of Heart
+loc	234	Treasure Chart 1
+loc	235	Piece of Heart
+loc	236	Treasure Chart 2
+loc	237	Silver Rupee
+loc	238	Progressive Bow
+loc	239	Progressive Shield
+loc	240	Orange Rupee
+loc	241	Treasure Chart 39
+loc	242	Piece of Heart
+loc	243	Golden Feather
+loc	244	Treasure Chart 18
+loc	245	Treasure Chart 26
+loc	246	Purple Rupee
+loc	247	Orange Rupee
+loc	248	Joy Pendant
+loc	249	Silver Rupee
+loc	250	Heart Container
+loc	251	Piece of Heart
+loc	252	Knight's Crest
+loc	253	Empty Bottle
+loc	254	Piece of Heart
+loc	255	Joy Pendant
+loc	256	Orange Rupee
+loc	257	Golden Feather
+loc	258	Piece of Heart
+loc	259	Piece of Heart
+loc	260	Red Rupee
+loc	261	Treasure Chart 6
+loc	262	Skull Necklace
+loc	263	Treasure Chart 12
+loc	264	Telescope
+loc	265	Piece of Heart
+loc	266	Piece of Heart
+loc	267	Treasure Chart 19
+loc	268	Progressive Picto Box
+loc	269	Red Rupee
+loc	270	Piece of Heart
+loc	271	Orange Rupee
+loc	272	Spoils Bag
+loc	273	Purple Rupee
+loc	274	Yellow Rupee
+loc	275	Yellow Rupee
+loc	276	Orange Rupee
+loc	277	Orange Rupee
+loc	278	Orange Rupee
+loc	279	Orange Rupee
+loc	280	Purple Rupee
+loc	281	Orange Rupee
+loc	282	Platform Chart
+loc	283	Orange Rupee
+loc	284	Red Rupee
+loc	285	Orange Rupee
+loc	286	Piece of Heart
+loc	287	Red Rupee
+loc	288	Red Rupee
+loc	289	Red Rupee
+loc	290	Piece of Heart
+loc	291	Purple Rupee
+loc	292	Red Rupee
+loc	293	Treasure Chart 30
+loc	294	Heart Container
+loc	295	Yellow Rupee
+loc	296	Purple Rupee
+loc	297	Magic Armor
+loc	298	Orange Rupee
+loc	299	Progressive Quiver
+loc	300	Hero's Charm
+loc	301	Great Fairy Chart
+loc	302	Orange Rupee
+loc	303	Purple Rupee
+loc	304	Orange Rupee
+loc	305	Purple Rupee
+loc	306	Heart Container
+loc	307	Triforce Chart 4
+loc	308	Orange Rupee
+loc	309	Orange Rupee
+loc	310	Piece of Heart
+loc	311	Orange Rupee
+loc	312	Red Rupee
+loc	313	Red Rupee
+loc	314	Orange Rupee
+loc	315	Treasure Chart 33
+loc	316	Piece of Heart
+loc	317	Fill-Up Coupon
+loc	318	Purple Rupee
+loc	319	Piece of Heart
+endcase
+case	default8	WW_HD-%.
+draws	631
+loc	0	Red Rupee
+loc	1	Progressive Wallet
+loc	2	Skull Necklace
+loc	3	Joy Pendant
+loc	4	Yellow Rupee
+loc	5	Silver Rupee
+loc	6	Heart Container
+loc	7	Green Rupee
+loc	8	Red Rupee
+loc	9	Piece of Heart
+loc	10	Command Melody
+loc	11	Golden Feather
+loc	12	Joy Pendant
+loc	13	Silver Rupee
+loc	14	Joy Pendant
+loc	15	Golden Feather
+loc	16	Silver Rupee
+loc	17	Red Rupee
+loc	18	Purple Rupee
+loc	19	Treasure Chart 28
+loc	20	Treasure Chart 7
+loc	21	Piece of Heart
+loc	22	Skull Necklace
+loc	23	Piece of Heart
+loc	24	Boko Baba Seed
+loc	25	Treasure Chart 35
+loc	26	Piece of Heart
+loc	27	Rainbow Rupee
+loc	28	Progressive Quiver
+loc	29	Blue Rupee
+loc	30	Triforce Shard 4
+loc	31	Joy Pendant
+loc	32	Piece of Heart
+loc	33	Triforce Chart 2
+loc	34	Knight's Crest
+loc	35	Golden Feather
+loc	36	Progressive Picto Box
+loc	37	Orange Rupee
+loc	38	Purple Rupee
+loc	39	Purple Rupee
+loc	40	Blue Rupee
+loc	41	Purple Rupee
+loc	42	Telescope
+loc	43	Orange Rupee
+loc	44	Hero's Charm
+loc	45	Piece of Heart
+loc	46	Purple Rupee
+loc	47	Treasure Chart 24
+loc	48	Silver Rupee
+loc	49	Hyoi Pear
+loc	50	Treasure Chart 39
+loc	51	All-Purpose Bait
+loc	52	Purple Rupee
+loc	53	Knight's Crest
+loc	54	Orange Rupee
+loc	55	Empty Bottle
+loc	56	DRC Small Key
+loc	57	DRC Small Key
+loc	58	Skull Necklace
+loc	59	Triforce Shard 5
+loc	60	DRC Small Key
+loc	61	DRC Dungeon Map
+loc	62	Nayru's Pearl
+loc	63	DRC Small Key
+loc	64	DRC Big Key
+loc	65	Hurricane Spin
+loc	66	Treasure Chart 8
+loc	67	Triforce Shard 1
+loc	68	Progressive Bow
+loc	69	Farore's Pearl
+loc	70	Piece of Heart
+loc	71	Triforce Shard 8
+loc	72	DRC Compass
+loc	73	Triforce Shard 6
+loc	74	Triforce Chart 6
+loc	75	Piece of Heart
+loc	76	Piece of Heart
+loc	77	Piece of Heart
+loc	78	FW Compass
+loc	79	FW Dungeon Map
+loc	80	Green Chu Jelly
+loc	81	Silver Rupee
+loc	82	FW Big Key
+loc	83	Triforce Shard 7
+loc	84	FW Small Key
+loc	85	Bombs
+loc	86	Yellow Rupee
+loc	87	Piece of Heart
+loc	88	Hyoi Pear
+loc	89	Progressive Shield
+loc	90	Triforce Shard 2
+loc	91	Heart Container
+loc	92	Progressive Bow
+loc	93	Cabana Deed
+loc	94	Tingle Tuner
+loc	95	Orange Rupee
+loc	96	Treasure Chart 11
+loc	97	TotG Dungeon Map
+loc	98	Submarine Chart
+loc	99	TotG Small Key
+loc	100	TotG Compass
+loc	101	Progressive Sword
+loc	102	Treasure Chart 37
+loc	103	Secret Cave Chart
+loc	104	Progressive Magic Meter
+loc	105	Silver Rupee
+loc	106	Yellow Rupee
+loc	107	TotG Big Key
+loc	108	Treasure Chart 27
+loc	109	TotG Small Key
+loc	110	Orange Rupee
+loc	111	Purple Rupee
+loc	112	Treasure Chart 20
+loc	113	Goddess Tingle Statue
+loc	114	FF Compass
+loc	115	Silver Rupee
+loc	116	Treasure Chart 38
+loc	117	Treasure Chart 19
+loc	118	FF Dungeon Map
+loc	119	Triforce Chart 8
+loc	120	Power Bracelets
+loc	121	Light Ring Chart
+loc	122	Hyoi Pear
+loc	123	Treasure Chart 31
+loc	124	Skull Necklace
+loc	125	Empty Bottle
+loc	126	Forbidden Tingle Statue
+loc	127	Treasure Chart 32
+loc	128	Piece of Heart
+loc	129	Empty Bottle
+loc	130	ET Big Key
+loc	131	Piece of Heart
+loc	132	Treasure Chart 30
+loc	133	ET Small Key
+loc	134	ET Small Key
+loc	135	Golden Feather
+loc	136	Silver Rupee
+loc	137	Treasure Chart 15
+loc	138	Skull Necklace
+loc	139	Skull Hammer
+loc	140	ET Small Key
+loc	141	Joy Pendant
+loc	142	Orange Rupee
+loc	143	Piece of Heart
+loc	144	ET Dungeon Map
+loc	145	ET Compass
+loc	146	Heart Container
+loc	147	Purple Rupee
+loc	148	WT Small Key
+loc	149	Treasure Chart 1
+loc	150	Moblin's Letter
+loc	151	WT Small Key
+loc	152	WT Compass
+loc	153	Treasure Chart 2
+loc	154	WT Big Key
+loc	155	Piece of Heart
+loc	156	Orange Rupee
+loc	157	Golden Feather
+loc	158	WT Dungeon Map
+loc	159	Orange Rupee
+loc	160	Din's Pearl
+loc	161	Progressive Sword
+loc	162	Progressive Sword
+loc	163	Progressive Bomb Bag
+loc	164	Purple Rupee
+loc	165	Orange Rupee
+loc	166	Treasure Chart 9
+loc	167	Knight's Crest
+loc	168	Golden Feather
+loc	169	Joy Pendant
+loc	170	Piece of Heart
+loc	171	Treasure Chart 29
+loc	172	Treasure Chart 18
+loc	173	Orange Rupee
+loc	174	Piece of Heart
+loc	175	Golden Feather
+loc	176	Triforce Chart 5
+loc	177	Progressive Wallet
+loc	178	Fill-Up Coupon
+loc	179	Grappling Hook
+loc	180	Piece of Heart
+loc	181	Empty Bottle
+loc	182	Boomerang
+loc	183	Treasure Chart 26
+loc	184	Red Chu Jelly
+loc	185	Silver Rupee
+loc	186	Joy Pendant
+loc	187	Silver Rupee
+loc	188	Orange Rupee
+loc	189	Piece of Heart
+loc	190	Wind God's Aria
+loc	191	Beedle's Chart
+loc	192	Purple Rupee
+loc	193	Orange Rupee
+loc	194	Triforce Chart 4
+loc	195	Joy Pendant
+loc	196	Silver Rupee
+loc	197	Treasure Chart 5
+loc	198	Piece of Heart
+loc	199	Silver Rupee
+loc	200	Treasure Chart 16
+loc	201	Silver Rupee
+loc	202	Progressive Bow
+loc	203	Deku Leaf
+loc	204	Skull Necklace
+loc	205	Ghost Ship Chart
+loc	206	Iron Boots
+loc	207	Treasure Chart 33
+loc	208	Piece of Heart
+loc	209	Triforce Chart 3
+loc	210	Orange Rupee
+loc	211	Silver Rupee
+loc	212	Hookshot
+loc	213	Treasure Chart 22
+loc	214	Delivery Bag
+loc	215	Heart Container
+loc	216	Earth Tingle Statue
+loc	217	Platform Chart
+loc	218	Joy Pendant
+loc	219	Orange Rupee
+loc	220	Piece of Heart
+loc	221	Skull Necklace
+loc	222	Piece of Heart
+loc	223	Earth God's Lyric
+loc	224	Dragon Tingle Statue
+loc	225	Treasure Chart 36
+loc	226	Piece of Heart
+loc	227	Piece of Heart
+loc	228	Treasure Chart 3
+loc	229	Orange Rupee
+loc	230	Triforce Shard 3
+loc	231	Golden Feather
+loc	232	Red Rupee
+loc	233	Skull Necklace
+loc	234	Treasure Chart 12
+loc	235	Octo Chart
+loc	236	Piece of Heart
+loc	237	Piece of Heart
+loc	238	Bait Bag
+loc	239	Silver Rupee
+loc	240	Piece of Heart
+loc	241	Wind Tingle Statue
+loc	242	Piece of Heart
+loc	243	Piece of Heart
+loc	244	Hyoi Pear
+loc	245	Treasure Chart 41
+loc	246	Treasure Chart 4
+loc	247	Red Rupee
+loc	248	Golden Feather
+loc	249	Skull Necklace
+loc	250	Yellow Rupee
+loc	251	Treasure Chart 10
+loc	252	Tingle's Chart
+loc	253	Treasure Chart 14
+loc	254	Treasure Chart 6
+loc	255	Treasure Chart 23
+loc	256	Piece of Heart
+loc	257	Piece of Heart
+loc	258	Yellow Rupee
+loc	259	Maggie's Letter
+loc	260	Red Rupee
+loc	261	Red Rupee
+loc	262	Progressive Bomb Bag
+loc	263	Piece of Heart
+loc	264	Piece of Heart
+loc	265	Orange Rupee
+loc	266	Piece of Heart
+loc	267	Treasure Chart 40
+loc	268	Piece of Heart
+loc	269	Great Fairy Chart
+loc	270	Treasure Chart 25
+loc	271	Purple Rupee
+loc	272	Red Rupee
+loc	273	Purple Rupee
+loc	274	Red Rupee
+loc	275	Piece of Heart
+loc	276	Orange Rupee
+loc	277	Orange Rupee
+loc	278	Orange Rupee
+loc	279	Triforce Chart 1
+loc	280	Joy Pendant
+loc	281	Magic Armor
+loc	282	Treasure Chart 34
+loc	283	Piece of Heart
+loc	284	Red Rupee
+loc	285	Red Rupee
+loc	286	Orange Rupee
+loc	287	Red Rupee
+loc	288	Red Rupee
+loc	289	Purple Rupee
+loc	290	Purple Rupee
+loc	291	Progressive Picto Box
+loc	292	Joy Pendant
+loc	293	Orange Rupee
+loc	294	Orange Rupee
+loc	295	Piece of Heart
+loc	296	Triforce Chart 7
+loc	297	Orange Rupee
+loc	298	Joy Pendant
+loc	299	Piece of Heart
+loc	300	Purple Rupee
+loc	301	Treasure Chart 13
+loc	302	Treasure Chart 17
+loc	303	Progressive Quiver
+loc	304	Red Rupee
+loc	305	Yellow Rupee
+loc	306	Purple Rupee
+loc	307	Heart Container
+loc	308	Yellow Rupee
+loc	309	Piece of Heart
+loc	310	Treasure Chart 21
+loc	311	Orange Rupee
+loc	312	Piece of Heart
+loc	313	Heart Container
+loc	314	Piece of Heart
+loc	315	Note to Mom
+loc	316	Spoils Bag
+loc	317	Joy Pendant
+loc	318	Orange Rupee
+loc	319	Piece of Heart
+endcase
+case	default9	LongSeedNameThatIsExactlyFortyTwoCharsLong
+draws	550
+loc	0	Forbidden Tingle Statue
+loc	1	Note to Mom
+loc	2	Purple Rupee
+loc	3	Blue Rupee
+loc	4	Spoils Bag
+loc	5	Piece of Heart
+loc	6	Piece of Heart
+loc	7	Purple Rupee
+loc	8	Tingle Tuner
+loc	9	Skull Hammer
+loc	10	Progressive Wallet
+loc	11	Treasure Chart 8
+loc	12	Purple Rupee
+loc	13	Maggie's Letter
+loc	14	Knight's Crest
+loc	15	Magic Armor
+loc	16	Piece of Heart
+loc	17	Silver Rupee
+loc	18	Joy Pendant
+loc	19	Piece of Heart
+loc	20	Piece of Heart
+loc	21	Triforce Chart 7
+loc	22	Piece of Heart
+loc	23	Farore's Pearl
+loc	24	Rainbow Rupee
+loc	25	Orange Rupee
+loc	26	Triforce Chart 5
+loc	27	Joy Pendant
+loc	28	Treasure Chart 9
+loc	29	Progressive Picto Box
+loc	30	Deku Leaf
+loc	31	Joy Pendant
+loc	32	Green Chu Jelly
+loc	33	Red Chu Jelly
+loc	34	Piece of Heart
+loc	35	Purple Rupee
+loc	36	Silver Rupee
+loc	37	Yellow Rupee
+loc	38	Purple Rupee
+loc	39	Orange Rupee
+loc	40	All-Purpose Bait
+loc	41	Silver Rupee
+loc	42	Triforce Chart 2
+loc	43	Treasure Chart 41
+loc	44	Treasure Chart 16
+loc	45	Hyoi Pear
+loc	46	Red Rupee
+loc	47	Purple Rupee
+loc	48	Silver Rupee
+loc	49	Piece of Heart
+loc	50	Triforce Shard 5
+loc	51	Light Ring Chart
+loc	52	Treasure Chart 34
+loc	53	Red Rupee
+loc	54	Piece of Heart
+loc	55	Orange Rupee
+loc	56	DRC Small Key
+loc	57	DRC Small Key
+loc	58	Treasure Chart 36
+loc	59	Tingle's Chart
+loc	60	Progressive Bomb Bag
+loc	61	DRC Small Key
+loc	62	DRC Small Key
+loc	63	Piece of Heart
+loc	64	Power Bracelets
+loc	65	Piece of Heart
+loc	66	Hyoi Pear
+loc	67	DRC Compass
+loc	68	Triforce Chart 8
+loc	69	DRC Dungeon Map
+loc	70	Golden Feather
+loc	71	Skull Necklace
+loc	72	Hookshot
+loc	73	DRC Big Key
+loc	74	Triforce Chart 6
+loc	75	Golden Feather
+loc	76	Treasure Chart 21
+loc	77	Piece of Heart
+loc	78	Piece of Heart
+loc	79	Treasure Chart 15
+loc	80	Din's Pearl
+loc	81	Telescope
+loc	82	Golden Feather
+loc	83	Piece of Heart
+loc	84	Piece of Heart
+loc	85	FW Dungeon Map
+loc	86	Piece of Heart
+loc	87	FW Big Key
+loc	88	Piece of Heart
+loc	89	FW Compass
+loc	90	FW Small Key
+loc	91	Treasure Chart 14
+loc	92	Skull Necklace
+loc	93	Progressive Bomb Bag
+loc	94	Heart Container
+loc	95	Treasure Chart 4
+loc	96	Treasure Chart 29
+loc	97	Progressive Bow
+loc	98	Red Rupee
+loc	99	Joy Pendant
+loc	100	TotG Small Key
+loc	101	Piece of Heart
+loc	102	TotG Small Key
+loc	103	Orange Rupee
+loc	104	TotG Compass
+loc	105	TotG Dungeon Map
+loc	106	Ghost Ship Chart
+loc	107	Silver Rupee
+loc	108	Progressive Magic Meter
+loc	109	TotG Big Key
+loc	110	Treasure Chart 20
+loc	111	Treasure Chart 17
+loc	112	Golden Feather
+loc	113	Treasure Chart 31
+loc	114	Earth Tingle Statue
+loc	115	FF Compass
+loc	116	Treasure Chart 25
+loc	117	FF Dungeon Map
+loc	118	Earth God's Lyric
+loc	119	Progressive Sword
+loc	120	Grappling Hook
+loc	121	Treasure Chart 22
+loc	122	Silver Rupee
+loc	123	Joy Pendant
+loc	124	Red Rupee
+loc	125	Heart Container
+loc	126	Silver Rupee
+loc	127	Orange Rupee
+loc	128	Piece of Heart
+loc	129	Treasure Chart 11
+loc	130	ET Big Key
+loc	131	Purple Rupee
+loc	132	ET Small Key
+loc	133	ET Small Key
+loc	134	Purple Rupee
+loc	135	Fill-Up Coupon
+loc	136	Great Fairy Chart
+loc	137	Silver Rupee
+loc	138	Golden Feather
+loc	139	ET Small Key
+loc	140	Triforce Shard 4
+loc	141	Purple Rupee
+loc	142	Progressive Sword
+loc	143	Heart Container
+loc	144	Skull Necklace
+loc	145	ET Dungeon Map
+loc	146	ET Compass
+loc	147	Hyoi Pear
+loc	148	WT Small Key
+loc	149	Golden Feather
+loc	150	Silver Rupee
+loc	151	WT Big Key
+loc	152	WT Compass
+loc	153	Empty Bottle
+loc	154	Wind Tingle Statue
+loc	155	Yellow Rupee
+loc	156	Octo Chart
+loc	157	Treasure Chart 19
+loc	158	Orange Rupee
+loc	159	WT Dungeon Map
+loc	160	WT Small Key
+loc	161	Heart Container
+loc	162	Triforce Chart 1
+loc	163	Progressive Bow
+loc	164	Piece of Heart
+loc	165	Skull Necklace
+loc	166	Silver Rupee
+loc	167	Piece of Heart
+loc	168	Piece of Heart
+loc	169	Joy Pendant
+loc	170	Treasure Chart 32
+loc	171	Orange Rupee
+loc	172	Silver Rupee
+loc	173	Joy Pendant
+loc	174	Platform Chart
+loc	175	Treasure Chart 40
+loc	176	Skull Necklace
+loc	177	Triforce Shard 6
+loc	178	Treasure Chart 18
+loc	179	Command Melody
+loc	180	Treasure Chart 10
+loc	181	Yellow Rupee
+loc	182	Orange Rupee
+loc	183	Heart Container
+loc	184	Iron Boots
+loc	185	Goddess Tingle Statue
+loc	186	Piece of Heart
+loc	187	Silver Rupee
+loc	188	Golden Feather
+loc	189	Treasure Chart 23
+loc	190	Knight's Crest
+loc	191	Red Rupee
+loc	192	Hyoi Pear
+loc	193	Triforce Shard 8
+loc	194	Piece of Heart
+loc	195	Treasure Chart 3
+loc	196	Treasure Chart 28
+loc	197	Hurricane Spin
+loc	198	Treasure Chart 5
+loc	199	Wind God's Aria
+loc	200	Blue Rupee
+loc	201	Piece of Heart
+loc	202	Progressive Sword
+loc	203	Boomerang
+loc	204	Skull Necklace
+loc	205	Triforce Shard 1
+loc	206	Progressive Shield
+loc	207	Piece of Heart
+loc	208	Piece of Heart
+loc	209	Dragon Tingle Statue
+loc	210	Piece of Heart
+loc	211	Orange Rupee
+loc	212	Nayru's Pearl
+loc	213	Treasure Chart 39
+loc	214	Triforce Shard 3
+loc	215	Hero's Charm
+loc	216	Progressive Bow
+loc	217	Golden Feather
+loc	218	Piece of Heart
+loc	219	Piece of Heart
+loc	220	Treasure Chart 13
+loc	221	Orange Rupee
+loc	222	Orange Rupee
+loc	223	Delivery Bag
+loc	224	Triforce Shard 2
+loc	225	Treasure Chart 26
+loc	226	Triforce Shard 7
+loc	227	Joy Pendant
+loc	228	Joy Pendant
+loc	229	Treasure Chart 30
+loc	230	Bombs
+loc	231	Cabana Deed
+loc	232	Bait Bag
+loc	233	Skull Necklace
+loc	234	Orange Rupee
+loc	235	Piece of Heart
+loc	236	Golden Feather
+loc	237	Piece of Heart
+loc	238	Piece of Heart
+loc	239	Green Rupee
+loc	240	Submarine Chart
+loc	241	Empty Bottle
+loc	242	Orange Rupee
+loc	243	Purple Rupee
+loc	244	Skull Necklace
+loc	245	Orange Rupee
+loc	246	Boko Baba Seed
+loc	247	Empty Bottle
+loc	248	Treasure Chart 7
+loc	249	Piece of Heart
+loc	250	Silver Rupee
+loc	251	Progressive Wallet
+loc	252	Treasure Chart 24
+loc	253	Knight's Crest
+loc	254	Triforce Chart 4
+loc	255	Progressive Picto Box
+loc	256	Secret Cave Chart
+loc	257	Moblin's Letter
+loc	258	Treasure Chart 35
+loc	259	Treasure Chart 33
+loc	260	Orange Rupee
+loc	261	Beedle's Chart
+loc	262	Skull Necklace
+loc	263	Piece of Heart
+loc	264	Empty Bottle
+loc	265	Silver Rupee
+loc	266	Treasure Chart 1
+loc	267	Treasure Chart 12
+loc	268	Silver Rupee
+loc	269	Purple Rupee
+loc	270	Purple Rupee
+loc	271	Yellow Rupee
+loc	272	Orange Rupee
+loc	273	Piece of Heart
+loc	274	Orange Rupee
+loc	275	Red Rupee
+loc	276	Purple Rupee
+loc	277	Orange Rupee
+loc	278	Red Rupee
+loc	279	Purple Rupee
+loc	280	Treasure Chart 6
+loc	281	Treasure Chart 37
+loc	282	Piece of Heart
+loc	283	Heart Container
+loc	284	Orange Rupee
+loc	285	Purple Rupee
+loc	286	Orange Rupee
+loc	287	Progressive Quiver
+loc	288	Purple Rupee
+loc	289	Orange Rupee
+loc	290	Orange Rupee
+loc	291	Purple Rupee
+loc	292	Piece of Heart
+loc	293	Triforce Chart 3
+loc	294	Orange Rupee
+loc	295	Purple Rupee
+loc	296	Purple Rupee
+loc	297	Orange Rupee
+loc	298	Treasure Chart 38
+loc	299	Joy Pendant
+loc	300	Purple Rupee
+loc	301	Orange Rupee
+loc	302	Piece of Heart
+loc	303	Red Rupee
+loc	304	Purple Rupee
+loc	305	Piece of Heart
+loc	306	Progressive Quiver
+loc	307	Joy Pendant
+loc	308	Joy Pendant
+loc	309	Piece of Heart
+loc	310	Red Rupee
+loc	311	Piece of Heart
+loc	312	Piece of Heart
+loc	313	Orange Rupee
+loc	314	Treasure Chart 2
+loc	315	Piece of Heart
+loc	316	Red Rupee
+loc	317	Treasure Chart 27
+loc	318	Orange Rupee
+loc	319	Purple Rupee
+endcase
+case	default10	KeyLunacyNot
+draws	560
+loc	0	Treasure Chart 31
+loc	1	Treasure Chart 26
+loc	2	Knight's Crest
+loc	3	Orange Rupee
+loc	4	Progressive Magic Meter
+loc	5	Yellow Rupee
+loc	6	Treasure Chart 32
+loc	7	Joy Pendant
+loc	8	Red Chu Jelly
+loc	9	Piece of Heart
+loc	10	Skull Hammer
+loc	11	Silver Rupee
+loc	12	Rainbow Rupee
+loc	13	Piece of Heart
+loc	14	Piece of Heart
+loc	15	Piece of Heart
+loc	16	Orange Rupee
+loc	17	Treasure Chart 4
+loc	18	Purple Rupee
+loc	19	Treasure Chart 21
+loc	20	Skull Necklace
+loc	21	Moblin's Letter
+loc	22	Golden Feather
+loc	23	Progressive Quiver
+loc	24	Green Chu Jelly
+loc	25	Platform Chart
+loc	26	Treasure Chart 15
+loc	27	Purple Rupee
+loc	28	Piece of Heart
+loc	29	Piece of Heart
+loc	30	Command Melody
+loc	31	Piece of Heart
+loc	32	Piece of Heart
+loc	33	Skull Necklace
+loc	34	Treasure Chart 39
+loc	35	Golden Feather
+loc	36	Fill-Up Coupon
+loc	37	Red Rupee
+loc	38	Knight's Crest
+loc	39	Silver Rupee
+loc	40	Green Rupee
+loc	41	Hyoi Pear
+loc	42	Piece of Heart
+loc	43	Purple Rupee
+loc	44	All-Purpose Bait
+loc	45	Treasure Chart 29
+loc	46	Heart Container
+loc	47	Purple Rupee
+loc	48	Piece of Heart
+loc	49	Orange Rupee
+loc	50	Progressive Bow
+loc	51	Piece of Heart
+loc	52	Golden Feather
+loc	53	Piece of Heart
+loc	54	Piece of Heart
+loc	55	Piece of Heart
+loc	56	DRC Small Key
+loc	57	DRC Small Key
+loc	58	Red Rupee
+loc	59	DRC Small Key
+loc	60	Farore's Pearl
+loc	61	DRC Compass
+loc	62	DRC Small Key
+loc	63	Delivery Bag
+loc	64	Deku Leaf
+loc	65	Empty Bottle
+loc	66	Hyoi Pear
+loc	67	Silver Rupee
+loc	68	Cabana Deed
+loc	69	DRC Big Key
+loc	70	Piece of Heart
+loc	71	Treasure Chart 27
+loc	72	DRC Dungeon Map
+loc	73	Progressive Wallet
+loc	74	Silver Rupee
+loc	75	Bombs
+loc	76	Silver Rupee
+loc	77	Treasure Chart 33
+loc	78	FW Big Key
+loc	79	Triforce Shard 1
+loc	80	Tingle Tuner
+loc	81	Piece of Heart
+loc	82	Red Rupee
+loc	83	FW Small Key
+loc	84	FW Compass
+loc	85	Piece of Heart
+loc	86	Piece of Heart
+loc	87	Triforce Shard 4
+loc	88	Progressive Sword
+loc	89	Piece of Heart
+loc	90	Treasure Chart 36
+loc	91	Purple Rupee
+loc	92	FW Dungeon Map
+loc	93	Forbidden Tingle Statue
+loc	94	Great Fairy Chart
+loc	95	Joy Pendant
+loc	96	Treasure Chart 19
+loc	97	TotG Dungeon Map
+loc	98	Treasure Chart 14
+loc	99	Empty Bottle
+loc	100	TotG Small Key
+loc	101	Progressive Bow
+loc	102	Triforce Shard 3
+loc	103	Purple Rupee
+loc	104	TotG Small Key
+loc	105	TotG Big Key
+loc	106	Triforce Shard 7
+loc	107	Spoils Bag
+loc	108	TotG Compass
+loc	109	Dragon Tingle Statue
+loc	110	Silver Rupee
+loc	111	Joy Pendant
+loc	112	Progressive Bow
+loc	113	Silver Rupee
+loc	114	Ghost Ship Chart
+loc	115	Orange Rupee
+loc	116	Hookshot
+loc	117	FF Dungeon Map
+loc	118	FF Compass
+loc	119	Din's Pearl
+loc	120	Treasure Chart 5
+loc	121	Skull Necklace
+loc	122	Heart Container
+loc	123	Empty Bottle
+loc	124	Treasure Chart 40
+loc	125	Piece of Heart
+loc	126	Treasure Chart 17
+loc	127	Piece of Heart
+loc	128	Piece of Heart
+loc	129	Skull Necklace
+loc	130	ET Small Key
+loc	131	Orange Rupee
+loc	132	ET Small Key
+loc	133	ET Dungeon Map
+loc	134	ET Small Key
+loc	135	Joy Pendant
+loc	136	Progressive Sword
+loc	137	ET Big Key
+loc	138	Skull Necklace
+loc	139	Progressive Sword
+loc	140	Piece of Heart
+loc	141	Treasure Chart 23
+loc	142	ET Compass
+loc	143	Triforce Chart 6
+loc	144	Orange Rupee
+loc	145	Yellow Rupee
+loc	146	Silver Rupee
+loc	147	Piece of Heart
+loc	148	WT Compass
+loc	149	Hurricane Spin
+loc	150	Orange Rupee
+loc	151	WT Big Key
+loc	152	Earth Tingle Statue
+loc	153	Heart Container
+loc	154	Triforce Shard 5
+loc	155	Golden Feather
+loc	156	WT Small Key
+loc	157	Power Bracelets
+loc	158	Progressive Shield
+loc	159	WT Dungeon Map
+loc	160	Nayru's Pearl
+loc	161	WT Small Key
+loc	162	Progressive Picto Box
+loc	163	Secret Cave Chart
+loc	164	Progressive Bomb Bag
+loc	165	Silver Rupee
+loc	166	Treasure Chart 22
+loc	167	Piece of Heart
+loc	168	Skull Necklace
+loc	169	Orange Rupee
+loc	170	Submarine Chart
+loc	171	Blue Rupee
+loc	172	Orange Rupee
+loc	173	Treasure Chart 30
+loc	174	Piece of Heart
+loc	175	Skull Necklace
+loc	176	Treasure Chart 9
+loc	177	Purple Rupee
+loc	178	Hyoi Pear
+loc	179	Boomerang
+loc	180	Hero's Charm
+loc	181	Purple Rupee
+loc	182	Golden Feather
+loc	183	Piece of Heart
+loc	184	Tingle's Chart
+loc	185	Joy Pendant
+loc	186	Golden Feather
+loc	187	Treasure Chart 24
+loc	188	Telescope
+loc	189	Treasure Chart 38
+loc	190	Triforce Chart 8
+loc	191	Joy Pendant
+loc	192	Progressive Quiver
+loc	193	Silver Rupee
+loc	194	Orange Rupee
+loc	195	Heart Container
+loc	196	Piece of Heart
+loc	197	Silver Rupee
+loc	198	Orange Rupee
+loc	199	Red Rupee
+loc	200	Light Ring Chart
+loc	201	Red Rupee
+loc	202	Goddess Tingle Statue
+loc	203	Wind Tingle Statue
+loc	204	Triforce Shard 8
+loc	205	Piece of Heart
+loc	206	Triforce Shard 2
+loc	207	Triforce Chart 7
+loc	208	Progressive Bomb Bag
+loc	209	Wind God's Aria
+loc	210	Piece of Heart
+loc	211	Golden Feather
+loc	212	Joy Pendant
+loc	213	Piece of Heart
+loc	214	Treasure Chart 2
+loc	215	Blue Rupee
+loc	216	Silver Rupee
+loc	217	Purple Rupee
+loc	218	Triforce Chart 3
+loc	219	Silver Rupee
+loc	220	Beedle's Chart
+loc	221	Piece of Heart
+loc	222	Joy Pendant
+loc	223	Knight's Crest
+loc	224	Iron Boots
+loc	225	Piece of Heart
+loc	226	Skull Necklace
+loc	227	Treasure Chart 10
+loc	228	Silver Rupee
+loc	229	Note to Mom
+loc	230	Piece of Heart
+loc	231	Earth God's Lyric
+loc	232	Grappling Hook
+loc	233	Maggie's Letter
+loc	234	Hyoi Pear
+loc	235	Skull Necklace
+loc	236	Silver Rupee
+loc	237	Triforce Chart 4
+loc	238	Bait Bag
+loc	239	Triforce Shard 6
+loc	240	Treasure Chart 20
+loc	241	Treasure Chart 25
+loc	242	Treasure Chart 1
+loc	243	Treasure Chart 3
+loc	244	Golden Feather
+loc	245	Treasure Chart 35
+loc	246	Boko Baba Seed
+loc	247	Piece of Heart
+loc	248	Treasure Chart 11
+loc	249	Piece of Heart
+loc	250	Treasure Chart 28
+loc	251	Heart Container
+loc	252	Orange Rupee
+loc	253	Magic Armor
+loc	254	Piece of Heart
+loc	255	Golden Feather
+loc	256	Treasure Chart 7
+loc	257	Progressive Picto Box
+loc	258	Treasure Chart 16
+loc	259	Orange Rupee
+loc	260	Piece of Heart
+loc	261	Progressive Wallet
+loc	262	Empty Bottle
+loc	263	Joy Pendant
+loc	264	Treasure Chart 12
+loc	265	Treasure Chart 41
+loc	266	Treasure Chart 6
+loc	267	Purple Rupee
+loc	268	Yellow Rupee
+loc	269	Orange Rupee
+loc	270	Treasure Chart 34
+loc	271	Orange Rupee
+loc	272	Purple Rupee
+loc	273	Red Rupee
+loc	274	Purple Rupee
+loc	275	Red Rupee
+loc	276	Orange Rupee
+loc	277	Orange Rupee
+loc	278	Orange Rupee
+loc	279	Joy Pendant
+loc	280	Orange Rupee
+loc	281	Purple Rupee
+loc	282	Joy Pendant
+loc	283	Orange Rupee
+loc	284	Heart Container
+loc	285	Red Rupee
+loc	286	Piece of Heart
+loc	287	Joy Pendant
+loc	288	Yellow Rupee
+loc	289	Orange Rupee
+loc	290	Piece of Heart
+loc	291	Treasure Chart 8
+loc	292	Treasure Chart 13
+loc	293	Purple Rupee
+loc	294	Purple Rupee
+loc	295	Purple Rupee
+loc	296	Joy Pendant
+loc	297	Treasure Chart 18
+loc	298	Orange Rupee
+loc	299	Purple Rupee
+loc	300	Orange Rupee
+loc	301	Orange Rupee
+loc	302	Piece of Heart
+loc	303	Piece of Heart
+loc	304	Octo Chart
+loc	305	Red Rupee
+loc	306	Orange Rupee
+loc	307	Purple Rupee
+loc	308	Orange Rupee
+loc	309	Triforce Chart 5
+loc	310	Triforce Chart 2
+loc	311	Yellow Rupee
+loc	312	Triforce Chart 1
+loc	313	Orange Rupee
+loc	314	Piece of Heart
+loc	315	Treasure Chart 37
+loc	316	Red Rupee
+loc	317	Orange Rupee
+loc	318	Red Rupee
+loc	319	Piece of Heart
+endcase
+case	keylunacy	KeyLunacy1
+opt	keylunacy	1
+draws	827
+loc	0	Progressive Wallet
+loc	1	Command Melody
+loc	2	Purple Rupee
+loc	3	Purple Rupee
+loc	4	Piece of Heart
+loc	5	Treasure Chart 15
+loc	6	Skull Necklace
+loc	7	Tingle's Chart
+loc	8	Treasure Chart 2
+loc	9	TotG Small Key
+loc	10	Deku Leaf
+loc	11	Orange Rupee
+loc	12	Golden Feather
+loc	13	Skull Necklace
+loc	14	Piece of Heart
+loc	15	Piece of Heart
+loc	16	Silver Rupee
+loc	17	Joy Pendant
+loc	18	Silver Rupee
+loc	19	Piece of Heart
+loc	20	Piece of Heart
+loc	21	Empty Bottle
+loc	22	Piece of Heart
+loc	23	TotG Small Key
+loc	24	Orange Rupee
+loc	25	Hyoi Pear
+loc	26	Green Rupee
+loc	27	Orange Rupee
+loc	28	Progressive Wallet
+loc	29	Treasure Chart 17
+loc	30	DRC Small Key
+loc	31	Hero's Charm
+loc	32	Treasure Chart 29
+loc	33	Orange Rupee
+loc	34	Piece of Heart
+loc	35	Piece of Heart
+loc	36	Empty Bottle
+loc	37	Orange Rupee
+loc	38	Hyoi Pear
+loc	39	Silver Rupee
+loc	40	Silver Rupee
+loc	41	Red Rupee
+loc	42	Treasure Chart 23
+loc	43	Piece of Heart
+loc	44	Joy Pendant
+loc	45	Great Fairy Chart
+loc	46	Golden Feather
+loc	47	Magic Armor
+loc	48	Silver Rupee
+loc	49	Hurricane Spin
+loc	50	Silver Rupee
+loc	51	Orange Rupee
+loc	52	Piece of Heart
+loc	53	Piece of Heart
+loc	54	Silver Rupee
+loc	55	Joy Pendant
+loc	56	WT Compass
+loc	57	Nayru's Pearl
+loc	58	Treasure Chart 27
+loc	59	Purple Rupee
+loc	60	WT Big Key
+loc	61	Ghost Ship Chart
+loc	62	Triforce Shard 3
+loc	63	DRC Small Key
+loc	64	Treasure Chart 36
+loc	65	Golden Feather
+loc	66	Treasure Chart 21
+loc	67	Triforce Chart 8
+loc	68	Progressive Sword
+loc	69	Orange Rupee
+loc	70	Progressive Bomb Bag
+loc	71	Tingle Tuner
+loc	72	Blue Rupee
+loc	73	Treasure Chart 18
+loc	74	Beedle's Chart
+loc	75	Progressive Shield
+loc	76	Fill-Up Coupon
+loc	77	FW Compass
+loc	78	Triforce Shard 1
+loc	79	ET Small Key
+loc	80	Earth God's Lyric
+loc	81	Moblin's Letter
+loc	82	WT Small Key
+loc	83	Triforce Chart 3
+loc	84	Piece of Heart
+loc	85	Purple Rupee
+loc	86	Piece of Heart
+loc	87	Triforce Shard 6
+loc	88	Triforce Shard 7
+loc	89	Earth Tingle Statue
+loc	90	Treasure Chart 32
+loc	91	Piece of Heart
+loc	92	Farore's Pearl
+loc	93	Forbidden Tingle Statue
+loc	94	Goddess Tingle Statue
+loc	95	Joy Pendant
+loc	96	Triforce Chart 5
+loc	97	Golden Feather
+loc	98	Piece of Heart
+loc	99	Knight's Crest
+loc	100	Bait Bag
+loc	101	WT Dungeon Map
+loc	102	ET Small Key
+loc	103	Orange Rupee
+loc	104	Joy Pendant
+loc	105	Triforce Shard 2
+loc	106	Treasure Chart 7
+loc	107	Piece of Heart
+loc	108	Golden Feather
+loc	109	Skull Necklace
+loc	110	Piece of Heart
+loc	111	Red Chu Jelly
+loc	112	Piece of Heart
+loc	113	Heart Container
+loc	114	Treasure Chart 9
+loc	115	Piece of Heart
+loc	116	WT Small Key
+loc	117	Orange Rupee
+loc	118	Triforce Shard 5
+loc	119	Progressive Bow
+loc	120	Wind God's Aria
+loc	121	Treasure Chart 26
+loc	122	Secret Cave Chart
+loc	123	Piece of Heart
+loc	124	Joy Pendant
+loc	125	All-Purpose Bait
+loc	126	FW Big Key
+loc	127	Heart Container
+loc	128	Silver Rupee
+loc	129	Piece of Heart
+loc	130	Delivery Bag
+loc	131	Silver Rupee
+loc	132	Treasure Chart 22
+loc	133	Treasure Chart 12
+loc	134	Progressive Quiver
+loc	135	Purple Rupee
+loc	136	Progressive Bow
+loc	137	Joy Pendant
+loc	138	Joy Pendant
+loc	139	Piece of Heart
+loc	140	Treasure Chart 25
+loc	141	Joy Pendant
+loc	142	Treasure Chart 35
+loc	143	Orange Rupee
+loc	144	Platform Chart
+loc	145	FF Dungeon Map
+loc	146	Orange Rupee
+loc	147	Yellow Rupee
+loc	148	Progressive Sword
+loc	149	Piece of Heart
+loc	150	Silver Rupee
+loc	151	Din's Pearl
+loc	152	Triforce Chart 1
+loc	153	Piece of Heart
+loc	154	Rainbow Rupee
+loc	155	Knight's Crest
+loc	156	Wind Tingle Statue
+loc	157	Treasure Chart 24
+loc	158	Triforce Shard 8
+loc	159	ET Small Key
+loc	160	Dragon Tingle Statue
+loc	161	Treasure Chart 16
+loc	162	Piece of Heart
+loc	163	FF Compass
+loc	164	Triforce Chart 2
+loc	165	Silver Rupee
+loc	166	Golden Feather
+loc	167	Treasure Chart 11
+loc	168	Piece of Heart
+loc	169	Purple Rupee
+loc	170	Piece of Heart
+loc	171	Hyoi Pear
+loc	172	Purple Rupee
+loc	173	Treasure Chart 5
+loc	174	Treasure Chart 14
+loc	175	TotG Compass
+loc	176	Progressive Magic Meter
+loc	177	Piece of Heart
+loc	178	DRC Small Key
+loc	179	Golden Feather
+loc	180	Treasure Chart 19
+loc	181	Progressive Picto Box
+loc	182	Progressive Bow
+loc	183	Progressive Quiver
+loc	184	Maggie's Letter
+loc	185	Treasure Chart 33
+loc	186	Piece of Heart
+loc	187	Purple Rupee
+loc	188	Red Rupee
+loc	189	Orange Rupee
+loc	190	Silver Rupee
+loc	191	Empty Bottle
+loc	192	Treasure Chart 20
+loc	193	Hookshot
+loc	194	Golden Feather
+loc	195	Treasure Chart 37
+loc	196	Silver Rupee
+loc	197	Treasure Chart 41
+loc	198	Treasure Chart 10
+loc	199	Triforce Shard 4
+loc	200	Skull Necklace
+loc	201	Piece of Heart
+loc	202	Cabana Deed
+loc	203	Treasure Chart 4
+loc	204	FW Small Key
+loc	205	Bombs
+loc	206	Piece of Heart
+loc	207	Skull Necklace
+loc	208	Skull Necklace
+loc	209	Iron Boots
+loc	210	Orange Rupee
+loc	211	Piece of Heart
+loc	212	DRC Big Key
+loc	213	Piece of Heart
+loc	214	Piece of Heart
+loc	215	Triforce Chart 7
+loc	216	ET Big Key
+loc	217	Hyoi Pear
+loc	218	Heart Container
+loc	219	Power Bracelets
+loc	220	DRC Dungeon Map
+loc	221	DRC Compass
+loc	222	Piece of Heart
+loc	223	Treasure Chart 3
+loc	224	Progressive Sword
+loc	225	Piece of Heart
+loc	226	Yellow Rupee
+loc	227	Purple Rupee
+loc	228	Treasure Chart 30
+loc	229	Orange Rupee
+loc	230	TotG Big Key
+loc	231	DRC Small Key
+loc	232	Boomerang
+loc	233	Silver Rupee
+loc	234	Purple Rupee
+loc	235	Treasure Chart 6
+loc	236	Silver Rupee
+loc	237	TotG Dungeon Map
+loc	238	Treasure Chart 34
+loc	239	Grappling Hook
+loc	240	Red Rupee
+loc	241	Skull Hammer
+loc	242	Boko Baba Seed
+loc	243	Yellow Rupee
+loc	244	ET Dungeon Map
+loc	245	ET Compass
+loc	246	Skull Necklace
+loc	247	Piece of Heart
+loc	248	Treasure Chart 28
+loc	249	Telescope
+loc	250	Treasure Chart 31
+loc	251	FW Dungeon Map
+loc	252	Red Rupee
+loc	253	Progressive Picto Box
+loc	254	Red Rupee
+loc	255	Light Ring Chart
+loc	256	Orange Rupee
+loc	257	Octo Chart
+loc	258	Piece of Heart
+loc	259	Treasure Chart 8
+loc	260	Green Chu Jelly
+loc	261	Treasure Chart 1
+loc	262	Golden Feather
+loc	263	Submarine Chart
+loc	264	Skull Necklace
+loc	265	Skull Necklace
+loc	266	Blue Rupee
+loc	267	Knight's Crest
+loc	268	Piece of Heart
+loc	269	Red Rupee
+loc	270	Note to Mom
+loc	271	Purple Rupee
+loc	272	Purple Rupee
+loc	273	Yellow Rupee
+loc	274	Purple Rupee
+loc	275	Yellow Rupee
+loc	276	Purple Rupee
+loc	277	Treasure Chart 39
+loc	278	Piece of Heart
+loc	279	Orange Rupee
+loc	280	Piece of Heart
+loc	281	Red Rupee
+loc	282	Heart Container
+loc	283	Purple Rupee
+loc	284	Treasure Chart 13
+loc	285	Orange Rupee
+loc	286	Piece of Heart
+loc	287	Progressive Bomb Bag
+loc	288	Piece of Heart
+loc	289	Red Rupee
+loc	290	Orange Rupee
+loc	291	Red Rupee
+loc	292	Joy Pendant
+loc	293	Red Rupee
+loc	294	Treasure Chart 38
+loc	295	Empty Bottle
+loc	296	Orange Rupee
+loc	297	Orange Rupee
+loc	298	Joy Pendant
+loc	299	Orange Rupee
+loc	300	Heart Container
+loc	301	Purple Rupee
+loc	302	Purple Rupee
+loc	303	Purple Rupee
+loc	304	Purple Rupee
+loc	305	Orange Rupee
+loc	306	Spoils Bag
+loc	307	Orange Rupee
+loc	308	Red Rupee
+loc	309	Heart Container
+loc	310	Orange Rupee
+loc	311	Orange Rupee
+loc	312	Triforce Chart 6
+loc	313	Piece of Heart
+loc	314	Orange Rupee
+loc	315	Red Rupee
+loc	316	Orange Rupee
+loc	317	Triforce Chart 4
+loc	318	Treasure Chart 40
+loc	319	Orange Rupee
+endcase
+case	all_categories	AllCats
+opt	progression_tingle_chests	1
+opt	progression_dungeon_secrets	1
+opt	progression_combat_secret_caves	1
+opt	progression_savage_labyrinth	1
+opt	progression_short_sidequests	1
+opt	progression_long_sidequests	1
+opt	progression_spoils_trading	1
+opt	progression_minigames	1
+opt	progression_battlesquid	1
+opt	progression_mail	1
+opt	progression_platforms_rafts	1
+opt	progression_submarines	1
+opt	progression_eye_reef_chests	1
+opt	progression_big_octos_gunboats	1
+opt	progression_triforce_charts	1
+opt	progression_treasure_charts	1
+opt	progression_island_puzzles	1
+opt	keylunacy	1
+draws	517
+loc	0	Joy Pendant
+loc	1	Piece of Heart
+loc	2	Treasure Chart 25
+loc	3	Blue Rupee
+loc	4	Forbidden Tingle Statue
+loc	5	Treasure Chart 21
+loc	6	Treasure Chart 24
+loc	7	Treasure Chart 17
+loc	8	Purple Rupee
+loc	9	Joy Pendant
+loc	10	Silver Rupee
+loc	11	Heart Container
+loc	12	Telescope
+loc	13	Empty Bottle
+loc	14	Silver Rupee
+loc	15	Orange Rupee
+loc	16	Treasure Chart 16
+loc	17	Treasure Chart 37
+loc	18	Ghost Ship Chart
+loc	19	TotG Small Key
+loc	20	Treasure Chart 40
+loc	21	Treasure Chart 38
+loc	22	Treasure Chart 36
+loc	23	Triforce Shard 3
+loc	24	All-Purpose Bait
+loc	25	Silver Rupee
+loc	26	Triforce Shard 2
+loc	27	Farore's Pearl
+loc	28	Hyoi Pear
+loc	29	Joy Pendant
+loc	30	Grappling Hook
+loc	31	Silver Rupee
+loc	32	Knight's Crest
+loc	33	Silver Rupee
+loc	34	Treasure Chart 13
+loc	35	Silver Rupee
+loc	36	Hyoi Pear
+loc	37	Progressive Bow
+loc	38	Orange Rupee
+loc	39	Silver Rupee
+loc	40	Golden Feather
+loc	41	Yellow Rupee
+loc	42	Purple Rupee
+loc	43	ET Compass
+loc	44	Progressive Bomb Bag
+loc	45	Treasure Chart 34
+loc	46	Piece of Heart
+loc	47	Orange Rupee
+loc	48	Tingle Tuner
+loc	49	Piece of Heart
+loc	50	Triforce Shard 7
+loc	51	Piece of Heart
+loc	52	Treasure Chart 7
+loc	53	Treasure Chart 27
+loc	54	Orange Rupee
+loc	55	Treasure Chart 20
+loc	56	Spoils Bag
+loc	57	Wind Tingle Statue
+loc	58	Secret Cave Chart
+loc	59	Boomerang
+loc	60	Piece of Heart
+loc	61	Yellow Rupee
+loc	62	FW Small Key
+loc	63	Treasure Chart 14
+loc	64	FW Big Key
+loc	65	Purple Rupee
+loc	66	Orange Rupee
+loc	67	Hurricane Spin
+loc	68	Light Ring Chart
+loc	69	Piece of Heart
+loc	70	Joy Pendant
+loc	71	Skull Necklace
+loc	72	Piece of Heart
+loc	73	Triforce Shard 1
+loc	74	Treasure Chart 19
+loc	75	Piece of Heart
+loc	76	Maggie's Letter
+loc	77	Rainbow Rupee
+loc	78	Golden Feather
+loc	79	Progressive Quiver
+loc	80	Piece of Heart
+loc	81	ET Big Key
+loc	82	Piece of Heart
+loc	83	Piece of Heart
+loc	84	ET Small Key
+loc	85	Golden Feather
+loc	86	Progressive Picto Box
+loc	87	Piece of Heart
+loc	88	FW Compass
+loc	89	Skull Necklace
+loc	90	WT Small Key
+loc	91	Treasure Chart 41
+loc	92	Purple Rupee
+loc	93	Triforce Chart 3
+loc	94	Din's Pearl
+loc	95	Blue Rupee
+loc	96	Skull Necklace
+loc	97	Dragon Tingle Statue
+loc	98	WT Compass
+loc	99	Beedle's Chart
+loc	100	Triforce Chart 2
+loc	101	Triforce Chart 5
+loc	102	Purple Rupee
+loc	103	Silver Rupee
+loc	104	Piece of Heart
+loc	105	Skull Necklace
+loc	106	Orange Rupee
+loc	107	Treasure Chart 31
+loc	108	Red Rupee
+loc	109	Piece of Heart
+loc	110	Piece of Heart
+loc	111	Joy Pendant
+loc	112	Triforce Shard 4
+loc	113	Yellow Rupee
+loc	114	ET Small Key
+loc	115	Platform Chart
+loc	116	Great Fairy Chart
+loc	117	Piece of Heart
+loc	118	Purple Rupee
+loc	119	Heart Container
+loc	120	Piece of Heart
+loc	121	Piece of Heart
+loc	122	Treasure Chart 26
+loc	123	Knight's Crest
+loc	124	Piece of Heart
+loc	125	Orange Rupee
+loc	126	Orange Rupee
+loc	127	Purple Rupee
+loc	128	Treasure Chart 3
+loc	129	Piece of Heart
+loc	130	Red Rupee
+loc	131	DRC Dungeon Map
+loc	132	Progressive Sword
+loc	133	Silver Rupee
+loc	134	WT Dungeon Map
+loc	135	Silver Rupee
+loc	136	Piece of Heart
+loc	137	Skull Hammer
+loc	138	Treasure Chart 11
+loc	139	Piece of Heart
+loc	140	Triforce Chart 1
+loc	141	Red Rupee
+loc	142	Silver Rupee
+loc	143	Orange Rupee
+loc	144	Purple Rupee
+loc	145	Heart Container
+loc	146	Purple Rupee
+loc	147	Hyoi Pear
+loc	148	Red Chu Jelly
+loc	149	Golden Feather
+loc	150	Treasure Chart 39
+loc	151	Fill-Up Coupon
+loc	152	Joy Pendant
+loc	153	Knight's Crest
+loc	154	Hyoi Pear
+loc	155	Progressive Bomb Bag
+loc	156	Orange Rupee
+loc	157	Golden Feather
+loc	158	Golden Feather
+loc	159	Golden Feather
+loc	160	Skull Necklace
+loc	161	Piece of Heart
+loc	162	Green Chu Jelly
+loc	163	Empty Bottle
+loc	164	Silver Rupee
+loc	165	TotG Compass
+loc	166	Orange Rupee
+loc	167	Heart Container
+loc	168	Piece of Heart
+loc	169	Treasure Chart 12
+loc	170	Iron Boots
+loc	171	Boko Baba Seed
+loc	172	Joy Pendant
+loc	173	Hookshot
+loc	174	DRC Small Key
+loc	175	Green Rupee
+loc	176	Empty Bottle
+loc	177	Treasure Chart 15
+loc	178	FF Dungeon Map
+loc	179	Skull Necklace
+loc	180	Piece of Heart
+loc	181	Treasure Chart 28
+loc	182	Delivery Bag
+loc	183	Treasure Chart 30
+loc	184	Silver Rupee
+loc	185	Piece of Heart
+loc	186	Treasure Chart 33
+loc	187	TotG Dungeon Map
+loc	188	Orange Rupee
+loc	189	Deku Leaf
+loc	190	Joy Pendant
+loc	191	Magic Armor
+loc	192	Triforce Chart 7
+loc	193	TotG Small Key
+loc	194	Piece of Heart
+loc	195	Treasure Chart 35
+loc	196	Bait Bag
+loc	197	Treasure Chart 22
+loc	198	Heart Container
+loc	199	Treasure Chart 32
+loc	200	Piece of Heart
+loc	201	Piece of Heart
+loc	202	Wind God's Aria
+loc	203	Hero's Charm
+loc	204	Orange Rupee
+loc	205	Silver Rupee
+loc	206	Treasure Chart 8
+loc	207	DRC Compass
+loc	208	Joy Pendant
+loc	209	Purple Rupee
+loc	210	Triforce Shard 6
+loc	211	Red Rupee
+loc	212	ET Dungeon Map
+loc	213	Skull Necklace
+loc	214	Skull Necklace
+loc	215	WT Big Key
+loc	216	Empty Bottle
+loc	217	Piece of Heart
+loc	218	Treasure Chart 9
+loc	219	Power Bracelets
+loc	220	Golden Feather
+loc	221	Progressive Sword
+loc	222	Progressive Bow
+loc	223	Piece of Heart
+loc	224	Treasure Chart 1
+loc	225	DRC Small Key
+loc	226	Progressive Sword
+loc	227	Orange Rupee
+loc	228	Piece of Heart
+loc	229	Treasure Chart 29
+loc	230	Progressive Magic Meter
+loc	231	Red Rupee
+loc	232	Golden Feather
+loc	233	Silver Rupee
+loc	234	Goddess Tingle Statue
+loc	235	Treasure Chart 23
+loc	236	Treasure Chart 5
+loc	237	Piece of Heart
+loc	238	Skull Necklace
+loc	239	Piece of Heart
+loc	240	TotG Big Key
+loc	241	ET Small Key
+loc	242	DRC Small Key
+loc	243	Triforce Chart 8
+loc	244	DRC Small Key
+loc	245	Treasure Chart 2
+loc	246	Piece of Heart
+loc	247	Triforce Chart 6
+loc	248	WT Small Key
+loc	249	Nayru's Pearl
+loc	250	Heart Container
+loc	251	Piece of Heart
+loc	252	Earth Tingle Statue
+loc	253	Triforce Chart 4
+loc	254	Orange Rupee
+loc	255	Purple Rupee
+loc	256	Cabana Deed
+loc	257	Progressive Bow
+loc	258	Tingle's Chart
+loc	259	FF Compass
+loc	260	Treasure Chart 4
+loc	261	Yellow Rupee
+loc	262	Orange Rupee
+loc	263	DRC Big Key
+loc	264	Treasure Chart 6
+loc	265	Treasure Chart 18
+loc	266	Piece of Heart
+loc	267	Treasure Chart 10
+loc	268	Command Melody
+loc	269	Bombs
+loc	270	Progressive Wallet
+loc	271	Orange Rupee
+loc	272	Piece of Heart
+loc	273	Piece of Heart
+loc	274	Red Rupee
+loc	275	Purple Rupee
+loc	276	Earth God's Lyric
+loc	277	Orange Rupee
+loc	278	Purple Rupee
+loc	279	Piece of Heart
+loc	280	Triforce Shard 5
+loc	281	Red Rupee
+loc	282	Red Rupee
+loc	283	Submarine Chart
+loc	284	Progressive Shield
+loc	285	Orange Rupee
+loc	286	Orange Rupee
+loc	287	Joy Pendant
+loc	288	Piece of Heart
+loc	289	Triforce Shard 8
+loc	290	Orange Rupee
+loc	291	Yellow Rupee
+loc	292	Orange Rupee
+loc	293	Progressive Picto Box
+loc	294	Red Rupee
+loc	295	Note to Mom
+loc	296	Piece of Heart
+loc	297	Joy Pendant
+loc	298	Orange Rupee
+loc	299	Orange Rupee
+loc	300	FW Dungeon Map
+loc	301	Joy Pendant
+loc	302	Purple Rupee
+loc	303	Piece of Heart
+loc	304	Orange Rupee
+loc	305	Red Rupee
+loc	306	Red Rupee
+loc	307	Progressive Quiver
+loc	308	Progressive Wallet
+loc	309	Orange Rupee
+loc	310	Orange Rupee
+loc	311	Octo Chart
+loc	312	Red Rupee
+loc	313	Orange Rupee
+loc	314	Moblin's Letter
+loc	315	Purple Rupee
+loc	316	Red Rupee
+loc	317	Piece of Heart
+loc	318	Purple Rupee
+loc	319	Joy Pendant
+endcase
+case	all_categories_keys	AllCatsKeys
+opt	progression_tingle_chests	1
+opt	progression_dungeon_secrets	1
+opt	progression_combat_secret_caves	1
+opt	progression_savage_labyrinth	1
+opt	progression_short_sidequests	1
+opt	progression_long_sidequests	1
+opt	progression_spoils_trading	1
+opt	progression_minigames	1
+opt	progression_battlesquid	1
+opt	progression_mail	1
+opt	progression_platforms_rafts	1
+opt	progression_submarines	1
+opt	progression_eye_reef_chests	1
+opt	progression_big_octos_gunboats	1
+opt	progression_triforce_charts	1
+opt	progression_treasure_charts	1
+opt	progression_island_puzzles	1
+draws	488
+loc	0	Joy Pendant
+loc	1	Treasure Chart 9
+loc	2	Joy Pendant
+loc	3	Blue Rupee
+loc	4	Treasure Chart 23
+loc	5	Red Rupee
+loc	6	Empty Bottle
+loc	7	Treasure Chart 32
+loc	8	Beedle's Chart
+loc	9	Red Chu Jelly
+loc	10	Joy Pendant
+loc	11	Treasure Chart 25
+loc	12	Piece of Heart
+loc	13	Piece of Heart
+loc	14	Golden Feather
+loc	15	Triforce Shard 6
+loc	16	Green Rupee
+loc	17	Progressive Quiver
+loc	18	Piece of Heart
+loc	19	Heart Container
+loc	20	Piece of Heart
+loc	21	Triforce Chart 5
+loc	22	Purple Rupee
+loc	23	Joy Pendant
+loc	24	Treasure Chart 33
+loc	25	Treasure Chart 13
+loc	26	Command Melody
+loc	27	Treasure Chart 11
+loc	28	Piece of Heart
+loc	29	Golden Feather
+loc	30	Empty Bottle
+loc	31	Joy Pendant
+loc	32	Hyoi Pear
+loc	33	Silver Rupee
+loc	34	Triforce Chart 4
+loc	35	Piece of Heart
+loc	36	Orange Rupee
+loc	37	Ghost Ship Chart
+loc	38	Orange Rupee
+loc	39	Silver Rupee
+loc	40	Orange Rupee
+loc	41	Orange Rupee
+loc	42	Triforce Shard 1
+loc	43	Heart Container
+loc	44	Treasure Chart 21
+loc	45	Piece of Heart
+loc	46	Treasure Chart 31
+loc	47	Piece of Heart
+loc	48	Tingle Tuner
+loc	49	Piece of Heart
+loc	50	Orange Rupee
+loc	51	Boomerang
+loc	52	Joy Pendant
+loc	53	Treasure Chart 17
+loc	54	Note to Mom
+loc	55	Treasure Chart 16
+loc	56	DRC Small Key
+loc	57	DRC Big Key
+loc	58	DRC Small Key
+loc	59	DRC Small Key
+loc	60	Orange Rupee
+loc	61	DRC Small Key
+loc	62	Golden Feather
+loc	63	Triforce Chart 2
+loc	64	Power Bracelets
+loc	65	Piece of Heart
+loc	66	Treasure Chart 35
+loc	67	Treasure Chart 36
+loc	68	Treasure Chart 29
+loc	69	Knight's Crest
+loc	70	DRC Compass
+loc	71	Purple Rupee
+loc	72	Treasure Chart 15
+loc	73	Silver Rupee
+loc	74	DRC Dungeon Map
+loc	75	Goddess Tingle Statue
+loc	76	Piece of Heart
+loc	77	Progressive Wallet
+loc	78	FW Compass
+loc	79	Heart Container
+loc	80	Progressive Sword
+loc	81	FW Dungeon Map
+loc	82	Piece of Heart
+loc	83	Silver Rupee
+loc	84	Triforce Chart 8
+loc	85	Treasure Chart 40
+loc	86	FW Big Key
+loc	87	Progressive Bow
+loc	88	Dragon Tingle Statue
+loc	89	Triforce Chart 7
+loc	90	FW Small Key
+loc	91	Treasure Chart 18
+loc	92	Wind Tingle Statue
+loc	93	All-Purpose Bait
+loc	94	Piece of Heart
+loc	95	Telescope
+loc	96	Treasure Chart 1
+loc	97	Orange Rupee
+loc	98	TotG Dungeon Map
+loc	99	Treasure Chart 28
+loc	100	Silver Rupee
+loc	101	TotG Small Key
+loc	102	Skull Necklace
+loc	103	TotG Big Key
+loc	104	Piece of Heart
+loc	105	TotG Small Key
+loc	106	TotG Compass
+loc	107	Piece of Heart
+loc	108	Skull Necklace
+loc	109	Skull Necklace
+loc	110	Green Chu Jelly
+loc	111	Orange Rupee
+loc	112	Skull Necklace
+loc	113	Silver Rupee
+loc	114	FF Compass
+loc	115	FF Dungeon Map
+loc	116	Joy Pendant
+loc	117	Treasure Chart 7
+loc	118	Treasure Chart 20
+loc	119	Piece of Heart
+loc	120	Golden Feather
+loc	121	Purple Rupee
+loc	122	Piece of Heart
+loc	123	Bombs
+loc	124	Piece of Heart
+loc	125	Piece of Heart
+loc	126	Skull Necklace
+loc	127	Heart Container
+loc	128	Piece of Heart
+loc	129	Piece of Heart
+loc	130	Submarine Chart
+loc	131	ET Compass
+loc	132	Boko Baba Seed
+loc	133	Red Rupee
+loc	134	Skull Necklace
+loc	135	Tingle's Chart
+loc	136	ET Small Key
+loc	137	Orange Rupee
+loc	138	Purple Rupee
+loc	139	ET Small Key
+loc	140	ET Small Key
+loc	141	Piece of Heart
+loc	142	ET Dungeon Map
+loc	143	Joy Pendant
+loc	144	Golden Feather
+loc	145	ET Big Key
+loc	146	Golden Feather
+loc	147	Piece of Heart
+loc	148	Cabana Deed
+loc	149	WT Small Key
+loc	150	Piece of Heart
+loc	151	Triforce Shard 2
+loc	152	Treasure Chart 26
+loc	153	Treasure Chart 4
+loc	154	Octo Chart
+loc	155	Skull Necklace
+loc	156	WT Big Key
+loc	157	Piece of Heart
+loc	158	WT Dungeon Map
+loc	159	Treasure Chart 41
+loc	160	WT Small Key
+loc	161	Orange Rupee
+loc	162	WT Compass
+loc	163	Joy Pendant
+loc	164	Knight's Crest
+loc	165	Hyoi Pear
+loc	166	Treasure Chart 12
+loc	167	Orange Rupee
+loc	168	Purple Rupee
+loc	169	Progressive Bow
+loc	170	Wind God's Aria
+loc	171	Piece of Heart
+loc	172	Silver Rupee
+loc	173	Piece of Heart
+loc	174	Golden Feather
+loc	175	Red Rupee
+loc	176	Rainbow Rupee
+loc	177	Treasure Chart 5
+loc	178	Skull Necklace
+loc	179	Silver Rupee
+loc	180	Light Ring Chart
+loc	181	Piece of Heart
+loc	182	Forbidden Tingle Statue
+loc	183	Secret Cave Chart
+loc	184	Heart Container
+loc	185	Orange Rupee
+loc	186	Silver Rupee
+loc	187	Treasure Chart 10
+loc	188	Piece of Heart
+loc	189	Progressive Picto Box
+loc	190	Piece of Heart
+loc	191	Orange Rupee
+loc	192	Yellow Rupee
+loc	193	Treasure Chart 37
+loc	194	Triforce Shard 3
+loc	195	Hyoi Pear
+loc	196	Triforce Chart 1
+loc	197	Blue Rupee
+loc	198	Piece of Heart
+loc	199	Golden Feather
+loc	200	Piece of Heart
+loc	201	Treasure Chart 14
+loc	202	Silver Rupee
+loc	203	Purple Rupee
+loc	204	Triforce Shard 4
+loc	205	Grappling Hook
+loc	206	Silver Rupee
+loc	207	Heart Container
+loc	208	Spoils Bag
+loc	209	Piece of Heart
+loc	210	Purple Rupee
+loc	211	Purple Rupee
+loc	212	Treasure Chart 19
+loc	213	Treasure Chart 27
+loc	214	Hyoi Pear
+loc	215	Skull Necklace
+loc	216	Progressive Sword
+loc	217	Piece of Heart
+loc	218	Purple Rupee
+loc	219	Treasure Chart 24
+loc	220	Silver Rupee
+loc	221	Red Rupee
+loc	222	Treasure Chart 6
+loc	223	Silver Rupee
+loc	224	Silver Rupee
+loc	225	Progressive Picto Box
+loc	226	Deku Leaf
+loc	227	Progressive Magic Meter
+loc	228	Orange Rupee
+loc	229	Empty Bottle
+loc	230	Treasure Chart 2
+loc	231	Farore's Pearl
+loc	232	Earth God's Lyric
+loc	233	Hookshot
+loc	234	Purple Rupee
+loc	235	Orange Rupee
+loc	236	Triforce Shard 5
+loc	237	Triforce Chart 6
+loc	238	Treasure Chart 3
+loc	239	Earth Tingle Statue
+loc	240	Hurricane Spin
+loc	241	Treasure Chart 8
+loc	242	Progressive Bomb Bag
+loc	243	Progressive Quiver
+loc	244	Treasure Chart 34
+loc	245	Skull Hammer
+loc	246	Triforce Chart 3
+loc	247	Din's Pearl
+loc	248	Yellow Rupee
+loc	249	Yellow Rupee
+loc	250	Treasure Chart 30
+loc	251	Piece of Heart
+loc	252	Piece of Heart
+loc	253	Treasure Chart 22
+loc	254	Great Fairy Chart
+loc	255	Piece of Heart
+loc	256	Golden Feather
+loc	257	Red Rupee
+loc	258	Knight's Crest
+loc	259	Silver Rupee
+loc	260	Platform Chart
+loc	261	Bait Bag
+loc	262	Treasure Chart 39
+loc	263	Triforce Shard 7
+loc	264	Red Rupee
+loc	265	Triforce Shard 8
+loc	266	Orange Rupee
+loc	267	Treasure Chart 38
+loc	268	Piece of Heart
+loc	269	Progressive Sword
+loc	270	Piece of Heart
+loc	271	Purple Rupee
+loc	272	Red Rupee
+loc	273	Orange Rupee
+loc	274	Piece of Heart
+loc	275	Piece of Heart
+loc	276	Yellow Rupee
+loc	277	Joy Pendant
+loc	278	Orange Rupee
+loc	279	Iron Boots
+loc	280	Orange Rupee
+loc	281	Joy Pendant
+loc	282	Delivery Bag
+loc	283	Piece of Heart
+loc	284	Piece of Heart
+loc	285	Progressive Shield
+loc	286	Magic Armor
+loc	287	Red Rupee
+loc	288	Orange Rupee
+loc	289	Orange Rupee
+loc	290	Orange Rupee
+loc	291	Orange Rupee
+loc	292	Purple Rupee
+loc	293	Empty Bottle
+loc	294	Orange Rupee
+loc	295	Red Rupee
+loc	296	Fill-Up Coupon
+loc	297	Orange Rupee
+loc	298	Red Rupee
+loc	299	Yellow Rupee
+loc	300	Orange Rupee
+loc	301	Moblin's Letter
+loc	302	Red Rupee
+loc	303	Maggie's Letter
+loc	304	Orange Rupee
+loc	305	Orange Rupee
+loc	306	Orange Rupee
+loc	307	Progressive Bow
+loc	308	Orange Rupee
+loc	309	Hero's Charm
+loc	310	Purple Rupee
+loc	311	Piece of Heart
+loc	312	Purple Rupee
+loc	313	Purple Rupee
+loc	314	Purple Rupee
+loc	315	Progressive Wallet
+loc	316	Joy Pendant
+loc	317	Purple Rupee
+loc	318	Progressive Bomb Bag
+loc	319	Nayru's Pearl
+endcase
+case	dungeons_only	DungeonsOnly
+opt	progression_puzzle_secret_caves	0
+opt	progression_great_fairies	0
+opt	progression_free_gifts	0
+opt	progression_expensive_purchases	0
+opt	progression_misc	0
+draws	671
+loc	0	Light Ring Chart
+loc	1	Triforce Chart 3
+loc	2	Note to Mom
+loc	3	Silver Rupee
+loc	4	Piece of Heart
+loc	5	Heart Container
+loc	6	Orange Rupee
+loc	7	Red Rupee
+loc	8	Red Rupee
+loc	9	Purple Rupee
+loc	10	Triforce Chart 6
+loc	11	Yellow Rupee
+loc	12	Piece of Heart
+loc	13	Maggie's Letter
+loc	14	Piece of Heart
+loc	15	Treasure Chart 23
+loc	16	Treasure Chart 40
+loc	17	Orange Rupee
+loc	18	Silver Rupee
+loc	19	Skull Necklace
+loc	20	Piece of Heart
+loc	21	Piece of Heart
+loc	22	Silver Rupee
+loc	23	Cabana Deed
+loc	24	Hero's Charm
+loc	25	Treasure Chart 30
+loc	26	Piece of Heart
+loc	27	Joy Pendant
+loc	28	Triforce Chart 8
+loc	29	Skull Necklace
+loc	30	Treasure Chart 7
+loc	31	Hyoi Pear
+loc	32	Orange Rupee
+loc	33	Purple Rupee
+loc	34	Golden Feather
+loc	35	Progressive Bomb Bag
+loc	36	Orange Rupee
+loc	37	Green Rupee
+loc	38	Joy Pendant
+loc	39	Purple Rupee
+loc	40	Green Chu Jelly
+loc	41	Joy Pendant
+loc	42	Joy Pendant
+loc	43	Submarine Chart
+loc	44	Treasure Chart 26
+loc	45	Piece of Heart
+loc	46	Piece of Heart
+loc	47	Orange Rupee
+loc	48	Hyoi Pear
+loc	49	Golden Feather
+loc	50	Heart Container
+loc	51	Skull Necklace
+loc	52	Treasure Chart 14
+loc	53	Orange Rupee
+loc	54	Treasure Chart 29
+loc	55	Joy Pendant
+loc	56	DRC Small Key
+loc	57	Grappling Hook
+loc	58	Treasure Chart 6
+loc	59	DRC Small Key
+loc	60	DRC Small Key
+loc	61	Deku Leaf
+loc	62	DRC Small Key
+loc	63	DRC Big Key
+loc	64	Hookshot
+loc	65	Knight's Crest
+loc	66	Silver Rupee
+loc	67	DRC Compass
+loc	68	DRC Dungeon Map
+loc	69	Piece of Heart
+loc	70	Skull Necklace
+loc	71	Hyoi Pear
+loc	72	Orange Rupee
+loc	73	Progressive Bow
+loc	74	Piece of Heart
+loc	75	Bombs
+loc	76	Piece of Heart
+loc	77	Piece of Heart
+loc	78	Iron Boots
+loc	79	Progressive Shield
+loc	80	Heart Container
+loc	81	Empty Bottle
+loc	82	FW Compass
+loc	83	Boomerang
+loc	84	FW Dungeon Map
+loc	85	Treasure Chart 13
+loc	86	Progressive Magic Meter
+loc	87	FW Big Key
+loc	88	Silver Rupee
+loc	89	Orange Rupee
+loc	90	Skull Hammer
+loc	91	Knight's Crest
+loc	92	Earth God's Lyric
+loc	93	Command Melody
+loc	94	FW Small Key
+loc	95	Silver Rupee
+loc	96	Purple Rupee
+loc	97	Triforce Shard 2
+loc	98	Treasure Chart 33
+loc	99	Triforce Shard 6
+loc	100	TotG Small Key
+loc	101	TotG Dungeon Map
+loc	102	Triforce Shard 1
+loc	103	Silver Rupee
+loc	104	TotG Small Key
+loc	105	Orange Rupee
+loc	106	Triforce Shard 3
+loc	107	Triforce Shard 4
+loc	108	Progressive Bow
+loc	109	TotG Big Key
+loc	110	Treasure Chart 35
+loc	111	TotG Compass
+loc	112	Progressive Sword
+loc	113	Treasure Chart 16
+loc	114	FF Dungeon Map
+loc	115	Triforce Shard 5
+loc	116	FF Compass
+loc	117	Wind God's Aria
+loc	118	Progressive Sword
+loc	119	Piece of Heart
+loc	120	Treasure Chart 31
+loc	121	Golden Feather
+loc	122	Silver Rupee
+loc	123	Piece of Heart
+loc	124	Silver Rupee
+loc	125	Silver Rupee
+loc	126	Treasure Chart 12
+loc	127	Delivery Bag
+loc	128	Treasure Chart 21
+loc	129	Skull Necklace
+loc	130	ET Small Key
+loc	131	Piece of Heart
+loc	132	Triforce Shard 7
+loc	133	ET Big Key
+loc	134	ET Compass
+loc	135	Orange Rupee
+loc	136	Orange Rupee
+loc	137	Piece of Heart
+loc	138	Boko Baba Seed
+loc	139	ET Small Key
+loc	140	ET Small Key
+loc	141	Piece of Heart
+loc	142	Dragon Tingle Statue
+loc	143	ET Dungeon Map
+loc	144	Treasure Chart 25
+loc	145	Red Rupee
+loc	146	Piece of Heart
+loc	147	Golden Feather
+loc	148	WT Dungeon Map
+loc	149	Treasure Chart 1
+loc	150	Magic Armor
+loc	151	Progressive Sword
+loc	152	WT Big Key
+loc	153	Triforce Shard 8
+loc	154	WT Small Key
+loc	155	Heart Container
+loc	156	Nayru's Pearl
+loc	157	Farore's Pearl
+loc	158	WT Small Key
+loc	159	Power Bracelets
+loc	160	Progressive Bow
+loc	161	WT Compass
+loc	162	Din's Pearl
+loc	163	Treasure Chart 27
+loc	164	Piece of Heart
+loc	165	Empty Bottle
+loc	166	Silver Rupee
+loc	167	Golden Feather
+loc	168	Piece of Heart
+loc	169	Treasure Chart 2
+loc	170	Piece of Heart
+loc	171	Purple Rupee
+loc	172	Piece of Heart
+loc	173	Skull Necklace
+loc	174	Treasure Chart 28
+loc	175	Empty Bottle
+loc	176	Red Chu Jelly
+loc	177	Octo Chart
+loc	178	Beedle's Chart
+loc	179	Golden Feather
+loc	180	Joy Pendant
+loc	181	Bait Bag
+loc	182	All-Purpose Bait
+loc	183	Progressive Quiver
+loc	184	Skull Necklace
+loc	185	Rainbow Rupee
+loc	186	Heart Container
+loc	187	Piece of Heart
+loc	188	Treasure Chart 5
+loc	189	Piece of Heart
+loc	190	Skull Necklace
+loc	191	Treasure Chart 9
+loc	192	Golden Feather
+loc	193	Tingle's Chart
+loc	194	Golden Feather
+loc	195	Piece of Heart
+loc	196	Purple Rupee
+loc	197	Treasure Chart 4
+loc	198	Piece of Heart
+loc	199	Joy Pendant
+loc	200	Purple Rupee
+loc	201	Piece of Heart
+loc	202	Empty Bottle
+loc	203	Knight's Crest
+loc	204	Progressive Wallet
+loc	205	Golden Feather
+loc	206	Piece of Heart
+loc	207	Treasure Chart 39
+loc	208	Orange Rupee
+loc	209	Silver Rupee
+loc	210	Skull Necklace
+loc	211	Treasure Chart 20
+loc	212	Silver Rupee
+loc	213	Progressive Picto Box
+loc	214	Piece of Heart
+loc	215	Silver Rupee
+loc	216	Treasure Chart 3
+loc	217	Treasure Chart 19
+loc	218	Yellow Rupee
+loc	219	Blue Rupee
+loc	220	Progressive Wallet
+loc	221	Purple Rupee
+loc	222	Treasure Chart 41
+loc	223	Orange Rupee
+loc	224	Piece of Heart
+loc	225	Piece of Heart
+loc	226	Progressive Quiver
+loc	227	Red Rupee
+loc	228	Treasure Chart 17
+loc	229	Purple Rupee
+loc	230	Heart Container
+loc	231	Fill-Up Coupon
+loc	232	Piece of Heart
+loc	233	Silver Rupee
+loc	234	Treasure Chart 24
+loc	235	Treasure Chart 18
+loc	236	Piece of Heart
+loc	237	Treasure Chart 11
+loc	238	Red Rupee
+loc	239	Hyoi Pear
+loc	240	Blue Rupee
+loc	241	Triforce Chart 7
+loc	242	Joy Pendant
+loc	243	Ghost Ship Chart
+loc	244	Orange Rupee
+loc	245	Piece of Heart
+loc	246	Wind Tingle Statue
+loc	247	Yellow Rupee
+loc	248	Triforce Chart 4
+loc	249	Progressive Bomb Bag
+loc	250	Moblin's Letter
+loc	251	Orange Rupee
+loc	252	Joy Pendant
+loc	253	Piece of Heart
+loc	254	Progressive Picto Box
+loc	255	Treasure Chart 10
+loc	256	Purple Rupee
+loc	257	Treasure Chart 15
+loc	258	Telescope
+loc	259	Piece of Heart
+loc	260	Purple Rupee
+loc	261	Piece of Heart
+loc	262	Treasure Chart 37
+loc	263	Treasure Chart 22
+loc	264	Earth Tingle Statue
+loc	265	Triforce Chart 5
+loc	266	Piece of Heart
+loc	267	Red Rupee
+loc	268	Secret Cave Chart
+loc	269	Treasure Chart 34
+loc	270	Piece of Heart
+loc	271	Orange Rupee
+loc	272	Yellow Rupee
+loc	273	Piece of Heart
+loc	274	Yellow Rupee
+loc	275	Purple Rupee
+loc	276	Platform Chart
+loc	277	Treasure Chart 32
+loc	278	Orange Rupee
+loc	279	Orange Rupee
+loc	280	Piece of Heart
+loc	281	Red Rupee
+loc	282	Red Rupee
+loc	283	Triforce Chart 2
+loc	284	Orange Rupee
+loc	285	Orange Rupee
+loc	286	Red Rupee
+loc	287	Joy Pendant
+loc	288	Treasure Chart 38
+loc	289	Treasure Chart 36
+loc	290	Purple Rupee
+loc	291	Purple Rupee
+loc	292	Orange Rupee
+loc	293	Goddess Tingle Statue
+loc	294	Triforce Chart 1
+loc	295	Orange Rupee
+loc	296	Spoils Bag
+loc	297	Great Fairy Chart
+loc	298	Purple Rupee
+loc	299	Forbidden Tingle Statue
+loc	300	Purple Rupee
+loc	301	Orange Rupee
+loc	302	Tingle Tuner
+loc	303	Joy Pendant
+loc	304	Red Rupee
+loc	305	Red Rupee
+loc	306	Orange Rupee
+loc	307	Orange Rupee
+loc	308	Piece of Heart
+loc	309	Purple Rupee
+loc	310	Purple Rupee
+loc	311	Piece of Heart
+loc	312	Joy Pendant
+loc	313	Orange Rupee
+loc	314	Treasure Chart 8
+loc	315	Orange Rupee
+loc	316	Piece of Heart
+loc	317	Joy Pendant
+loc	318	Hurricane Spin
+loc	319	Orange Rupee
+endcase
+case	dungeons_only2	DungeonsOnly2
+opt	progression_puzzle_secret_caves	0
+opt	progression_great_fairies	0
+opt	progression_free_gifts	0
+opt	progression_misc	0
+draws	690
+loc	0	Purple Rupee
+loc	1	Fill-Up Coupon
+loc	2	Dragon Tingle Statue
+loc	3	Orange Rupee
+loc	4	Blue Rupee
+loc	5	Treasure Chart 12
+loc	6	Joy Pendant
+loc	7	Orange Rupee
+loc	8	Piece of Heart
+loc	9	Piece of Heart
+loc	10	Tingle Tuner
+loc	11	Hurricane Spin
+loc	12	Piece of Heart
+loc	13	Tingle's Chart
+loc	14	Purple Rupee
+loc	15	Piece of Heart
+loc	16	Skull Necklace
+loc	17	Joy Pendant
+loc	18	Blue Rupee
+loc	19	Golden Feather
+loc	20	Orange Rupee
+loc	21	Boko Baba Seed
+loc	22	Joy Pendant
+loc	23	Silver Rupee
+loc	24	Delivery Bag
+loc	25	Red Rupee
+loc	26	Red Rupee
+loc	27	Knight's Crest
+loc	28	Triforce Chart 6
+loc	29	Ghost Ship Chart
+loc	30	Triforce Chart 2
+loc	31	Treasure Chart 20
+loc	32	Heart Container
+loc	33	Hyoi Pear
+loc	34	Piece of Heart
+loc	35	Piece of Heart
+loc	36	Triforce Chart 3
+loc	37	Progressive Quiver
+loc	38	Orange Rupee
+loc	39	Golden Feather
+loc	40	Joy Pendant
+loc	41	Orange Rupee
+loc	42	Red Rupee
+loc	43	Submarine Chart
+loc	44	Treasure Chart 28
+loc	45	Piece of Heart
+loc	46	Yellow Rupee
+loc	47	Joy Pendant
+loc	48	Joy Pendant
+loc	49	Orange Rupee
+loc	50	Rainbow Rupee
+loc	51	Triforce Chart 1
+loc	52	Orange Rupee
+loc	53	Piece of Heart
+loc	54	Piece of Heart
+loc	55	Treasure Chart 13
+loc	56	DRC Small Key
+loc	57	Progressive Wallet
+loc	58	Piece of Heart
+loc	59	DRC Small Key
+loc	60	DRC Small Key
+loc	61	DRC Small Key
+loc	62	Piece of Heart
+loc	63	DRC Big Key
+loc	64	Treasure Chart 24
+loc	65	Cabana Deed
+loc	66	Hyoi Pear
+loc	67	DRC Compass
+loc	68	Grappling Hook
+loc	69	Progressive Bow
+loc	70	Treasure Chart 21
+loc	71	Boomerang
+loc	72	DRC Dungeon Map
+loc	73	Maggie's Letter
+loc	74	Treasure Chart 29
+loc	75	Command Melody
+loc	76	Earth Tingle Statue
+loc	77	Piece of Heart
+loc	78	FW Compass
+loc	79	Piece of Heart
+loc	80	Skull Necklace
+loc	81	Hyoi Pear
+loc	82	FW Big Key
+loc	83	FW Small Key
+loc	84	Orange Rupee
+loc	85	Progressive Picto Box
+loc	86	Yellow Rupee
+loc	87	FW Dungeon Map
+loc	88	Progressive Bomb Bag
+loc	89	Purple Rupee
+loc	90	Skull Hammer
+loc	91	All-Purpose Bait
+loc	92	Progressive Sword
+loc	93	Bombs
+loc	94	Treasure Chart 14
+loc	95	Triforce Shard 2
+loc	96	Piece of Heart
+loc	97	Piece of Heart
+loc	98	Forbidden Tingle Statue
+loc	99	TotG Dungeon Map
+loc	100	TotG Small Key
+loc	101	TotG Compass
+loc	102	TotG Big Key
+loc	103	Piece of Heart
+loc	104	Triforce Shard 6
+loc	105	Triforce Shard 3
+loc	106	Triforce Shard 4
+loc	107	TotG Small Key
+loc	108	Treasure Chart 15
+loc	109	Triforce Shard 8
+loc	110	Piece of Heart
+loc	111	Golden Feather
+loc	112	Treasure Chart 30
+loc	113	Moblin's Letter
+loc	114	Treasure Chart 5
+loc	115	FF Dungeon Map
+loc	116	Earth God's Lyric
+loc	117	Hookshot
+loc	118	FF Compass
+loc	119	Iron Boots
+loc	120	Piece of Heart
+loc	121	Silver Rupee
+loc	122	Note to Mom
+loc	123	Silver Rupee
+loc	124	Piece of Heart
+loc	125	Treasure Chart 38
+loc	126	Purple Rupee
+loc	127	Orange Rupee
+loc	128	Silver Rupee
+loc	129	Orange Rupee
+loc	130	Silver Rupee
+loc	131	Piece of Heart
+loc	132	ET Small Key
+loc	133	ET Small Key
+loc	134	Farore's Pearl
+loc	135	Treasure Chart 4
+loc	136	ET Compass
+loc	137	Empty Bottle
+loc	138	Piece of Heart
+loc	139	ET Small Key
+loc	140	Triforce Shard 7
+loc	141	Triforce Chart 8
+loc	142	ET Big Key
+loc	143	Progressive Bow
+loc	144	Nayru's Pearl
+loc	145	ET Dungeon Map
+loc	146	Progressive Bow
+loc	147	Progressive Sword
+loc	148	Triforce Shard 5
+loc	149	Red Rupee
+loc	150	Treasure Chart 25
+loc	151	WT Big Key
+loc	152	WT Dungeon Map
+loc	153	Triforce Shard 1
+loc	154	Progressive Shield
+loc	155	Piece of Heart
+loc	156	WT Compass
+loc	157	WT Small Key
+loc	158	WT Small Key
+loc	159	Progressive Sword
+loc	160	Wind God's Aria
+loc	161	Din's Pearl
+loc	162	Silver Rupee
+loc	163	Power Bracelets
+loc	164	Platform Chart
+loc	165	Light Ring Chart
+loc	166	Treasure Chart 11
+loc	167	Golden Feather
+loc	168	Golden Feather
+loc	169	Treasure Chart 16
+loc	170	Piece of Heart
+loc	171	Silver Rupee
+loc	172	Treasure Chart 35
+loc	173	Treasure Chart 33
+loc	174	Piece of Heart
+loc	175	Progressive Magic Meter
+loc	176	Spoils Bag
+loc	177	Heart Container
+loc	178	Green Chu Jelly
+loc	179	Treasure Chart 6
+loc	180	Piece of Heart
+loc	181	Treasure Chart 36
+loc	182	Silver Rupee
+loc	183	Piece of Heart
+loc	184	Knight's Crest
+loc	185	Progressive Quiver
+loc	186	Red Chu Jelly
+loc	187	Skull Necklace
+loc	188	Orange Rupee
+loc	189	Skull Necklace
+loc	190	Piece of Heart
+loc	191	Orange Rupee
+loc	192	Triforce Chart 4
+loc	193	Heart Container
+loc	194	Skull Necklace
+loc	195	Orange Rupee
+loc	196	Treasure Chart 17
+loc	197	Heart Container
+loc	198	Beedle's Chart
+loc	199	Treasure Chart 40
+loc	200	Piece of Heart
+loc	201	Piece of Heart
+loc	202	Golden Feather
+loc	203	Piece of Heart
+loc	204	Piece of Heart
+loc	205	Silver Rupee
+loc	206	Piece of Heart
+loc	207	Joy Pendant
+loc	208	Piece of Heart
+loc	209	Silver Rupee
+loc	210	Silver Rupee
+loc	211	Goddess Tingle Statue
+loc	212	Piece of Heart
+loc	213	Joy Pendant
+loc	214	Skull Necklace
+loc	215	Skull Necklace
+loc	216	Piece of Heart
+loc	217	Piece of Heart
+loc	218	Telescope
+loc	219	Progressive Wallet
+loc	220	Treasure Chart 22
+loc	221	Purple Rupee
+loc	222	Progressive Picto Box
+loc	223	Piece of Heart
+loc	224	Magic Armor
+loc	225	Empty Bottle
+loc	226	Silver Rupee
+loc	227	Triforce Chart 7
+loc	228	Treasure Chart 7
+loc	229	Purple Rupee
+loc	230	Treasure Chart 2
+loc	231	Deku Leaf
+loc	232	Golden Feather
+loc	233	Joy Pendant
+loc	234	Skull Necklace
+loc	235	Treasure Chart 39
+loc	236	Treasure Chart 41
+loc	237	Treasure Chart 31
+loc	238	Treasure Chart 37
+loc	239	Yellow Rupee
+loc	240	Golden Feather
+loc	241	Silver Rupee
+loc	242	Wind Tingle Statue
+loc	243	Progressive Bomb Bag
+loc	244	Purple Rupee
+loc	245	Skull Necklace
+loc	246	Orange Rupee
+loc	247	Knight's Crest
+loc	248	Green Rupee
+loc	249	Piece of Heart
+loc	250	Empty Bottle
+loc	251	Treasure Chart 3
+loc	252	Orange Rupee
+loc	253	Piece of Heart
+loc	254	Treasure Chart 1
+loc	255	Silver Rupee
+loc	256	Purple Rupee
+loc	257	Treasure Chart 9
+loc	258	Golden Feather
+loc	259	Treasure Chart 10
+loc	260	Treasure Chart 8
+loc	261	Purple Rupee
+loc	262	Empty Bottle
+loc	263	Treasure Chart 23
+loc	264	Silver Rupee
+loc	265	Red Rupee
+loc	266	Hyoi Pear
+loc	267	Great Fairy Chart
+loc	268	Purple Rupee
+loc	269	Treasure Chart 34
+loc	270	Red Rupee
+loc	271	Orange Rupee
+loc	272	Treasure Chart 32
+loc	273	Secret Cave Chart
+loc	274	Piece of Heart
+loc	275	Purple Rupee
+loc	276	Orange Rupee
+loc	277	Piece of Heart
+loc	278	Bait Bag
+loc	279	Purple Rupee
+loc	280	Treasure Chart 27
+loc	281	Purple Rupee
+loc	282	Orange Rupee
+loc	283	Treasure Chart 19
+loc	284	Red Rupee
+loc	285	Red Rupee
+loc	286	Piece of Heart
+loc	287	Purple Rupee
+loc	288	Red Rupee
+loc	289	Red Rupee
+loc	290	Heart Container
+loc	291	Joy Pendant
+loc	292	Red Rupee
+loc	293	Octo Chart
+loc	294	Purple Rupee
+loc	295	Orange Rupee
+loc	296	Piece of Heart
+loc	297	Orange Rupee
+loc	298	Orange Rupee
+loc	299	Hero's Charm
+loc	300	Orange Rupee
+loc	301	Treasure Chart 18
+loc	302	Piece of Heart
+loc	303	Red Rupee
+loc	304	Triforce Chart 5
+loc	305	Purple Rupee
+loc	306	Heart Container
+loc	307	Red Rupee
+loc	308	Joy Pendant
+loc	309	Red Rupee
+loc	310	Orange Rupee
+loc	311	Orange Rupee
+loc	312	Orange Rupee
+loc	313	Orange Rupee
+loc	314	Yellow Rupee
+loc	315	Joy Pendant
+loc	316	Red Rupee
+loc	317	Treasure Chart 26
+loc	318	Orange Rupee
+loc	319	Purple Rupee
+endcase
+case	no_dungeons	NoDungeons
+opt	progression_dungeons	0
+opt	progression_combat_secret_caves	1
+opt	progression_short_sidequests	1
+draws	488
+loc	0	Triforce Shard 5
+loc	1	Triforce Shard 2
+loc	2	Silver Rupee
+loc	3	Silver Rupee
+loc	4	Triforce Shard 1
+loc	5	Boko Baba Seed
+loc	6	Treasure Chart 14
+loc	7	Treasure Chart 41
+loc	8	Purple Rupee
+loc	9	Skull Necklace
+loc	10	Hookshot
+loc	11	Silver Rupee
+loc	12	Treasure Chart 10
+loc	13	Skull Necklace
+loc	14	Silver Rupee
+loc	15	Progressive Sword
+loc	16	Red Rupee
+loc	17	Piece of Heart
+loc	18	Piece of Heart
+loc	19	Triforce Shard 3
+loc	20	Heart Container
+loc	21	Heart Container
+loc	22	Silver Rupee
+loc	23	Bombs
+loc	24	Orange Rupee
+loc	25	Progressive Picto Box
+loc	26	Bait Bag
+loc	27	Triforce Shard 8
+loc	28	Tingle Tuner
+loc	29	Piece of Heart
+loc	30	Deku Leaf
+loc	31	Treasure Chart 5
+loc	32	Red Rupee
+loc	33	Piece of Heart
+loc	34	Piece of Heart
+loc	35	Silver Rupee
+loc	36	Piece of Heart
+loc	37	Empty Bottle
+loc	38	All-Purpose Bait
+loc	39	Skull Necklace
+loc	40	Purple Rupee
+loc	41	Orange Rupee
+loc	42	Piece of Heart
+loc	43	Octo Chart
+loc	44	Progressive Magic Meter
+loc	45	Treasure Chart 2
+loc	46	Silver Rupee
+loc	47	Orange Rupee
+loc	48	Progressive Shield
+loc	49	Triforce Chart 4
+loc	50	Hyoi Pear
+loc	51	Silver Rupee
+loc	52	Purple Rupee
+loc	53	Knight's Crest
+loc	54	Purple Rupee
+loc	55	Progressive Picto Box
+loc	56	DRC Small Key
+loc	57	Silver Rupee
+loc	58	Treasure Chart 29
+loc	59	DRC Small Key
+loc	60	DRC Small Key
+loc	61	Progressive Quiver
+loc	62	DRC Small Key
+loc	63	Treasure Chart 13
+loc	64	Purple Rupee
+loc	65	Piece of Heart
+loc	66	DRC Big Key
+loc	67	Purple Rupee
+loc	68	DRC Dungeon Map
+loc	69	DRC Compass
+loc	70	Beedle's Chart
+loc	71	Piece of Heart
+loc	72	Yellow Rupee
+loc	73	Piece of Heart
+loc	74	Treasure Chart 34
+loc	75	Red Rupee
+loc	76	Golden Feather
+loc	77	Treasure Chart 1
+loc	78	FW Dungeon Map
+loc	79	FW Big Key
+loc	80	Piece of Heart
+loc	81	FW Compass
+loc	82	Orange Rupee
+loc	83	Orange Rupee
+loc	84	Progressive Quiver
+loc	85	Treasure Chart 19
+loc	86	Treasure Chart 30
+loc	87	Treasure Chart 24
+loc	88	Green Rupee
+loc	89	Piece of Heart
+loc	90	Treasure Chart 17
+loc	91	FW Small Key
+loc	92	Joy Pendant
+loc	93	Joy Pendant
+loc	94	Silver Rupee
+loc	95	Farore's Pearl
+loc	96	Piece of Heart
+loc	97	Knight's Crest
+loc	98	TotG Compass
+loc	99	Orange Rupee
+loc	100	Piece of Heart
+loc	101	Treasure Chart 25
+loc	102	TotG Small Key
+loc	103	Fill-Up Coupon
+loc	104	Skull Necklace
+loc	105	TotG Big Key
+loc	106	Skull Necklace
+loc	107	TotG Dungeon Map
+loc	108	Treasure Chart 26
+loc	109	TotG Small Key
+loc	110	Joy Pendant
+loc	111	Blue Rupee
+loc	112	Red Rupee
+loc	113	Piece of Heart
+loc	114	Treasure Chart 15
+loc	115	Treasure Chart 28
+loc	116	Piece of Heart
+loc	117	FF Compass
+loc	118	FF Dungeon Map
+loc	119	Joy Pendant
+loc	120	Dragon Tingle Statue
+loc	121	Piece of Heart
+loc	122	Orange Rupee
+loc	123	Piece of Heart
+loc	124	Treasure Chart 6
+loc	125	Piece of Heart
+loc	126	Triforce Shard 7
+loc	127	Ghost Ship Chart
+loc	128	Yellow Rupee
+loc	129	Great Fairy Chart
+loc	130	Piece of Heart
+loc	131	ET Compass
+loc	132	Treasure Chart 20
+loc	133	Golden Feather
+loc	134	ET Small Key
+loc	135	Joy Pendant
+loc	136	Knight's Crest
+loc	137	Rainbow Rupee
+loc	138	Golden Feather
+loc	139	ET Small Key
+loc	140	Piece of Heart
+loc	141	ET Small Key
+loc	142	Orange Rupee
+loc	143	ET Big Key
+loc	144	ET Dungeon Map
+loc	145	Joy Pendant
+loc	146	Purple Rupee
+loc	147	Orange Rupee
+loc	148	Silver Rupee
+loc	149	WT Small Key
+loc	150	Piece of Heart
+loc	151	Hyoi Pear
+loc	152	Joy Pendant
+loc	153	Golden Feather
+loc	154	WT Compass
+loc	155	Golden Feather
+loc	156	WT Small Key
+loc	157	Hyoi Pear
+loc	158	Skull Necklace
+loc	159	Purple Rupee
+loc	160	WT Dungeon Map
+loc	161	WT Big Key
+loc	162	Red Rupee
+loc	163	Golden Feather
+loc	164	Silver Rupee
+loc	165	Treasure Chart 38
+loc	166	Silver Rupee
+loc	167	Yellow Rupee
+loc	168	Hyoi Pear
+loc	169	Empty Bottle
+loc	170	Heart Container
+loc	171	Note to Mom
+loc	172	Platform Chart
+loc	173	Submarine Chart
+loc	174	Purple Rupee
+loc	175	Piece of Heart
+loc	176	Treasure Chart 16
+loc	177	Treasure Chart 35
+loc	178	Treasure Chart 32
+loc	179	Progressive Bow
+loc	180	Golden Feather
+loc	181	Green Chu Jelly
+loc	182	Treasure Chart 36
+loc	183	Skull Necklace
+loc	184	Telescope
+loc	185	Wind Tingle Statue
+loc	186	Joy Pendant
+loc	187	Skull Necklace
+loc	188	Orange Rupee
+loc	189	Orange Rupee
+loc	190	Progressive Sword
+loc	191	Hurricane Spin
+loc	192	Treasure Chart 3
+loc	193	Progressive Sword
+loc	194	Golden Feather
+loc	195	Moblin's Letter
+loc	196	Cabana Deed
+loc	197	Empty Bottle
+loc	198	Treasure Chart 4
+loc	199	Light Ring Chart
+loc	200	Blue Rupee
+loc	201	Treasure Chart 9
+loc	202	Triforce Shard 6
+loc	203	Command Melody
+loc	204	Power Bracelets
+loc	205	Piece of Heart
+loc	206	Delivery Bag
+loc	207	Skull Hammer
+loc	208	Skull Necklace
+loc	209	Piece of Heart
+loc	210	Piece of Heart
+loc	211	Din's Pearl
+loc	212	Piece of Heart
+loc	213	Treasure Chart 12
+loc	214	Grappling Hook
+loc	215	Hero's Charm
+loc	216	Goddess Tingle Statue
+loc	217	Red Chu Jelly
+loc	218	Purple Rupee
+loc	219	Treasure Chart 11
+loc	220	Orange Rupee
+loc	221	Silver Rupee
+loc	222	Treasure Chart 27
+loc	223	Earth Tingle Statue
+loc	224	Progressive Bow
+loc	225	Triforce Chart 3
+loc	226	Iron Boots
+loc	227	Triforce Chart 2
+loc	228	Earth God's Lyric
+loc	229	Maggie's Letter
+loc	230	Triforce Chart 7
+loc	231	Triforce Shard 4
+loc	232	Boomerang
+loc	233	Piece of Heart
+loc	234	Golden Feather
+loc	235	Heart Container
+loc	236	Triforce Chart 1
+loc	237	Progressive Wallet
+loc	238	Forbidden Tingle Statue
+loc	239	Treasure Chart 18
+loc	240	Orange Rupee
+loc	241	Piece of Heart
+loc	242	Silver Rupee
+loc	243	Orange Rupee
+loc	244	Piece of Heart
+loc	245	Nayru's Pearl
+loc	246	Piece of Heart
+loc	247	Joy Pendant
+loc	248	Heart Container
+loc	249	Progressive Bow
+loc	250	Triforce Chart 8
+loc	251	Orange Rupee
+loc	252	Treasure Chart 23
+loc	253	Progressive Bomb Bag
+loc	254	Orange Rupee
+loc	255	Empty Bottle
+loc	256	Piece of Heart
+loc	257	Treasure Chart 40
+loc	258	Piece of Heart
+loc	259	Treasure Chart 37
+loc	260	Red Rupee
+loc	261	Piece of Heart
+loc	262	Magic Armor
+loc	263	Purple Rupee
+loc	264	Tingle's Chart
+loc	265	Orange Rupee
+loc	266	Piece of Heart
+loc	267	Piece of Heart
+loc	268	Spoils Bag
+loc	269	Treasure Chart 8
+loc	270	Purple Rupee
+loc	271	Treasure Chart 31
+loc	272	Piece of Heart
+loc	273	Purple Rupee
+loc	274	Progressive Bomb Bag
+loc	275	Joy Pendant
+loc	276	Treasure Chart 21
+loc	277	Red Rupee
+loc	278	Purple Rupee
+loc	279	Orange Rupee
+loc	280	Piece of Heart
+loc	281	Wind God's Aria
+loc	282	Piece of Heart
+loc	283	Piece of Heart
+loc	284	Joy Pendant
+loc	285	Purple Rupee
+loc	286	Piece of Heart
+loc	287	Purple Rupee
+loc	288	Yellow Rupee
+loc	289	Orange Rupee
+loc	290	Red Rupee
+loc	291	Heart Container
+loc	292	Progressive Wallet
+loc	293	Treasure Chart 22
+loc	294	Orange Rupee
+loc	295	Red Rupee
+loc	296	Treasure Chart 39
+loc	297	Orange Rupee
+loc	298	Purple Rupee
+loc	299	Orange Rupee
+loc	300	Yellow Rupee
+loc	301	Secret Cave Chart
+loc	302	Red Rupee
+loc	303	Triforce Chart 6
+loc	304	Purple Rupee
+loc	305	Yellow Rupee
+loc	306	Piece of Heart
+loc	307	Treasure Chart 33
+loc	308	Purple Rupee
+loc	309	Orange Rupee
+loc	310	Piece of Heart
+loc	311	Purple Rupee
+loc	312	Orange Rupee
+loc	313	Piece of Heart
+loc	314	Joy Pendant
+loc	315	Treasure Chart 7
+loc	316	Joy Pendant
+loc	317	Red Rupee
+loc	318	Triforce Chart 5
+loc	319	Orange Rupee
+endcase
+case	swordless	Swordless1
+opt	progression_tingle_chests	1
+opt	sword_mode	Swordless
+opt	trap_chests	1
+draws	554
+loc	0	Ghost Ship Chart
+loc	1	Ice Trap Chest
+loc	2	Submarine Chart
+loc	3	Joy Pendant
+loc	4	Piece of Heart
+loc	5	Triforce Chart 4
+loc	6	Piece of Heart
+loc	7	Red Chu Jelly
+loc	8	Joy Pendant
+loc	9	Progressive Bow
+loc	10	Dragon Tingle Statue
+loc	11	Orange Rupee
+loc	12	Treasure Chart 38
+loc	13	Golden Feather
+loc	14	Treasure Chart 28
+loc	15	Silver Rupee
+loc	16	Progressive Quiver
+loc	17	Red Rupee
+loc	18	Orange Rupee
+loc	19	Treasure Chart 35
+loc	20	Piece of Heart
+loc	21	Piece of Heart
+loc	22	Skull Necklace
+loc	23	Deku Leaf
+loc	24	Piece of Heart
+loc	25	Triforce Chart 1
+loc	26	Piece of Heart
+loc	27	Treasure Chart 9
+loc	28	Silver Rupee
+loc	29	Piece of Heart
+loc	30	Din's Pearl
+loc	31	Treasure Chart 30
+loc	32	Heart Container
+loc	33	Treasure Chart 25
+loc	34	Orange Rupee
+loc	35	Skull Necklace
+loc	36	Empty Bottle
+loc	37	Silver Rupee
+loc	38	Silver Rupee
+loc	39	Golden Feather
+loc	40	Orange Rupee
+loc	41	Purple Rupee
+loc	42	Treasure Chart 32
+loc	43	Skull Necklace
+loc	44	Heart Container
+loc	45	Treasure Chart 31
+loc	46	Golden Feather
+loc	47	Progressive Wallet
+loc	48	Silver Rupee
+loc	49	Golden Feather
+loc	50	Skull Necklace
+loc	51	Golden Feather
+loc	52	Orange Rupee
+loc	53	Treasure Chart 8
+loc	54	Treasure Chart 4
+loc	55	Triforce Chart 8
+loc	56	DRC Small Key
+loc	57	DRC Small Key
+loc	58	Red Rupee
+loc	59	DRC Small Key
+loc	60	Golden Feather
+loc	61	Knight's Crest
+loc	62	DRC Small Key
+loc	63	DRC Dungeon Map
+loc	64	Treasure Chart 17
+loc	65	Hookshot
+loc	66	Heart Container
+loc	67	Ice Trap Chest
+loc	68	DRC Compass
+loc	69	Progressive Wallet
+loc	70	Orange Rupee
+loc	71	DRC Big Key
+loc	72	Piece of Heart
+loc	73	Triforce Shard 8
+loc	74	Orange Rupee
+loc	75	Command Melody
+loc	76	Golden Feather
+loc	77	Red Rupee
+loc	78	FW Small Key
+loc	79	Triforce Shard 7
+loc	80	Triforce Shard 4
+loc	81	Octo Chart
+loc	82	FW Compass
+loc	83	Piece of Heart
+loc	84	Boomerang
+loc	85	Boko Baba Seed
+loc	86	Piece of Heart
+loc	87	Treasure Chart 22
+loc	88	Yellow Rupee
+loc	89	FW Dungeon Map
+loc	90	FW Big Key
+loc	91	Purple Rupee
+loc	92	Iron Boots
+loc	93	Silver Rupee
+loc	94	Knight's Crest
+loc	95	Piece of Heart
+loc	96	Heart Container
+loc	97	Maggie's Letter
+loc	98	Treasure Chart 6
+loc	99	Goddess Tingle Statue
+loc	100	Piece of Heart
+loc	101	TotG Small Key
+loc	102	TotG Compass
+loc	103	TotG Dungeon Map
+loc	104	Treasure Chart 5
+loc	105	Treasure Chart 11
+loc	106	TotG Small Key
+loc	107	TotG Big Key
+loc	108	Empty Bottle
+loc	109	Orange Rupee
+loc	110	Treasure Chart 20
+loc	111	Piece of Heart
+loc	112	Progressive Picto Box
+loc	113	Progressive Shield
+loc	114	Treasure Chart 14
+loc	115	Power Bracelets
+loc	116	Bait Bag
+loc	117	FF Compass
+loc	118	FF Dungeon Map
+loc	119	Earth God's Lyric
+loc	120	Progressive Bow
+loc	121	Orange Rupee
+loc	122	Blue Rupee
+loc	123	Joy Pendant
+loc	124	Purple Rupee
+loc	125	Hyoi Pear
+loc	126	Progressive Bomb Bag
+loc	127	Purple Rupee
+loc	128	Joy Pendant
+loc	129	Joy Pendant
+loc	130	Note to Mom
+loc	131	Orange Rupee
+loc	132	ET Small Key
+loc	133	ET Compass
+loc	134	ET Big Key
+loc	135	Fill-Up Coupon
+loc	136	Purple Rupee
+loc	137	Silver Rupee
+loc	138	ET Small Key
+loc	139	ET Dungeon Map
+loc	140	ET Small Key
+loc	141	Silver Rupee
+loc	142	Piece of Heart
+loc	143	Skull Necklace
+loc	144	Golden Feather
+loc	145	Treasure Chart 19
+loc	146	Piece of Heart
+loc	147	Treasure Chart 15
+loc	148	Triforce Shard 1
+loc	149	Piece of Heart
+loc	150	Cabana Deed
+loc	151	WT Small Key
+loc	152	WT Small Key
+loc	153	WT Dungeon Map
+loc	154	Piece of Heart
+loc	155	Piece of Heart
+loc	156	Triforce Shard 6
+loc	157	WT Big Key
+loc	158	Ice Trap Chest
+loc	159	WT Compass
+loc	160	Piece of Heart
+loc	161	Piece of Heart
+loc	162	Treasure Chart 7
+loc	163	Wind Tingle Statue
+loc	164	Ice Trap Chest
+loc	165	Purple Rupee
+loc	166	Yellow Rupee
+loc	167	Golden Feather
+loc	168	Hyoi Pear
+loc	169	Skull Necklace
+loc	170	Purple Rupee
+loc	171	Red Rupee
+loc	172	Joy Pendant
+loc	173	Joy Pendant
+loc	174	Hyoi Pear
+loc	175	Purple Rupee
+loc	176	Piece of Heart
+loc	177	Treasure Chart 37
+loc	178	Forbidden Tingle Statue
+loc	179	Nayru's Pearl
+loc	180	Beedle's Chart
+loc	181	Treasure Chart 3
+loc	182	Skull Hammer
+loc	183	Empty Bottle
+loc	184	Wind God's Aria
+loc	185	Joy Pendant
+loc	186	Piece of Heart
+loc	187	Moblin's Letter
+loc	188	Treasure Chart 10
+loc	189	Piece of Heart
+loc	190	Progressive Bow
+loc	191	Piece of Heart
+loc	192	Treasure Chart 27
+loc	193	Farore's Pearl
+loc	194	Orange Rupee
+loc	195	Silver Rupee
+loc	196	Skull Necklace
+loc	197	Orange Rupee
+loc	198	Hyoi Pear
+loc	199	Earth Tingle Statue
+loc	200	Piece of Heart
+loc	201	Piece of Heart
+loc	202	Treasure Chart 16
+loc	203	Piece of Heart
+loc	204	Triforce Shard 5
+loc	205	Triforce Shard 2
+loc	206	Treasure Chart 41
+loc	207	Yellow Rupee
+loc	208	Triforce Chart 3
+loc	209	Purple Rupee
+loc	210	Blue Rupee
+loc	211	Rainbow Rupee
+loc	212	Triforce Shard 3
+loc	213	Green Rupee
+loc	214	Skull Necklace
+loc	215	Piece of Heart
+loc	216	Progressive Magic Meter
+loc	217	Joy Pendant
+loc	218	Purple Rupee
+loc	219	Silver Rupee
+loc	220	Treasure Chart 24
+loc	221	Orange Rupee
+loc	222	Knight's Crest
+loc	223	Treasure Chart 12
+loc	224	Treasure Chart 26
+loc	225	Secret Cave Chart
+loc	226	Delivery Bag
+loc	227	Treasure Chart 29
+loc	228	Progressive Bomb Bag
+loc	229	All-Purpose Bait
+loc	230	Piece of Heart
+loc	231	Bombs
+loc	232	Triforce Chart 5
+loc	233	Treasure Chart 34
+loc	234	Piece of Heart
+loc	235	Treasure Chart 21
+loc	236	Silver Rupee
+loc	237	Heart Container
+loc	238	Grappling Hook
+loc	239	Ice Trap Chest
+loc	240	Treasure Chart 23
+loc	241	Silver Rupee
+loc	242	Silver Rupee
+loc	243	Magic Armor
+loc	244	Red Rupee
+loc	245	Silver Rupee
+loc	246	Piece of Heart
+loc	247	Piece of Heart
+loc	248	Piece of Heart
+loc	249	Skull Necklace
+loc	250	Treasure Chart 1
+loc	251	Orange Rupee
+loc	252	Green Chu Jelly
+loc	253	Piece of Heart
+loc	254	Orange Rupee
+loc	255	Triforce Chart 6
+loc	256	Silver Rupee
+loc	257	Piece of Heart
+loc	258	Tingle Tuner
+loc	259	Purple Rupee
+loc	260	Piece of Heart
+loc	261	Progressive Picto Box
+loc	262	Red Rupee
+loc	263	Orange Rupee
+loc	264	Orange Rupee
+loc	265	Treasure Chart 2
+loc	266	Triforce Chart 2
+loc	267	Empty Bottle
+loc	268	Orange Rupee
+loc	269	Treasure Chart 40
+loc	270	Piece of Heart
+loc	271	Progressive Quiver
+loc	272	Piece of Heart
+loc	273	Heart Container
+loc	274	Piece of Heart
+loc	275	Treasure Chart 18
+loc	276	Purple Rupee
+loc	277	Joy Pendant
+loc	278	Joy Pendant
+loc	279	Joy Pendant
+loc	280	Purple Rupee
+loc	281	Light Ring Chart
+loc	282	Hero's Charm
+loc	283	Purple Rupee
+loc	284	Treasure Chart 39
+loc	285	Joy Pendant
+loc	286	Orange Rupee
+loc	287	Purple Rupee
+loc	288	Joy Pendant
+loc	289	Purple Rupee
+loc	290	Red Rupee
+loc	291	Piece of Heart
+loc	292	Red Rupee
+loc	293	Great Fairy Chart
+loc	294	Purple Rupee
+loc	295	Purple Rupee
+loc	296	Red Rupee
+loc	297	Purple Rupee
+loc	298	Platform Chart
+loc	299	Piece of Heart
+loc	300	Purple Rupee
+loc	301	Triforce Chart 7
+loc	302	Treasure Chart 13
+loc	303	Treasure Chart 36
+loc	304	Piece of Heart
+loc	305	Orange Rupee
+loc	306	Piece of Heart
+loc	307	Orange Rupee
+loc	308	Telescope
+loc	309	Purple Rupee
+loc	310	Treasure Chart 33
+loc	311	Orange Rupee
+loc	312	Tingle's Chart
+loc	313	Orange Rupee
+loc	314	Orange Rupee
+loc	315	Purple Rupee
+loc	316	Spoils Bag
+loc	317	Piece of Heart
+loc	318	Orange Rupee
+loc	319	Orange Rupee
+endcase
+case	no_starting_sword	NoSword
+opt	progression_dungeon_secrets	1
+opt	sword_mode	No Starting Sword
+opt	logic_obscurity	Hard
+opt	logic_precision	Very Hard
+draws	585
+loc	0	Skull Hammer
+loc	1	Earth Tingle Statue
+loc	2	Purple Rupee
+loc	3	Red Rupee
+loc	4	Wind God's Aria
+loc	5	Hurricane Spin
+loc	6	Treasure Chart 12
+loc	7	Treasure Chart 30
+loc	8	Treasure Chart 11
+loc	9	Purple Rupee
+loc	10	Triforce Chart 3
+loc	11	Hyoi Pear
+loc	12	Silver Rupee
+loc	13	Treasure Chart 4
+loc	14	Treasure Chart 36
+loc	15	Yellow Rupee
+loc	16	Yellow Rupee
+loc	17	Treasure Chart 35
+loc	18	Hyoi Pear
+loc	19	Empty Bottle
+loc	20	Silver Rupee
+loc	21	Piece of Heart
+loc	22	Green Rupee
+loc	23	Progressive Quiver
+loc	24	Silver Rupee
+loc	25	Bombs
+loc	26	Boko Baba Seed
+loc	27	Note to Mom
+loc	28	Orange Rupee
+loc	29	Triforce Chart 4
+loc	30	Cabana Deed
+loc	31	Piece of Heart
+loc	32	Great Fairy Chart
+loc	33	Piece of Heart
+loc	34	Empty Bottle
+loc	35	Purple Rupee
+loc	36	Piece of Heart
+loc	37	Treasure Chart 16
+loc	38	Skull Necklace
+loc	39	Skull Necklace
+loc	40	Skull Necklace
+loc	41	Joy Pendant
+loc	42	Red Rupee
+loc	43	Treasure Chart 10
+loc	44	Silver Rupee
+loc	45	Joy Pendant
+loc	46	Treasure Chart 26
+loc	47	Red Rupee
+loc	48	Orange Rupee
+loc	49	Joy Pendant
+loc	50	Triforce Shard 4
+loc	51	All-Purpose Bait
+loc	52	Joy Pendant
+loc	53	Treasure Chart 18
+loc	54	Heart Container
+loc	55	Piece of Heart
+loc	56	DRC Small Key
+loc	57	Earth God's Lyric
+loc	58	DRC Small Key
+loc	59	Submarine Chart
+loc	60	DRC Small Key
+loc	61	DRC Big Key
+loc	62	Piece of Heart
+loc	63	Progressive Magic Meter
+loc	64	DRC Dungeon Map
+loc	65	Piece of Heart
+loc	66	Heart Container
+loc	67	Orange Rupee
+loc	68	Piece of Heart
+loc	69	Hyoi Pear
+loc	70	Silver Rupee
+loc	71	DRC Small Key
+loc	72	Treasure Chart 19
+loc	73	DRC Compass
+loc	74	Joy Pendant
+loc	75	Orange Rupee
+loc	76	Fill-Up Coupon
+loc	77	Joy Pendant
+loc	78	Boomerang
+loc	79	Triforce Shard 7
+loc	80	FW Dungeon Map
+loc	81	Orange Rupee
+loc	82	FW Compass
+loc	83	Empty Bottle
+loc	84	Joy Pendant
+loc	85	Piece of Heart
+loc	86	FW Big Key
+loc	87	Magic Armor
+loc	88	Green Chu Jelly
+loc	89	Platform Chart
+loc	90	Piece of Heart
+loc	91	Skull Necklace
+loc	92	FW Small Key
+loc	93	Red Rupee
+loc	94	Treasure Chart 27
+loc	95	Piece of Heart
+loc	96	Progressive Quiver
+loc	97	Dragon Tingle Statue
+loc	98	TotG Small Key
+loc	99	TotG Dungeon Map
+loc	100	Silver Rupee
+loc	101	Treasure Chart 14
+loc	102	Golden Feather
+loc	103	Piece of Heart
+loc	104	TotG Small Key
+loc	105	Triforce Shard 5
+loc	106	Ghost Ship Chart
+loc	107	Progressive Sword
+loc	108	TotG Compass
+loc	109	Purple Rupee
+loc	110	TotG Big Key
+loc	111	Skull Necklace
+loc	112	Piece of Heart
+loc	113	Command Melody
+loc	114	Power Bracelets
+loc	115	FF Dungeon Map
+loc	116	Secret Cave Chart
+loc	117	Triforce Shard 1
+loc	118	FF Compass
+loc	119	Purple Rupee
+loc	120	Progressive Shield
+loc	121	Golden Feather
+loc	122	Piece of Heart
+loc	123	Beedle's Chart
+loc	124	Piece of Heart
+loc	125	Piece of Heart
+loc	126	Farore's Pearl
+loc	127	Golden Feather
+loc	128	Silver Rupee
+loc	129	Treasure Chart 40
+loc	130	Orange Rupee
+loc	131	Piece of Heart
+loc	132	ET Small Key
+loc	133	Piece of Heart
+loc	134	ET Compass
+loc	135	Maggie's Letter
+loc	136	ET Dungeon Map
+loc	137	ET Big Key
+loc	138	Piece of Heart
+loc	139	Tingle Tuner
+loc	140	ET Small Key
+loc	141	ET Small Key
+loc	142	Progressive Sword
+loc	143	Treasure Chart 25
+loc	144	Skull Necklace
+loc	145	Red Chu Jelly
+loc	146	Piece of Heart
+loc	147	Skull Necklace
+loc	148	WT Big Key
+loc	149	Treasure Chart 1
+loc	150	Orange Rupee
+loc	151	Bait Bag
+loc	152	WT Small Key
+loc	153	Forbidden Tingle Statue
+loc	154	WT Small Key
+loc	155	Orange Rupee
+loc	156	Golden Feather
+loc	157	Grappling Hook
+loc	158	WT Compass
+loc	159	Joy Pendant
+loc	160	WT Dungeon Map
+loc	161	Piece of Heart
+loc	162	Progressive Bow
+loc	163	Treasure Chart 39
+loc	164	Piece of Heart
+loc	165	Golden Feather
+loc	166	Orange Rupee
+loc	167	Golden Feather
+loc	168	Red Rupee
+loc	169	Purple Rupee
+loc	170	Piece of Heart
+loc	171	Progressive Bomb Bag
+loc	172	Golden Feather
+loc	173	Silver Rupee
+loc	174	Piece of Heart
+loc	175	Tingle's Chart
+loc	176	Piece of Heart
+loc	177	Knight's Crest
+loc	178	Triforce Shard 8
+loc	179	Progressive Sword
+loc	180	Heart Container
+loc	181	Treasure Chart 17
+loc	182	Piece of Heart
+loc	183	Treasure Chart 15
+loc	184	Spoils Bag
+loc	185	Orange Rupee
+loc	186	Piece of Heart
+loc	187	Knight's Crest
+loc	188	Orange Rupee
+loc	189	Moblin's Letter
+loc	190	Delivery Bag
+loc	191	Heart Container
+loc	192	Orange Rupee
+loc	193	Deku Leaf
+loc	194	Silver Rupee
+loc	195	Silver Rupee
+loc	196	Octo Chart
+loc	197	Piece of Heart
+loc	198	Orange Rupee
+loc	199	Orange Rupee
+loc	200	Hyoi Pear
+loc	201	Piece of Heart
+loc	202	Piece of Heart
+loc	203	Iron Boots
+loc	204	Triforce Shard 2
+loc	205	Wind Tingle Statue
+loc	206	Piece of Heart
+loc	207	Progressive Bomb Bag
+loc	208	Progressive Picto Box
+loc	209	Nayru's Pearl
+loc	210	Hero's Charm
+loc	211	Silver Rupee
+loc	212	Treasure Chart 8
+loc	213	Piece of Heart
+loc	214	Triforce Shard 3
+loc	215	Empty Bottle
+loc	216	Din's Pearl
+loc	217	Skull Necklace
+loc	218	Treasure Chart 7
+loc	219	Progressive Wallet
+loc	220	Treasure Chart 38
+loc	221	Blue Rupee
+loc	222	Heart Container
+loc	223	Progressive Sword
+loc	224	Progressive Bow
+loc	225	Piece of Heart
+loc	226	Treasure Chart 2
+loc	227	Knight's Crest
+loc	228	Piece of Heart
+loc	229	Treasure Chart 13
+loc	230	Progressive Bow
+loc	231	Triforce Shard 6
+loc	232	Hookshot
+loc	233	Piece of Heart
+loc	234	Piece of Heart
+loc	235	Triforce Chart 5
+loc	236	Treasure Chart 21
+loc	237	Piece of Heart
+loc	238	Triforce Chart 2
+loc	239	Goddess Tingle Statue
+loc	240	Orange Rupee
+loc	241	Purple Rupee
+loc	242	Light Ring Chart
+loc	243	Treasure Chart 37
+loc	244	Progressive Picto Box
+loc	245	Treasure Chart 31
+loc	246	Treasure Chart 29
+loc	247	Purple Rupee
+loc	248	Treasure Chart 9
+loc	249	Treasure Chart 20
+loc	250	Golden Feather
+loc	251	Yellow Rupee
+loc	252	Triforce Chart 7
+loc	253	Treasure Chart 23
+loc	254	Rainbow Rupee
+loc	255	Treasure Chart 32
+loc	256	Treasure Chart 34
+loc	257	Treasure Chart 24
+loc	258	Golden Feather
+loc	259	Piece of Heart
+loc	260	Piece of Heart
+loc	261	Treasure Chart 33
+loc	262	Purple Rupee
+loc	263	Piece of Heart
+loc	264	Blue Rupee
+loc	265	Silver Rupee
+loc	266	Treasure Chart 3
+loc	267	Piece of Heart
+loc	268	Triforce Chart 8
+loc	269	Silver Rupee
+loc	270	Treasure Chart 5
+loc	271	Skull Necklace
+loc	272	Purple Rupee
+loc	273	Joy Pendant
+loc	274	Silver Rupee
+loc	275	Silver Rupee
+loc	276	Orange Rupee
+loc	277	Purple Rupee
+loc	278	Purple Rupee
+loc	279	Heart Container
+loc	280	Red Rupee
+loc	281	Red Rupee
+loc	282	Piece of Heart
+loc	283	Telescope
+loc	284	Orange Rupee
+loc	285	Orange Rupee
+loc	286	Treasure Chart 22
+loc	287	Orange Rupee
+loc	288	Purple Rupee
+loc	289	Treasure Chart 6
+loc	290	Orange Rupee
+loc	291	Triforce Chart 1
+loc	292	Joy Pendant
+loc	293	Orange Rupee
+loc	294	Orange Rupee
+loc	295	Red Rupee
+loc	296	Purple Rupee
+loc	297	Orange Rupee
+loc	298	Piece of Heart
+loc	299	Purple Rupee
+loc	300	Red Rupee
+loc	301	Orange Rupee
+loc	302	Progressive Wallet
+loc	303	Orange Rupee
+loc	304	Treasure Chart 28
+loc	305	Red Rupee
+loc	306	Orange Rupee
+loc	307	Purple Rupee
+loc	308	Orange Rupee
+loc	309	Purple Rupee
+loc	310	Piece of Heart
+loc	311	Orange Rupee
+loc	312	Purple Rupee
+loc	313	Orange Rupee
+loc	314	Red Rupee
+loc	315	Treasure Chart 41
+loc	316	Orange Rupee
+loc	317	Red Rupee
+loc	318	Triforce Chart 6
+loc	319	Yellow Rupee
+endcase
+case	no_spoiler	NoSpoiler
+key	SwitchWaker-rando-key-1
+opt	do_not_generate_spoiler_log	1
+draws	559
+loc	0	Dragon Tingle Statue
+loc	1	Piece of Heart
+loc	2	Orange Rupee
+loc	3	Purple Rupee
+loc	4	Triforce Chart 8
+loc	5	Orange Rupee
+loc	6	Piece of Heart
+loc	7	Piece of Heart
+loc	8	Treasure Chart 29
+loc	9	Triforce Shard 7
+loc	10	Hookshot
+loc	11	Piece of Heart
+loc	12	Treasure Chart 34
+loc	13	Octo Chart
+loc	14	Orange Rupee
+loc	15	Piece of Heart
+loc	16	Red Rupee
+loc	17	Purple Rupee
+loc	18	Red Rupee
+loc	19	Piece of Heart
+loc	20	Purple Rupee
+loc	21	Skull Necklace
+loc	22	Piece of Heart
+loc	23	Triforce Shard 4
+loc	24	Silver Rupee
+loc	25	Command Melody
+loc	26	Heart Container
+loc	27	Hero's Charm
+loc	28	Piece of Heart
+loc	29	Orange Rupee
+loc	30	Orange Rupee
+loc	31	Treasure Chart 35
+loc	32	Silver Rupee
+loc	33	Piece of Heart
+loc	34	Treasure Chart 41
+loc	35	Piece of Heart
+loc	36	Treasure Chart 16
+loc	37	Treasure Chart 19
+loc	38	Yellow Rupee
+loc	39	Silver Rupee
+loc	40	Hyoi Pear
+loc	41	Joy Pendant
+loc	42	Piece of Heart
+loc	43	Silver Rupee
+loc	44	Purple Rupee
+loc	45	Hyoi Pear
+loc	46	Knight's Crest
+loc	47	Piece of Heart
+loc	48	Green Rupee
+loc	49	Golden Feather
+loc	50	Piece of Heart
+loc	51	Piece of Heart
+loc	52	Treasure Chart 39
+loc	53	Blue Rupee
+loc	54	Piece of Heart
+loc	55	Triforce Chart 4
+loc	56	DRC Small Key
+loc	57	DRC Small Key
+loc	58	Orange Rupee
+loc	59	Goddess Tingle Statue
+loc	60	DRC Dungeon Map
+loc	61	DRC Small Key
+loc	62	DRC Small Key
+loc	63	Boomerang
+loc	64	Progressive Wallet
+loc	65	Orange Rupee
+loc	66	All-Purpose Bait
+loc	67	Progressive Bow
+loc	68	Delivery Bag
+loc	69	DRC Compass
+loc	70	Treasure Chart 37
+loc	71	Ghost Ship Chart
+loc	72	Treasure Chart 26
+loc	73	DRC Big Key
+loc	74	Progressive Magic Meter
+loc	75	Farore's Pearl
+loc	76	Treasure Chart 6
+loc	77	Rainbow Rupee
+loc	78	Piece of Heart
+loc	79	Piece of Heart
+loc	80	Knight's Crest
+loc	81	Joy Pendant
+loc	82	FW Compass
+loc	83	Joy Pendant
+loc	84	Golden Feather
+loc	85	Purple Rupee
+loc	86	Progressive Bomb Bag
+loc	87	Yellow Rupee
+loc	88	Silver Rupee
+loc	89	Hyoi Pear
+loc	90	Heart Container
+loc	91	Red Rupee
+loc	92	FW Big Key
+loc	93	FW Dungeon Map
+loc	94	FW Small Key
+loc	95	Red Rupee
+loc	96	Note to Mom
+loc	97	Iron Boots
+loc	98	Orange Rupee
+loc	99	TotG Small Key
+loc	100	TotG Dungeon Map
+loc	101	Progressive Picto Box
+loc	102	TotG Compass
+loc	103	Purple Rupee
+loc	104	Heart Container
+loc	105	Progressive Sword
+loc	106	TotG Big Key
+loc	107	Silver Rupee
+loc	108	Triforce Shard 8
+loc	109	TotG Small Key
+loc	110	Treasure Chart 11
+loc	111	Skull Necklace
+loc	112	Joy Pendant
+loc	113	Skull Necklace
+loc	114	FF Compass
+loc	115	Forbidden Tingle Statue
+loc	116	FF Dungeon Map
+loc	117	Empty Bottle
+loc	118	Progressive Bow
+loc	119	Earth Tingle Statue
+loc	120	Progressive Bow
+loc	121	Piece of Heart
+loc	122	Golden Feather
+loc	123	Triforce Chart 2
+loc	124	Knight's Crest
+loc	125	Piece of Heart
+loc	126	Triforce Shard 6
+loc	127	Skull Necklace
+loc	128	Treasure Chart 22
+loc	129	Golden Feather
+loc	130	Wind Tingle Statue
+loc	131	Purple Rupee
+loc	132	ET Small Key
+loc	133	Silver Rupee
+loc	134	ET Big Key
+loc	135	Piece of Heart
+loc	136	Joy Pendant
+loc	137	ET Dungeon Map
+loc	138	Piece of Heart
+loc	139	ET Small Key
+loc	140	ET Small Key
+loc	141	Treasure Chart 28
+loc	142	Great Fairy Chart
+loc	143	Purple Rupee
+loc	144	Din's Pearl
+loc	145	Tingle Tuner
+loc	146	ET Compass
+loc	147	Grappling Hook
+loc	148	Golden Feather
+loc	149	Treasure Chart 25
+loc	150	Joy Pendant
+loc	151	Treasure Chart 40
+loc	152	WT Compass
+loc	153	Heart Container
+loc	154	Golden Feather
+loc	155	Piece of Heart
+loc	156	WT Small Key
+loc	157	WT Big Key
+loc	158	WT Small Key
+loc	159	Silver Rupee
+loc	160	Empty Bottle
+loc	161	WT Dungeon Map
+loc	162	Treasure Chart 20
+loc	163	Triforce Chart 5
+loc	164	Deku Leaf
+loc	165	Red Rupee
+loc	166	Orange Rupee
+loc	167	Silver Rupee
+loc	168	Progressive Bomb Bag
+loc	169	Orange Rupee
+loc	170	Red Chu Jelly
+loc	171	Silver Rupee
+loc	172	Treasure Chart 14
+loc	173	Orange Rupee
+loc	174	Treasure Chart 2
+loc	175	Treasure Chart 23
+loc	176	Treasure Chart 8
+loc	177	Silver Rupee
+loc	178	Treasure Chart 33
+loc	179	Triforce Shard 2
+loc	180	Yellow Rupee
+loc	181	Purple Rupee
+loc	182	Skull Necklace
+loc	183	Skull Necklace
+loc	184	Triforce Shard 3
+loc	185	Purple Rupee
+loc	186	Piece of Heart
+loc	187	Piece of Heart
+loc	188	Orange Rupee
+loc	189	Piece of Heart
+loc	190	Triforce Chart 1
+loc	191	Piece of Heart
+loc	192	Fill-Up Coupon
+loc	193	Skull Hammer
+loc	194	Piece of Heart
+loc	195	Beedle's Chart
+loc	196	Skull Necklace
+loc	197	Treasure Chart 9
+loc	198	Empty Bottle
+loc	199	Triforce Shard 5
+loc	200	Silver Rupee
+loc	201	Progressive Quiver
+loc	202	Joy Pendant
+loc	203	Piece of Heart
+loc	204	Wind God's Aria
+loc	205	Bait Bag
+loc	206	Orange Rupee
+loc	207	Progressive Quiver
+loc	208	Skull Necklace
+loc	209	Cabana Deed
+loc	210	Treasure Chart 38
+loc	211	Golden Feather
+loc	212	Piece of Heart
+loc	213	Heart Container
+loc	214	Power Bracelets
+loc	215	Piece of Heart
+loc	216	Progressive Shield
+loc	217	Blue Rupee
+loc	218	Tingle's Chart
+loc	219	Piece of Heart
+loc	220	Magic Armor
+loc	221	Progressive Sword
+loc	222	Piece of Heart
+loc	223	Silver Rupee
+loc	224	Triforce Shard 1
+loc	225	Piece of Heart
+loc	226	Progressive Sword
+loc	227	Piece of Heart
+loc	228	Orange Rupee
+loc	229	Golden Feather
+loc	230	Earth God's Lyric
+loc	231	Piece of Heart
+loc	232	Bombs
+loc	233	Treasure Chart 1
+loc	234	Triforce Chart 3
+loc	235	Treasure Chart 30
+loc	236	Treasure Chart 3
+loc	237	Heart Container
+loc	238	Treasure Chart 31
+loc	239	Treasure Chart 21
+loc	240	Silver Rupee
+loc	241	Nayru's Pearl
+loc	242	Spoils Bag
+loc	243	Treasure Chart 18
+loc	244	Platform Chart
+loc	245	Green Chu Jelly
+loc	246	Piece of Heart
+loc	247	Moblin's Letter
+loc	248	Piece of Heart
+loc	249	Telescope
+loc	250	Orange Rupee
+loc	251	Treasure Chart 24
+loc	252	Piece of Heart
+loc	253	Treasure Chart 32
+loc	254	Boko Baba Seed
+loc	255	Golden Feather
+loc	256	Light Ring Chart
+loc	257	Skull Necklace
+loc	258	Silver Rupee
+loc	259	Treasure Chart 13
+loc	260	Maggie's Letter
+loc	261	Joy Pendant
+loc	262	Treasure Chart 10
+loc	263	Treasure Chart 5
+loc	264	Empty Bottle
+loc	265	Hyoi Pear
+loc	266	Joy Pendant
+loc	267	Treasure Chart 17
+loc	268	Treasure Chart 36
+loc	269	Orange Rupee
+loc	270	Purple Rupee
+loc	271	Triforce Chart 6
+loc	272	Piece of Heart
+loc	273	Purple Rupee
+loc	274	Yellow Rupee
+loc	275	Orange Rupee
+loc	276	Purple Rupee
+loc	277	Treasure Chart 12
+loc	278	Orange Rupee
+loc	279	Piece of Heart
+loc	280	Orange Rupee
+loc	281	Red Rupee
+loc	282	Hurricane Spin
+loc	283	Purple Rupee
+loc	284	Piece of Heart
+loc	285	Secret Cave Chart
+loc	286	Joy Pendant
+loc	287	Progressive Picto Box
+loc	288	Piece of Heart
+loc	289	Treasure Chart 4
+loc	290	Yellow Rupee
+loc	291	Purple Rupee
+loc	292	Orange Rupee
+loc	293	Progressive Wallet
+loc	294	Red Rupee
+loc	295	Orange Rupee
+loc	296	Treasure Chart 7
+loc	297	Orange Rupee
+loc	298	Treasure Chart 27
+loc	299	Treasure Chart 15
+loc	300	Triforce Chart 7
+loc	301	Purple Rupee
+loc	302	Piece of Heart
+loc	303	Red Rupee
+loc	304	Orange Rupee
+loc	305	Orange Rupee
+loc	306	Orange Rupee
+loc	307	Purple Rupee
+loc	308	Piece of Heart
+loc	309	Red Rupee
+loc	310	Red Rupee
+loc	311	Red Rupee
+loc	312	Submarine Chart
+loc	313	Red Rupee
+loc	314	Purple Rupee
+loc	315	Purple Rupee
+loc	316	Red Rupee
+loc	317	Orange Rupee
+loc	318	Yellow Rupee
+loc	319	Joy Pendant
+endcase
+end
