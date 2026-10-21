@@ -144,7 +144,7 @@ void randoFileSelectMenuInit() {
                         "ni la semilla pendiente",
                         "A: removes the card's switchwaker-rando-*.json files that no save slot and no pending seed "
                         "uses",
-                        cleanValue, cleanActivate, 140});
+                        cleanValue, cleanActivate, 150}); // after R4.5's "Spoiler log..." (140)
 }
 
 std::string randoCleanSidecars(bool es, pcr::SidecarCleanResult* out) {

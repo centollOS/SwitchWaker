@@ -89,11 +89,13 @@ void start() {
     const int randomRow = actionRow(rows, "Random seed");
     const int permalinkRow = actionRow(rows, "Paste permalink");
     const int genRow = actionRow(rows, "Generate");
-    // R4.4: "Clean unused seed files" (order 140) is the one row after Generate.
+    // R4.5: "Spoiler log..." (order 140) right after Generate; R4.4: "Clean unused seed files"
+    // (order 150) after it, the tab's last row.
+    const int spoilerRow = actionRow(rows, "Spoiler log...");
     const int cleanRow = actionRow(rows, "Clean unused seed files");
     randoSmokeCheck(kName, "the four seed rows, in order, after the options",
                     seedRow > 0 && randomRow == seedRow + 1 && permalinkRow == seedRow + 2 && genRow == seedRow + 3 &&
-                        cleanRow == genRow + 1 && cleanRow == (int)rows.size() - 1 &&
+                        spoilerRow == genRow + 1 && cleanRow == spoilerRow + 1 && cleanRow == (int)rows.size() - 1 &&
                         rows[seedRow - 1].kind == RandoRowKind::Option);
     if (genRow < 0) {
         randoSmokeEnd(kName);

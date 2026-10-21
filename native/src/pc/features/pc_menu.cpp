@@ -42,6 +42,7 @@
 #include "features/rando/pc_rando_text_ui.h"
 #include "features/rando/pc_rando_settings.h"
 #include "features/rando/pc_rando_menu.h" // R4.3: the seed rows
+#include "features/rando/pc_rando_spoiler_ui.h" // R4.5: the spoiler viewer page
 
 #include "d/d_com_inf_game.h"
 #include "d/d_kankyo.h"
@@ -909,6 +910,7 @@ void setOpen(bool open) {
     m.warpPage = false;
     if (!open) {
         randoTextCancel(); // the randomizer's text input ends with the menu
+        randoSpoilerClose(); // and so does its spoiler viewer (R4.5)
     }
     m.waitRelease = true;
     m.captureAction = -1;
@@ -1208,6 +1210,10 @@ void handleInput(uint32_t keys) {
         randoTextKeys(p); // the randomizer's text input has the keys (same bits as rando::TextKey)
         return;
     }
+    if (randoSpoilerActive()) {
+        randoSpoilerKeys(p); // R4.5: the spoiler viewer has the keys (same bits as pcr::SpoilerKey)
+        return;
+    }
     if (m.warpPage) {
         const int count = kMainWarpCount + kAllWarpCount;
         if (p & kBack) {
@@ -1448,7 +1454,7 @@ void drawMenu() {
         const char* name = T(kTabNames[t], kTabNamesEn[t]);
         ImGui::PushStyleColor(ImGuiCol_Button, sel ? ImVec4(0.20f, 0.42f, 0.70f, 1.0f) : ImVec4(0.16f, 0.18f, 0.22f, 1.0f));
         if (ImGui::Button(name, ImVec2(ImGui::CalcTextSize(name).x + tabSpare, 0)) && !m.warpPage &&
-            m.captureAction < 0 && !randoTextActive()) {
+            m.captureAction < 0 && !randoTextActive() && !randoSpoilerActive()) {
             m.tab = t;
         }
         ImGui::PopStyleColor();
@@ -1462,6 +1468,8 @@ void drawMenu() {
         float valueX = ImGui::GetContentRegionAvail().x * 0.45f;
         if (randoTextActive()) {
             randoTextDraw(&help); // the randomizer's text input instead of the rows
+        } else if (randoSpoilerActive()) {
+            randoSpoilerDraw(&help); // R4.5: the spoiler viewer instead of the rows
         } else if (m.warpPage) {
             ImGui::TextColored(kAccent, "%s", T("Viajar a...   (B: volver)", "Travel to...   (B: back)"));
             const int count = kMainWarpCount + kAllWarpCount;
@@ -1891,6 +1899,7 @@ void menuInit() {
     }
     randoSettingsRegister(); // the Randomizer tab's COS_RANDO_* settings
     randoMenuInit();         // R4.3: its seed rows (Seed..., Random seed, Paste permalink, Generate)
+    randoSpoilerInit();      // R4.5: then "Spoiler log..."
     m.editMode = pc_settings_mode();
     sSmoke.on = gConfig.smoke != nullptr && strcmp(gConfig.smoke, "options-menu") == 0;
     if (sSmoke.on) {
@@ -1929,7 +1938,8 @@ void menuFrame() {
     // The randomizer's text input (pc_rando_text_ui.h) opens the menu to show it, and its smoke reads
     // the script too.
     const bool textBefore = randoTextActive();
-    if (textBefore && !m.open) {
+    const bool spoilerBefore = randoSpoilerActive(); // R4.5: the spoiler viewer, the same way
+    if ((textBefore || spoilerBefore) && !m.open) {
         setOpen(true);
         m.waitRelease = false; // the menu was not opened by a key
     }
@@ -1946,7 +1956,7 @@ void menuFrame() {
         dScnPly_ply_c::setPauseTimer(2);
     }
     drawMenu();
-    if (textBefore && !randoTextActive()) {
+    if ((textBefore && !randoTextActive()) || (spoilerBefore && !randoSpoilerActive())) {
         m.waitRelease = true; // the key that ended it (A on OK, Enter, B) does nothing to the rows
     }
 }

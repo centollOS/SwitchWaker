@@ -259,7 +259,7 @@ void randoMenuInit() {
                         "A: genera la semilla; la próxima partida nueva la usa. Registros en user/rando",
                         "A: generates the seed; the next new game uses it. Logs in user/rando", generateValue,
                         generateActivate, 130});
-    randoFileSelectMenuInit(); // R4.4: "Clean unused seed files" (order 140)
+    randoFileSelectMenuInit(); // R4.4: "Clean unused seed files" (order 150)
 }
 
 bool randoGenBusy() {

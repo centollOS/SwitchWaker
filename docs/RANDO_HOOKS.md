@@ -654,3 +654,14 @@ pure part `features/rando/pc_rando_sidecars.cpp`). Checked by the `newfile` smok
 
 PAL: TODO. The PAL build compiles `game/src/pal/d/d_file_select.inc` instead (its own
 `dFile_select_c::_draw`), so PAL file selects show no line until R7.6 adds the same call there.
+
+## R4.5
+
+Spoiler viewer: no hunk in `game/`. The row "Spoiler log..." is an R4.1 `RandoMenuAction` (order 140,
+after Generate) registered by `game_hooks/pc_rando_hooks_spoiler.cpp` (`randoSpoilerInit`, called by
+`pc_menu.cpp` `menuInit`); `pc_menu.cpp` hosts its page as it hosts R4.2's text input (keys in
+`handleInput`, drawing in `drawMenu`, opened with the menu in `menuFrame`, closed in `setOpen`). The
+model (spoiler log parser, locations by zone, pager) is `features/rando/pc_rando_spoilerview.cpp`.
+Checked by the `spoiler` smoke (shots 530, 580, 630) and `cos_rando_test_R4_5`. wwrando reference:
+`randomizer.py` `write_spoiler_log` (`randomizers/items.py` `write_progression_spheres_to_log`,
+`write_item_location_spoilers_to_log`).
