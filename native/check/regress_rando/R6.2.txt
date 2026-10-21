@@ -1,0 +1,6 @@
+# R6.2 (docs/RANDOMIZER_PLAN.md): key-lunacy. 20 seeds of the keylunacy preset from cos_rando_cli must
+# pass ww_verify and be golden against wwrando 1.10.0_9775811 (dungeon items in the main pools). The
+# runtime part (a FW small key picked up on sea/Room44 goes to FW's saved key count) is step 6 of the
+# dkeys smoke, already run on sea:44 by R3.4.txt.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 20 --preset keylunacy --golden

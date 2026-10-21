@@ -16,7 +16,13 @@
 //      DRC map sets the loaded memory's map bit, and an FW key and map still go to FW's saved info;
 //   5. a field DRC small key and an FF map (daItem, fopAcM_createItem) are spawned in front of the
 //      player and still exist with a model 30 frames later;
-//   6. deactivation (not forced): the tables are back to their boot bytes, the messages are gone and
+//   6. key-lunacy (R6.2), outside the dungeons only: once no event runs (A through any opening talk),
+//      a field FW small key (0x1D, action 2: it pops up and falls back on the player) is picked up by
+//      touch; the item-get demo must carry 0x1D and end, and afterwards FW's saved key count is +1
+//      while the loaded memory, the key counter and every other stage's saved info are unchanged
+//      (generic_small_key_item_get_func's "other stage" branch, reached through a real pickup), and the
+//      field key deletes itself;
+//   7. deactivation (not forced): the tables are back to their boot bytes, the messages are gone and
 //      execItemGet(0x13) is vanilla again.
 // Exit 0 when all hold, else 1.
 #include "pc_rando_smokes.h"
@@ -32,11 +38,14 @@
 #include "d/d_item_data.h"
 #include "d/d_save.h"
 #include "d/d_stage.h"
+#include "d/d_item.h"
 #include "f_op/f_op_actor_mng.h"
 #include "f_pc/f_pc_layer.h"
 #include "f_pc/f_pc_manager.h"
 #include "f_pc/f_pc_name.h"
 #include "f_pc/f_pc_node.h"
+
+#include <dolphin/pad.h>
 
 #include <cstdio>
 #include <cstring>
@@ -49,6 +58,19 @@ constexpr const char* kName = "dkeys";
 unsigned int sEndFrame = 0;
 fpc_ProcID sKeyId = fpcM_ERROR_PROCESS_ID_e;
 fpc_ProcID sMapId = fpcM_ERROR_PROCESS_ID_e;
+
+// R6.2: the FW small key picked up on the sea stage.
+constexpr u8 kFwKey = 0x1D;                 // FW Small Key (tweaks.py dungeon_items)
+constexpr int kFwStage = 4;                 // FW's save stage number
+constexpr unsigned int kSettleFrames = 60;  // no event for this long before the key is spawned
+constexpr unsigned int kStartFrames = 300;  // the touch must start the get demo within this
+constexpr unsigned int kEventFrames = 3600; // the get demo must end within this
+constexpr unsigned int kTalkFrames = 45;
+constexpr unsigned int kGoneFrames = 120;  // the field key deletes itself within this after its demo
+enum Pickup { kPickOff, kPickWait, kPickStart, kPickEvent, kPickGone, kPickDone };
+Pickup sPick = kPickOff;
+unsigned int sPickSince = 0;
+fpc_ProcID sFwKeyId = fpcM_ERROR_PROCESS_ID_e;
 
 dItem_data_item_resource sBootRes[0x100];
 dItem_data_field_item_res sBootField[0x100];
@@ -104,6 +126,7 @@ State capture() {
 bool sameBit(const dSv_memBit_c& a, const dSv_memBit_c& b) {
     return memcmp(&a, &b, sizeof a) == 0;
 }
+State sPickBefore;
 
 void checkTables() {
     bool res = true, field = true, info = true;
@@ -237,6 +260,115 @@ bool fieldItemAlive(fpc_ProcID id, int itemNo) {
            item->mpModel != nullptr;
 }
 
+void deleteItem(fpc_ProcID id) {
+    if (fopAc_ac_c* a = fopAcM_SearchByID(id)) {
+        fpcM_Delete(a);
+    }
+}
+
+// Step 6 (R6.2): a FW small key picked up on the sea stage. Returns true once done (checks logged).
+bool pickupFwKey() {
+    ++sPickSince;
+    switch (sPick) {
+    case kPickOff:
+        // The two field items of step 5 are out of the way first.
+        deleteItem(sKeyId);
+        deleteItem(sMapId);
+        setDrivenPad(true, 0, 0, 0);
+        sPick = kPickWait;
+        sPickSince = 0;
+        return false;
+    case kPickWait:
+        if (dComIfGp_event_runCheck()) {
+            setDrivenPad(true, sPickSince % 20 < 2 ? PAD_BUTTON_A : 0, 0, 0);
+            sPickSince = 0;
+            return false;
+        }
+        setDrivenPad(true, 0, 0, 0);
+        if (sPickSince < kSettleFrames) {
+            return false;
+        }
+        sPickBefore = capture();
+        dComIfGp_event_setGtItm(dItemNo_NONE_e);
+        {
+            daPy_lk_c* p = daPy_getPlayerLinkActorClass();
+            process_node_class* scene = (process_node_class*)fpcM_Search(isPlayScene, nullptr);
+            if (p != nullptr && scene != nullptr) {
+                cXyz pos = p->current.pos;
+                csXyz angle = csXyz::Zero;
+                layer_class* savedLayer = fpcLy_CurrentLayer();
+                fpcLy_SetCurrentLayer(&scene->mLayer);
+                sFwKeyId = fopAcM_createItem(&pos, kFwKey, -1, fopAcM_GetRoomNo(p), daItemType_0_e, &angle, 2);
+                fpcLy_SetCurrentLayer(savedLayer);
+            }
+        }
+        if (!check("key-lunacy: a field FW small key is created on the player", sFwKeyId != fpcM_ERROR_PROCESS_ID_e)) {
+            sPick = kPickDone;
+            return true;
+        }
+        sPick = kPickStart;
+        sPickSince = 0;
+        return false;
+    case kPickStart:
+        setDrivenPad(true, 0, 0, 0);
+        if (dComIfGp_event_runCheck()) {
+            sPick = kPickEvent;
+            sPickSince = 0;
+            return false;
+        }
+        if (sPickSince >= kStartFrames) {
+            check("key-lunacy: touching the FW small key starts its get demo", false);
+            deleteItem(sFwKeyId);
+            setDrivenPad(false, 0, 0, 0);
+            sPick = kPickDone;
+            return true;
+        }
+        return false;
+    case kPickEvent: {
+        setDrivenPad(true, sPickSince % kTalkFrames < 2 ? PAD_BUTTON_A : 0, 0, 0);
+        if (dComIfGp_event_runCheck()) {
+            if (sPickSince >= kEventFrames) {
+                check("key-lunacy: the FW small key's get demo ends", false);
+                setDrivenPad(false, 0, 0, 0);
+                sPick = kPickDone;
+                return true;
+            }
+            return false;
+        }
+        setDrivenPad(false, 0, 0, 0);
+        State a = capture();
+        State& b = sPickBefore;
+        checkf(dComIfGp_event_getGtItm() == kFwKey, "key-lunacy: the get demo carried item 0x%02X (want 0x%02X)",
+               dComIfGp_event_getGtItm(), kFwKey);
+        checkf(a.save[kFwStage].getKeyNum() == b.save[kFwStage].getKeyNum() + 1,
+               "key-lunacy: picked up on the sea, FW's saved key count %d -> %d", b.save[kFwStage].getKeyNum(),
+               a.save[kFwStage].getKeyNum());
+        dSv_memBit_c expect = b.save[kFwStage];
+        expect.setKeyNum(expect.getKeyNum() + 1);
+        bool others = sameBit(a.save[kFwStage], expect) && sameBit(a.mem, b.mem) && a.keyCount == b.keyCount;
+        for (int s = 0; s < 8; s++) {
+            others = others && (s == kFwStage || sameBit(a.save[s], b.save[s]));
+        }
+        check("key-lunacy: only FW's key count changed (memory, key counter, other stages as before)", others);
+        sPick = kPickGone;
+        sPickSince = 0;
+        return false;
+    }
+    case kPickGone:
+        // A field item deletes itself at the end of its demo (execMainGetDemoDirection), a few frames on.
+        if (fopAcM_SearchByID(sFwKeyId) != nullptr && sPickSince < kGoneFrames) {
+            return false;
+        }
+        checkf(fopAcM_SearchByID(sFwKeyId) == nullptr, "key-lunacy: the field FW small key is gone %d frames after the demo",
+               (int)sPickSince);
+        sPick = kPickDone;
+        return true;
+    case kPickDone:
+        return true;
+    }
+    return true;
+}
+
 } // namespace
 
 void randoSmokeDkeys(unsigned int frames) {
@@ -247,8 +379,14 @@ void randoSmokeDkeys(unsigned int frames) {
         if (frames < sEndFrame) {
             return;
         }
-        check("field DRC small key exists with a model", fieldItemAlive(sKeyId, 0x13));
-        check("field FF map exists with a model", fieldItemAlive(sMapId, 0x5F));
+        if (sPick == kPickOff) {
+            check("field DRC small key exists with a model", fieldItemAlive(sKeyId, 0x13));
+            check("field FF map exists with a model", fieldItemAlive(sMapId, 0x5F));
+        }
+        // R6.2: key-lunacy, a FW small key picked up outside the dungeons.
+        if (curStage() != 3 && !pickupFwKey()) {
+            return;
+        }
         if (!pc_rando_forced()) {
             pc_rando_deactivate();
             check("deactivated: the 22 IDs' table entries are back to boot", tablesAtBoot());

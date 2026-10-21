@@ -37,6 +37,11 @@ name=<json> pairs are applied after the preset:
   r6_1             R6.1's matrix: all_categories, the 23 only_* presets, the 22 dungeons_*
                    presets, the 8 logic presets and all_tricks
   (--list-presets prints every name.)
+  keylunacy        the defaults with keylunacy (R6.2: dungeon items join the main pools)
+  keylunacy_all    every progression_* option on, with keylunacy
+  keylunacy_dungeons_only  progression_dungeons only, with keylunacy
+  keylunacy_no_dungeons    the defaults without progression_dungeons, with keylunacy (dungeon items
+                   become nonprogress items placed anywhere)
 
 The CLI runs with --allow-missing-hints unless --hints is given (R5.1): then our hints are generated
 and the spoiler log must be byte-identical including its Hints section (ww_verify_hints.py checks
@@ -89,7 +94,8 @@ def r6_1_presets():
 
 
 def all_presets():
-  return ["default", "dungeons_only", "no_dungeons"] + r6_1_presets()
+  return (["default", "dungeons_only", "no_dungeons"] + r6_1_presets()
+          + ["keylunacy", "keylunacy_all", "keylunacy_dungeons_only", "keylunacy_no_dungeons"])
 
 
 def preset_values(name):
@@ -112,6 +118,13 @@ def preset_values(name):
     for lvl, value in TRICK_LEVELS:
       if name == f"{opt}_{lvl}":
         return {f"logic_{opt}": value}
+  # R6.2: key-lunacy on top of a base preset.
+  if name.startswith("keylunacy"):
+    base = name[len("keylunacy_"):] if name.startswith("keylunacy_") else "default"
+    if base in ("default", "all", "dungeons_only", "no_dungeons"):
+      values = preset_values("all_categories" if base == "all" else base)
+      values["keylunacy"] = True
+      return values
   oc.die(f"unknown preset '{name}' (--list-presets lists them)")
 
 
