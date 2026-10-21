@@ -151,6 +151,24 @@ int pc_rando_isTbox_unloaded(int stage_no, int no);
    added. */
 int pc_rando_misc_add_messages(void);
 
+/* --- R2.9: Beedle shops (game_hooks/pc_rando_hooks_shop.cpp) --- */
+/* The 4 shop locations, in this order: Great Sea shop ship 20 Rupee slot (Bait Bag), Rock Spire
+   special shop ship 500 (Empty Bottle), 950 (Piece of Heart) and 900 Rupee (Treasure Chart 4) slots.
+   Their items reach d_shop.cpp's shopItemData_* through R0.8 table edits, which a listener registers
+   at every activation together with remove_shop_item_forced_uniqueness_bit. */
+#define PCR_SHOP_SLOT_COUNT 4
+/* flexible_item_locations.asm set_shop_item_in_bait_bag_slot_sold_out: event bit 0x6902 on, after
+   daNpc_Bs1_c::next_msgStatus sold out the Bait Bag slot. */
+void pc_rando_shop_bait_slot_set_sold_out(void);
+/* check_shop_item_in_bait_bag_slot_sold_out: 1 when event bit 0x6902 is set (createShopList then
+   shows the slot's replacement, as vanilla does once the Bait Bag is owned). */
+int pc_rando_shop_bait_slot_sold_out(void);
+/* For the smoke: slot -> PCR_LOC_* (-1 when out of range), its vanilla item (0xFF), and the edits
+   registered again by hand (1 when the registry took all 8). */
+int pc_rando_shop_slot_loc(int slot);
+uint8_t pc_rando_shop_slot_vanilla(int slot);
+int pc_rando_shop_register_edits(void);
+
 #ifdef __cplusplus
 }
 #endif

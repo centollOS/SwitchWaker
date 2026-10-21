@@ -24,6 +24,7 @@
 #include "pc/pc_qol.h"
 #include "pc/pc_rando.h"
 #include "pc/pc_rando_hooks.h"
+#include "pc/pc_rando_locs.h"
 #endif
 
 class daNpc_Bs1_childHIO_c {
@@ -834,10 +835,24 @@ u16 daNpc_Bs1_c::next_msgStatus(u32* pMsgNo) {
                 fopAcM_seStart(this, JA_SE_SHOP_BOUGHT, 0);
                 mShopItems.hideSelectItem();
                 dComIfGp_setItemRupeeCount(-rupee);
+#if TARGET_PC
+                // pc_rando(R2.9): flexible_item_locations.asm d_a_npc_bs1 0x1CDB (the 20 Rupee slot's item)
+                // and 0x1CE8 set_shop_item_in_bait_bag_slot_sold_out (event bit 0x6902);
+                // original: getSelectItemNo() == dItemNo_BAIT_BAG_e, SoldOutItem only
+                if(mShopItems.getSelectItemNo() ==
+                   pc_rando_loc_item(PCR_LOC_THE_GREAT_SEA_BEEDLES_SHOP_SHIP_20_RUPEE_ITEM, dItemNo_BAIT_BAG_e)) {
+                    mShopItems.SoldOutItem(mShopItems.mSelectedItemIdx);
+                    if(pc_rando()) {
+                        pc_rando_shop_bait_slot_set_sold_out();
+                    }
+                    m76C[mShopItems.mSelectedItemIdx] = 1;
+                }
+#else
                 if(mShopItems.getSelectItemNo() == dItemNo_BAIT_BAG_e) {
                     mShopItems.SoldOutItem(mShopItems.mSelectedItemIdx);
                     m76C[mShopItems.mSelectedItemIdx] = 1;
                 }
+#endif
 
 #if TARGET_PC
                 // pc_rando(R3.3): make_items_progressive.asm d_a_npc_bs1 0x1D00 custom_getSelectItemNo_progressive
@@ -904,6 +919,45 @@ u16 daNpc_Bs1_c::next_msgStatus(u32* pMsgNo) {
                 mShopItems.hideSelectItem();
                 dComIfGp_setItemRupeeCount(-rupee);
                 u8 itemNo = mShopItems.getSelectItemNo();
+#if TARGET_PC
+                if(pc_rando()) {
+                    // pc_rando(R2.9): flexible_item_locations.asm d_a_npc_bs1 0x1E9B/0x1EA3/0x1EAB and
+                    // 0x1ED3/0x1EDF/0x1EEB (the Rock Spire slots' items), with 0x1ED8/0x1EE4 nopped (the
+                    // switch tests equality only); original: the vanilla ids and the switch (else branch)
+                    const u8 bottleNo = pc_rando_loc_item(PCR_LOC_ROCK_SPIRE_ISLE_BEEDLES_SPECIAL_SHOP_SHIP_500_RUPEE_ITEM, dItemNo_EMPTY_BOTTLE_e);
+                    const u8 heartNo = pc_rando_loc_item(PCR_LOC_ROCK_SPIRE_ISLE_BEEDLES_SPECIAL_SHOP_SHIP_950_RUPEE_ITEM, dItemNo_HEART_PIECE_e);
+                    const u8 mapNo = pc_rando_loc_item(PCR_LOC_ROCK_SPIRE_ISLE_BEEDLES_SPECIAL_SHOP_SHIP_900_RUPEE_ITEM, dItemNo_COLLECT_MAP_30_e);
+                    if(itemNo == bottleNo || itemNo == heartNo || itemNo == mapNo) {
+                        mShopItems.SoldOutItem(mShopItems.mSelectedItemIdx);
+                        m76C[mShopItems.mSelectedItemIdx] = 1;
+
+                        if(itemNo == bottleNo) {
+                            dComIfGs_onEventBit(dSv_event_flag_c::UNK_2020);
+                        } else if(itemNo == heartNo) {
+                            dComIfGs_onEventBit(dSv_event_flag_c::UNK_2010);
+                        } else {
+                            dComIfGs_onEventBit(dSv_event_flag_c::UNK_2008);
+                        }
+                    }
+                } else {
+                    if(itemNo == dItemNo_EMPTY_BOTTLE_e || itemNo == dItemNo_HEART_PIECE_e || itemNo == dItemNo_COLLECT_MAP_30_e) {
+                        mShopItems.SoldOutItem(mShopItems.mSelectedItemIdx);
+                        m76C[mShopItems.mSelectedItemIdx] = 1;
+
+                        switch(itemNo) {
+                            case dItemNo_EMPTY_BOTTLE_e:
+                                dComIfGs_onEventBit(dSv_event_flag_c::UNK_2020);
+                                break;
+                            case dItemNo_HEART_PIECE_e:
+                                dComIfGs_onEventBit(dSv_event_flag_c::UNK_2010);
+                                break;
+                            case dItemNo_COLLECT_MAP_30_e:
+                                dComIfGs_onEventBit(dSv_event_flag_c::UNK_2008);
+                                break;
+                        }
+                    }
+                }
+#else
                 if(itemNo == dItemNo_EMPTY_BOTTLE_e || itemNo == dItemNo_HEART_PIECE_e || itemNo == dItemNo_COLLECT_MAP_30_e) {
                     mShopItems.SoldOutItem(mShopItems.mSelectedItemIdx);
                     m76C[mShopItems.mSelectedItemIdx] = 1;
@@ -920,6 +974,7 @@ u16 daNpc_Bs1_c::next_msgStatus(u32* pMsgNo) {
                             break;
                     }
                 }
+#endif
 
                 // these int casts are probably fake
 #if TARGET_PC
@@ -1499,7 +1554,15 @@ void daNpc_Bs1_c::createShopList() {
         for(int i = 0; i < 3; i++) {
             u8 itemNo = pDataSet[i]->mpItemData->mItemNo;
             int idx = i;
+#if TARGET_PC
+            // pc_rando(R2.9): flexible_item_locations.asm d_a_npc_bs1 0x2DBB (the 20 Rupee slot's item) and
+            // 0x2DC4 check_shop_item_in_bait_bag_slot_sold_out (event bit 0x6902);
+            // original: itemNo == dItemNo_BAIT_BAG_e && dComIfGs_checkGetItem(itemNo)
+            if((pc_rando() ? (itemNo == pc_rando_loc_item(PCR_LOC_THE_GREAT_SEA_BEEDLES_SHOP_SHIP_20_RUPEE_ITEM, dItemNo_BAIT_BAG_e) && pc_rando_shop_bait_slot_sold_out())
+                           : (itemNo == dItemNo_BAIT_BAG_e && dComIfGs_checkGetItem(itemNo))) || (itemNo == dItemNo_HYOI_PEAR_e && dComIfGs_checkGetItem(dItemNo_BOMB_BAG_e))) {
+#else
             if((itemNo == dItemNo_BAIT_BAG_e && dComIfGs_checkGetItem(itemNo)) || (itemNo == dItemNo_HYOI_PEAR_e && dComIfGs_checkGetItem(dItemNo_BOMB_BAG_e))) {
+#endif
                 itemNo = pDataSet[i + 3][0].mpItemData->mItemNo;
                 idx += 3;
             }

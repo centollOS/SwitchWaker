@@ -23,3 +23,4 @@ PC_RANDO_SMOKE(tingle, randoSmokeTingle) // R3.6: Tingle Statues (item funcs, ow
 PC_RANDO_SMOKE(bog, randoSmokeBog) // R3.13: the Ballad of Gales 10th warp to Forsaken Fortress, messages 848/704, isTbox_unloaded
 PC_RANDO_SMOKE(wrap, randoSmokeWrap) // R3.20: word wrap with the real message font against gclib (fixture R3_20_wrap_font.txt)
 PC_RANDO_SMOKE(menu, randoSmokeMenu) // R4.1: the Randomizer tab (presets, validation rules, starting gear)
+PC_RANDO_SMOKE(shop, randoSmokeShop) // R2.9: Beedle shops (placed items in the shop lists, buying, the Bait Bag slot bit, uniqueness bit)
