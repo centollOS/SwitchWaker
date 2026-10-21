@@ -8,6 +8,7 @@
 #include "d/d_com_inf_game.h"
 #if TARGET_PC
 #include "pc/pc_rando_hooks.h"
+#include "pc/pc_rando_locs.h"
 #endif
 #include "d/d_item_data.h"
 #include "m_Do/m_Do_controller_pad.h"
@@ -3557,7 +3558,12 @@ void daNpc_Md_c::initialLetterEvent(int staffIdx) {
     if (mCurEvent == 0) {
         itemNo = 0x98;
     } else if (mCurEvent == 1) {
+#if TARGET_PC
+        // pc_rando(R2.10): item_locations.txt Dragon Roost Cavern - Miniboss, d_a_npc_md.rel@AF2F; original: 0x25
+        itemNo = pc_rando() ? pc_rando_loc_item(PCR_LOC_DRAGON_ROOST_CAVERN_MINIBOSS, 0x25) : 0x25;
+#else
         itemNo = 0x25;
+#endif
     } else if (mCurEvent == 2) {
         itemNo = 0x50;
     } else {

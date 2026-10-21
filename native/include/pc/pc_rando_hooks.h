@@ -274,6 +274,13 @@ void pc_rando_posttext_register(void);
    the number of messages set. */
 int pc_rando_posttext_build(void);
 
+/* --- R2.10: added chests (features/rando/pc_rando_tweak_added_chests.h; the stage edits are an
+   archive patcher, pc_rando_patchers.def) --- */
+/* daDemo00_c's cutscene item l_itemNo[argID] (d_a_demo00.cpp): argID 0 Master Sword Chamber, 5
+   Jabun's Cave, 8 Inside Mother Isle give their placed items; any other argID, and pc_rando() 0,
+   give `vanilla`. */
+uint8_t pc_rando_added_chests_demo_item(int argID, uint8_t vanilla);
+
 #ifdef __cplusplus
 }
 #endif

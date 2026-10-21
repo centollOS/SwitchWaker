@@ -1,0 +1,13 @@
+# R2.10 (docs/RANDOMIZER_PLAN.md): the 4 added chests (Jabun's Cave, Dragon Roost Cavern - Miniboss,
+# Master Sword Chamber, Inside Mother Isle) and their room/event edits. The smoke COS_RANDO_SMOKE=addchest
+# (native/src/pc/harness/smokes/pc_rando_smoke_addchest.cpp) visits Pjavdou, sea/Room44 (and the sea
+# stage's event_list.dat), M_Dra09 room 9, M_NewD2, kenroom and sea/Room9. 1: rotation placement
+# (native/check/rando/fixtures/R0_6_rotation.json, taken from the repo's root): each file's final bytes
+# hold the edits, the game holds the patched file, the chests' live TBOXes hold the placed items, the
+# door/whirlpool/raft/Darknuts are live and the Master Sword is gone, and T2 opens all 4 chests and gets
+# their placed items. 2: identity (T1 only). 3: vanilla (no placement): nothing patched, the stored
+# files have the disc's content hash and no chest stands at the added places.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Pjavdou:0:0 --timeout 600 --stall 120 --env COS_RANDO_SMOKE=addchest --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_RANDO_ADDCHEST_HOPS=sea:44:0,M_Dra09:9:0,M_NewD2:0:0,kenroom:0:0,sea:9:0 --env COS_RANDO_ADDCHEST_OPEN=1 --env COS_RANDO_ADDCHEST_ALL=1
+rando 0 --stage Pjavdou:0:0 --timeout 600 --stall 120 --env COS_RANDO_SMOKE=addchest --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_identity.json --env COS_RANDO_ADDCHEST_HOPS=sea:44:0,M_Dra09:9:0,M_NewD2:0:0,kenroom:0:0,sea:9:0 --env COS_RANDO_ADDCHEST_ALL=1
+rando 0 --stage Pjavdou:0:0 --timeout 600 --stall 120 --env COS_RANDO_SMOKE=addchest --env COS_RANDO_ADDCHEST_HOPS=sea:44:0,M_Dra09:9:0,M_NewD2:0:0,kenroom:0:0,sea:9:0 --env COS_RANDO_ADDCHEST_ALL=1

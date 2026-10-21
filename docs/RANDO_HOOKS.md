@@ -482,3 +482,18 @@ Key bag text (`tweaks.py` `implement_key_bag`, `misc_rando_features.asm`
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | - | no hunks in `game/`: the stage tweaks are a dzx patcher and a dzb patcher on R0.10's archive-load dispatcher (`features/rando/pc_rando_tweak_stages_a.{h,cpp}`, `game_hooks/pc_rando_hooks_stages_a.cpp`). The plan's hunk at `d_a_bg.cpp:206` is not needed: `room.dzb` passes through `pc_rando_res_hook_loaded` after `cBgS::ConvDzb`, before `dBgW::Set` reads it | - | `tweaks.py` `remove_forsaken_fortress_2_cutscenes`, `add_ganons_tower_warp_to_ff2`, `remove_makar_kidnapping_event`, `disable_invisible_walls`, `prevent_door_boulder_softlocks`, `fix_ghost_ship_chest_crash`, `fix_totg_warp_out_spawn_pos`, `remove_phantom_ganon_requirement_from_eye_reefs`, `fix_forsaken_fortress_door_softlock`, `fix_helmaroc_king_table_softlock`, `prevent_fairy_island_softlocks` |
+
+## R2.10
+
+The 4 added chests (`tweaks.py` `add_chest_in_place_of_jabun_cutscene`,
+`add_chest_in_place_medli_grappling_hook_gift`, `add_chest_in_place_of_master_sword`,
+`add_chest_in_place_queen_fairy_cutscene`). The chests, the raft, the wind, the layer moves, the removed
+Master Sword actors, spawn 10 and the shortened `ajav_uzu` event are archive patchers on R0.10's
+dispatcher (`features/rando/pc_rando_tweak_added_chests.{h,cpp}`, listed in `pc_rando_patchers.def`);
+the two hunks below are the cutscene sites of the same locations (wwrando writes the placed item to
+those code bytes too). Checked by the `addchest` smoke and `cos_rando_test_R2_10`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_demo00.cpp | `daDemo00_c::execute` (demo item parameter, `field_0x29c == 5`): `l_itemNo[0]` Master Sword Chamber, `[5]` Jabun's Cave, `[8]` Inside Mother Isle give their placed items through `pc_rando_added_chests_demo_item` | `?:` (`#if`/`#else`, original in `#else`) | item_locations.txt main.dol@8035BD34/8035BD39/8035BD3C |
+| game/src/d/actor/d_a_npc_md.cpp | `daNpc_Md_c::initialLetterEvent` (`mCurEvent == 1`, item 0x25): Dragon Roost Cavern - Miniboss | `?:` (`#if`/`#else`, `pc_rando_loc_item`) | item_locations.txt d_a_npc_md.rel@AF2F |

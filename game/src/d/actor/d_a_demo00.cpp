@@ -23,6 +23,10 @@
 #include "JSystem/J3DGraphAnimator/J3DModelData.h"
 #include "string.h"
 #if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
+#endif
+#if TARGET_PC
 #include <cstdio>
 #endif
 
@@ -793,9 +797,18 @@ BOOL daDemo00_c::execute() {
                     TValueIterator_raw<u8> it = spB8.begin();
                     int argID = *it;
                     JUT_ASSERT(VERSION_SELECT(797, 844, 858, 858), argID < (sizeof(l_itemNo)/sizeof(u8)));
+#if TARGET_PC
+                    // pc_rando(R2.10): item_locations.txt main.dol@8035BD34/39/3C (l_itemNo[0] Master Sword
+                    // Chamber, [5] Jabun's Cave, [8] Inside Mother Isle); original: l_itemNo[argID]
+                    const u8 itemNo = pc_rando() ? pc_rando_added_chests_demo_item(argID, l_itemNo[argID]) : l_itemNo[argID];
+                    if (itemNo != dItemNo_NONE_e) {
+                        execItemGet(itemNo);
+                    }
+#else
                     if (l_itemNo[argID] != dItemNo_NONE_e) {
                         execItemGet(l_itemNo[argID]);
                     }
+#endif
                 }
             } else if (field_0x29c == 6) {
                 dDemo_prm_data* data = demo_actor->getPrm()->getData();
