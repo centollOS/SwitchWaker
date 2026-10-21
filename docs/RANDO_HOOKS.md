@@ -76,6 +76,40 @@ pure `pc_rando_msg.cpp`.
 | game/src/f_op/f_op_msg_mng.cpp:1509 | `fopMsgM_msgGet_c::getMesgEntry` (1509), `fopMsgM_itemMsgGet_c::getMesgEntry` (1601): the overlay's INF1 entry fields (or the new-message defaults) replace the BMG entry before the instant-text QoL | add | gclib `bmg.py` `add_new_message` / `Message` fields, set in `tweaks.py` and `randomizers/hints.py` |
 | game/src/f_op/f_op_msg_mng.cpp:1530 | `fopMsgM_msgGet_c::getMessage` (1530), `fopMsgM_itemMsgGet_c::getMessage` (1621): the overlay's encoded text replaces the BMG text (and serves numbers the BMG lacks; `mResMsgNo` = the asked number) | add | `msg.string = ...` / `add_new_message` (`tweaks.py`, `randomizers/hints.py`, `randomizers/boss_reqs.py`) |
 
+## R2.7
+
+Code locations B, the Windfall NPCs (`flexible_item_locations.asm` and the CODE paths of
+`item_locations.txt`). Item sites read `pc_rando_loc_item` (directly, or through
+`pc_rando_people_item` / `pc_rando_kane_item` for d_a_npc_people's two tables); "does the player own the
+vanilla item" checks become wwrando's unused event bits (0x6904 Pompie and Vera, 0x6908 Minenco, 0x6910
+Kamo, 0x6920 Lenzo's Deluxe Picto Box slot, 0x6980 Salvage Corp, 0x6A01 Maggie, 0x6A02 the cafe
+postman; `PC_RANDO_BIT_*` in `native/include/pc/pc_rando_hooks.h`). Hook bodies in
+`native/src/pc/game_hooks/pc_rando_hooks_windfall.cpp`. The cafe postman's item itself is an event
+location (R2.4); this step only tracks it with 0x6A02.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_npc_people.cpp:4281 | `phase_1` (UB4 in Ocmera): 0x6904 instead of owning Treasure Chart 24 (`COLLECT_MAP_20`) | ?: | d_a_npc_people 0x8D4/0x8D8 |
+| game/src/d/actor/d_a_npc_people.cpp:4605 | `daNpcPeople_c::createInit` (Kamo, result unused): 0x6910 instead of `COLLECT_MAP_15` | ?: | d_a_npc_people 0x14CC/0x14D0 |
+| game/src/d/actor/d_a_npc_people.cpp:4845 | `daNpcPeople_c::_execute` (Kamo's idle animation): 0x6910 | ?: | d_a_npc_people 0x1C34/0x1C38 |
+| game/src/d/actor/d_a_npc_people.cpp:6075 | `daNpcPeople_c::eventGetItemInit`: `l_get_item_no[i]` is the placed item of Sam, Pompie and Vera, Minenco, Linda and Anton, Kreeb, Kamo; after the gift, indices 1/2/5 set 0x6904/0x6908/0x6910 | ?:, add | item_locations.txt d_a_npc_people.rel@C54B-C55F; 0xC54C/0xC550/0xC55C, 0x4BEC `create_item_and_set_event_bit_for_townsperson` |
+| game/src/d/actor/d_a_npc_people.cpp:6585 | `daNpcPeople_c::next_msgStatus`: `l_item_id_sa3[i]` is the placed item of Kane's four gate rewards | ?: | item_locations.txt d_a_npc_people.rel@C21B/C21F/C223/C227 |
+| game/src/d/actor/d_a_npc_people.cpp:6820 | `daNpcPeople_c::getMsg`: Minenco 0x6908 (`COLLECT_MAP_16`), Kamo 0x6910 twice (day and night) | ?: | d_a_npc_people 0x6170/0x6174, 0x6C50/0x6C54, 0x6CC4/0x6CC8 |
+| game/src/d/actor/d_a_npc_people.cpp:8000 | `daNpcPeople_c::setWaitAnm` (Kamo): 0x6910 | ?: | d_a_npc_people 0x88A4/0x88A8 |
+| game/src/d/actor/d_a_npc_people.cpp:8050 | `daNpcPeople_c::XyCheckCB` (Kamo takes a photo): 0x6910 | ?: | d_a_npc_people 0x8A5C/0x8A60 |
+| game/src/d/actor/d_a_npc_people.cpp:8300 | `daNpcPeople_c::is1GetMap20`: 0x6904 | ?: | d_a_npc_people 0x91C0/0x91C4 |
+| game/src/d/actor/d_a_npc_photo.cpp:650 | `phase_1` (Lenzo, both branches): Pompie and Vera's 0x6904 | ?: | d_a_npc_photo 0x9C4/0x9C8, 0x9F4/0x9F8 |
+| game/src/d/actor/d_a_npc_photo.cpp:1065 | `daNpcPhoto_c::executeTalk`: `mItemNo` 31 / 38 are the placed items of Become Lenzo's Assistant / Bring Forest Firefly | ?: | item_locations.txt d_a_npc_photo.rel@1C13, @1C37 |
+| game/src/d/actor/d_a_npc_photo.cpp:1795 | `daNpcPhoto_c::getMsg`: the Deluxe Picto Box slot is 0x6920 (two checks), set when the firefly is handed over; `mItemNo` is the placed item | ?:, add | d_a_npc_photo 0x3BB0/0x3BB4, 0x3BDC `lenzo_set_deluxe_picto_box_event_bit`, 0x3C68/0x3C6C; item_locations.txt @3BE3 |
+| game/src/d/actor/d_a_npc_photo.cpp:2205 | `daNpcPhoto_c::XyEventCB` (firefly event): 0x6920 | ?: | d_a_npc_photo 0x4AF8/0x4AFC |
+| game/src/d/actor/d_a_npc_kp1.cpp:398 | `daNpc_Kp1_c::getMsg`: the "quest complete" branch is skipped; the free item check is 0x6A01 | `&&` (!pc_rando()), ?: | d_a_npc_kp1 0x11D8 (`b 0x1210`), 0x1214/0x1218 |
+| game/src/d/actor/d_a_npc_kp1.cpp:530 | `daNpc_Kp1_c::event_action`: the placed items of Maggie's Free Item / Delivery Reward; the free item sets 0x6A01 | ?:, add | item_locations.txt d_a_npc_kp1.rel@17D7, @1817; 0x17EC `maggie_give_item_and_set_event_bit` |
+| game/src/d/actor/d_a_npc_sv.cpp:113 | `daNpcSv_c::daNpcSv_c`: 0x6980 instead of owning Treasure Chart 34 (`COLLECT_MAP_26`) | ?: | d_a_npc_sv 0x2C8/0x2CC |
+| game/src/d/actor/d_a_npc_sv.cpp:580 | `daNpcSv_c::eventGetItemInit`: `l_get_item_no[0]` is the placed item of Salvage Corp Gift; every gift sets 0x6980 | ?:, add | item_locations.txt d_a_npc_sv.rel@3327; 0x19A8 `salvage_corp_give_item_and_set_event_bit` |
+| game/src/d/actor/d_a_npc_bm1.cpp:641 | `daNpc_Bm1_c::init_BMC_2`: 0x6A02 instead of Moblin's Letter's reserve slot (0xF) | ?: | d_a_npc_bm1 0x1020/0x1024 |
+| game/src/d/actor/d_a_npc_bm1.cpp:1205 | `daNpc_Bm1_c::eventOrder`: ordering event index 0 (the cafe postman's gift) sets 0x6A02 | add | d_a_npc_bm1 0x225C `rito_cafe_postman_start_event_and_set_event_bit` |
+| game/src/d/actor/d_a_npc_bm1.cpp:1700 | `daNpc_Bm1_c::getMsg_BMC_2`: 0x6A02 | ?: | d_a_npc_bm1 0x3178/0x317C |
+
 ## R2.11
 
 Any item anywhere (tweaks.py `allow_all_items_to_be_field_items`, always applied by wwrando). The table

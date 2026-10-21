@@ -151,6 +151,30 @@ int pc_rando_isTbox_unloaded(int stage_no, int no);
    added. */
 int pc_rando_misc_add_messages(void);
 
+/* --- R2.7: code locations B, Windfall NPCs (flexible_item_locations.asm; bodies in
+   game_hooks/pc_rando_hooks_windfall.cpp) --- */
+/* The unused event bits wwrando sets and checks instead of "does the player own the vanilla item"
+   (plan D17), so an NPC knows it gave its randomized item. */
+#define PC_RANDO_BIT_POMPIE_VERA 0x6904  /* Pompie and Vera's gift (vanilla Treasure Chart 24) */
+#define PC_RANDO_BIT_MINENCO 0x6908      /* Minenco's gift (vanilla Treasure Chart 33) */
+#define PC_RANDO_BIT_KAMO 0x6910         /* Kamo's gift (vanilla Treasure Chart 31) */
+#define PC_RANDO_BIT_LENZO_DELUXE 0x6920 /* Lenzo's Deluxe Picto Box slot */
+#define PC_RANDO_BIT_SALVAGE_CORP 0x6980 /* the Salvage Corp's gift */
+#define PC_RANDO_BIT_MAGGIE 0x6A01       /* Maggie's free item (vanilla Maggie's Letter) */
+#define PC_RANDO_BIT_POSTMAN 0x6A02      /* the Windfall cafe postman's item (vanilla Moblin's Letter) */
+/* d_a_npc_people l_get_item_no[idx], read in daNpcPeople_c::eventGetItemInit: the item placed at that
+   townsperson's location (0 Sam, 1 Pompie and Vera, 2 Minenco, 3 Linda and Anton, 4 Kreeb, 5 Kamo);
+   `vanilla` for another index. */
+int pc_rando_people_item(int idx, int vanilla);
+/* create_item_and_set_event_bit_for_townsperson: after the gift of l_get_item_no[idx] is created,
+   sets its event bit (PC_RANDO_BIT_POMPIE_VERA/MINENCO/KAMO for idx 1/2/5; nothing for the others). */
+void pc_rando_people_item_given(int idx);
+/* The event bit of l_get_item_no[idx] (0 when it has none). */
+uint16_t pc_rando_people_item_bit(int idx);
+/* d_a_npc_people l_item_id_sa3[idx], read in daNpcPeople_c::next_msgStatus: the item placed at Kane's
+   gate location idx (0 Shop Guru, 1 Postman, 2 Six Flags, 3 Six Idols); `vanilla` for another index. */
+int pc_rando_kane_item(int idx, int vanilla);
+
 #ifdef __cplusplus
 }
 #endif

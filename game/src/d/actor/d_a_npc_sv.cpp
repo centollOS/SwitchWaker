@@ -14,6 +14,11 @@
 #include "f_op/f_op_msg_mng.h"
 #include "m_Do/m_Do_audio.h"
 #include "res/Object/Sv.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
+#include "pc/pc_rando_locs.h"
+#endif
 
 const char daNpcSv_c::m_arcname[] = "Sv";
 static char* l_npc_staff_id[] = {"Sv0", "Sv1", "Sv2", "Sv3"};
@@ -104,7 +109,12 @@ daNpcSv_c::daNpcSv_c() {
     mAnmIndex = 0;
     mTalkFlags = 0;
     mCraneFrame = 0;
+#if TARGET_PC
+    // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_sv 0x2C8/0x2CC (__ct, isEventBit 0x6980); original: dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_26_e)
+    if (pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_SALVAGE_CORP) : dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_26_e)) {
+#else
     if (dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_26_e)) {
+#endif
         mTalkFlags |= 0x20;
     }
 }
@@ -562,8 +572,19 @@ BOOL daNpcSv_c::eventMesSet() {
 /* 0000184C-000018F0       .text eventGetItemInit__9daNpcSv_cFi */
 void daNpcSv_c::eventGetItemInit(int staff) {
     int* item = dComIfGp_evmng_getMyIntegerP(staff, "ItemNo");
+#if TARGET_PC
+    // pc_rando(R2.7): item_locations.txt d_a_npc_sv.rel@3327 (l_get_item_no[0], Salvage Corp Gift); original: l_get_item_no[*item]
+    int itemNo = item != NULL ? (pc_rando() && *item == 0 ? pc_rando_loc_item(PCR_LOC_THE_GREAT_SEA_SALVAGE_CORP_GIFT, l_get_item_no[0]) : l_get_item_no[*item]) : mItem;
+#else
     int itemNo = item != NULL ? l_get_item_no[*item] : mItem;
+#endif
     fpc_ProcID id = fopAcM_createItemForPresentDemo(&current.pos, itemNo, 0, -1, fopAcM_GetRoomNo(this), NULL, NULL);
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_sv 0x19A8 salvage_corp_give_item_and_set_event_bit; original: none
+        dComIfGs_onEventBit(PC_RANDO_BIT_SALVAGE_CORP);
+    }
+#endif
     if (id != fpcM_ERROR_PROCESS_ID_e) {
         dComIfGp_event_setItemPartnerId(id);
     }

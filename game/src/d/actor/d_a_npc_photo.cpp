@@ -16,6 +16,11 @@
 #include "d/d_kankyo_rain.h"
 #include "d/d_picture_box.h"
 #include "d/actor/d_a_tag_photo.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
+#include "pc/pc_rando_locs.h"
+#endif
 
 const char daNpcPhoto_c::m_arcname[] = "Auc";
 
@@ -641,11 +646,21 @@ static cPhs_State phase_1(daNpcPhoto_c* i_this) {
     s16 arg0 = i_this->getPrmArg0();
     if(arg0 != 255){
         if(arg0 == 0){
+#if TARGET_PC
+            // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_photo 0x9C4/0x9C8 (phase_1, Pompie and Vera's bit 0x6904); original: dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_20_e)
+            if(!(pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_POMPIE_VERA) : dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_20_e)) && arg0 != dComIfGp_getStartStagePoint()){
+#else
             if(!dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_20_e) && arg0 != dComIfGp_getStartStagePoint()){
+#endif
                 return cPhs_STOP_e;
             }
         } else{
+#if TARGET_PC
+            // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_photo 0x9F4/0x9F8 (phase_1, Pompie and Vera's bit 0x6904); original: dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_20_e)
+            if((pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_POMPIE_VERA) : dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_20_e)) || arg0 != dComIfGp_getStartStagePoint()) {
+#else
             if(dComIfGs_checkGetItem(dItemNo_COLLECT_MAP_20_e) || arg0 != dComIfGp_getStartStagePoint()) {
+#endif
                 return cPhs_STOP_e;
             }
             i_this->field_0x9C1 = 4;
@@ -1049,12 +1064,22 @@ void daNpcPhoto_c::executeTalk() {
             u8 temp = field_0x9C6;
             if((temp & 1) != 0){
                 field_0x9C6 = temp & 254;
+#if TARGET_PC
+                // pc_rando(R2.7): item_locations.txt d_a_npc_photo.rel@1C13 (Become Lenzo's Assistant); original: mItemNo = 31
+                mItemNo = pc_rando() ? pc_rando_loc_item(PCR_LOC_WINDFALL_ISLAND_LENZOS_HOUSE_BECOME_LENZOS_ASSISTANT, 31) : 31;
+#else
                 mItemNo = 31;
+#endif
                 field_0x9BE = 4;
             } else {
                 if((temp & 2) != 0){
                     field_0x9C6 = temp & ~0x02;
+#if TARGET_PC
+                    // pc_rando(R2.7): item_locations.txt d_a_npc_photo.rel@1C37 (Bring Forest Firefly); original: mItemNo = 38
+                    mItemNo = pc_rando() ? pc_rando_loc_item(PCR_LOC_WINDFALL_ISLAND_LENZOS_HOUSE_BRING_FOREST_FIREFLY, 38) : 38;
+#else
                     mItemNo = 38;
+#endif
                     field_0x9BE = 5;
                 } else {
                     if((temp & 4) != 0){
@@ -1771,11 +1796,25 @@ u32 daNpcPhoto_c::getMsg() {
                 msgNo = 0x3787;
             }
         } else if(itemNo == dItemNo_FIREFLY_BOTTLE_e) {
+#if TARGET_PC
+            // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_photo 0x3BB0/0x3BB4 (getMsg, isEventBit 0x6920); original: dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e)
+            if(eventReg >= 6 && !(pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_LENZO_DELUXE) : dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e))) {
+#else
             if(eventReg >= 6 && !dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e)) {
+#endif
                 field_0x980 = l_msg_color_xy;
                 field_0x9D0 = 0;
                 dComIfGs_setEquipBottleItemEmpty();
+#if TARGET_PC
+                if (pc_rando()) {
+                    // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_photo 0x3BDC lenzo_set_deluxe_picto_box_event_bit (after setEquipBottleItemEmpty); original: none
+                    dComIfGs_onEventBit(PC_RANDO_BIT_LENZO_DELUXE);
+                }
+                // pc_rando(R2.7): item_locations.txt d_a_npc_photo.rel@3BE3 (Bring Forest Firefly); original: mItemNo = dItemNo_DELUXE_PICTO_BOX_e
+                mItemNo = pc_rando() ? pc_rando_loc_item(PCR_LOC_WINDFALL_ISLAND_LENZOS_HOUSE_BRING_FOREST_FIREFLY, dItemNo_DELUXE_PICTO_BOX_e) : dItemNo_DELUXE_PICTO_BOX_e;
+#else
                 mItemNo = dItemNo_DELUXE_PICTO_BOX_e;
+#endif
             } else{
                 msgNo = 0x2A57;
             }
@@ -1792,7 +1831,12 @@ u32 daNpcPhoto_c::getMsg() {
         if(field_0x9C1 == 1) {
             msgNo = mMsgNno;
         } else {
+#if TARGET_PC
+            // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_photo 0x3C68/0x3C6C (getMsg, isEventBit 0x6920); original: dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e)
+            if(pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_LENZO_DELUXE) : dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e)) {
+#else
             if(dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e)) {
+#endif
                 if(dComIfGs_isTmpBit(dSv_event_tmp_flag_c::UNK_0301)) {
                     field_0x980 = (u32*)l_msg_buy_photo;
                     field_0x9D0 = 0;
@@ -2169,7 +2213,12 @@ s16 daNpcPhoto_c::XyEventCB(int i_itemBtn) {
             return dComIfGp_evmng_getEventIdx("DEFAULT_TALK_XY",0xff);
         }
     } else {
+#if TARGET_PC
+        // pc_rando(R2.7): flexible_item_locations.asm d_a_npc_photo 0x4AF8/0x4AFC (XyEventCB, isEventBit 0x6920); original: dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e)
+        if(itemNo == dItemNo_FIREFLY_BOTTLE_e && dComIfGs_getEventReg(l_save_dat.field_0x06) >= 6 && !(pc_rando() ? dComIfGs_isEventBit(PC_RANDO_BIT_LENZO_DELUXE) : dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e))){
+#else
         if(itemNo == dItemNo_FIREFLY_BOTTLE_e && dComIfGs_getEventReg(l_save_dat.field_0x06) >= 6 && !dComIfGs_checkGetItem(dItemNo_DELUXE_PICTO_BOX_e)){
+#endif
             eventIdx = mPhotoGetItem2EventIdx;
             field_0x9C7 = false;
         } else {
