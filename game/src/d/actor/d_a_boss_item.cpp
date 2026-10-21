@@ -8,6 +8,9 @@
 #include "f_op/f_op_actor.h"
 #include "f_op/f_op_actor_mng.h"
 #include "d/d_com_inf_game.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 /* 00000078-00000080       .text daBossItem_IsDelete__FP14bossitem_class */
 static BOOL daBossItem_IsDelete(bossitem_class* i_this) {
@@ -32,7 +35,13 @@ static cPhs_State daBossItem_Create(fopAc_ac_c* i_this) {
 
     if (isStageBossDead && !dComIfGs_isStageLife(stageNo)) {
         fopAcM_createItemForBoss(
+#if TARGET_PC
+            // pc_rando(R2.5): flexible_item_locations.asm d_a_boss_item 0x1C4 (r4 = the location's item;
+            // here the stage number 2-7 that keys it); original: 1
+            &i_this->current.pos, pc_rando() ? stageNo : 1, fopAcM_GetRoomNo(i_this),
+#else
             &i_this->current.pos, 1, fopAcM_GetRoomNo(i_this),
+#endif
             &i_this->current.angle, NULL, 1
         );
     }
