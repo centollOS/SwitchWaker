@@ -1,0 +1,10 @@
+# R3.18 (docs/RANDOMIZER_PLAN.md): Tower of the Gods servants (allow_nonlinear_servants_of_the_towers).
+# Siren room 7 (the hub): plain, the patcher never ran and the vanilla events and actors are loaded;
+# forced, the three patched files equal wwrando's (fixtures/R3_18_wwrando_totg.txt), the event manager
+# reads the edited events and hsehi1_appear, two SwOps exist, and the servant switches 0x28-0x2A set
+# in the given order start hsehi1_appear once (0x7E, the tablet appears), then 0x2B sets 0x7F.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Siren:7:0 --env COS_RANDO_SMOKE=totg
+rando 0 --stage Siren:7:0 --env COS_RANDO_SMOKE=totg --env COS_RANDO_FORCE=1
+rando 0 --stage Siren:7:0 --env COS_RANDO_SMOKE=totg --env COS_RANDO_FORCE=1 --env COS_RANDO_TOTG_ORDER=2A,28,29
+rando 0 --stage Siren:7:0 --env COS_RANDO_SMOKE=totg --env COS_RANDO_FORCE=1 --env COS_RANDO_TOTG_ORDER=29,2A,28
