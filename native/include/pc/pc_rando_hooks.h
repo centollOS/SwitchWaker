@@ -373,6 +373,14 @@ void pc_rando_charts_cmapdat_loaded(void* data);
    Outset) when no seed is active or its room is out of range. The new game's return-place room and
    the island whose SHIP 0 the sea stage's Ship ACTR copies. */
 int pc_rando_start_room(void);
+/* --- R4.4: file-select display (D15; game_hooks/pc_rando_hooks_fileselect.cpp, API in
+   features/rando/pc_rando_fileselect.h). Like R0.7's hooks it runs whatever pc_rando() is (the file
+   select runs with it off) and only reads: a vanilla slot shows nothing. --- */
+/* dFile_select_c::_draw, every frame the file select draws: `saveData` the 3 card_gamedata of the
+   card (mSaveDataPtr, may be NULL), `selectNum` the selected slot, `proc` its DataSelProc index. Works
+   out the line the overlay draws this frame for that slot: its seed (a rando record), a missing
+   sidecar, or the pending seed (a blank slot). */
+void pc_rando_file_select_draw(const uint8_t* saveData, uint8_t selectNum, uint8_t proc);
 
 #ifdef __cplusplus
 }

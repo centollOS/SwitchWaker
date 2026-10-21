@@ -29,11 +29,12 @@ namespace pc {
 
 extern const char* const kRandoSeedKey; // "COS_RANDO_SEED"
 
-// Registers COS_RANDO_SEED and the four rows; called by pc_menu.cpp's menuInit after
-// randoSettingsRegister. Again is a no-op.
+// Registers COS_RANDO_SEED and the four rows (and R4.4's "Clean unused seed files",
+// pc_rando_fileselect.h); called by pc_menu.cpp's menuInit after randoSettingsRegister. Again is a
+// no-op.
 void randoMenuInit();
 // Every frame (pc_menu.cpp menuFrame, menu open or not): a finished generation becomes the pending
-// seed (or the row's error) and is logged.
+// seed (or the row's error) and is logged; R4.4's file-select line is drawn (randoFileSelectOverlay).
 void randoMenuFrame();
 
 // The Generate row's action: starts the generation. False (and *msg why) when it cannot start: one
