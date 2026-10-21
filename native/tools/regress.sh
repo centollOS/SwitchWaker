@@ -178,7 +178,11 @@ fi
 run_one() { # line
     local target expect opts rc
     read -r target expect opts <<< "$1"
-    local log="$out/run-$target-$(echo "$opts" | tr -c 'a-z0-9' '_').log"
+    local tag
+    tag="$(echo "$opts" | tr -c 'a-z0-9' '_')"
+    # A file name holds 255 bytes: a long line keeps its head plus a checksum of the whole.
+    [ "${#tag}" -gt 160 ] && tag="${tag:0:120}_$(echo "$opts" | cksum | cut -d' ' -f1)"
+    local log="$out/run-$target-$tag.log"
     if [ "$target" = no-disc ]; then
         COS_DISC=/nonexistent "$build/switchwaker" > "$log" 2>&1
         rc=$?
@@ -198,8 +202,12 @@ run_one() { # line
 export -f run_one
 export out build script_dir capped
 
-run_lines 0 |
-    xargs -P "$jobs" -I{} bash -c 'run_one "$@"' _ {} > "$out/runs.txt"
+# NUL-separated with -n 1, not -I {}: BSD xargs -I caps the replaced line at 255 bytes and aborts
+# the whole run on a longer line (regress_rando/R2.1.txt has one).
+if ! run_lines 0 | tr '\n' '\0' |
+    xargs -0 -n 1 -P "$jobs" bash -c 'run_one "$1"' _ > "$out/runs.txt"; then
+    report runs FAIL "xargs did not run every line"
+fi
 while read -r status rest; do
     name="${rest%% *}"
     if [ "$status" = ok ]; then report "run:$name" ok "${rest#"$name"}"; else report "run:$name" FAIL "${rest#"$name"}"; fi
