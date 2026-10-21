@@ -47,3 +47,4 @@ PC_RANDO_SMOKE(pirateship, randoSmokePirateship) // R3.17: the pirate ship at Wi
 PC_RANDO_SMOKE(totg, randoSmokeTotg) // R3.18: Tower of the Gods servants (files = wwrando's, the loaded events and SwOps, servant switches in any order -> hsehi1_appear, 0x7E, then 0x2B -> 0x7F)
 PC_RANDO_SMOKE(trap, randoSmokeTrap) // R6.5: a trap chest (plan, params 0x40 and chest type, wwrando's DEFAULT_TREASURE_TRAP; opened: freeze, thaw, 2 damage, no item)
 PC_RANDO_SMOKE(gen, randoSmokeGen) // R4.3: Generate in the menu (worker thread, pending seed with its hash, sidecar in the card folder, D5 logs in the user dir)
+PC_RANDO_SMOKE(swordless, randoSmokeSwordless) // R6.3: Swordless (temporary Hero's Sword at GTower and Ojhous, removed at the next load; messages 1128/1590)

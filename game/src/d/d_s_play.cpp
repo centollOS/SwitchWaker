@@ -43,6 +43,7 @@
 #include "pc/pc_harness.h"
 #include "pc/pc_qol.h"
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 
 static const int PRELOAD_RES_MAX = 0x23;
@@ -1407,6 +1408,12 @@ cPhs_State phase_4(dScnPly_ply_c* i_this) {
 
     if (strcmp(dComIfGp_getStartStageName(), "GTower") == 0) {
         dComIfGs_setItem(dInvSlot_BOW_e, dItemNo_NONE_e); // take away the bow
+#if TARGET_PC
+        if (pc_rando()) {
+            // pc_rando(R6.3): swordless.asm give_temporary_sword_during_ganondorf_fight_in_swordless (main.dol 0x80235F10); original: none (added)
+            pc_rando_sword_ganondorf_stage();
+        }
+#endif
         for (int itemBtn = 0; itemBtn < dItemBtn_COUNT_e; itemBtn++) {
             u32 itemno = dComIfGp_getSelectItem(itemBtn);
             if (itemno == dItemNo_BOW_e || itemno == dItemNo_MAGIC_ARROW_e || itemno == dItemNo_LIGHT_ARROW_e) {
@@ -1414,7 +1421,12 @@ cPhs_State phase_4(dScnPly_ply_c* i_this) {
                 dComIfGp_setSelectItem(itemBtn);
             }
         }
+#if TARGET_PC
+    // pc_rando(R6.3): swordless.asm give_temporary_sword_in_orcas_house_in_swordless / remove_temporary_sword_when_loading_stage_in_swordless (main.dol 0x8023607C, 0x80236084); original: } else if (dComIfGs_getItem(dInvSlot_BOW_e) == dItemNo_NONE_e) {
+    } else if ((pc_rando() ? pc_rando_sword_stage_load() != 0 : true) && dComIfGs_getItem(dInvSlot_BOW_e) == dItemNo_NONE_e) {
+#else
     } else if (dComIfGs_getItem(dInvSlot_BOW_e) == dItemNo_NONE_e) {
+#endif
         // give the bow back
         if (dComIfGs_isGetItem(dInvSlot_BOW_e, 2))
             dComIfGs_setItem(dInvSlot_BOW_e, dItemNo_LIGHT_ARROW_e);

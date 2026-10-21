@@ -592,3 +592,20 @@ funcs already pick the stage by where the player is.
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | - | no hunks in `game/` (smoke: `pc_rando_smoke_dkeys.cpp` step 6; golden: `check_seeds.py` keylunacy presets) | - | `randomizers/items.py` keylunacy branches; `custom_funcs.asm` `generic_small_key_item_get_func` |
+
+## R6.3
+
+Sword modes. The pool (No Starting Sword adds the 3 Progressive Swords; Swordless removes them and
+Hurricane Spin) is the generator's (`pc_rando_options.cpp`, `pc_rando_logic.cpp`), and the new-game
+sword and barrier bits 0x2C02/0x3B08 are R3.1's (`pc_rando_newgame.cpp`). The game side of
+`swordless.asm` is below, its bodies in `game_hooks/pc_rando_hooks_sword.cpp`, which also puts
+messages 1128 and 1590 (`tweaks.py` `update_text_for_swordless`) in the overlay at every activation of
+a Swordless seed. The temporary sword is written as the asm writes it: the equip byte alone
+(`dSv_player_status_a_c::setSelectEquip`), never `dComIfGs_setSelectEquip`, which would also mark it
+as owned. Checked by the `swordless` smoke.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_fganon.cpp | `damage_check`: in a Swordless seed Phantom Ganon is hurt by the Skull Hammer (AT bit 0x00010000) with no Master Sword check | `?:` (`#if`/`#else`, original in `#else`) | swordless.asm d_a_fganon.rel 0x5EE0 (`rlwinm. r0, r0, 0, 15, 15`), 0x5EF0 (`b 0x5F0C`) |
+| game/src/d/d_s_play.cpp | `phase_4`, GTower branch after the bow is taken: `pc_rando_sword_ganondorf_stage` (the Hero's Sword when none is equipped) | `if` | swordless.asm give_temporary_sword_during_ganondorf_fight_in_swordless (main.dol 0x80235F10) |
+| game/src/d/d_s_play.cpp | `phase_4`, other stages before the bow check: `pc_rando_sword_stage_load` (Ojhous: the Hero's Sword and the bow check skipped; elsewhere: the equipped sword removed when none is owned) | `?:` (`#if`/`#else`, original in `#else`) | swordless.asm give_temporary_sword_in_orcas_house_in_swordless (0x8023607C), remove_temporary_sword_when_loading_stage_in_swordless (0x80236084) |
