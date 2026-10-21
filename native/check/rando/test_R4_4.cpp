@@ -8,8 +8,7 @@
 //     `keep` (pending/active) stay; other files (another name, uppercase hex, a .gci, notes) are not
 //     touched; a dry run lists without removing; an unreadable .gci removes nothing;
 //   - seedHashWords of TestSeed1 is wwrando's "Ivan Woods" (fixtures/R1_2_permalinks.txt, the same
-//     permalink), and the info
-//     lines read as documented.
+//     permalink), and the info lines read as documented.
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
