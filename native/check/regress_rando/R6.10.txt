@@ -1,0 +1,6 @@
+# R6.10 (docs/RANDOMIZER_PLAN.md): entrance randomizer tables and sets (pc_rando_entrances.cpp, the data
+# half of entrances.py). The unit test cos_rando_test_R6_10 (run by regress with the other
+# cos_rando_test_*) checks them against wwrando's dump (fixtures/R6_10_entrance_tables.txt). This line
+# regenerates the dump from ref/wwrando and requires it byte-identical to the checked-in fixture, so a
+# change of the reference shows up here. It needs the oracle venv (native/tools/rando/setup_oracle.sh).
+script 0 t=$(mktemp) && python3 -I native/tools/rando/gen_entrance_tables.py "$t" 2>/dev/null && diff "$t" native/check/rando/fixtures/R6_10_entrance_tables.txt; rc=$?; rm -f "$t"; exit $rc
