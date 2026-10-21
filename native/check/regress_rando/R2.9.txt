@@ -1,0 +1,7 @@
+# R2.9 (docs/RANDOMIZER_PLAN.md): Beedle's shops. Vanilla shop lists first, then a placement that
+# changes the 4 shop slots, bought through the real dialog with a driven pad: Rock Spire's special
+# shop (Obshop room 1: slots 0 and 2, one of them already owned) and a Great Sea shop (Obshop room 2:
+# the 20 Rupee slot, event bit 0x6902 and its replacement on re-entry).
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Obshop:1 --env COS_RANDO_SMOKE=shop
+rando 0 --stage Obshop:2 --env COS_RANDO_SMOKE=shop

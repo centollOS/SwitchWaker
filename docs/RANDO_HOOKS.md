@@ -156,6 +156,23 @@ calls (site table in `native/src/pc/features/rando/pc_rando_code_c.cpp`); the Wi
 | game/src/d/actor/d_a_npc_ds1.cpp | `daNpc_Ds1_c::next_msgStatus`: message 0x1DCB (7627) gives the potion without an empty bottle | \|\| | d_a_npc_ds1 0x1550 (nop) |
 | game/src/d/actor/d_a_npc_ds1.cpp | `daNpc_Ds1_c::getdemo_action`: on message 7627 the green/blue potion slot's item | add | d_a_npc_ds1 0x2940 `doc_bandam_check_new_potion_and_give_free_item` (`doc_bandam_green/blue_potion_slot_item_id`) |
 
+## R2.9
+
+Beedle's shops: the 4 shop locations and the shop data tweaks. The placed items reach
+`shopItemData_Feedbag`/`_emptybottle`/`_kakera_heart`/`_map` (`d_shop.cpp`) as R0.8 table edits
+(`mItemNo`), registered at every activation by a listener in
+`native/src/pc/game_hooks/pc_rando_hooks_shop.cpp`, together with `remove_shop_item_forced_uniqueness_bit`
+(`mBuyConditions` bit 0x02 cleared for indexes 0, 0xB, 0xC, 0xD); no hunk in `d_shop.cpp`. The Bait Bag
+slot's sold-out state is event bit 0x6902 (`pc_rando_shop_bait_slot_set_sold_out` /
+`pc_rando_shop_bait_slot_sold_out`). wwrando's nops at d_a_npc_bs1 0x1ED8/0x1EE4 (`>=` tests) have no C
+counterpart: the decompiled code tests equality, and the hunk's `if` chain replaces the `switch`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_npc_bs1.cpp | `daNpc_Bs1_c::next_msgStatus`: the 20 Rupee slot's sold-out test uses the placed item and sets event bit 0x6902; the Rock Spire slots' sold-out tests and their 0x2020/0x2010/0x2008 bits use the placed items | ?: (loc item), add (0x6902), if/else (Rock Spire) | `flexible_item_locations.asm` d_a_npc_bs1 0x1CDB, 0x1CE8 `set_shop_item_in_bait_bag_slot_sold_out`; 0x1E9B/0x1EA3/0x1EAB, 0x1ED3/0x1EDF/0x1EEB; 0x1ED8/0x1EE4 nops |
+| game/src/d/actor/d_a_npc_bs1.cpp | `daNpc_Bs1_c::createShopList`: the 20 Rupee slot shows its replacement once event bit 0x6902 is set (not once the Bait Bag is owned) | ?: | `flexible_item_locations.asm` d_a_npc_bs1 0x2DBB, 0x2DC4 `check_shop_item_in_bait_bag_slot_sold_out` |
+| game/src/d/actor/d_a_shop_item.cpp | `daShopItem_c::set_mtx`: a Y offset of 0.0 in `daShopItem_c::mData` (const) reads as 20.0, except ids 0x10-0x12 | add | `tweaks.py` `fix_shop_item_y_offsets` (0x8034FD10 + id*0x20 + 0x10) |
+
 ## R2.11
 
 Any item anywhere (tweaks.py `allow_all_items_to_be_field_items`, always applied by wwrando). The table

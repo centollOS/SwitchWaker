@@ -121,7 +121,17 @@ void daShopItem_c::set_mtx() {
     mDoMtx_stack_c::ZXYrotM(current.angle.x, current.angle.y, current.angle.z);
     MTXCopy(mDoMtx_stack_c::get(), field_0x64C);
 
+#if TARGET_PC
+    // pc_rando(R2.9): tweaks.py fix_shop_item_y_offsets (mData[id] +0x10, the Y offset: 0.0 -> 20.0 for
+    // every id but the arrow refills 0x10-0x12; mData is const, so the read site);
+    // original: const Vec& temp1 = getData()[m_itemNo].field_0x0C
+    Vec temp1 = getData()[m_itemNo].field_0x0C;
+    if(pc_rando() && temp1.y == 0.0f && (m_itemNo < 0x10 || m_itemNo > 0x12)) {
+        temp1.y = 20.0f;
+    }
+#else
     const Vec& temp1 = getData()[m_itemNo].field_0x0C;
+#endif
     mDoMtx_stack_c::transM(temp1.x, temp1.y, temp1.z);
     const SVec& temp2 = getData()[m_itemNo].field_0x18;
     mDoMtx_stack_c::ZXYrotM(temp2.x, temp2.y, temp2.z);
