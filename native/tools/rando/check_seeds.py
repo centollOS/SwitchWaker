@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Oracle batch for our seed generator (docs/RANDOMIZER_PLAN.md step R1.6).
+"""Oracle batch for our seed generator (docs/RANDOMIZER_PLAN.md steps R1.6 and R6.1).
 
-    python3 -I native/tools/rando/check_seeds.py [--cli PATH] [--n N] [--preset P] [--golden]
+    python3 -I native/tools/rando/check_seeds.py [--cli PATH] [--n N] [--preset P[,P...]] [--golden]
                                                  [--jobs J] [--prefix S] [--start K] [--keep DIR]
-                                                 [name=<json> ...]
+                                                 [--list-presets] [name=<json> ...]
 
 Generates N seeds (<prefix><K>, <prefix><K+1>, ...) with our CLI (cos_rando_cli, default
 build/native-mac/cos_rando_cli of this checkout) at the preset's options, then checks each
@@ -20,11 +20,23 @@ placement with wwrando's own Logic (ww_verify.verify: complete, valid pairs, poo
   - a seed our generator refuses with a wwrando error (e.g. too few progression locations) must
     make wwrando raise the same message.
 
-Presets (--preset, default "default"); name=<json> pairs are applied after the preset:
+Presets (--preset, default "default"; a comma-separated list runs each in turn with the same seeds);
+name=<json> pairs are applied after the preset:
   default          wwrando's Options()
   all_categories   every progression_* option on
   dungeons_only    progression_dungeons only
   no_dungeons      the defaults without progression_dungeons
+  only_<category>  R6.1: that one progression_<category> on and the other 22 off (only_dungeons is
+                   dungeons_only). Most single categories have too few progression locations, so
+                   wwrando raises TooFewProgressionLocationsError and the check is error parity.
+  dungeons_<category>  R6.1: progression_dungeons plus that one category, everything else off, so
+                   each category's locations are placed (and checked) on a beatable base.
+  obscurity_<lvl>  R6.1: the defaults with logic_obscurity at <lvl> (none, normal, hard, very_hard)
+  precision_<lvl>  R6.1: the defaults with logic_precision at <lvl>
+  all_tricks       R6.1: all_categories with both logic options at Very Hard
+  r6_1             R6.1's matrix: all_categories, the 23 only_* presets, the 22 dungeons_*
+                   presets, the 8 logic presets and all_tricks
+  (--list-presets prints every name.)
 
 Hints are not ported (R5), so the CLI runs with --allow-missing-hints. The wwrando side runs in J
 worker processes (default 4), each importing wwrando once (about 0.5 s per seed and check).
@@ -61,6 +73,23 @@ def progression_options():
   return [f.name for f in __import__("dataclasses").fields(Options) if f.name.startswith("progression_")]
 
 
+# R6.1: wwrando's TrickDifficulty values, by preset suffix.
+TRICK_LEVELS = (("none", "None"), ("normal", "Normal"), ("hard", "Hard"), ("very_hard", "Very Hard"))
+
+
+def r6_1_presets():
+  prog = progression_options()
+  names = ["all_categories"] + ["only_" + p[len("progression_"):] for p in prog]
+  names += ["dungeons_" + p[len("progression_"):] for p in prog if p != "progression_dungeons"]
+  for opt in ("obscurity", "precision"):
+    names += [f"{opt}_{lvl}" for lvl, _ in TRICK_LEVELS]
+  return names + ["all_tricks"]
+
+
+def all_presets():
+  return ["default", "dungeons_only", "no_dungeons"] + r6_1_presets()
+
+
 def preset_values(name):
   if name == "default":
     return {}
@@ -71,7 +100,24 @@ def preset_values(name):
     return {p: p == "progression_dungeons" for p in prog}
   if name == "no_dungeons":
     return {"progression_dungeons": False}
-  oc.die(f"unknown preset '{name}' (default, all_categories, dungeons_only, no_dungeons)")
+  if name == "all_tricks":
+    return dict({p: True for p in prog}, logic_obscurity="Very Hard", logic_precision="Very Hard")
+  if name.startswith("dungeons_") and "progression_" + name[9:] in prog:
+    return {p: p in ("progression_dungeons", "progression_" + name[9:]) for p in prog}
+  if name.startswith("only_") and "progression_" + name[5:] in prog:
+    return {p: p == "progression_" + name[5:] for p in prog}
+  for opt in ("obscurity", "precision"):
+    for lvl, value in TRICK_LEVELS:
+      if name == f"{opt}_{lvl}":
+        return {f"logic_{opt}": value}
+  oc.die(f"unknown preset '{name}' (--list-presets lists them)")
+
+
+def expand_presets(spec):
+  out = []
+  for name in spec.split(","):
+    out += r6_1_presets() if name == "r6_1" else [name]
+  return out
 
 
 def log_names(seed):
@@ -204,30 +250,56 @@ def main():
   ap.add_argument("--prefix", default="CheckSeed")
   ap.add_argument("--start", type=int, default=0)
   ap.add_argument("--keep", metavar="DIR", help="keep the placements and logs in DIR")
+  ap.add_argument("--list-presets", action="store_true")
   a = ap.parse_args()
 
   oc.bootstrap()
+  if a.list_presets:
+    print("\n".join(all_presets() + ["r6_1"]))
+    return 0
   if not os.access(a.cli, os.X_OK):
     oc.die(f"no CLI at {a.cli} (ninja -C build/native-mac cos_rando_cli)")
-  values = preset_values(a.preset)
-  values.update(oc.parse_opt_pairs(a.pairs))
-  oc.make_options(values)  # validates the names and values
-
-  out_dir = a.keep or tempfile.mkdtemp(prefix="check_seeds_")
-  os.makedirs(out_dir, exist_ok=True)
-  ours_dir = os.path.join(out_dir, "ours")
-  os.makedirs(ours_dir, exist_ok=True)
+  presets = expand_presets(a.preset)
+  overrides = oc.parse_opt_pairs(a.pairs)
+  preset_vals = {}
+  for name in presets:
+    values = preset_values(name)
+    values.update(overrides)
+    oc.make_options(values)  # validates the names and values
+    preset_vals[name] = values
   seeds = [f"{a.prefix}{i}" for i in range(a.start, a.start + a.n)]
   if any(sanitize(s) != s for s in seeds):
     oc.die("--prefix must use only wwrando's seed characters and stay within 42 characters")
 
+  base_dir = a.keep or tempfile.mkdtemp(prefix="check_seeds_")
+  os.makedirs(base_dir, exist_ok=True)
+  ctx = multiprocessing.get_context("spawn")
+  failed_presets = []
+  with ctx.Pool(processes=max(1, a.jobs), initializer=worker_init) as pool:
+    for name in presets:
+      # One folder per preset when several run, so wwrando's logs of the same seed do not mix.
+      out_dir = os.path.join(base_dir, name) if len(presets) > 1 else base_dir
+      if run_preset(pool, a, name, preset_vals[name], seeds, out_dir):
+        failed_presets.append(name)
+  if len(presets) > 1:
+    print(f"check_seeds: {len(presets)} presets, {len(presets) - len(failed_presets)} passed, "
+          f"{len(failed_presets)} failed" + (f": {', '.join(failed_presets)}" if failed_presets else ""))
+  if not a.keep:
+    shutil.rmtree(base_dir, ignore_errors=True)
+  return 0 if not failed_presets else 1
+
+
+def run_preset(pool, a, preset, values, seeds, out_dir):
+  """Generates and checks the seeds at one preset's options; returns the number of failing seeds."""
+  ours_dir = os.path.join(out_dir, "ours")
+  os.makedirs(ours_dir, exist_ok=True)
   cmd = [a.cli, "--out", ours_dir, "--allow-missing-hints", "--sw-version", CLI_VERSION, "--time"]
   cmd += [f"{k}={json.dumps(v)}" for k, v in values.items()]
   cmd += seeds
   p = subprocess.run(cmd, capture_output=True, text=True)
   if p.returncode not in (0, 1, 3):
     sys.stderr.write(p.stderr)
-    oc.die(f"cos_rando_cli exited {p.returncode}")
+    oc.die(f"cos_rando_cli exited {p.returncode} (preset {preset})")
   results = {}
   for line in p.stdout.splitlines():
     if line.startswith("ok "):
@@ -242,30 +314,27 @@ def main():
   jobs = []
   for s in seeds:
     if s not in results:
-      print(f"FAIL {s}: no result from cos_rando_cli")
+      print(f"FAIL {preset} {s}: no result from cos_rando_cli")
       failures += 1
       continue
     path, err = results[s]
     if path is None and (not a.golden or err.startswith("Not supported yet")):
-      print(f"FAIL {s}: cos_rando_cli: {err}")
+      print(f"FAIL {preset} {s}: cos_rando_cli: {err}")
       failures += 1
       continue
     jobs.append((s, values, path, err, out_dir, a.golden))
 
-  ctx = multiprocessing.get_context("spawn")
-  with ctx.Pool(processes=max(1, a.jobs), initializer=worker_init) as pool:
-    for seed, problems in pool.imap_unordered(check_one, jobs):
-      for pr in problems:
-        print(f"FAIL {seed}: {pr}")
-      failures += bool(problems)
+  for seed, problems in pool.imap_unordered(check_one, jobs):
+    for pr in problems:
+      print(f"FAIL {preset} {seed}: {pr}")
+    failures += bool(problems)
 
   generated = sum(1 for s in seeds if s in results and results[s][0] is not None)
   timing = f", generation mean {1000 * sum(times) / len(times):.1f} ms max {1000 * max(times):.1f} ms" if times else ""
-  print(f"check_seeds: preset {a.preset}: {len(seeds)} seeds, {generated} generated, "
-        f"{len(seeds) - failures} passed{' (golden)' if a.golden else ''}, {failures} failed{timing}")
-  if not a.keep:
-    shutil.rmtree(out_dir, ignore_errors=True)
-  return 0 if failures == 0 else 1
+  print(f"check_seeds: preset {preset}: {len(seeds)} seeds, {generated} generated, "
+        f"{len(seeds) - failures} passed{' (golden)' if a.golden else ''}, {failures} failed{timing}",
+        flush=True)
+  return failures
 
 
 def sanitize(seed):
