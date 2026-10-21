@@ -573,3 +573,14 @@ chest type nibble, the `DEFAULT_TREASURE_TRAP` event per stage) are archive patc
 | game/src/d/actor/d_a_tbox.cpp | `demoProc` (SPRING_TRAP each frame: `pc_rando_tbox_spring_trap` = demoProcSpringTrap; else the default cut end) | `if/else` | asm/actors/d_a_tbox.cpp `demoProcSpringTrap` |
 | game/src/d/actor/d_a_tbox.cpp | `actionOpenWait` (a trap chest creates no item) | `if/else` (`#else` original) | asm/actors/d_a_tbox.cpp `actionOpenWait` |
 | game/src/d/actor/d_a_tbox.cpp | `actionOpenWait` (event `DEFAULT_TREASURE_TRAP` for a trap chest, ahead of R3.8's `DEFAULT_TREASURE_A`) | `if` | asm/actors/d_a_tbox.cpp `actionOpenWait` |
+
+## R6.6
+
+Randomized charts (`randomize_charts`; charts.py `ChartRandomizer._save`). The salvage half (every
+`d_a_salvage` SCOB with salvage_type 0 in sea/Room1-49 gets the island's new chart index) is an
+archive patcher in `features/rando/pc_rando_charts.cpp`; the sea chart half is the hunk below, its
+body `pc_rando_charts_cmapdat_loaded` in the same file.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/d_menu_fmap.cpp | `dMenu_Fmap_c::aramCmapDatRead`: `pc_rando_charts_cmapdat_loaded` on the CmapDat.bin just read (texture id, sector and 4 random positions per chart) | add | randomizers/charts.py `ChartRandomizer._save` (wwlib/charts.py `Chart.save_changes`) |

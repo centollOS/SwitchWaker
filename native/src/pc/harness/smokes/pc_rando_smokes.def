@@ -46,3 +46,4 @@ PC_RANDO_SMOKE(zephos, randoSmokeZephos) // R3.19: Zephos (TACT_HT shortened, pl
 PC_RANDO_SMOKE(pirateship, randoSmokePirateship) // R3.17: the pirate ship at Windfall (the ship on sea/Room11; Asoko: Aryll, AryllOpensDoor when trapped, door switch 0xC4, messages, voice wave)
 PC_RANDO_SMOKE(totg, randoSmokeTotg) // R3.18: Tower of the Gods servants (files = wwrando's, the loaded events and SwOps, servant switches in any order -> hsehi1_appear, 0x7E, then 0x2B -> 0x7F)
 PC_RANDO_SMOKE(trap, randoSmokeTrap) // R6.5: a trap chest (plan, params 0x40 and chest type, wwrando's DEFAULT_TREASURE_TRAP; opened: freeze, thaw, 2 damage, no item)
+PC_RANDO_SMOKE(charts, randoSmokeCharts) // R6.6: randomized charts (sea/Room44 salvage chart index, CmapDat.bin through dMenu_Fmap_c::aramCmapDatRead: Outset's chart sector and positions, all 49 islands, a second read)

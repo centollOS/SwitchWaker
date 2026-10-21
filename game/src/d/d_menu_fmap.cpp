@@ -23,6 +23,7 @@
 #if TARGET_PC
 #include "pc/pc_qol.h"
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 // QoL "Carta náutica completa" (pc_qol.h; BetterWW reveal_sea_chart.asm, which sets every sector's
 // charted bit in a new game's save): while the option is on, this menu reads every sector as charted.
 // Nothing is written to the save; sectors reached are still recorded (dComIfGs_onSaveArriveGrid).
@@ -1511,6 +1512,13 @@ u32 dMenu_Fmap_c::readFmapTexture(const char* i_filename) {
 void dMenu_Fmap_c::aramCmapDatRead() {
     JKRArchive* archive = dComIfGp_getFmapResArchive();
     aramCmapDatPat_t* pat = (aramCmapDatPat_t*)JKRGetResource('DATA', "CmapDat.bin", archive);
+#if TARGET_PC
+    if (pc_rando() && pat != NULL) {
+        // pc_rando(R6.6): charts.py ChartRandomizer._save (each chart record gets the texture id,
+        // sector and 4 random positions of its island's vanilla chart); original: the disc's CmapDat.bin
+        pc_rando_charts_cmapdat_loaded(pat, archive->getResSize(pat));
+    }
+#endif
     initCmapDatPnt(pat);
 }
 
