@@ -1,0 +1,15 @@
+# R2.12 (docs/RANDOMIZER_PLAN.md): the location sweep's driver in the loc smoke, on 10 sample chest
+# locations (Stage and RoomN records, layer chunks TRE1/2/3/5, majroom/ma2room/ma3room, the 5-key Ghost
+# Ship, a Savage Labyrinth floor, two neighbouring sea rooms). Written by
+#   python3 -I native/tools/rando/location_sweep.py line --kinds chest --locs <the 10> --max-stops 40
+# from native/tools/rando/sweep_targets.json (its stops are generated from the disc). 1: T1 on rotation,
+# COS_RANDO_LOC_EXPECT: every chest key of the 10 has its record and its live chest checked (a stop
+# that comes up elsewhere fails). 2: the same stops with no placement (pc_rando() 0, vanilla items).
+# 3: T2 from the generated T2 stops (the chest's own room): Bomb Island's submarine (a RoomN chest),
+# Earth Temple's and Forbidden Woods' Big Key chests (Stage chests in rooms 17 and 13).
+# The full sweep (every chest, ACTR and SCOB key; about 9 minutes):
+#   python3 -I native/tools/rando/location_sweep.py run [--placement rotation|identity|none|<json>] [--tier t1|t2|both]
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Abship:2:0 --timeout 222 --stall 120 --env COS_RANDO_SMOKE=loc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_RANDO_LOC_HOPS=Asoko:0:0:2,Asoko:0:0:3,Cave09:20:0,LinkUG:0:1,M_NewD2:0:0,PShip:0:0,PShip2:0:0,PShip3:0:0,Pnezumi:0:0,ma2room:0:0,ma3room:0:0,majroom:0:0,sea:11:0:1,sea:11:0:3,sea:11:0:5,sea:33:0 --env COS_RANDO_LOC_EXPECT=BOMB_ISLAND_SUBMARINE,WINDFALL_ISLAND_PIRATE_SHIP,OUTSET_ISLAND_SAVAGE_LABYRINTH_FLOOR_30,OUTSET_ISLAND_UNDERNEATH_LINKS_HOUSE,DRAGON_ROOST_CAVERN_BIG_KEY_CHEST,THE_GREAT_SEA_GHOST_SHIP,WINDFALL_ISLAND_JAIL_MAZE_CHEST,FORSAKEN_FORTRESS_CHEST_GUARDED_BY_BOKOBLIN,WINDFALL_ISLAND_TRANSPARENT_CHEST,PRIVATE_OASIS_CHEST_AT_TOP_OF_WATERFALL
+rando 0 --stage Abship:2:0 --timeout 222 --stall 120 --env COS_RANDO_SMOKE=loc --env COS_RANDO_LOC_HOPS=Asoko:0:0:2,Asoko:0:0:3,Cave09:20:0,LinkUG:0:1,M_NewD2:0:0,PShip:0:0,PShip2:0:0,PShip3:0:0,Pnezumi:0:0,ma2room:0:0,ma3room:0:0,majroom:0:0,sea:11:0:1,sea:11:0:3,sea:11:0:5,sea:33:0 --env COS_RANDO_LOC_EXPECT=BOMB_ISLAND_SUBMARINE,WINDFALL_ISLAND_PIRATE_SHIP,OUTSET_ISLAND_SAVAGE_LABYRINTH_FLOOR_30,OUTSET_ISLAND_UNDERNEATH_LINKS_HOUSE,DRAGON_ROOST_CAVERN_BIG_KEY_CHEST,THE_GREAT_SEA_GHOST_SHIP,WINDFALL_ISLAND_JAIL_MAZE_CHEST,FORSAKEN_FORTRESS_CHEST_GUARDED_BY_BOKOBLIN,WINDFALL_ISLAND_TRANSPARENT_CHEST,PRIVATE_OASIS_CHEST_AT_TOP_OF_WATERFALL
+rando 0 --stage Abship:2:0 --timeout 408 --stall 120 --env COS_RANDO_SMOKE=loc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_RANDO_LOC_HOPS=M_Dai:17:19,kindan:13:0 --env COS_RANDO_LOC_OPEN=BOMB_ISLAND_SUBMARINE,EARTH_TEMPLE_BIG_KEY_CHEST,FORBIDDEN_WOODS_BIG_KEY_CHEST
