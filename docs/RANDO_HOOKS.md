@@ -495,3 +495,18 @@ tests that bit. Its field and get models are R2.11's (plan D12).
 |---|---|---|---|
 | game/src/d/actor/d_a_npc_ji1.cpp | `daNpc_Ji1_c::createItem`: the Hurricane Spin branch gives `pc_rando_loc_item(PCR_LOC_OUTSET_ISLAND_ORCA_GIVE_10_KNIGHTS_CRESTS, 0xAA)` | `pc_rando_loc_item` (`#if TARGET_PC`, `#else` original) | `item_locations.txt` path `rels/d_a_npc_ji1.rel@4267` |
 | game/src/d/actor/d_a_player_sword.inc | `daPy_lk_c::procCutTurnMove_init`: Hurricane Spin is usable when `pc_rando_hurricane_spin_owned()` (bit 0x6901) instead of bit 0x0B20 | `?:` (+ `#else` original) | `flexible_item_locations.asm` 0x80158C08 (`li r4, 0x6901`), item_func_ptr[0xAA] = `hurricane_spin_item_func` |
+
+## R2.10
+
+The 4 added chests (`tweaks.py` `add_chest_in_place_of_jabun_cutscene`,
+`add_chest_in_place_medli_grappling_hook_gift`, `add_chest_in_place_of_master_sword`,
+`add_chest_in_place_queen_fairy_cutscene`). The chests, the raft, the wind, the layer moves, the removed
+Master Sword actors, spawn 10 and the shortened `ajav_uzu` event are archive patchers on R0.10's
+dispatcher (`features/rando/pc_rando_tweak_added_chests.{h,cpp}`, listed in `pc_rando_patchers.def`);
+the two hunks below are the cutscene sites of the same locations (wwrando writes the placed item to
+those code bytes too). Checked by the `addchest` smoke and `cos_rando_test_R2_10`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_demo00.cpp | `daDemo00_c::execute` (demo item parameter, `field_0x29c == 5`): `l_itemNo[0]` Master Sword Chamber, `[5]` Jabun's Cave, `[8]` Inside Mother Isle give their placed items through `pc_rando_added_chests_demo_item` | `?:` (`#if`/`#else`, original in `#else`) | item_locations.txt main.dol@8035BD34/8035BD39/8035BD3C |
+| game/src/d/actor/d_a_npc_md.cpp | `daNpc_Md_c::initialLetterEvent` (`mCurEvent == 1`, item 0x25): Dragon Roost Cavern - Miniboss | `?:` (`#if`/`#else`, `pc_rando_loc_item`) | item_locations.txt d_a_npc_md.rel@AF2F |

@@ -39,3 +39,4 @@ PC_RANDO_SMOKE(stagesA, randoSmokeStagesA) // R3.15: stage tweaks A (FF2, GT war
 PC_RANDO_SMOKE(stagesB, randoSmokeStagesB) // R3.16: stage tweaks B (spawns 0 and 27, TagEv, FH warp, magic jars, hint sign; the player spawns at the booted point)
 PC_RANDO_SMOKE(posttext, randoSmokePosttext) // R3.21: post-randomization texts (shops, auction, Battlesquid, letter, charts, KoRL, Beedle, swift sail) against wwrando
 PC_RANDO_SMOKE(evloc, randoSmokeEvloc) // R2.4: the 11 event locations (T1 event_list.dat actions read back, T2 an event gives the placed item), Orca site, Hurricane Spin bit 0x6901
+PC_RANDO_SMOKE(addchest, randoSmokeAddchest) // R2.10: the 4 added chests (records, live chests, T2 opening) and their room/event edits; vanilla by content hash
