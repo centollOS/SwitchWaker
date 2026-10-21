@@ -274,6 +274,16 @@ void pc_rando_posttext_register(void);
    the number of messages set. */
 int pc_rando_posttext_build(void);
 
+/* --- R2.4: event locations and Hurricane Spin (placement in features/rando/pc_rando_place_event.h;
+   game_hooks/pc_rando_hooks_event.cpp) --- */
+/* custom_funcs.asm hurricane_spin_item_func: the unused event bit (plan D17) the Hurricane Spin item
+   (0xAA) sets under pc_rando(), through an item-get override registered at static init. */
+#define PC_RANDO_BIT_HURRICANE_SPIN 0x6901
+/* flexible_item_locations.asm 0x80158C08: 1 when the player owns Hurricane Spin (event bit 0x6901).
+   daPy_lk_c::procCutTurnMove_init asks this under pc_rando() instead of 0x0B20, the bit of Orca's
+   teaching event. */
+int pc_rando_hurricane_spin_owned(void);
+
 #ifdef __cplusplus
 }
 #endif

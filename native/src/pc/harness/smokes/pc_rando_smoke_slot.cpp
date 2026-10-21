@@ -53,9 +53,10 @@ extern "C" int pc_rando_smoke_wants_run_card(void) {
     const char* smoke = getenv("COS_SMOKE");
     const char* name = getenv("COS_RANDO_SMOKE");
     // R2.1: the loc smoke too (its COS_RANDO_PLACEMENT debug boots write sidecars).
-    // R3.1: the newgame smoke writes a sidecar too.
+    // R3.1: the newgame smoke writes a sidecar too. R2.4: the evloc smoke (COS_RANDO_PLACEMENT boots).
     return smoke != nullptr && strcmp(smoke, "rando") == 0 && name != nullptr &&
-           (strcmp(name, "slot") == 0 || strcmp(name, "loc") == 0 || strcmp(name, "newgame") == 0);
+           (strcmp(name, "slot") == 0 || strcmp(name, "loc") == 0 || strcmp(name, "newgame") == 0 ||
+            strcmp(name, "evloc") == 0);
 }
 
 namespace pc {

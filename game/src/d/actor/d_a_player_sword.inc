@@ -1698,7 +1698,12 @@ BOOL daPy_lk_c::procCutTurnMove_init() {
     m3598 = 1.0f;
     mDirection = DIR_FORWARD;
 
+#if TARGET_PC
+    // pc_rando(R2.4): flexible_item_locations.asm 0x80158C08 (procCutTurnMove_init tests event bit 0x6901, set by hurricane_spin_item_func); original: dComIfGs_isEventBit(dSv_event_flag_c::UNK_0B20)
+    if (pc_rando() ? pc_rando_hurricane_spin_owned() != 0 : dComIfGs_isEventBit(dSv_event_flag_c::UNK_0B20)) {
+#else
     if (dComIfGs_isEventBit(dSv_event_flag_c::UNK_0B20)) {
+#endif
         bVar1 = true;
     } else if (dComIfGs_isTmpBit(dSv_event_tmp_flag_c::UNK_0402)) {
         bVar1 = true;

@@ -1,0 +1,18 @@
+# R2.4 (docs/RANDOMIZER_PLAN.md): the 11 event locations (event_list.dat actions placed at load, smoke
+# evloc), Orca's Hurricane Spin code site and the Hurricane Spin item (bit 0x6901). T1 reads every
+# event key of the boot stage back through dEvent_manager_c; T2 starts an event and checks the item it
+# gives. Placements: R0_6_rotation.json, R2_4_events.json (songs into 011get_item/046pget actions,
+# Hurricane Spin and other items into 059get_dance ones; fixtures/R2_4_make_fixture.py), and none
+# (vanilla). Paths are relative to the repository root, where regress.sh is run from.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Orichh:0 --env COS_RANDO_SMOKE=evloc --env COS_EVLOC_T2=Gp1_Get_Itm
+rando 0 --stage Orichh:0 --env COS_RANDO_SMOKE=evloc --env COS_EVLOC_T2=Gp1_Get_Itm --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json
+rando 0 --stage Orichh:0 --env COS_RANDO_SMOKE=evloc --env COS_EVLOC_T2=Gp1_Get_Itm --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R2_4_events.json
+rando 0 --stage sea:11 --env COS_RANDO_SMOKE=evloc --env COS_EVLOC_T2=TACT_TT11
+rando 0 --stage sea:11 --env COS_RANDO_SMOKE=evloc --env COS_EVLOC_T2=TACT_TT11 --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json
+rando 0 --stage sea:11 --env COS_RANDO_SMOKE=evloc --env COS_EVLOC_T2=TACT_TT11 --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R2_4_events.json
+rando 0 --stage Ojhous:0 --env COS_RANDO_SMOKE=evloc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json
+rando 0 --stage Ojhous:0 --env COS_RANDO_SMOKE=evloc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R2_4_events.json
+rando 0 --stage Opub:0 --env COS_RANDO_SMOKE=evloc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json
+rando 0 --stage Atorizk:0 --env COS_RANDO_SMOKE=evloc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json
+rando 0 --stage Siren:0 --env COS_RANDO_SMOKE=evloc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R2_4_events.json
