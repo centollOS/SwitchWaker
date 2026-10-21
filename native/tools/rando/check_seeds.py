@@ -25,6 +25,7 @@ Presets (--preset, default "default"); name=<json> pairs are applied after the p
   all_categories   every progression_* option on
   dungeons_only    progression_dungeons only
   no_dungeons      the defaults without progression_dungeons
+  starting_island  the defaults with randomize_starting_island (R6.7)
 
 Hints are not ported (R5), so the CLI runs with --allow-missing-hints. The wwrando side runs in J
 worker processes (default 4), each importing wwrando once (about 0.5 s per seed and check).
@@ -71,7 +72,9 @@ def preset_values(name):
     return {p: p == "progression_dungeons" for p in prog}
   if name == "no_dungeons":
     return {"progression_dungeons": False}
-  oc.die(f"unknown preset '{name}' (default, all_categories, dungeons_only, no_dungeons)")
+  if name == "starting_island":
+    return {"randomize_starting_island": True}
+  oc.die(f"unknown preset '{name}' (default, all_categories, dungeons_only, no_dungeons, starting_island)")
 
 
 def log_names(seed):

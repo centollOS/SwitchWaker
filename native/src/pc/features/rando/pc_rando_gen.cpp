@@ -54,6 +54,19 @@ int randomizePigs(PyRandom& rng) {
     return rng.choice(kPigs);
 }
 
+// StartingIslandRandomizer._randomize (R6.7): choice(range(1, 50)) without 1 (Forsaken Fortress), so a
+// sea room 2-49.
+int randomizeStartingIsland(PyRandom& rng) {
+    static const std::vector<int> kIslands = [] {
+        std::vector<int> v;
+        for (int room = 2; room <= 49; room++) {
+            v.push_back(room);
+        }
+        return v;
+    }();
+    return rng.choice(kIslands);
+}
+
 } // namespace
 
 std::string unsupportedOptionsError(const Options& o, bool allowMissingHints) {
@@ -72,9 +85,6 @@ std::string unsupportedOptionsError(const Options& o, bool allowMissingHints) {
         o.randomize_boss_entrances || o.randomize_secret_cave_inner_entrances ||
         o.randomize_fairy_fountain_entrances) {
         return refuse("entrance randomization", "R6.10-R6.11");
-    }
-    if (o.randomize_starting_island) {
-        return refuse("randomize_starting_island", "R6.7");
     }
     if (o.num_extra_starting_items > 0) {
         return refuse("num_extra_starting_items above 0", "R6.4");
@@ -187,8 +197,15 @@ bool generate(const GenRequest& req, GenResult& out) {
 
     traceBegin(out.sanitizedSeed);
 
-    // randomize(): the randomizers in order. charts, boss_reqs, entrances and starting_island are
-    // disabled here (refused above when on).
+    // randomize(): the randomizers in order. charts, boss_reqs and entrances are disabled here
+    // (refused above when on).
+    if (o.randomize_starting_island) {
+        // StartingIslandRandomizer (R6.7); disabled it keeps room 44 (Outset).
+        PyRandom rng;
+        newRandomizerRng(rng, out.sanitizedSeed, o, req.seedKey);
+        traceAttach(rng, "StartingIslandRandomizer");
+        in.startingIslandRoom = randomizeStartingIsland(rng);
+    }
     {
         // PigsRandomizer (always enabled).
         PyRandom rng;
