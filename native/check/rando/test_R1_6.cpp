@@ -7,7 +7,7 @@
 //   - fixtures/R1_6_CheckSeed11_dungeons_only.json (ww_export.py CheckSeed11 with every
 //     progression_* option off except progression_dungeons) checks the usefulness-cache fix of this
 //     step (Logic::checkItemIsUseful stores like Python's dict);
-//   - the refusals of options whose randomizer is not ported, the hints refusal, wwrando's
+//   - the refusals of options whose randomizer is not ported, hints on by default (R5.1), wwrando's
 //     TooFewProgressionLocationsError with its error log, the progress callback and determinism.
 // The full oracle batch is native/tools/rando/check_seeds.py (regress_rando/R1.6.txt).
 #include <cstring>
@@ -172,16 +172,14 @@ void testDungeonsOnly() {
 }
 
 void testRefusals() {
-    // Hints are always needed.
+    // Hints are generated since R5.1 (no refusal; test_R5_1 checks them).
     {
         pcr::GenRequest req = request("TestSeed1");
         req.allowMissingHints = false;
         pcr::GenResult res;
-        RT_CHECK(!pcr::generate(req, res));
-        RT_CHECK(res.unsupported);
-        RT_CHECK(res.error.find("R5") != std::string::npos);
-        RT_CHECK(res.errorLog.find("Error on seed TestSeed1:\nNot supported yet: hints") != std::string::npos);
-        RT_CHECK(res.placementJson.empty());
+        RT_CHECK(pcr::generate(req, res));
+        RT_CHECK(!res.unsupported && !res.hintsMissing);
+        RT_CHECK(res.seed.has_hints);
     }
     struct Case {
         int id;

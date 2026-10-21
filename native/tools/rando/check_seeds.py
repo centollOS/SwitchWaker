@@ -26,7 +26,9 @@ Presets (--preset, default "default"); name=<json> pairs are applied after the p
   dungeons_only    progression_dungeons only
   no_dungeons      the defaults without progression_dungeons
 
-Hints are not ported (R5), so the CLI runs with --allow-missing-hints. The wwrando side runs in J
+The CLI runs with --allow-missing-hints unless --hints is given (R5.1): then our hints are generated
+and the spoiler log must be byte-identical including its Hints section (ww_verify_hints.py checks
+the hints themselves). The wwrando side runs in J
 worker processes (default 4), each importing wwrando once (about 0.5 s per seed and check).
 
 Prints one line per failing seed and a summary with our generation time. Exit 0 all passed, 1 a
@@ -127,7 +129,7 @@ def worker_init():
 def check_one(job):
   """job: (seed, values, our_json_path or None, our_error or None, out_dir, golden). Returns
   (seed, [problems])."""
-  seed, values, path, our_error, out_dir, golden = job
+  seed, values, path, our_error, out_dir, golden, hints = job
   problems = []
   d = None
   if path is not None:
@@ -181,7 +183,7 @@ def check_one(job):
   for name, hints_free in ((non_spoiler, False), (spoiler, True)):
     ours = strip_trailer(read_text(os.path.join(ours_dir, name)))
     theirs = drop_dry_run(read_text(os.path.join(logs_dir, name)))
-    if hints_free:
+    if hints_free and not hints:
       ours, theirs = drop_hints(ours), drop_hints(theirs)
     if ours is None or theirs is None:
       if ours is not None or theirs is not None:
@@ -200,6 +202,7 @@ def main():
   ap.add_argument("--n", type=int, default=20)
   ap.add_argument("--preset", default="default")
   ap.add_argument("--golden", action="store_true")
+  ap.add_argument("--hints", action="store_true", help="generate hints too and compare them in the logs")
   ap.add_argument("--jobs", type=int, default=4)
   ap.add_argument("--prefix", default="CheckSeed")
   ap.add_argument("--start", type=int, default=0)
@@ -221,7 +224,8 @@ def main():
   if any(sanitize(s) != s for s in seeds):
     oc.die("--prefix must use only wwrando's seed characters and stay within 42 characters")
 
-  cmd = [a.cli, "--out", ours_dir, "--allow-missing-hints", "--sw-version", CLI_VERSION, "--time"]
+  cmd = [a.cli, "--out", ours_dir] + ([] if a.hints else ["--allow-missing-hints"])
+  cmd += ["--sw-version", CLI_VERSION, "--time"]
   cmd += [f"{k}={json.dumps(v)}" for k, v in values.items()]
   cmd += seeds
   p = subprocess.run(cmd, capture_output=True, text=True)
@@ -250,7 +254,7 @@ def main():
       print(f"FAIL {s}: cos_rando_cli: {err}")
       failures += 1
       continue
-    jobs.append((s, values, path, err, out_dir, a.golden))
+    jobs.append((s, values, path, err, out_dir, a.golden, a.hints))
 
   ctx = multiprocessing.get_context("spawn")
   with ctx.Pool(processes=max(1, a.jobs), initializer=worker_init) as pool:

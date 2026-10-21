@@ -16,11 +16,12 @@
 //   - randomize_charts (R6.6), required_bosses (R6.8), any randomize_*_entrances (R6.10-R6.11),
 //     randomize_starting_island (R6.7), num_extra_starting_items > 0 (R6.4),
 //     randomize_enemies (R7.3), randomize_enemy_palettes (R7.2);
-//   - hints (R5). HintsRandomizer is always enabled in wwrando (the Big Octo Great Fairy hint is
-//     generated even with every hint placement off), so every seed needs it. With
-//     GenRequest::allowMissingHints the seed is made without them: hints run after the items with
-//     their own RNG, so the placement is still wwrando's; the hint texts stay vanilla in game and the
-//     spoiler log's Hints section lists only the two Savage Labyrinth rows (GenResult::hintsMissing).
+// Hints (R5.1, pc_rando_gen_hints.h) always run, as wwrando's HintsRandomizer is always enabled (the
+// Big Octo Great Fairy hint is generated even with every hint placement off); the placement gets a
+// "hints" value (hintsToJson). With GenRequest::allowMissingHints the seed is made without them:
+// hints run after the items with their own RNG, so the placement is still wwrando's; the hint texts
+// stay vanilla in game and the spoiler log's Hints section lists only the two Savage Labyrinth rows
+// (GenResult::hintsMissing).
 //
 // The pigs bitfield is not in the oracle's schema; it is written as the extra top-level key
 // "captured_pigs_bitfield" (an integer: 1, 2 or 4), which R0.6 keeps and pc_rando_slot reads.
@@ -46,7 +47,7 @@ typedef void (*GenProgressFn)(void* user, const char* text, int done, int total)
 struct GenRequest {
     std::string seed; // as typed; sanitized by the generator (WWRandomizer.sanitize_seed)
     Options options;  // validated by the generator (Options.validate), not ensureValidCombination
-    // Generate without hints (R5 not ported yet) instead of refusing every seed.
+    // Generate without hints (faster; the placement is the same, the hint texts stay vanilla).
     bool allowMissingHints = false;
     // SEED_KEY for do_not_generate_spoiler_log (decision D2).
     const char* seedKey = kSwitchWakerSeedKey;

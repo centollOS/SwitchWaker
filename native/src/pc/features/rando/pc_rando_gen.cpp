@@ -5,6 +5,7 @@
 
 #include <string.h>
 
+#include "pc_rando_gen_hints.h"
 #include "pc_rando_gen_items.h"
 #include "pc_rando_json.h"
 #include "pc_rando_logic.h"
@@ -85,11 +86,7 @@ std::string unsupportedOptionsError(const Options& o, bool allowMissingHints) {
     if (o.randomize_enemy_palettes) {
         return refuse("randomize_enemy_palettes", "R7.2");
     }
-    if (!allowMissingHints) {
-        return "Not supported yet: hints (plan step R5). wwrando always generates hints (the Big Octo Great "
-               "Fairy's even with every hint placement off); generate with hints left out "
-               "(allowMissingHints) to get wwrando's placement without them.";
-    }
+    (void)allowMissingHints; // R5.1: hints are generated (allowMissingHints only skips them)
     return std::string();
 }
 
@@ -168,7 +165,7 @@ bool generate(const GenRequest& req, GenResult& out) {
         out.unsupported = true;
         return fail(refusal);
     }
-    out.hintsMissing = true; // R5: hints are never generated yet (allowMissingHints was given)
+    out.hintsMissing = req.allowMissingHints; // R5.1: hints are skipped only when asked
 
     Progress prog{req};
     prog.total = kWeightItems + kWeightHints; // pigs weigh 0
@@ -206,10 +203,25 @@ bool generate(const GenRequest& req, GenResult& out) {
         out.drcFailsafeLocation = res.drcFailsafeLocation;
         prog.done += kWeightItems;
     }
+    HintsResult hints;
     {
-        // HintsRandomizer: R5. Its spoiler rows that need no RNG: the Savage Labyrinth floors.
         prog.report("Generating hints...");
-        savageLabyrinthHintRows(logic, in.hints);
+        if (req.allowMissingHints) {
+            // Without hints: only the spoiler rows that need no RNG (the Savage Labyrinth floors).
+            savageLabyrinthHintRows(logic, in.hints);
+        } else {
+            // HintsRandomizer (R5.1, always enabled).
+            HintsInput hin;
+            hin.requiredDungeons = in.requiredDungeons;
+            hin.allRandomizedProgressItems = init.allRandomizedProgressItems;
+            if (!runHintsRandomizer(logic, hin, out.sanitizedSeed, hints, req.seedKey)) {
+                return fail(hints.error);
+            }
+            std::string err;
+            if (!hintSpoilerRows(logic, hints, in.hints, &err)) {
+                return fail(err);
+            }
+        }
         prog.done += kWeightHints;
     }
     traceEnd();
@@ -259,6 +271,9 @@ bool generate(const GenRequest& req, GenResult& out) {
         locations.set(logic.locationName(i), Json::string(logic.name(item)));
     }
     j.set("locations", locations);
+    if (!req.allowMissingHints) {
+        j.set("hints", hintsToJson(hints));
+    }
     j.set("version", Json::string("SwitchWaker " + req.version));
     j.set("captured_pigs_bitfield", Json::integer(out.pigsBitfield));
 
