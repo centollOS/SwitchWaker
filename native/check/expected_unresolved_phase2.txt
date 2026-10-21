@@ -29,6 +29,7 @@ REL	__ZN7daTsubo5Act_c7damagedEiP13cBgS_PolyInfobPK4cXyz
 REL	__ZN8daShip_c13checkOutRangeEv
 REL	__ZN8daTbox_c11checkNormalEv
 REL	__ZN8daTbox_c11getFuncTypeEv
+REL	__ZN8daTbox_c12getShapeTypeEv
 REL	__ZN8daTbox_c9checkOpenEv
 REL	__ZN9daNpcSv_cC1Ev
 REL	__ZN9daWarpf_c12checkEndDemoEv
