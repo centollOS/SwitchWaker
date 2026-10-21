@@ -56,10 +56,11 @@ extern "C" int pc_rando_smoke_wants_run_card(void) {
     // R3.1: the newgame smoke writes a sidecar too. R2.4: the evloc smoke (COS_RANDO_PLACEMENT boots).
     // R2.10: the addchest smoke boots with a placement. R3.2: the start smoke (a real new game: an
     // empty card, and the sidecar). R6.5: the trap smoke boots with a placement.
+    // R4.3: the gen smoke writes the generated seed's sidecar.
     return smoke != nullptr && strcmp(smoke, "rando") == 0 && name != nullptr &&
            (strcmp(name, "slot") == 0 || strcmp(name, "loc") == 0 || strcmp(name, "newgame") == 0 ||
             strcmp(name, "evloc") == 0 || strcmp(name, "addchest") == 0 || strcmp(name, "start") == 0 ||
-            strcmp(name, "trap") == 0);
+            strcmp(name, "trap") == 0 || strcmp(name, "gen") == 0);
 }
 
 namespace pc {
