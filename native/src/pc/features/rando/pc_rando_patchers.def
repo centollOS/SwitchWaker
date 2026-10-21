@@ -5,3 +5,4 @@
 // (game_hooks/pc_rando_hooks_resources.cpp) calls every init once, in this order, before the first
 // archive is dispatched; patchers then run in registration order. Append-only: each step adds its
 // line; on a merge keep both sides.
+PC_RANDO_PATCHER(pc_rando_tweak_stages_b_init) // R3.16: stage tweaks B (failsafe and boss-door spawns, panning cutscenes, FH warp, magic jars, hint sign)

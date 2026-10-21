@@ -244,7 +244,9 @@ void randoSmokeDzx(unsigned int frames) {
         randoSmokeCheck(kName, "identity: room.dzr stored bytes hash as the raw ones",
                         sRoom0.rawHash == sRoom0.finalHash && sRoom0.rawSize == sRoom0.finalSize &&
                             !sRoom0.replaced);
-        randoSmokeCheck(kName, "identity: no copy made", st.replaced == 0 && st.failed == 0);
+        // Other steps' patchers (pc_rando_patchers.def, e.g. R3.16's spawn 0 in Asoko/Room0) may grow
+        // files after the smoke's last patcher, so only failed copies count here.
+        randoSmokeCheck(kName, "identity: no copy failed", st.failed == 0);
         randoSmokeCheck(kName, "identity: the chest holds 0x31", chest != nullptr && chestItem(chest) == kVanillaItem);
         return;
     }

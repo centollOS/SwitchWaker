@@ -1,0 +1,17 @@
+# R3.16 stage tweaks B (docs/RANDOMIZER_PLAN.md): failsafe spawn 0 (#19), spawn 27 outside boss doors
+# (#20), panning cutscenes (#21), the Forest Haven warp (#22), magic jars (#8) and the DRC hint sign
+# (#12). Each forced line boots a room at a spawn that only exists through the tweak (spawn 0 / 27),
+# checks the edited records of every dispatched file and that the player stands at the spawn. A sample
+# of the 44 failsafe rooms (the full list was run once, see the step's notes); vanilla: no dispatch and
+# no hint sign.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage M_NewD2:2:1 --env COS_RANDO_SMOKE=stagesB
+rando 0 --stage M_NewD2:2:0 --env COS_RANDO_SMOKE=stagesB --env COS_RANDO_FORCE=1
+rando 0 --stage Asoko:0:0 --env COS_RANDO_SMOKE=stagesB --env COS_RANDO_FORCE=1
+rando 0 --stage TF_06:3:0 --env COS_RANDO_SMOKE=stagesB --env COS_RANDO_FORCE=1
+rando 0 --stage ma2room:3:0 --env COS_RANDO_SMOKE=stagesB --env COS_RANDO_FORCE=1
+rando 0 --stage TF_01:2:0 --env COS_RANDO_SMOKE=stagesB --env COS_RANDO_FORCE=1
+rando 0 --stage M_NewD2:10:27 --env COS_RANDO_SMOKE=stagesB --env COS_RANDO_FORCE=1
+rando 0 --stage M_Dai:15:27 --env COS_RANDO_SMOKE=stagesB --env COS_RANDO_FORCE=1
+rando 0 --stage sea:1:27 --env COS_RANDO_SMOKE=stagesB --env COS_RANDO_FORCE=1
+rando 0 --stage sea:41:0 --env COS_RANDO_SMOKE=stagesB --env COS_RANDO_FORCE=1
