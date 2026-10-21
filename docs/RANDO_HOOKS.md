@@ -316,3 +316,14 @@ is not 1.0; `remove_music` and `invert_sea_compass_x_axis` are `PcRandoModes` (`
 | game/src/JAZelAudio/JAIZelBasic.cpp | `JAIZelBasic::processHeartGaugeSound` | `add` (skips the 1-heart `seStart`) | `remove_low_health_beep_anim.asm` 0x802A2FA0 |
 | game/src/d/d_meter.cpp | `dMeter_compassGetOnProc` | `?:` | `invert_sea_compass_x_axis.asm` 0x801FD37C |
 | game/src/d/d_save.cpp | `dSv_player_config_c::init` | `?:` | `custom_funcs.asm` `option_targeting_mode` (`set_default_targeting_mode_to_switch`) |
+
+## R2.3
+
+SCOB item locations (salvage points, Big Octos, Gunboats, the black-soil dig spot) are written into
+room.dzr at archive load by `features/rando/pc_rando_place_scob.cpp` (a dzx patcher, not a hunk), which
+also applies `fix_needle_rock_island_salvage_flags` (sea/Room29 light-ring salvage flags 8 and 9).
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_salvage.cpp | `daSalvage_c::proc_wait` (ray of light: chart index + 0x61 instead of `getItemNo`) | `?:` (+ `#else` original) | flexible_item_locations.asm d_a_salvage 0x10C0 |
+| game/src/d/d_com_static.cpp | `daTagKbItem_c::dig_main` (`fopAcM_createItem` type 3 action 5, no status 0x4000) | `if (pc_rando()) {new} else {original}` (+ `#else` original) | flexible_item_locations.asm 0x80056C0C, custom_funcs.asm `custom_createItem` |

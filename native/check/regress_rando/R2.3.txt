@@ -1,0 +1,18 @@
+# R2.3 (docs/RANDOMIZER_PLAN.md): the 57 SCOB locations (salvage, Big Octo, Gunboat, dig spot; 204 key
+# paths) placed into room.dzr at load, the Needle Rock salvage flags, the salvage light hunk and the dig
+# hunk. On the boat (sailing preset) with the smoke's own placement (or a COS_RANDO_PLACEMENT seed):
+#   - T1 on a sample of sea rooms (every key patched with its item, the salvage registry holds it,
+#     Outset's TagKb holds the dig item, Needle Rock flags 8 and 9); vanilla: nothing dispatched;
+#   - T2 salvage (Outset's sunken treasure: the light waits for the chart decipher, the crane's salvage
+#     event gives the placed item) and T2 dig (a pig digs Outset's black soil, the field item of the
+#     placed item is picked up), with and without the randomizer.
+# All 49 sea rooms (about 40 s uncapped):
+#   run.sh rando --preset sailing --uncapped --env COS_RANDO_SMOKE=scob
+# Vanilla T1 skips sea room 1: in the sailing preset's state Forsaken Fortress registers no salvage.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=scob --env COS_SCOB_ROOMS=1,29,44,46
+rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=scob --env COS_SCOB_ROOMS=29,44 --env COS_SCOB_VANILLA=1
+rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=scob --env COS_SCOB_MODE=salvage
+rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=scob --env COS_SCOB_MODE=salvage --env COS_SCOB_VANILLA=1
+rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=scob --env COS_SCOB_MODE=dig
+rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=scob --env COS_SCOB_MODE=dig --env COS_SCOB_VANILLA=1

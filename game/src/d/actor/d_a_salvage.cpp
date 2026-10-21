@@ -17,6 +17,9 @@
 #include "d/d_item.h"
 #include "d/d_com_inf_game.h"
 #include "f_op/f_op_actor_mng.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 const char* daSalvage_c::m_arcname = "Yslvg00";
 
@@ -304,7 +307,14 @@ bool daSalvage_c::proc_wait() {
 
             if (uVar6 == 0) {
                 if (dComIfGs_isOpenCollectMap(uVar2) && !dComIfGs_isCompleteCollectMap(uVar2)) {
+#if TARGET_PC
+                    // pc_rando(R2.3): flexible_item_locations.asm d_a_salvage 0x10C0 (addi r3, r19, 0x61 with
+                    // r19 the chart index, uVar2 - 1): the ray of light waits for a deciphered Triforce
+                    // Chart by the chart, not by the item placed there; original: getItemNo(i)
+                    u8 iVar3 = pc_rando() ? (u8)(uVar2 - 1 + 0x61) : getItemNo(i);
+#else
                     u8 iVar3 = getItemNo(i);
+#endif
                     bool bVar7 = true;
 
                     if (isTriforce(iVar3)) {
