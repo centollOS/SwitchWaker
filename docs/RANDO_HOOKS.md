@@ -76,6 +76,32 @@ pure `pc_rando_msg.cpp`.
 | game/src/f_op/f_op_msg_mng.cpp:1509 | `fopMsgM_msgGet_c::getMesgEntry` (1509), `fopMsgM_itemMsgGet_c::getMesgEntry` (1601): the overlay's INF1 entry fields (or the new-message defaults) replace the BMG entry before the instant-text QoL | add | gclib `bmg.py` `add_new_message` / `Message` fields, set in `tweaks.py` and `randomizers/hints.py` |
 | game/src/f_op/f_op_msg_mng.cpp:1530 | `fopMsgM_msgGet_c::getMessage` (1530), `fopMsgM_itemMsgGet_c::getMessage` (1621): the overlay's encoded text replaces the BMG text (and serves numbers the BMG lacks; `mResMsgNo` = the asked number) | add | `msg.string = ...` / `add_new_message` (`tweaks.py`, `randomizers/hints.py`, `randomizers/boss_reqs.py`) |
 
+## R2.8
+
+Code locations C: the auction, Battlesquid, Barrel Shooting, the Bird-Man Contest, the Goron trader,
+the 13 mailbox letters, the Withered Trees, Zunari and Doc Bandam (27 locations, 31 location keys). The
+REL bytes wwrando's items.py `change_item` writes become `pc_rando_code_c_item(site, index, vanilla)`
+calls (site table in `native/src/pc/features/rando/pc_rando_code_c.cpp`); the Withered Trees'
+`custom_createItem` and momentum are in `native/src/pc/game_hooks/pc_rando_hooks_code_c.cpp`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_auction.cpp | `daAuction_c` item display: `fopAcM_create(ShopItem)` takes the placed item of `l_item_dat[i]` | ?: | items.py change_item `rels/d_a_auction.rel@4489/4491/4499/44A1` |
+| game/src/d/actor/d_a_auction.cpp | item given: `createItemForPresentDemo` takes the placed item of `l_item_dat[i]` | ?: | same bytes |
+| game/src/d/actor/d_a_npc_kg1.cpp | `daNpc_Kg1_c::wait_action`: `items[0..1]` and `rec_items[0]` | ?: | `rels/d_a_npc_kg1.rel@2C28/2C29/2C2C` |
+| game/src/d/actor/d_a_npc_kg2.cpp | `daNpc_Kg2_c::evn_createItem_init`: the item for register 0xB703 = 0/1, 2 | add | `rels/d_a_npc_kg2.rel@20FF/2107` |
+| game/src/d/actor/d_a_npc_bmcon1.cpp | `daNpcBmcon_c::eventMesSet`: the first prize | ?: | `rels/d_a_npc_bmcon1.rel@2B7B` |
+| game/src/d/actor/d_a_npc_roten.cpp | `daNpcRoten_c::eventGetItemInit`: `l_get_item_no[0]` | ?: | `rels/d_a_npc_roten.rel@533B` |
+| game/src/d/actor/d_a_obj_toripost.cpp | `daObjTpost_c::cutPresentProc`: `m_letter[i].mItemNo` | ?: | `rels/d_a_obj_toripost.rel@2564-25F4` |
+| game/src/d/actor/d_a_obj_ftree.cpp | `daObjFtree::Act_c::search_heart_part`: `pc_rando_withered_tree_item_momentum` on the frame the item exists (flag in the padding byte `m64A[0]`) | add | flexible_item_locations.asm d_a_obj_ftree 0x184, `withered_tree_item_try_give_momentum` |
+| game/src/d/actor/d_a_obj_ftree.cpp | `daObjFtree::Act_c::launch_heart_part`: `pc_rando_custom_create_item` with the placed item, -1 check, no `actor_status` write | if/else | `rels/d_a_obj_ftree.rel@0237`; d_a_obj_ftree 0x25C/0x260/0x2A4, `custom_createItem` |
+| game/src/d/actor/d_a_obj_ftree.cpp | `daObjFtree::Act_c::place_heart_part`: the same, and the momentum flag set | if/else | `rels/d_a_obj_ftree.rel@03F3`; d_a_obj_ftree 0x418/0x41C, `create_item_for_withered_trees_without_setting_speeds` |
+| game/src/d/actor/d_a_npc_rsh1.cpp | `daNpc_Rsh1_c::getMsg`: event bit 0x6940 instead of `checkItemGet(Magic Armor)` | ?: | d_a_npc_rsh1 0x177C/0x1784 |
+| game/src/d/actor/d_a_npc_rsh1.cpp | `daNpc_Rsh1_c::talk01`: the placed item instead of the Magic Armor | ?: | `rels/d_a_npc_rsh1.rel@3117` |
+| game/src/d/actor/d_a_npc_rsh1.cpp | `daNpc_Rsh1_c::getdemo_action`: sets 0x6940 when the item given is the slot's (`zunari_magic_armor_slot_item_id`); the reply compare uses the placed item | add, ?: | d_a_npc_rsh1 0x32E8 `zunari_give_item_and_set_magic_armor_event_bit`; `rels/d_a_npc_rsh1.rel@338F` |
+| game/src/d/actor/d_a_npc_ds1.cpp | `daNpc_Ds1_c::next_msgStatus`: message 0x1DCB (7627) gives the potion without an empty bottle | \|\| | d_a_npc_ds1 0x1550 (nop) |
+| game/src/d/actor/d_a_npc_ds1.cpp | `daNpc_Ds1_c::getdemo_action`: on message 7627 the green/blue potion slot's item | add | d_a_npc_ds1 0x2940 `doc_bandam_check_new_potion_and_give_free_item` (`doc_bandam_green/blue_potion_slot_item_id`) |
+
 ## R2.11
 
 Any item anywhere (tweaks.py `allow_all_items_to_be_field_items`, always applied by wwrando). The table

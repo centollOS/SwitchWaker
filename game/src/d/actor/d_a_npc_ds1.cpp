@@ -15,6 +15,9 @@
 #include "d/d_s_play.h"
 #include "m_Do/m_Do_mtx.h"
 #include "m_Do/m_Do_audio.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 
 static fpc_ProcID l_msgId;
 
@@ -408,7 +411,14 @@ u16 daNpc_Ds1_c::next_msgStatus(u32* msg) {
     case 0x1DD8: case 0x1DD9: case 0x1DDA: *msg = 0x1DC0;
         break;
     case 0x1DCB:
+#if TARGET_PC
+        // pc_rando(R2.8): flexible_item_locations.asm d_a_npc_ds1 0x1550 (nop: a first-time potion is
+        // given without an empty bottle, so the location cannot be missed); original:
+        // dComIfGs_checkEmptyBottle()
+        if (pc_rando() || dComIfGs_checkEmptyBottle()) {
+#else
         if (dComIfGs_checkEmptyBottle()) {
+#endif
             status = 16;
         } else {
             *msg = 0x1DCC;
@@ -833,6 +843,14 @@ int daNpc_Ds1_c::getdemo_action(void*) {
         ((daPy_py_c*)dComIfGp_getPlayer(0))->offPlayerNoDraw();
         mLookMode = m895;
         mShopCam.setCamAction(NULL);
+#if TARGET_PC
+        if (pc_rando() && mCurrMsg == 7627) {
+            // pc_rando(R2.8): flexible_item_locations.asm d_a_npc_ds1 0x2940
+            // (doc_bandam_check_new_potion_and_give_free_item: message 7627, a potion made for the first
+            // time, gives the green/blue potion slot's item); original: item
+            item = pc_rando_code_c_item(PC_RANDO_CODE_C_DOC_BANDAM, item, item);
+        }
+#endif
         fpc_ProcID id = fopAcM_createItemForPresentDemo(&current.pos, item, 0, -1, DEMO_SELECT(-1, fopAcM_GetRoomNo(this)), NULL, NULL);
         if (id != fpcM_ERROR_PROCESS_ID_e) {
             dComIfGp_event_setItemPartnerId(id);

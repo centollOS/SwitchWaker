@@ -14,6 +14,9 @@
 #include "m_Do/m_Do_controller_pad.h"
 #include "m_Do/m_Do_ext.h"
 #include "d/d_cc_d.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 
 class daNpc_Rsh1_HIO_c : public JORReflexible {
 public:
@@ -704,7 +707,14 @@ u32 daNpc_Rsh1_c::getMsg() {
         msg_no = m780;
         m780 = 0;
     } else {
+#if TARGET_PC
+        // pc_rando(R2.8): flexible_item_locations.asm d_a_npc_rsh1 0x177C/0x1784 (event bit 0x6940:
+        // Zunari gave the Magic Armor slot's item); original: checkItemGet(dItemNo_MAGIC_ARMOR_e, TRUE)
+        if (!(pc_rando() ? dComIfGs_isEventBit(0x6940) : checkItemGet(dItemNo_MAGIC_ARMOR_e, TRUE)) &&
+            daNpc_Rsh1_countShop() >= 3) {
+#else
         if (!checkItemGet(dItemNo_MAGIC_ARMOR_e, TRUE) && daNpc_Rsh1_countShop() >= 3) {
+#endif
             return 0x285D;
         }
 
@@ -1331,7 +1341,14 @@ bool daNpc_Rsh1_c::talk01() {
             mItemNo = dItemNo_SAIL_e;
         } else if (m778 == 0x285F) {
             m95B = 4;
+#if TARGET_PC
+            // pc_rando(R2.8): items.py change_item rels/d_a_npc_rsh1.rel@3117; original:
+            // dItemNo_MAGIC_ARMOR_e
+            mItemNo = pc_rando() ? pc_rando_code_c_item(PC_RANDO_CODE_C_ZUNARI, 0, dItemNo_MAGIC_ARMOR_e)
+                                 : dItemNo_MAGIC_ARMOR_e;
+#else
             mItemNo = dItemNo_MAGIC_ARMOR_e;
+#endif
         } else if (m778 == 0x2883 && m793 == true) {
             setAction(&daNpc_Rsh1_c::pl_shop_out_action, NULL);
         } 
@@ -1362,6 +1379,14 @@ BOOL daNpc_Rsh1_c::getdemo_action(void* i_unusedP) {
         if (pid != fpcM_ERROR_PROCESS_ID_e) {
             dComIfGp_event_setItemPartnerId(pid);
         }
+#if TARGET_PC
+        if (pc_rando() && mItemNo == pc_rando_code_c_item(PC_RANDO_CODE_C_ZUNARI, 2, dItemNo_MAGIC_ARMOR_e)) {
+            // pc_rando(R2.8): flexible_item_locations.asm d_a_npc_rsh1 0x32E8
+            // (zunari_give_item_and_set_magic_armor_event_bit: giving the slot's item sets 0x6940);
+            // original: nothing
+            dComIfGs_onEventBit(0x6940);
+        }
+#endif
 
         dComIfGp_evmng_cutEnd(staff_idx);
         mActionStatus++;
@@ -1375,7 +1400,14 @@ BOOL daNpc_Rsh1_c::getdemo_action(void* i_unusedP) {
                 m780 = 0x2857;
             } else if (mItemNo == dItemNo_SAIL_e) {
                 m780 = 0x288F;
+#if TARGET_PC
+            // pc_rando(R2.8): items.py change_item rels/d_a_npc_rsh1.rel@338F (the compare); original:
+            // mItemNo == dItemNo_MAGIC_ARMOR_e
+            } else if (mItemNo == (pc_rando() ? pc_rando_code_c_item(PC_RANDO_CODE_C_ZUNARI, 1, dItemNo_MAGIC_ARMOR_e)
+                                              : dItemNo_MAGIC_ARMOR_e)) {
+#else
             } else if (mItemNo == dItemNo_MAGIC_ARMOR_e) {
+#endif
                 m780 = 0x2860;
             }
 

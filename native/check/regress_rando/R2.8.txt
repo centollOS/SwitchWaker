@@ -1,0 +1,10 @@
+# R2.8 (docs/RANDOMIZER_PLAN.md): code locations C. T1: the 32 lookups (27 locations: auction,
+# Battlesquid, Barrel Shooting, Bird-Man, Goron trader, mailbox, Withered Trees, Zunari, Doc Bandam)
+# off, with a synthetic placement and off again; with the R0.6 rotation placement (manual, the path must
+# be absolute):
+#   run.sh rando --stage sea:11 --env COS_RANDO_SMOKE=codec --env COS_RANDO_PLACEMENT=<repo>/native/check/rando/fixtures/R0_6_rotation.json
+# T2: a withered tree launches (custom_createItem, momentum) and places a Goddess Tingle Statue, and
+# touching it gives it.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:11 --env COS_RANDO_SMOKE=codec
+rando 0 --stage sea:42 --env COS_RANDO_SMOKE=ftree --env COS_RANDO_FORCE=1
