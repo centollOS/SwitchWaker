@@ -184,6 +184,35 @@ uint16_t pc_rando_people_item_bit(int idx);
    gate location idx (0 Shop Guru, 1 Postman, 2 Six Flags, 3 Six Idols); `vanilla` for another index. */
 int pc_rando_kane_item(int idx, int vanilla);
 
+/* --- R2.8: code locations C (features/rando/pc_rando_code_c.h holds the site table; the item
+   creation of the Withered Trees is in game_hooks/pc_rando_hooks_code_c.cpp) --- */
+/* Sites of pc_rando_code_c_item; the index is what the vanilla code indexes its item table with. */
+#define PC_RANDO_CODE_C_AUCTION 0            /* d_a_auction l_item_dat[0..3] */
+#define PC_RANDO_CODE_C_BATTLESQUID 1        /* d_a_npc_kg1 items[0..1] */
+#define PC_RANDO_CODE_C_BATTLESQUID_RECORD 2 /* d_a_npc_kg1 rec_items[0] */
+#define PC_RANDO_CODE_C_BARREL_SHOOTING 3    /* d_a_npc_kg2: event register 0xB703 (0..2) */
+#define PC_RANDO_CODE_C_BIRD_MAN 4           /* d_a_npc_bmcon1: 0 */
+#define PC_RANDO_CODE_C_GORON_TRADE 5        /* d_a_npc_roten l_get_item_no[0] */
+#define PC_RANDO_CODE_C_MAILBOX 6            /* d_a_obj_toripost m_letter[0..12] */
+#define PC_RANDO_CODE_C_WITHERED_TREE 7      /* d_a_obj_ftree: 0 launch, 1 place */
+#define PC_RANDO_CODE_C_ZUNARI 8             /* d_a_npc_rsh1: 0 talk01, 1 getdemo compare, 2 slot */
+#define PC_RANDO_CODE_C_DOC_BANDAM 9         /* d_a_npc_ds1: the potion item id (0x52, 0x53) */
+#define PC_RANDO_CODE_C_SITE_COUNT 10
+/* The item placed at code location (site, index), or `vanilla` when pc_rando() is 0, no placement is
+   set, or that index is not a location. Pure (pc_rando_code_c.cpp). */
+uint8_t pc_rando_code_c_item(int site, int index, uint8_t vanilla);
+/* custom_createItem (custom_funcs.asm): fopAcM_createItem with type 3 (no fade) and action 5 (the
+   "ding"), which loads the item's field model, unlike fopAcM_fastCreateItem. `pos` is a cXyz*,
+   `angle` a csXyz*, `scale` a cXyz*. Returns the process id, or -1 (fpcM_ERROR_PROCESS_ID_e) for item
+   0xFF or a failed create. */
+uint32_t pc_rando_custom_create_item(void* pos, int item_no, int room_no, void* angle, void* scale,
+                                     int item_bit_no);
+/* withered_tree_item_try_give_momentum: on the first frame the tree's heart part item `item` (a
+   fopAc_ac_c*, non-NULL) exists, gives it the launch speeds of the vanilla fastCreateItem call (1.75
+   forward, 30 up, gravity -2.1) and actor status bit 0x40, and sets *done; does nothing when *done is
+   set (also set by place_heart_part, whose item keeps still). */
+void pc_rando_withered_tree_item_momentum(void* item, uint8_t* done);
+
 #ifdef __cplusplus
 }
 #endif

@@ -19,6 +19,9 @@
 #include "JAZelAudio/JAIZelBasic.h"
 #include <math.h>
 #include "d/d_cc_d.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 
 static dCcD_SrcCyl l_cyl_src = {
     // dCcD_SrcGObjInf
@@ -475,6 +478,13 @@ BOOL daNpc_Kg2_c::evn_createItem_init(int staff) {
         item = 6;
         break;
     }
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R2.8): items.py change_item rels/d_a_npc_kg2.rel@20FF (register 0/1) and @2107
+        // (register 2); original: item as chosen above
+        item = pc_rando_code_c_item(PC_RANDO_CODE_C_BARREL_SHOOTING, dComIfGs_getEventReg(0xB703), item);
+    }
+#endif
     fpc_ProcID id = fopAcM_createItemForPresentDemo(&current.pos, item, 0, -1, DEMO_SELECT(-1, fopAcM_GetRoomNo(this)), NULL, NULL);
     if (id != fpcM_ERROR_PROCESS_ID_e) dComIfGp_event_setItemPartnerId(id);
     return TRUE;

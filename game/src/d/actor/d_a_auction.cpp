@@ -12,6 +12,9 @@
 #include "res/Object/Pspl.h"
 #include "m_Do/m_Do_controller_pad.h"
 #include "d/d_auction_screen.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 
 #if TARGET_PC
 // Native port step 3.3 (ODR): NpcDatStruct is also defined by other NPC units. All units link into
@@ -681,7 +684,17 @@ void daAuction_c::eventStartInit() {
     dAuction_screen_gaugeHide();
     dAuction_screen_talkEnd();
 
+#if TARGET_PC
+    // pc_rando(R2.8): items.py change_item rels/d_a_auction.rel@4489/4491/4499/44A1 (l_item_dat[i].mItemID,
+    // the auctioned item shown); original: l_item_dat[mCurrAuctionItemIndex].mItemID
+    mCurrAuctionItemPID = fopAcM_create(fpcNm_ShopItem_e,
+                                        pc_rando() ? pc_rando_code_c_item(PC_RANDO_CODE_C_AUCTION, mCurrAuctionItemIndex,
+                                                                          l_item_dat[mCurrAuctionItemIndex].mItemID)
+                                                   : l_item_dat[mCurrAuctionItemIndex].mItemID,
+                                        &current.pos);
+#else
     mCurrAuctionItemPID = fopAcM_create(fpcNm_ShopItem_e, l_item_dat[mCurrAuctionItemIndex].mItemID, &current.pos);
+#endif
     dKy_custom_colset(0, 4, 1.0f);
 
     mLight.mPos.x = 0.0f;
@@ -1217,7 +1230,16 @@ void daAuction_c::eventGetItemInit() {
 
         dComIfGs_onEventBit(l_item_dat2[mCurrAuctionItemIndex].mObtainedEventBit);
     } else {
+#if TARGET_PC
+        // pc_rando(R2.8): items.py change_item rels/d_a_auction.rel@4489/4491/4499/44A1 (the item won);
+        // original: l_item_dat[mCurrAuctionItemIndex].mItemID & 0xFF
+        fpc_ProcID itemID = fopAcM_createItemForPresentDemo(
+            &current.pos, pc_rando() ? pc_rando_code_c_item(PC_RANDO_CODE_C_AUCTION, mCurrAuctionItemIndex,
+                                                            l_item_dat[mCurrAuctionItemIndex].mItemID & 0xFF)
+                                     : l_item_dat[mCurrAuctionItemIndex].mItemID & 0xFF);
+#else
         fpc_ProcID itemID = fopAcM_createItemForPresentDemo(&current.pos, l_item_dat[mCurrAuctionItemIndex].mItemID & 0xFF);
+#endif
 
         if (itemID != fpcM_ERROR_PROCESS_ID_e) {
             dComIfGp_event_setItemPartnerId(itemID);

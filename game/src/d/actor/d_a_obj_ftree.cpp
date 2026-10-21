@@ -8,6 +8,7 @@
 #include "d/d_com_inf_game.h"
 #if TARGET_PC
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 #include "d/d_item_data.h"
 #include "d/d_cc_d.h"
@@ -127,6 +128,14 @@ void daObjFtree::Act_c::search_heart_part() {
             dComIfGs_onEventBit(dSv_event_flag_c::UNK_2E20);
             mSpawnedHeartPieceProcessId = fpcM_ERROR_PROCESS_ID_e;
         }
+#if TARGET_PC
+        else if (pc_rando() && actor != NULL) {
+            // pc_rando(R2.8): flexible_item_locations.asm d_a_obj_ftree 0x184
+            // (withered_tree_item_try_give_momentum: the speeds on the frame the item exists; the flag
+            // byte +0x212 is the padding m64A[0] here); original: nothing
+            pc_rando_withered_tree_item_momentum(actor, &m64A[0]);
+        }
+#endif
     }
 }
 
@@ -137,6 +146,23 @@ BOOL daObjFtree::Act_c::launch_heart_part() {
     cXyz pos = current.pos;
     angle.y += 0x2328;
     pos.y += 860.0f;
+#if TARGET_PC
+    if (pc_rando()) {
+        // pc_rando(R2.8): items.py change_item rels/d_a_obj_ftree.rel@0237 and
+        // flexible_item_locations.asm d_a_obj_ftree 0x25C/0x260/0x2A4 (custom_createItem, -1 check, no
+        // actor_status write: the momentum comes later); original: the fastCreateItem below
+        fpc_ProcID pid = pc_rando_custom_create_item(
+            &pos, pc_rando_code_c_item(PC_RANDO_CODE_C_WITHERED_TREE, 0, dItemNo_HEART_PIECE_e), fopAcM_GetRoomNo(this),
+            &angle, &scale, -1);
+        if (pid == fpcM_ERROR_PROCESS_ID_e) {
+            return FALSE;
+        }
+        mSpawnedHeartPieceProcessId = pid;
+        dComIfGs_setEventReg(dSv_event_flag_c::UNK_9B07, param_get_tree_idx());
+        mHeartPlaced = 1;
+        return TRUE;
+    }
+#endif
     fopAc_ac_c* item = (fopAc_ac_c*)fopAcM_fastCreateItem(
         &pos, dItemNo_HEART_PIECE_e, fopAcM_GetRoomNo(this), &angle, &scale, 1.75f, 30.0f, -2.1f, -1, NULL);
     if (item != NULL) {
@@ -165,6 +191,24 @@ BOOL daObjFtree::Act_c::place_heart_part() {
         mDoMtx_multVec(mtx, &offset, &dest);
         cXyz scale(1.0f, 1.0f, 1.0f);
         csXyz angle(0, 0, 0);
+#if TARGET_PC
+        if (pc_rando()) {
+            // pc_rando(R2.8): items.py change_item rels/d_a_obj_ftree.rel@03F3 and
+            // flexible_item_locations.asm d_a_obj_ftree 0x418/0x41C
+            // (create_item_for_withered_trees_without_setting_speeds: custom_createItem, flag +0x212 set
+            // so the placed item gets no momentum, -1 check); original: the fastCreateItem below
+            fpc_ProcID pid = pc_rando_custom_create_item(
+                &dest, pc_rando_code_c_item(PC_RANDO_CODE_C_WITHERED_TREE, 1, dItemNo_HEART_PIECE_e),
+                fopAcM_GetRoomNo(this), &angle, &scale, -1);
+            m64A[0] = 1;
+            if (pid == fpcM_ERROR_PROCESS_ID_e) {
+                return FALSE;
+            }
+            mSpawnedHeartPieceProcessId = pid;
+            dComIfGs_setEventReg(dSv_event_flag_c::UNK_9B07, param_get_tree_idx());
+            return TRUE;
+        }
+#endif
         fopAc_ac_c* item = (fopAc_ac_c*)fopAcM_fastCreateItem(
             &dest, dItemNo_HEART_PIECE_e, fopAcM_GetRoomNo(this), &angle, &scale, 0.0f, 0.0f, -2.1f, -1, NULL);
         if (item != NULL) {

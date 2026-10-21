@@ -14,6 +14,9 @@
 #include "JAZelAudio/JAZelAudio_BGM.h"
 #include "JAZelAudio/JAZelAudio_SE.h"
 #include "res/Object/Bmcon1.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 #include <stdlib.h>
 const char daNpcBmcon_c::m_arcname[] = "Bmcon1";
 static const int l_bmd_ix_tbl[] = {dRes_ID_BMCON1_BDL_BM_e, dRes_ID_BMCON1_BDL_BM_e};
@@ -708,7 +711,14 @@ bool daNpcBmcon_c::eventMesSet() {
     if (status == 18) {
         if (mRewardFlags & 1) {
             mRewardFlags &= ~1;
+#if TARGET_PC
+            // pc_rando(R2.8): items.py change_item rels/d_a_npc_bmcon1.rel@2B7B; original:
+            // dItemNo_HEART_PIECE_e
+            mItemNo = pc_rando() ? pc_rando_code_c_item(PC_RANDO_CODE_C_BIRD_MAN, 0, dItemNo_HEART_PIECE_e)
+                                 : dItemNo_HEART_PIECE_e;
+#else
             mItemNo = dItemNo_HEART_PIECE_e;
+#endif
             mOrder = 6;
         } else if (mRewardFlags & 2) {
             mRewardFlags &= ~2;

@@ -13,6 +13,9 @@
 #include "d/d_com_lib_game.h"
 #include "d/d_a_obj.h"
 #include "d/d_snap.h"
+#if TARGET_PC
+#include "pc/pc_rando_hooks.h"
+#endif
 
 static const char* l_arcname_tbl[] = {
     "Ro",
@@ -2378,7 +2381,14 @@ void daNpcRoten_c::eventGetItemInit(int staffIdx) {
     int* pData = dComIfGp_evmng_getMyIntegerP(staffIdx, "ItemNo");
     if(pData != NULL) {
         u32 itemNo = *pData; // fakematch?
+#if TARGET_PC
+        // pc_rando(R2.8): items.py change_item rels/d_a_npc_roten.rel@533B (l_get_item_no[0]); original:
+        // l_get_item_no[itemNo]
+        itemNo = pc_rando() ? pc_rando_code_c_item(PC_RANDO_CODE_C_GORON_TRADE, itemNo, l_get_item_no[itemNo])
+                            : l_get_item_no[itemNo];
+#else
         itemNo = l_get_item_no[itemNo];
+#endif
         pcId = fopAcM_createItemForPresentDemo(&current.pos, itemNo, 0, -1, fopAcM_GetRoomNo(this));
     }
     else {

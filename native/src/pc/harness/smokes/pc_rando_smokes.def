@@ -30,3 +30,5 @@ PC_RANDO_SMOKE(scob, randoSmokeScob) // R2.3: SCOB locations (salvage, Big Octo,
 PC_RANDO_SMOKE(bossitem, randoSmokeBossitem) // R2.5: boss Heart Containers (Bitem, createItemForBoss, disappear cloud, item_func_utuwa_heart)
 PC_RANDO_SMOKE(codeA, randoSmokeCodeA) // R2.6: code locations A (Great Fairies, Orca 500 hits, Tingle, Ankle, Ivan, Mrs. Marie)
 PC_RANDO_SMOKE(windfall, randoSmokeWindfall) // R2.7: Windfall NPC code locations (item sites, event bits 0x6904-0x6A02, done-state probes)
+PC_RANDO_SMOKE(ftree, randoSmokeFtree) // R2.8: the Withered Trees heart part as a placed item (custom_createItem, momentum, place, give)
+PC_RANDO_SMOKE(codec, randoSmokeCodec) // R2.8: code locations C lookups (T1: auction, Battlesquid, Barrel Shooting, Bird-Man, Goron, mailbox, Withered Trees, Zunari, Doc Bandam)

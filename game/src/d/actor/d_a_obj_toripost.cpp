@@ -22,6 +22,7 @@
 #include "m_Do/m_Do_mtx.h"
 #if TARGET_PC
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 
 class daObjTpost_HIO_c {
@@ -197,7 +198,15 @@ void daObjTpost_c::cutPresentStart(int staffIdx) {
 
 /* 000003D8-00000474       .text cutPresentProc__12daObjTpost_cFi */
 void daObjTpost_c::cutPresentProc(int staffIdx) {
+#if TARGET_PC
+    // pc_rando(R2.8): items.py change_item rels/d_a_obj_toripost.rel@2564-25F4 (m_letter[i].mItemNo);
+    // original: m_letter[mNumReadable].mItemNo
+    fpc_ProcID itemPID = fopAcM_createItemForPresentDemo(
+        &current.pos, pc_rando() ? pc_rando_code_c_item(PC_RANDO_CODE_C_MAILBOX, mNumReadable, m_letter[mNumReadable].mItemNo)
+                                 : m_letter[mNumReadable].mItemNo);
+#else
     fpc_ProcID itemPID = fopAcM_createItemForPresentDemo(&current.pos, m_letter[mNumReadable].mItemNo);
+#endif
     if(itemPID != fpcM_ERROR_PROCESS_ID_e) {
         dComIfGp_event_setItemPartnerId(itemPID);
         dComIfGp_evmng_cutEnd(staffIdx);
