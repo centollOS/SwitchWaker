@@ -1,0 +1,7 @@
+# R4.5 (docs/RANDOMIZER_PLAN.md): the spoiler viewer. The smoke generates TestSeed1 from the menu, opens the
+# Randomizer tab's "Spoiler log..." page (a confirmation first), and the input script shows the spheres
+# (from the seed's spoiler log), moves to "Sphere 2", switches to the locations by zone (equal to the log's
+# "All item locations"), moves two zones and closes it with B. Shots 530 (confirmation), 580 (spheres) and
+# 630 (locations by zone) with the menu drawn (COS_SHOT_IMGUI=1).
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44:206 --input native/check/input/rando-spoiler.txt --env COS_RANDO_SMOKE=spoiler --env COS_RANDO_SEED=TestSeed1 --env COS_SHOT_IMGUI=1 --shot 530,580,630

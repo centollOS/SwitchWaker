@@ -15,6 +15,7 @@
 
 #include <imgui.h>
 
+#include <algorithm>
 #include <cstdio>
 #include <unistd.h>
 
@@ -222,6 +223,7 @@ void randoSpoilerDraw(std::string* help) {
     const ImVec4 dim(0.62f, 0.66f, 0.72f, 1.0f);
     const ImVec4 zone(0.55f, 0.80f, 1.00f, 1.0f);
     const ImVec4 warn(1.00f, 0.55f, 0.45f, 1.0f);
+    const ImVec4 item(0.85f, 0.88f, 0.92f, 1.0f);
     ImGui::TextColored(accent, "%s", T("Registro de soluciones", "Spoiler log"));
     ImGui::SameLine();
     if (sInfo.hash.empty()) {
@@ -270,9 +272,18 @@ void randoSpoilerDraw(std::string* help) {
                                                      "The spoiler log was not found in user/rando: no spheres."))
                                : T("La semilla no tiene ubicaciones.", "The seed has no locations."));
         ImGui::PopTextWrapPos();
-    } else {
-        const float itemX = ImGui::GetContentRegionAvail().x * 0.55f;
+    } else if (ImGui::BeginChild("##spoiler_lines", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_NoNav)) {
+        // the lines scroll under the fixed title and section line; the items in a column after the
+        // longest name (at most 62% of the width: a longer name pushes its own item right)
         const float indent = ImGui::GetFontSize() * 1.2f;
+        const float gap = ImGui::GetFontSize() * 1.0f;
+        float nameW = 0.0f;
+        for (const pcr::SpoilerLine& l : lines) {
+            if (!l.item.empty()) {
+                nameW = std::max(nameW, indent * (float)l.depth + ImGui::CalcTextSize(l.text.c_str()).x);
+            }
+        }
+        const float itemX = std::min(nameW + gap, ImGui::GetContentRegionAvail().x * 0.62f);
         const int cursor = sPager.cursor();
         for (int i = 0; i < (int)lines.size(); i++) {
             const pcr::SpoilerLine& l = lines[i];
@@ -284,8 +295,13 @@ void randoSpoilerDraw(std::string* help) {
             const ImVec4 color = l.depth == 0 ? accent : l.depth == 1 ? zone : sel ? accent : ImVec4(1, 1, 1, 1);
             ImGui::TextColored(color, "%s", l.text.c_str());
             if (!l.item.empty()) {
-                ImGui::SameLine(x0 + itemX);
-                ImGui::TextColored(sel ? accent : dim, "%s", l.item.c_str());
+                const float end = ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x + ImGui::GetScrollX();
+                if (end + gap * 0.5f > x0 + itemX) {
+                    ImGui::SameLine(0.0f, gap * 0.5f);
+                } else {
+                    ImGui::SameLine(x0 + itemX);
+                }
+                ImGui::TextColored(sel ? accent : item, "%s", l.item.c_str());
             }
             if (sel && sScroll) {
                 ImGui::SetScrollHereY(0.4f);
@@ -293,8 +309,11 @@ void randoSpoilerDraw(std::string* help) {
             ImGui::PopID();
         }
     }
+    if (!lines.empty()) {
+        ImGui::EndChild();
+    }
     sScroll = false;
-    *help = T("Arriba/abajo: línea   Izq./der.: esfera o zona   L/R: sección   B: cerrar",
+    *help = T("Arriba/abajo: línea   Izq./der.: esfera/zona   L/R: sección   B: cerrar",
               "Up/down: line   Left/right: sphere or zone   L/R: section   B: close");
 }
 
