@@ -633,3 +633,24 @@ the SHIP 0 entry of that room (read from the disc once per room) instead of alwa
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | game/src/d/d_save.cpp | `dSv_player_return_place_c::init` (the new game's room is `pc_rando_start_room()` instead of Outset) | `?:` (`#if`/`#else`, original in `#else`) | `tweaks.py` `set_new_game_starting_room` (DOL 0x80058BA7) |
+
+## R4.4
+
+New file binding and file-select display (plan D3, D15). The pending seed (R4.3's Generate) is consumed
+by R0.7's `NameInMain` hook; R4.4 adds no hunk there, but R0.7's six hook bodies now run in a
+`JKRPcHostAllocScope` (the active seed outlived the name scene's heap; the first load after a
+randomized new file panicked with "Bad Block"). The file-select line is not drawn by the game: the
+hook below only reads the card buffer, and `features/rando/pc_rando_fileselect.h`'s ImGui overlay
+draws it at the bottom of the screen (the plan's "menu overlay" option: a J2D text pane in the info
+panel would need several hunks). Like R0.7's hooks it is not under `pc_rando()` (the file select runs
+with it off); a slot without a rando record and a blank slot with no pending seed show nothing.
+"Clean unused seed files" is a Randomizer tab row (`game_hooks/pc_rando_hooks_fileselect.cpp`,
+pure part `features/rando/pc_rando_sidecars.cpp`). Checked by the `newfile` smoke (target
+"rando-newgame") and `cos_rando_test_R4_4`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/d_file_select.cpp | `dFile_select_c::_draw`: `pc_rando_file_select_draw(mSaveDataPtr, selectNum, field_0x392b)` after `dComIfGd_set2DOpa` (reads only) | add | none (plan D15) |
+
+PAL: TODO. The PAL build compiles `game/src/pal/d/d_file_select.inc` instead (its own
+`dFile_select_c::_draw`), so PAL file selects show no line until R7.6 adds the same call there.

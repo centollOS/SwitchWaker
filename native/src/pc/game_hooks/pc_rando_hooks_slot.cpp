@@ -10,6 +10,10 @@
 //   - the debug stage boot (pcBootStage) with COS_RANDO_PLACEMENT=<json>.
 // Every path leaves a vanilla file's bytes alone: mReserve is written only for a randomized file, and
 // cleared only when it holds a rando record, which vanilla code never writes.
+// R4.4: every hook runs in a JKRPcHostAllocScope. The seeds they copy (the active seed and what the
+// activation listeners build) live across scenes; allocated from the heap the game had current (the
+// name scene's), the next activation freed them into a heap that was gone ("Bad Block" panic on the
+// first load after a randomized new file).
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "pc/pc_rando_hooks.h"
 #include "features/rando/pc_rando_slot.h"
@@ -119,14 +123,17 @@ size_t pc_rando_slot_card_dir(char* buf, size_t cap) {
 }
 
 void pc_rando_slot_new_game_begin(void) {
+    JKRPcHostAllocScope hostAlloc; // R4.4: see the header
     newGameBegin("new game");
 }
 
 void pc_rando_slot_new_game_end(void) {
+    JKRPcHostAllocScope hostAlloc; // R4.4: see the header
     newGameEnd("new game");
 }
 
 void pc_rando_slot_card_loaded(void) {
+    JKRPcHostAllocScope hostAlloc; // R4.4: see the header
     const uint8_t* reserve = reserveBytes();
     if (!pc_rando_slot_record_is_rando(reserve)) {
         if (pc_rando() && !pc_rando_forced()) {
@@ -155,10 +162,12 @@ void pc_rando_slot_card_loaded(void) {
 }
 
 void pc_rando_slot_scene_entry(void) {
+    JKRPcHostAllocScope hostAlloc; // R4.4: see the header
     pc_rando_deactivate();
 }
 
 void pc_rando_slot_debug_boot_begin(void) {
+    JKRPcHostAllocScope hostAlloc; // R4.4: see the header
     const char* path = getenv("COS_RANDO_PLACEMENT");
     if (path == nullptr || path[0] == '\0') {
         newGameBegin("debug boot");
@@ -179,6 +188,7 @@ void pc_rando_slot_debug_boot_begin(void) {
 }
 
 void pc_rando_slot_debug_boot_end(void) {
+    JKRPcHostAllocScope hostAlloc; // R4.4: see the header
     newGameEnd("debug boot");
 }
 

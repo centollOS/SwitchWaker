@@ -2,6 +2,7 @@
 // behaviour in pc_rando_menu.h). The generation itself runs in pc_rando_genjob.cpp.
 #include "pc_rando_menu.h"
 
+#include "pc_rando_fileselect.h"
 #include "pc_rando_genjob.h"
 #include "pc_rando_options.h"
 #include "pc_rando_settings.h"
@@ -258,6 +259,7 @@ void randoMenuInit() {
                         "A: genera la semilla; la próxima partida nueva la usa. Registros en user/rando",
                         "A: generates the seed; the next new game uses it. Logs in user/rando", generateValue,
                         generateActivate, 130});
+    randoFileSelectMenuInit(); // R4.4: "Clean unused seed files" (order 140)
 }
 
 bool randoGenBusy() {
@@ -316,6 +318,7 @@ bool randoGenerate(bool es, std::string* msg) {
 }
 
 void randoMenuFrame() {
+    randoFileSelectOverlay(); // R4.4: the file select's randomizer line (D15)
     if (!sBusy) {
         return;
     }

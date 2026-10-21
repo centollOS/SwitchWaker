@@ -3518,6 +3518,11 @@ void dFile_select_c::changeBrokenColor(int param_1) {
 /* 8018C9D0-8018CA0C       .text _draw__14dFile_select_cFv */
 void dFile_select_c::_draw() {
     dComIfGd_set2DOpa(&fileSel);
+#if TARGET_PC
+    // pc_rando(R4.4): plan D15 (the selected slot's randomizer line, drawn by the port's overlay;
+    // reads only, nothing for a vanilla slot); original: none
+    pc_rando_file_select_draw(mSaveDataPtr, selectNum, field_0x392b);
+#endif
 }
 
 /* 8018CA0C-8018CA70       .text draw__15dDlst_FileSel_cFv */
