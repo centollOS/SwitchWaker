@@ -5372,6 +5372,19 @@ void fopMsgM_msgDataProc_c::stringSet() {
 #else
                 tag_input_kenshi();
 #endif
+#if TARGET_PC
+            } else if (pc_rando() && (u8)bmgData[count + 2] == 0 && (u8)bmgData[count + 3] == 0 &&
+                       (u8)bmgData[count + 4] >= 0x4B && (u8)bmgData[count + 4] <= 0x4F) {
+                // pc_rando(R3.5): misc_rando_features.asm 0x80033E74 check_run_new_text_commands /
+                // exec_curr_num_keys_text_command (the key bag's text commands 0x4B-0x4F: the dungeon's
+                // small keys, then " +Big" or five spaces); original: no case, the tag is skipped
+                char keyText[32];
+                if (pc_rando_text_command((u8)bmgData[count + 4], keyText, sizeof keyText)) {
+                    strcat(field_0x60, keyText);
+                    strcat(field_0x68, keyText);
+                }
+                count += bmgData[count + 1];
+#endif
             } else if ((u8)bmgData[count + 2] == 1) {
                 u16 r27 = ((u8)bmgData[count + 3] << 8) | (u8)bmgData[count + 4];
                 if (dComIfGp_roomControl_getStayNo() != 0) {

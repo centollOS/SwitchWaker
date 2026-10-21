@@ -316,3 +316,14 @@ is not 1.0; `remove_music` and `invert_sea_compass_x_axis` are `PcRandoModes` (`
 | game/src/JAZelAudio/JAIZelBasic.cpp | `JAIZelBasic::processHeartGaugeSound` | `add` (skips the 1-heart `seStart`) | `remove_low_health_beep_anim.asm` 0x802A2FA0 |
 | game/src/d/d_meter.cpp | `dMeter_compassGetOnProc` | `?:` | `invert_sea_compass_x_axis.asm` 0x801FD37C |
 | game/src/d/d_save.cpp | `dSv_player_config_c::init` | `?:` | `custom_funcs.asm` `option_targeting_mode` (`set_default_targeting_mode_to_switch`) |
+
+## R3.5
+
+Key bag text (`tweaks.py` `implement_key_bag`, `misc_rando_features.asm`
+`check_run_new_text_commands` / `exec_curr_num_keys_text_command`). Messages 403 ("Key Bag") and 603
+(the description with the five commands) are overlay records added by a listener in
+`native/src/pc/game_hooks/pc_rando_hooks_keybag.cpp` at every activation; they need no hunk.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/f_op/f_op_msg_mng.cpp | `fopMsgM_msgDataProc_c::stringSet` (new tag cases 0x4B-0x4F through `pc_rando_text_command`) | `#if TARGET_PC` `add` (`else if (pc_rando() && ...)`) | `misc_rando_features.asm` 0x80033E74 |

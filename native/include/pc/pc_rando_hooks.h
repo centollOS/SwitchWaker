@@ -151,6 +151,15 @@ int pc_rando_isTbox_unloaded(int stage_no, int no);
    added. */
 int pc_rando_misc_add_messages(void);
 
+/* --- R3.5: key bag text (misc_rando_features.asm check_run_new_text_commands /
+   exec_curr_num_keys_text_command; game_hooks/pc_rando_hooks_keybag.cpp, pure part in
+   features/rando/pc_rando_keybag.h) --- */
+/* The new text commands of fopMsgM_msgDataProc_c::stringSet (group 0, codes 0x4B-0x4F): for one of
+   them writes its expansion (the dungeon's small keys, plus " +Big" or five spaces) NUL-terminated
+   into `out` and returns 1; for any other code returns 0 and leaves `out` alone. Called only under
+   pc_rando(). The same file adds messages 403/603 to the overlay at every activation. */
+int pc_rando_text_command(int code, char* out, size_t cap);
+
 #ifdef __cplusplus
 }
 #endif

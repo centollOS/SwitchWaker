@@ -1,0 +1,6 @@
+# R3.5 (docs/RANDOMIZER_PLAN.md): the key bag text (messages 403/603 and the stringSet tag cases
+# 0x4B-0x4F), plain and forced on the sea, and inside DRC.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=keybag
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=keybag --env COS_RANDO_FORCE=1
+rando 0 --stage M_NewD2:0 --env COS_RANDO_SMOKE=keybag
