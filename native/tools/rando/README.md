@@ -159,3 +159,7 @@ python3 -I native/tools/rando/make_test_placement.py --kind seed --seed TestSeed
 - R1.6 `check_seeds.py --cli <cos_rando_cli> --n N --preset P [--golden]` runs our CLI, then
   `ww_verify.py` on each seed, and with `--golden` compares `locations` with `ww_export.py`.
 - On a mismatch, diff `ww_trace.py` with our `COS_RANDO_TRACE=1` output.
+- R4.3 `check_gen_run.py [--seed S] [--run-dir DIR]` runs the in-game smoke `gen` (the options menu's
+  Generate row with `COS_RANDO_SEED=S`), then checks the sidecar it wrote in the run's card folder and
+  its logs in `<run dir>/user/rando` as `check_seeds.py --golden` does: `ww_verify.py`, the
+  placement against `ww_export.py S`, and the logs (hints aside). Needs `COS_DISC`.

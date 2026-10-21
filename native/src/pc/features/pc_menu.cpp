@@ -41,6 +41,7 @@
 #include "features/pc_button_remap_map.h"
 #include "features/rando/pc_rando_text_ui.h"
 #include "features/rando/pc_rando_settings.h"
+#include "features/rando/pc_rando_menu.h" // R4.3: the seed rows
 
 #include "d/d_com_inf_game.h"
 #include "d/d_kankyo.h"
@@ -1889,6 +1890,7 @@ void menuInit() {
         }
     }
     randoSettingsRegister(); // the Randomizer tab's COS_RANDO_* settings
+    randoMenuInit();         // R4.3: its seed rows (Seed..., Random seed, Paste permalink, Generate)
     m.editMode = pc_settings_mode();
     sSmoke.on = gConfig.smoke != nullptr && strcmp(gConfig.smoke, "options-menu") == 0;
     if (sSmoke.on) {
@@ -1912,6 +1914,7 @@ void menuFrame() {
     if (!m.initialized || ImGui::GetCurrentContext() == nullptr) {
         return;
     }
+    randoMenuFrame(); // R4.3: a finished seed generation becomes the pending seed (menu open or not)
     {
         // 60 fps step E: a docked/handheld change applies the other mode's values (internal
         // resolution, 60 fps, dynres) and resizes the swapchain: presented once around it.

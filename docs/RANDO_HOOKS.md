@@ -573,3 +573,11 @@ chest type nibble, the `DEFAULT_TREASURE_TRAP` event per stage) are archive patc
 | game/src/d/actor/d_a_tbox.cpp | `demoProc` (SPRING_TRAP each frame: `pc_rando_tbox_spring_trap` = demoProcSpringTrap; else the default cut end) | `if/else` | asm/actors/d_a_tbox.cpp `demoProcSpringTrap` |
 | game/src/d/actor/d_a_tbox.cpp | `actionOpenWait` (a trap chest creates no item) | `if/else` (`#else` original) | asm/actors/d_a_tbox.cpp `actionOpenWait` |
 | game/src/d/actor/d_a_tbox.cpp | `actionOpenWait` (event `DEFAULT_TREASURE_TRAP` for a trap chest, ahead of R3.8's `DEFAULT_TREASURE_A`) | `if` | asm/actors/d_a_tbox.cpp `actionOpenWait` |
+
+## R4.3
+
+Generate a seed in the menu: no hunk in `game/`. The rows (Seed..., Random seed, Paste permalink,
+Generate) are R4.1 `RandoMenuAction`s registered by `features/rando/pc_rando_menu.cpp`, which
+`pc_menu.cpp` calls from `menuInit` (`randoMenuInit`) and every frame from `menuFrame`
+(`randoMenuFrame`); the worker is `features/rando/pc_rando_genjob.cpp`. Checked by the `gen` smoke,
+`check_gen_run.py` and `cos_rando_test_R4_3`.
