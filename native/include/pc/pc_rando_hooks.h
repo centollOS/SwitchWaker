@@ -367,6 +367,12 @@ int pc_rando_sword_sync_texts(void);
    bytes; its size is its record count's, as the archive's getResSize gives the packed size) for the
    active seed's charts. A second call on the same, already patched buffer changes nothing. */
 void pc_rando_charts_cmapdat_loaded(void* data);
+/* --- R6.7: starting island (randomizers/starting_island.py _save: tweaks.py
+   set_new_game_starting_room, change_ship_starting_island; game_hooks/pc_rando_hooks_start.cpp) --- */
+/* The active seed's starting island: a sea room 1-49 (starting_island_room), PCR_START_ROOM (44,
+   Outset) when no seed is active or its room is out of range. The new game's return-place room and
+   the island whose SHIP 0 the sea stage's Ship ACTR copies. */
+int pc_rando_start_room(void);
 
 #ifdef __cplusplus
 }

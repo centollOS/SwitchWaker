@@ -50,3 +50,4 @@ PC_RANDO_SMOKE(gen, randoSmokeGen) // R4.3: Generate in the menu (worker thread,
 PC_RANDO_SMOKE(swordless, randoSmokeSwordless) // R6.3: Swordless (temporary Hero's Sword at GTower and Ojhous, removed at the next load; messages 1128/1590)
 PC_RANDO_SMOKE(extrastart, randoSmokeExtrastart) // R6.4: extra starting items, starting Pieces of Heart and Triforce Shards in a new game (hearts, shards, gear)
 PC_RANDO_SMOKE(charts, randoSmokeCharts) // R6.6: randomized charts (sea/Room44 salvage chart index, CmapDat.bin through dMenu_Fmap_c::aramCmapDatRead: Outset's chart sector and positions, all 49 islands, a second read)
+PC_RANDO_SMOKE(island, randoSmokeIsland) // R6.7: starting island (a real new game with a randomize_starting_island seed lands on its island: return place, spawn 0, the boat at the island's SHIP 0)

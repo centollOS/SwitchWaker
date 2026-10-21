@@ -46,6 +46,7 @@ name=<json> pairs are applied after the preset:
   extra_start_all  (R6.4) every category on (charts, letters) and 3 extra starting items
   extra_start_keys (R6.4) 3 extra starting items, key-lunacy, No Starting Sword, 1 Heart
                    Container and 44 Pieces of Heart
+  starting_island  the defaults with randomize_starting_island (R6.7)
 
 The CLI runs with --allow-missing-hints unless --hints is given (R5.1): then our hints are generated
 and the spoiler log must be byte-identical including its Hints section (ww_verify_hints.py checks
@@ -99,7 +100,7 @@ def r6_1_presets():
 
 def all_presets():
   return (["default", "dungeons_only", "no_dungeons"] + r6_1_presets()
-          + ["keylunacy", "keylunacy_all", "keylunacy_dungeons_only", "keylunacy_no_dungeons", "extra_start", "extra_start_all", "extra_start_keys"])
+          + ["keylunacy", "keylunacy_all", "keylunacy_dungeons_only", "keylunacy_no_dungeons", "extra_start", "extra_start_all", "extra_start_keys", "starting_island"])
 
 
 def preset_values(name):
@@ -136,6 +137,8 @@ def preset_values(name):
   if name == "extra_start_keys":
     return {"num_extra_starting_items": 3, "keylunacy": True, "sword_mode": "No Starting Sword",
             "starting_hcs": 1, "starting_pohs": 44}
+  if name == "starting_island":
+    return {"randomize_starting_island": True}
   oc.die(f"unknown preset '{name}' (--list-presets lists them)")
 
 

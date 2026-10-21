@@ -9,6 +9,10 @@
 //   (prevent_fire_mountain_lava_softlock). sea/Room44.arc is not loaded when the stage is, so its
 //   room.dzr is read from the disc once (DVDOpen, host memory) and the spawn is kept for the session.
 //   If that read fails, the position stays vanilla (logged) and only the y edit is made.
+// - R6.7 (starting island): the island is the active seed's starting_island_room (pc_rando_start_room,
+//   44 without the option), for both the new game's return place (the d_save.cpp hunk) and the Ship
+//   ACTR (starting_island.py _save -> change_ship_starting_island(room)). The spawn is kept per room,
+//   so a later seed with another island reads its room again.
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "pc/pc_rando.h"
 #include "pc/pc_rando_hooks.h"
@@ -35,8 +39,10 @@ void logLine(const char* line) {
     (void)!write(STDERR_FILENO, line, strlen(line));
 }
 
-// The island spawn: 0 not read yet, 1 read, -1 the read failed (not tried again).
+// The island spawn of sSpawnRoom: 0 not read yet, 1 read, -1 the read failed (not tried again for
+// that room).
 int sSpawnState = 0;
+int sSpawnRoom = 0;
 PcRandoShipSpawn sSpawn;
 int sPatched = 0;
 
@@ -80,17 +86,22 @@ bool readIslandSpawn(int room, PcRandoShipSpawn* out) {
 }
 
 const PcRandoShipSpawn* islandSpawn() {
+    const int room = pc_rando_start_room();
+    if (room != sSpawnRoom) {
+        sSpawnRoom = room;
+        sSpawnState = 0;
+    }
     if (sSpawnState == 0) {
-        sSpawnState = readIslandSpawn(PCR_START_ROOM, &sSpawn) ? 1 : -1;
+        sSpawnState = readIslandSpawn(room, &sSpawn) ? 1 : -1;
         char buf[200];
         if (sSpawnState == 1) {
             snprintf(buf, sizeof buf, "[cos] rando: start: sea/Room%d SHIP 0 at (%.1f, %.1f, %.1f) y_rot 0x%04X\n",
-                     PCR_START_ROOM, sSpawn.x, sSpawn.y, sSpawn.z, sSpawn.yRot);
+                     room, sSpawn.x, sSpawn.y, sSpawn.z, sSpawn.yRot);
         } else {
             snprintf(buf, sizeof buf,
                      "[cos] rando: start: sea/Room%d room.dzr has no SHIP 0 or cannot be read (the Ship keeps its "
                      "vanilla position)\n",
-                     PCR_START_ROOM);
+                     room);
         }
         logLine(buf);
     }
@@ -115,7 +126,7 @@ void patchSeaStage(PcRandoResFile* f) {
     char buf[200];
     if (spawn != nullptr) {
         snprintf(buf, sizeof buf, "[cos] rando: start: sea/Stage stage.dzs ACTR[%u] Ship: x/z/y_rot of sea/Room%d SHIP 0, y %.0f: %s\n",
-                 index, PCR_START_ROOM, (double)PCR_START_SHIP_Y, pc_rando_dzx_result_name(r));
+                 index, sSpawnRoom, (double)PCR_START_SHIP_Y, pc_rando_dzx_result_name(r));
     } else {
         snprintf(buf, sizeof buf, "[cos] rando: start: sea/Stage stage.dzs ACTR[%u] Ship: vanilla x/z, y %.0f: %s\n", index,
                  (double)PCR_START_SHIP_Y, pc_rando_dzx_result_name(r));
@@ -126,6 +137,15 @@ void patchSeaStage(PcRandoResFile* f) {
 } // namespace
 
 extern "C" {
+
+int pc_rando_start_room(void) {
+    // StartingIslandRandomizer.room_number; the seed file loader already refuses rooms outside 1-49.
+    const PcRandoSeed* seed = pc_rando() ? pc_rando_seed() : nullptr;
+    if (seed == nullptr || seed->starting_island_room < 1 || seed->starting_island_room > 49) {
+        return PCR_START_ROOM;
+    }
+    return seed->starting_island_room;
+}
 
 uint16_t pc_rando_start_new_life(void) {
     return pc_rando_start_life(pc_rando_cfg()->starting_quarter_hearts);

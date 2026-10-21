@@ -194,7 +194,6 @@ void testRefusals() {
         {pcr::OPT_randomize_boss_entrances, 1, "R6.10"},
         {pcr::OPT_randomize_secret_cave_inner_entrances, 1, "R6.10"},
         {pcr::OPT_randomize_fairy_fountain_entrances, 1, "R6.10"},
-        {pcr::OPT_randomize_starting_island, 1, "R6.7"},
         {pcr::OPT_randomize_enemies, 1, "R7.3"},
         {pcr::OPT_randomize_enemy_palettes, 1, "R7.2"},
     };
