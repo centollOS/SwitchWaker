@@ -19,6 +19,7 @@
 #include "webgpu/gpu.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstring>
 
@@ -45,6 +46,10 @@ struct ResampleUniforms {  // present_resample.wgsl's Uniforms (std140)
 };
 
 Viewport g_viewport{};
+
+// the options menu's gamma (aurora_switch_dk_set_gamma): the exponent of the picture's colours; the
+// default is the menu's default (-0.20 on 2.2, see switch/deko/shaders/present_gamma.wgsl)
+std::atomic<float> g_gamma{2.0f / 2.2f};
 
 uint32_t extent(float v) { return std::max(1u, static_cast<uint32_t>(std::lround(std::max(v, 1.f)))); }
 
@@ -123,10 +128,22 @@ void picture(void*, int stage) {
         const DkViewportSwizzle sw = {DkSwizzle_PositiveX, swdk::C.flipPresent ? DkSwizzle_NegativeY : DkSwizzle_PositiveY,
                                       DkSwizzle_PositiveZ, DkSwizzle_PositiveW};
         dkCmdBufSetViewportSwizzles(R.cmd, 0, &sw, 1);
-        const FixedBind binds[] = {
-            {swdk::SlotBinding::Kind::Sampler, 1, dkMakeTextureHandle(g_resampled.slot, swdk::kSamplerLinearClamp)},
-        };
-        fixed_draw("xfb_copy", "vs_main", "fs_opaque", nullptr, 0, 0, false, binds, 1);
+        const float gamma = g_gamma.load(std::memory_order_relaxed);
+        const DkResHandle picture = dkMakeTextureHandle(g_resampled.slot, swdk::kSamplerLinearClamp);
+        const swdk::StreamAlloc u = std::fabs(gamma - 1.f) > 0.001f ? swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT)
+                                                                     : swdk::StreamAlloc{};
+        if (u) {
+            const float params[4] = {gamma, 0.f, 0.f, 0.f};
+            memcpy(u.cpu, params, sizeof params);
+            const FixedBind binds[] = {
+                {swdk::SlotBinding::Kind::Sampler, 1, picture},
+                {swdk::SlotBinding::Kind::Uniform, 2, 0, u.gpu, 256},
+            };
+            fixed_draw("present_gamma", "vs_main", "fs_main", nullptr, 0, 0, false, binds, 2);
+        } else {
+            const FixedBind binds[] = {{swdk::SlotBinding::Kind::Sampler, 1, picture}};
+            fixed_draw("xfb_copy", "vs_main", "fs_opaque", nullptr, 0, 0, false, binds, 1);
+        }
         gpu_mark(GpuWork::Present);
         return;
     }
@@ -139,6 +156,10 @@ DkMemBlock g_rbCmdMem = nullptr;
 constexpr uint32_t kRbCmdSize = 64u << 10;
 
 }  // namespace
+
+extern "C" void aurora_switch_dk_set_gamma(float exponent) {
+    g_gamma.store(std::clamp(exponent, 0.25f, 4.f), std::memory_order_relaxed);
+}
 
 void present_init() { swdk::set_picture(picture, nullptr); }
 

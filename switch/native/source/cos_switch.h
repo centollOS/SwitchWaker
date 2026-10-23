@@ -184,6 +184,9 @@ void cos_switch_restart_program(const char* why);
  * ("460", "384", "default" or "0x<configuration id>") through apm, as at start; "default" restores
  * the configuration the system had. 1 if apm accepted it (or nothing had to change). */
 int cos_switch_set_gpu_profile(const char* profile);
+/* The options menu (pc_menu.cpp, "Gamma"): the exponent the game's picture is drawn with at the present
+ * (colour^exponent; 1 = as it is). */
+void cos_switch_set_gamma(float exponent);
 /* CPU time (ns, svcGetInfo ThreadTickCount) of the registered threads per role, running totals;
  * a thread that ended keeps its last value. */
 void cos_switch_thread_cpu_ns(uint64_t out[COS_SWITCH_THREAD_ROLES]);

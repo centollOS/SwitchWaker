@@ -248,7 +248,7 @@ dksh_dawn=()
 grep -E "^(GX configs|uam:|modules with|fixed shaders|DKSH:|read back)" "$root/build/dksh/initial_dksh_cache.bin.report.txt" || true
 # every fixed shader the NRO draws with (switch/deko/aurora: clears, EFB copy conversions, palette
 # conversions, depth snapshots, the present) and the test pattern's
-fixed=(dk_test_pattern clear_color clear_depth present_resample tex_copy_conv_blit tex_copy_conv_depth_snapshot)
+fixed=(dk_test_pattern present_gamma clear_color clear_depth present_resample tex_copy_conv_blit tex_copy_conv_depth_snapshot)
 for f in i4 i8 ia4 ia8 rgb565 r4 ra4 ra8 a8 r8 g8 b8 rg8 gb8 z8 z16; do fixed+=("tex_copy_conv_$f"); done
 for f in direct fromfloat8 fromfloat4; do fixed+=("tex_palette_conv_$f"); done
 names=(xfb_copy.vs_main xfb_copy.fs_opaque)

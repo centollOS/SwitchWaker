@@ -30,6 +30,10 @@ void aurora_switch_dk_present(const struct ImDrawData* ui);
 // with. Any thread; the pixels are copied now and reach the GPU at the next frame.
 uint64_t aurora_switch_dk_imgui_texture(uint32_t width, uint32_t height, const void* rgba8);
 
+// The present pass's gamma exponent (options menu, Gráficos > Gamma): the game's picture is drawn as
+// colour^exponent; 1 draws it as it is. Any thread.
+void aurora_switch_dk_set_gamma(float exponent);
+
 // Waits for the GPU and releases the window (Aurora's shutdown).
 void aurora_switch_dk_shutdown(void);
 

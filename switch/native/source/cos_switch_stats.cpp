@@ -12,6 +12,8 @@ extern "C" void cos_switch_nod_stats(uint64_t out[3]);
 // perf lines read, named after the removed GL NRO's Dawn counters; those only Dawn GL had stay zero.
 #include "dk_aurora.h"
 
+extern "C" void cos_switch_set_gamma(float exponent) { aurora_switch_dk_set_gamma(exponent); }
+
 extern "C" void cos_switch_gfx_stats(CosSwitchGfxStats* out) {
     AuroraSwitchStats a{};
     aurora_switch_get_stats(&a);
