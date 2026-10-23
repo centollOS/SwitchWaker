@@ -51,11 +51,19 @@ struct ResampleUniforms {  // present_resample.wgsl's Uniforms (std140)
 
 struct FxaaUniforms {  // dk_fxaa.wgsl's Uniforms (std140)
     float invWidth, invHeight;
-    float gamma, pad;
+    float minThreshold, relThreshold;  // the contrast an edge needs
+    float subpix, gamma;               // the sub-pixel blend's strength; the options menu's gamma exponent
 };
 
+// the options menu's strengths (COS_FXAA 1 Suave, 2 Normal, 3 Fuerte): less blur and fewer edges touched,
+// or the reverse
+struct FxaaPreset {
+    float minThreshold, relThreshold, subpix;
+};
+constexpr FxaaPreset kFxaaPresets[] = {{0.125f, 0.25f, 0.25f}, {0.0625f, 0.166f, 0.5f}, {0.0312f, 0.125f, 0.75f}};
+
 // FXAA in place of the plain copy (COS_FXAA); written by the game thread, read by the render worker
-std::atomic<bool> g_fxaa{false};
+std::atomic<int> g_fxaa{0};  // 0 off, else the preset + 1
 
 // the light SSAO (COS_SSAO), same threads
 std::atomic<bool> g_ssao{false};
@@ -201,10 +209,13 @@ void picture(void*, int stage) {
                                       DkSwizzle_PositiveZ, DkSwizzle_PositiveW};
         dkCmdBufSetViewportSwizzles(R.cmd, 0, &sw, 1);
         const float gamma = g_gamma.load(std::memory_order_relaxed);
-        if (g_fxaa.load(std::memory_order_relaxed)) {
+        const int fxaa = g_fxaa.load(std::memory_order_relaxed);
+        if (fxaa > 0) {
             const swdk::StreamAlloc u = swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT);
             if (u) {
-                const FxaaUniforms uniforms = {1.f / float(g_resampled.width), 1.f / float(g_resampled.height), gamma, 0.f};
+                const FxaaPreset& pr = kFxaaPresets[std::min(fxaa, 3) - 1];
+                const FxaaUniforms uniforms = {1.f / float(g_resampled.width), 1.f / float(g_resampled.height),
+                                               pr.minThreshold, pr.relThreshold, pr.subpix, gamma};
                 memcpy(u.cpu, &uniforms, sizeof uniforms);
                 // dk_fxaa: uniforms 0, the texture with its sampler (the layout of present_resample)
                 const FixedBind fxaaBinds[] = {
@@ -251,7 +262,7 @@ extern "C" void aurora_switch_dk_set_gamma(float exponent) {
 }
 
 void present_init() {
-    g_fxaa.store(swdk::env_flag("COS_FXAA", false), std::memory_order_relaxed);
+    g_fxaa.store(int(std::clamp(swdk::env_long("COS_FXAA", 0), 0L, 3L)), std::memory_order_relaxed);
     g_ssao.store(swdk::env_flag("COS_SSAO", false), std::memory_order_relaxed);
     swdk::set_picture(picture, nullptr);
 }
@@ -312,7 +323,7 @@ bool read_texture(WGPUTexture texture, std::vector<uint8_t>& pixels, uint32_t& w
 
 using namespace aurora::gfx::dk;
 
-extern "C" void aurora_switch_dk_set_fxaa(bool on) { g_fxaa.store(on, std::memory_order_relaxed); }
+extern "C" void aurora_switch_dk_set_fxaa(int level) { g_fxaa.store(std::clamp(level, 0, 3), std::memory_order_relaxed); }
 extern "C" void aurora_switch_dk_set_ssao(bool on) { g_ssao.store(on, std::memory_order_relaxed); }
 
 // The perf lines' figures (cos_switch_stats.cpp, COS_SWITCH_DEKO3D): running totals in the order of

@@ -127,7 +127,7 @@ scripts/switch/push.sh native                   # to sdmc:/switch/switchwaker/, 
   rebuilt with each NRO. The NRO loads it whole at start (`[dk] shader cache:` line). Pipelines it lacks
   are compiled on the console (Tint and uam in the NRO, one worker thread) and kept in
   `switch/switchwaker/native/user/cache/dksh_local.bin` for the next start.
-- FXAA: the options menu's Gráficos > *Suavizado de bordes (FXAA)* (`COS_FXAA`, off by default, live)
+- FXAA: the options menu's Gráficos > *Suavizado de bordes (FXAA)* (`COS_FXAA`: 0 off, the default; 1 Suave, 2 Normal, 3 Fuerte, which set the contrast an edge needs and the sub-pixel blend; live)
   makes the present pass draw the resampled picture with `switch/deko/shaders/dk_fxaa.wgsl` (one
   full-screen pass, FXAA 3.11 with an edge search, in place of the `xfb_copy` copy; no extra render target) before
   ImGui, so the menu and FPS panel stay sharp (the game's own HUD is in the picture, so FXAA filters it). Its DKSH is in `initial_dksh_cache.bin` like the test

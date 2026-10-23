@@ -31,9 +31,9 @@ void aurora_switch_dk_present(const struct ImDrawData* ui);
 uint64_t aurora_switch_dk_imgui_texture(uint32_t width, uint32_t height, const void* rgba8);
 
 // FXAA on the final picture (options menu, COS_FXAA): the present pass draws it with the dk_fxaa shader
-// instead of the plain copy. Any thread; takes effect at the next frame. Off at the start unless
-// the environment's COS_FXAA is 1.
-void aurora_switch_dk_set_fxaa(bool on);
+// instead of the plain copy. level: 0 off, 1 Suave, 2 Normal, 3 Fuerte. Any thread; takes effect at the
+// next frame. At the start it is the environment's COS_FXAA (0 when unset).
+void aurora_switch_dk_set_fxaa(int level);
 
 // Light SSAO on the final picture (options menu, COS_SSAO): the present pass darkens it from the EFB depth with
 // the dk_ssao shaders, before the FXAA / gamma pass. Any thread; takes effect at the next frame. Off at the start

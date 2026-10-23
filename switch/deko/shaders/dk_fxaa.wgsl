@@ -7,12 +7,12 @@
 // (long diagonals and curves come out smooth, short features hardly blur), with a sub-pixel blend for
 // isolated bright pixels. Compiled into initial_dksh_cache.bin like dk_test_pattern, as the
 // named records dk_fxaa.vs_main and dk_fxaa.fs_main. Same bindings as present_resample.wgsl:
-// uniforms 0, sampler 1, texture 2.
+// uniforms 0, sampler 1, texture 2. The uniforms carry the options menu's strength (Suave, Normal, Fuerte).
 
 struct Uniforms {
     inv_size: vec2<f32>,  // 1 / the picture's width and height in texels
-    gamma: f32,           // the options menu's gamma exponent (present_gamma.wgsl), 1 = none
-    pad: f32,
+    thresholds: vec2<f32>,  // the contrast an edge needs: an absolute minimum, and a share of the local maximum luma
+    subpix: vec2<f32>,      // x: the sub-pixel blend's strength (0 to 1); y: the options menu's gamma exponent (present_gamma.wgsl), 1 = none
 };
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -69,7 +69,7 @@ fn fxaa_color(in: VertexOutput) -> vec4<f32> {
     let lMax = max(lM, max(max(lN, lS), max(lW, lE)));
     let range = lMax - lMin;
     // flat or low-contrast areas (text on flat panels, soft gradients) stay as they are
-    if (range < max(0.0625, lMax * 0.125)) {
+    if (range < max(uniforms.thresholds.x, lMax * uniforms.thresholds.y)) {
         return vec4<f32>(rgbM, 1.0);
     }
     let lNW = tapl(uv + vec2<f32>(-px.x, -px.y));
@@ -99,7 +99,7 @@ fn fxaa_color(in: VertexOutput) -> vec4<f32> {
     // sub-pixel blend: how far the pixel stands out from its 3x3 average
     let blur = (2.0 * (lNS + lWE) + lNWSW + lNESE) / 12.0;
     let subpix = clamp(abs(blur - lM) / range, 0.0, 1.0);
-    let subpixAmount = (-2.0 * subpix + 3.0) * subpix * subpix * 0.75;
+    let subpixAmount = (-2.0 * subpix + 3.0) * subpix * subpix * uniforms.subpix.x;
 
     // walk along the edge both ways until its luma leaves the edge's mean by a quarter of the gradient
     var posB = uv;
@@ -138,5 +138,5 @@ fn fxaa_color(in: VertexOutput) -> vec4<f32> {
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let c = fxaa_color(in);
-    return vec4<f32>(pow(clamp(c.rgb, vec3<f32>(0.0), vec3<f32>(1.0)), vec3<f32>(uniforms.gamma)), 1.0);
+    return vec4<f32>(pow(clamp(c.rgb, vec3<f32>(0.0), vec3<f32>(1.0)), vec3<f32>(uniforms.subpix.y)), 1.0);
 }
