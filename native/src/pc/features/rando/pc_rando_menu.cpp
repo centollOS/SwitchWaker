@@ -292,7 +292,7 @@ bool randoGenerate(bool es, std::string* msg) {
     pcr::GenRequest req;
     req.seed = seed;
     req.options = randoSettingsOptions(true);
-    req.allowMissingHints = true; // step R5 (hints) not ported yet: pc_rando_gen.h
+    req.allowMissingHints = false; // R5.3: hints are generated and placed at runtime (pc_rando_gen.h)
     req.version = version();
     pcr::GenJobPaths paths;
     paths.logDir = randoUserDir();

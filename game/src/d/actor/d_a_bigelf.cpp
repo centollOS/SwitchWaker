@@ -24,6 +24,7 @@
 #include "res/Object/bigelf.h"
 #if TARGET_PC
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #include "pc/pc_rando_locs.h"
 #endif
 
@@ -835,7 +836,12 @@ u16 daBigelf_c::next_msgStatus(unsigned long* pMsgNo) {
 /* 000021A4-000021D4       .text getMsg__10daBigelf_cFv */
 u32 daBigelf_c::getMsg() {
     if (mCurrentMessageId == 0x2EEE) {
+#if TARGET_PC
+        // pc_rando(R5.3): flexible_hint_locations.asm d_a_bigelf 0x22A4 (nop: the Big Octo fairy always gives her item hint, when the seed's hints have one); original: only with the Hero's Bow as the current bow
+        if ((pc_rando() && pc_rando_hints_flexible()) || dComIfGs_getItem(dInvSlot_BOW_e) == dItemNo_BOW_e) {
+#else
         if (dComIfGs_getItem(dInvSlot_BOW_e) == dItemNo_BOW_e) {
+#endif
             mCurrentMessageId = 0x2EEF;
         }
     }

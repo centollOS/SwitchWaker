@@ -20,3 +20,4 @@ PC_RANDO_PATCHER(pc_rando_tweak_totg_init) // R3.18: allow_nonlinear_servants_of
 PC_RANDO_PATCHER(pc_rando_trap_init) // R6.5: trap chests (params 0x40, DEFAULT_TREASURE_TRAP per stage) and chest type matches contents (pc_rando_trap.h); after R2.1 and R2.10
 PC_RANDO_PATCHER(pc_rando_charts_init) // R6.6: randomized charts, the salvage chart index in sea/Room1-49 (the CmapDat.bin half is the d_menu_fmap.cpp hunk; pc_rando_charts.h)
 PC_RANDO_PATCHER(pc_rando_bossreq_hooks_init) // R6.9: required bosses (GanonL/Room0 DngSw, 2 SwOps, ALLdie 0x26, TagMsg 851, NBOX10; message 851; pc_rando_bossreq.h)
+PC_RANDO_PATCHER(pc_rando_hints_hooks_init) // R5.3: hint placement (the Ho Ho rooms' Ah y_rot facing their hint; the hint texts once the font is loaded; game_hooks/pc_rando_hooks_hints.cpp); after R3.21 (KoRL 3443)
