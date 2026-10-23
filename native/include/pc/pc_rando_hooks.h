@@ -415,6 +415,17 @@ int pc_rando_hints_flexible(void);
 #define PCR_HINTS_HOHO_TURNED 2
 int pc_rando_hints_hoho_room(int room, int* found, int* turned, uint16_t* yRot);
 
+/* --- R6.13: boss warp-out under entrance rando (entrances.py update_all_boss_warp_out_destinations;
+   game_hooks/pc_rando_hooks_warpout.cpp, pure part in features/rando/pc_rando_warpout.h) --- */
+/* dEvDt_Next_Stage under pc_rando(), after it read the action's Stage, StartCode and RoomNo: when the
+   staff `staffIdx` is the DIRECTOR of the running WARP_WIND_AFTER event on a boss arena stage (M_DragB,
+   kinBOSS, SirenB, M_DaiB, kazeB) and the seed randomizes entrances, sets *stage, *startCode and
+   *roomNo to the arena's warp-out destination (update_boss_warp_out_destination) and returns 1; else
+   returns 0 and changes nothing. */
+int pc_rando_warpout_next_stage(int staffIdx, const char** stage, int* startCode, int* roomNo);
+/* The number of warp-outs pc_rando_warpout_next_stage redirected since boot (for the smoke). */
+int pc_rando_warpout_redirects(void);
+
 #ifdef __cplusplus
 }
 #endif

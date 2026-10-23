@@ -718,3 +718,21 @@ wwrando's `_save` on the disc) and `cos_rando_test_R6_12`.
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | - | no hunks in `game/`: an archive patcher (`features/rando/pc_rando_entr_stage.{h,cpp}`, `pc_rando_patchers.def`) | - | randomizers/entrances.py `update_entrance_to_lead_to_exit` |
+
+## R6.13
+
+Boss warp-out under entrance rando (entrances.py `update_all_boss_warp_out_destinations`). wwrando
+rewrites the `Stage`, `RoomNo` and `StartCode` properties of the DIRECTOR's `NEXT` action in the
+`WARP_WIND_AFTER` event of M_DragB, kinBOSS, SirenB, M_DaiB and kazeB to the warp-out spawn of the
+arena's outermost entrance (`get_outermost_entrance_for_exit`, through the nesting). The port does it
+in code: the hunk below asks `pc_rando_warpout_next_stage` (`game_hooks/pc_rando_hooks_warpout.cpp`),
+which answers only for the DIRECTOR of the loaded `WARP_WIND_AFTER` event on those five stages; the
+destination comes from the seed's entrance map (`features/rando/pc_rando_warpout.cpp`, R6.10's
+tables). Helmaroc King's `update_helmaroc_king_arena_ganon_door` is data, as wwrando writes it, not a
+hunk: an archive patcher in the same file sets M2tower/Room0 `room.dzr` `SCLS[1]` (after R3.15 turned
+it into sea room 1 spawn 0). Like wwrando (`BaseRandomizer.save`: `made_any_changes`), nothing changes
+unless the seed randomizes entrances. Checked by the `warpout` smoke and `cos_rando_test_R6_13`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/d_event_data.cpp | `dEvDt_Next_Stage`, after it read `RoomNo`: `pc_rando_warpout_next_stage` may replace the stage name, start code and room passed to `dComIfGp_setNextStage` | add | randomizers/entrances.py `update_boss_warp_out_destination` (event_list.dat `WARP_WIND_AFTER`, DIRECTOR `NEXT`: Stage, RoomNo, StartCode) |

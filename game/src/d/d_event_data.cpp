@@ -9,6 +9,10 @@
 #include "d/actor/d_a_player.h"
 #include "f_op/f_op_actor_mng.h"
 #include "m_Do/m_Do_graphic.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
+#endif
 
 /* 80071778-8007195C       .text dEvDt_Next_Stage__Fii */
 BOOL dEvDt_Next_Stage(int staffIdx, int wipePrm) {
@@ -30,6 +34,22 @@ BOOL dEvDt_Next_Stage(int staffIdx, int wipePrm) {
     int* pRoomNo = dComIfGp_evmng_getMyIntegerP(staffIdx, "RoomNo");
     if (pRoomNo != NULL)
         roomNo = *pRoomNo;
+#if TARGET_PC
+    int pcrStartCode = 0;
+    int pcrRoomNo = (int)roomNo;
+    if (pc_rando()) {
+        // pc_rando(R6.13): entrances.py update_boss_warp_out_destination (WARP_WIND_AFTER, DIRECTOR's
+        // NEXT action: Stage, RoomNo, StartCode of the boss arena's outermost entrance); original: the
+        // event's values
+        if (pStartCode != NULL) {
+            pcrStartCode = *pStartCode;
+            if (pc_rando_warpout_next_stage(staffIdx, &pStageName, &pcrStartCode, &pcrRoomNo)) {
+                pStartCode = &pcrStartCode;
+                roomNo = (u32)pcrRoomNo;
+            }
+        }
+    }
+#endif
     int* pLayer = dComIfGp_evmng_getMyIntegerP(staffIdx, "Layer");
     if (pLayer != NULL)
         layerNo = *pLayer;
