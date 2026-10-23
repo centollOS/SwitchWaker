@@ -1,0 +1,21 @@
+# R6.13 (docs/RANDOMIZER_PLAN.md): boss warp-out under entrance rando (entrances.py
+# update_all_boss_warp_out_destinations). The smoke COS_RANDO_SMOKE=warpout
+# (native/src/pc/harness/smokes/pc_rando_smoke_warpout.cpp) orders the boss arena's WARP_WIND_AFTER and
+# checks the next stage and the arrival; on M2tower it checks room 0's SCLS[1] and takes that exit.
+#   - R0_6_abc_full.json (dungeon entrances): Gohma's warp out goes to Headstone Island (sea 45 229)
+#     instead of the event's sea 13 211; Kalle Demos's to Dragon Roost Island (sea 13 211) instead of
+#     Omori 0 215.
+#   - R6_13_EntA_boss.json (boss entrances; ww_export.py EntA_boss randomize_boss_entrances=true): Gohma
+#     is behind Forbidden Woods (Omori 0 215, nested); Helmaroc King behind Wind Temple, so M2tower's
+#     SCLS[1] leads to Gale Isle (sea 4 232).
+#   - Vanilla, COS_RANDO_FORCE (no seed) and a seed without entrance rando: the event's own destination,
+#     no redirect; M2tower's SCLS[1] is not written.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage M_DragB:0:0 --env COS_RANDO_SMOKE=warpout --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_abc_full.json --env COS_WARPOUT_EXPECT=sea:45:229
+rando 0 --stage kinBOSS:0:0 --env COS_RANDO_SMOKE=warpout --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_abc_full.json --env COS_WARPOUT_EXPECT=sea:13:211
+rando 0 --stage M_DragB:0:0 --env COS_RANDO_SMOKE=warpout --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_13_EntA_boss.json --env COS_WARPOUT_EXPECT=Omori:0:215
+rando 0 --stage M2tower:0:16 --env COS_RANDO_SMOKE=warpout --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_13_EntA_boss.json --env COS_WARPOUT_EXPECT=sea:4:232
+rando 0 --stage M_DragB:0:0 --env COS_RANDO_SMOKE=warpout
+rando 0 --stage M_DragB:0:0 --env COS_RANDO_SMOKE=warpout --env COS_RANDO_FORCE=1
+rando 0 --stage M_DragB:0:0 --env COS_RANDO_SMOKE=warpout --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_TestSeed1.json
+rando 0 --stage M2tower:0:16 --env COS_RANDO_SMOKE=warpout

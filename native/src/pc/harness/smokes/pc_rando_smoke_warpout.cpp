@@ -16,6 +16,9 @@
 //    When the next stage is requested it is the expected one: COS_WARPOUT_EXPECT, or the event's own
 //    values for "vanilla"; pc_rando_warpout_redirects grew by one exactly when redirected.
 // 3. The play scene then runs on that stage and room with the player spawned.
+// On M2tower (Helmaroc King, --stage M2tower:0:16), instead of 1-2: room 0's live SCLS[1] holds
+// COS_WARPOUT_EXPECT and the archive patcher wrote it once (vanilla: not written), then the harness
+// takes that exit as the door does (dLib_setNextStageBySclsNum(1, 0)) and checks 3.
 // Exit 0 when every check held, else 1.
 #include "pc_rando_smokes.h"
 
@@ -28,6 +31,8 @@
 #include "d/d_event.h"
 #include "d/d_event_data.h"
 #include "d/d_event_manager.h"
+#include "d/d_lib.h"
+#include "d/d_stage.h"
 #include "f_op/f_op_actor_mng.h"
 #include "f_pc/f_pc_layer.h"
 #include "f_pc/f_pc_manager.h"
@@ -60,6 +65,7 @@ s16 sEventIdx = -1;
 int sDirector = -1;
 int sRedirectsBefore = 0;
 bool sExpectVanilla = true;
+bool sHelmaroc = false;
 std::string sExpStage;
 int sExpRoom = -1;
 int sExpSpawn = -1;
@@ -157,6 +163,47 @@ bool parseExpect(const char* s) {
     return true;
 }
 
+// Helmaroc King (M2tower room 0): no warp-out event; SCLS[1] (the door to Ganondorf's room) is the
+// exit wwrando rewrites. Checks the live SCLS[1] and the patcher's status, then takes that exit as the
+// door does (dLib_setNextStageBySclsNum).
+bool initHelmaroc() {
+    sHelmaroc = true;
+    stage_scls_info_dummy_class* info = dComIfGp_roomControl_getStatusRoomDt(0) != nullptr
+                                            ? dComIfGp_roomControl_getStatusRoomDt(0)->getSclsInfo()
+                                            : nullptr;
+    if (!randoSmokeCheck(kName, "M2tower room 0 has SCLS[1]", info != nullptr && info->num > 1)) {
+        return false;
+    }
+    stage_scls_info_class* entries = info->m_entries;
+    const stage_scls_info_class& e = entries[1];
+    char dest[9] = {};
+    memcpy(dest, e.mStage, 8);
+    line("M2tower room 0 SCLS[1]: %s room %d spawn %d", dest, e.mRoom, e.mStart);
+    PcRandoWarpoutStatus st;
+    pc_rando_warpout_status(&st);
+    line("patcher: %d write(s), %d skip(s)", st.m2towerPatched, st.m2towerSkipped);
+    PcRandoWarpOut w;
+    const int got = pc_rando_warpout_dest(pc_rando_seed(), "M2tower", &w);
+    if (sExpectVanilla) {
+        randoSmokeCheck(kName, "no warp-out override and SCLS[1] not written (vanilla)",
+                        got == 0 && st.m2towerPatched == 0);
+        sExpStage = dest;
+        sExpRoom = e.mRoom;
+        sExpSpawn = e.mStart;
+    } else {
+        randoSmokeCheck(kName, "pc_rando_warpout_dest(M2tower) gives COS_WARPOUT_EXPECT",
+                        got == 1 && sExpStage == w.stage && sExpRoom == w.room && sExpSpawn == w.spawn);
+        randoSmokeCheck(kName, "SCLS[1] was written once and holds COS_WARPOUT_EXPECT",
+                        st.m2towerPatched == 1 && sExpStage == dest && sExpRoom == e.mRoom && sExpSpawn == e.mStart);
+        randoSmokeCheck(kName, "the expectation is not the R3.15 exit (sea room 1 spawn 0; else the run proves nothing)",
+                        !(sExpStage == "sea" && sExpRoom == 1 && sExpSpawn == 0));
+    }
+    sRedirectsBefore = pc_rando_warpout_redirects();
+    PlayLayerScope layer;
+    dLib_setNextStageBySclsNum(1, 0);
+    return true;
+}
+
 bool init() {
     const char* stage = dComIfGp_getStartStageName();
     line("stage %s room %d, pc_rando() %d, seed %s, entrances randomized %d", stage,
@@ -165,6 +212,9 @@ bool init() {
     if (!randoSmokeCheck(kName, "COS_WARPOUT_EXPECT parses (stage:room:spawn or vanilla)",
                          parseExpect(getenv("COS_WARPOUT_EXPECT")))) {
         return false;
+    }
+    if (strcmp(stage, "M2tower") == 0) {
+        return initHelmaroc();
     }
     dEvent_manager_c* mgr = dComIfGp_getPEvtManager();
     dEvDtBase_c& list = mgr->mList;
@@ -261,8 +311,12 @@ void checkNextStage() {
     snprintf(what, sizeof what, "the warp out goes to %s room %d spawn %d", sExpStage.c_str(), sExpRoom, sExpSpawn);
     randoSmokeCheck(kName, what, sExpStage == name && room == sExpRoom && point == sExpSpawn);
     const int redirects = pc_rando_warpout_redirects() - sRedirectsBefore;
-    randoSmokeCheck(kName, sExpectVanilla ? "the hook left it (0 redirects)" : "the hook redirected it (1 redirect)",
-                    redirects == (sExpectVanilla ? 0 : 1));
+    if (sHelmaroc) {
+        randoSmokeCheck(kName, "the event hook did not run (0 redirects)", redirects == 0);
+    } else {
+        randoSmokeCheck(kName, sExpectVanilla ? "the hook left it (0 redirects)" : "the hook redirected it (1 redirect)",
+                        redirects == (sExpectVanilla ? 0 : 1));
+    }
 }
 
 } // namespace
@@ -281,8 +335,12 @@ void randoSmokeWarpout(unsigned int frames) {
         if (!init()) {
             finish();
         }
-        sState = kOrder;
         sSince = 0;
+        if (sHelmaroc) {
+            sState = kRun;
+            return;
+        }
+        sState = kOrder;
         order();
         return;
     case kOrder: {
@@ -309,7 +367,9 @@ void randoSmokeWarpout(unsigned int frames) {
             sSince = 0;
             return;
         }
-        driveStuckCuts();
+        if (!sHelmaroc) {
+            driveStuckCuts();
+        }
         if (sSince >= kEventFrames) {
             randoSmokeCheck(kName, "WARP_WIND_AFTER requested the next stage", false);
             finish();
