@@ -83,6 +83,7 @@
 
 #if defined(__SWITCH__)
 #include "cos_switch.h"
+#include "dk_aurora.h"  // aurora_switch_dk_set_fxaa
 #endif
 
 // Aurora's <dolphin/pad.h> (the game's own comes first on the include path).
@@ -448,6 +449,13 @@ void applyGpuProfile(const char*, const char* v, void*) {
     (void)v;
 #endif
 }
+void applyFxaa(const char*, const char* v, void*) {
+#if defined(__SWITCH__)
+    aurora_switch_dk_set_fxaa(strcmp(v, "1") == 0);
+#else
+    (void)v;
+#endif
+}
 void applyOverlay(const char*, const char* v, void*) { gConfig.fpsOverlay = strcmp(v, "1") == 0; }
 void applyOverlayDetail(const char*, const char* v, void*) {
     gConfig.fpsOverlayCompact = strcmp(v, "compact") == 0;
@@ -523,6 +531,11 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "1", applyDof, nullptr, 50,
      "Depth of field",
      "Blur of the distant scenery, as on the GameCube."},
+    {"COS_FXAA", "Suavizado de bordes (FXAA)",
+     "Suaviza los bordes dentados de la imagen final con un filtro FXAA. Cuesta algo de GPU.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kOnOff), "0", applyFxaa, nullptr, 60,
+     "Edge smoothing (FXAA)",
+     "Smooths the jagged edges of the final picture with an FXAA filter. Costs some GPU time."},
     {"COS_CAMERA_INVERT_X", "Invertir cámara horizontal",
      "El stick C gira la cámara al revés en horizontal.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertX, nullptr, 90,

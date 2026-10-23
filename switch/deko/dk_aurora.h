@@ -30,6 +30,11 @@ void aurora_switch_dk_present(const struct ImDrawData* ui);
 // with. Any thread; the pixels are copied now and reach the GPU at the next frame.
 uint64_t aurora_switch_dk_imgui_texture(uint32_t width, uint32_t height, const void* rgba8);
 
+// FXAA on the final picture (options menu, COS_FXAA): the present pass draws it with the dk_fxaa shader
+// instead of the plain copy. Any thread; takes effect at the next frame. Off at the start unless
+// the environment's COS_FXAA is 1.
+void aurora_switch_dk_set_fxaa(bool on);
+
 // Waits for the GPU and releases the window (Aurora's shutdown).
 void aurora_switch_dk_shutdown(void);
 

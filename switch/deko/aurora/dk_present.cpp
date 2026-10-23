@@ -5,7 +5,8 @@
 // (webgpu::present_source) is resampled to the size it is shown at, area or bilinear as the options
 // menu says (webgpu::get_resampler; the present_resample fixed shader), then drawn into the swapchain
 // image in the viewport webgpu::calculate_present_viewport fits it to (the aspect fit of patch 0006),
-// with the xfb_copy shader; ImGui comes after it.
+// with the xfb_copy shader, or with the dk_fxaa shader (FXAA, one pass instead of the copy) when the options
+// menu's Suavizado de bordes is on (aurora_switch_dk_set_fxaa); ImGui comes after it.
 //
 // Readback (read_texture): a copy-engine copy into CPU-visible memory on a command buffer of its own,
 // after what the frame has recorded so far, and a wait for its fence (~1 ms for the picto box's
@@ -19,6 +20,7 @@
 #include "webgpu/gpu.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstring>
 
@@ -43,6 +45,14 @@ struct ResampleUniforms {  // present_resample.wgsl's Uniforms (std140)
     float frameHeight;
     uint32_t pad;
 };
+
+struct FxaaUniforms {  // dk_fxaa.wgsl's Uniforms (std140)
+    float invWidth, invHeight;
+    float pad[2];
+};
+
+// FXAA in place of the plain copy (COS_FXAA); written by the game thread, read by the render worker
+std::atomic<bool> g_fxaa{false};
 
 Viewport g_viewport{};
 
@@ -126,6 +136,23 @@ void picture(void*, int stage) {
         const FixedBind binds[] = {
             {swdk::SlotBinding::Kind::Sampler, 1, dkMakeTextureHandle(g_resampled.slot, swdk::kSamplerLinearClamp)},
         };
+        if (g_fxaa.load(std::memory_order_relaxed)) {
+            const swdk::StreamAlloc u = swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT);
+            if (u) {
+                const FxaaUniforms uniforms = {1.f / float(g_resampled.width), 1.f / float(g_resampled.height), {0, 0}};
+                memcpy(u.cpu, &uniforms, sizeof uniforms);
+                // dk_fxaa: uniforms 0, the texture with its sampler (the layout of present_resample)
+                const FixedBind fxaaBinds[] = {
+                    {swdk::SlotBinding::Kind::Uniform, 0, 0, u.gpu, 256},
+                    {swdk::SlotBinding::Kind::Sampler, 2,
+                     dkMakeTextureHandle(g_resampled.slot, swdk::kSamplerLinearClamp)},
+                };
+                if (fixed_draw("dk_fxaa", "vs_main", "fs_main", nullptr, 0, 0, false, fxaaBinds, 2)) {
+                    gpu_mark(GpuWork::Present);
+                    return;
+                }
+            }
+        }
         fixed_draw("xfb_copy", "vs_main", "fs_opaque", nullptr, 0, 0, false, binds, 1);
         gpu_mark(GpuWork::Present);
         return;
@@ -140,7 +167,10 @@ constexpr uint32_t kRbCmdSize = 64u << 10;
 
 }  // namespace
 
-void present_init() { swdk::set_picture(picture, nullptr); }
+void present_init() {
+    g_fxaa.store(swdk::env_flag("COS_FXAA", false), std::memory_order_relaxed);
+    swdk::set_picture(picture, nullptr);
+}
 
 bool read_texture(WGPUTexture texture, std::vector<uint8_t>& pixels, uint32_t& width, uint32_t& height,
                   wgpu::TextureFormat& format, uint32_t mip) {
@@ -197,6 +227,8 @@ bool read_texture(WGPUTexture texture, std::vector<uint8_t>& pixels, uint32_t& w
 }  // namespace aurora::gfx::dk
 
 using namespace aurora::gfx::dk;
+
+extern "C" void aurora_switch_dk_set_fxaa(bool on) { g_fxaa.store(on, std::memory_order_relaxed); }
 
 // The perf lines' figures (cos_switch_stats.cpp, COS_SWITCH_DEKO3D): running totals in the order of
 // dk_aurora.h's AuroraSwitchDkStat

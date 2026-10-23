@@ -127,6 +127,11 @@ scripts/switch/push.sh native                   # to sdmc:/switch/switchwaker/, 
   rebuilt with each NRO. The NRO loads it whole at start (`[dk] shader cache:` line). Pipelines it lacks
   are compiled on the console (Tint and uam in the NRO, one worker thread) and kept in
   `switch/switchwaker/native/user/cache/dksh_local.bin` for the next start.
+- FXAA: the options menu's Gráficos > *Suavizado de bordes (FXAA)* (`COS_FXAA`, off by default, live)
+  makes the present pass draw the resampled picture with `switch/deko/shaders/dk_fxaa.wgsl` (one
+  full-screen pass, nine bilinear taps, in place of the `xfb_copy` copy; no extra render target) before
+  ImGui, so the menu and FPS panel stay sharp. Its DKSH is in `initial_dksh_cache.bin` like the test
+  pattern's (`build_native.sh` checks `dk_fxaa.vs_main`/`fs_main`).
 - deko3d run options (settings.ini `[dev]`, `switch/native/settings-dev.example.ini`): `COS_DK_TEST_PATTERN=1`
   draws a test pattern of deko3d's conventions under the menu (four coloured corners, two depth-tested
   squares, a depth-range check, a textured square with texture row 0 marked, a counter-clockwise and a
