@@ -6,7 +6,10 @@
 // menu says (webgpu::get_resampler; the present_resample fixed shader), then drawn into the swapchain
 // image in the viewport webgpu::calculate_present_viewport fits it to (the aspect fit of patch 0006),
 // with the xfb_copy shader, or with the dk_fxaa shader (FXAA, one pass instead of the copy) when the options
-// menu's Suavizado de bordes is on (aurora_switch_dk_set_fxaa); ImGui comes after it.
+// menu's Suavizado de bordes is on (aurora_switch_dk_set_fxaa); ImGui comes after it. The options menu's
+// Oclusión ambiental (aurora_switch_dk_set_ssao) adds a light SSAO from the EFB depth buffer between the resample
+// and the final pass (switch/deko/shaders/dk_ssao.wgsl): the occlusion at half resolution, blurred, then darkened
+// into the resampled picture, so FXAA and the gamma see it.
 //
 // Readback (read_texture): a copy-engine copy into CPU-visible memory on a command buffer of its own,
 // after what the frame has recorded so far, and a wait for its fence (~1 ms for the picto box's
@@ -54,6 +57,18 @@ struct FxaaUniforms {  // dk_fxaa.wgsl's Uniforms (std140)
 // FXAA in place of the plain copy (COS_FXAA); written by the game thread, read by the render worker
 std::atomic<bool> g_fxaa{false};
 
+// the light SSAO (COS_SSAO), same threads
+std::atomic<bool> g_ssao{false};
+
+// the occlusion at half resolution: the raw one and the blurred one (RGBA8 images of ensure_resampled)
+Resampled g_aoRaw, g_aoBlur;
+
+struct SsaoUniforms {  // dk_ssao.wgsl's Uniforms (std140)
+    float depthWidth, depthHeight, outWidth, outHeight;
+    float radius[4];
+    float apply[4];
+};
+
 Viewport g_viewport{};
 
 // the options menu's gamma (aurora_switch_dk_set_gamma): the exponent of the picture's colours; the
@@ -62,9 +77,9 @@ std::atomic<float> g_gamma{2.4f / 2.2f};
 
 uint32_t extent(float v) { return std::max(1u, static_cast<uint32_t>(std::lround(std::max(v, 1.f)))); }
 
-bool ensure_resampled(uint32_t w, uint32_t h) {
-    if (g_resampled.valid && g_resampled.width == w && g_resampled.height == h) return true;
-    if (g_resampled.valid) swdk::image_free_later(g_resampled.mem);
+bool ensure_resampled(Resampled& img, uint32_t w, uint32_t h) {
+    if (img.valid && img.width == w && img.height == h) return true;
+    if (img.valid) swdk::image_free_later(img.mem);
     DkImageLayoutMaker m;
     dkImageLayoutMakerDefaults(&m, R.device);
     m.format = DkImageFormat_RGBA8_Unorm;
@@ -74,16 +89,63 @@ bool ensure_resampled(uint32_t w, uint32_t h) {
     swdk::image_tile_size_fix(m, h);
     DkImageLayout layout;
     dkImageLayoutInitialize(&layout, &m);
-    g_resampled.mem = swdk::image_alloc(uint32_t(dkImageLayoutGetSize(&layout)), dkImageLayoutGetAlignment(&layout));
-    dkImageInitialize(&g_resampled.image, &layout, g_resampled.mem.block, g_resampled.mem.offset);
-    if (g_resampled.slot == 0) g_resampled.slot = swdk::image_slot_alloc();
-    if (g_resampled.slot == 0) return false;
-    swdk::write_image_descriptor(g_resampled.slot, g_resampled.image);
-    g_resampled.valid = true;
-    g_resampled.width = w;
-    g_resampled.height = h;
-    dklog("present: the picture resampled to %ux%u", w, h);
+    img.mem = swdk::image_alloc(uint32_t(dkImageLayoutGetSize(&layout)), dkImageLayoutGetAlignment(&layout));
+    dkImageInitialize(&img.image, &layout, img.mem.block, img.mem.offset);
+    if (img.slot == 0) img.slot = swdk::image_slot_alloc();
+    if (img.slot == 0) return false;
+    swdk::write_image_descriptor(img.slot, img.image);
+    img.valid = true;
+    img.width = w;
+    img.height = h;
+    dklog("present: an image of %ux%u (the resampled picture or the SSAO's)", w, h);
     return true;
+}
+
+// The light SSAO over g_resampled (see dk_ssao.wgsl): false when the depth is not there or a shader is missing,
+// the picture is then shown as it is.
+bool ssao_pass() {
+    Tex* depth = find_texture(webgpu::g_depthBuffer.texture.Get());
+    View* depthView = find_view(webgpu::g_depthBuffer.view.Get());
+    if (!depth || !depth->valid || !depthView) return false;
+    const uint32_t w = std::max(g_resampled.width / 2, 1u), h = std::max(g_resampled.height / 2, 1u);
+    if (!ensure_resampled(g_aoRaw, w, h) || !ensure_resampled(g_aoBlur, w, h)) return false;
+    // the tuning (developer variables, percent / hundredths): COS_SSAO_RADIUS the disc's world size,
+    // COS_SSAO_STRENGTH the darkening at full occlusion, COS_SSAO_BIAS the depth step that counts as an occluder
+    static const float radius = float(swdk::env_long("COS_SSAO_RADIUS", 50));
+    static const float strength = float(swdk::env_long("COS_SSAO_STRENGTH", 60)) * 0.01f;
+    static const float bias = float(swdk::env_long("COS_SSAO_BIAS", 150)) * 0.0001f;
+    // the depth value is about near / z (near about 10 units): a world radius R is about R * focal / z pixels,
+    // so focal * R / near depth-buffer pixels per unit of depth value (focal about 650 px at 720p)
+    const float scale = float(depth->height) / 720.f;
+    SsaoUniforms uniforms = {float(depth->width), float(depth->height), float(w), float(h),
+                             {radius * 65.f * scale, 3.f * scale, 28.f * scale, bias},
+                             {strength, 0.3f, 0.f, 0.f}};
+    const swdk::StreamAlloc u = swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT);
+    if (!u) return false;
+    memcpy(u.cpu, &uniforms, sizeof uniforms);
+    // the depth image's descriptor of our own (the view is Aurora's, its slot is shared with the GX draws)
+    const DkResHandle depthHandle = dkMakeTextureHandle(view_slot(depthView), swdk::kSamplerNearestClamp);
+    const FixedBind aoBinds[] = {
+        {swdk::SlotBinding::Kind::Uniform, 0, 0, u.gpu, 256},
+        {swdk::SlotBinding::Kind::Sampler, 1, depthHandle},
+    };
+    DkImageView rawTarget, blurTarget, picTarget;
+    dkImageViewDefaults(&rawTarget, &g_aoRaw.image);
+    dkImageViewDefaults(&blurTarget, &g_aoBlur.image);
+    dkImageViewDefaults(&picTarget, &g_resampled.image);
+    if (!fixed_draw("dk_ssao", "vs_main", "fs_ao", &rawTarget, w, h, false, aoBinds, 2)) return false;
+    const FixedBind blurBinds[] = {
+        {swdk::SlotBinding::Kind::Uniform, 0, 0, u.gpu, 256},
+        {swdk::SlotBinding::Kind::Sampler, 1, depthHandle},
+        {swdk::SlotBinding::Kind::Sampler, 2, dkMakeTextureHandle(g_aoRaw.slot, swdk::kSamplerNearestClamp)},
+    };
+    if (!fixed_draw("dk_ssao", "vs_main", "fs_blur", &blurTarget, w, h, false, blurBinds, 3)) return false;
+    const FixedBind applyBinds[] = {
+        {swdk::SlotBinding::Kind::Uniform, 0, 0, u.gpu, 256},
+        {swdk::SlotBinding::Kind::Sampler, 2, dkMakeTextureHandle(g_aoBlur.slot, swdk::kSamplerLinearClamp)},
+    };
+    return fixed_draw("dk_ssao", "vs_main", "fs_apply", &picTarget, g_resampled.width, g_resampled.height, false,
+                      applyBinds, 2, true);
 }
 
 void picture(void*, int stage) {
@@ -93,7 +155,7 @@ void picture(void*, int stage) {
         g_viewport = webgpu::calculate_present_viewport(R.width, R.height, source.size.width, source.size.height);
         if (!src || !src->valid || g_viewport.width <= 0.f || g_viewport.height <= 0.f) return;
         const uint32_t w = extent(g_viewport.width), h = extent(g_viewport.height);
-        if (!ensure_resampled(w, h)) return;
+        if (!ensure_resampled(g_resampled, w, h)) return;
         const swdk::StreamAlloc u = swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT);
         if (!u) return;
         const ResampleUniforms uniforms = {webgpu::get_resampler() == SAMPLER_AREA ? 1u : 0u, float(w), float(h), 0};
@@ -119,6 +181,7 @@ void picture(void*, int stage) {
         DkImageView target;
         dkImageViewDefaults(&target, &g_resampled.image);
         fixed_draw("present_resample", "vs_main", "fs_main", &target, w, h, true, binds, 2);
+        if (g_ssao.load(std::memory_order_relaxed) && ssao_pass()) gpu_mark(GpuWork::Other);
         return;
     }
     if (stage == 1) {
@@ -189,6 +252,7 @@ extern "C" void aurora_switch_dk_set_gamma(float exponent) {
 
 void present_init() {
     g_fxaa.store(swdk::env_flag("COS_FXAA", false), std::memory_order_relaxed);
+    g_ssao.store(swdk::env_flag("COS_SSAO", false), std::memory_order_relaxed);
     swdk::set_picture(picture, nullptr);
 }
 
@@ -249,6 +313,7 @@ bool read_texture(WGPUTexture texture, std::vector<uint8_t>& pixels, uint32_t& w
 using namespace aurora::gfx::dk;
 
 extern "C" void aurora_switch_dk_set_fxaa(bool on) { g_fxaa.store(on, std::memory_order_relaxed); }
+extern "C" void aurora_switch_dk_set_ssao(bool on) { g_ssao.store(on, std::memory_order_relaxed); }
 
 // The perf lines' figures (cos_switch_stats.cpp, COS_SWITCH_DEKO3D): running totals in the order of
 // dk_aurora.h's AuroraSwitchDkStat
