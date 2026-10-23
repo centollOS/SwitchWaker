@@ -1,0 +1,506 @@
+file Adanmae -1
+file Adanmae 0
+file sea -1
+file sea 41
+file sea 26
+file Edaichi -1
+file Edaichi 0
+file Ekaze -1
+file Ekaze 0
+file kindan -1
+file kindan 9
+file Siren -1
+file Siren 14
+file M_Dai -1
+file M_Dai 7
+file kaze -1
+file kaze 2
+file Hyroom -1
+file Hyroom 0
+file M_NewD2 -1
+file M_NewD2 10
+file kindan 16
+file Siren 18
+file sea 1
+file M_Dai 15
+file kaze 12
+file sea 44
+file sea 13
+file sea 20
+file sea 40
+file Abesso -1
+file Abesso 0
+file sea 29
+file sea 47
+file sea 48
+file sea 31
+file sea 7
+file sea 35
+file sea 12
+file sea 36
+file sea 34
+file sea 16
+file sea 38
+file sea 42
+file sea 43
+file sea 2
+file MiniHyo -1
+file MiniHyo 0
+file Cave03 -1
+file Cave03 0
+file A_mori -1
+file A_mori 0
+file sea 28
+file sea 19
+file sea 15
+file sea 39
+file sea 3
+file M_NewD2 0
+file kindan 0
+file Siren 0
+file M_Dai 0
+file kaze 15
+file kinMB -1
+file kinMB 10
+file SirenMB -1
+file SirenMB 23
+file M_DaiMB -1
+file M_DaiMB 12
+file kazeMB -1
+file kazeMB 6
+file kenroom -1
+file kenroom 0
+file M_DragB -1
+file M_DragB 0
+file kinBOSS -1
+file kinBOSS 0
+file SirenB -1
+file SirenB 0
+file M2tower -1
+file M2tower 0
+file M_DaiB -1
+file M_DaiB 0
+file kazeB -1
+file kazeB 0
+file Cave09 -1
+file Cave09 0
+file TF_06 -1
+file TF_06 0
+file MiniKaz -1
+file MiniKaz 0
+file TF_04 -1
+file TF_04 0
+file SubD42 -1
+file SubD42 0
+file SubD43 -1
+file SubD43 0
+file SubD71 -1
+file SubD71 0
+file TF_01 -1
+file TF_01 0
+file TF_02 -1
+file TF_02 0
+file TF_03 -1
+file TF_03 0
+file TyuTyu -1
+file TyuTyu 0
+file Cave07 -1
+file Cave07 0
+file WarpD -1
+file WarpD 0
+file Cave01 -1
+file Cave01 0
+file Cave04 -1
+file Cave04 0
+file ITest63 -1
+file ITest63 0
+file Cave05 -1
+file Cave05 0
+file Cave02 -1
+file Cave02 0
+file ITest62 -1
+file ITest62 0
+file Fairy04 -1
+file Fairy04 0
+file Fairy05 -1
+file Fairy05 0
+file Fairy02 -1
+file Fairy02 0
+file Fairy03 -1
+file Fairy03 0
+file Fairy06 -1
+file Fairy06 0
+file Fairy01 -1
+file Fairy01 0
+file Cave10 -1
+file Cave10 0
+file Cave10 20
+file Cave11 -1
+file Cave11 0
+map A R6_12_seed_A.json
+map B R6_12_seed_B.json
+map C R6_12_seed_C.json
+map D R6_12_seed_D.json
+map V R0_6_identity.json
+scls A Adanmae 0 SCLS 2 kenroom 0 0
+plyr A Adanmae 0 PLYR 2 ffff1000
+scls A sea 41 SCLS 6 M_NewD2 0 0
+scls A sea 26 SCLS 0 M_DaiB 0 0
+scls A Edaichi 0 SCLS 0 M_DaiMB 12 0
+scls A Ekaze 0 SCLS 0 M_Dai 0 0
+scls A kindan 9 SCLS 0 kazeMB 6 0
+scls A Siren 14 SCLS 0 M_DragB 0 0
+scls A M_Dai 7 SCLS 0 kaze 15 15
+scls A kaze 2 SCLS 3 kinMB 10 0
+scls A Hyroom 0 SCLS 2 kindan 0 0
+scls A M_NewD2 10 SCLS 1 M2tower 0 16
+scls A kindan 16 SCLS 0 Siren 0 0
+scls A Siren 18 SCLS 0 kinBOSS 0 0
+scls A sea 1 SCLS 16 SirenB 0 0
+scls A M_Dai 15 SCLS 0 SirenMB 23 0
+scls A sea 44 SCLS 8 Cave07 0 0
+scls A sea 13 SCLS 2 Fairy06 0 0
+scls A sea 20 SCLS 0 Cave04 0 0
+scls A sea 40 SCLS 0 Fairy01 0 0
+scls A Abesso 0 SCLS 1 MiniKaz 0 0
+scls A sea 29 SCLS 0 Fairy05 0 0
+scls A sea 47 SCLS 1 ITest63 0 0
+scls A sea 48 SCLS 0 Fairy04 0 0
+scls A sea 31 SCLS 0 TyuTyu 0 0
+scls A sea 7 SCLS 0 SubD71 0 0
+scls A sea 35 SCLS 0 SubD42 0 0
+scls A sea 12 SCLS 0 TF_01 0 0
+scls A sea 12 SCLS 1 ITest62 0 0
+scls A sea 36 SCLS 0 MiniHyo 0 0
+scls A sea 34 SCLS 0 Cave09 0 0
+scls A sea 16 SCLS 0 Fairy03 0 0
+scls A sea 38 SCLS 0 Cave02 0 0
+scls A sea 42 SCLS 1 sea 39 1
+scls A sea 43 SCLS 0 TF_04 0 0
+scls A sea 2 SCLS 0 Fairy02 0 0
+dma A MiniHyo -1 2DMA 0 2d
+scls A MiniHyo 0 SCLS 0 sea 36 1
+scls A MiniHyo 0 SCLS 1 Cave01 0 0
+actr A MiniHyo 0 ACTR 19 - 001eff81
+scls A Cave03 0 SCLS 1 WarpD 0 0
+scls A A_mori 0 SCLS 1 TF_06 0 0
+scls A sea 28 SCLS 0 TF_03 0 0
+scls A sea 19 SCLS 0 Cave05 0 0
+scls A sea 15 SCLS 0 SubD43 0 0
+scls A sea 39 SCLS 0 sea 42 1
+scls A sea 3 SCLS 0 TF_02 0 0
+scls A M_NewD2 0 SCLS 0 sea 41 6
+scls A kindan 0 SCLS 0 Hyroom 0 2
+scls A Siren 0 SCLS 1 kindan 16 1
+scls A M_Dai 0 SCLS 0 Ekaze 0 1
+scls A kaze 15 SCLS 0 M_Dai 7 9
+scls A kinMB -1 SCLS 0 kaze 255 15
+scls A kinMB 10 SCLS 0 kaze 2 20
+scls A SirenMB -1 SCLS 0 M_Dai 255 0
+scls A SirenMB 23 SCLS 0 M_Dai 15 27
+scls A M_DaiMB -1 SCLS 0 Edaichi 0 1
+scls A M_DaiMB 12 SCLS 0 Edaichi 0 1
+scls A kazeMB -1 SCLS 0 kindan 0 1
+scls A kazeMB 6 SCLS 0 kindan 9 1
+scls A kenroom -1 SCLS 0 Adanmae 0 2
+scls A kenroom 0 SCLS 0 Adanmae 0 2
+scls A M_DragB -1 SCLS 0 Siren 0 0
+scls A kinBOSS -1 SCLS 0 Siren 0 0
+scls A SirenB -1 SCLS 0 sea 1 100
+scls A M2tower -1 SCLS 0 M_NewD2 0 0
+scls A M_DaiB -1 SCLS 0 sea 26 2
+dma A Cave09 -1 2DMA 0 12
+scls A Cave09 0 SCLS 1 sea 34 1
+dma A TF_06 -1 2DMA 0 3e
+scls A TF_06 0 SCLS 0 A_mori 0 2
+dma A MiniKaz -1 2DMA 0 11
+scls A MiniKaz 0 SCLS 0 Abesso 0 1
+actr A MiniKaz 0 ACTR 19 - 001eff40
+dma A TF_04 -1 2DMA 0 3d
+scls A TF_04 0 SCLS 0 sea 43 5
+dma A SubD42 -1 2DMA 0 13
+scls A SubD42 0 SCLS 0 sea 35 1
+dma A SubD43 -1 2DMA 0 fd
+scls A SubD43 0 SCLS 0 sea 15 1
+dma A SubD71 -1 2DMA 0 d3
+scls A SubD71 0 SCLS 0 sea 7 1
+dma A TF_01 -1 2DMA 0 e1
+scls A TF_01 0 SCLS 0 sea 12 1
+dma A TF_02 -1 2DMA 0 df
+scls A TF_02 0 SCLS 0 sea 3 1
+dma A TF_03 -1 2DMA 0 03
+scls A TF_03 0 SCLS 0 sea 28 1
+dma A TyuTyu -1 2DMA 0 1f
+scls A TyuTyu 0 SCLS 0 sea 31 1
+dma A Cave07 -1 2DMA 0 3e
+scls A Cave07 0 SCLS 0 sea 44 10
+dma A WarpD -1 2DMA 0 23
+scls A WarpD 0 SCLS 0 Cave03 0 1
+dma A Cave01 -1 2DMA 0 2d
+scls A Cave01 0 SCLS 0 MiniHyo 0 0
+dma A Cave04 -1 2DMA 0 f2
+scls A Cave04 0 SCLS 0 sea 20 0
+dma A ITest63 -1 2DMA 0 31
+scls A ITest63 0 SCLS 0 sea 47 5
+dma A Cave05 -1 2DMA 0 f1
+scls A Cave05 0 SCLS 0 sea 19 1
+dma A Cave02 -1 2DMA 0 2f
+scls A Cave02 0 SCLS 0 sea 38 5
+dma A ITest62 -1 2DMA 0 e1
+scls A ITest62 0 SCLS 0 sea 12 5
+dma A Fairy04 -1 2DMA 0 32
+scls A Fairy04 0 SCLS 0 sea 48 5
+dma A Fairy05 -1 2DMA 0 1d
+scls A Fairy05 0 SCLS 0 sea 29 5
+dma A Fairy02 -1 2DMA 0 de
+scls A Fairy02 0 SCLS 0 sea 2 1
+dma A Fairy03 -1 2DMA 0 fe
+scls A Fairy03 0 SCLS 0 sea 16 1
+dma A Fairy06 -1 2DMA 0 e2
+scls A Fairy06 0 SCLS 0 sea 13 5
+dma A Fairy01 -1 2DMA 0 21
+scls A Fairy01 0 SCLS 0 sea 40 0
+scls A Cave10 0 SCLS 1 sea 34 1
+scls A Cave10 20 SCLS 0 sea 34 1
+scls A Cave11 0 SCLS 1 sea 34 1
+scls B Adanmae 0 SCLS 2 Fairy01 0 0
+plyr B Adanmae 0 PLYR 2 ffff1000
+scls B sea 41 SCLS 6 WarpD 0 0
+scls B sea 26 SCLS 0 ITest62 0 0
+scls B Edaichi 0 SCLS 0 SirenMB 23 0
+scls B Ekaze 0 SCLS 0 ITest63 0 0
+scls B kindan 9 SCLS 0 M_DaiMB 12 0
+scls B Siren 14 SCLS 0 kazeB 0 0
+scls B M_Dai 7 SCLS 0 Fairy02 0 0
+scls B kaze 2 SCLS 3 kinMB 10 0
+scls B Hyroom 0 SCLS 2 Cave04 0 0
+scls B M_NewD2 10 SCLS 1 kindan 0 0
+scls B sea 1 SCLS 16 M_DragB 0 0
+scls B M_Dai 15 SCLS 0 M_DaiB 0 0
+scls B kaze 12 SCLS 0 Fairy04 0 0
+scls B sea 44 SCLS 8 Cave07 0 0
+scls B sea 13 SCLS 2 TF_03 0 0
+scls B sea 20 SCLS 0 Siren 0 0
+scls B sea 40 SCLS 0 Fairy05 0 0
+scls B Abesso 0 SCLS 1 Fairy06 0 0
+scls B sea 29 SCLS 0 sea 42 1
+scls B sea 47 SCLS 1 TF_02 0 0
+scls B sea 31 SCLS 0 MiniKaz 0 0
+scls B sea 7 SCLS 0 MiniHyo 0 0
+scls B sea 35 SCLS 0 Cave05 0 0
+scls B sea 12 SCLS 0 TF_01 0 0
+scls B sea 12 SCLS 1 TF_06 0 0
+scls B sea 36 SCLS 0 Fairy03 0 0
+scls B sea 34 SCLS 0 M_NewD2 0 0
+scls B sea 16 SCLS 0 Cave02 0 0
+scls B sea 38 SCLS 0 SubD42 0 0
+scls B sea 42 SCLS 0 M2tower 0 16
+scls B sea 42 SCLS 1 sea 29 5
+scls B sea 43 SCLS 0 SubD43 0 0
+scls B sea 2 SCLS 0 TyuTyu 0 0
+dma B MiniHyo -1 2DMA 0 d3
+scls B MiniHyo 0 SCLS 0 sea 7 1
+scls B MiniHyo 0 SCLS 1 kazeMB 6 0
+actr B MiniHyo 0 ACTR 19 - 001eff81
+dma B Cave03 -1 2DMA 0 f1
+scls B Cave03 0 SCLS 0 sea 19 1
+scls B Cave03 0 SCLS 1 kenroom 0 0
+scls B A_mori 0 SCLS 1 TF_04 0 0
+scls B sea 28 SCLS 0 Cave01 0 0
+scls B sea 19 SCLS 0 Cave03 0 0
+scls B sea 15 SCLS 0 Cave09 0 0
+scls B sea 39 SCLS 0 kaze 15 15
+scls B sea 3 SCLS 0 M_Dai 0 0
+scls B M_NewD2 0 SCLS 0 sea 34 1
+scls B kindan 0 SCLS 0 M_NewD2 10 27
+scls B Siren 0 SCLS 1 sea 20 0
+scls B M_Dai 0 SCLS 0 sea 3 1
+scls B kaze 15 SCLS 0 sea 39 1
+scls B kinMB -1 SCLS 0 kaze 255 15
+scls B kinMB 10 SCLS 0 kaze 2 20
+scls B SirenMB -1 SCLS 0 Edaichi 0 1
+scls B SirenMB 23 SCLS 0 Edaichi 0 1
+scls B M_DaiMB -1 SCLS 0 kindan 0 1
+scls B M_DaiMB 12 SCLS 0 kindan 9 1
+scls B kazeMB -1 SCLS 0 MiniHyo 0 0
+scls B kazeMB 6 SCLS 0 MiniHyo 0 0
+scls B kenroom -1 SCLS 0 Cave03 0 1
+scls B kenroom 0 SCLS 0 Cave03 0 1
+scls B M_DragB -1 SCLS 0 sea 1 100
+scls B M2tower -1 SCLS 0 sea 42 2
+scls B kazeB -1 SCLS 0 Siren 0 0
+dma B Cave09 -1 2DMA 0 fd
+scls B Cave09 0 SCLS 1 sea 15 1
+dma B TF_06 -1 2DMA 0 e1
+scls B TF_06 0 SCLS 0 sea 12 5
+dma B MiniKaz -1 2DMA 0 1f
+scls B MiniKaz 0 SCLS 0 sea 31 1
+actr B MiniKaz 0 ACTR 19 - 001eff40
+dma B TF_04 -1 2DMA 0 3e
+scls B TF_04 0 SCLS 0 A_mori 0 2
+dma B SubD42 -1 2DMA 0 2f
+scls B SubD42 0 SCLS 0 sea 38 5
+dma B SubD43 -1 2DMA 0 3d
+scls B SubD43 0 SCLS 0 sea 43 5
+dma B TF_01 -1 2DMA 0 e1
+scls B TF_01 0 SCLS 0 sea 12 1
+dma B TF_02 -1 2DMA 0 31
+scls B TF_02 0 SCLS 0 sea 47 5
+dma B TF_03 -1 2DMA 0 e2
+scls B TF_03 0 SCLS 0 sea 13 5
+dma B TyuTyu -1 2DMA 0 de
+scls B TyuTyu 0 SCLS 0 sea 2 1
+dma B Cave07 -1 2DMA 0 3e
+scls B Cave07 0 SCLS 0 sea 44 10
+dma B WarpD -1 2DMA 0 22
+scls B WarpD 0 SCLS 0 sea 41 6
+dma B Cave01 -1 2DMA 0 03
+scls B Cave01 0 SCLS 0 sea 28 1
+dma B Cave04 -1 2DMA 0 01
+scls B Cave04 0 SCLS 0 Hyroom 0 2
+dma B ITest63 -1 2DMA 0 d0
+scls B ITest63 0 SCLS 0 Ekaze 0 1
+dma B Cave05 -1 2DMA 0 13
+scls B Cave05 0 SCLS 0 sea 35 1
+dma B Cave02 -1 2DMA 0 fe
+scls B Cave02 0 SCLS 0 sea 16 1
+dma B ITest62 -1 2DMA 0 01
+scls B ITest62 0 SCLS 0 sea 26 2
+dma B Fairy04 -1 2DMA 0 20
+scls B Fairy04 0 SCLS 0 kaze 12 27
+dma B Fairy05 -1 2DMA 0 21
+scls B Fairy05 0 SCLS 0 sea 40 0
+dma B Fairy02 -1 2DMA 0 df
+scls B Fairy02 0 SCLS 0 M_Dai 7 9
+dma B Fairy03 -1 2DMA 0 2d
+scls B Fairy03 0 SCLS 0 sea 36 1
+dma B Fairy06 -1 2DMA 0 11
+scls B Fairy06 0 SCLS 0 Abesso 0 1
+dma B Fairy01 -1 2DMA 0 e2
+scls B Fairy01 0 SCLS 0 Adanmae 0 2
+scls B Cave10 0 SCLS 1 sea 15 1
+scls B Cave10 20 SCLS 0 sea 15 1
+scls B Cave11 0 SCLS 1 sea 15 1
+scls C Adanmae 0 SCLS 2 kazeB 0 0
+plyr C Adanmae 0 PLYR 2 ffff1000
+scls C sea 41 SCLS 6 sea 42 1
+scls C sea 26 SCLS 0 MiniHyo 0 0
+scls C Edaichi 0 SCLS 0 SubD42 0 0
+scls C Ekaze 0 SCLS 0 ITest63 0 0
+scls C kindan 9 SCLS 0 M_DaiMB 12 0
+scls C Siren 14 SCLS 0 kindan 0 0
+scls C M_Dai 7 SCLS 0 kenroom 0 0
+scls C kaze 2 SCLS 3 kinMB 10 0
+scls C Hyroom 0 SCLS 2 M_NewD2 0 0
+scls C M_NewD2 10 SCLS 1 kaze 15 15
+scls C Siren 18 SCLS 0 TF_03 0 0
+scls C sea 1 SCLS 16 SirenB 0 0
+scls C M_Dai 15 SCLS 0 M_DragB 0 0
+scls C kaze 12 SCLS 0 Siren 0 0
+scls C sea 44 SCLS 8 ITest62 0 0
+scls C sea 13 SCLS 2 kazeMB 6 0
+scls C sea 20 SCLS 0 SubD43 0 0
+scls C sea 40 SCLS 0 SirenMB 23 0
+scls C Abesso 0 SCLS 1 M2tower 0 16
+scls C sea 29 SCLS 0 WarpD 0 0
+scls C sea 47 SCLS 1 Cave01 0 0
+scls C sea 48 SCLS 0 Cave02 0 0
+scls C sea 31 SCLS 0 TF_06 0 0
+scls C sea 7 SCLS 0 M_DaiB 0 0
+scls C sea 35 SCLS 0 Cave07 0 0
+scls C sea 12 SCLS 0 Cave09 0 0
+scls C sea 12 SCLS 1 TF_02 0 0
+scls C sea 36 SCLS 0 M_Dai 0 0
+scls C sea 34 SCLS 0 Cave05 0 0
+scls C sea 16 SCLS 0 Cave03 0 0
+scls C sea 38 SCLS 0 MiniKaz 0 0
+scls C sea 42 SCLS 0 SubD71 0 0
+scls C sea 42 SCLS 1 sea 41 6
+scls C sea 43 SCLS 0 Cave04 0 0
+scls C sea 2 SCLS 0 TF_01 0 0
+dma C MiniHyo -1 2DMA 0 01
+scls C MiniHyo 0 SCLS 0 sea 26 2
+scls C MiniHyo 0 SCLS 1 TyuTyu 0 0
+actr C MiniHyo 0 ACTR 19 - 001eff81
+dma C Cave03 -1 2DMA 0 fe
+scls C Cave03 0 SCLS 0 sea 16 1
+scls C Cave03 0 SCLS 1 TF_04 0 0
+scls C M_NewD2 0 SCLS 0 Hyroom 0 2
+scls C kindan 0 SCLS 0 Siren 14 1
+scls C Siren 0 SCLS 1 kaze 12 27
+scls C M_Dai 0 SCLS 0 sea 36 1
+scls C kaze 15 SCLS 0 M_NewD2 10 27
+scls C kinMB -1 SCLS 0 kaze 255 15
+scls C kinMB 10 SCLS 0 kaze 2 20
+scls C SirenMB -1 SCLS 0 sea 40 0
+scls C SirenMB 23 SCLS 0 sea 40 0
+scls C M_DaiMB -1 SCLS 0 kindan 0 1
+scls C M_DaiMB 12 SCLS 0 kindan 9 1
+scls C kazeMB -1 SCLS 0 sea 13 5
+scls C kazeMB 6 SCLS 0 sea 13 5
+scls C kenroom -1 SCLS 0 M_Dai 255 0
+scls C kenroom 0 SCLS 0 M_Dai 7 9
+scls C M_DragB -1 SCLS 0 M_Dai 255 0
+scls C SirenB -1 SCLS 0 sea 1 100
+scls C M2tower -1 SCLS 0 Abesso 0 1
+scls C M_DaiB -1 SCLS 0 sea 7 1
+scls C kazeB -1 SCLS 0 Adanmae 0 2
+dma C Cave09 -1 2DMA 0 e1
+scls C Cave09 0 SCLS 1 sea 12 1
+dma C TF_06 -1 2DMA 0 1f
+scls C TF_06 0 SCLS 0 sea 31 1
+dma C MiniKaz -1 2DMA 0 2f
+scls C MiniKaz 0 SCLS 0 sea 38 5
+actr C MiniKaz 0 ACTR 19 - 001eff40
+dma C TF_04 -1 2DMA 0 fe
+scls C TF_04 0 SCLS 0 Cave03 0 1
+dma C SubD42 -1 2DMA 0 3f
+scls C SubD42 0 SCLS 0 Edaichi 0 1
+dma C SubD43 -1 2DMA 0 f2
+scls C SubD43 0 SCLS 0 sea 20 0
+dma C SubD71 -1 2DMA 0 23
+scls C SubD71 0 SCLS 0 sea 42 2
+dma C TF_01 -1 2DMA 0 de
+scls C TF_01 0 SCLS 0 sea 2 1
+dma C TF_02 -1 2DMA 0 e1
+scls C TF_02 0 SCLS 0 sea 12 5
+dma C TF_03 -1 2DMA 0 01
+scls C TF_03 0 SCLS 0 Siren 18 27
+dma C TyuTyu -1 2DMA 0 01
+scls C TyuTyu 0 SCLS 0 MiniHyo 0 0
+dma C Cave07 -1 2DMA 0 13
+scls C Cave07 0 SCLS 0 sea 35 1
+dma C WarpD -1 2DMA 0 1d
+scls C WarpD 0 SCLS 0 sea 29 5
+dma C Cave01 -1 2DMA 0 31
+scls C Cave01 0 SCLS 0 sea 47 5
+dma C Cave04 -1 2DMA 0 3d
+scls C Cave04 0 SCLS 0 sea 43 5
+dma C ITest63 -1 2DMA 0 d0
+scls C ITest63 0 SCLS 0 Ekaze 0 1
+dma C Cave05 -1 2DMA 0 12
+scls C Cave05 0 SCLS 0 sea 34 1
+dma C Cave02 -1 2DMA 0 32
+scls C Cave02 0 SCLS 0 sea 48 5
+dma C ITest62 -1 2DMA 0 3e
+scls C ITest62 0 SCLS 0 sea 44 10
+scls C Cave10 0 SCLS 1 sea 12 1
+scls C Cave10 20 SCLS 0 sea 12 1
+scls C Cave11 0 SCLS 1 sea 12 1
+plyr D Adanmae 0 PLYR 2 ffff1000
+scls D Edaichi 0 SCLS 0 M_Dai 0 0
+scls D M_Dai 15 SCLS 0 M_DaiB 0 0
+scls D sea 20 SCLS 0 MiniHyo 0 0
+scls D sea 40 SCLS 0 MiniKaz 0 0
+dma D MiniHyo -1 2DMA 0 f2
+scls D MiniHyo 0 SCLS 0 sea 20 0
+actr D MiniHyo 0 ACTR 19 VolTag 001eff41
+scls D M_DaiMB 12 SCLS 0 M_Dai 7 9
+scls D kazeMB 6 SCLS 0 kaze 2 20
+scls D kenroom -1 SCLS 0 Hyroom 0 10
+scls D M2tower -1 SCLS 0 sea 1 100
+dma D MiniKaz -1 2DMA 0 21
+scls D MiniKaz 0 SCLS 0 sea 40 0
+actr D MiniKaz 0 ACTR 19 VolTag 001eff80
+dma D ITest62 -1 2DMA 0 f2
+scls D ITest62 0 SCLS 0 MiniHyo 0 0
