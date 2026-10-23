@@ -55,3 +55,4 @@ PC_RANDO_SMOKE(newfile, randoSmokeNewfile) // R4.4: new file binding (pending se
 PC_RANDO_SMOKE(spoiler, randoSmokeSpoiler) // R4.5: the spoiler viewer (a generated TestSeed1: the row, the confirmation, spheres from its log, locations by zone, L/R and B through the menu; shots)
 PC_RANDO_SMOKE(bossreq, randoSmokeBossreq) // R6.9: required bosses at runtime (GanonL/Room0 DngSw/SwOps/ALLdie 0x26/TagMsg/NBOX10, message 851, sea chart quest markers, the door opens only once the required bosses are dead)
 PC_RANDO_SMOKE(hoho, randoSmokeHoho) // R5.3: hint placement (box types and texts against wwrando on the disc's BMG and font, KoRL over R3.21, the octo fairy getMsg hunk, sea/Room44's Ho Ho y_rot)
+PC_RANDO_SMOKE(entr, randoSmokeEntr) // R6.12: entrance rando stage data (every edited stage file of 4 entrance maps = wwrando on the disc; the live SCLS/2DMA/VolTag of the boot stage; vanilla and entrance-off seeds untouched)

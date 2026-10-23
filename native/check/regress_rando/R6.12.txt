@@ -1,0 +1,21 @@
+# R6.12 (docs/RANDOMIZER_PLAN.md): entrance rando stage data (features/rando/pc_rando_entr_stage.cpp,
+# update_entrance_to_lead_to_exit as an archive patcher). The smoke COS_RANDO_SMOKE=entr
+# (native/src/pc/harness/smokes/pc_rando_smoke_entr.cpp) patches every stage file an entrance edit can
+# touch (139 files, read from the disc) for the 4 entrance maps of fixtures/R6_12_seed_{A,B,C,D}.json and
+# requires exactly the records wwrando's _save changes on the disc (fixtures/R6_12_wwrando_entr.txt,
+# fixtures/R6_12_make_fixture.py --disc) and no other byte; then, with a placement, the live stage data
+# of the boot stage and room (SCLS, PLYR, 2DMA, the VolTag actor) hold that map's records; without one,
+# or with an entrance-off seed (R0_6_identity.json), nothing is patched. cos_rando_test_R6_12 runs on its
+# own. Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Cave09:0:0 --env COS_RANDO_SMOKE=entr
+rando 0 --stage Cave09:0:0 --env COS_RANDO_SMOKE=entr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_identity.json
+rando 0 --stage Cave09:0:0 --env COS_RANDO_SMOKE=entr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_12_seed_A.json
+rando 0 --stage M_DragB:0:0 --env COS_RANDO_SMOKE=entr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_12_seed_A.json
+rando 0 --stage MiniKaz:0:0 --env COS_RANDO_SMOKE=entr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_12_seed_A.json
+rando 0 --stage Adanmae:0:2 --env COS_RANDO_SMOKE=entr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_12_seed_A.json
+rando 0 --stage M_NewD2:10:27 --env COS_RANDO_SMOKE=entr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_12_seed_A.json
+rando 0 --stage kenroom:0:0 --env COS_RANDO_SMOKE=entr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_12_seed_B.json
+rando 0 --stage MiniHyo:0:0 --env COS_RANDO_SMOKE=entr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_12_seed_C.json
+rando 0 --stage M_Dai:15:27 --env COS_RANDO_SMOKE=entr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_12_seed_C.json
+rando 0 --stage MiniKaz:0:0 --env COS_RANDO_SMOKE=entr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_12_seed_D.json
+rando 0 --stage MiniHyo:0:0 --env COS_RANDO_SMOKE=entr --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_12_seed_D.json

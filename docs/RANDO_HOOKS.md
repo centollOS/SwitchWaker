@@ -700,3 +700,21 @@ Checked by the `hoho` smoke and `cos_rando_test_R5_3`.
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | game/src/d/actor/d_a_bigelf.cpp | `daBigelf_c::getMsg`: message 0x2EEE goes on to the item hint 0x2EEF (12015) whatever the current bow, when `pc_rando_hints_flexible()` (the seed has an octo fairy hint) | `if/else` (`#if`/`#else`, `(pc_rando() && ...) \|\|`) | flexible_hint_locations.asm d_a_bigelf 0x22A4 (nop) |
+
+## R6.12
+
+Entrance randomizer, stage data (entrances.py `EntranceRandomizer._save`, first half:
+`update_all_entrance_destinations` -> `update_entrance_to_lead_to_exit` for every exit, only when an
+entrance option is on). All of it is data, as wwrando writes it, not a hunk: an archive patcher in
+`features/rando/pc_rando_entr_stage.cpp` (registered after R3.16, whose spawns 27 it looks up) edits
+`stage.dzs` / `room.dzr` as they load: the entrance's and the exit's SCLS, the PLYR spawn type 5 -> 1,
+the (mini)boss arenas' `stage.dzs` SCLS[0] (the entrance, or the dungeon start: a table of the 7
+entrance stages' SCLS[0], checked against each when it loads), Savage Labyrinth's `sea` SCLS in
+Cave10/Room0, Cave10/Room20 and Cave11/Room0, the caves' and fountains' 2DMA sector, and the VolTag of
+MiniKaz/MiniHyo Room0 (type 1/2 or the name cleared). A seed without entrance options changes nothing.
+The boss warp-out half is R6.13. Checked by the `entr` smoke (every edited file of 4 entrance maps =
+wwrando's `_save` on the disc) and `cos_rando_test_R6_12`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| - | no hunks in `game/`: an archive patcher (`features/rando/pc_rando_entr_stage.{h,cpp}`, `pc_rando_patchers.def`) | - | randomizers/entrances.py `update_entrance_to_lead_to_exit` |
