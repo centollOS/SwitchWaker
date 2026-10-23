@@ -1,0 +1,17 @@
+# R5.3 (docs/RANDOMIZER_PLAN.md): hint placement at runtime (hints.py HintsRandomizer._save). The smoke
+# COS_RANDO_SMOKE=hoho (native/src/pc/harness/smokes/pc_rando_smoke_hoho.cpp) activates a placement
+# of fixtures/R5_3_hints_game.txt on the boat and sails to a Ho Ho room: the hint messages' text box
+# types are the disc BMG's, every hint text read through the game's message code is wwrando's on the
+# disc's BMG and font (R5_3_make_fixture.py --disc; KoRL's 3443 over R3.21's text with Heavy5), the
+# Big Octo fairy's getMsg hunk (flexible_hint_locations) gives her hint without the Hero's Bow, and
+# the room's Ah actors face wwrando's y_rot (room 44: the 4 of layers 4-7; room 14: a live Ho Ho;
+# room 31 in TestSeed1: vanilla, no hint names an island). A debug boot (COS_RANDO_PLACEMENT, texts
+# built once the font loads, after R3.21's retry) and vanilla (nothing changes) too. The unit test
+# cos_rando_test_R5_3 runs on its own.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho
+rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_SEED=R5_3_Heavy5.json
+rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_ROOM=14
+rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_ROOM=31
+rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_VANILLA=1
+rando 0 --stage sea:14 --env COS_RANDO_SMOKE=hoho --env COS_HINTS_SEED=R5_3_Heavy5.json --env COS_HINTS_ROOM=14 --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json

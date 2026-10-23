@@ -16,8 +16,7 @@
 // logs into randoUserDir() (<userPath>/rando; COS_RANDO_DIR overrides it): "WW Random <seed> -
 // Spoiler Log.txt" and "- Non-Spoiler Log.txt", or "- Error Log.txt" on a failure.
 //
-// Hints are not ported yet (step R5): seeds are generated without them (GenRequest::
-// allowMissingHints), so the placement is still wwrando's.
+// Seeds are generated with their hints (R5.1), which R5.3 places in the game at activation.
 //
 // Game thread only. Compiled into cos_rando_core too (the features/rando glob), but no unit test may
 // call into it: it needs pc_settings.cpp and the game side (the pure job is pc_rando_genjob.cpp).

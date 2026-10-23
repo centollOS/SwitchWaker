@@ -395,6 +395,26 @@ int pc_rando_bossreq_build_message(void);
 /* Registers the patchers (listed in pc_rando_patchers.def). Idempotent. */
 void pc_rando_bossreq_hooks_init(void);
 
+/* --- R5.3: hint placement at runtime (hints.py HintsRandomizer._save; game_hooks/pc_rando_hooks_hints.cpp,
+   pure part in features/rando/pc_rando_hint_place.h, texts by features/rando/pc_rando_hint_text.h) --- */
+/* Registers the archive patcher (the Ho Ho rooms' Ah rotation, the texts once the font is loaded) and
+   the activation listener that puts the hint texts in the overlay (listed in pc_rando_patchers.def).
+   Idempotent. */
+void pc_rando_hints_hooks_init(void);
+/* Builds the active seed's hint texts and puts them in the message overlay. Returns the number of
+   messages set, or -1 when the active seed has no hints (they stay vanilla). Exposed for the smoke. */
+int pc_rando_hints_build(void);
+/* flexible_hint_locations.asm: 1 when the active seed's hints hold a Big Octo Great Fairy hint (wwrando
+   applies the patch exactly then), else 0. daBigelf_c::getMsg asks it under pc_rando(). */
+int pc_rando_hints_flexible(void);
+/* The Ho Ho patcher's result for sea room `room` since the last activation: NOT_RUN (the room.dzr was
+   not loaded since), VANILLA (loaded, kept his rotation), TURNED; found/turned Ah actors and the y_rot
+   written (each optional). */
+#define PCR_HINTS_HOHO_NOT_RUN 0
+#define PCR_HINTS_HOHO_VANILLA 1
+#define PCR_HINTS_HOHO_TURNED 2
+int pc_rando_hints_hoho_room(int room, int* found, int* turned, uint16_t* yRot);
+
 #ifdef __cplusplus
 }
 #endif
