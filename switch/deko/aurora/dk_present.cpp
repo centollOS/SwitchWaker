@@ -129,19 +129,19 @@ void picture(void*, int stage) {
                                       DkSwizzle_PositiveZ, DkSwizzle_PositiveW};
         dkCmdBufSetViewportSwizzles(R.cmd, 0, &sw, 1);
         const float gamma = g_gamma.load(std::memory_order_relaxed);
-        const DkResHandle picture = dkMakeTextureHandle(g_resampled.slot, swdk::kSamplerLinearClamp);
+        const DkResHandle texture = dkMakeTextureHandle(g_resampled.slot, swdk::kSamplerLinearClamp);
         const swdk::StreamAlloc u = std::fabs(gamma - 1.f) > 0.001f ? swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT)
                                                                      : swdk::StreamAlloc{};
         if (u) {
             const float params[4] = {gamma, 0.f, 0.f, 0.f};
             memcpy(u.cpu, params, sizeof params);
             const FixedBind binds[] = {
-                {swdk::SlotBinding::Kind::Sampler, 1, picture},
+                {swdk::SlotBinding::Kind::Sampler, 1, texture},
                 {swdk::SlotBinding::Kind::Uniform, 2, 0, u.gpu, 256},
             };
             fixed_draw("present_gamma", "vs_main", "fs_main", nullptr, 0, 0, false, binds, 2);
         } else {
-            const FixedBind binds[] = {{swdk::SlotBinding::Kind::Sampler, 1, picture}};
+            const FixedBind binds[] = {{swdk::SlotBinding::Kind::Sampler, 1, texture}};
             fixed_draw("xfb_copy", "vs_main", "fs_opaque", nullptr, 0, 0, false, binds, 1);
         }
         gpu_mark(GpuWork::Present);
