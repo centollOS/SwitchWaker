@@ -13,11 +13,11 @@
 // What is ported: pigs, extra starting items (R6.4) and items (R1.4) completely; the spoiler,
 // non-spoiler and error logs (R1.5); charts (R6.6, pc_rando_gen_charts.h);
 // starting_island (R6.7: one choice of sea room 2-49, written as "starting_island_room");
-// required bosses (R6.8, pc_rando_gen_bosses.h).
+// required bosses (R6.8, pc_rando_gen_bosses.h); entrances (R6.10-R6.11, pc_rando_gen_entrances.h; the
+// game applies them from R6.12-R6.13 on).
 // What is not ported yet, refused with a "not supported yet" error (GenResult::unsupported) instead
 // of a seed that would differ from wwrando's:
-//   - any randomize_*_entrances (R6.10-R6.11),
-//     randomize_enemies (R7.3), randomize_enemy_palettes (R7.2);
+//   - randomize_enemies (R7.3), randomize_enemy_palettes (R7.2);
 // Hints (R5.1, pc_rando_gen_hints.h) always run, as wwrando's HintsRandomizer is always enabled (the
 // Big Octo Great Fairy hint is generated even with every hint placement off); the placement gets a
 // "hints" value (hintsToJson). With GenRequest::allowMissingHints the seed is made without them:

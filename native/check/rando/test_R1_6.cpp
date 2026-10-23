@@ -187,12 +187,7 @@ void testRefusals() {
         const char* step;
     };
     const Case cases[] = {
-        {pcr::OPT_randomize_dungeon_entrances, 1, "R6.10"},
-        {pcr::OPT_randomize_secret_cave_entrances, 1, "R6.10"},
-        {pcr::OPT_randomize_miniboss_entrances, 1, "R6.10"},
-        {pcr::OPT_randomize_boss_entrances, 1, "R6.10"},
-        {pcr::OPT_randomize_secret_cave_inner_entrances, 1, "R6.10"},
-        {pcr::OPT_randomize_fairy_fountain_entrances, 1, "R6.10"},
+        // Entrances are generated since R6.11 (test_R6_11 checks them).
         {pcr::OPT_randomize_enemies, 1, "R7.3"},
         {pcr::OPT_randomize_enemy_palettes, 1, "R7.2"},
     };

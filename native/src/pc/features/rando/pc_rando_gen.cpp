@@ -7,6 +7,8 @@
 
 #include "pc_rando_gen_bosses.h"
 #include "pc_rando_gen_charts.h"
+#include "pc_rando_entrances.h"
+#include "pc_rando_gen_entrances.h"
 #include "pc_rando_gen_extra.h"
 #include "pc_rando_gen_hints.h"
 #include "pc_rando_gen_items.h"
@@ -78,12 +80,7 @@ std::string unsupportedOptionsError(const Options& o, bool allowMissingHints) {
         return std::string("Not supported yet: ") + what + " (plan step " + step +
                "). Turn the option off to generate a seed.";
     };
-    // In randomizer.py's order of the randomizers.
-    if (o.randomize_dungeon_entrances || o.randomize_secret_cave_entrances || o.randomize_miniboss_entrances ||
-        o.randomize_boss_entrances || o.randomize_secret_cave_inner_entrances ||
-        o.randomize_fairy_fountain_entrances) {
-        return refuse("entrance randomization", "R6.10-R6.11");
-    }
+    // In randomizer.py's order of the randomizers (entrances: ported in R6.10-R6.11).
     if (o.randomize_enemies) {
         return refuse("randomize_enemies", "R7.3");
     }
@@ -176,6 +173,9 @@ bool generate(const GenRequest& req, GenResult& out) {
     if (o.num_extra_starting_items > 0) {
         prog.total += kWeightExtraStartItems;
     }
+    if (entranceRandoEnabled(o)) {
+        prog.total += kWeightEntrances;
+    }
     prog.report("Randomizing...");
 
     // WWRandomizer.__init__: the Logic, the progress location count check, the start probes.
@@ -191,8 +191,7 @@ bool generate(const GenRequest& req, GenResult& out) {
 
     traceBegin(out.sanitizedSeed);
 
-    // randomize(): the randomizers in order. entrances are disabled here (refused above when
-    // on).
+    // randomize(): the randomizers in order.
     if (o.randomize_charts) {
         // ChartRandomizer (R6.6): a fresh RNG, _randomize, then logic.update_chart_macros().
         PyRandom rng;
@@ -203,12 +202,12 @@ bool generate(const GenRequest& req, GenResult& out) {
         }
         logic.updateChartMacros();
     }
+    RequiredBosses rb; // RequiredBossesRandomizer's state (empty when the mode is off)
     if (logic.state().bossReqsEnabled) {
         // RequiredBossesRandomizer (R6.8): progress weight 0.
         PyRandom rng;
         newRandomizerRng(rng, out.sanitizedSeed, o, req.seedKey);
         traceAttach(rng, "RequiredBossesRandomizer");
-        RequiredBosses rb;
         std::string err;
         if (!randomizeRequiredBosses(logic, rng, rb, &err)) {
             return fail(err);
@@ -216,6 +215,21 @@ bool generate(const GenRequest& req, GenResult& out) {
         in.requiredDungeons = rb.requiredDungeons;
         in.bannedDungeons = rb.bannedDungeons;
         in.requiredBosses = rb.requiredBosses;
+    }
+    if (entranceRandoEnabled(o)) {
+        // EntranceRandomizer (R6.11): into logic.state().entranceConnections, then the macros.
+        prog.report("Randomizing entrances...");
+        PyRandom rng;
+        newRandomizerRng(rng, out.sanitizedSeed, o, req.seedKey);
+        traceAttach(rng, "EntranceRandomizer");
+        EntranceRandoResult er;
+        std::string err;
+        if (!randomizeEntrances(logic, o, rng, rb, init.dungeonsAndCavesOnlyStart, er, &err)) {
+            return fail(err);
+        }
+        in.nestingEnabled = er.nestingEnabled;
+        in.nestedEntrancePaths = std::move(er.nestedEntrancePaths);
+        prog.done += kWeightEntrances;
     }
     if (o.randomize_starting_island) {
         // StartingIslandRandomizer (R6.7); disabled it keeps room 44 (Outset).
