@@ -1,0 +1,22 @@
+# R6.11 (docs/RANDOMIZER_PLAN.md): entrance randomizer, placement and logic (pc_rando_gen_entrances.cpp,
+# a port of EntranceRandomizer._randomize). The unit test cos_rando_test_R6_11 (run by regress with the
+# other cos_rando_test_*) checks wwrando's vectors (fixtures/R6_11_entrances.txt,
+# native/tools/rando/gen_entrance_vectors.py). These lines regenerate the vectors and require them
+# byte-identical, then generate seeds with entrance options and require them golden against wwrando
+# 1.10.0_9775811 (placement incl. entrances, spoiler Entrances and Nested entrance paths sections;
+# hints aside) and valid (ww_verify): every option alone, all separate and mixed, all categories,
+# required bosses, a dungeons-and-caves-only start (safety entrance), and once with hints.
+# "script" runs the rest of the line from the repository root; it needs the oracle venv
+# (native/tools/rando/setup_oracle.sh).
+script 0 t=$(mktemp) && python3 -I native/tools/rando/gen_entrance_vectors.py "$t" 2>/dev/null && diff "$t" native/check/rando/fixtures/R6_11_entrances.txt; rc=$?; rm -f "$t"; exit $rc
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 5 --golden --prefix RegER1_ randomize_dungeon_entrances=true
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 5 --golden --prefix RegER2_ randomize_secret_cave_entrances=true
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 5 --golden --prefix RegER3_ randomize_miniboss_entrances=true
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 5 --golden --prefix RegER4_ randomize_boss_entrances=true
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 5 --golden --prefix RegER5_ randomize_secret_cave_inner_entrances=true
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 5 --golden --prefix RegER6_ randomize_fairy_fountain_entrances=true
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 10 --golden --prefix RegERS_ randomize_dungeon_entrances=true randomize_secret_cave_entrances=true randomize_miniboss_entrances=true randomize_boss_entrances=true randomize_secret_cave_inner_entrances=true randomize_fairy_fountain_entrances=true
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 10 --golden --preset all_categories --prefix RegERM_ randomize_dungeon_entrances=true randomize_secret_cave_entrances=true randomize_miniboss_entrances=true randomize_boss_entrances=true randomize_secret_cave_inner_entrances=true randomize_fairy_fountain_entrances=true "mix_entrances=Mix Dungeons & Caves & Fountains"
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 10 --golden --preset all_categories --prefix RegERRB_ required_bosses=true num_required_bosses=3 randomize_dungeon_entrances=true randomize_secret_cave_entrances=true randomize_miniboss_entrances=true randomize_boss_entrances=true "mix_entrances=Mix Dungeons & Caves & Fountains"
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 10 --golden --preset dungeons_only --prefix RegERDC_ progression_puzzle_secret_caves=true progression_savage_labyrinth=true randomize_dungeon_entrances=true randomize_secret_cave_entrances=true randomize_boss_entrances=true randomize_secret_cave_inner_entrances=true "mix_entrances=Mix Dungeons & Caves & Fountains"
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 3 --golden --hints --prefix RegERH_ randomize_dungeon_entrances=true randomize_secret_cave_entrances=true randomize_boss_entrances=true "mix_entrances=Mix Dungeons & Caves & Fountains"
