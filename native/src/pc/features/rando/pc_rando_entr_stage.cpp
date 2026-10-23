@@ -91,10 +91,20 @@ bool isFile(const FileCtx& f, const char* stage, int room) {
     return f.room == room && strcmp(f.stage, stage) == 0;
 }
 
+// "Stage" or "Room<n>", for logs.
+const char* arcName(const FileCtx& f, char* buf, size_t n) {
+    if (f.room < 0) {
+        snprintf(buf, n, "Stage");
+    } else {
+        snprintf(buf, n, "Room%d", f.room);
+    }
+    return buf;
+}
+
 void refuse(FileCtx& f, const char* what) {
     f.st->refused++;
-    logf("[cos] rando: entrances %s/%s%d: %s; left vanilla\n", f.stage, f.room < 0 ? "Stage" : "Room",
-         f.room < 0 ? 0 : f.room, what);
+    char arc[16];
+    logf("[cos] rando: entrances %s/%s: %s; left vanilla\n", f.stage, arcName(f, arc, sizeof arc), what);
 }
 
 // Writes SCLS[index] -> (stage, room, spawn). vanillaStage: the stage the vanilla record leads to
@@ -134,9 +144,10 @@ void fixSpawnType(FileCtx& f, uint8_t spawn) {
         return;
     }
     // wwrando's next() would raise; R3.16's spawns 27 are missing (not applied, or a changed file).
-    char b[64];
-    snprintf(b, sizeof b, "no PLYR with spawn id %u", (unsigned)spawn);
-    refuse(f, b);
+    f.st->noSpawn++;
+    char arc[16];
+    logf("[cos] rando: entrances %s/%s: no PLYR with spawn id %u; spawn type left as it is\n", f.stage,
+         arcName(f, arc, sizeof arc), (unsigned)spawn);
 }
 
 int islandNumber(const char* name) {
@@ -490,6 +501,7 @@ void pc_rando_entr_stage_patch(PcRandoResFile* file) {
     }
     pcr::sStats.written += st.written;
     pcr::sStats.refused += st.refused;
+    pcr::sStats.noSpawn += st.noSpawn;
     if (st.written > 0) {
         pcr::sStats.patched++;
     }

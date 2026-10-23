@@ -67,6 +67,8 @@ const EntrStageMap* entrStageActiveMap();
 struct EntrStagePatchStats {
     int written = 0; // records written (a..g; e counts each SCLS)
     int refused = 0; // records the D9 checks refused (logged)
+    int noSpawn = 0; // b found no PLYR with the entrance's spawn id (logged): only the spawns 27 R3.16
+                     // adds to the boss door rooms can be missing, on a file R3.16 did not patch
 };
 
 // Patches one raw stage file for the map. room -1: <stage>'s stage.dzs, else Room<room>'s room.dzr.
@@ -98,6 +100,7 @@ struct EntrStageRuntimeStats {
     int patched = 0;    // files it wrote at least one record in
     int written = 0;    // records written
     int refused = 0;    // records refused (D9)
+    int noSpawn = 0;    // b's spawn missing (EntrStagePatchStats::noSpawn)
     int badFiles = 0;   // files that did not parse
     int startMismatches = 0; // dungeon-start stage.dzs files whose SCLS[0] is not kDungeonStarts'
     int noMap = 0;      // files seen with pc_rando() on but no map (entrance rando off / no seed)
