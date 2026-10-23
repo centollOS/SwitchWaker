@@ -457,6 +457,13 @@ void applyFxaa(const char*, const char* v, void*) {
     (void)v;
 #endif
 }
+void applySsao(const char*, const char* v, void*) {
+#if defined(__SWITCH__)
+    aurora_switch_dk_set_ssao(strcmp(v, "1") == 0);
+#else
+    (void)v;
+#endif
+}
 void applyOverlay(const char*, const char* v, void*) { gConfig.fpsOverlay = strcmp(v, "1") == 0; }
 void applyOverlayDetail(const char*, const char* v, void*) {
     gConfig.fpsOverlayCompact = strcmp(v, "compact") == 0;
@@ -551,6 +558,13 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kOnOff), "0", applyFxaa, nullptr, 60,
      "Edge smoothing (FXAA)",
      "Smooths the jagged edges of the final picture with an FXAA filter. Costs some GPU time."},
+    {"COS_SSAO", "Oclusión ambiental (SSAO)",
+     "Oscurece ligeramente las esquinas, los pliegues y el contacto entre objetos, a partir de la profundidad "
+     "de la imagen. Suave y barato (resolución media). No toca el cielo ni los menús.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kOnOff), "0", applySsao, nullptr, 60,
+     "Ambient occlusion (SSAO)",
+     "Slightly darkens corners, creases and where objects touch, from the picture's depth. Light and cheap "
+     "(half resolution). Leaves the sky and the menus alone."},
     {"COS_ANISO", "Filtrado anisotrópico",
      "Texturas del suelo y de los edificios más nítidas en perspectiva. Más alto = más carga para la GPU.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kAniso), "1", applyAniso, nullptr, 61,

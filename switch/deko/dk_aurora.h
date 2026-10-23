@@ -35,6 +35,11 @@ uint64_t aurora_switch_dk_imgui_texture(uint32_t width, uint32_t height, const v
 // the environment's COS_FXAA is 1.
 void aurora_switch_dk_set_fxaa(bool on);
 
+// Light SSAO on the final picture (options menu, COS_SSAO): the present pass darkens it from the EFB depth with
+// the dk_ssao shaders, before the FXAA / gamma pass. Any thread; takes effect at the next frame. Off at the start
+// unless the environment's COS_SSAO is 1.
+void aurora_switch_dk_set_ssao(bool on);
+
 // The present pass's gamma exponent (options menu, Gráficos > Gamma): the game's picture is drawn as
 // colour^exponent; 1 draws it as it is. Any thread.
 void aurora_switch_dk_set_gamma(float exponent);
