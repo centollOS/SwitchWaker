@@ -48,13 +48,17 @@ struct ResampleUniforms {  // present_resample.wgsl's Uniforms (std140)
 
 struct FxaaUniforms {  // dk_fxaa.wgsl's Uniforms (std140)
     float invWidth, invHeight;
-    float pad[2];
+    float gamma, pad;
 };
 
 // FXAA in place of the plain copy (COS_FXAA); written by the game thread, read by the render worker
 std::atomic<bool> g_fxaa{false};
 
 Viewport g_viewport{};
+
+// the options menu's gamma (aurora_switch_dk_set_gamma): the exponent of the picture's colours; the
+// default is the menu's default (+0.20 on 2.2, see switch/deko/shaders/present_gamma.wgsl)
+std::atomic<float> g_gamma{2.4f / 2.2f};
 
 uint32_t extent(float v) { return std::max(1u, static_cast<uint32_t>(std::lround(std::max(v, 1.f)))); }
 
@@ -133,13 +137,11 @@ void picture(void*, int stage) {
         const DkViewportSwizzle sw = {DkSwizzle_PositiveX, swdk::C.flipPresent ? DkSwizzle_NegativeY : DkSwizzle_PositiveY,
                                       DkSwizzle_PositiveZ, DkSwizzle_PositiveW};
         dkCmdBufSetViewportSwizzles(R.cmd, 0, &sw, 1);
-        const FixedBind binds[] = {
-            {swdk::SlotBinding::Kind::Sampler, 1, dkMakeTextureHandle(g_resampled.slot, swdk::kSamplerLinearClamp)},
-        };
+        const float gamma = g_gamma.load(std::memory_order_relaxed);
         if (g_fxaa.load(std::memory_order_relaxed)) {
             const swdk::StreamAlloc u = swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT);
             if (u) {
-                const FxaaUniforms uniforms = {1.f / float(g_resampled.width), 1.f / float(g_resampled.height), {0, 0}};
+                const FxaaUniforms uniforms = {1.f / float(g_resampled.width), 1.f / float(g_resampled.height), gamma, 0.f};
                 memcpy(u.cpu, &uniforms, sizeof uniforms);
                 // dk_fxaa: uniforms 0, the texture with its sampler (the layout of present_resample)
                 const FixedBind fxaaBinds[] = {
@@ -153,7 +155,21 @@ void picture(void*, int stage) {
                 }
             }
         }
-        fixed_draw("xfb_copy", "vs_main", "fs_opaque", nullptr, 0, 0, false, binds, 1);
+        const DkResHandle texture = dkMakeTextureHandle(g_resampled.slot, swdk::kSamplerLinearClamp);
+        const swdk::StreamAlloc u = std::fabs(gamma - 1.f) > 0.001f ? swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT)
+                                                                     : swdk::StreamAlloc{};
+        if (u) {
+            const float params[4] = {gamma, 0.f, 0.f, 0.f};
+            memcpy(u.cpu, params, sizeof params);
+            const FixedBind binds[] = {
+                {swdk::SlotBinding::Kind::Sampler, 1, texture},
+                {swdk::SlotBinding::Kind::Uniform, 2, 0, u.gpu, 256},
+            };
+            fixed_draw("present_gamma", "vs_main", "fs_main", nullptr, 0, 0, false, binds, 2);
+        } else {
+            const FixedBind binds[] = {{swdk::SlotBinding::Kind::Sampler, 1, texture}};
+            fixed_draw("xfb_copy", "vs_main", "fs_opaque", nullptr, 0, 0, false, binds, 1);
+        }
         gpu_mark(GpuWork::Present);
         return;
     }
@@ -166,6 +182,10 @@ DkMemBlock g_rbCmdMem = nullptr;
 constexpr uint32_t kRbCmdSize = 64u << 10;
 
 }  // namespace
+
+extern "C" void aurora_switch_dk_set_gamma(float exponent) {
+    g_gamma.store(std::clamp(exponent, 0.25f, 4.f), std::memory_order_relaxed);
+}
 
 void present_init() {
     g_fxaa.store(swdk::env_flag("COS_FXAA", false), std::memory_order_relaxed);

@@ -9,7 +9,8 @@
 
 struct Uniforms {
     inv_size: vec2<f32>,  // 1 / the picture's width and height in texels
-    pad: vec2<f32>,
+    gamma: f32,           // the options menu's gamma exponent (present_gamma.wgsl), 1 = none
+    pad: f32,
 };
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -74,5 +75,5 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let rgbB = rgbA * 0.5 + 0.25 * (tap(uv + dir * -0.5) + tap(uv + dir * 0.5));
     let lB = luma(rgbB);
     let rgb = select(rgbB, rgbA, lB < lMin || lB > lMax);
-    return vec4<f32>(rgb, 1.0);
+    return vec4<f32>(pow(clamp(rgb, vec3<f32>(0.0), vec3<f32>(1.0)), vec3<f32>(uniforms.gamma)), 1.0);
 }

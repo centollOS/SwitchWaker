@@ -35,6 +35,10 @@ uint64_t aurora_switch_dk_imgui_texture(uint32_t width, uint32_t height, const v
 // the environment's COS_FXAA is 1.
 void aurora_switch_dk_set_fxaa(bool on);
 
+// The present pass's gamma exponent (options menu, Gráficos > Gamma): the game's picture is drawn as
+// colour^exponent; 1 draws it as it is. Any thread.
+void aurora_switch_dk_set_gamma(float exponent);
+
 // Waits for the GPU and releases the window (Aurora's shutdown).
 void aurora_switch_dk_shutdown(void);
 
