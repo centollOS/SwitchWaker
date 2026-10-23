@@ -3,7 +3,8 @@
 // image in the picture's viewport, one full-screen triangle, nine bilinear taps per pixel (Timothy
 // Lottes' FXAA 1.0 edge blur: the luma gradient across the pixel's four corners gives the edge
 // direction, two taps along it and two wider ones are averaged, the wide result is dropped when it
-// leaves the local luma range). Compiled into initial_dksh_cache.bin like dk_test_pattern, as the
+// leaves the local luma range). Tuned against blur: edges under a contrast threshold are skipped and the
+// blur reaches at most three texels (the original's 8) along the edge. Compiled into initial_dksh_cache.bin like dk_test_pattern, as the
 // named records dk_fxaa.vs_main and dk_fxaa.fs_main. Same bindings as present_resample.wgsl:
 // uniforms 0, sampler 1, texture 2.
 
@@ -65,10 +66,16 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let lMin = min(lM, min(min(lNW, lNE), min(lSW, lSE)));
     let lMax = max(lM, max(max(lNW, lNE), max(lSW, lSE)));
 
+    // flat or low-contrast areas (text on flat panels, soft gradients) are left as they are: only edges
+    // with a clear step in luma are blurred
+    if (lMax - lMin < max(0.0625, lMax * 0.166)) {
+        return vec4<f32>(rgbM, 1.0);
+    }
+
     var dir = vec2<f32>(-((lNW + lNE) - (lSW + lSE)), (lNW + lSW) - (lNE + lSE));
     let dirReduce = max((lNW + lNE + lSW + lSE) * (0.25 * (1.0 / 8.0)), 1.0 / 128.0);
     let rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
-    dir = clamp(dir * rcpDirMin, vec2<f32>(-8.0, -8.0), vec2<f32>(8.0, 8.0)) * px;
+    dir = clamp(dir * rcpDirMin, vec2<f32>(-3.0, -3.0), vec2<f32>(3.0, 3.0)) * px;
 
     let rgbA = 0.5 * (tap(uv + dir * (1.0 / 3.0 - 0.5)) + tap(uv + dir * (2.0 / 3.0 - 0.5)));
     let rgbB = rgbA * 0.5 + 0.25 * (tap(uv + dir * -0.5) + tap(uv + dir * 0.5));
