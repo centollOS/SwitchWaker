@@ -1,0 +1,415 @@
+version	1.10.0_9775811
+case	EntOff
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+disabled
+endcase
+case	EntA_dungeon
+opt	randomize_dungeon_entrances	1
+conn	Tower of the Gods|Wind Temple|Earth Temple|Dragon Roost Cavern|Forbidden Woods|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+warp	M_DragB	sea	45	229
+warp	kinBOSS	sea	4	232
+warp	SirenB	sea	13	211
+scls	sea	1	0
+warp	M_DaiB	sea	26	1
+warp	kazeB	Omori	0	215
+endcase
+case	EntB_dungeon
+opt	randomize_dungeon_entrances	1
+conn	Wind Temple|Dragon Roost Cavern|Earth Temple|Tower of the Gods|Forbidden Woods|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+warp	M_DragB	Omori	0	215
+warp	kinBOSS	sea	4	232
+warp	SirenB	sea	45	229
+scls	sea	1	0
+warp	M_DaiB	sea	26	1
+warp	kazeB	sea	13	211
+endcase
+case	EntA_secret_cave
+opt	randomize_secret_cave_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Cliff Plateau Isles Secret Cave|Star Island Secret Cave|Bomb Island Secret Cave|Savage Labyrinth|Overlook Island Secret Cave|Pawprint Isle Wizzrobe Cave|Rock Spire Isle Secret Cave|Ice Ring Isle Secret Cave|Bird's Peak Rock Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Horseshoe Island Secret Cave|Shark Island Secret Cave|Cabana Labyrinth|Fire Mountain Secret Cave|Diamond Steppe Island Warp Maze Cave|Pawprint Isle Chuchu Cave|Dragon Roost Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+warp	M_DragB	sea	13	211
+warp	kinBOSS	Omori	0	215
+warp	SirenB	sea	26	1
+scls	sea	1	0
+warp	M_DaiB	sea	45	229
+warp	kazeB	sea	4	232
+endcase
+case	EntB_secret_cave
+opt	randomize_secret_cave_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Rock Spire Isle Secret Cave|Cabana Labyrinth|Cliff Plateau Isles Secret Cave|Dragon Roost Island Secret Cave|Diamond Steppe Island Warp Maze Cave|Pawprint Isle Wizzrobe Cave|Angular Isles Secret Cave|Fire Mountain Secret Cave|Stone Watcher Island Secret Cave|Horseshoe Island Secret Cave|Ice Ring Isle Secret Cave|Bomb Island Secret Cave|Boating Course Secret Cave|Pawprint Isle Chuchu Cave|Star Island Secret Cave|Needle Rock Isle Secret Cave|Overlook Island Secret Cave|Shark Island Secret Cave|Bird's Peak Rock Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+warp	M_DragB	sea	13	211
+warp	kinBOSS	Omori	0	215
+warp	SirenB	sea	26	1
+scls	sea	1	0
+warp	M_DaiB	sea	45	229
+warp	kazeB	sea	4	232
+endcase
+case	EntA_miniboss
+opt	randomize_miniboss_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Tower of the Gods Miniboss Arena|Wind Temple Miniboss Arena|Earth Temple Miniboss Arena|Forbidden Woods Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+warp	M_DragB	sea	13	211
+warp	kinBOSS	Omori	0	215
+warp	SirenB	sea	26	1
+scls	sea	1	0
+warp	M_DaiB	sea	45	229
+warp	kazeB	sea	4	232
+endcase
+case	EntB_miniboss
+opt	randomize_miniboss_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Wind Temple Miniboss Arena|Earth Temple Miniboss Arena|Tower of the Gods Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+warp	M_DragB	sea	13	211
+warp	kinBOSS	Omori	0	215
+warp	SirenB	sea	26	1
+scls	sea	1	0
+warp	M_DaiB	sea	45	229
+warp	kazeB	sea	4	232
+endcase
+case	EntA_boss
+opt	randomize_boss_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohdan Boss Arena|Gohma Boss Arena|Jalhalla Boss Arena|Kalle Demos Boss Arena|Molgera Boss Arena|Helmaroc King Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+warp	M_DragB	Omori	0	215
+warp	kinBOSS	sea	1	0
+warp	SirenB	sea	13	211
+scls	sea	4	232
+warp	M_DaiB	sea	26	1
+warp	kazeB	sea	45	229
+endcase
+case	EntB_boss
+opt	randomize_boss_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohdan Boss Arena|Molgera Boss Arena|Gohma Boss Arena|Jalhalla Boss Arena|Kalle Demos Boss Arena|Helmaroc King Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+warp	M_DragB	sea	26	1
+warp	kinBOSS	sea	45	229
+warp	SirenB	sea	13	211
+scls	sea	4	232
+warp	M_DaiB	sea	1	0
+warp	kazeB	Omori	0	215
+endcase
+case	EntA_secret_cave_inner
+opt	randomize_secret_cave_inner_entrances	1
+error	Not enough island entrances left to split entrances.
+endcase
+case	EntB_secret_cave_inner
+opt	randomize_secret_cave_inner_entrances	1
+error	Not enough island entrances left to split entrances.
+endcase
+case	EntA_fairy_fountain
+opt	randomize_fairy_fountain_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Northern Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain
+warp	M_DragB	sea	13	211
+warp	kinBOSS	Omori	0	215
+warp	SirenB	sea	26	1
+scls	sea	1	0
+warp	M_DaiB	sea	45	229
+warp	kazeB	sea	4	232
+endcase
+case	EntB_fairy_fountain
+opt	randomize_fairy_fountain_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Eastern Fairy Fountain|Thorned Fairy Fountain|Outset Fairy Fountain|Northern Fairy Fountain|Southern Fairy Fountain|Western Fairy Fountain
+warp	M_DragB	sea	13	211
+warp	kinBOSS	Omori	0	215
+warp	SirenB	sea	26	1
+scls	sea	1	0
+warp	M_DaiB	sea	45	229
+warp	kazeB	sea	4	232
+endcase
+case	EntA_sep
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Gohdan Boss Arena|Jalhalla Boss Arena|Wind Temple|Dragon Roost Cavern|Forbidden Woods|Earth Temple Miniboss Arena|Forbidden Woods Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Tower of the Gods Miniboss Arena|Molgera Boss Arena|Kalle Demos Boss Arena|Earth Temple|Helmaroc King Boss Arena|Gohma Boss Arena|Tower of the Gods|Ice Ring Isle Inner Cave|Diamond Steppe Island Warp Maze Cave|Outset Fairy Fountain|Overlook Island Secret Cave|Cliff Plateau Isles Secret Cave|Angular Isles Secret Cave|Needle Rock Isle Secret Cave|Bomb Island Secret Cave|Cabana Labyrinth|Thorned Fairy Fountain|Shark Island Secret Cave|Fire Mountain Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Cliff Plateau Isles Inner Cave|Star Island Secret Cave|Western Fairy Fountain|Eastern Fairy Fountain|Rock Spire Isle Secret Cave|Pawprint Isle Wizzrobe Cave|Bird's Peak Rock Secret Cave|Southern Fairy Fountain|Horseshoe Island Secret Cave|Northern Fairy Fountain|Savage Labyrinth|Dragon Roost Island Secret Cave|Ice Ring Isle Secret Cave|Pawprint Isle Chuchu Cave
+warp	M_DragB	sea	26	1
+warp	kinBOSS	sea	4	232
+warp	SirenB	sea	13	211
+scls	sea	1	0
+warp	M_DaiB	Omori	0	215
+warp	kazeB	sea	45	229
+endcase
+case	EntA_mix
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Outset Fairy Fountain|Boating Course Secret Cave|Western Fairy Fountain|Shark Island Secret Cave|Dragon Roost Island Secret Cave|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple|Tower of the Gods|Gohma Boss Arena|Molgera Boss Arena|Dragon Roost Cavern|Cliff Plateau Isles Inner Cave|Helmaroc King Boss Arena|Kalle Demos Boss Arena|Bomb Island Secret Cave|Angular Isles Secret Cave|Ice Ring Isle Inner Cave|Overlook Island Secret Cave|Master Sword Chamber|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Diamond Steppe Island Warp Maze Cave|Northern Fairy Fountain|Savage Labyrinth|Cabana Labyrinth|Rock Spire Isle Secret Cave|Pawprint Isle Chuchu Cave|Thorned Fairy Fountain|Forbidden Woods|Stone Watcher Island Secret Cave|Eastern Fairy Fountain|Wind Temple|Bird's Peak Rock Secret Cave|Jalhalla Boss Arena|Gohdan Boss Arena|Southern Fairy Fountain|Cliff Plateau Isles Secret Cave|Forbidden Woods Miniboss Arena|Needle Rock Isle Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Pawprint Isle Wizzrobe Cave
+warp	M_DragB	Hyroom	0	10
+warp	kinBOSS	sea	42	2
+warp	SirenB	sea	47	5
+scls	sea	42	2
+warp	M_DaiB	sea	2	1
+warp	kazeB	sea	34	1
+endcase
+case	EntB_sep
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Forbidden Woods Miniboss Arena|Wind Temple|Tower of the Gods Miniboss Arena|Molgera Boss Arena|Earth Temple|Wind Temple Miniboss Arena|Earth Temple Miniboss Arena|Master Sword Chamber|Jalhalla Boss Arena|Tower of the Gods|Forbidden Woods|Gohdan Boss Arena|Helmaroc King Boss Arena|Dragon Roost Cavern|Gohma Boss Arena|Kalle Demos Boss Arena|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Shark Island Secret Cave|Pawprint Isle Chuchu Cave|Southern Fairy Fountain|Western Fairy Fountain|Eastern Fairy Fountain|Cliff Plateau Isles Inner Cave|Cliff Plateau Isles Secret Cave|Thorned Fairy Fountain|Ice Ring Isle Inner Cave|Savage Labyrinth|Cabana Labyrinth|Dragon Roost Island Secret Cave|Diamond Steppe Island Warp Maze Cave|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Fire Mountain Secret Cave|Overlook Island Secret Cave|Horseshoe Island Secret Cave|Outset Fairy Fountain|Ice Ring Isle Secret Cave|Rock Spire Isle Secret Cave|Bird's Peak Rock Secret Cave|Bomb Island Secret Cave|Star Island Secret Cave|Pawprint Isle Wizzrobe Cave|Northern Fairy Fountain
+warp	M_DragB	sea	4	232
+warp	kinBOSS	Omori	0	215
+warp	SirenB	sea	1	0
+scls	Hyroom	0	10
+warp	M_DaiB	Omori	0	215
+warp	kazeB	sea	45	229
+endcase
+case	EntB_mix
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Pawprint Isle Wizzrobe Cave|Kalle Demos Boss Arena|Earth Temple Miniboss Arena|Boating Course Secret Cave|Fire Mountain Secret Cave|Wind Temple Miniboss Arena|Master Sword Chamber|Tower of the Gods Miniboss Arena|Dragon Roost Cavern|Western Fairy Fountain|Eastern Fairy Fountain|Helmaroc King Boss Arena|Forbidden Woods|Northern Fairy Fountain|Cliff Plateau Isles Inner Cave|Tower of the Gods|Cliff Plateau Isles Secret Cave|Stone Watcher Island Secret Cave|Needle Rock Isle Secret Cave|Ice Ring Isle Secret Cave|Outset Fairy Fountain|Shark Island Secret Cave|Gohdan Boss Arena|Jalhalla Boss Arena|Bird's Peak Rock Secret Cave|Wind Temple|Southern Fairy Fountain|Cabana Labyrinth|Overlook Island Secret Cave|Horseshoe Island Secret Cave|Dragon Roost Island Secret Cave|Rock Spire Isle Secret Cave|Savage Labyrinth|Molgera Boss Arena|Ice Ring Isle Inner Cave|Star Island Secret Cave|Forbidden Woods Miniboss Arena|Gohma Boss Arena|Angular Isles Secret Cave|Diamond Steppe Island Warp Maze Cave|Pawprint Isle Chuchu Cave|Thorned Fairy Fountain|Bomb Island Secret Cave|Earth Temple
+warp	M_DragB	sea	44	10
+warp	kinBOSS	Omori	0	215
+warp	SirenB	sea	47	5
+scls	sea	7	1
+warp	M_DaiB	sea	48	5
+warp	kazeB	sea	42	2
+endcase
+case	EntC_sep
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Gohma Boss Arena|Wind Temple Miniboss Arena|Kalle Demos Boss Arena|Forbidden Woods|Master Sword Chamber|Wind Temple|Molgera Boss Arena|Forbidden Woods Miniboss Arena|Earth Temple Miniboss Arena|Tower of the Gods|Tower of the Gods Miniboss Arena|Earth Temple|Gohdan Boss Arena|Dragon Roost Cavern|Jalhalla Boss Arena|Helmaroc King Boss Arena|Pawprint Isle Wizzrobe Cave|Ice Ring Isle Secret Cave|Thorned Fairy Fountain|Horseshoe Island Secret Cave|Bomb Island Secret Cave|Overlook Island Secret Cave|Needle Rock Isle Secret Cave|Bird's Peak Rock Secret Cave|Outset Fairy Fountain|Stone Watcher Island Secret Cave|Angular Isles Secret Cave|Ice Ring Isle Inner Cave|Star Island Secret Cave|Cabana Labyrinth|Cliff Plateau Isles Inner Cave|Western Fairy Fountain|Boating Course Secret Cave|Cliff Plateau Isles Secret Cave|Savage Labyrinth|Fire Mountain Secret Cave|Diamond Steppe Island Warp Maze Cave|Southern Fairy Fountain|Dragon Roost Island Secret Cave|Eastern Fairy Fountain|Northern Fairy Fountain|Pawprint Isle Chuchu Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave
+warp	M_DragB	sea	13	211
+warp	kinBOSS	sea	26	1
+warp	SirenB	Hyroom	0	10
+scls	sea	45	229
+warp	M_DaiB	sea	45	229
+warp	kazeB	Hyroom	0	10
+endcase
+case	EntC_mix
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Eastern Fairy Fountain|Pawprint Isle Chuchu Cave|Helmaroc King Boss Arena|Shark Island Secret Cave|Needle Rock Isle Secret Cave|Master Sword Chamber|Gohdan Boss Arena|Cliff Plateau Isles Inner Cave|Thorned Fairy Fountain|Forbidden Woods|Western Fairy Fountain|Southern Fairy Fountain|Jalhalla Boss Arena|Kalle Demos Boss Arena|Cliff Plateau Isles Secret Cave|Dragon Roost Cavern|Stone Watcher Island Secret Cave|Molgera Boss Arena|Angular Isles Secret Cave|Ice Ring Isle Secret Cave|Tower of the Gods|Savage Labyrinth|Overlook Island Secret Cave|Pawprint Isle Wizzrobe Cave|Ice Ring Isle Inner Cave|Boating Course Secret Cave|Rock Spire Isle Secret Cave|Outset Fairy Fountain|Gohma Boss Arena|Cabana Labyrinth|Dragon Roost Island Secret Cave|Earth Temple|Tower of the Gods Miniboss Arena|Horseshoe Island Secret Cave|Wind Temple|Forbidden Woods Miniboss Arena|Northern Fairy Fountain|Bird's Peak Rock Secret Cave|Fire Mountain Secret Cave|Star Island Secret Cave|Earth Temple Miniboss Arena|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Wind Temple Miniboss Arena
+warp	M_DragB	sea	12	5
+warp	kinBOSS	sea	1	0
+warp	SirenB	Abesso	0	1
+scls	sea	26	1
+warp	M_DaiB	Abesso	0	1
+warp	kazeB	sea	13	5
+endcase
+case	EntAll_mix
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	progression_battlesquid	1
+opt	progression_big_octos_gunboats	1
+opt	progression_combat_secret_caves	1
+opt	progression_dungeon_secrets	1
+opt	progression_eye_reef_chests	1
+opt	progression_island_puzzles	1
+opt	progression_long_sidequests	1
+opt	progression_mail	1
+opt	progression_minigames	1
+opt	progression_platforms_rafts	1
+opt	progression_savage_labyrinth	1
+opt	progression_short_sidequests	1
+opt	progression_spoils_trading	1
+opt	progression_submarines	1
+opt	progression_tingle_chests	1
+opt	progression_treasure_charts	1
+opt	progression_triforce_charts	1
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Master Sword Chamber|Ice Ring Isle Inner Cave|Angular Isles Secret Cave|Overlook Island Secret Cave|Gohdan Boss Arena|Jalhalla Boss Arena|Eastern Fairy Fountain|Forbidden Woods Miniboss Arena|Southern Fairy Fountain|Western Fairy Fountain|Diamond Steppe Island Warp Maze Cave|Kalle Demos Boss Arena|Star Island Secret Cave|Forbidden Woods|Tower of the Gods|Gohma Boss Arena|Earth Temple Miniboss Arena|Ice Ring Isle Secret Cave|Fire Mountain Secret Cave|Dragon Roost Island Secret Cave|Bomb Island Secret Cave|Savage Labyrinth|Stone Watcher Island Secret Cave|Earth Temple|Tower of the Gods Miniboss Arena|Horseshoe Island Secret Cave|Cabana Labyrinth|Outset Fairy Fountain|Dragon Roost Cavern|Needle Rock Isle Secret Cave|Northern Fairy Fountain|Pawprint Isle Chuchu Cave|Cliff Plateau Isles Inner Cave|Wind Temple Miniboss Arena|Pawprint Isle Wizzrobe Cave|Rock Spire Isle Secret Cave|Wind Temple|Thorned Fairy Fountain|Boating Course Secret Cave|Bird's Peak Rock Secret Cave|Shark Island Secret Cave|Helmaroc King Boss Arena|Cliff Plateau Isles Secret Cave|Molgera Boss Arena
+warp	M_DragB	sea	13	5
+warp	kinBOSS	sea	1	0
+warp	SirenB	sea	4	232
+scls	sea	15	1
+warp	M_DaiB	sea	1	0
+warp	kazeB	sea	3	1
+endcase
+case	EntRB2
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	num_required_bosses	2
+opt	progression_battlesquid	1
+opt	progression_big_octos_gunboats	1
+opt	progression_combat_secret_caves	1
+opt	progression_dungeon_secrets	1
+opt	progression_eye_reef_chests	1
+opt	progression_island_puzzles	1
+opt	progression_long_sidequests	1
+opt	progression_mail	1
+opt	progression_minigames	1
+opt	progression_platforms_rafts	1
+opt	progression_savage_labyrinth	1
+opt	progression_short_sidequests	1
+opt	progression_spoils_trading	1
+opt	progression_submarines	1
+opt	progression_tingle_chests	1
+opt	progression_treasure_charts	1
+opt	progression_triforce_charts	1
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+opt	required_bosses	1
+conn	Cliff Plateau Isles Inner Cave|Stone Watcher Island Secret Cave|Molgera Boss Arena|Helmaroc King Boss Arena|Ice Ring Isle Secret Cave|Forbidden Woods Miniboss Arena|Western Fairy Fountain|Forbidden Woods|Wind Temple Miniboss Arena|Wind Temple|Earth Temple Miniboss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Gohma Boss Arena|Dragon Roost Cavern|Tower of the Gods Miniboss Arena|Pawprint Isle Chuchu Cave|Ice Ring Isle Inner Cave|Angular Isles Secret Cave|Star Island Secret Cave|Cabana Labyrinth|Northern Fairy Fountain|Boating Course Secret Cave|Diamond Steppe Island Warp Maze Cave|Jalhalla Boss Arena|Cliff Plateau Isles Secret Cave|Rock Spire Isle Secret Cave|Bird's Peak Rock Secret Cave|Earth Temple|Tower of the Gods|Savage Labyrinth|Master Sword Chamber|Bomb Island Secret Cave|Needle Rock Isle Secret Cave|Overlook Island Secret Cave|Horseshoe Island Secret Cave|Shark Island Secret Cave|Eastern Fairy Fountain|Pawprint Isle Wizzrobe Cave|Outset Fairy Fountain|Dragon Roost Island Secret Cave|Southern Fairy Fountain|Fire Mountain Secret Cave|Thorned Fairy Fountain
+warp	M_DragB	sea	1	0
+warp	kinBOSS	sea	12	5
+warp	SirenB	sea	36	1
+scls	sea	45	229
+warp	M_DaiB	sea	31	1
+warp	kazeB	sea	26	1
+endcase
+case	EntRB4
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	progression_battlesquid	1
+opt	progression_big_octos_gunboats	1
+opt	progression_combat_secret_caves	1
+opt	progression_dungeon_secrets	1
+opt	progression_eye_reef_chests	1
+opt	progression_island_puzzles	1
+opt	progression_long_sidequests	1
+opt	progression_mail	1
+opt	progression_minigames	1
+opt	progression_platforms_rafts	1
+opt	progression_savage_labyrinth	1
+opt	progression_short_sidequests	1
+opt	progression_spoils_trading	1
+opt	progression_submarines	1
+opt	progression_tingle_chests	1
+opt	progression_treasure_charts	1
+opt	progression_triforce_charts	1
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+opt	required_bosses	1
+conn	Thorned Fairy Fountain|Dragon Roost Island Secret Cave|Savage Labyrinth|Earth Temple Miniboss Arena|Jalhalla Boss Arena|Forbidden Woods Miniboss Arena|Fire Mountain Secret Cave|Kalle Demos Boss Arena|Helmaroc King Boss Arena|Southern Fairy Fountain|Gohdan Boss Arena|Tower of the Gods|Gohma Boss Arena|Molgera Boss Arena|Forbidden Woods|Wind Temple Miniboss Arena|Ice Ring Isle Secret Cave|Northern Fairy Fountain|Overlook Island Secret Cave|Master Sword Chamber|Boating Course Secret Cave|Shark Island Secret Cave|Pawprint Isle Wizzrobe Cave|Earth Temple|Eastern Fairy Fountain|Stone Watcher Island Secret Cave|Horseshoe Island Secret Cave|Outset Fairy Fountain|Cabana Labyrinth|Cliff Plateau Isles Secret Cave|Star Island Secret Cave|Bomb Island Secret Cave|Wind Temple|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Tower of the Gods Miniboss Arena|Cliff Plateau Isles Inner Cave|Diamond Steppe Island Warp Maze Cave|Dragon Roost Cavern|Western Fairy Fountain|Bird's Peak Rock Secret Cave|Rock Spire Isle Secret Cave|Ice Ring Isle Inner Cave|Pawprint Isle Chuchu Cave
+warp	M_DragB	sea	48	5
+warp	kinBOSS	sea	48	5
+warp	SirenB	A_mori	0	2
+scls	sea	38	5
+warp	M_DaiB	sea	4	232
+warp	kazeB	sea	1	0
+endcase
+case	EntRB3_fixed_dungeons
+opt	num_required_bosses	3
+opt	progression_battlesquid	1
+opt	progression_big_octos_gunboats	1
+opt	progression_combat_secret_caves	1
+opt	progression_dungeon_secrets	1
+opt	progression_eye_reef_chests	1
+opt	progression_island_puzzles	1
+opt	progression_long_sidequests	1
+opt	progression_mail	1
+opt	progression_minigames	1
+opt	progression_platforms_rafts	1
+opt	progression_savage_labyrinth	1
+opt	progression_short_sidequests	1
+opt	progression_spoils_trading	1
+opt	progression_submarines	1
+opt	progression_tingle_chests	1
+opt	progression_treasure_charts	1
+opt	progression_triforce_charts	1
+opt	randomize_boss_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	required_bosses	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Forbidden Woods Miniboss Arena|Gohdan Boss Arena|Master Sword Chamber|Gohma Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Tower of the Gods Miniboss Arena|Kalle Demos Boss Arena|Helmaroc King Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+warp	M_DragB	sea	13	211
+warp	kinBOSS	sea	45	229
+warp	SirenB	sea	4	232
+scls	sea	4	232
+warp	M_DaiB	Omori	0	215
+warp	kazeB	sea	26	1
+endcase
+case	EntDO1
+opt	progression_expensive_purchases	0
+opt	progression_free_gifts	0
+opt	progression_great_fairies	0
+opt	progression_misc	0
+opt	progression_puzzle_secret_caves	0
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+conn	Dragon Roost Cavern|Molgera Boss Arena|Earth Temple|Helmaroc King Boss Arena|Kalle Demos Boss Arena|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Tower of the Gods|Wind Temple|Forbidden Woods|Gohdan Boss Arena|Jalhalla Boss Arena|Gohma Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+warp	M_DragB	sea	13	211
+warp	kinBOSS	sea	4	232
+warp	SirenB	sea	1	0
+scls	sea	45	229
+warp	M_DaiB	sea	26	1
+warp	kazeB	Omori	0	215
+endcase
+case	EntDO2
+opt	progression_expensive_purchases	0
+opt	progression_free_gifts	0
+opt	progression_great_fairies	0
+opt	progression_misc	0
+opt	progression_puzzle_secret_caves	0
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+conn	Dragon Roost Cavern|Jalhalla Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Molgera Boss Arena|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Helmaroc King Boss Arena|Earth Temple|Forbidden Woods|Wind Temple|Gohma Boss Arena|Tower of the Gods|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+warp	M_DragB	sea	1	0
+warp	kinBOSS	sea	26	1
+warp	SirenB	sea	45	229
+scls	sea	13	211
+warp	M_DaiB	Omori	0	215
+warp	kazeB	sea	4	232
+endcase
+case	EntDC_mix
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	progression_expensive_purchases	0
+opt	progression_free_gifts	0
+opt	progression_great_fairies	0
+opt	progression_misc	0
+opt	progression_savage_labyrinth	1
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Boating Course Secret Cave|Western Fairy Fountain|Cliff Plateau Isles Secret Cave|Pawprint Isle Wizzrobe Cave|Northern Fairy Fountain|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Molgera Boss Arena|Tower of the Gods|Master Sword Chamber|Gohma Boss Arena|Earth Temple|Kalle Demos Boss Arena|Wind Temple|Dragon Roost Cavern|Forbidden Woods|Star Island Secret Cave|Forbidden Woods Miniboss Arena|Angular Isles Secret Cave|Stone Watcher Island Secret Cave|Needle Rock Isle Secret Cave|Gohdan Boss Arena|Savage Labyrinth|Bomb Island Secret Cave|Wind Temple Miniboss Arena|Horseshoe Island Secret Cave|Diamond Steppe Island Warp Maze Cave|Pawprint Isle Chuchu Cave|Rock Spire Isle Secret Cave|Helmaroc King Boss Arena|Cliff Plateau Isles Inner Cave|Jalhalla Boss Arena|Shark Island Secret Cave|Eastern Fairy Fountain|Dragon Roost Island Secret Cave|Outset Fairy Fountain|Cabana Labyrinth|Bird's Peak Rock Secret Cave|Southern Fairy Fountain|Ice Ring Isle Secret Cave|Overlook Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Inner Cave|Thorned Fairy Fountain
+warp	M_DragB	sea	1	0
+warp	kinBOSS	sea	1	0
+warp	SirenB	sea	29	5
+scls	sea	36	1
+warp	M_DaiB	sea	16	1
+warp	kazeB	sea	1	0
+endcase
+case	EntDCRB_sep
+opt	num_required_bosses	5
+opt	progression_combat_secret_caves	1
+opt	progression_expensive_purchases	0
+opt	progression_free_gifts	0
+opt	progression_great_fairies	0
+opt	progression_misc	0
+opt	progression_savage_labyrinth	1
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+opt	required_bosses	1
+conn	Dragon Roost Cavern|Forbidden Woods|Jalhalla Boss Arena|Earth Temple Miniboss Arena|Earth Temple|Forbidden Woods Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Tower of the Gods Miniboss Arena|Molgera Boss Arena|Tower of the Gods|Kalle Demos Boss Arena|Gohma Boss Arena|Wind Temple|Gohdan Boss Arena|Helmaroc King Boss Arena|Boating Course Secret Cave|Angular Isles Secret Cave|Pawprint Isle Wizzrobe Cave|Rock Spire Isle Secret Cave|Eastern Fairy Fountain|Needle Rock Isle Secret Cave|Western Fairy Fountain|Dragon Roost Island Secret Cave|Southern Fairy Fountain|Ice Ring Isle Secret Cave|Diamond Steppe Island Warp Maze Cave|Bird's Peak Rock Secret Cave|Cliff Plateau Isles Secret Cave|Overlook Island Secret Cave|Outset Fairy Fountain|Shark Island Secret Cave|Northern Fairy Fountain|Cliff Plateau Isles Inner Cave|Pawprint Isle Chuchu Cave|Fire Mountain Secret Cave|Stone Watcher Island Secret Cave|Ice Ring Isle Inner Cave|Bomb Island Secret Cave|Star Island Secret Cave|Savage Labyrinth|Cabana Labyrinth|Horseshoe Island Secret Cave|Thorned Fairy Fountain
+warp	M_DragB	sea	13	211
+warp	kinBOSS	Omori	0	215
+warp	SirenB	sea	4	232
+scls	sea	1	0
+warp	M_DaiB	sea	26	1
+warp	kazeB	Hyroom	0	10
+endcase
+end
