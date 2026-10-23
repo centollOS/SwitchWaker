@@ -48,8 +48,8 @@ struct ResampleUniforms {  // present_resample.wgsl's Uniforms (std140)
 Viewport g_viewport{};
 
 // the options menu's gamma (aurora_switch_dk_set_gamma): the exponent of the picture's colours; the
-// default is the menu's default (-0.20 on 2.2, see switch/deko/shaders/present_gamma.wgsl)
-std::atomic<float> g_gamma{2.0f / 2.2f};
+// default is the menu's default (+0.20 on 2.2, see switch/deko/shaders/present_gamma.wgsl)
+std::atomic<float> g_gamma{2.4f / 2.2f};
 
 uint32_t extent(float v) { return std::max(1u, static_cast<uint32_t>(std::lround(std::max(v, 1.f)))); }
 

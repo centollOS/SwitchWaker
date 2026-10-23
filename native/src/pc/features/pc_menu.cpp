@@ -457,8 +457,8 @@ void applyPerfLog(const char*, const char* v, void*) { gConfig.perfLog = strcmp(
 void applyHitch(const char*, const char* v, void*) { perfSetHitch((unsigned int)atoi(v)); }
 void applyHdStats(const char*, const char* v, void*) { pc_hd_textures_set_stats_every((unsigned int)atoi(v)); }
 void applyGpuGroups(const char*, const char* v, void*) { pc_gpu_groups_set(atoi(v)); }
-// Gráficos > Gamma (COS_GAMMA): the change in points from the Switch panel's 2.2 (the game's colours are
-// encoded for a GameCube TV, about 2.4); the present draws colour^((2.2 + change) / 2.2), see
+// Gráficos > Gamma (COS_GAMMA): the points added to 2.2 (the game's colours are encoded for a GameCube TV,
+// about 2.4, and the Switch's panel shows them too bright); the present draws colour^((2.2 + change) / 2.2), see
 // switch/deko/shaders/present_gamma.wgsl. Only the deko3d NRO has the present pass.
 void applyGamma(const char*, const char* v, void*) {
 #if defined(__SWITCH__)
@@ -503,8 +503,8 @@ const PcSettingChoice kGpuGroups[] = {{"0", "Desactivados", "Off"}, {"1", "Por g
                                       {"2", "Por material J3D", "Per J3D material"}};
 const PcSettingChoice kShowHide[] = {{"1", "Mostrar", "Show"}, {"0", "Ocultar", "Hide"}};
 const PcSettingChoice kGamma[] = {{"0", "Original (sin cambio)", "Original (no change)"},
-                                  {"-0.10", "-0,10"}, {"-0.20", "-0,20 (recomendado)", "-0.20 (recommended)"},
-                                  {"-0.30", "-0,30"}, {"-0.40", "-0,40"}};
+                                  {"0.10", "+0,10"}, {"0.20", "+0,20 (recomendado)", "+0.20 (recommended)"},
+                                  {"0.30", "+0,30"}, {"0.40", "+0,40"}};
 const PcSettingChoice kHitch[] = {{"0", "Desactivadas", "Off"}, {"33", "Más de 33 ms", "Over 33 ms"},
                                   {"40", "Más de 40 ms", "Over 40 ms"}, {"50", "Más de 50 ms", "Over 50 ms"},
                                   {"100", "Más de 100 ms", "Over 100 ms"}};
@@ -537,12 +537,12 @@ const PcSettingDesc kBuiltins[] = {
      "Depth of field",
      "Blur of the distant scenery, as on the GameCube."},
     {"COS_GAMMA", "Gamma",
-     "Aclara o deja como estaba la imagen. El juego se pensó para una tele de GameCube (gamma ~2,4) y la "
-     "pantalla de la Switch (~2,2) la muestra más oscura: -0,20 la corrige. No cambia los menús.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kGamma), "-0.20", applyGamma, nullptr, 60,
+     "Oscurece o deja como estaba la imagen. El juego se pensó para una tele de GameCube (gamma ~2,4) y la "
+     "pantalla de la Switch (~2,2) la muestra más clara y lavada: +0,20 la corrige. No cambia los menús.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kGamma), "0.20", applyGamma, nullptr, 60,
      "Gamma",
-     "Lightens the picture or leaves it as it was. The game was made for a GameCube TV (gamma ~2.4) and "
-     "the Switch's panel (~2.2) shows it darker: -0.20 corrects it. The menus do not change."},
+     "Darkens the picture or leaves it as it was. The game was made for a GameCube TV (gamma ~2.4) and "
+     "the Switch's panel (~2.2) shows it brighter and washed out: +0.20 corrects it. The menus do not change."},
     {"COS_CAMERA_INVERT_X", "Invertir cámara horizontal",
      "El stick C gira la cámara al revés en horizontal.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertX, nullptr, 90,

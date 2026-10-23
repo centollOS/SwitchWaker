@@ -2,7 +2,7 @@
 // xfb_copy (webgpu/gpu.cpp create_copy_pipeline, fs_opaque) plus colour^exponent, the one place the
 // output is finalized. The game's colours reach the swapchain as they are (RGBA8 Unorm, no sRGB
 // conversion anywhere), so they are encoded for a GameCube TV (CRT, about 2.4) and the Switch's panel
-// (about 2.2) shows them darker: an exponent below 1 lifts them back. Exponent 1 is not drawn with this
+// (about 2.2) shows them too bright: an exponent above 1 (2.4 / 2.2) darkens them back. Exponent 1 is not drawn with this
 // shader at all (xfb_copy is). ImGui is drawn after this pass, so the menus are not changed.
 // Bindings as xfb_copy's (sampler 0, texture 1) plus the uniform at 2; compiled like the test pattern:
 // native/tools/dksh_cache, records present_gamma.vs_main and present_gamma.fs_main.
