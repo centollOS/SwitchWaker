@@ -894,14 +894,231 @@ Verify: smoke asserts per hunk.
 - one play-through with entrances, required bosses, key-lunacy and swordless together;
 - one with charts, starting island and trap chests.
 
-## Phase R7: last (each step is split further when it starts)
+## Phase R7: last options, cosmetics and the European disc
 
-- **R7.1 Inter-dungeon warp pots.** PLYR 69, 3 SCLS and `Warpts1-3` in 6 rooms, plus the JPC particle merge (needs a JPA parser), and the warp pot colours (`d_a_obj_warpt`).
-- **R7.2 Enemy palettes.** HSV shift at texture and colour load (TEX1/BTI/MAT3/particles), plus the REL colours.
-- **R7.3 Enemy rando generator.** `enemies.py` with `enemy_locations.txt` (222 groups) and `enemy_types.txt`; the memory model is re-derived for the port's heaps.
-- **R7.4 Enemy rando runtime.** Actor rewrites, adds and removals, `ALLdie` conversions, particle copies, the rest of `flexible_enemies.asm`, and the Nzg cull mode. Labelled experimental (D18).
-- **R7.5 Cosmetics.** Swift sail, key bag icon and dark wood chest textures (only if they can be built from disc data), tingle rainbow rupee, fairy fountain colours, player colours.
-- **R7.6 European disc.** Message IDs and text per language (`data%d/` BMGs), font and word wrap, fingerprint re-check of every key (stage data should match). wwrando itself does not support it. Gate: the location sweep on EUR.
+Split on 2026-10-24 (the original R7.1-R7.6 each became several steps). Shared pieces come first and are reused:
+a particle-file library (R7.1a) and particle bank hook (R7.1b), used by R7.1c, R7.2e, R7.4c, R7.5b; a GX texture
+codec (R7.2b); a raw J3D hook in `loadResource` placed before the model loaders (R7.2c), because the R0.10 hook
+sees an already converted `J3DModelData*` for BDL/BMD/BRK/BMT files.
+
+Palettes and enemies follow D1: their random decisions are byte-identical to wwrando's (`check_seeds.py --golden`).
+Their runtime effects are checked by Mac tools that run wwrando's own `_save` code with gclib on the user's disc at
+check time and compare with a smoke's dump (as the jpa-sweep does); no disc bytes are committed. New seed data goes
+in the top-level keys `palettes` and `enemies`; `PcRandoSeed::extra` already keeps such keys in order and hashes
+them, so no R7 step edits `pc_rando_seedfile`. `flexible_enemies.asm` is fully covered by R3.12; R7.4 only adds what
+`enemies.py` changes in data.
+
+**Decisions taken at the split (revisable):**
+- **D12 stands: dropped.** Swift sail textures (`Ship.arc new_ho1.bti`, `itemicon.arc sail_00.bti`, `Vho.arc vho.bdl`),
+  key bag icon (`amulet_00.bti`), dark wood chest (`Dalways.arc boxb.bdl`), Link's body colours (24 masks) and
+  `hide_ship_sail` need wwrando PNG assets, which are not shipped. If D12 is revised to ship the MIT PNGs
+  (pre-encoded offline with R7.2b's encoder) they become one extra step after R7.2c.
+- **Always-on cosmetic tweaks** wwrando applies on every seed (rainbow rupee, fairy fountain colours, rat-hole cull;
+  `randomizer.py:433/445/459`) count toward default-preset parity: R7.5a and the rat-hole part of R7.2c run whenever
+  `pc_rando()`, and are scheduled early (W13/W14).
+- **EUR text:** the randomizer's English text is used in all 5 languages (wwrando has no translations); logged as a
+  deviation.
+- **Enemy rando** keeps wwrando's memory model (needed for D1); port heap limits are handled by heap scaling under
+  `pc_rando()` in R7.4d, never by changing the generator. Its upstream bugs are reproduced, not fixed.
+
+### R7.1 Inter-dungeon warp pots
+
+**R7.1a Particle-file (JPC) library (pure).** *Deps: R0.1. Parallel.* Owns `features/rando/pc_rando_jpc.{h,cpp}`,
+`native/tools/rando/make_jpc_fixture.py`, `test_R7_1a.cpp` and its fixture. Port of gclib `jpc.py`/`jpa.py`
+(JPAC1-00 only): header (magic, u16 particle count, u16 texture count, list at 0x20); each `JEFFjpa1` particle with its
+blocks (BEM1, BSP1, ESP1, SSP1, ETX1, KFA1, FLD1, TDB1), size = what was read (gclib notes the header field is
+sometimes wrong); `TEX1` chunks hold a filename, TDB1 holds texture indexes. `jpc_copy_particle(dst, src, id)` appends
+the particle, appends every TEX1 whose filename `dst` lacks, rewrites the copy's TDB1 indexes by filename, serializes
+in gclib's layout. Colour accessors for R7.2e/R7.5b (BSP1 prm/env colour and key tables, SSP1 prm/env). Big-endian, in
+place, no game header; layout reference `harness/boot_tests/pc_jpa.cpp`. Verify: on synthetic JPCs (fixture script,
+synthetic data) counts and blocks parse; copying 2 particles sharing a texture is byte-identical to gclib
+`JPC.save()`; colour edits round-trip.
+
+**R7.1b Particle bank hook.** *Deps: R7.1a, R0.10.* Owns hunks in `dPa_control_c::createRoomScene` and
+`dPa_control_c::createCommon` (`d_particle.cpp`), `features/rando/pc_rando_jpc_scene.{h,cpp}` (registry per scene
+number of `{particle ids, source scene or "any"}` imports and colour editors, cleared at deactivation),
+`game_hooks/pc_rando_hooks_particles.cpp` (reads a source `/res/Particle/Pscene%03d.jpc` synchronously into a
+temporary heap, cached per activation; "any" scans Pscene000-254 in wwrando's order, first file holding the id wins;
+the merged copy must live as long as the scene: from `mSceneHeap` before the `JPAResourceManager` is made, or freed in
+`removeRoomScene`; the step decides and documents), smoke `jpcscene`. The JPA loaders read the bytes in place, so
+merges and colour edits work on raw bytes before the resource manager is built. Verify: smoke `jpcscene` on
+`--stage Siren:6` (Pscene050) with a test import of 0x8161 from Pscene035: the scene resource manager has the id and
+`dComIfGp_particle_set(0x8161, ...)` returns an emitter; with `pc_rando()` 0 the scene bytes hash equal to the disc
+file; `jpa-sweep` unchanged.
+
+**R7.1c Warp pots: stage data, particles, colours.** *Deps: R7.1b, R6.12, R3.9.* Owns
+`features/rando/pc_rando_tweak_warp_pots.{h,cpp}` (port of `add_inter_dungeon_warp_pots`, `INTER_DUNGEON_WARP_DATA`),
+the hunk in `daObj_Warpt_c::createInit` (event register index 2 or 5: prm 0xE5101B80, env 0x3C379D80, from
+`misc_rando_features.asm`), `inter_dungeon_warps` in `PcRandoConfig` from `add_shortcut_warps_between_dungeons`, smoke
+`warppots`, `regress_rando/R7.1c.txt`. Cycles: DRC `M_NewD2/Room2`, FW `kindan/Room1`, TotG `Siren/Room6` (register
+2); FF `ma2room/Room2`, ET `M_Dai/Room1`, WT `kaze/Room3` (register 5). Per pot: PLYR spawn 69 type 7 (stage.dzs for
+M_Dai and kaze, room.dzr otherwise; assert it is the only spawn 69); 3 SCLS (destination stage, spawn 69, room, fade
+4); ACTR `Warpts<k>` with type k+1, `cyclic_event_reg_index`, `cyclic_dest_1..3_exit` = the new SCLS indexes (masks
+from `actor_parameters.txt d_a_obj_warpt`), x_rot/z_rot 0xFFFF. Appends go through `pc_rando_res_grow_dzx` at the
+chunk end so vanilla and R6.12 SCLS indexes stay valid; register after R6.12's patcher. Particles 0x8161, 0x8162,
+0x8165, 0x8166, 0x8112 imported from Pscene035 into 050 and 043 when missing. Makar's and Medli's spawn 69 rows exist
+(R3.9); no logic change. Verify: smoke `warppots`: in each of the 6 rooms the Warpts params, SCLS +3 and spawn 69 are
+as expected; a stage change through each pot's first exit lands on the next dungeon's spawn 69 (6 hops); the emitter
+colours of a register-2 pot equal the custom values; option off: room hashes vanilla.
+
+### R7.2 Enemy palettes
+
+**R7.2a Palette generator and colour math.** *Deps: R1.6. Parallel.* Owns `features/rando/pc_rando_color.{h,cpp}`
+(`hsv_shift_color`, `hsv_shift_palette`, colorsys `rgb_to_hsv`/`hsv_to_rgb` in double, wwrando's int truncations, its
+30/90 value and 5 saturation clamps), `features/rando/pc_rando_gen_palettes.{h,cpp}` (`PaletteRandomizer._randomize`:
+per group in file order `randint(20,340)` then `randint(-40,40)`), `native/tools/rando/gen_palette_data.py` and
+`generated/rando_palettes.inc` (37 groups: name, particle ids, RARCs, excluded files), the `palettes` key in
+`ww_export.py`, the randomizer order in `pc_rando_gen.cpp` (palettes after enemies, before items, fresh
+`get_new_rng`), `test_R7_2a.cpp` and fixture. The menu keeps refusing the option (runtime-ready flag) until R7.2e; the
+permalink rule (palettes only with enemy rando) is in R1.2; the sidecar keeps the shifts. Verify: 20,000 random
+colours x 30 shifts identical to gclib `texture_utils.hsv_shift_color`; `check_seeds.py --golden` on 50 seeds with
+`randomize_enemy_palettes`: `palettes` equal to `ww_export`, `locations` still golden.
+
+**R7.2b GX texture codec (pure).** *Deps: R0.1. Parallel.* Owns `features/rando/pc_rando_texture.{h,cpp}`,
+`native/tools/rando/make_texture_fixture.py`, `test_R7_2b.cpp` and fixtures. Decode and encode I4, I8, IA4, IA8,
+RGB565, RGB5A3, RGBA8, C4, C8, C14X2, CMPR with IA8/RGB565/RGB5A3 palettes and edge blocks; the CMPR encoder ports
+gclib `encode_image_to_cmpr_block` and `get_best_cmpr_key_colors` so the output equals wwrando's. `shift_texture()` as
+`palettes.py`: greyscale formats/palettes skipped, palette formats change only the palette, others decoded, shifted,
+re-encoded in place at the same size. `color_exchange` without a mask (R7.5b). Verify: synthetic images (random,
+gradients, odd sizes) per format: decode equal, encode and shift byte-identical to gclib.
+
+**R7.2c Raw J3D hook, texture recolours, rat holes.** *Deps: R7.2a, R7.2b, R0.10.* Owns the hunk in
+`dRes_info_c::loadResource` (`d_resorce.cpp`) right after `JKRGetResource` and before the J3D loaders (types BMD*,
+BDL*, BMT*, BRK); `pc_rando_register_raw_patcher` in `pc_rando_resources.{h,cpp}`; `features/rando/pc_rando_j3d.{h,cpp}`
+(J3D chunk walker; TEX1 textures shared by name shifted once, "toon" skipped; BTI files `'TEX '`/`'TIM '` through the
+existing post-load hook where they are still raw); `features/rando/pc_rando_palettes.cpp` (patcher for each group's
+`/res/Object/<RARC>.arc` files `.bdl .bti .bmd .bmt .brk` minus excluded files); `make_rat_holes_visible_from_behind`
+(`Nzg.arc kana_00.bdl`: u32 at 0xC80 = 0, u8 at 0xFCE = 4; always under `pc_rando()`); smoke `palettes`;
+`native/tools/rando/palette_check.py`. Verify: smoke `palettes` with `COS_RANDO_PALETTE_TEST=<h>,<v>` loads every
+group's archives and dumps per-file SHA-1s of TEX1/BTI image and palette bytes; `palette_check.py` (wwrando
+`shift_all_colors_in_tex1`/`_bti` with gclib on the disc): 0 diffs; `kana_00` cull mode "none"; vanilla unchanged.
+
+**R7.2d Material and animation colours.** *Deps: R7.2c.* Owns in `pc_rando_j3d.cpp`: MAT3 tev and konst colours
+(negative skipped); MDL3 BP TEV_REGISTERL/H pairs including the duplicated high-command case; TRK1 register and konst
+animations with the closest-time rule and `cc.brk` animation 1 skipped. `test_R7_2d.cpp` on synthetic chunks from
+gclib; the `palettes` smoke and `palette_check.py` extended to whole files. Verify: test byte-identical to gclib;
+`palette_check.py` 0 diffs over every file of every group.
+
+**R7.2e Particle and code colours; option live.** *Deps: R7.2d, R7.1b.* Owns particle colour edits through R7.1b
+(every Pscene holding a group's ids: BSP1 prm/env and key colours and SSP1 colours, hue only); the hardcoded colours,
+each `pc_rando() ? pc_rando_palette_rgb(group, orig) : orig`: `d_a_tn` 12 armour-break colours (REL 0xE2AC),
+`d_a_mant` 5 RGB5A3 C4 palettes (0x4540-0xC5C0), `d_a_mo2` (0xD648), `d_a_boko` (0x4488), `d_a_st` (0x9F30), `d_a_nz`
+(0x8FB8), `d_a_npc_nz` (0x48C0), `d_a_cc` 5 colours (0x7F88) and its 3 float multipliers, `d_a_bgn` (0xF0A8, 0xF0B0),
+`d_a_bgn3` (3 immediates, a code hunk), `d_a_gnd` (0x8F1C); the palettes refusal removed from `pc_rando_gen.cpp`. The
+agent maps each REL offset to its decompiled table. Verify: the `palettes` smoke compares each code site with
+`palette_check.py` (`hsv_shift` of the REL bytes on the disc) and each listed particle's colours with gclib's; a
+palettes seed boots 5 enemy-heavy stages (`regress_rando/R7.2e.txt`).
+
+### R7.3 Enemy rando generator
+
+**R7.3a Enemy data tables.** *Deps: R0.3. Parallel.* Owns `native/tools/rando/gen_enemy_data.py`,
+`generated/rando_enemies.inc`, `features/rando/pc_rando_enemy_data.{h,cpp}`, `test_R7_3a.cpp`. Sources:
+`data/enemy_types.txt` (50 types in file order, every field, compiled `EnemyCategory` conditions);
+`logic/enemy_locations.txt` (47 stage folders, 222 groups, 1,502 paths parsed into stage/arc/layer/actor index, plus
+ALLdie lists (13), modify (3), add (3), remove (2), Position/Y Rotation offsets, Free memory (48), throwables (25),
+bomb flowers (1)); `data/actor_info.txt`; the `data/actor_parameters.txt` bitfields of those classes plus Homen,
+ALLdie, AND_SW*, Kbota*. Verify: counts as above; every requirement compiles with R1.1; every `Original enemy` names a
+type; rerunning the script gives no diff.
+
+**R7.3b Enemy logic filter.** *Deps: R7.3a, R1.3.* Owns `features/rando/pc_rando_gen_enemy_logic.{h,cpp}`
+(`filter_out_enemies_that_add_new_requirements` with its cache keyed by (requirement, throwable, bomb flowers);
+`items_needed` minus owned items, minus sword and Hurricane Spin when Swordless;
+`get_all_item_combo_subsets_meeting_req(_recursive)` with the 10,000 guard; `sorted()` in Python tuple order;
+`add_temporary_items` through R1.3's `add_owned_item`/`remove_owned_item`), `native/tools/rando/gen_enemy_logic_vectors.py`,
+`test_R7_3b.cpp` and fixture. The temporary items reorder the unplaced item lists before the item fill, so item parity
+with enemy rando on depends on this. Verify: presets default, all categories, swordless, over 222 groups: allowed lists
+equal Python's; unplaced progress and nonprogress list orders after the calls equal Python's dump.
+
+**R7.3c Enemy randomizer generator.** *Deps: R7.3b, R7.2a.* Owns `features/rando/pc_rando_gen_enemies.{h,cpp}`
+(`_randomize`: stage pool of 10, sea none; 50 stage and 20 room retries, sea 1 and x5; group pools of 5; wwrando's
+memory budget: Free memory or 1,000,000, halved in the 11 two-room stages, `MIN_FREE_SPACE_TO_LEAVE_PER_ROOM` 60000;
+the RNG part of `_save`: `reset_rng`, `randomize_enemy_params` per done location in order with bitfield packing, the 3
+Homen choices); the seed key `enemies` (per path: name, params, x_rot, z_rot, overrides, flags); the order in
+`pc_rando_gen` (after `extra_start_items`, before palettes); `native/tools/rando/ww_export_enemies.py` (wwrando dry run
+plus the `_save` RNG on stub actors implementing the bitfields; fallback: a full non-dry wwrando run on the disc at
+check time); preset `enemies` in `check_seeds.py`; `test_R7_3c.cpp`, `regress_rando/R7.3c.txt`. The memory model is
+not re-derived (it would change the RNG draws). wwrando's errors become generator errors with the same text. The menu
+keeps refusing the option until R7.4d. Verify: `check_seeds.py --preset enemies --golden` on 100 seeds: `enemies`
+identical to `ww_export_enemies.py`, `locations` still golden; generation time on the Switch reported.
+
+### R7.4 Enemy rando runtime (experimental, D18)
+
+**R7.4a Enemy actor rewrites.** *Deps: R7.3c, R0.10.* Owns `features/rando/pc_rando_enemies.{h,cpp}` (dzx patcher on
+ACTR and ACT0-b by path), smoke `enemies`, `native/tools/rando/enemy_check.py`, `regress_rando/R7.4a.txt`. Per record:
+D9 fingerprint (vanilla name = original type's actor name; mismatch: leave vanilla and log); read the vanilla spawn
+switch, death switch and path index with the original type's field names (invalid values refused and logged); write
+name, params, x_rot, z_rot and position/y_rot overrides and offsets (y_rot masked 0xFFFF); copied fields with the new
+type's names plus `d_a_rd` `dont_check_enable_spawn_switch` 0, `d_a_st` type 1, `d_a_fm` type 1; `adjust_enemy`
+(non-ceiling types on a Ceiling location y -500, magtail y +50, ChuChu in a pot snaps to the nearest `d_a_tsubo` on its
+layer). Verify: smoke `enemies` with a seed boots every room of the table batched by stage and dumps the patched ACTR
+records; `enemy_check.py` (wwrando's full `EnemyRandomizer._save` for the same seed on the disc): all 1,502 records
+equal; enemy rando off: hashes unchanged.
+
+**R7.4b Added, removed and converted actors.** *Deps: R7.4a.* Owns `features/rando/pc_rando_enemy_actors.cpp` (port of
+`add_modify_and_replace_actors_for_enemy_rando`: AND_SW0, AND_SW2, Kbota_A/B, KbotaC become ALLdie (params 0xFFFFFFFF,
+rotations 0, `switch_to_set` kept); the 3 modified actors; the 3 added actors on the group's layer (grow); the 2
+removals (suppress, so later paths keep their index; assert no record depends on an erased index)); the Homen
+`enemy_to_spawn` (`kaze/Room2` ACTR 0x27, `kaze/Room10` ACTR 0 and 9); registration after R7.4a; the `enemies` smoke
+extended. Verify: `enemy_check.py` on these rooms 0 diffs (removed = suppressed); in one ALLdie room killing every
+enemy sets the switch.
+
+**R7.4c Enemy particles.** *Deps: R7.4a, R7.1b.* Owns `features/rando/pc_rando_enemy_particles.cpp` (each placed
+type's "Required particle IDs" imported into the destination bank: sea `room.dzr` FILI[0], elsewhere `stage.dzs`
+STAG[0] `loaded_particle_bank`; source via R7.1b's "any" scan, as `update_loaded_particles`), smoke `enemyptcl`.
+Verify: for a seed, in 5 stages whose new types need particles their bank lacks, every required id is in the scene's
+resource manager and each emitter is created.
+
+**R7.4d Option live, room sweep, experimental label.** *Deps: R7.4b, R7.4c.* Owns the row "Enemy randomizer
+(experimental, can be unbeatable)" (the menu passes `allowUnbeatable`), the enemies refusal removed,
+`native/tools/rando/enemy_sweep.py`, `regress_rando/R7.4d.txt`. The sweep boots each of the 222 groups' rooms for 3
+seeds, 300 frames: no crash; every placed actor created (no create failure, no heap-full log); room heap free space
+logged; must-defeat groups complete when all enemies are dead. A port heap limit is fixed by heap scaling under
+`pc_rando()`. Verify: `enemy_sweep.py` 0 failures on 3 seeds.
+
+### R7.5 Cosmetics (disc-only subset)
+
+**R7.5a Cosmetic tweaks wwrando always applies.** *Deps: R0.8, R0.10. Parallel.* Owns
+`features/rando/pc_rando_tweak_cosmetic.{h,cpp}`, `game_hooks/pc_rando_hooks_cosmetic.cpp`, smoke `cosmetic`,
+`native/tools/rando/cosmetic_check.py`. `make_tingle_statue_reward_rupee_rainbow_colored`: `pc_rando_table_edit` sets
+`item_resource[0xB8]` +0x14 to 7, plus a hunk in `daItemBase_c::animEntry` (`d_a_itembase.cpp`, main.dol 0x800F93F4):
+colour 7 adds 0.15 to the key frame per draw, wraps 6.0 to -6.0, uses `fabs`. `give_fairy_fountains_distinct_colors`:
+in Fairy01-06 `stage.dzs` the Pale `bg0_c0` and `bg0_k0` get hue k/6 (colorsys, int truncation). Verify: the 0xB8
+field item's BTP frame goes 0 -> 6 -> 0; the 6 Pale records equal `cosmetic_check.py`; vanilla unchanged.
+
+**R7.5b Player trail and eye colours (optional).** *Deps: R7.1b, R7.2b, R7.2c, R4.1.* The mask-free part of
+`customizer.change_player_custom_colors`: sword trail RGBA in `daPy_swBlur_c::draw` (DOL 0x803F62AC/B0/B4); `LkAnm.arc
+cutfh.brk`/`cutfm.brk` key frames (raw hook); boomerang trail (0x803F6268); arrow trail (common.jpc particle 0x48 via
+R7.1b's `createCommon` hunk); eye ("hitomi") colour exchange without a mask; `custom_colors` parsing (default `{}`);
+Link-only colour rows from `link_metadata.txt`; smoke `colors`. Verify: with a `custom_colors` JSON the drawn colours
+equal the chosen ones; hitomi bytes equal `cosmetic_check.py` (gclib `color_exchange`); with `{}` everything is
+byte-identical.
+
+### R7.6 European disc (after Milestone R6)
+
+**R7.6a EUR build and region gates.** *Deps: Milestone R6.* Owns the D16 gate opened for `VERSION_PAL`
+(`pc_rando_settings.cpp`, `pc_rando_menu.cpp`), the sidecar folder following the region (`EUR/Card A/`, D3), the PAL
+file-select line (`game/src/pal/d/d_file_select.inc` `_draw`, the R4.4 TODO), `rando_hook_census.py` on both builds,
+any USA-only hunk inside a `VERSION_SELECT` duplicated (PAL_DISC_PLAN.md step 7 method), `regress_rando/R7.6a.txt`.
+Verify: on the EUR build the `null`, `slot` and `newfile` smokes pass; census clean on both builds; USA `regress.sh`
+unchanged.
+
+**R7.6b EUR stage data and location keys.** *Deps: R7.6a.* Owns `gen_location_keys.py --disc GZLP01` (compare mode),
+`generated/rando_location_keys_pal.inc` only if a key differs (selected by `VERSION`), a fingerprint audit of every
+dzx and event patcher on EUR. Verify: 391 fingerprints match on GZLP01 (or each diff handled); location sweep T1 on
+320 with `rotation`; 0 fingerprint-mismatch lines with `rotation` plus every option on.
+
+**R7.6c EUR messages and text.** *Deps: R7.6a, R3.20.* Owns the overlay in all 5 language archives (same message
+numbers, English text in each, logged as a deviation), runtime word wrap on EUR for the pre-wrapped dungeon-item
+messages (R3.4 deviation) with the PAL font, message-number differences if any. Verify: the `msg` smoke in each of the
+5 languages shows the overlay texts and wrapped lines fit the box.
+
+**R7.6d EUR gate.** *Deps: R7.6b, R7.6c; full coverage after R7.1c, R7.2e, R7.4d, R7.5a.* Owns `location_sweep.py`
+and `regress.sh` lines for the EUR build, `regress_rando/R7.6d.txt`, the Milestone R4 console list repeated with the
+EUR NRO. Verify: location sweep T1 and T2 on EUR with `identity`, `rotation` and 3 seeds: 0 failures; the `jpcscene`,
+`warppots`, `palettes`, `cosmetic` and `enemies` smokes pass on EUR.
+
+**Milestone R7:** one palettes seed through 2 dungeons; both warp-pot cycles used; one enemy-rando seed through 3
+dungeons (experimental); one EUR default seed to Dragon Roost Cavern; `regress.sh` green for USA and EUR.
 
 ---
 
@@ -927,12 +1144,21 @@ integrator merges them in wave order.
 | W10 | R5.3, R6.11 |
 | W11 | R6.12, R6.13 |
 | W12 | R6.14 |
-| W13+ | R7.1-R7.6 (R7.4 after R7.3; R7.6 after milestone R6) |
+| W13 | R7.1a, R7.2a, R7.2b, R7.3a, R7.5a |
+| W14 | R7.1b, R7.2c, R7.3b, R7.6a* |
+| W15 | R7.1c, R7.2d, R7.3c, R7.5b, R7.6b* |
+| W16 | R7.2e, R7.4a, R7.6c* |
+| W17 | R7.4b, R7.4c |
+| W18 | R7.4d, R7.6d* |
+
+\* The R7.6 steps wait for Milestone R6; if it has not passed when their wave starts, they slide to a later wave
+(nothing else depends on them). In W15/W16/W18 only one step touches `pc_rando_gen.cpp` (R7.3c, R7.2e, R7.4d).
+R7 critical path: R7.3a → R7.3b → R7.3c → R7.4a → R7.4b/R7.4c → R7.4d.
 
 Critical path: R0.1 → R0.3 → R1.1 → R1.3 → R1.4 → R1.5 → R1.6 → R4.3 → R4.4 (first console-generated
 randomized file). In parallel, R0.1 → R0.9 → R0.10 → R0.5/R0.7 → R2.x → R2.12 (placement correctness)
 and the R3 patch steps.
 
 Milestones gate merges into `main`, not wave starts: a phase's milestone check runs once all its steps
-have merged on `feature/randomizer`. **Step totals: R0 12, R1 6, R2 12, R3 21, R4 5, R5 3, R6 15, R7 6:
-80 steps in 13 waves.**
+have merged on `feature/randomizer`. **Step totals: R0 12, R1 6, R2 12, R3 21, R4 5, R5 3, R6 15, R7 21:
+95 steps in 18 waves.**
