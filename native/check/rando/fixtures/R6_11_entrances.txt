@@ -1,0 +1,1371 @@
+version	1.10.0_9775811
+case	EntA_dungeon
+opt	randomize_dungeon_entrances	1
+conn	Tower of the Gods|Wind Temple|Earth Temple|Dragon Roost Cavern|Forbidden Woods|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+paths	Dungeon Entrance on Gale Isle>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Dungeon Entrance on Dragon Roost Island>Miniboss Entrance in Tower of the Gods>Tower of the Gods Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Miniboss Entrance in Earth Temple>Earth Temple Miniboss Arena|Dungeon Entrance in Forest Haven Sector>Miniboss Entrance in Wind Temple>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Dungeon Entrance on Headstone Island>Boss Entrance in Dragon Roost Cavern>Gohma Boss Arena|Dungeon Entrance on Gale Isle>Boss Entrance in Forbidden Woods>Kalle Demos Boss Arena|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Tower of the Gods>Gohdan Boss Arena|Boss Entrance in Forsaken Fortress>Helmaroc King Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Earth Temple>Jalhalla Boss Arena|Dungeon Entrance in Forest Haven Sector>Boss Entrance in Wind Temple>Molgera Boss Arena|Secret Cave Entrance on Outset Island>Savage Labyrinth|Secret Cave Entrance on Dragon Roost Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Fire Mountain>Fire Mountain Secret Cave|Secret Cave Entrance on Private Oasis>Cabana Labyrinth|Secret Cave Entrance on Needle Rock Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Angular Isles>Angular Isles Secret Cave|Secret Cave Entrance on Boating Course>Boating Course Secret Cave|Secret Cave Entrance on Stone Watcher Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Overlook Island>Overlook Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Pawprint Isle>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Diamond Steppe Island>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Bomb Island>Bomb Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Shark Island>Shark Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Star Island>Star Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Ice Ring Isle Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Cliff Plateau Isles>Inner Entrance in Cliff Plateau Isles Secret Cave>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Outset Island>Outset Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Thorned Fairy Fountain|Fairy Fountain Entrance on Eastern Fairy Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Western Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Southern Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Northern Fairy Fountain
+nesting	0
+macro	Tower of the Gods	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Wind Temple	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Earth Temple	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Headstone Island
+macro	Forbidden Woods	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohma Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Molgera Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Outset Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Private Oasis
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntB_dungeon
+opt	randomize_dungeon_entrances	1
+conn	Wind Temple|Dragon Roost Cavern|Earth Temple|Tower of the Gods|Forbidden Woods|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+paths	Dungeon Entrance on Gale Isle>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Dungeon Entrance on Headstone Island>Miniboss Entrance in Tower of the Gods>Tower of the Gods Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Miniboss Entrance in Earth Temple>Earth Temple Miniboss Arena|Dungeon Entrance on Dragon Roost Island>Miniboss Entrance in Wind Temple>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Dungeon Entrance in Forest Haven Sector>Boss Entrance in Dragon Roost Cavern>Gohma Boss Arena|Dungeon Entrance on Gale Isle>Boss Entrance in Forbidden Woods>Kalle Demos Boss Arena|Dungeon Entrance on Headstone Island>Boss Entrance in Tower of the Gods>Gohdan Boss Arena|Boss Entrance in Forsaken Fortress>Helmaroc King Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Earth Temple>Jalhalla Boss Arena|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Wind Temple>Molgera Boss Arena|Secret Cave Entrance on Outset Island>Savage Labyrinth|Secret Cave Entrance on Dragon Roost Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Fire Mountain>Fire Mountain Secret Cave|Secret Cave Entrance on Private Oasis>Cabana Labyrinth|Secret Cave Entrance on Needle Rock Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Angular Isles>Angular Isles Secret Cave|Secret Cave Entrance on Boating Course>Boating Course Secret Cave|Secret Cave Entrance on Stone Watcher Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Overlook Island>Overlook Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Pawprint Isle>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Diamond Steppe Island>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Bomb Island>Bomb Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Shark Island>Shark Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Star Island>Star Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Ice Ring Isle Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Cliff Plateau Isles>Inner Entrance in Cliff Plateau Isles Secret Cave>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Outset Island>Outset Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Thorned Fairy Fountain|Fairy Fountain Entrance on Eastern Fairy Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Western Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Southern Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Northern Fairy Fountain
+nesting	0
+macro	Wind Temple	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Earth Temple	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Tower of the Gods	Can Access Dungeon Entrance on Headstone Island
+macro	Forbidden Woods	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohma Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Molgera Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Outset Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Private Oasis
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntA_secret_cave
+opt	randomize_secret_cave_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Cliff Plateau Isles Secret Cave|Star Island Secret Cave|Bomb Island Secret Cave|Savage Labyrinth|Overlook Island Secret Cave|Pawprint Isle Wizzrobe Cave|Rock Spire Isle Secret Cave|Ice Ring Isle Secret Cave|Bird's Peak Rock Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Horseshoe Island Secret Cave|Shark Island Secret Cave|Cabana Labyrinth|Fire Mountain Secret Cave|Diamond Steppe Island Warp Maze Cave|Pawprint Isle Chuchu Cave|Dragon Roost Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+paths	Dungeon Entrance in Forest Haven Sector>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Miniboss Entrance in Tower of the Gods>Tower of the Gods Miniboss Arena|Dungeon Entrance on Headstone Island>Miniboss Entrance in Earth Temple>Earth Temple Miniboss Arena|Dungeon Entrance on Gale Isle>Miniboss Entrance in Wind Temple>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Gohma Boss Arena|Dungeon Entrance in Forest Haven Sector>Boss Entrance in Forbidden Woods>Kalle Demos Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Tower of the Gods>Gohdan Boss Arena|Boss Entrance in Forsaken Fortress>Helmaroc King Boss Arena|Dungeon Entrance on Headstone Island>Boss Entrance in Earth Temple>Jalhalla Boss Arena|Dungeon Entrance on Gale Isle>Boss Entrance in Wind Temple>Molgera Boss Arena|Secret Cave Entrance on Needle Rock Isle>Savage Labyrinth|Secret Cave Entrance on Star Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Shark Island>Fire Mountain Secret Cave|Secret Cave Entrance on Rock Spire Isle>Cabana Labyrinth|Secret Cave Entrance on Outset Island>Needle Rock Isle Secret Cave|Secret Cave Entrance on Dragon Roost Island>Angular Isles Secret Cave|Secret Cave Entrance on Pawprint Isle>Boating Course Secret Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Stone Watcher Island Secret Cave|Secret Cave Entrance on Angular Isles>Overlook Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Horseshoe Island>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Boating Course>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Cliff Plateau Isles>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Private Oasis>Bomb Island Secret Cave|Secret Cave Entrance on Stone Watcher Island>Rock Spire Isle Secret Cave|Secret Cave Entrance on Bomb Island>Shark Island Secret Cave|Secret Cave Entrance on Diamond Steppe Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Star Island Secret Cave|Secret Cave Entrance on Overlook Island>Inner Entrance in Ice Ring Isle Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Fire Mountain>Inner Entrance in Cliff Plateau Isles Secret Cave>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Outset Island>Outset Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Thorned Fairy Fountain|Fairy Fountain Entrance on Eastern Fairy Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Western Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Southern Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Northern Fairy Fountain
+nesting	0
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Forbidden Woods	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Tower of the Gods	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Earth Temple	Can Access Dungeon Entrance on Headstone Island
+macro	Wind Temple	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohma Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Molgera Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Outset Island
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Private Oasis
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntB_secret_cave
+opt	randomize_secret_cave_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Rock Spire Isle Secret Cave|Cabana Labyrinth|Cliff Plateau Isles Secret Cave|Dragon Roost Island Secret Cave|Diamond Steppe Island Warp Maze Cave|Pawprint Isle Wizzrobe Cave|Angular Isles Secret Cave|Fire Mountain Secret Cave|Stone Watcher Island Secret Cave|Horseshoe Island Secret Cave|Ice Ring Isle Secret Cave|Bomb Island Secret Cave|Boating Course Secret Cave|Pawprint Isle Chuchu Cave|Star Island Secret Cave|Needle Rock Isle Secret Cave|Overlook Island Secret Cave|Shark Island Secret Cave|Bird's Peak Rock Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+paths	Dungeon Entrance in Forest Haven Sector>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Miniboss Entrance in Tower of the Gods>Tower of the Gods Miniboss Arena|Dungeon Entrance on Headstone Island>Miniboss Entrance in Earth Temple>Earth Temple Miniboss Arena|Dungeon Entrance on Gale Isle>Miniboss Entrance in Wind Temple>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Gohma Boss Arena|Dungeon Entrance in Forest Haven Sector>Boss Entrance in Forbidden Woods>Kalle Demos Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Tower of the Gods>Gohdan Boss Arena|Boss Entrance in Forsaken Fortress>Helmaroc King Boss Arena|Dungeon Entrance on Headstone Island>Boss Entrance in Earth Temple>Jalhalla Boss Arena|Dungeon Entrance on Gale Isle>Boss Entrance in Wind Temple>Molgera Boss Arena|Secret Cave Entrance on Outset Island>Savage Labyrinth|Secret Cave Entrance on Private Oasis>Dragon Roost Island Secret Cave|Secret Cave Entrance on Stone Watcher Island>Fire Mountain Secret Cave|Secret Cave Entrance on Fire Mountain>Cabana Labyrinth|Secret Cave Entrance on Shark Island>Needle Rock Isle Secret Cave|Secret Cave Entrance on Boating Course>Angular Isles Secret Cave|Secret Cave Entrance on Diamond Steppe Island>Boating Course Secret Cave|Secret Cave Entrance on Overlook Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Cliff Plateau Isles>Overlook Island Secret Cave|Secret Cave Entrance on Star Island>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Bomb Island>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Angular Isles>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Needle Rock Isle>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Bomb Island Secret Cave|Secret Cave Entrance on Dragon Roost Island>Rock Spire Isle Secret Cave|Secret Cave Entrance on Horseshoe Island>Shark Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Horseshoe Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Star Island Secret Cave|Secret Cave Entrance on Pawprint Isle>Inner Entrance in Ice Ring Isle Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Cliff Plateau Isles Secret Cave>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Outset Island>Outset Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Thorned Fairy Fountain|Fairy Fountain Entrance on Eastern Fairy Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Western Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Southern Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Northern Fairy Fountain
+nesting	0
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Forbidden Woods	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Tower of the Gods	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Earth Temple	Can Access Dungeon Entrance on Headstone Island
+macro	Wind Temple	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohma Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Molgera Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Outset Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Fire Mountain
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Private Oasis
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntA_miniboss
+opt	randomize_miniboss_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Tower of the Gods Miniboss Arena|Wind Temple Miniboss Arena|Earth Temple Miniboss Arena|Forbidden Woods Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+paths	Dungeon Entrance on Gale Isle>Miniboss Entrance in Wind Temple>Forbidden Woods Miniboss Arena|Dungeon Entrance in Forest Haven Sector>Miniboss Entrance in Forbidden Woods>Tower of the Gods Miniboss Arena|Dungeon Entrance on Headstone Island>Miniboss Entrance in Earth Temple>Earth Temple Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Miniboss Entrance in Tower of the Gods>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Gohma Boss Arena|Dungeon Entrance in Forest Haven Sector>Boss Entrance in Forbidden Woods>Kalle Demos Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Tower of the Gods>Gohdan Boss Arena|Boss Entrance in Forsaken Fortress>Helmaroc King Boss Arena|Dungeon Entrance on Headstone Island>Boss Entrance in Earth Temple>Jalhalla Boss Arena|Dungeon Entrance on Gale Isle>Boss Entrance in Wind Temple>Molgera Boss Arena|Secret Cave Entrance on Outset Island>Savage Labyrinth|Secret Cave Entrance on Dragon Roost Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Fire Mountain>Fire Mountain Secret Cave|Secret Cave Entrance on Private Oasis>Cabana Labyrinth|Secret Cave Entrance on Needle Rock Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Angular Isles>Angular Isles Secret Cave|Secret Cave Entrance on Boating Course>Boating Course Secret Cave|Secret Cave Entrance on Stone Watcher Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Overlook Island>Overlook Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Pawprint Isle>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Diamond Steppe Island>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Bomb Island>Bomb Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Shark Island>Shark Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Star Island>Star Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Ice Ring Isle Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Cliff Plateau Isles>Inner Entrance in Cliff Plateau Isles Secret Cave>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Outset Island>Outset Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Thorned Fairy Fountain|Fairy Fountain Entrance on Eastern Fairy Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Western Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Southern Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Northern Fairy Fountain
+nesting	1
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Forbidden Woods	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Tower of the Gods	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Earth Temple	Can Access Dungeon Entrance on Headstone Island
+macro	Wind Temple	Can Access Dungeon Entrance on Gale Isle
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohma Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Molgera Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Outset Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Private Oasis
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntB_miniboss
+opt	randomize_miniboss_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Wind Temple Miniboss Arena|Earth Temple Miniboss Arena|Tower of the Gods Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+paths	Dungeon Entrance in Forest Haven Sector>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Dungeon Entrance on Gale Isle>Miniboss Entrance in Wind Temple>Tower of the Gods Miniboss Arena|Dungeon Entrance on Headstone Island>Miniboss Entrance in Earth Temple>Earth Temple Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Miniboss Entrance in Tower of the Gods>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Gohma Boss Arena|Dungeon Entrance in Forest Haven Sector>Boss Entrance in Forbidden Woods>Kalle Demos Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Tower of the Gods>Gohdan Boss Arena|Boss Entrance in Forsaken Fortress>Helmaroc King Boss Arena|Dungeon Entrance on Headstone Island>Boss Entrance in Earth Temple>Jalhalla Boss Arena|Dungeon Entrance on Gale Isle>Boss Entrance in Wind Temple>Molgera Boss Arena|Secret Cave Entrance on Outset Island>Savage Labyrinth|Secret Cave Entrance on Dragon Roost Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Fire Mountain>Fire Mountain Secret Cave|Secret Cave Entrance on Private Oasis>Cabana Labyrinth|Secret Cave Entrance on Needle Rock Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Angular Isles>Angular Isles Secret Cave|Secret Cave Entrance on Boating Course>Boating Course Secret Cave|Secret Cave Entrance on Stone Watcher Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Overlook Island>Overlook Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Pawprint Isle>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Diamond Steppe Island>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Bomb Island>Bomb Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Shark Island>Shark Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Star Island>Star Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Ice Ring Isle Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Cliff Plateau Isles>Inner Entrance in Cliff Plateau Isles Secret Cave>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Outset Island>Outset Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Thorned Fairy Fountain|Fairy Fountain Entrance on Eastern Fairy Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Western Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Southern Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Northern Fairy Fountain
+nesting	1
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Forbidden Woods	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Tower of the Gods	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Earth Temple	Can Access Dungeon Entrance on Headstone Island
+macro	Wind Temple	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohma Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Molgera Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Outset Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Private Oasis
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntA_boss
+opt	randomize_boss_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohdan Boss Arena|Gohma Boss Arena|Jalhalla Boss Arena|Kalle Demos Boss Arena|Molgera Boss Arena|Helmaroc King Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+paths	Dungeon Entrance in Forest Haven Sector>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Miniboss Entrance in Tower of the Gods>Tower of the Gods Miniboss Arena|Dungeon Entrance on Headstone Island>Miniboss Entrance in Earth Temple>Earth Temple Miniboss Arena|Dungeon Entrance on Gale Isle>Miniboss Entrance in Wind Temple>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Dungeon Entrance in Forest Haven Sector>Boss Entrance in Forbidden Woods>Gohma Boss Arena|Boss Entrance in Forsaken Fortress>Kalle Demos Boss Arena|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Gohdan Boss Arena|Dungeon Entrance on Gale Isle>Boss Entrance in Wind Temple>Helmaroc King Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Tower of the Gods>Jalhalla Boss Arena|Dungeon Entrance on Headstone Island>Boss Entrance in Earth Temple>Molgera Boss Arena|Secret Cave Entrance on Outset Island>Savage Labyrinth|Secret Cave Entrance on Dragon Roost Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Fire Mountain>Fire Mountain Secret Cave|Secret Cave Entrance on Private Oasis>Cabana Labyrinth|Secret Cave Entrance on Needle Rock Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Angular Isles>Angular Isles Secret Cave|Secret Cave Entrance on Boating Course>Boating Course Secret Cave|Secret Cave Entrance on Stone Watcher Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Overlook Island>Overlook Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Pawprint Isle>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Diamond Steppe Island>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Bomb Island>Bomb Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Shark Island>Shark Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Star Island>Star Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Ice Ring Isle Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Cliff Plateau Isles>Inner Entrance in Cliff Plateau Isles Secret Cave>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Outset Island>Outset Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Thorned Fairy Fountain|Fairy Fountain Entrance on Eastern Fairy Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Western Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Southern Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Northern Fairy Fountain
+nesting	1
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Forbidden Woods	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Tower of the Gods	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Earth Temple	Can Access Dungeon Entrance on Headstone Island
+macro	Wind Temple	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Gohma Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Molgera Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Outset Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Private Oasis
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntB_boss
+opt	randomize_boss_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohdan Boss Arena|Molgera Boss Arena|Gohma Boss Arena|Jalhalla Boss Arena|Kalle Demos Boss Arena|Helmaroc King Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+paths	Dungeon Entrance in Forest Haven Sector>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Miniboss Entrance in Tower of the Gods>Tower of the Gods Miniboss Arena|Dungeon Entrance on Headstone Island>Miniboss Entrance in Earth Temple>Earth Temple Miniboss Arena|Dungeon Entrance on Gale Isle>Miniboss Entrance in Wind Temple>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Tower of the Gods>Gohma Boss Arena|Dungeon Entrance on Headstone Island>Boss Entrance in Earth Temple>Kalle Demos Boss Arena|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Gohdan Boss Arena|Dungeon Entrance on Gale Isle>Boss Entrance in Wind Temple>Helmaroc King Boss Arena|Boss Entrance in Forsaken Fortress>Jalhalla Boss Arena|Dungeon Entrance in Forest Haven Sector>Boss Entrance in Forbidden Woods>Molgera Boss Arena|Secret Cave Entrance on Outset Island>Savage Labyrinth|Secret Cave Entrance on Dragon Roost Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Fire Mountain>Fire Mountain Secret Cave|Secret Cave Entrance on Private Oasis>Cabana Labyrinth|Secret Cave Entrance on Needle Rock Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Angular Isles>Angular Isles Secret Cave|Secret Cave Entrance on Boating Course>Boating Course Secret Cave|Secret Cave Entrance on Stone Watcher Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Overlook Island>Overlook Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Pawprint Isle>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Diamond Steppe Island>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Bomb Island>Bomb Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Shark Island>Shark Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Star Island>Star Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Ice Ring Isle Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Cliff Plateau Isles>Inner Entrance in Cliff Plateau Isles Secret Cave>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Outset Island>Outset Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Thorned Fairy Fountain|Fairy Fountain Entrance on Eastern Fairy Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Western Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Southern Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Northern Fairy Fountain
+nesting	1
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Forbidden Woods	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Tower of the Gods	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Earth Temple	Can Access Dungeon Entrance on Headstone Island
+macro	Wind Temple	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Molgera Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Gohma Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Outset Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Private Oasis
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntA_secret_cave_inner
+opt	randomize_secret_cave_inner_entrances	1
+error	Not enough island entrances left to split entrances.
+endcase
+case	EntB_secret_cave_inner
+opt	randomize_secret_cave_inner_entrances	1
+error	Not enough island entrances left to split entrances.
+endcase
+case	EntA_fairy_fountain
+opt	randomize_fairy_fountain_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Northern Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain
+paths	Dungeon Entrance in Forest Haven Sector>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Miniboss Entrance in Tower of the Gods>Tower of the Gods Miniboss Arena|Dungeon Entrance on Headstone Island>Miniboss Entrance in Earth Temple>Earth Temple Miniboss Arena|Dungeon Entrance on Gale Isle>Miniboss Entrance in Wind Temple>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Gohma Boss Arena|Dungeon Entrance in Forest Haven Sector>Boss Entrance in Forbidden Woods>Kalle Demos Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Tower of the Gods>Gohdan Boss Arena|Boss Entrance in Forsaken Fortress>Helmaroc King Boss Arena|Dungeon Entrance on Headstone Island>Boss Entrance in Earth Temple>Jalhalla Boss Arena|Dungeon Entrance on Gale Isle>Boss Entrance in Wind Temple>Molgera Boss Arena|Secret Cave Entrance on Outset Island>Savage Labyrinth|Secret Cave Entrance on Dragon Roost Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Fire Mountain>Fire Mountain Secret Cave|Secret Cave Entrance on Private Oasis>Cabana Labyrinth|Secret Cave Entrance on Needle Rock Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Angular Isles>Angular Isles Secret Cave|Secret Cave Entrance on Boating Course>Boating Course Secret Cave|Secret Cave Entrance on Stone Watcher Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Overlook Island>Overlook Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Pawprint Isle>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Diamond Steppe Island>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Bomb Island>Bomb Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Shark Island>Shark Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Star Island>Star Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Ice Ring Isle Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Cliff Plateau Isles>Inner Entrance in Cliff Plateau Isles Secret Cave>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Outset Island>Outset Fairy Fountain|Fairy Fountain Entrance on Eastern Fairy Island>Thorned Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Western Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Southern Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Northern Fairy Fountain
+nesting	0
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Forbidden Woods	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Tower of the Gods	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Earth Temple	Can Access Dungeon Entrance on Headstone Island
+macro	Wind Temple	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohma Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Molgera Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Outset Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Private Oasis
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntB_fairy_fountain
+opt	randomize_fairy_fountain_entrances	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Gohma Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Helmaroc King Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Eastern Fairy Fountain|Thorned Fairy Fountain|Outset Fairy Fountain|Northern Fairy Fountain|Southern Fairy Fountain|Western Fairy Fountain
+paths	Dungeon Entrance in Forest Haven Sector>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Miniboss Entrance in Tower of the Gods>Tower of the Gods Miniboss Arena|Dungeon Entrance on Headstone Island>Miniboss Entrance in Earth Temple>Earth Temple Miniboss Arena|Dungeon Entrance on Gale Isle>Miniboss Entrance in Wind Temple>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Gohma Boss Arena|Dungeon Entrance in Forest Haven Sector>Boss Entrance in Forbidden Woods>Kalle Demos Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Tower of the Gods>Gohdan Boss Arena|Boss Entrance in Forsaken Fortress>Helmaroc King Boss Arena|Dungeon Entrance on Headstone Island>Boss Entrance in Earth Temple>Jalhalla Boss Arena|Dungeon Entrance on Gale Isle>Boss Entrance in Wind Temple>Molgera Boss Arena|Secret Cave Entrance on Outset Island>Savage Labyrinth|Secret Cave Entrance on Dragon Roost Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Fire Mountain>Fire Mountain Secret Cave|Secret Cave Entrance on Private Oasis>Cabana Labyrinth|Secret Cave Entrance on Needle Rock Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Angular Isles>Angular Isles Secret Cave|Secret Cave Entrance on Boating Course>Boating Course Secret Cave|Secret Cave Entrance on Stone Watcher Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Overlook Island>Overlook Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Pawprint Isle>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Diamond Steppe Island>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Bomb Island>Bomb Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Shark Island>Shark Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Star Island>Star Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Ice Ring Isle Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Cliff Plateau Isles>Inner Entrance in Cliff Plateau Isles Secret Cave>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Eastern Fairy Island>Outset Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Thorned Fairy Fountain|Fairy Fountain Entrance on Outset Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Western Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Southern Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Northern Fairy Fountain
+nesting	0
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Forbidden Woods	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Tower of the Gods	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Earth Temple	Can Access Dungeon Entrance on Headstone Island
+macro	Wind Temple	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohma Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Molgera Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Outset Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Private Oasis
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntA_sep
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Gohdan Boss Arena|Jalhalla Boss Arena|Wind Temple|Dragon Roost Cavern|Forbidden Woods|Earth Temple Miniboss Arena|Forbidden Woods Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Tower of the Gods Miniboss Arena|Molgera Boss Arena|Kalle Demos Boss Arena|Earth Temple|Helmaroc King Boss Arena|Gohma Boss Arena|Tower of the Gods|Ice Ring Isle Inner Cave|Diamond Steppe Island Warp Maze Cave|Outset Fairy Fountain|Overlook Island Secret Cave|Cliff Plateau Isles Secret Cave|Angular Isles Secret Cave|Needle Rock Isle Secret Cave|Bomb Island Secret Cave|Cabana Labyrinth|Thorned Fairy Fountain|Shark Island Secret Cave|Fire Mountain Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Cliff Plateau Isles Inner Cave|Star Island Secret Cave|Western Fairy Fountain|Eastern Fairy Fountain|Rock Spire Isle Secret Cave|Pawprint Isle Wizzrobe Cave|Bird's Peak Rock Secret Cave|Southern Fairy Fountain|Horseshoe Island Secret Cave|Northern Fairy Fountain|Savage Labyrinth|Dragon Roost Island Secret Cave|Ice Ring Isle Secret Cave|Pawprint Isle Chuchu Cave
+paths	Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Wind Temple>Miniboss Entrance in Tower of the Gods>Forbidden Woods Miniboss Arena|Miniboss Entrance in Hyrule Castle>Tower of the Gods Miniboss Arena|Dungeon Entrance on Gale Isle>Miniboss Entrance in Forbidden Woods>Earth Temple Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Wind Temple>Boss Entrance in Tower of the Gods>Miniboss Entrance in Earth Temple>Wind Temple Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Miniboss Entrance in Wind Temple>Master Sword Chamber|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Wind Temple>Boss Entrance in Tower of the Gods>Boss Entrance in Earth Temple>Gohma Boss Arena|Dungeon Entrance on Gale Isle>Boss Entrance in Forbidden Woods>Kalle Demos Boss Arena|Dungeon Entrance on Dragon Roost Island>Gohdan Boss Arena|Boss Entrance in Forsaken Fortress>Helmaroc King Boss Arena|Dungeon Entrance in Forest Haven Sector>Jalhalla Boss Arena|Dungeon Entrance on Headstone Island>Boss Entrance in Dragon Roost Cavern>Molgera Boss Arena|Fairy Fountain Entrance on Eastern Fairy Island>Savage Labyrinth|Fairy Fountain Entrance on Western Fairy Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Pawprint Isle>Fire Mountain Secret Cave|Secret Cave Entrance on Stone Watcher Island>Cabana Labyrinth|Secret Cave Entrance on Angular Isles>Needle Rock Isle Secret Cave|Secret Cave Entrance on Needle Rock Isle>Angular Isles Secret Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Boating Course Secret Cave|Secret Cave Entrance on Diamond Steppe Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Overlook Island Secret Cave|Fairy Fountain Entrance on Southern Fairy Island>Inner Entrance in Ice Ring Isle Secret Cave>Bird's Peak Rock Secret Cave|Fairy Fountain Entrance on Northern Fairy Island>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Star Island>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Dragon Roost Island>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Boating Course>Bomb Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Rock Spire Isle Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Shark Island Secret Cave|Fairy Fountain Entrance on Outset Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Star Island Secret Cave|Secret Cave Entrance on Outset Island>Ice Ring Isle Inner Cave|Secret Cave Entrance on Bomb Island>Cliff Plateau Isles Inner Cave|Secret Cave Entrance on Fire Mountain>Outset Fairy Fountain|Secret Cave Entrance on Overlook Island>Thorned Fairy Fountain|Secret Cave Entrance on Cliff Plateau Isles>Eastern Fairy Fountain|Secret Cave Entrance on Shark Island>Western Fairy Fountain|Secret Cave Entrance on Private Oasis>Inner Entrance in Cliff Plateau Isles Secret Cave>Southern Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Northern Fairy Fountain
+nesting	1
+macro	Gohdan Boss Arena	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Jalhalla Boss Arena	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Wind Temple	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Headstone Island
+macro	Forbidden Woods	Can Access Dungeon Entrance on Gale Isle
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Wind Temple
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Hyrule Castle
+macro	Molgera Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Earth Temple	Can Access Boss Entrance in Tower of the Gods
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Gohma Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Tower of the Gods	Can Access Boss Entrance in Wind Temple
+macro	Ice Ring Isle Inner Cave	Can Access Secret Cave Entrance on Outset Island
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Outset Fairy Fountain	Can Access Secret Cave Entrance on Fire Mountain
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Private Oasis
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Thorned Fairy Fountain	Can Access Secret Cave Entrance on Overlook Island
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Cliff Plateau Isles Inner Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Western Fairy Fountain	Can Access Secret Cave Entrance on Shark Island
+macro	Eastern Fairy Fountain	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Star Island
+macro	Bird's Peak Rock Secret Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Southern Fairy Fountain	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Horseshoe Island Secret Cave	Can Access Fairy Fountain Entrance on Outset Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Savage Labyrinth	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Dragon Roost Island Secret Cave	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Ice Ring Isle Secret Cave	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Pawprint Isle Chuchu Cave	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntA_mix
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Outset Fairy Fountain|Boating Course Secret Cave|Western Fairy Fountain|Shark Island Secret Cave|Dragon Roost Island Secret Cave|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple|Tower of the Gods|Gohma Boss Arena|Molgera Boss Arena|Dragon Roost Cavern|Cliff Plateau Isles Inner Cave|Helmaroc King Boss Arena|Kalle Demos Boss Arena|Bomb Island Secret Cave|Angular Isles Secret Cave|Ice Ring Isle Inner Cave|Overlook Island Secret Cave|Master Sword Chamber|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Diamond Steppe Island Warp Maze Cave|Northern Fairy Fountain|Savage Labyrinth|Cabana Labyrinth|Rock Spire Isle Secret Cave|Pawprint Isle Chuchu Cave|Thorned Fairy Fountain|Forbidden Woods|Stone Watcher Island Secret Cave|Eastern Fairy Fountain|Wind Temple|Bird's Peak Rock Secret Cave|Jalhalla Boss Arena|Gohdan Boss Arena|Southern Fairy Fountain|Cliff Plateau Isles Secret Cave|Forbidden Woods Miniboss Arena|Needle Rock Isle Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Pawprint Isle Wizzrobe Cave
+paths	Fairy Fountain Entrance on Thorned Fairy Island>Forbidden Woods Miniboss Arena|Secret Cave Entrance on Cliff Plateau Isles>Miniboss Entrance in Wind Temple>Miniboss Entrance in Earth Temple>Tower of the Gods Miniboss Arena|Secret Cave Entrance on Bomb Island>Miniboss Entrance in Forbidden Woods>Earth Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Miniboss Entrance in Tower of the Gods>Wind Temple Miniboss Arena|Secret Cave Entrance on Private Oasis>Master Sword Chamber|Miniboss Entrance in Hyrule Castle>Boss Entrance in Tower of the Gods>Boss Entrance in Dragon Roost Cavern>Gohma Boss Arena|Secret Cave Entrance on Cliff Plateau Isles>Boss Entrance in Wind Temple>Kalle Demos Boss Arena|Secret Cave Entrance on Angular Isles>Inner Entrance in Ice Ring Isle Secret Cave>Gohdan Boss Arena|Secret Cave Entrance on Cliff Plateau Isles>Miniboss Entrance in Wind Temple>Boss Entrance in Earth Temple>Helmaroc King Boss Arena|Secret Cave Entrance on Star Island>Jalhalla Boss Arena|Secret Cave Entrance on Bomb Island>Boss Entrance in Forbidden Woods>Molgera Boss Arena|Secret Cave Entrance on Overlook Island>Savage Labyrinth|Dungeon Entrance on Gale Isle>Dragon Roost Island Secret Cave|Secret Cave Entrance on Needle Rock Isle>Fire Mountain Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Cabana Labyrinth|Fairy Fountain Entrance on Eastern Fairy Island>Needle Rock Isle Secret Cave|Secret Cave Entrance on Dragon Roost Island>Angular Isles Secret Cave|Dungeon Entrance in Forest Haven Sector>Boating Course Secret Cave|Secret Cave Entrance on Rock Spire Isle>Stone Watcher Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Overlook Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Pawprint Isle Chuchu Cave|Fairy Fountain Entrance on Northern Fairy Island>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Boating Course>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Outset Island>Bomb Island Secret Cave|Secret Cave Entrance on Pawprint Isle>Rock Spire Isle Secret Cave|Dungeon Entrance on Headstone Island>Shark Island Secret Cave|Fairy Fountain Entrance on Western Fairy Island>Horseshoe Island Secret Cave|Fairy Fountain Entrance on Southern Fairy Island>Star Island Secret Cave|Secret Cave Entrance on Fire Mountain>Ice Ring Isle Inner Cave|Boss Entrance in Forsaken Fortress>Cliff Plateau Isles Inner Cave|Dungeon Entrance on Dragon Roost Island>Outset Fairy Fountain|Secret Cave Entrance on Diamond Steppe Island>Thorned Fairy Fountain|Secret Cave Entrance on Shark Island>Eastern Fairy Fountain|Dungeon Entrance in Tower of the Gods Sector>Western Fairy Fountain|Fairy Fountain Entrance on Outset Island>Inner Entrance in Cliff Plateau Isles Secret Cave>Southern Fairy Fountain|Secret Cave Entrance on Stone Watcher Island>Northern Fairy Fountain
+nesting	1
+macro	Outset Fairy Fountain	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Boating Course Secret Cave	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Western Fairy Fountain	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Shark Island Secret Cave	Can Access Dungeon Entrance on Headstone Island
+macro	Dragon Roost Island Secret Cave	Can Access Dungeon Entrance on Gale Isle
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Earth Temple	Can Access Miniboss Entrance in Wind Temple
+macro	Tower of the Gods	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohma Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Molgera Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Dragon Roost Cavern	Can Access Boss Entrance in Tower of the Gods
+macro	Cliff Plateau Isles Inner Cave	Can Access Boss Entrance in Forsaken Fortress
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Outset Island
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Ice Ring Isle Inner Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Master Sword Chamber	Can Access Secret Cave Entrance on Private Oasis
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Northern Fairy Fountain	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Overlook Island
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Thorned Fairy Fountain	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Forbidden Woods	Can Access Secret Cave Entrance on Bomb Island
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Eastern Fairy Fountain	Can Access Secret Cave Entrance on Shark Island
+macro	Wind Temple	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Jalhalla Boss Arena	Can Access Secret Cave Entrance on Star Island
+macro	Gohdan Boss Arena	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Southern Fairy Fountain	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Cliff Plateau Isles Secret Cave	Can Access Fairy Fountain Entrance on Outset Island
+macro	Forbidden Woods Miniboss Arena	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Needle Rock Isle Secret Cave	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Horseshoe Island Secret Cave	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Star Island Secret Cave	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Pawprint Isle Wizzrobe Cave	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntB_sep
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Forbidden Woods Miniboss Arena|Wind Temple|Tower of the Gods Miniboss Arena|Molgera Boss Arena|Earth Temple|Wind Temple Miniboss Arena|Earth Temple Miniboss Arena|Master Sword Chamber|Jalhalla Boss Arena|Tower of the Gods|Forbidden Woods|Gohdan Boss Arena|Helmaroc King Boss Arena|Dragon Roost Cavern|Gohma Boss Arena|Kalle Demos Boss Arena|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Shark Island Secret Cave|Pawprint Isle Chuchu Cave|Southern Fairy Fountain|Western Fairy Fountain|Eastern Fairy Fountain|Cliff Plateau Isles Inner Cave|Cliff Plateau Isles Secret Cave|Thorned Fairy Fountain|Ice Ring Isle Inner Cave|Savage Labyrinth|Cabana Labyrinth|Dragon Roost Island Secret Cave|Diamond Steppe Island Warp Maze Cave|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Fire Mountain Secret Cave|Overlook Island Secret Cave|Horseshoe Island Secret Cave|Outset Fairy Fountain|Ice Ring Isle Secret Cave|Rock Spire Isle Secret Cave|Bird's Peak Rock Secret Cave|Bomb Island Secret Cave|Star Island Secret Cave|Pawprint Isle Wizzrobe Cave|Northern Fairy Fountain
+paths	Dungeon Entrance on Dragon Roost Island>Forbidden Woods Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Tower of the Gods Miniboss Arena|Miniboss Entrance in Hyrule Castle>Miniboss Entrance in Tower of the Gods>Earth Temple Miniboss Arena|Boss Entrance in Forsaken Fortress>Boss Entrance in Dragon Roost Cavern>Miniboss Entrance in Forbidden Woods>Wind Temple Miniboss Arena|Dungeon Entrance on Gale Isle>Miniboss Entrance in Earth Temple>Master Sword Chamber|Dungeon Entrance on Gale Isle>Boss Entrance in Earth Temple>Gohma Boss Arena|Dungeon Entrance in Forest Haven Sector>Boss Entrance in Wind Temple>Kalle Demos Boss Arena|Boss Entrance in Forsaken Fortress>Boss Entrance in Dragon Roost Cavern>Boss Entrance in Forbidden Woods>Gohdan Boss Arena|Miniboss Entrance in Hyrule Castle>Boss Entrance in Tower of the Gods>Helmaroc King Boss Arena|Dungeon Entrance in Forest Haven Sector>Miniboss Entrance in Wind Temple>Jalhalla Boss Arena|Dungeon Entrance on Headstone Island>Molgera Boss Arena|Secret Cave Entrance on Pawprint Isle>Savage Labyrinth|Secret Cave Entrance on Diamond Steppe Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Cliff Plateau Isles>Fire Mountain Secret Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Cabana Labyrinth|Secret Cave Entrance on Rock Spire Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Shark Island>Angular Isles Secret Cave|Secret Cave Entrance on Outset Island>Boating Course Secret Cave|Secret Cave Entrance on Dragon Roost Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Overlook Island Secret Cave|Fairy Fountain Entrance on Thorned Fairy Island>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Ice Ring Isle>Pawprint Isle Chuchu Cave|Fairy Fountain Entrance on Southern Fairy Island>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Bomb Island>Diamond Steppe Island Warp Maze Cave|Fairy Fountain Entrance on Eastern Fairy Island>Bomb Island Secret Cave|Fairy Fountain Entrance on Outset Island>Rock Spire Isle Secret Cave|Secret Cave Entrance on Fire Mountain>Shark Island Secret Cave|Secret Cave Entrance on Star Island>Horseshoe Island Secret Cave|Fairy Fountain Entrance on Western Fairy Island>Star Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Ice Ring Isle Inner Cave|Secret Cave Entrance on Boating Course>Cliff Plateau Isles Inner Cave|Secret Cave Entrance on Stone Watcher Island>Inner Entrance in Cliff Plateau Isles Secret Cave>Inner Entrance in Ice Ring Isle Secret Cave>Outset Fairy Fountain|Secret Cave Entrance on Overlook Island>Thorned Fairy Fountain|Secret Cave Entrance on Angular Isles>Eastern Fairy Fountain|Secret Cave Entrance on Needle Rock Isle>Western Fairy Fountain|Secret Cave Entrance on Private Oasis>Southern Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Northern Fairy Fountain
+nesting	1
+macro	Forbidden Woods Miniboss Arena	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Wind Temple	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Tower of the Gods Miniboss Arena	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Molgera Boss Arena	Can Access Dungeon Entrance on Headstone Island
+macro	Earth Temple	Can Access Dungeon Entrance on Gale Isle
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Earth Temple
+macro	Jalhalla Boss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Tower of the Gods	Can Access Miniboss Entrance in Hyrule Castle
+macro	Forbidden Woods	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Dragon Roost Cavern	Can Access Boss Entrance in Forsaken Fortress
+macro	Gohma Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Outset Island
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Southern Fairy Fountain	Can Access Secret Cave Entrance on Private Oasis
+macro	Western Fairy Fountain	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Eastern Fairy Fountain	Can Access Secret Cave Entrance on Angular Isles
+macro	Cliff Plateau Isles Inner Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Thorned Fairy Fountain	Can Access Secret Cave Entrance on Overlook Island
+macro	Ice Ring Isle Inner Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Outset Fairy Fountain	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Ice Ring Isle Secret Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Rock Spire Isle Secret Cave	Can Access Fairy Fountain Entrance on Outset Island
+macro	Bird's Peak Rock Secret Cave	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Bomb Island Secret Cave	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Star Island Secret Cave	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Pawprint Isle Wizzrobe Cave	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntB_mix
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Pawprint Isle Wizzrobe Cave|Kalle Demos Boss Arena|Earth Temple Miniboss Arena|Boating Course Secret Cave|Fire Mountain Secret Cave|Wind Temple Miniboss Arena|Master Sword Chamber|Tower of the Gods Miniboss Arena|Dragon Roost Cavern|Western Fairy Fountain|Eastern Fairy Fountain|Helmaroc King Boss Arena|Forbidden Woods|Northern Fairy Fountain|Cliff Plateau Isles Inner Cave|Tower of the Gods|Cliff Plateau Isles Secret Cave|Stone Watcher Island Secret Cave|Needle Rock Isle Secret Cave|Ice Ring Isle Secret Cave|Outset Fairy Fountain|Shark Island Secret Cave|Gohdan Boss Arena|Jalhalla Boss Arena|Bird's Peak Rock Secret Cave|Wind Temple|Southern Fairy Fountain|Cabana Labyrinth|Overlook Island Secret Cave|Horseshoe Island Secret Cave|Dragon Roost Island Secret Cave|Rock Spire Isle Secret Cave|Savage Labyrinth|Molgera Boss Arena|Ice Ring Isle Inner Cave|Star Island Secret Cave|Forbidden Woods Miniboss Arena|Gohma Boss Arena|Angular Isles Secret Cave|Diamond Steppe Island Warp Maze Cave|Pawprint Isle Chuchu Cave|Thorned Fairy Fountain|Bomb Island Secret Cave|Earth Temple
+paths	Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Ice Ring Isle Secret Cave>Forbidden Woods Miniboss Arena|Fairy Fountain Entrance on Northern Fairy Island>Miniboss Entrance in Earth Temple>Tower of the Gods Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Earth Temple Miniboss Arena|Secret Cave Entrance on Overlook Island>Boss Entrance in Wind Temple>Boss Entrance in Tower of the Gods>Miniboss Entrance in Forbidden Woods>Wind Temple Miniboss Arena|Secret Cave Entrance on Overlook Island>Boss Entrance in Wind Temple>Miniboss Entrance in Tower of the Gods>Master Sword Chamber|Secret Cave Entrance on Outset Island>Inner Entrance in Cliff Plateau Isles Secret Cave>Gohma Boss Arena|Dungeon Entrance in Forest Haven Sector>Kalle Demos Boss Arena|Secret Cave Entrance on Angular Isles>Gohdan Boss Arena|Secret Cave Entrance on Overlook Island>Boss Entrance in Wind Temple>Boss Entrance in Tower of the Gods>Boss Entrance in Forbidden Woods>Helmaroc King Boss Arena|Secret Cave Entrance on Boating Course>Jalhalla Boss Arena|Secret Cave Entrance on Cliff Plateau Isles>Molgera Boss Arena|Secret Cave Entrance on Shark Island>Savage Labyrinth|Secret Cave Entrance on Bomb Island>Dragon Roost Island Secret Cave|Dungeon Entrance on Gale Isle>Fire Mountain Secret Cave|Secret Cave Entrance on Pawprint Isle>Cabana Labyrinth|Secret Cave Entrance on Fire Mountain>Needle Rock Isle Secret Cave|Fairy Fountain Entrance on Outset Island>Angular Isles Secret Cave|Dungeon Entrance on Headstone Island>Boating Course Secret Cave|Secret Cave Entrance on Dragon Roost Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Overlook Island Secret Cave|Secret Cave Entrance on Stone Watcher Island>Bird's Peak Rock Secret Cave|Fairy Fountain Entrance on Eastern Fairy Island>Pawprint Isle Chuchu Cave|Dungeon Entrance on Dragon Roost Island>Pawprint Isle Wizzrobe Cave|Fairy Fountain Entrance on Thorned Fairy Island>Diamond Steppe Island Warp Maze Cave|Fairy Fountain Entrance on Southern Fairy Island>Bomb Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Needle Rock Isle>Shark Island Secret Cave|Secret Cave Entrance on Diamond Steppe Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Star Island>Star Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Ice Ring Isle Inner Cave|Fairy Fountain Entrance on Northern Fairy Island>Boss Entrance in Earth Temple>Cliff Plateau Isles Inner Cave|Secret Cave Entrance on Private Oasis>Outset Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Thorned Fairy Fountain|Secret Cave Entrance on Overlook Island>Miniboss Entrance in Wind Temple>Boss Entrance in Dragon Roost Cavern>Eastern Fairy Fountain|Miniboss Entrance in Hyrule Castle>Western Fairy Fountain|Secret Cave Entrance on Bird's Peak Rock>Southern Fairy Fountain|Boss Entrance in Forsaken Fortress>Northern Fairy Fountain
+nesting	1
+macro	Pawprint Isle Wizzrobe Cave	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Kalle Demos Boss Arena	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Earth Temple Miniboss Arena	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Boating Course Secret Cave	Can Access Dungeon Entrance on Headstone Island
+macro	Fire Mountain Secret Cave	Can Access Dungeon Entrance on Gale Isle
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Tower of the Gods
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Dragon Roost Cavern	Can Access Miniboss Entrance in Wind Temple
+macro	Western Fairy Fountain	Can Access Miniboss Entrance in Hyrule Castle
+macro	Eastern Fairy Fountain	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Forbidden Woods	Can Access Boss Entrance in Tower of the Gods
+macro	Northern Fairy Fountain	Can Access Boss Entrance in Forsaken Fortress
+macro	Cliff Plateau Isles Inner Cave	Can Access Boss Entrance in Earth Temple
+macro	Tower of the Gods	Can Access Boss Entrance in Wind Temple
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Outset Island
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Outset Fairy Fountain	Can Access Secret Cave Entrance on Private Oasis
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Gohdan Boss Arena	Can Access Secret Cave Entrance on Angular Isles
+macro	Jalhalla Boss Arena	Can Access Secret Cave Entrance on Boating Course
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Wind Temple	Can Access Secret Cave Entrance on Overlook Island
+macro	Southern Fairy Fountain	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Shark Island
+macro	Molgera Boss Arena	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Ice Ring Isle Inner Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Forbidden Woods Miniboss Arena	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Gohma Boss Arena	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Angular Isles Secret Cave	Can Access Fairy Fountain Entrance on Outset Island
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Pawprint Isle Chuchu Cave	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Bomb Island Secret Cave	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Earth Temple	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntC_sep
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Gohma Boss Arena|Wind Temple Miniboss Arena|Kalle Demos Boss Arena|Forbidden Woods|Master Sword Chamber|Wind Temple|Molgera Boss Arena|Forbidden Woods Miniboss Arena|Earth Temple Miniboss Arena|Tower of the Gods|Tower of the Gods Miniboss Arena|Earth Temple|Gohdan Boss Arena|Dragon Roost Cavern|Jalhalla Boss Arena|Helmaroc King Boss Arena|Pawprint Isle Wizzrobe Cave|Ice Ring Isle Secret Cave|Thorned Fairy Fountain|Horseshoe Island Secret Cave|Bomb Island Secret Cave|Overlook Island Secret Cave|Needle Rock Isle Secret Cave|Bird's Peak Rock Secret Cave|Outset Fairy Fountain|Stone Watcher Island Secret Cave|Angular Isles Secret Cave|Ice Ring Isle Inner Cave|Star Island Secret Cave|Cabana Labyrinth|Cliff Plateau Isles Inner Cave|Western Fairy Fountain|Boating Course Secret Cave|Cliff Plateau Isles Secret Cave|Savage Labyrinth|Fire Mountain Secret Cave|Diamond Steppe Island Warp Maze Cave|Southern Fairy Fountain|Dragon Roost Island Secret Cave|Eastern Fairy Fountain|Northern Fairy Fountain|Pawprint Isle Chuchu Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave
+paths	Dungeon Entrance on Headstone Island>Boss Entrance in Forbidden Woods>Miniboss Entrance in Earth Temple>Forbidden Woods Miniboss Arena|Boss Entrance in Forsaken Fortress>Boss Entrance in Dragon Roost Cavern>Tower of the Gods Miniboss Arena|Dungeon Entrance on Headstone Island>Miniboss Entrance in Forbidden Woods>Miniboss Entrance in Wind Temple>Earth Temple Miniboss Arena|Dungeon Entrance in Forest Haven Sector>Wind Temple Miniboss Arena|Dungeon Entrance on Gale Isle>Master Sword Chamber|Dungeon Entrance on Dragon Roost Island>Gohma Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Kalle Demos Boss Arena|Miniboss Entrance in Hyrule Castle>Boss Entrance in Tower of the Gods>Gohdan Boss Arena|Dungeon Entrance on Headstone Island>Miniboss Entrance in Forbidden Woods>Boss Entrance in Wind Temple>Helmaroc King Boss Arena|Dungeon Entrance on Headstone Island>Boss Entrance in Forbidden Woods>Boss Entrance in Earth Temple>Jalhalla Boss Arena|Miniboss Entrance in Hyrule Castle>Miniboss Entrance in Tower of the Gods>Molgera Boss Arena|Secret Cave Entrance on Horseshoe Island>Savage Labyrinth|Fairy Fountain Entrance on Outset Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Star Island>Fire Mountain Secret Cave|Secret Cave Entrance on Diamond Steppe Island>Cabana Labyrinth|Secret Cave Entrance on Angular Isles>Needle Rock Isle Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Angular Isles Secret Cave|Secret Cave Entrance on Shark Island>Boating Course Secret Cave|Secret Cave Entrance on Overlook Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Needle Rock Isle>Overlook Island Secret Cave|Secret Cave Entrance on Boating Course>Bird's Peak Rock Secret Cave|Fairy Fountain Entrance on Western Fairy Island>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Outset Island>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Dragon Roost Island>Inner Entrance in Ice Ring Isle Secret Cave>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Private Oasis>Bomb Island Secret Cave|Fairy Fountain Entrance on Southern Fairy Island>Rock Spire Isle Secret Cave|Fairy Fountain Entrance on Northern Fairy Island>Shark Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Horseshoe Island Secret Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Star Island Secret Cave|Secret Cave Entrance on Pawprint Isle>Ice Ring Isle Inner Cave|Secret Cave Entrance on Bomb Island>Cliff Plateau Isles Inner Cave|Secret Cave Entrance on Stone Watcher Island>Outset Fairy Fountain|Secret Cave Entrance on Fire Mountain>Thorned Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Eastern Fairy Fountain|Secret Cave Entrance on Rock Spire Isle>Western Fairy Fountain|Secret Cave Entrance on Cliff Plateau Isles>Inner Entrance in Cliff Plateau Isles Secret Cave>Southern Fairy Fountain|Fairy Fountain Entrance on Eastern Fairy Island>Northern Fairy Fountain
+nesting	1
+macro	Gohma Boss Arena	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Wind Temple Miniboss Arena	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Kalle Demos Boss Arena	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Forbidden Woods	Can Access Dungeon Entrance on Headstone Island
+macro	Master Sword Chamber	Can Access Dungeon Entrance on Gale Isle
+macro	Wind Temple	Can Access Miniboss Entrance in Forbidden Woods
+macro	Molgera Boss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Tower of the Gods	Can Access Miniboss Entrance in Hyrule Castle
+macro	Tower of the Gods Miniboss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Earth Temple	Can Access Boss Entrance in Forbidden Woods
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Dragon Roost Cavern	Can Access Boss Entrance in Forsaken Fortress
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Outset Island
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Thorned Fairy Fountain	Can Access Secret Cave Entrance on Fire Mountain
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Private Oasis
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Outset Fairy Fountain	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Ice Ring Isle Inner Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Cliff Plateau Isles Inner Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Western Fairy Fountain	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Southern Fairy Fountain	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Dragon Roost Island Secret Cave	Can Access Fairy Fountain Entrance on Outset Island
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Pawprint Isle Chuchu Cave	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Rock Spire Isle Secret Cave	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Shark Island Secret Cave	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntC_mix
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Eastern Fairy Fountain|Pawprint Isle Chuchu Cave|Helmaroc King Boss Arena|Shark Island Secret Cave|Needle Rock Isle Secret Cave|Master Sword Chamber|Gohdan Boss Arena|Cliff Plateau Isles Inner Cave|Thorned Fairy Fountain|Forbidden Woods|Western Fairy Fountain|Southern Fairy Fountain|Jalhalla Boss Arena|Kalle Demos Boss Arena|Cliff Plateau Isles Secret Cave|Dragon Roost Cavern|Stone Watcher Island Secret Cave|Molgera Boss Arena|Angular Isles Secret Cave|Ice Ring Isle Secret Cave|Tower of the Gods|Savage Labyrinth|Overlook Island Secret Cave|Pawprint Isle Wizzrobe Cave|Ice Ring Isle Inner Cave|Boating Course Secret Cave|Rock Spire Isle Secret Cave|Outset Fairy Fountain|Gohma Boss Arena|Cabana Labyrinth|Dragon Roost Island Secret Cave|Earth Temple|Tower of the Gods Miniboss Arena|Horseshoe Island Secret Cave|Wind Temple|Forbidden Woods Miniboss Arena|Northern Fairy Fountain|Bird's Peak Rock Secret Cave|Fire Mountain Secret Cave|Star Island Secret Cave|Earth Temple Miniboss Arena|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Wind Temple Miniboss Arena
+paths	Secret Cave Entrance on Star Island>Forbidden Woods Miniboss Arena|Secret Cave Entrance on Shark Island>Tower of the Gods Miniboss Arena|Fairy Fountain Entrance on Eastern Fairy Island>Earth Temple Miniboss Arena|Fairy Fountain Entrance on Northern Fairy Island>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Miniboss Entrance in Forbidden Woods>Master Sword Chamber|Secret Cave Entrance on Pawprint Isle Side Isle>Gohma Boss Arena|Boss Entrance in Forsaken Fortress>Kalle Demos Boss Arena|Secret Cave Entrance on Private Oasis>Miniboss Entrance in Tower of the Gods>Gohdan Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Helmaroc King Boss Arena|Secret Cave Entrance on Private Oasis>Boss Entrance in Tower of the Gods>Jalhalla Boss Arena|Secret Cave Entrance on Dragon Roost Island>Molgera Boss Arena|Secret Cave Entrance on Needle Rock Isle>Savage Labyrinth|Secret Cave Entrance on Bomb Island>Dragon Roost Island Secret Cave|Fairy Fountain Entrance on Outset Island>Fire Mountain Secret Cave|Secret Cave Entrance on Diamond Steppe Island>Cabana Labyrinth|Dungeon Entrance on Gale Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Fire Mountain>Angular Isles Secret Cave|Secret Cave Entrance on Overlook Island>Boating Course Secret Cave|Secret Cave Entrance on Outset Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Angular Isles>Overlook Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Boss Entrance in Earth Temple>Inner Entrance in Cliff Plateau Isles Secret Cave>Bird's Peak Rock Secret Cave|Dungeon Entrance in Forest Haven Sector>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Boating Course>Pawprint Isle Wizzrobe Cave|Fairy Fountain Entrance on Western Fairy Island>Diamond Steppe Island Warp Maze Cave|Fairy Fountain Entrance on Southern Fairy Island>Bomb Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Rock Spire Isle Secret Cave|Dungeon Entrance on Headstone Island>Shark Island Secret Cave|Secret Cave Entrance on Cliff Plateau Isles>Horseshoe Island Secret Cave|Fairy Fountain Entrance on Thorned Fairy Island>Star Island Secret Cave|Secret Cave Entrance on Stone Watcher Island>Ice Ring Isle Inner Cave|Secret Cave Entrance on Rock Spire Isle>Miniboss Entrance in Earth Temple>Cliff Plateau Isles Inner Cave|Secret Cave Entrance on Pawprint Isle>Outset Fairy Fountain|Secret Cave Entrance on Horseshoe Island>Miniboss Entrance in Wind Temple>Thorned Fairy Fountain|Dungeon Entrance on Dragon Roost Island>Eastern Fairy Fountain|Secret Cave Entrance on Horseshoe Island>Boss Entrance in Wind Temple>Boss Entrance in Dragon Roost Cavern>Western Fairy Fountain|Miniboss Entrance in Hyrule Castle>Boss Entrance in Forbidden Woods>Southern Fairy Fountain|Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Ice Ring Isle Secret Cave>Northern Fairy Fountain
+nesting	1
+macro	Eastern Fairy Fountain	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Pawprint Isle Chuchu Cave	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Helmaroc King Boss Arena	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Shark Island Secret Cave	Can Access Dungeon Entrance on Headstone Island
+macro	Needle Rock Isle Secret Cave	Can Access Dungeon Entrance on Gale Isle
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Forbidden Woods
+macro	Gohdan Boss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Cliff Plateau Isles Inner Cave	Can Access Miniboss Entrance in Earth Temple
+macro	Thorned Fairy Fountain	Can Access Miniboss Entrance in Wind Temple
+macro	Forbidden Woods	Can Access Miniboss Entrance in Hyrule Castle
+macro	Western Fairy Fountain	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Southern Fairy Fountain	Can Access Boss Entrance in Forbidden Woods
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Cliff Plateau Isles Secret Cave	Can Access Boss Entrance in Earth Temple
+macro	Dragon Roost Cavern	Can Access Boss Entrance in Wind Temple
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Outset Island
+macro	Molgera Boss Arena	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Tower of the Gods	Can Access Secret Cave Entrance on Private Oasis
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Ice Ring Isle Inner Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Outset Fairy Fountain	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Gohma Boss Arena	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Earth Temple	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Tower of the Gods Miniboss Arena	Can Access Secret Cave Entrance on Shark Island
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Wind Temple	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Forbidden Woods Miniboss Arena	Can Access Secret Cave Entrance on Star Island
+macro	Northern Fairy Fountain	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Bird's Peak Rock Secret Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Fire Mountain Secret Cave	Can Access Fairy Fountain Entrance on Outset Island
+macro	Star Island Secret Cave	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Earth Temple Miniboss Arena	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Bomb Island Secret Cave	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Wind Temple Miniboss Arena	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntAll_mix
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	progression_battlesquid	1
+opt	progression_big_octos_gunboats	1
+opt	progression_combat_secret_caves	1
+opt	progression_dungeon_secrets	1
+opt	progression_eye_reef_chests	1
+opt	progression_island_puzzles	1
+opt	progression_long_sidequests	1
+opt	progression_mail	1
+opt	progression_minigames	1
+opt	progression_platforms_rafts	1
+opt	progression_savage_labyrinth	1
+opt	progression_short_sidequests	1
+opt	progression_spoils_trading	1
+opt	progression_submarines	1
+opt	progression_tingle_chests	1
+opt	progression_treasure_charts	1
+opt	progression_triforce_charts	1
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Master Sword Chamber|Ice Ring Isle Inner Cave|Angular Isles Secret Cave|Overlook Island Secret Cave|Gohdan Boss Arena|Jalhalla Boss Arena|Eastern Fairy Fountain|Forbidden Woods Miniboss Arena|Southern Fairy Fountain|Western Fairy Fountain|Diamond Steppe Island Warp Maze Cave|Kalle Demos Boss Arena|Star Island Secret Cave|Forbidden Woods|Tower of the Gods|Gohma Boss Arena|Earth Temple Miniboss Arena|Ice Ring Isle Secret Cave|Fire Mountain Secret Cave|Dragon Roost Island Secret Cave|Bomb Island Secret Cave|Savage Labyrinth|Stone Watcher Island Secret Cave|Earth Temple|Tower of the Gods Miniboss Arena|Horseshoe Island Secret Cave|Cabana Labyrinth|Outset Fairy Fountain|Dragon Roost Cavern|Needle Rock Isle Secret Cave|Northern Fairy Fountain|Pawprint Isle Chuchu Cave|Cliff Plateau Isles Inner Cave|Wind Temple Miniboss Arena|Pawprint Isle Wizzrobe Cave|Rock Spire Isle Secret Cave|Wind Temple|Thorned Fairy Fountain|Boating Course Secret Cave|Bird's Peak Rock Secret Cave|Shark Island Secret Cave|Helmaroc King Boss Arena|Cliff Plateau Isles Secret Cave|Molgera Boss Arena
+paths	Secret Cave Entrance on Boating Course>Miniboss Entrance in Earth Temple>Forbidden Woods Miniboss Arena|Secret Cave Entrance on Stone Watcher Island>Tower of the Gods Miniboss Arena|Secret Cave Entrance on Outset Island>Earth Temple Miniboss Arena|Secret Cave Entrance on Cliff Plateau Isles>Wind Temple Miniboss Arena|Dungeon Entrance on Dragon Roost Island>Master Sword Chamber|Secret Cave Entrance on Dragon Roost Island>Inner Entrance in Ice Ring Isle Secret Cave>Boss Entrance in Wind Temple>Gohma Boss Arena|Boss Entrance in Forsaken Fortress>Boss Entrance in Forbidden Woods>Kalle Demos Boss Arena|Dungeon Entrance on Gale Isle>Gohdan Boss Arena|Fairy Fountain Entrance on Western Fairy Island>Helmaroc King Boss Arena|Boss Entrance in Forsaken Fortress>Miniboss Entrance in Forbidden Woods>Jalhalla Boss Arena|Fairy Fountain Entrance on Northern Fairy Island>Molgera Boss Arena|Secret Cave Entrance on Needle Rock Isle>Savage Labyrinth|Secret Cave Entrance on Ice Ring Isle>Dragon Roost Island Secret Cave|Secret Cave Entrance on Fire Mountain>Fire Mountain Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Cabana Labyrinth|Secret Cave Entrance on Diamond Steppe Island>Needle Rock Isle Secret Cave|Dungeon Entrance in Tower of the Gods Sector>Angular Isles Secret Cave|Fairy Fountain Entrance on Outset Island>Boating Course Secret Cave|Secret Cave Entrance on Angular Isles>Stone Watcher Island Secret Cave|Dungeon Entrance on Headstone Island>Overlook Island Secret Cave|Fairy Fountain Entrance on Thorned Fairy Island>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Rock Spire Isle>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Horseshoe Island>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Boss Entrance in Dragon Roost Cavern>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Private Oasis>Bomb Island Secret Cave|Secret Cave Entrance on Star Island>Rock Spire Isle Secret Cave|Fairy Fountain Entrance on Eastern Fairy Island>Shark Island Secret Cave|Secret Cave Entrance on Overlook Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Boating Course>Boss Entrance in Earth Temple>Boss Entrance in Tower of the Gods>Star Island Secret Cave|Dungeon Entrance in Forest Haven Sector>Ice Ring Isle Inner Cave|Secret Cave Entrance on Shark Island>Cliff Plateau Isles Inner Cave|Secret Cave Entrance on Pawprint Isle>Outset Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Inner Entrance in Cliff Plateau Isles Secret Cave>Thorned Fairy Fountain|Secret Cave Entrance on Boating Course>Boss Entrance in Earth Temple>Miniboss Entrance in Tower of the Gods>Eastern Fairy Fountain|Miniboss Entrance in Hyrule Castle>Western Fairy Fountain|Secret Cave Entrance on Dragon Roost Island>Inner Entrance in Ice Ring Isle Secret Cave>Miniboss Entrance in Wind Temple>Southern Fairy Fountain|Secret Cave Entrance on Bomb Island>Northern Fairy Fountain
+nesting	1
+macro	Master Sword Chamber	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Ice Ring Isle Inner Cave	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Angular Isles Secret Cave	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Overlook Island Secret Cave	Can Access Dungeon Entrance on Headstone Island
+macro	Gohdan Boss Arena	Can Access Dungeon Entrance on Gale Isle
+macro	Jalhalla Boss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Eastern Fairy Fountain	Can Access Miniboss Entrance in Tower of the Gods
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Southern Fairy Fountain	Can Access Miniboss Entrance in Wind Temple
+macro	Western Fairy Fountain	Can Access Miniboss Entrance in Hyrule Castle
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Star Island Secret Cave	Can Access Boss Entrance in Tower of the Gods
+macro	Forbidden Woods	Can Access Boss Entrance in Forsaken Fortress
+macro	Tower of the Gods	Can Access Boss Entrance in Earth Temple
+macro	Gohma Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Earth Temple Miniboss Arena	Can Access Secret Cave Entrance on Outset Island
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Private Oasis
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Earth Temple	Can Access Secret Cave Entrance on Boating Course
+macro	Tower of the Gods Miniboss Arena	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Outset Fairy Fountain	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Dragon Roost Cavern	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Northern Fairy Fountain	Can Access Secret Cave Entrance on Bomb Island
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Cliff Plateau Isles Inner Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Wind Temple Miniboss Arena	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Wind Temple	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Thorned Fairy Fountain	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Boating Course Secret Cave	Can Access Fairy Fountain Entrance on Outset Island
+macro	Bird's Peak Rock Secret Cave	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Shark Island Secret Cave	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Helmaroc King Boss Arena	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Molgera Boss Arena	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntRB2
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	num_required_bosses	2
+opt	progression_battlesquid	1
+opt	progression_big_octos_gunboats	1
+opt	progression_combat_secret_caves	1
+opt	progression_dungeon_secrets	1
+opt	progression_eye_reef_chests	1
+opt	progression_island_puzzles	1
+opt	progression_long_sidequests	1
+opt	progression_mail	1
+opt	progression_minigames	1
+opt	progression_platforms_rafts	1
+opt	progression_savage_labyrinth	1
+opt	progression_short_sidequests	1
+opt	progression_spoils_trading	1
+opt	progression_submarines	1
+opt	progression_tingle_chests	1
+opt	progression_treasure_charts	1
+opt	progression_triforce_charts	1
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+opt	required_bosses	1
+conn	Cliff Plateau Isles Inner Cave|Stone Watcher Island Secret Cave|Molgera Boss Arena|Helmaroc King Boss Arena|Ice Ring Isle Secret Cave|Forbidden Woods Miniboss Arena|Western Fairy Fountain|Forbidden Woods|Wind Temple Miniboss Arena|Wind Temple|Earth Temple Miniboss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Gohma Boss Arena|Dragon Roost Cavern|Tower of the Gods Miniboss Arena|Pawprint Isle Chuchu Cave|Ice Ring Isle Inner Cave|Angular Isles Secret Cave|Star Island Secret Cave|Cabana Labyrinth|Northern Fairy Fountain|Boating Course Secret Cave|Diamond Steppe Island Warp Maze Cave|Jalhalla Boss Arena|Cliff Plateau Isles Secret Cave|Rock Spire Isle Secret Cave|Bird's Peak Rock Secret Cave|Earth Temple|Tower of the Gods|Savage Labyrinth|Master Sword Chamber|Bomb Island Secret Cave|Needle Rock Isle Secret Cave|Overlook Island Secret Cave|Horseshoe Island Secret Cave|Shark Island Secret Cave|Eastern Fairy Fountain|Pawprint Isle Wizzrobe Cave|Outset Fairy Fountain|Dragon Roost Island Secret Cave|Southern Fairy Fountain|Fire Mountain Secret Cave|Thorned Fairy Fountain
+paths	Secret Cave Entrance on Pawprint Isle Side Isle>Miniboss Entrance in Earth Temple>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Miniboss Entrance in Hyrule Castle>Boss Entrance in Wind Temple>Tower of the Gods Miniboss Arena|Secret Cave Entrance on Pawprint Isle Side Isle>Boss Entrance in Earth Temple>Boss Entrance in Dragon Roost Cavern>Earth Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Miniboss Entrance in Wind Temple>Wind Temple Miniboss Arena|Secret Cave Entrance on Rock Spire Isle>Master Sword Chamber|Boss Entrance in Forsaken Fortress>Gohma Boss Arena|Secret Cave Entrance on Pawprint Isle Side Isle>Miniboss Entrance in Earth Temple>Boss Entrance in Forbidden Woods>Kalle Demos Boss Arena|Secret Cave Entrance on Diamond Steppe Island>Boss Entrance in Tower of the Gods>Gohdan Boss Arena|Dungeon Entrance on Headstone Island>Helmaroc King Boss Arena|Secret Cave Entrance on Stone Watcher Island>Jalhalla Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Molgera Boss Arena|Secret Cave Entrance on Bomb Island>Savage Labyrinth|Fairy Fountain Entrance on Eastern Fairy Island>Dragon Roost Island Secret Cave|Fairy Fountain Entrance on Southern Fairy Island>Fire Mountain Secret Cave|Secret Cave Entrance on Private Oasis>Cabana Labyrinth|Secret Cave Entrance on Cliff Plateau Isles>Needle Rock Isle Secret Cave|Secret Cave Entrance on Fire Mountain>Angular Isles Secret Cave|Secret Cave Entrance on Angular Isles>Boating Course Secret Cave|Dungeon Entrance in Forest Haven Sector>Stone Watcher Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Overlook Island Secret Cave|Secret Cave Entrance on Pawprint Isle>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Outset Island>Pawprint Isle Chuchu Cave|Fairy Fountain Entrance on Outset Island>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Boating Course>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Shark Island>Bomb Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Rock Spire Isle Secret Cave|Dungeon Entrance on Gale Isle>Inner Entrance in Ice Ring Isle Secret Cave>Shark Island Secret Cave|Secret Cave Entrance on Star Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Star Island Secret Cave|Secret Cave Entrance on Dragon Roost Island>Ice Ring Isle Inner Cave|Dungeon Entrance on Dragon Roost Island>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Thorned Fairy Island>Outset Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Thorned Fairy Fountain|Secret Cave Entrance on Overlook Island>Inner Entrance in Cliff Plateau Isles Secret Cave>Eastern Fairy Fountain|Secret Cave Entrance on Diamond Steppe Island>Miniboss Entrance in Tower of the Gods>Western Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Southern Fairy Fountain|Secret Cave Entrance on Needle Rock Isle>Northern Fairy Fountain
+nesting	1
+macro	Cliff Plateau Isles Inner Cave	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Stone Watcher Island Secret Cave	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Molgera Boss Arena	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Helmaroc King Boss Arena	Can Access Dungeon Entrance on Headstone Island
+macro	Ice Ring Isle Secret Cave	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Western Fairy Fountain	Can Access Miniboss Entrance in Tower of the Gods
+macro	Forbidden Woods	Can Access Miniboss Entrance in Earth Temple
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Wind Temple	Can Access Miniboss Entrance in Hyrule Castle
+macro	Earth Temple Miniboss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Gohma Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Dragon Roost Cavern	Can Access Boss Entrance in Earth Temple
+macro	Tower of the Gods Miniboss Arena	Can Access Boss Entrance in Wind Temple
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Outset Island
+macro	Ice Ring Isle Inner Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Private Oasis
+macro	Northern Fairy Fountain	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Jalhalla Boss Arena	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Earth Temple	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Tower of the Gods	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Bomb Island
+macro	Master Sword Chamber	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Shark Island Secret Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Eastern Fairy Fountain	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Pawprint Isle Wizzrobe Cave	Can Access Fairy Fountain Entrance on Outset Island
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Dragon Roost Island Secret Cave	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Fire Mountain Secret Cave	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntRB4
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	progression_battlesquid	1
+opt	progression_big_octos_gunboats	1
+opt	progression_combat_secret_caves	1
+opt	progression_dungeon_secrets	1
+opt	progression_eye_reef_chests	1
+opt	progression_island_puzzles	1
+opt	progression_long_sidequests	1
+opt	progression_mail	1
+opt	progression_minigames	1
+opt	progression_platforms_rafts	1
+opt	progression_savage_labyrinth	1
+opt	progression_short_sidequests	1
+opt	progression_spoils_trading	1
+opt	progression_submarines	1
+opt	progression_tingle_chests	1
+opt	progression_treasure_charts	1
+opt	progression_triforce_charts	1
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+opt	required_bosses	1
+conn	Thorned Fairy Fountain|Dragon Roost Island Secret Cave|Savage Labyrinth|Earth Temple Miniboss Arena|Jalhalla Boss Arena|Forbidden Woods Miniboss Arena|Fire Mountain Secret Cave|Kalle Demos Boss Arena|Helmaroc King Boss Arena|Southern Fairy Fountain|Gohdan Boss Arena|Tower of the Gods|Gohma Boss Arena|Molgera Boss Arena|Forbidden Woods|Wind Temple Miniboss Arena|Ice Ring Isle Secret Cave|Northern Fairy Fountain|Overlook Island Secret Cave|Master Sword Chamber|Boating Course Secret Cave|Shark Island Secret Cave|Pawprint Isle Wizzrobe Cave|Earth Temple|Eastern Fairy Fountain|Stone Watcher Island Secret Cave|Horseshoe Island Secret Cave|Outset Fairy Fountain|Cabana Labyrinth|Cliff Plateau Isles Secret Cave|Star Island Secret Cave|Bomb Island Secret Cave|Wind Temple|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Tower of the Gods Miniboss Arena|Cliff Plateau Isles Inner Cave|Diamond Steppe Island Warp Maze Cave|Dragon Roost Cavern|Western Fairy Fountain|Bird's Peak Rock Secret Cave|Rock Spire Isle Secret Cave|Ice Ring Isle Inner Cave|Pawprint Isle Chuchu Cave
+paths	Secret Cave Entrance on Boating Course>Boss Entrance in Earth Temple>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Secret Cave Entrance on Star Island>Tower of the Gods Miniboss Arena|Dungeon Entrance on Headstone Island>Earth Temple Miniboss Arena|Secret Cave Entrance on Shark Island>Boss Entrance in Wind Temple>Wind Temple Miniboss Arena|Secret Cave Entrance on Ice Ring Isle>Master Sword Chamber|Secret Cave Entrance on Boating Course>Boss Entrance in Earth Temple>Boss Entrance in Forbidden Woods>Boss Entrance in Tower of the Gods>Gohma Boss Arena|Secret Cave Entrance on Boating Course>Miniboss Entrance in Earth Temple>Kalle Demos Boss Arena|Fairy Fountain Entrance on Outset Island>Boss Entrance in Dragon Roost Cavern>Gohdan Boss Arena|Secret Cave Entrance on Shark Island>Miniboss Entrance in Wind Temple>Helmaroc King Boss Arena|Dungeon Entrance on Gale Isle>Jalhalla Boss Arena|Boss Entrance in Forsaken Fortress>Molgera Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Savage Labyrinth|Dungeon Entrance in Forest Haven Sector>Dragon Roost Island Secret Cave|Secret Cave Entrance on Boating Course>Boss Entrance in Earth Temple>Boss Entrance in Forbidden Woods>Miniboss Entrance in Tower of the Gods>Fire Mountain Secret Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Cabana Labyrinth|Secret Cave Entrance on Cliff Plateau Isles>Needle Rock Isle Secret Cave|Secret Cave Entrance on Horseshoe Island>Angular Isles Secret Cave|Secret Cave Entrance on Private Oasis>Boating Course Secret Cave|Secret Cave Entrance on Overlook Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Fire Mountain>Overlook Island Secret Cave|Fairy Fountain Entrance on Eastern Fairy Island>Bird's Peak Rock Secret Cave|Fairy Fountain Entrance on Northern Fairy Island>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Angular Isles>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Diamond Steppe Island>Inner Entrance in Cliff Plateau Isles Secret Cave>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Rock Spire Isle>Bomb Island Secret Cave|Fairy Fountain Entrance on Western Fairy Island>Rock Spire Isle Secret Cave|Secret Cave Entrance on Needle Rock Isle>Shark Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Horseshoe Island Secret Cave|Secret Cave Entrance on Bomb Island>Star Island Secret Cave|Fairy Fountain Entrance on Southern Fairy Island>Ice Ring Isle Inner Cave|Secret Cave Entrance on Outset Island>Inner Entrance in Ice Ring Isle Secret Cave>Cliff Plateau Isles Inner Cave|Secret Cave Entrance on Pawprint Isle>Outset Fairy Fountain|Dungeon Entrance on Dragon Roost Island>Thorned Fairy Fountain|Secret Cave Entrance on Stone Watcher Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Western Fairy Fountain|Miniboss Entrance in Hyrule Castle>Southern Fairy Fountain|Secret Cave Entrance on Dragon Roost Island>Northern Fairy Fountain
+nesting	1
+macro	Thorned Fairy Fountain	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Dragon Roost Island Secret Cave	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Savage Labyrinth	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Earth Temple Miniboss Arena	Can Access Dungeon Entrance on Headstone Island
+macro	Jalhalla Boss Arena	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Fire Mountain Secret Cave	Can Access Miniboss Entrance in Tower of the Gods
+macro	Kalle Demos Boss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Helmaroc King Boss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Southern Fairy Fountain	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Tower of the Gods	Can Access Boss Entrance in Forbidden Woods
+macro	Gohma Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Molgera Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Forbidden Woods	Can Access Boss Entrance in Earth Temple
+macro	Wind Temple Miniboss Arena	Can Access Boss Entrance in Wind Temple
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Outset Island
+macro	Northern Fairy Fountain	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Master Sword Chamber	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Private Oasis
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Earth Temple	Can Access Secret Cave Entrance on Boating Course
+macro	Eastern Fairy Fountain	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Outset Fairy Fountain	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Wind Temple	Can Access Secret Cave Entrance on Shark Island
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Tower of the Gods Miniboss Arena	Can Access Secret Cave Entrance on Star Island
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Dragon Roost Cavern	Can Access Fairy Fountain Entrance on Outset Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Bird's Peak Rock Secret Cave	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Rock Spire Isle Secret Cave	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Ice Ring Isle Inner Cave	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Pawprint Isle Chuchu Cave	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntRB3_fixed_dungeons
+opt	num_required_bosses	3
+opt	progression_battlesquid	1
+opt	progression_big_octos_gunboats	1
+opt	progression_combat_secret_caves	1
+opt	progression_dungeon_secrets	1
+opt	progression_eye_reef_chests	1
+opt	progression_island_puzzles	1
+opt	progression_long_sidequests	1
+opt	progression_mail	1
+opt	progression_minigames	1
+opt	progression_platforms_rafts	1
+opt	progression_savage_labyrinth	1
+opt	progression_short_sidequests	1
+opt	progression_spoils_trading	1
+opt	progression_submarines	1
+opt	progression_tingle_chests	1
+opt	progression_treasure_charts	1
+opt	progression_triforce_charts	1
+opt	randomize_boss_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	required_bosses	1
+conn	Dragon Roost Cavern|Forbidden Woods|Tower of the Gods|Earth Temple|Wind Temple|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Forbidden Woods Miniboss Arena|Gohdan Boss Arena|Master Sword Chamber|Gohma Boss Arena|Jalhalla Boss Arena|Molgera Boss Arena|Tower of the Gods Miniboss Arena|Kalle Demos Boss Arena|Helmaroc King Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+paths	Dungeon Entrance on Headstone Island>Miniboss Entrance in Earth Temple>Forbidden Woods Miniboss Arena|Boss Entrance in Forsaken Fortress>Tower of the Gods Miniboss Arena|Dungeon Entrance in Forest Haven Sector>Miniboss Entrance in Forbidden Woods>Earth Temple Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Miniboss Entrance in Tower of the Gods>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Gohma Boss Arena|Dungeon Entrance on Headstone Island>Boss Entrance in Earth Temple>Kalle Demos Boss Arena|Dungeon Entrance on Gale Isle>Miniboss Entrance in Wind Temple>Gohdan Boss Arena|Dungeon Entrance on Gale Isle>Boss Entrance in Wind Temple>Helmaroc King Boss Arena|Dungeon Entrance in Forest Haven Sector>Boss Entrance in Forbidden Woods>Jalhalla Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Tower of the Gods>Molgera Boss Arena|Secret Cave Entrance on Outset Island>Savage Labyrinth|Secret Cave Entrance on Dragon Roost Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Fire Mountain>Fire Mountain Secret Cave|Secret Cave Entrance on Private Oasis>Cabana Labyrinth|Secret Cave Entrance on Needle Rock Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Angular Isles>Angular Isles Secret Cave|Secret Cave Entrance on Boating Course>Boating Course Secret Cave|Secret Cave Entrance on Stone Watcher Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Overlook Island>Overlook Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Pawprint Isle>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Diamond Steppe Island>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Bomb Island>Bomb Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Shark Island>Shark Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Star Island>Star Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Ice Ring Isle Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Cliff Plateau Isles>Inner Entrance in Cliff Plateau Isles Secret Cave>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Outset Island>Outset Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Thorned Fairy Fountain|Fairy Fountain Entrance on Eastern Fairy Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Western Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Southern Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Northern Fairy Fountain
+nesting	1
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Forbidden Woods	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Tower of the Gods	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Earth Temple	Can Access Dungeon Entrance on Headstone Island
+macro	Wind Temple	Can Access Dungeon Entrance on Gale Isle
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Gohdan Boss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohma Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Molgera Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Tower of the Gods Miniboss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Outset Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Private Oasis
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntDO1
+opt	progression_expensive_purchases	0
+opt	progression_free_gifts	0
+opt	progression_great_fairies	0
+opt	progression_misc	0
+opt	progression_puzzle_secret_caves	0
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+conn	Dragon Roost Cavern|Molgera Boss Arena|Earth Temple|Helmaroc King Boss Arena|Kalle Demos Boss Arena|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Tower of the Gods|Wind Temple|Forbidden Woods|Gohdan Boss Arena|Jalhalla Boss Arena|Gohma Boss Arena|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+paths	Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Boss Entrance in Tower of the Gods>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Miniboss Entrance in Tower of the Gods>Tower of the Gods Miniboss Arena|Dungeon Entrance in Tower of the Gods Sector>Miniboss Entrance in Earth Temple>Earth Temple Miniboss Arena|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Boss Entrance in Tower of the Gods>Boss Entrance in Forbidden Woods>Miniboss Entrance in Wind Temple>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Boss Entrance in Tower of the Gods>Boss Entrance in Forbidden Woods>Boss Entrance in Wind Temple>Gohma Boss Arena|Dungeon Entrance on Gale Isle>Kalle Demos Boss Arena|Boss Entrance in Forsaken Fortress>Gohdan Boss Arena|Dungeon Entrance on Headstone Island>Helmaroc King Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Boss Entrance in Earth Temple>Jalhalla Boss Arena|Dungeon Entrance in Forest Haven Sector>Molgera Boss Arena|Secret Cave Entrance on Outset Island>Savage Labyrinth|Secret Cave Entrance on Dragon Roost Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Fire Mountain>Fire Mountain Secret Cave|Secret Cave Entrance on Private Oasis>Cabana Labyrinth|Secret Cave Entrance on Needle Rock Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Angular Isles>Angular Isles Secret Cave|Secret Cave Entrance on Boating Course>Boating Course Secret Cave|Secret Cave Entrance on Stone Watcher Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Overlook Island>Overlook Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Pawprint Isle>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Diamond Steppe Island>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Bomb Island>Bomb Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Shark Island>Shark Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Star Island>Star Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Ice Ring Isle Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Cliff Plateau Isles>Inner Entrance in Cliff Plateau Isles Secret Cave>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Outset Island>Outset Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Thorned Fairy Fountain|Fairy Fountain Entrance on Eastern Fairy Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Western Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Southern Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Northern Fairy Fountain
+nesting	1
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Molgera Boss Arena	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Earth Temple	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Helmaroc King Boss Arena	Can Access Dungeon Entrance on Headstone Island
+macro	Kalle Demos Boss Arena	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Tower of the Gods	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Wind Temple	Can Access Boss Entrance in Forbidden Woods
+macro	Forbidden Woods	Can Access Boss Entrance in Tower of the Gods
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Forsaken Fortress
+macro	Jalhalla Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Gohma Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Outset Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Private Oasis
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntDO2
+opt	progression_expensive_purchases	0
+opt	progression_free_gifts	0
+opt	progression_great_fairies	0
+opt	progression_misc	0
+opt	progression_puzzle_secret_caves	0
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+conn	Dragon Roost Cavern|Jalhalla Boss Arena|Kalle Demos Boss Arena|Gohdan Boss Arena|Molgera Boss Arena|Forbidden Woods Miniboss Arena|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Helmaroc King Boss Arena|Earth Temple|Forbidden Woods|Wind Temple|Gohma Boss Arena|Tower of the Gods|Savage Labyrinth|Dragon Roost Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Secret Cave|Cabana Labyrinth|Needle Rock Isle Secret Cave|Angular Isles Secret Cave|Boating Course Secret Cave|Stone Watcher Island Secret Cave|Overlook Island Secret Cave|Bird's Peak Rock Secret Cave|Pawprint Isle Chuchu Cave|Pawprint Isle Wizzrobe Cave|Diamond Steppe Island Warp Maze Cave|Bomb Island Secret Cave|Rock Spire Isle Secret Cave|Shark Island Secret Cave|Cliff Plateau Isles Secret Cave|Horseshoe Island Secret Cave|Star Island Secret Cave|Ice Ring Isle Inner Cave|Cliff Plateau Isles Inner Cave|Outset Fairy Fountain|Thorned Fairy Fountain|Eastern Fairy Fountain|Western Fairy Fountain|Southern Fairy Fountain|Northern Fairy Fountain
+paths	Boss Entrance in Forsaken Fortress>Boss Entrance in Wind Temple>Boss Entrance in Tower of the Gods>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Boss Entrance in Forsaken Fortress>Boss Entrance in Wind Temple>Miniboss Entrance in Tower of the Gods>Tower of the Gods Miniboss Arena|Boss Entrance in Forsaken Fortress>Boss Entrance in Wind Temple>Boss Entrance in Tower of the Gods>Boss Entrance in Forbidden Woods>Miniboss Entrance in Earth Temple>Earth Temple Miniboss Arena|Boss Entrance in Forsaken Fortress>Miniboss Entrance in Wind Temple>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Boss Entrance in Forsaken Fortress>Boss Entrance in Wind Temple>Boss Entrance in Tower of the Gods>Boss Entrance in Forbidden Woods>Boss Entrance in Earth Temple>Gohma Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Kalle Demos Boss Arena|Dungeon Entrance on Headstone Island>Gohdan Boss Arena|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Helmaroc King Boss Arena|Dungeon Entrance in Forest Haven Sector>Jalhalla Boss Arena|Dungeon Entrance on Gale Isle>Molgera Boss Arena|Secret Cave Entrance on Outset Island>Savage Labyrinth|Secret Cave Entrance on Dragon Roost Island>Dragon Roost Island Secret Cave|Secret Cave Entrance on Fire Mountain>Fire Mountain Secret Cave|Secret Cave Entrance on Private Oasis>Cabana Labyrinth|Secret Cave Entrance on Needle Rock Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Angular Isles>Angular Isles Secret Cave|Secret Cave Entrance on Boating Course>Boating Course Secret Cave|Secret Cave Entrance on Stone Watcher Island>Stone Watcher Island Secret Cave|Secret Cave Entrance on Overlook Island>Overlook Island Secret Cave|Secret Cave Entrance on Bird's Peak Rock>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Pawprint Isle>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Diamond Steppe Island>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Bomb Island>Bomb Island Secret Cave|Secret Cave Entrance on Rock Spire Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Shark Island>Shark Island Secret Cave|Secret Cave Entrance on Horseshoe Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Star Island>Star Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Inner Entrance in Ice Ring Isle Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Cliff Plateau Isles>Inner Entrance in Cliff Plateau Isles Secret Cave>Cliff Plateau Isles Inner Cave|Fairy Fountain Entrance on Outset Island>Outset Fairy Fountain|Fairy Fountain Entrance on Thorned Fairy Island>Thorned Fairy Fountain|Fairy Fountain Entrance on Eastern Fairy Island>Eastern Fairy Fountain|Fairy Fountain Entrance on Western Fairy Island>Western Fairy Fountain|Fairy Fountain Entrance on Southern Fairy Island>Southern Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Northern Fairy Fountain
+nesting	1
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Jalhalla Boss Arena	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Kalle Demos Boss Arena	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Gohdan Boss Arena	Can Access Dungeon Entrance on Headstone Island
+macro	Molgera Boss Arena	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Earth Temple	Can Access Boss Entrance in Forbidden Woods
+macro	Forbidden Woods	Can Access Boss Entrance in Tower of the Gods
+macro	Wind Temple	Can Access Boss Entrance in Forsaken Fortress
+macro	Gohma Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Tower of the Gods	Can Access Boss Entrance in Wind Temple
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Outset Island
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Cabana Labyrinth	Can Access Secret Cave Entrance on Private Oasis
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Angular Isles
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Cliff Plateau Isles Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Outset Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Eastern Fairy Fountain	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Western Fairy Fountain	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Northern Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntDC_mix
+opt	mix_entrances	Mix Dungeons & Caves & Fountains
+opt	progression_expensive_purchases	0
+opt	progression_free_gifts	0
+opt	progression_great_fairies	0
+opt	progression_misc	0
+opt	progression_savage_labyrinth	1
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+conn	Boating Course Secret Cave|Western Fairy Fountain|Cliff Plateau Isles Secret Cave|Pawprint Isle Wizzrobe Cave|Northern Fairy Fountain|Tower of the Gods Miniboss Arena|Earth Temple Miniboss Arena|Molgera Boss Arena|Tower of the Gods|Master Sword Chamber|Gohma Boss Arena|Earth Temple|Kalle Demos Boss Arena|Wind Temple|Dragon Roost Cavern|Forbidden Woods|Star Island Secret Cave|Forbidden Woods Miniboss Arena|Angular Isles Secret Cave|Stone Watcher Island Secret Cave|Needle Rock Isle Secret Cave|Gohdan Boss Arena|Savage Labyrinth|Bomb Island Secret Cave|Wind Temple Miniboss Arena|Horseshoe Island Secret Cave|Diamond Steppe Island Warp Maze Cave|Pawprint Isle Chuchu Cave|Rock Spire Isle Secret Cave|Helmaroc King Boss Arena|Cliff Plateau Isles Inner Cave|Jalhalla Boss Arena|Shark Island Secret Cave|Eastern Fairy Fountain|Dragon Roost Island Secret Cave|Outset Fairy Fountain|Cabana Labyrinth|Bird's Peak Rock Secret Cave|Southern Fairy Fountain|Ice Ring Isle Secret Cave|Overlook Island Secret Cave|Fire Mountain Secret Cave|Ice Ring Isle Inner Cave|Thorned Fairy Fountain
+paths	Secret Cave Entrance on Dragon Roost Island>Forbidden Woods Miniboss Arena|Boss Entrance in Forsaken Fortress>Boss Entrance in Wind Temple>Miniboss Entrance in Forbidden Woods>Tower of the Gods Miniboss Arena|Boss Entrance in Forsaken Fortress>Miniboss Entrance in Wind Temple>Miniboss Entrance in Tower of the Gods>Earth Temple Miniboss Arena|Secret Cave Entrance on Stone Watcher Island>Wind Temple Miniboss Arena|Miniboss Entrance in Hyrule Castle>Master Sword Chamber|Boss Entrance in Forsaken Fortress>Boss Entrance in Wind Temple>Boss Entrance in Forbidden Woods>Boss Entrance in Earth Temple>Boss Entrance in Dragon Roost Cavern>Gohma Boss Arena|Boss Entrance in Forsaken Fortress>Miniboss Entrance in Wind Temple>Boss Entrance in Tower of the Gods>Kalle Demos Boss Arena|Secret Cave Entrance on Needle Rock Isle>Gohdan Boss Arena|Secret Cave Entrance on Diamond Steppe Island>Helmaroc King Boss Arena|Secret Cave Entrance on Rock Spire Isle>Jalhalla Boss Arena|Boss Entrance in Forsaken Fortress>Boss Entrance in Wind Temple>Boss Entrance in Forbidden Woods>Miniboss Entrance in Earth Temple>Molgera Boss Arena|Secret Cave Entrance on Angular Isles>Savage Labyrinth|Secret Cave Entrance on Horseshoe Island>Dragon Roost Island Secret Cave|Fairy Fountain Entrance on Western Fairy Island>Fire Mountain Secret Cave|Fairy Fountain Entrance on Thorned Fairy Island>Inner Entrance in Ice Ring Isle Secret Cave>Cabana Labyrinth|Secret Cave Entrance on Private Oasis>Needle Rock Isle Secret Cave|Secret Cave Entrance on Fire Mountain>Angular Isles Secret Cave|Dungeon Entrance on Dragon Roost Island>Boating Course Secret Cave|Secret Cave Entrance on Ice Ring Isle>Stone Watcher Island Secret Cave|Fairy Fountain Entrance on Eastern Fairy Island>Overlook Island Secret Cave|Dungeon Entrance in Tower of the Gods Sector>Inner Entrance in Cliff Plateau Isles Secret Cave>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Pawprint Isle>Pawprint Isle Chuchu Cave|Dungeon Entrance on Headstone Island>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Bird's Peak Rock>Diamond Steppe Island Warp Maze Cave|Secret Cave Entrance on Boating Course>Bomb Island Secret Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Shark Island>Shark Island Secret Cave|Secret Cave Entrance on Overlook Island>Horseshoe Island Secret Cave|Secret Cave Entrance on Outset Island>Star Island Secret Cave|Fairy Fountain Entrance on Southern Fairy Island>Ice Ring Isle Inner Cave|Secret Cave Entrance on Bomb Island>Cliff Plateau Isles Inner Cave|Secret Cave Entrance on Star Island>Outset Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Thorned Fairy Fountain|Secret Cave Entrance on Cliff Plateau Isles>Eastern Fairy Fountain|Dungeon Entrance in Forest Haven Sector>Western Fairy Fountain|Fairy Fountain Entrance on Outset Island>Southern Fairy Fountain|Dungeon Entrance on Gale Isle>Northern Fairy Fountain
+nesting	1
+macro	Boating Course Secret Cave	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Western Fairy Fountain	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Cliff Plateau Isles Secret Cave	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Pawprint Isle Wizzrobe Cave	Can Access Dungeon Entrance on Headstone Island
+macro	Northern Fairy Fountain	Can Access Dungeon Entrance on Gale Isle
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Earth Temple Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Molgera Boss Arena	Can Access Miniboss Entrance in Earth Temple
+macro	Tower of the Gods	Can Access Miniboss Entrance in Wind Temple
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Hyrule Castle
+macro	Gohma Boss Arena	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Earth Temple	Can Access Boss Entrance in Forbidden Woods
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Wind Temple	Can Access Boss Entrance in Forsaken Fortress
+macro	Dragon Roost Cavern	Can Access Boss Entrance in Earth Temple
+macro	Forbidden Woods	Can Access Boss Entrance in Wind Temple
+macro	Star Island Secret Cave	Can Access Secret Cave Entrance on Outset Island
+macro	Forbidden Woods Miniboss Arena	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Stone Watcher Island Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Private Oasis
+macro	Gohdan Boss Arena	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Savage Labyrinth	Can Access Secret Cave Entrance on Angular Isles
+macro	Bomb Island Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Wind Temple Miniboss Arena	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Horseshoe Island Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Helmaroc King Boss Arena	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Cliff Plateau Isles Inner Cave	Can Access Secret Cave Entrance on Bomb Island
+macro	Jalhalla Boss Arena	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Shark Island
+macro	Eastern Fairy Fountain	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Outset Fairy Fountain	Can Access Secret Cave Entrance on Star Island
+macro	Cabana Labyrinth	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Bird's Peak Rock Secret Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Southern Fairy Fountain	Can Access Fairy Fountain Entrance on Outset Island
+macro	Ice Ring Isle Secret Cave	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Overlook Island Secret Cave	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Fire Mountain Secret Cave	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Ice Ring Isle Inner Cave	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+case	EntDCRB_sep
+opt	num_required_bosses	5
+opt	progression_combat_secret_caves	1
+opt	progression_expensive_purchases	0
+opt	progression_free_gifts	0
+opt	progression_great_fairies	0
+opt	progression_misc	0
+opt	progression_savage_labyrinth	1
+opt	randomize_boss_entrances	1
+opt	randomize_dungeon_entrances	1
+opt	randomize_fairy_fountain_entrances	1
+opt	randomize_miniboss_entrances	1
+opt	randomize_secret_cave_entrances	1
+opt	randomize_secret_cave_inner_entrances	1
+opt	required_bosses	1
+conn	Dragon Roost Cavern|Forbidden Woods|Jalhalla Boss Arena|Earth Temple Miniboss Arena|Earth Temple|Forbidden Woods Miniboss Arena|Wind Temple Miniboss Arena|Master Sword Chamber|Tower of the Gods Miniboss Arena|Molgera Boss Arena|Tower of the Gods|Kalle Demos Boss Arena|Gohma Boss Arena|Wind Temple|Gohdan Boss Arena|Helmaroc King Boss Arena|Boating Course Secret Cave|Angular Isles Secret Cave|Pawprint Isle Wizzrobe Cave|Rock Spire Isle Secret Cave|Eastern Fairy Fountain|Needle Rock Isle Secret Cave|Western Fairy Fountain|Dragon Roost Island Secret Cave|Southern Fairy Fountain|Ice Ring Isle Secret Cave|Diamond Steppe Island Warp Maze Cave|Bird's Peak Rock Secret Cave|Cliff Plateau Isles Secret Cave|Overlook Island Secret Cave|Outset Fairy Fountain|Shark Island Secret Cave|Northern Fairy Fountain|Cliff Plateau Isles Inner Cave|Pawprint Isle Chuchu Cave|Fire Mountain Secret Cave|Stone Watcher Island Secret Cave|Ice Ring Isle Inner Cave|Bomb Island Secret Cave|Star Island Secret Cave|Savage Labyrinth|Cabana Labyrinth|Horseshoe Island Secret Cave|Thorned Fairy Fountain
+paths	Dungeon Entrance in Forest Haven Sector>Miniboss Entrance in Forbidden Woods>Forbidden Woods Miniboss Arena|Boss Entrance in Forsaken Fortress>Miniboss Entrance in Wind Temple>Tower of the Gods Miniboss Arena|Dungeon Entrance on Headstone Island>Earth Temple Miniboss Arena|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Miniboss Entrance in Tower of the Gods>Wind Temple Miniboss Arena|Dungeon Entrance on Gale Isle>Miniboss Entrance in Earth Temple>Master Sword Chamber|Dungeon Entrance on Dragon Roost Island>Boss Entrance in Dragon Roost Cavern>Boss Entrance in Tower of the Gods>Gohma Boss Arena|Dungeon Entrance in Forest Haven Sector>Boss Entrance in Forbidden Woods>Kalle Demos Boss Arena|Dungeon Entrance on Gale Isle>Boss Entrance in Earth Temple>Gohdan Boss Arena|Boss Entrance in Forsaken Fortress>Boss Entrance in Wind Temple>Helmaroc King Boss Arena|Dungeon Entrance in Tower of the Gods Sector>Jalhalla Boss Arena|Miniboss Entrance in Hyrule Castle>Molgera Boss Arena|Fairy Fountain Entrance on Eastern Fairy Island>Savage Labyrinth|Secret Cave Entrance on Boating Course>Dragon Roost Island Secret Cave|Secret Cave Entrance on Star Island>Fire Mountain Secret Cave|Fairy Fountain Entrance on Western Fairy Island>Cabana Labyrinth|Secret Cave Entrance on Needle Rock Isle>Needle Rock Isle Secret Cave|Secret Cave Entrance on Dragon Roost Island>Angular Isles Secret Cave|Secret Cave Entrance on Outset Island>Boating Course Secret Cave|Secret Cave Entrance on Overlook Island>Inner Entrance in Ice Ring Isle Secret Cave>Stone Watcher Island Secret Cave|Secret Cave Entrance on Diamond Steppe Island>Overlook Island Secret Cave|Secret Cave Entrance on Pawprint Isle>Bird's Peak Rock Secret Cave|Secret Cave Entrance on Horseshoe Island>Pawprint Isle Chuchu Cave|Secret Cave Entrance on Fire Mountain>Pawprint Isle Wizzrobe Cave|Secret Cave Entrance on Bird's Peak Rock>Diamond Steppe Island Warp Maze Cave|Fairy Fountain Entrance on Outset Island>Bomb Island Secret Cave|Secret Cave Entrance on Ice Ring Isle>Rock Spire Isle Secret Cave|Secret Cave Entrance on Rock Spire Isle>Shark Island Secret Cave|Fairy Fountain Entrance on Southern Fairy Island>Horseshoe Island Secret Cave|Fairy Fountain Entrance on Thorned Fairy Island>Star Island Secret Cave|Secret Cave Entrance on Pawprint Isle Side Isle>Inner Entrance in Cliff Plateau Isles Secret Cave>Ice Ring Isle Inner Cave|Secret Cave Entrance on Cliff Plateau Isles>Cliff Plateau Isles Inner Cave|Secret Cave Entrance on Bomb Island>Outset Fairy Fountain|Fairy Fountain Entrance on Northern Fairy Island>Thorned Fairy Fountain|Secret Cave Entrance on Private Oasis>Eastern Fairy Fountain|Secret Cave Entrance on Angular Isles>Western Fairy Fountain|Secret Cave Entrance on Stone Watcher Island>Southern Fairy Fountain|Secret Cave Entrance on Shark Island>Northern Fairy Fountain
+nesting	1
+macro	Dragon Roost Cavern	Can Access Dungeon Entrance on Dragon Roost Island
+macro	Forbidden Woods	Can Access Dungeon Entrance in Forest Haven Sector
+macro	Jalhalla Boss Arena	Can Access Dungeon Entrance in Tower of the Gods Sector
+macro	Earth Temple Miniboss Arena	Can Access Dungeon Entrance on Headstone Island
+macro	Earth Temple	Can Access Dungeon Entrance on Gale Isle
+macro	Forbidden Woods Miniboss Arena	Can Access Miniboss Entrance in Forbidden Woods
+macro	Wind Temple Miniboss Arena	Can Access Miniboss Entrance in Tower of the Gods
+macro	Master Sword Chamber	Can Access Miniboss Entrance in Earth Temple
+macro	Tower of the Gods Miniboss Arena	Can Access Miniboss Entrance in Wind Temple
+macro	Molgera Boss Arena	Can Access Miniboss Entrance in Hyrule Castle
+macro	Tower of the Gods	Can Access Boss Entrance in Dragon Roost Cavern
+macro	Kalle Demos Boss Arena	Can Access Boss Entrance in Forbidden Woods
+macro	Gohma Boss Arena	Can Access Boss Entrance in Tower of the Gods
+macro	Wind Temple	Can Access Boss Entrance in Forsaken Fortress
+macro	Gohdan Boss Arena	Can Access Boss Entrance in Earth Temple
+macro	Helmaroc King Boss Arena	Can Access Boss Entrance in Wind Temple
+macro	Boating Course Secret Cave	Can Access Secret Cave Entrance on Outset Island
+macro	Angular Isles Secret Cave	Can Access Secret Cave Entrance on Dragon Roost Island
+macro	Pawprint Isle Wizzrobe Cave	Can Access Secret Cave Entrance on Fire Mountain
+macro	Rock Spire Isle Secret Cave	Can Access Secret Cave Entrance on Ice Ring Isle
+macro	Eastern Fairy Fountain	Can Access Secret Cave Entrance on Private Oasis
+macro	Needle Rock Isle Secret Cave	Can Access Secret Cave Entrance on Needle Rock Isle
+macro	Western Fairy Fountain	Can Access Secret Cave Entrance on Angular Isles
+macro	Dragon Roost Island Secret Cave	Can Access Secret Cave Entrance on Boating Course
+macro	Southern Fairy Fountain	Can Access Secret Cave Entrance on Stone Watcher Island
+macro	Ice Ring Isle Secret Cave	Can Access Secret Cave Entrance on Overlook Island
+macro	Diamond Steppe Island Warp Maze Cave	Can Access Secret Cave Entrance on Bird's Peak Rock
+macro	Bird's Peak Rock Secret Cave	Can Access Secret Cave Entrance on Pawprint Isle
+macro	Cliff Plateau Isles Secret Cave	Can Access Secret Cave Entrance on Pawprint Isle Side Isle
+macro	Overlook Island Secret Cave	Can Access Secret Cave Entrance on Diamond Steppe Island
+macro	Outset Fairy Fountain	Can Access Secret Cave Entrance on Bomb Island
+macro	Shark Island Secret Cave	Can Access Secret Cave Entrance on Rock Spire Isle
+macro	Northern Fairy Fountain	Can Access Secret Cave Entrance on Shark Island
+macro	Cliff Plateau Isles Inner Cave	Can Access Secret Cave Entrance on Cliff Plateau Isles
+macro	Pawprint Isle Chuchu Cave	Can Access Secret Cave Entrance on Horseshoe Island
+macro	Fire Mountain Secret Cave	Can Access Secret Cave Entrance on Star Island
+macro	Stone Watcher Island Secret Cave	Can Access Inner Entrance in Ice Ring Isle Secret Cave
+macro	Ice Ring Isle Inner Cave	Can Access Inner Entrance in Cliff Plateau Isles Secret Cave
+macro	Bomb Island Secret Cave	Can Access Fairy Fountain Entrance on Outset Island
+macro	Star Island Secret Cave	Can Access Fairy Fountain Entrance on Thorned Fairy Island
+macro	Savage Labyrinth	Can Access Fairy Fountain Entrance on Eastern Fairy Island
+macro	Cabana Labyrinth	Can Access Fairy Fountain Entrance on Western Fairy Island
+macro	Horseshoe Island Secret Cave	Can Access Fairy Fountain Entrance on Southern Fairy Island
+macro	Thorned Fairy Fountain	Can Access Fairy Fountain Entrance on Northern Fairy Island
+endcase
+end
