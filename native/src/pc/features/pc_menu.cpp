@@ -436,6 +436,7 @@ void applyDynres(const char*, const char* v, void*) {
     pc_fps60_hold("dynamic resolution changed");
 }
 void applyDof(const char*, const char* v, void*) { pc_dof_set(strcmp(v, "0") != 0); }
+void applyAniso(const char*, const char* v, void*) { pc_aniso_set(atoi(v)); }
 void applyCameraInvertX(const char*, const char* v, void*) { pc_camera_invert_x_set(strcmp(v, "1") == 0); }
 void applyCameraInvertY(const char*, const char* v, void*) { pc_camera_invert_y_set(strcmp(v, "1") == 0); }
 void applyCameraShake(const char*, const char* v, void*) { pc_camera_shake_set(strcmp(v, "1") == 0); }
@@ -470,6 +471,7 @@ const PcSettingChoice kFbScale[] = {
 };
 const PcSettingChoice kAspect[] = {{"16:9", "16:9 (panorámica)", "16:9 (widescreen)"}, {"4:3", "4:3 (GameCube)"}, {"16:10", "16:10"}};
 const PcSettingChoice kOnOff[] = {{"0", "Desactivado", "Off"}, {"1", "Activado", "On"}};
+const PcSettingChoice kAniso[] = {{"1", "x1 (desactivado)", "x1 (off)"}, {"2", "x2"}, {"4", "x4"}, {"8", "x8"}, {"16", "x16"}};
 const PcSettingChoice kHdMaxSize[] = {{"auto", "Automático (512 / 1024)", "Automatic (512 / 1024)"}, {"256", "256"}, {"512", "512"},
                                       {"1024", "1024"}, {"full", "Sin límite", "No limit"}};
 // "auto" (the default): on while the 60 fps row is on (docs/FPS60_PLAN.md step E), off at 30 fps;
@@ -523,6 +525,11 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "1", applyDof, nullptr, 50,
      "Depth of field",
      "Blur of the distant scenery, as on the GameCube."},
+    {"COS_ANISO", "Filtrado anisotrópico",
+     "Texturas del suelo y de los edificios más nítidas en perspectiva. Más alto = más carga para la GPU.",
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kAniso), "1", applyAniso, nullptr, 60,
+     "Anisotropic filtering",
+     "Sharper ground and building textures at a slant. Higher = more GPU load."},
     {"COS_CAMERA_INVERT_X", "Invertir cámara horizontal",
      "El stick C gira la cámara al revés en horizontal.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertX, nullptr, 90,
