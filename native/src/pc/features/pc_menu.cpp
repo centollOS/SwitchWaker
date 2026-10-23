@@ -451,7 +451,7 @@ void applyGpuProfile(const char*, const char* v, void*) {
 }
 void applyFxaa(const char*, const char* v, void*) {
 #if defined(__SWITCH__)
-    aurora_switch_dk_set_fxaa(strcmp(v, "1") == 0);
+    aurora_switch_dk_set_fxaa(atoi(v));
 #else
     (void)v;
 #endif
@@ -478,6 +478,8 @@ const PcSettingChoice kFbScale[] = {
 };
 const PcSettingChoice kAspect[] = {{"16:9", "16:9 (panorámica)", "16:9 (widescreen)"}, {"4:3", "4:3 (GameCube)"}, {"16:10", "16:10"}};
 const PcSettingChoice kOnOff[] = {{"0", "Desactivado", "Off"}, {"1", "Activado", "On"}};
+const PcSettingChoice kFxaa[] = {{"0", "Desactivado", "Off"}, {"1", "Suave", "Soft"},
+                                 {"2", "Normal", "Normal"}, {"3", "Fuerte", "Strong"}};
 const PcSettingChoice kHdMaxSize[] = {{"auto", "Automático (512 / 1024)", "Automatic (512 / 1024)"}, {"256", "256"}, {"512", "512"},
                                       {"1024", "1024"}, {"full", "Sin límite", "No limit"}};
 // "auto" (the default): on while the 60 fps row is on (docs/FPS60_PLAN.md step E), off at 30 fps;
@@ -532,10 +534,12 @@ const PcSettingDesc kBuiltins[] = {
      "Depth of field",
      "Blur of the distant scenery, as on the GameCube."},
     {"COS_FXAA", "Suavizado de bordes (FXAA)",
-     "Suaviza los bordes dentados de la imagen final con un filtro FXAA. Cuesta algo de GPU.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kOnOff), "0", applyFxaa, nullptr, 60,
+     "Suaviza los bordes dentados de la imagen final con un filtro FXAA. Más fuerte = menos dientes de "
+     "sierra pero más desenfoque (también en el HUD). Cuesta algo de GPU.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kFxaa), "0", applyFxaa, nullptr, 60,
      "Edge smoothing (FXAA)",
-     "Smooths the jagged edges of the final picture with an FXAA filter. Costs some GPU time."},
+     "Smooths the jagged edges of the final picture with an FXAA filter. Stronger = fewer jaggies but more "
+     "blur (the HUD too). Costs some GPU time."},
     {"COS_CAMERA_INVERT_X", "Invertir cámara horizontal",
      "El stick C gira la cámara al revés en horizontal.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertX, nullptr, 90,
