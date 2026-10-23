@@ -22,6 +22,8 @@
 //   6. sea/Room44's room.dzr (or COS_HINTS_ROOM's): the Ho Ho patcher turned every Ah actor of the
 //      room (room 44: the 4 of layers 4-7) to the y_rot of the R lines, or left them alone when his
 //      hints name no island, and a live Ah actor (when the layer has one) faces that way.
+// A debug boot (COS_RANDO_PLACEMENT=<the section's placement>, activated before the font and the
+// message archive are loaded) skips 1 and 2 and checks the active seed.
 // Vanilla (COS_HINTS_VANILLA=1): nothing in the overlay, getMsg is vanilla, the room not patched.
 // Exit 0 when all hold, else 1.
 #include "pc_rando_smokes.h"
@@ -377,6 +379,14 @@ bool start() {
     }
     writef(STDERR_FILENO, "[cos] rando-smoke hoho: %s: %d texts, %d box types, %d Ah rows\n",
            sSection.placement.c_str(), (int)sSection.texts.size(), (int)sSection.types.size(), (int)sSection.rots.size());
+    if (pc_rando() && pc_rando_seed() != nullptr) {
+        // A debug boot with COS_RANDO_PLACEMENT=<the section's placement>: activated in pcBootStage,
+        // before the font and the message archive were loaded.
+        writef(STDERR_FILENO, "[cos] rando-smoke hoho: using the active seed \"%s\" (debug boot)\n",
+               pc_rando_seed()->seed.c_str());
+        sSeed = *pc_rando_seed();
+        return !sVanilla;
+    }
     checkMessages(true);
     if (sVanilla) {
         return true;

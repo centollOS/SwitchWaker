@@ -10,10 +10,11 @@
 //   - patcher.apply_patch("flexible_hint_locations"): the d_a_bigelf hunk asks
 //     pc_rando_hints_flexible().
 // Order against R3.21 (wwrando's apply_necessary_tweaks writes KoRL's 3443 before the randomizers
-// save, so the KoRL hints win): R3.21's listener is registered at static init, this file's at the
-// first archive load after an activation (pc_rando_patchers.def), so ours runs after it; and R3.21
-// builds again at an archive load only while the font or the message archive was missing, which also
-// keeps this file from building, so this file's retry (a patcher after R3.21's) runs after it.
+// save, so the KoRL hints win): the texts are built by this file's archive patcher, at the first
+// archive load after each activation (the stage load that follows it), never by the activation
+// listener. R3.21 builds at activation and again at an archive load while the font or the message
+// archive was missing (a debug boot); its patcher is listed before this one in pc_rando_patchers.def,
+// so in that load it runs first and this file's texts come last.
 // Declared in native/include/pc/pc_rando_hooks.h (section R5.3).
 #include "d/dolzel.h" // IWYU pragma: keep
 #include "pc/pc_rando_hooks.h"
@@ -112,11 +113,11 @@ void tryBuild() {
     }
 }
 
-void onRando(int active) {
+// The texts are not built here but by the patcher, at the next archive load (the stage load that
+// follows every activation): R3.21's retry patcher may rewrite 3443 at that load, and this file's
+// patcher runs after it.
+void onRando(int) {
     reset();
-    if (active) {
-        tryBuild();
-    }
 }
 
 // Runs at every archive load while pc_rando() is 1: builds the texts once the font and the message

@@ -682,3 +682,21 @@ seed without required bosses changes nothing. Checked by the `bossreq` smoke.
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | game/src/d/d_menu_fmap.cpp | `dMenu_Fmap_c::_create`, right after `f_map.blo` is built: `pc_rando_bossreq_fmap_markers` (the required bosses' quest marker panes: visible, position, rotation) | add | randomizers/boss_reqs.py `show_quest_markers_on_sea_chart_for_dungeons` (f_map.blo 0x43B0 + i*0x40: +9, +0x10, +0x12, +0x19) |
+
+## R5.3
+
+Hint placement at runtime (hints.py `HintsRandomizer._save`). The hint texts (R5.2's `buildHintTexts`:
+837, 12015-12017, 13026 + island, 14001-14010, 1502 and 3443-3448) go into the R0.12 message overlay
+from `game_hooks/pc_rando_hooks_hints.cpp`, at the first archive load after each activation (after
+R3.21's texts, so KoRL's hints replace R3.21's 3443 as in wwrando), wrapped with the message font and
+each message's own BMG text box type. `rotate_hoho_to_face_hint` is data, as wwrando writes it, not
+a hunk: an archive patcher in the same file sets the `y_rot` of the `Ah` actors of the Ho Ho sea rooms'
+`room.dzr` (all ACTR layers) towards the MULT entry of the island his hints name first (embedded
+table and angle in `features/rando/pc_rando_hint_place.cpp`). `flexible_hint_locations.asm` is the hunk
+below, on only when the seed's hints have a Big Octo Great Fairy hint (wwrando applies the patch
+exactly then). The spoiler log's Hints section is R5.1's. A seed without hints changes nothing.
+Checked by the `hoho` smoke and `cos_rando_test_R5_3`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_bigelf.cpp | `daBigelf_c::getMsg`: message 0x2EEE goes on to the item hint 0x2EEF (12015) whatever the current bow, when `pc_rando_hints_flexible()` (the seed has an octo fairy hint) | `if/else` (`#if`/`#else`, `(pc_rando() && ...) \|\|`) | flexible_hint_locations.asm d_a_bigelf 0x22A4 (nop) |
