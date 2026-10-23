@@ -1,6 +1,7 @@
 REL	__ZN10daAgbsw0_c9MoveCheckEs
 REL	__ZN10daBigelf_c14next_msgStatusEPj
 REL	__ZN10daBigelf_c16demoProcFlDeleteEv
+REL	__ZN10daBigelf_c6getMsgEv
 REL	__ZN10daNpc_Ho_c14next_msgStatusEPj
 REL	__ZN10daNpc_Os_c15eventOrderCheckEv
 REL	__ZN10daNpc_Os_c17finish02NpcActionEPv
