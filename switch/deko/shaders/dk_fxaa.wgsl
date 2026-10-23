@@ -119,8 +119,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         if (!doneN) { posN = posN - along * adv; endN = tapl(posN) - mean; doneN = abs(endN) >= limit; }
         if (!doneP) { posP = posP + along * adv; endP = tapl(posP) - mean; doneP = abs(endP) >= limit; }
     }
-    let dstN = select(uv.x - posN.x, uv.y - posN.y, horzSpan);
-    let dstP = select(posP.x - uv.x, posP.y - uv.y, horzSpan);
+    // distances along the edge: x for a horizontal edge, y for a vertical one
+    let dstN = select(uv.y - posN.y, uv.x - posN.x, horzSpan);
+    let dstP = select(posP.y - uv.y, posP.x - uv.x, horzSpan);
     let nearN = dstN < dstP;
     let endNear = select(endP, endN, nearN);
     let dstNear = select(dstP, dstN, nearN);
