@@ -1,0 +1,13 @@
+# R8.1 (docs/RANDOMIZER_PLAN.md): the file select's "Normal / Randomizer" question on a blank slot, driven by
+# input through the real boot on the run's own empty card (smoke fsnewgame, cases in the header of
+# native/src/pc/harness/smokes/pc_rando_smoke_fsnewgame.cpp). A harness run defaults "Ask on New Game" to off
+# (the recorded scripts keep the pre-R8.1 flow), so each line sets COS_RANDO_ASK_NEWGAME. The occupied-slot
+# case needs a save-sweep card first (two-run sequence in the smoke's header). The last line is M11 new-game
+# with the question on: A on the preselected No keeps the vanilla flow and timing.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --input native/check/input/rando-fsnewgame-yes.txt --env COS_RANDO_SMOKE=fsnewgame --env COS_RANDO_FSNG_CASE=yes --env COS_RANDO_SEED=TestSeed1 --env COS_RANDO_ASK_NEWGAME=1
+rando 0 --input native/check/input/rando-fsnewgame-yes.txt --env COS_RANDO_SMOKE=fsnewgame --env COS_RANDO_FSNG_CASE=yespending --env COS_RANDO_ASK_NEWGAME=1
+rando 0 --input native/check/input/new-game-skip-intro.txt --env COS_QOL_SKIP_INTRO=1 --env COS_RANDO_SMOKE=fsnewgame --env COS_RANDO_FSNG_CASE=no --env COS_RANDO_ASK_NEWGAME=1
+rando 0 --input native/check/input/new-game-skip-intro.txt --env COS_RANDO_SMOKE=fsnewgame --env COS_RANDO_FSNG_CASE=off --env COS_RANDO_ASK_NEWGAME=0
+rando 0 --input native/check/input/rando-fsnewgame-yes.txt --env COS_RANDO_SMOKE=fsnewgame --env COS_RANDO_FSNG_CASE=error --env COS_RANDO_ASK_NEWGAME=1
+new-game 0 --input native/check/input/new-game.txt --env COS_RANDO_ASK_NEWGAME=1

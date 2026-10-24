@@ -1,0 +1,12 @@
+# Controller script of the R8.1 smoke fsnewgame, case occupied (docs/RANDOMIZER_PLAN.md): the card
+# (COS_CARD_DIR, a save-sweep run's) holds a save in slot 1, so the name scene opens the file select
+# without asking to create a game file. A (1000) picks slot 1: the Start/Copy/Erase/Back menu appears
+# (no question), A (1100) on Start loads the save.
+600   START    0    0
+602   -        0    0
+720   START    0    0
+722   -        0    0
+1000  A        0    0
+1002  -        0    0
+1100  A        0    0
+1102  -        0    0

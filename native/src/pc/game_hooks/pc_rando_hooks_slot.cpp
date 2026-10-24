@@ -53,6 +53,13 @@ void newGameBegin(const char* who) {
     sNewGameRando = false;
     sNewGameFlags = 0;
     const PcRandoSeed* pending = pc_rando_slot_pending();
+    // R8.1: "No" to the file select's Randomizer question makes a normal file; the pending seed
+    // stays pending for a later one.
+    if (pc_rando_fs_newgame_take_choice() == 1 && pending != nullptr) {
+        pc::writef(STDERR_FILENO, "[cos] rando slot: %s: normal file chosen on the file select; seed \"%s\" stays pending\n",
+                   who, pending->seed.c_str());
+        pending = nullptr;
+    }
     if (pending == nullptr) {
         if (pc_rando() && !pc_rando_forced()) {
             pc_rando_deactivate();
