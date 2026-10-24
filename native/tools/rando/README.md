@@ -9,6 +9,7 @@ into the game or needed by players.
 |---|---|
 | `setup_oracle.sh` | creates `build/rando-venv` and `build/rando-deps/gclib` |
 | `ww_export.py` | golden placement JSON for a seed (or permalink) and options |
+| `ww_export_enemies.py` | R7.3c: the same with enemy rando plus the `enemies` key (`_save`'s RNG replayed on stub actors); `--vectors` writes the R7.3c fixture |
 | `ww_verify.py` | checks any placement JSON with wwrando's Logic (valid, complete, beatable) |
 | `ww_verify_hints.py` | checks our placements' hints (valid; with `--golden` identical to wwrando's) |
 | `ww_trace.py` | logs every RNG draw per randomizer, for call-by-call diffs against our generator |

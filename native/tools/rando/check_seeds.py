@@ -47,6 +47,9 @@ name=<json> pairs are applied after the preset:
   extra_start_keys (R6.4) 3 extra starting items, key-lunacy, No Starting Sword, 1 Heart
                    Container and 44 Pieces of Heart
   starting_island  the defaults with randomize_starting_island (R6.7)
+  enemies          (R7.3c) the defaults with randomize_enemies; with --golden the "enemies" key must
+                   equal ww_export_enemies.py's (wwrando's _randomize plus the RNG part of _save),
+                   in order, and the locations stay golden
 
 The CLI runs with --allow-missing-hints unless --hints is given (R5.1): then our hints are generated
 and the spoiler log must be byte-identical including its Hints section (ww_verify_hints.py checks
@@ -101,7 +104,7 @@ def r6_1_presets():
 
 def all_presets():
   return (["default", "dungeons_only", "no_dungeons"] + r6_1_presets()
-          + ["keylunacy", "keylunacy_all", "keylunacy_dungeons_only", "keylunacy_no_dungeons", "extra_start", "extra_start_all", "extra_start_keys", "starting_island"])
+          + ["keylunacy", "keylunacy_all", "keylunacy_dungeons_only", "keylunacy_no_dungeons", "extra_start", "extra_start_all", "extra_start_keys", "starting_island", "enemies"])
 
 
 def preset_values(name):
@@ -140,6 +143,8 @@ def preset_values(name):
             "starting_hcs": 1, "starting_pohs": 44}
   if name == "starting_island":
     return {"randomize_starting_island": True}
+  if name == "enemies":
+    return {"randomize_enemies": True}
   oc.die(f"unknown preset '{name}' (--list-presets lists them)")
 
 
@@ -235,6 +240,15 @@ def check_one(job):
     return seed, problems
 
   want = oc.placement_from_randomizer(r, opts)
+  if opts.randomize_enemies:
+    # R7.3c: the enemy decisions, compared with their order (json.dumps keeps dict order).
+    import ww_export_enemies
+    want_enemies = ww_export_enemies.enemies_from_randomizer(r)
+    if json.dumps(d.get("enemies")) != json.dumps(want_enemies):
+      ours_e = list((d.get("enemies") or {}).get("locations", {}).items())
+      bad = [a[0] for a, b in zip(ours_e, want_enemies["locations"].items()) if a != b]
+      problems.append(f"enemies differ: first location {bad[:1]}" if bad else
+                      f"enemies differ (count {len(ours_e)} vs {len(want_enemies['locations'])}, or homen)")
   for k in PLACEMENT_KEYS:
     if d.get(k) != want.get(k):
       problems.append(f"placement key {k} differs")
