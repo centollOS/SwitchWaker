@@ -24,7 +24,7 @@ the file the smoke was patching.
 A patcher line is a problem when it reports a fingerprint mismatch, a missing entry or chunk, a
 refusal, a failure or something "left vanilla" / "stays vanilla" (a count of 0 is not). Result per
 region: the problem lines with their file; with both regions, the EUR lines that the USA disc does not
-have too. Exit 0 when every run's smoke passed and no region has a problem line (with both: none on
+have too, and (information) how many of the patchers' lines differ between the two discs. Exit 0 when every run's smoke passed and no region has a problem line (with both: none on
 EUR beyond the USA's, and none on USA); 1 otherwise; 2 usage. Mac only, dev time; standard library.
 """
 import argparse
@@ -136,6 +136,23 @@ def audit(log):
     return out, summary, result, files
 
 
+def patcher_lines(log):
+    """Every patcher line of the sweep (and the smoke's file lines without their size), in order."""
+    out = []
+    inside = False
+    for raw in log.splitlines():
+        if RE_BEGIN.search(raw):
+            inside = True
+            continue
+        if RE_END.search(raw):
+            break
+        if inside and "[cos] rando" in raw:
+            line = raw[raw.find("[cos]"):].rstrip()
+            m = RE_FILE.search(line)
+            out.append("file " + m.group(1) if m else line)
+    return out
+
+
 def run_region(region, placement, args):
     build, disc = REGIONS[region]
     disc = os.path.abspath(os.path.expanduser(args.usa_disc if region == "usa" and args.usa_disc else
@@ -171,7 +188,8 @@ def run_region(region, placement, args):
     print("fp-audit: %s: exit %d, %.0f s, smoke %s; %s; %d problem line(s); run %s" % (
         region, rc, time.time() - t0, result or "no result", summary or "no end line (%d files)" % files,
         len(probs), os.path.relpath(run_dir, REPO)), flush=True)
-    return {"rc": rc, "ok": rc == 0 and result == "PASS" and summary is not None, "problems": probs}
+    return {"rc": rc, "ok": rc == 0 and result == "PASS" and summary is not None, "problems": probs,
+            "lines": patcher_lines(log)}
 
 
 def norm(line):
@@ -205,6 +223,12 @@ def main(argv):
         print("fp-audit: EUR: %d problem line(s), %d not on USA; USA: %d" % (
             len(res["eur"]["problems"]), len(eur_only), len(res["usa"]["problems"])))
         ok = ok and not eur_only and not res["usa"]["problems"]
+        # Information: the patchers' own lines (what they did) on both discs, file by file.
+        u, e = res["usa"]["lines"], res["eur"]["lines"]
+        diff = [i for i in range(max(len(u), len(e))) if i >= len(u) or i >= len(e) or u[i] != e[i]]
+        print("fp-audit: patcher lines: USA %d, EUR %d, %d differ%s" % (
+            len(u), len(e), len(diff), "" if not diff else " (first: USA %r, EUR %r)" % (
+                u[diff[0]] if diff[0] < len(u) else None, e[diff[0]] if diff[0] < len(e) else None)))
     else:
         ok = ok and not res[regions[0]]["problems"]
     print("fp-audit: %s" % ("PASS" if ok else "FAIL"))

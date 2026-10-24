@@ -17,8 +17,9 @@
 // around the sweep. Room.dzb is not part of it: its patcher (R3.15's FF door) runs on the file after
 // cBgS::ConvDzb, not on disc bytes. J3D and particle files are not stage data.
 // Checks: pc_rando() is on (a placement was given), the test heap exists, at least one Stage.arc,
-// every archive mounts, every stage directory with a Stage.arc gives a stage.dzs, and the patcher
-// chain ran on every file (the dispatcher's counter). Exit 0 when they hold; the audit's result is
+// every archive mounts, stage.dzs files were found (the disc's Name/Stage.arc, the name entry scene,
+// holds none: at most one Stage.arc without), and the patcher chain ran on every file (the
+// dispatcher's counter). Exit 0 when they hold; the audit's result is
 // fp_audit.py's (no patcher line with a mismatch or a refusal, or only those the USA disc has too).
 #include "pc_rando_smokes.h"
 
