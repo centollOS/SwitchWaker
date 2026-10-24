@@ -15,6 +15,8 @@
 // and S where a save inside X reloads. Lines starting with '#' are comments.
 //
 // Per entrance i, in plan order (scene changes as the doors make them, dComIfGp_setNextStage):
+//  0. the world (prepareWorld): saved switches a player who can use these doors has (Stone Watcher
+//     Island's stone head lifted);
 //  1. to E (the first one is the boot stage when the run boots there): the play scene runs on E's
 //     stage and room;
 //  2. forward: E's live room SCLS[scls] leads to X (stage, room, spawn); the harness takes that exit
@@ -477,6 +479,32 @@ void driveStuckCuts() {
     }
 }
 
+// --- the world a player who used these doors has ---
+
+// Saved switches a real file has once the player can use an entrance, which the debug boot's new file
+// lacks. Without them the harness's arrival is not where a player arrives:
+//   - sea switch 0x2B: Stone Watcher Island's stone head (Ekao, d_a_stone2 swSave) lifted. Spawn 1
+//     (the cave's way out) is inside the head; with the head down the arrival bounces to spawn 0
+//     (vanilla does the same: R0_6_identity's sweep).
+struct SaveSwitch {
+    int stageNo;
+    int sw;
+};
+constexpr SaveSwitch kSaveSwitches[] = {
+    {dSv_save_c::STAGE_SEA, 0x2B},
+};
+
+void prepareWorld() {
+    const int cur = dStage_stagInfo_GetSaveTbl(dComIfGp_getStage().getStagInfo());
+    for (const SaveSwitch& s : kSaveSwitches) {
+        dComIfGs_onSaveSwitch(s.stageNo, s.sw);
+        if (cur == s.stageNo) {
+            dComIfGs_onSwitch(s.sw, dComIfGp_roomControl_getStayNo());
+        }
+        line("saved switch 0x%02X of stage table %d on", s.sw, s.stageNo);
+    }
+}
+
 // --- the steps ---
 
 void startEntry() {
@@ -638,6 +666,7 @@ void randoSmokeEntrsweep(unsigned int frames) {
         }
         memcpy(sHash, seed->hash, 16);
         sHaveHash = true;
+        prepareWorld();
         line("%zu entrance(s); boot %s room %d", sPlan.size(), dComIfGp_getStartStageName(),
              dComIfGp_roomControl_getStayNo());
         sIdx = 0;
