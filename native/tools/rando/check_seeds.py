@@ -11,8 +11,8 @@ placement with wwrando's own Logic (ww_verify.verify: complete, valid pairs, poo
 
 --golden also runs wwrando 1.10.0_9775811 (dry) on the same seed and options and requires:
   - the placement identical to ww_export.py's: seed, permalink, options (except dry_run, which the
-    oracle's --dry sets), extra starting items, charts, required bosses, entrances, starting island
-    and every location's item, in order;
+    oracle's --dry sets), extra starting items, charts, required bosses, entrances, starting island,
+    the enemy palette shifts (R7.2a) and every location's item, in order;
   - captured_pigs_bitfield equal to PigsRandomizer's;
   - the non-spoiler log byte-identical, and the spoiler log byte-identical except its Hints
     section (hints are step R5; decision D1 checks them for validity only), after dropping our
@@ -77,7 +77,8 @@ SWITCHWAKER_SEED_KEY = "SwitchWaker-rando-key-1"
 CLI_VERSION = "check_seeds"
 
 PLACEMENT_KEYS = ("format", "seed", "permalink", "extra_starting_items", "charts",
-                  "required_boss_locations", "entrances", "starting_island_room")
+                  "required_boss_locations", "entrances", "starting_island_room",
+                  "palettes")  # R7.2a: only with randomize_enemy_palettes (absent on both sides otherwise)
 
 
 def progression_options():
@@ -235,7 +236,7 @@ def check_one(job):
 
   want = oc.placement_from_randomizer(r, opts)
   for k in PLACEMENT_KEYS:
-    if d.get(k) != want[k]:
+    if d.get(k) != want.get(k):
       problems.append(f"placement key {k} differs")
   ours_opts = dict(d.get("options", {}))
   want_opts = dict(want["options"])

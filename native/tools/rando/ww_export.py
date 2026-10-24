@@ -10,6 +10,8 @@ placement JSON, schema format 1 (docs/RANDOMIZER_PLAN.md "The oracle"):
     {format, seed, permalink, options, extra_starting_items, charts, required_boss_locations,
      entrances, starting_island_room, locations{location: item}}
 
+plus "palettes" {group: [h_shift, v_shift]} with randomize_enemy_palettes (R7.2a).
+
 Options start at wwrando's defaults. `name=<json>` sets one (a value that is not JSON is taken as a
 string: sword_mode=Swordless); --options FILE takes a JSON dict of options, or the options of a
 placement JSON; name=value pairs are applied after it. <out.json> may be '-' for stdout.

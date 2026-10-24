@@ -1,0 +1,8 @@
+# R7.2a (docs/RANDOMIZER_PLAN.md): enemy palette generator. 50 golden seeds with
+# randomize_enemy_palettes: the "palettes" shifts equal wwrando's PaletteRandomizer
+# (file_group_name_to_hv_shift, ww_export.py) and the locations stay golden. The colour math is
+# cos_rando_test_R7_2a (gclib hsv_shift_color on 53,024 colours x 30 shifts). The data table must be
+# up to date with wwrando's data/palette_randomizable_files.txt.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 50 --golden --prefix PalSeed randomize_enemy_palettes=true
+script 0 python3 -I native/tools/rando/gen_palette_data.py --check
