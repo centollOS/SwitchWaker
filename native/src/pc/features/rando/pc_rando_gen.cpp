@@ -12,6 +12,7 @@
 #include "pc_rando_gen_extra.h"
 #include "pc_rando_gen_hints.h"
 #include "pc_rando_gen_items.h"
+#include "pc_rando_gen_palettes.h"
 #include "pc_rando_json.h"
 #include "pc_rando_logic.h"
 #include "pc_rando_rng.h"
@@ -75,7 +76,7 @@ int randomizeStartingIsland(PyRandom& rng) {
 
 } // namespace
 
-std::string unsupportedOptionsError(const Options& o, bool allowMissingHints) {
+std::string unsupportedOptionsError(const Options& o, bool allowMissingHints, bool allowNotRuntimeReady) {
     auto refuse = [](const char* what, const char* step) {
         return std::string("Not supported yet: ") + what + " (plan step " + step +
                "). Turn the option off to generate a seed.";
@@ -84,8 +85,10 @@ std::string unsupportedOptionsError(const Options& o, bool allowMissingHints) {
     if (o.randomize_enemies) {
         return refuse("randomize_enemies", "R7.3");
     }
-    if (o.randomize_enemy_palettes) {
-        return refuse("randomize_enemy_palettes", "R7.2");
+    if (o.randomize_enemy_palettes && !allowNotRuntimeReady) {
+        // R7.2a ported the generator; the game applies the colours from R7.2c-R7.2e, so the menu
+        // keeps refusing it until R7.2e (GenRequest::allowNotRuntimeReady).
+        return refuse("randomize_enemy_palettes", "R7.2e");
     }
     (void)allowMissingHints; // R5.1: hints are generated (allowMissingHints only skips them)
     return std::string();
@@ -161,7 +164,7 @@ bool generate(const GenRequest& req, GenResult& out) {
         return false;
     };
 
-    const std::string refusal = unsupportedOptionsError(o, req.allowMissingHints);
+    const std::string refusal = unsupportedOptionsError(o, req.allowMissingHints, req.allowNotRuntimeReady);
     if (!refusal.empty()) {
         out.unsupported = true;
         return fail(refusal);
@@ -254,7 +257,16 @@ bool generate(const GenRequest& req, GenResult& out) {
         }
         prog.done += kWeightExtraStartItems;
     }
-    // enemies, palettes: disabled (refused above when on).
+    // enemies: disabled (refused above when on).
+    std::vector<PaletteShift> palettes;
+    if (o.randomize_enemy_palettes) {
+        // PaletteRandomizer (R7.2a): after enemies, before items; progress weight 0.
+        prog.report(kPaletteProgressText);
+        PyRandom rng;
+        newRandomizerRng(rng, out.sanitizedSeed, o, req.seedKey);
+        traceAttach(rng, "PaletteRandomizer");
+        randomizePalettes(rng, palettes);
+    }
     {
         prog.report("Randomizing items...");
         ItemFillResult res;
@@ -332,6 +344,9 @@ bool generate(const GenRequest& req, GenResult& out) {
         locations.set(logic.locationName(i), Json::string(logic.name(item)));
     }
     j.set("locations", locations);
+    if (o.randomize_enemy_palettes) {
+        j.set("palettes", palettesToJson(palettes)); // R7.2a; kept by PcRandoSeed::extra
+    }
     if (!req.allowMissingHints) {
         j.set("hints", hintsToJson(hints));
     }

@@ -24,6 +24,8 @@
 //   --quiet                 no line per seed on stdout
 //
 // Each seed prints "ok <seed> <hash32> <json path>" or "FAIL <seed>: <first error line>".
+// Options whose game side is not ready yet (randomize_enemy_palettes until R7.2e) are generated here
+// (GenRequest::allowNotRuntimeReady); the menu refuses them.
 // Exit 0 all generated, 1 a seed failed (wwrando would raise), 3 an option is not supported yet,
 // 2 usage or file error.
 //
@@ -190,6 +192,7 @@ int main(int argc, char** argv) {
         req.seed = s;
         req.options = opts;
         req.allowMissingHints = allowMissingHints;
+        req.allowNotRuntimeReady = true; // R7.2a: options the game does not apply yet (palettes)
         req.seedKey = seedKey.c_str();
         req.version = version;
         pcr::GenResult res;

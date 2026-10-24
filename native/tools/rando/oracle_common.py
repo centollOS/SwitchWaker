@@ -168,7 +168,7 @@ def decode_permalink(permalink):
 
 def placement_from_randomizer(r, opts):
   """The golden placement JSON, schema format 1 (docs/RANDOMIZER_PLAN.md "The oracle")."""
-  return {
+  d = {
     "format": PLACEMENT_FORMAT,
     "seed": r.seed,
     "permalink": r.permalink,
@@ -180,6 +180,10 @@ def placement_from_randomizer(r, opts):
     "starting_island_room": r.starting_island.room_number,
     "locations": dict(r.logic.done_item_locations),
   }
+  if opts.randomize_enemy_palettes:
+    # R7.2a: PaletteRandomizer's (h_shift, v_shift) per group, in file order.
+    d["palettes"] = {k: list(v) for k, v in r.palettes.file_group_name_to_hv_shift.items()}
+  return d
 
 
 def write_json(d, path):

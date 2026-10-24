@@ -15,9 +15,11 @@
 // starting_island (R6.7: one choice of sea room 2-49, written as "starting_island_room");
 // required bosses (R6.8, pc_rando_gen_bosses.h); entrances (R6.10-R6.11, pc_rando_gen_entrances.h; the
 // game applies them from R6.12-R6.13 on).
+// enemy palettes (R7.2a, pc_rando_gen_palettes.h: the "palettes" key; the game applies them from
+// R7.2c-R7.2e, so until R7.2e the option is refused unless GenRequest::allowNotRuntimeReady).
 // What is not ported yet, refused with a "not supported yet" error (GenResult::unsupported) instead
 // of a seed that would differ from wwrando's:
-//   - randomize_enemies (R7.3), randomize_enemy_palettes (R7.2);
+//   - randomize_enemies (R7.3);
 // Hints (R5.1, pc_rando_gen_hints.h) always run, as wwrando's HintsRandomizer is always enabled (the
 // Big Octo Great Fairy hint is generated even with every hint placement off); the placement gets a
 // "hints" value (hintsToJson). With GenRequest::allowMissingHints the seed is made without them:
@@ -51,6 +53,10 @@ struct GenRequest {
     Options options;  // validated by the generator (Options.validate), not ensureValidCombination
     // Generate without hints (faster; the placement is the same, the hint texts stay vanilla).
     bool allowMissingHints = false;
+    // Generate options whose generator is ported but whose game side is not yet
+    // (randomize_enemy_palettes until R7.2e). The Mac CLI and the oracle batch set it; the menu
+    // leaves it false, so the option is refused there with "Not supported yet".
+    bool allowNotRuntimeReady = false;
     // SEED_KEY for do_not_generate_spoiler_log (decision D2).
     const char* seedKey = kSwitchWakerSeedKey;
     // SwitchWaker version: the placement's "version" ("SwitchWaker <version>") and the D5 trailer.
@@ -87,8 +93,8 @@ struct GenResult {
 };
 
 // The first option of `o` whose randomizer is not ported yet, as the refusal text, or "" when all
-// enabled randomizers are ported. allowMissingHints as in GenRequest.
-std::string unsupportedOptionsError(const Options& o, bool allowMissingHints);
+// enabled randomizers are ported. allowMissingHints and allowNotRuntimeReady as in GenRequest.
+std::string unsupportedOptionsError(const Options& o, bool allowMissingHints, bool allowNotRuntimeReady = false);
 
 // Every option as the placement's "options" object (Options.all() order, enums as their strings,
 // lists as arrays, custom_colors as its JSON), as ww_export.py writes it.
