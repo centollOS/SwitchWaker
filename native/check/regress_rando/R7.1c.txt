@@ -1,0 +1,13 @@
+# R7.1c (docs/RANDOMIZER_PLAN.md): the inter-dungeon warp pots (features/rando/pc_rando_tweak_warp_pots.{h,cpp},
+# tweaks.py add_inter_dungeon_warp_pots as an archive patcher; the daObj_Warpt_c::createInit hunk for the custom
+# smoke colours). The smoke COS_RANDO_SMOKE=warppots (native/src/pc/harness/smokes/pc_rando_smoke_warppots.cpp)
+# checks the edit on the 6 rooms' disc files (SCLS +3, Warpts params, the only spawn 69, vanilla entries kept;
+# the patcher off keeps the disc hash), then with the option on (fixtures/R7_1c_warppots.json: R0_6_identity.json
+# with add_shortcut_warps_between_dungeons) takes 6 hops through the pots (DRC -> FW -> TotG -> DRC, FF -> ET ->
+# WT -> FF), each landing on the next dungeon's spawn 69, with the live Warpts params, custom colours (the
+# dungeons' own cyclic pots keep theirs) and the 5 imported particles in every scene. Off (identity) and without
+# a placement: the boot room keeps the disc's SCLS count, no Warpts of register 2, no spawn 69, no import.
+# cos_rando_test_R7_1c runs on its own. Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage M_NewD2:2:1 --env COS_RANDO_SMOKE=warppots --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R7_1c_warppots.json
+rando 0 --stage M_NewD2:2:1 --env COS_RANDO_SMOKE=warppots --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_identity.json
+rando 0 --stage M_NewD2:2:1 --env COS_RANDO_SMOKE=warppots

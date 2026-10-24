@@ -14,6 +14,9 @@
 #include "d/d_bg_s_movebg_actor.h"
 #include "f_op/f_op_actor_mng.h"
 #include "m_Do/m_Do_hostIO.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#endif
 
 class daObj_Warpt_HIO_c : public mDoHIO_entry_c {
 public:
@@ -765,8 +768,21 @@ void daObj_Warpt_c::getArg() {
 
 /* 00001F30-0000215C       .text createInit__13daObj_Warpt_cFv */
 void daObj_Warpt_c::createInit() {
+#if TARGET_PC
+    // pc_rando(R7.1c): misc_rando_features.asm d_a_obj_warpt 0x2050/0x2080 (set_prm/env_color_for_warp_pot_particles: event register 2 or 5 -> custom_warp_pot_prm_color 0xE5101B80, custom_warp_pot_env_color 0x3C379D80); original: m_def_smoke_prm_color[m2B4], m_def_smoke_env_color[m2B4]
+    if (pc_rando() && (m2B8 == 2 || m2B8 == 5)) {
+        const GXColor prm = {0xE5, 0x10, 0x1B, 0x80};
+        const GXColor env = {0x3C, 0x37, 0x9D, 0x80};
+        m86C = prm;
+        m870 = env;
+    } else {
+        m86C = m_def_smoke_prm_color[m2B4];
+        m870 = m_def_smoke_env_color[m2B4];
+    }
+#else
     m86C = m_def_smoke_prm_color[m2B4];
     m870 = m_def_smoke_env_color[m2B4];
+#endif
 
     fopAcM_SetMtx(this, mpBodyModel->getBaseTRMtx());
     fopAcM_setCullSizeBox(this, -80.0f, -0.0f, -80.0f, 80.0f, 160.0f, 80.0f);

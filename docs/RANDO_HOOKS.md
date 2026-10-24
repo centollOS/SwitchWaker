@@ -796,3 +796,18 @@ the `palettes` smoke, `cos_rando_test_R7_2c` and `native/tools/rando/palette_che
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | game/src/d/d_resorce.cpp | `dRes_info_c::loadResource`, after `JKRGetResource`: `pRes = pc_rando_res_hook_raw(...)` before the type's loader | add | randomizers/palettes.py `shift_colors_for_file_group` (`shift_all_colors_in_tex1` / `_bti`, `J3D.save`); tweaks.py `make_rat_holes_visible_from_behind` |
+
+## R7.1c
+
+Inter-dungeon warp pots (`add_shortcut_warps_between_dungeons`, `PcRandoConfig::inter_dungeon_warps`).
+`tweaks.py add_inter_dungeon_warp_pots` is data: an archive patcher (`features/rando/pc_rando_tweak_warp_pots.cpp`,
+registered after R6.12) appends to the 6 rooms' `room.dzr` 3 SCLS (the cycle's spawns 69, fade 4) and a `Warpts<k+1>`
+(type k+2, event register 2 or 5, the new SCLS indexes), and the spawn 69 (type 7) to the room or, for M_Dai and
+kaze, to `stage.dzs`; an activation listener registers the particle imports 0x8161, 0x8162, 0x8165, 0x8166, 0x8112
+from Pscene035 into Pscene050 and Pscene043 with R7.1b's registry. The hunk below gives the pots of register 2 or 5
+the custom smoke colours under `pc_rando()` (as wwrando's always-applied asm). Checked by the `warppots` smoke and
+`cos_rando_test_R7_1c`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_obj_warpt.cpp | `daObj_Warpt_c::createInit`: `m86C`/`m870` are 0xE5101B80 / 0x3C379D80 when `m2B8` (event register index) is 2 or 5 | #if/else | misc_rando_features.asm d_a_obj_warpt.rel 0x2050/0x2080 `set_prm_color_for_warp_pot_particles`, `set_env_color_for_warp_pot_particles` |
