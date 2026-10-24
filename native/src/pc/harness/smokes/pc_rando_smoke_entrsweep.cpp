@@ -333,7 +333,7 @@ bool sclsLeadsTo(const stage_scls_info_class* e, const Place& p) {
     }
     char dest[9] = {};
     memcpy(dest, e->mStage, 8);
-    return p.stage == dest && e->mRoom == p.room && e->mStart == p.spawn;
+    return p.stage == dest && (s8)e->mRoom == p.room && e->mStart == p.spawn;
 }
 
 std::string sclsStr(const stage_scls_info_class* e) {
@@ -343,7 +343,7 @@ std::string sclsStr(const stage_scls_info_class* e) {
     char dest[9] = {};
     memcpy(dest, e->mStage, 8);
     char buf[64];
-    snprintf(buf, sizeof buf, "%s room %d spawn %d", dest, e->mRoom, e->mStart);
+    snprintf(buf, sizeof buf, "%s room %d spawn %d", dest, (s8)e->mRoom, e->mStart);
     return buf;
 }
 
@@ -669,7 +669,9 @@ void randoSmokeEntrsweep(unsigned int frames) {
         const char* stage = dComIfGp_getStartStageName();
         const int room = dComIfGp_roomControl_getStayNo();
         const int point = dComIfGp_getStartStagePoint();
-        const bool there = sWant.stage == stage && room == sWant.room && (!sWantSpawn || point == sWant.spawn);
+        // room -1 (a dungeon start's SCLS[0]): the room of the spawn, whichever it is
+        const bool there = sWant.stage == stage && (sWant.room < 0 || room == sWant.room) &&
+                           (!sWantSpawn || point == sWant.spawn);
         char buf[200];
         snprintf(buf, sizeof buf, "%s: the play scene runs on %s (is %s room %d spawn %d, after %u frames)", stepName(),
                  placeStr(sWant).c_str(), stage, room, point, sSince);
