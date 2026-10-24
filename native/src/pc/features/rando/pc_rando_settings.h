@@ -118,7 +118,8 @@ struct RandoRow {
     RandoRowKind kind;
     int id = -1;
 };
-// The rows in order (the gear rows only while the header is expanded); re-reads the settings.
+// The rows of both pages in order (the gear rows only while the header is expanded; actions whose
+// shown() is false left out); re-reads the settings.
 std::vector<RandoRow> randoMenuRows();
 // The index-th row of the last randoMenuRows (no re-read: the menu asks per row, many times a frame).
 RandoRow randoMenuRowAt(int index);
@@ -135,8 +136,19 @@ std::string randoRowActivate(const RandoRow& r, int dir, bool spanish);
 // The COS_RANDO_* key of an Option row ("" for the others).
 std::string randoRowKey(const RandoRow& r);
 
-// Action rows for later steps (R4.3: "Seed...", "Random seed", "Generate", ...), shown after the
-// options in `order`. The strings must outlive the program. value/activate may be null.
+// Action rows for later steps (R4.3: "Seed...", "Random seed", "Generate", ...), in `order`. The
+// strings must outlive the program. value/activate/shown may be null (shown null: always shown).
+//
+// R8.2: the tab has two pages (pc_menu.cpp keeps the page; randoMenuPageRows). The order range
+// places an action:
+//   order < 0                    page 0 (kRandoPageGame), about the game being played: the current
+//                                file's seed, hash and spoiler log, and the "Next game options..."
+//                                row that opens page 1;
+//   0 <= order < kRandoOrderLate page 1 (kRandoPageNext), before the preset and the options (R4.3's
+//                                Seed..., Random seed, Paste permalink);
+//   order >= kRandoOrderLate     page 1, after the options (Generate, R8.1's Ask on New Game at 90,
+//                                R4.4's Clean unused seed files at 150).
+// The preset, option and starting gear rows are on page 1; the region notice (D16) on both.
 struct RandoMenuAction {
     const char* labelEs;
     const char* labelEn;
@@ -145,8 +157,18 @@ struct RandoMenuAction {
     std::string (*value)(bool spanish);
     std::string (*activate)(bool spanish); // A pressed; returns a toast
     int order;
+    bool (*shown)() = nullptr; // R8.2: false hides the row (e.g. the spoiler row without a randomized file)
 };
 void randoMenuAddAction(const RandoMenuAction& action);
+
+// R8.2: the tab's pages (see RandoMenuAction).
+constexpr int kRandoPageGame = 0;
+constexpr int kRandoPageNext = 1;
+constexpr int kRandoOrderLate = 50;
+// The page of a row; -1: every page (the region notice).
+int randoRowPage(const RandoRow& r);
+// The indices into randoMenuRows() of the rows on that page, in order (re-reads the rows).
+std::vector<int> randoMenuPageRows(int page);
 
 // Smokes: the menu reads the COS_INPUT script (as in COS_SMOKE=options-menu) while this is set.
 void randoMenuSetScripted(bool on);

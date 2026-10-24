@@ -4,11 +4,13 @@
 //       --env COS_RANDO_SMOKE=spoiler --env COS_RANDO_SEED=TestSeed1 --env COS_SHOT_IMGUI=1 --shot 530,580,630
 // The run has its own memory card (pc_rando_smoke_wants_run_card) for the sidecar, and the logs go to
 // <run dir>/user/rando (COS_RANDO_DIR, set here), as in the gen smoke.
-//   1. in play, before any seed: the Randomizer tab's row "Spoiler log..." is right after Generate,
-//      it shows "(no seed)" and A on it is refused;
-//   2. Generate (R4.3) makes TestSeed1 the pending seed and writes its spoiler log;
-//   3. frame 520: A on the row opens the page on its confirmation, the menu opens with it, and the
-//      page holds the pending seed: its spoiler log found and matching, its hash, spheres 1..n from
+//   1. in play, before any seed: R8.2: the Randomizer tab has no "Spoiler log..." row (it is on the
+//      tab's first page only while a randomized file is played), and opening the viewer is refused;
+//   2. Generate (R4.3) makes TestSeed1 the pending seed and writes its spoiler log; the pending seed
+//      alone still gives no row (it is the next game's);
+//   3. frame 520: the smoke activates the pending seed (as loading its file would): the row appears on
+//      the first page; A on it opens the page on its confirmation, the menu opens with it, and the
+//      page holds the active seed: its spoiler log found and matching, its hash, spheres 1..n from
 //      the log (the Rooftop in one of them), every location of the placement by zone, equal to the
 //      log's "All item locations";
 //   4. the input script (read by the menu) presses A (the spheres), DOWN DOWN RIGHT (cursor on
@@ -66,20 +68,13 @@ void start() {
     setenv("COS_RANDO_DIR", dir.c_str(), 1);
 
     const std::vector<RandoRow> rows = randoMenuRows();
-    const int genRow = actionRow(rows, "Generate");
-    const int row = actionRow(rows, "Spoiler log...");
-    // (R4.4's "Clean unused seed files", order 150, follows it)
-    randoSmokeCheck(kName, "the \"Spoiler log...\" row is right after Generate",
-                    genRow > 0 && row == genRow + 1);
-    if (row < 0) {
-        randoSmokeEnd(kName);
-    }
+    randoSmokeCheck(kName, "no \"Spoiler log...\" row without a randomized file (R8.2)",
+                    actionRow(rows, "Spoiler log...") < 0 && !pc_rando());
     randoSmokeCheck(kName, "no pending seed yet", pc_rando_slot_pending() == nullptr);
-    const std::string value = randoRowValue(rows[row], false);
-    randoSmokeCheck(kName, ("it shows no seed (\"" + value + "\")").c_str(), value == "(no seed)");
-    const std::string toast = randoRowActivate(rows[row], 0, false);
-    randoSmokeCheck(kName, ("A is refused (\"" + toast + "\")").c_str(),
-                    toast == "No seed: generate one first" && !randoSpoilerActive());
+    std::string toast;
+    const bool opened = randoSpoilerOpen(false, &toast);
+    randoSmokeCheck(kName, ("opening it is refused (\"" + toast + "\")").c_str(),
+                    !opened && toast == "No Randomizer game is being played" && !randoSpoilerActive());
 
     std::string msg;
     randoSmokeCheck(kName, ("Generate started (" + msg + ")").c_str(), randoGenerate(false, &msg));
@@ -93,7 +88,14 @@ void checkOpened() {
     if (pending == nullptr) {
         randoSmokeEnd(kName);
     }
+    randoSmokeCheck(kName, "the pending seed alone gives no row (R8.2: it is the next game's)",
+                    actionRow(randoMenuRows(), "Spoiler log...") < 0);
+    std::string err;
+    randoSmokeCheck(kName, ("the pending seed activated, as its file would be (" + err + ")").c_str(),
+                    pc_rando_slot_activate(*pending, &err) && pc_rando());
     const RandoRow row = spoilerRow();
+    randoSmokeCheck(kName, "the row is on the tab's first page",
+                    row.kind == RandoRowKind::Action && randoRowPage(row) == kRandoPageGame);
     const std::string value = randoRowValue(row, false);
     randoSmokeCheck(kName, ("the row offers it (\"" + value + "\")").c_str(), value == "A: view TestSeed1");
     const std::string toast = randoRowActivate(row, 0, false);
@@ -102,7 +104,7 @@ void checkOpened() {
                     toast.empty() && randoSpoilerActive() && p.state() == pcr::SpoilerState::Confirm);
 
     const RandoSpoilerInfo& info = randoSpoilerInfo();
-    randoSmokeCheck(kName, "the pending seed (no file is played)", !info.active && info.seed == "TestSeed1");
+    randoSmokeCheck(kName, "the active seed (R8.2)", info.active && info.seed == "TestSeed1");
     randoSmokeCheck(kName, ("its spoiler log " + info.logPath).c_str(),
                     info.logFound && info.logMatches && info.logPath == g.spoilerPath);
     randoSmokeCheck(kName, ("its hash (\"" + info.hash + "\")").c_str(), !info.hash.empty() && info.hash == g.hash);

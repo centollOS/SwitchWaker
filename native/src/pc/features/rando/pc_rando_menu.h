@@ -1,5 +1,18 @@
 // The seed rows of the options menu's "Randomizer" tab (docs/RANDOMIZER_PLAN.md step R4.3,
-// decisions D3, D5, D6), after the option rows of R4.1 (pc_rando_settings.h, RandoMenuAction):
+// decisions D3, D5, D6), and (R8.2) the tab's two pages (pc_rando_settings.h, RandoMenuAction):
+//
+// Page 0, about the game being played (read-only):
+//   Current game     "Randomizer" for a randomized file (pc_rando() with an active seed), "Normal
+//                    game" for any other file in the PLAY scene, "No game loaded" at the title, the
+//                    file select and the name entry (menuInPlay, pc_internal.h)
+//   Seed, Hash       the active seed's name and its "Name1 Name2" (randomized file only)
+//   Spoiler log...   R4.5's viewer on the active seed's log (randomized file only;
+//                    pc_rando_hooks_spoiler.cpp)
+//   Next game options...  opens page 1 (menuOpenPage); B or its "< Back" row returns
+// Page 1, "Next game options": everything that only acts on the next New Game. Its header line says
+// so and names the pending seed with its hash (randoMenuPageHeader):
+//   Seed..., Random seed, Paste permalink, the preset and option rows of R4.1, Generate, R8.1's
+//   "Ask on New Game" (order 90) and R4.4's "Clean unused seed files" (order 150).
 //
 //   Seed...          the seed name (setting COS_RANDO_SEED, saved in settings.ini; empty: a random
 //                    one at Generate); A opens the text input of R4.2 (pc_rando_text_ui.h)
@@ -28,10 +41,17 @@ namespace pc {
 
 extern const char* const kRandoSeedKey; // "COS_RANDO_SEED"
 
-// Registers COS_RANDO_SEED and the four rows (and R4.4's "Clean unused seed files",
-// pc_rando_fileselect.h); called by pc_menu.cpp's menuInit after randoSettingsRegister. Again is a
+// Registers COS_RANDO_SEED, page 0's rows and the four seed rows (and R4.4's "Clean unused seed
+// files", pc_rando_fileselect.h, and R8.1's "Ask on New Game"); called by pc_menu.cpp's menuInit after randoSettingsRegister. Again is a
 // no-op.
 void randoMenuInit();
+// R8.2: the title of the Randomizer tab's page (1: "Next game options") and its first line (*sub):
+// the settings apply to the next new randomized file; the pending seed's name and hash, if any.
+std::string randoMenuPageHeader(int page, bool spanish, std::string* sub);
+// R8.2: what page 0 says about the game being played.
+enum class RandoGameKind { None, Normal, Rando };
+RandoGameKind randoCurrentGame();
+
 // Every frame (pc_menu.cpp menuFrame, menu open or not): a finished generation becomes the pending
 // seed (or the row's error) and is logged; R4.4's file-select line is drawn (randoFileSelectOverlay).
 void randoMenuFrame();

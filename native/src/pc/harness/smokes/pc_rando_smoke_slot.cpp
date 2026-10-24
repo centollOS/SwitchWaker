@@ -60,12 +60,13 @@ extern "C" int pc_rando_smoke_wants_run_card(void) {
     // game, as start). R4.4: the newfile smoke (a real new game; it adds and cleans sidecars).
     // R4.5: the spoiler smoke generates a seed as gen does.
     // R8.1: the fsnewgame smoke (real new games, generated sidecars).
+    // R8.2: the rmenu smoke generates a seed from the menu's second page.
     return smoke != nullptr && strcmp(smoke, "rando") == 0 && name != nullptr &&
            (strcmp(name, "slot") == 0 || strcmp(name, "loc") == 0 || strcmp(name, "newgame") == 0 ||
             strcmp(name, "evloc") == 0 || strcmp(name, "addchest") == 0 || strcmp(name, "start") == 0 ||
             strcmp(name, "trap") == 0 || strcmp(name, "gen") == 0 ||
             strcmp(name, "island") == 0 || strcmp(name, "newfile") == 0 || strcmp(name, "spoiler") == 0 ||
-            strcmp(name, "fsnewgame") == 0);
+            strcmp(name, "fsnewgame") == 0 || strcmp(name, "rmenu") == 0);
 }
 
 namespace pc {

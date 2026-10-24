@@ -3,8 +3,9 @@
 //   native/tools/run.sh rando --stage sea:44:206 --env COS_RANDO_SMOKE=gen --env COS_RANDO_SEED=TestSeed1
 // The run has its own memory card (pc_rando_smoke_wants_run_card) for the sidecar, and the logs go to
 // <run dir>/user/rando (COS_RANDO_DIR, set here).
-//   1. in play: the Randomizer tab ends with the rows Seed..., Random seed, Paste permalink and
-//      Generate; Seed... shows TestSeed1 (COS_RANDO_SEED, locked by the environment, so Random seed
+//   1. in play: the Randomizer tab's "Next game options" page (R8.2) starts with Seed..., Random seed
+//      and Paste permalink, then the preset and the options, then Generate, Ask on New Game and Clean
+//      unused seed files; Seed... shows TestSeed1 (COS_RANDO_SEED, locked by the environment, so Random seed
 //      refuses); no pending seed;
 //   2. A on Generate starts the worker (the row says so), a second A is refused while it runs;
 //   3. the game frames go on while it runs; when it ends the result is the pending seed (its hash on
@@ -89,17 +90,19 @@ void start() {
     const int randomRow = actionRow(rows, "Random seed");
     const int permalinkRow = actionRow(rows, "Paste permalink");
     const int genRow = actionRow(rows, "Generate");
-    // R4.5: "Spoiler log..." (order 140) right after Generate; R4.4: "Clean unused seed files"
-    // (order 150) after it, the tab's last row.
-    const int spoilerRow = actionRow(rows, "Spoiler log...");
+    // R8.2: the "Next game options" page: Seed..., Random seed, Paste permalink before the preset;
+    // Generate (80), R8.1's "Ask on New Game" (90) and R4.4's "Clean unused seed files" (150) after
+    // the options, the tab's last rows. R4.5's "Spoiler log..." is on the first page, and only while a
+    // randomized file is played (not here).
+    const int askRow = actionRow(rows, "Ask on New Game");
     const int cleanRow = actionRow(rows, "Clean unused seed files");
-    randoSmokeCheck(kName, "the four seed rows, in order, after the options",
-                    seedRow > 0 && randomRow == seedRow + 1 && permalinkRow == seedRow + 2 && genRow == seedRow + 3 &&
-                        spoilerRow == genRow + 1 && cleanRow == spoilerRow + 1 && cleanRow == (int)rows.size() - 1 &&
-                        // R8.1: the "Ask on New Game" row sits between the options and Seed...
-                        rows[seedRow - 1].kind == RandoRowKind::Action && seedRow > 1 &&
-                        rows[seedRow - 2].kind == RandoRowKind::Option &&
-                        randoRowLabel(rows[seedRow - 1], false) == "Ask on New Game");
+    const bool onNext = seedRow >= 0 && genRow >= 0 && randoRowPage(rows[seedRow]) == kRandoPageNext &&
+                        randoRowPage(rows[genRow]) == kRandoPageNext && randoRowPage(rows[permalinkRow]) == kRandoPageNext;
+    randoSmokeCheck(kName, "the seed rows, in order, on the Next game options page",
+                    onNext && seedRow > 0 && randomRow == seedRow + 1 && permalinkRow == seedRow + 2 &&
+                        rows[seedRow + 3].kind == RandoRowKind::Preset && (rows[genRow - 1].kind == RandoRowKind::Option || rows[genRow - 1].kind == RandoRowKind::GearHeader) &&
+                        askRow == genRow + 1 && cleanRow == askRow + 1 && cleanRow == (int)rows.size() - 1 &&
+                        actionRow(rows, "Spoiler log...") < 0);
     if (genRow < 0) {
         randoSmokeEnd(kName);
     }

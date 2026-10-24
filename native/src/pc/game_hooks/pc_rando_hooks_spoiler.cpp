@@ -36,7 +36,8 @@ pcr::SpoilerPager sPager;
 RandoSpoilerInfo sInfo;
 bool sScroll = false; // the cursor moved: scroll to it
 
-// The seed the page would show: the active one while a randomized file is played, else the pending one.
+// The seed the page shows: the active one while a randomized file is played (R8.2: the row is on the
+// tab's page about the game being played, so never the pending seed of the next game).
 const PcRandoSeed* seedToShow(bool* active) {
     if (pc_rando()) {
         if (const PcRandoSeed* s = pc_rando_slot_active_seed(); s != nullptr) {
@@ -45,7 +46,13 @@ const PcRandoSeed* seedToShow(bool* active) {
         }
     }
     *active = false;
-    return pc_rando_slot_pending();
+    return nullptr;
+}
+
+// R8.2: the row is shown only while a randomized file is played.
+bool rowShown() {
+    bool active = false;
+    return seedToShow(&active) != nullptr;
 }
 
 bool hidesSpoiler(const PcRandoSeed& seed) {
@@ -86,7 +93,7 @@ std::string rowValue(bool es) {
     bool active = false;
     const PcRandoSeed* seed = seedToShow(&active);
     if (seed == nullptr) {
-        return L(es, "(sin semilla)", "(no seed)");
+        return L(es, "(sin partida Randomizer)", "(no Randomizer game)");
     }
     if (hidesSpoiler(*seed)) {
         return L(es, "(semilla sin registro)", "(seed without a log)");
@@ -107,12 +114,13 @@ void randoSpoilerInit() {
         return;
     }
     sInit = true;
+    // R8.2: on the tab's first page (order < 0), about the randomized file being played.
     randoMenuAddAction({"Ver registro de soluciones...", "Spoiler log...",
-                        "A: las esferas de progresión y cada ubicación por zona de la semilla (la de la partida "
-                        "en curso o la generada). Pregunta antes de mostrar nada",
-                        "A: the seed's progression spheres and every location by zone (the file being played, or "
-                        "the generated seed). Asks before showing anything",
-                        rowValue, rowActivate, 140});
+                        "A: las esferas de progresión y cada ubicación por zona de la semilla de esta partida. "
+                        "Pregunta antes de mostrar nada",
+                        "A: the progression spheres and every location by zone of this game's seed. Asks before "
+                        "showing anything",
+                        rowValue, rowActivate, -100, rowShown});
 }
 
 bool randoSpoilerOpen(bool es, std::string* msg) {
@@ -125,7 +133,7 @@ bool randoSpoilerOpen(bool es, std::string* msg) {
     bool active = false;
     const PcRandoSeed* seed = seedToShow(&active);
     if (seed == nullptr) {
-        return refuse(L(es, "No hay semilla: genera una primero", "No seed: generate one first"));
+        return refuse(L(es, "No se está jugando una partida Randomizer", "No Randomizer game is being played"));
     }
     if (hidesSpoiler(*seed)) {
         return refuse(L(es, "Esta semilla se generó sin registro de soluciones",

@@ -7,6 +7,7 @@
 #include "pc_rando_genjob.h"
 #include "pc_rando_options.h"
 #include "pc_rando_settings.h"
+#include "pc_rando_sidecars.h"
 #include "pc_rando_slot.h"
 #include "pc_rando_text_ui.h"
 
@@ -33,6 +34,9 @@ void JKRPcEndHostAlloc();
 namespace pc {
 
 bool pc_ui_spanish(); // pc_precompile.cpp (pc_internal.h): the menu's language
+// pc_menu.cpp (pc_internal.h; R8.2): the tab's pages and whether a file is played.
+void menuOpenPage(int tab, int page);
+bool menuInPlay();
 
 const char* const kRandoSeedKey = "COS_RANDO_SEED";
 
@@ -176,6 +180,62 @@ std::string permalinkActivate(bool es) {
     return initial.empty() ? "" : L(es, "Permalink leído de permalink.txt", "Permalink read from permalink.txt");
 }
 
+// ---- page 0 (R8.2): the game being played -----------------------------------------------------------
+
+const PcRandoSeed* activeSeed() {
+    return pc_rando() ? pc_rando_slot_active_seed() : nullptr;
+}
+
+// A seed's "Name1 Name2" (pcr::seedHashWords encodes its permalink: cached per seed hash).
+std::string hashWords(const PcRandoSeed& seed) {
+    static uint32_t sKey = 0;
+    static bool sHave = false;
+    static std::string sWords;
+    const uint32_t key = (uint32_t)pc_rando_seed_hash32(seed);
+    if (!sHave || key != sKey) {
+        sWords = pcr::seedHashWords(seed);
+        sKey = key;
+        sHave = true;
+    }
+    return sWords;
+}
+
+bool shownRando() {
+    return activeSeed() != nullptr;
+}
+
+std::string gameValue(bool es) {
+    switch (randoCurrentGame()) {
+    case RandoGameKind::Rando: return "Randomizer";
+    case RandoGameKind::Normal: return L(es, "Partida normal", "Normal game");
+    case RandoGameKind::None: break;
+    }
+    return L(es, "Ninguna partida cargada", "No game loaded");
+}
+
+std::string noAction(bool) {
+    return "";
+}
+
+std::string activeSeedValue(bool) {
+    const PcRandoSeed* s = activeSeed();
+    return s != nullptr ? s->seed : "";
+}
+
+std::string activeHashValue(bool) {
+    const PcRandoSeed* s = activeSeed();
+    return s != nullptr ? hashWords(*s) : "";
+}
+
+std::string nextValue(bool es) {
+    return L(es, "A: abrir", "A: open");
+}
+
+std::string nextActivate(bool) {
+    menuOpenPage(PC_SETTING_TAB_RANDO, kRandoPageNext);
+    return "";
+}
+
 // ---- Generate --------------------------------------------------------------------------------------
 
 std::string generateValue(bool es) {
@@ -246,22 +306,63 @@ void randoMenuInit() {
     hooks.exit = threadExit;
     pcr::genJobSetThreadHooks(hooks);
 
+    // R8.2: page 0, the game being played (R4.5's "Spoiler log..." at -100, pc_rando_hooks_spoiler.cpp).
+    randoMenuAddAction({"Partida actual", "Current game",
+                        "La partida que se está jugando: Randomizer, normal, o ninguna (título, selección de archivo)",
+                        "The game being played: Randomizer, normal, or none (title screen, file select)", gameValue,
+                        noAction, -300});
+    randoMenuAddAction({"Semilla", "Seed", "El nombre de la semilla de esta partida",
+                        "The seed name of the game being played", activeSeedValue, noAction, -290, shownRando});
+    randoMenuAddAction({"Hash", "Hash",
+                        "El hash de la semilla de esta partida (el que muestra wwrando en la selección de archivo)",
+                        "The hash of the game's seed (the one wwrando shows on the file select)", activeHashValue,
+                        noAction, -280, shownRando});
+    randoMenuAddAction({"Opciones de la siguiente partida...", "Next game options...",
+                        "A: semilla, opciones y Generar: solo cuentan para la próxima partida Randomizer nueva",
+                        "A: seed, options and Generate: they only act on the next new Randomizer file", nextValue,
+                        nextActivate, -10});
+    // Page 1, before the options (order < kRandoOrderLate), then Generate after them.
     randoMenuAddAction({"Semilla...", "Seed...",
                         "A: escribir el nombre de la semilla (vacío: una aleatoria al generar)",
                         "A: type the seed name (empty: a random one when generating)", seedValue, seedActivate,
-                        100});
+                        10});
     randoMenuAddAction({"Semilla aleatoria", "Random seed", "A: un nombre de semilla aleatorio, como wwrando",
-                        "A: a random seed name, as wwrando makes", nullptr, randomActivate, 110});
+                        "A: a random seed name, as wwrando makes", nullptr, randomActivate, 20});
     randoMenuAddAction({"Pegar permalink", "Paste permalink",
                         "A: semilla y opciones de un permalink de wwrando 1.10.0 (lee user/rando/permalink.txt)",
                         "A: seed and options from a wwrando 1.10.0 permalink (reads user/rando/permalink.txt)",
-                        permalinkValue, permalinkActivate, 120});
+                        permalinkValue, permalinkActivate, 30});
     randoMenuAddAction({"Generar", "Generate",
                         "A: genera la semilla; la próxima partida nueva la usa. Registros en user/rando",
                         "A: generates the seed; the next new game uses it. Logs in user/rando", generateValue,
-                        generateActivate, 130});
+                        generateActivate, 80});
     randoFileSelectMenuInit(); // R4.4: "Clean unused seed files" (order 150)
     randoFsNewgameMenuInit();  // R8.1: "Ask on New Game" (order 90, setting COS_RANDO_ASK_NEWGAME)
+}
+
+RandoGameKind randoCurrentGame() {
+    if (activeSeed() != nullptr) {
+        return RandoGameKind::Rando;
+    }
+    return menuInPlay() ? RandoGameKind::Normal : RandoGameKind::None;
+}
+
+std::string randoMenuPageHeader(int page, bool es, std::string* sub) {
+    if (page != kRandoPageNext) {
+        sub->clear();
+        return "";
+    }
+    std::string line = L(es, "Estos ajustes se aplican al próximo archivo Randomizer nuevo, no a la partida actual.",
+                         "These settings apply to the next new Randomizer file, not to the game being played.");
+    if (sBusy) {
+        line += L(es, " Generando una semilla...", " Generating a seed...");
+    } else if (const PcRandoSeed* p = pc_rando_slot_pending(); p != nullptr) {
+        line += std::string(L(es, " Semilla pendiente: ", " Pending seed: ")) + p->seed + " (" + hashWords(*p) + ")";
+    } else {
+        line += L(es, " Ninguna semilla pendiente.", " No pending seed.");
+    }
+    *sub = line;
+    return L(es, "Opciones de la siguiente partida", "Next game options");
 }
 
 bool randoGenBusy() {
