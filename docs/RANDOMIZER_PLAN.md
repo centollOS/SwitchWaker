@@ -1149,7 +1149,59 @@ first.*
   record); empty slot -> Yes gives a file whose record and sidecar match the menu's seed; an occupied slot never
   asks; with "Ask on New Game" off the flow is byte-identical to R4.4's. Then a console check of both paths.
 
-**Milestone R8:** both New Game paths on the console, USA (and EUR if R7.6 has passed).
+**Milestone R8:** both New Game paths on the console, USA (and EUR if R7.6 has passed). Passed for USA on
+2026-10-24 (console, NRO 3950c89: No gave a normal file; Yes generated seed "RoughBothSeal" in 0.191 s, 10
+frames of wait state, and started the randomized file).
+
+Added on 2026-10-24 after the user's console check (both steps in W20; they own different files):
+
+**R8.2 Randomizer tab: this game first, next game's options in a submenu.** *Deps: R8.1.* The tab mixed the
+running game with the settings of the next generation (the "Seed" row showed the next seed name, which the
+user read as the current game's). New layout:
+- **Top of the tab, read-only, about the game being played:** randomized file: its seed name, its hash
+  ("Name1 Name2", from the active record) and the spoiler log of that seed (the existing "Spoiler log..."
+  viewer, opened on the active seed's log). A non-randomized file: one line "Normal game" ("Partida normal").
+  No file loaded (title, file select): "No game loaded" ("Ninguna partida cargada").
+- **One row "Next game options..." ("Opciones de la siguiente partida...")** opens a submenu (inside the
+  Randomizer tab; B or a "Back" row returns) with everything that only acts on the next New Game: Seed...,
+  Random seed, Paste permalink, every wwrando option row (R4.1), Generate, "Ask on New Game" (R8.1) and
+  "Clean unused seed files" (R4.4). Its first line says the settings apply to the next new randomized file
+  and, when a seed is pending, shows its name and hash.
+- Menu texts follow the menu's language (pc_ui_spanish), as every menu row today.
+- **Owns:** the submenu support in `pc_menu.cpp` (a page state per tab, generic: rows join a page by an
+  order range or a page field, decided by the step), `pc_rando_menu.cpp`/`.h`, the spoiler row in
+  `pc_rando_hooks_spoiler.cpp`, `regress_rando/R8.2.txt`, and the menu smokes' row-order checks (R4.1, R4.3,
+  R4.5 smokes) adjusted to the new layout. It does not edit `pc_rando_hooks_fileselect_newgame.cpp` or
+  `pc_rando_hooks_fileselect.cpp`: their rows move by their order/page value only if that needs no edit there;
+  otherwise R8.3 sets the "Ask on New Game" row's page and R8.2 documents the value to use.
+- **Verify:** the menu smokes pass with the new layout; a new smoke case (or the existing menu smoke) checks:
+  title screen shows "No game loaded"; a vanilla file shows "Normal game"; a randomized file (TestSeed1) shows
+  its seed and hash and the spoiler viewer opens that seed's log; the submenu holds the generation rows and
+  Generate still works from it; B leaves the submenu. Screenshots of both pages in es and en.
+
+**R8.3 New Game: ask whether to make a new seed.** *Deps: R8.1.* On the console, Yes reused the seed name
+that the first Yes had stored in COS_RANDO_SEED, so a deleted file and a new Yes gave the same seed again.
+- **Flow:** blank slot -> "Start a Randomizer file?" (No preselected, unchanged). Yes -> a second Yes/No
+  question "Make a new seed?" with the current seed below ("Current seed: Name (Hash words)": the pending
+  seed if one is pending, else the seed name of the menu settings). **Yes is preselected** on this one.
+  - Yes: a new random seed name (as the menu's "Random seed" row: stored in COS_RANDO_SEED so the menu shows
+    it), generated with the menu's options, then the name entry.
+  - No: the pending seed if one is pending, else the seed of the menu settings as they are (name and options).
+  - B: back to the slot list.
+- With no seed at all (COS_RANDO_SEED empty and none pending) the second question is skipped and a new seed is
+  generated directly.
+- Texts: USA English; EUR follows the game's language (Spanish for Spanish, English otherwise), as R8.1.
+- **Owns:** `pc_rando_hooks_fileselect_newgame.cpp`, `pc_rando_fsnewgame.h`, the R8.1 hunks of
+  `game/src/d/d_file_select.cpp` and `game/src/pal/d/d_file_select.inc` (only if the second question needs a
+  game-side change; reuse the same YesNoSelect state), the `fsnewgame` smoke and its input scripts,
+  `regress_rando/R8.3.txt`, RANDO_HOOKS.md "## R8.1" (extended).
+- **Verify:** fsnewgame cases: second question Yes -> a different seed name than COS_RANDO_SEED had, record +
+  sidecar match; second question No with a pending seed -> that seed; No with a set name -> that name's seed;
+  no seed at all -> no second question, a new seed; B on the second question -> slot list. All R8.1 lines
+  still pass (adjusted input scripts where the extra question changes the presses). Screenshots of the
+  second question in USA English and EUR Spanish (EUR with the D16 gate opened locally only).
+
+**Milestone R8b:** the new menu and the second question on the console (USA).
 
 ---
 
@@ -1184,6 +1236,7 @@ integrator merges them in wave order.
 | W17 | R7.4b, R7.4c |
 | W18 | R7.4d, R7.6d* |
 | W19 | R8.1 |
+| W20 | R8.2, R8.3 |
 
 \* The R7.6 steps wait for Milestone R6; if it has not passed when their wave starts, they slide to a later wave
 (nothing else depends on them). In W15/W16/W18 only one step touches `pc_rando_gen.cpp` (R7.3c, R7.2e, R7.4d).
@@ -1194,5 +1247,5 @@ randomized file). In parallel, R0.1 → R0.9 → R0.10 → R0.5/R0.7 → R2.x �
 and the R3 patch steps.
 
 Milestones gate merges into `main`, not wave starts: a phase's milestone check runs once all its steps
-have merged on `feature/randomizer`. **Step totals: R0 12, R1 6, R2 12, R3 21, R4 5, R5 3, R6 15, R7 21, R8 1:
-96 steps in 19 waves.**
+have merged on `feature/randomizer`. **Step totals: R0 12, R1 6, R2 12, R3 21, R4 5, R5 3, R6 15, R7 21, R8 3:
+98 steps in 20 waves.**
