@@ -1,0 +1,22 @@
+# R7.4c (docs/RANDOMIZER_PLAN.md): enemy rando particles (features/rando/pc_rando_enemy_particles.{h,cpp}: each placed
+# type's "Required particle IDs" registered as "any" imports into the bank of its place, stage.dzs STAG[0] or the sea
+# room.dzr FILI[0], for R7.1b's bank hook). native/tools/rando/enemy_particle_check.py generates the seed with
+# cos_rando_cli (randomize_enemies=true), runs the smoke COS_RANDO_SMOKE=enemyptcl
+# (native/src/pc/harness/smokes/pc_rando_smoke_enemyptcl.cpp: every place's bank file read from the disc gives
+# wwrando's particles_to_load_for_each_jpc_index and the ids each bank lacks, each with an "any" source; live: the
+# boot place's required ids are in the scene resource manager and make emitters, and --need: the disc's bank lacked
+# some of them) and compares its dump with wwrando's own save_changed_enemies_and_randomize_their_params and
+# update_loaded_particles run with gclib on the disc. Seven places whose new enemies need particles their bank
+# lacks: 5 dungeon/cave stages, a Ganon's Tower stage and a sea room. --vanilla and the identity placement: nothing
+# registered.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+script 0 python3 -I native/tools/rando/enemy_particle_check.py --seed EnemyCheckA --run --need --stage M_NewD2:2:1
+script 0 python3 -I native/tools/rando/enemy_particle_check.py --seed EnemyCheckA --run --need --stage Hyroom:0:0
+script 0 python3 -I native/tools/rando/enemy_particle_check.py --seed EnemyCheckA --run --need --stage GanonJ:0:0
+script 0 python3 -I native/tools/rando/enemy_particle_check.py --seed EnemyCheckA --run --need --stage sea:13:0
+script 0 python3 -I native/tools/rando/enemy_particle_check.py --seed EnemyCheckA --run --need --stage ma2room:2:0
+script 0 python3 -I native/tools/rando/enemy_particle_check.py --seed EnemyCheckA --run --need --stage TF_04:0:0
+script 0 python3 -I native/tools/rando/enemy_particle_check.py --seed EnemyCheckA --run --need --stage Cave02:0:0
+script 0 python3 -I native/tools/rando/enemy_particle_check.py --seed EnemyCov19 --run --need --stage M_NewD2:2:1
+script 0 python3 -I native/tools/rando/enemy_particle_check.py --vanilla --run --stage M_NewD2:2:1
+rando 0 --stage M_NewD2:2:1 --env COS_RANDO_SMOKE=enemyptcl --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_identity.json --env COS_CACHE_PER_RUN=1

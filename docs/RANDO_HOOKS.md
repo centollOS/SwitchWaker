@@ -883,3 +883,19 @@ Checked by the `palettes` smoke and `native/tools/rando/palette_check.py` (wwran
 | game/src/d/actor/d_a_bgn.cpp | `daBgn2_Draw`, `daBgn3_Draw`: red rope colours of `mRedRopeMat.update` | #if/else | `shift_hardcoded_puppet_ganon_colors` d_a_bgn.rel 0xF0A8, 0xF0B0 |
 | game/src/d/actor/d_a_bgn3.cpp | `daBgn3_Create`: `ke_color` from `l_HIO.m50/m52/m54` | #if/else | `shift_hardcoded_puppet_ganon_colors` d_a_bgn3.rel u8 0x2CF/0x2D7/0x2DF (li immediates of the HIO constructor) |
 | game/src/d/actor/d_a_gnd.cpp | `daGnd_Draw`: thread colour of `mLineMat.update` | #if/else | `shift_hardcoded_ganondorf_colors` d_a_gnd.rel 0x8F1C |
+
+## R7.4c
+
+Enemy rando particles (`enemies.py` `particles_to_load_for_each_jpc_index` at the end of
+`save_changed_enemies_and_randomize_their_params`, and `update_loaded_particles`). No hunk in `game/`: a dzx
+patcher (`features/rando/pc_rando_enemy_particles.{h,cpp}`, registered last in `pc_rando_patchers.def` through
+`game_hooks/pc_rando_hooks_enemy_particles.cpp`, which runs it in a host allocation scope) reads the place's
+bank from the raw file as the game loads it (non-sea stage folders: `stage.dzs` STAG[0] `loaded_particle_bank`,
+mask 0x07F8 of params_2; sea rooms: `room.dzr` FILI[0], mask 0x1FE00000) and registers each placed type's
+"Required particle IDs" as an `any` import into that bank with R7.1b's registry. The game parses both files
+before `dPa_control_c::readScene`, so the bank R7.1b builds in `createRoomScene` holds them; an id the bank
+already has is skipped, as in wwrando. Imports accumulate for the activation, so a bank shared by several places
+(Pscene043, 078, 080, 220, sea bank 200, ...) holds the ids of the places loaded so far rather than of all of
+them, as wwrando's file does; the place being loaded always has its own. Checked by the `enemyptcl` smoke and
+`native/tools/rando/enemy_particle_check.py` (wwrando's own code with gclib on the disc),
+`regress_rando/R7.4c.txt`.
