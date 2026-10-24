@@ -66,6 +66,7 @@ struct RandoFsNewgameInfo {
     int answered2No = 0;
     int newSeeds = 0;    // R8.3: new random seed names made (second question Yes, or no seed at all)
     std::string lastNewSeed; // the last new random seed name
+    std::string question2Message; // the message pane text of the last second question
     int waitFrames = 0;  // frames of the last wait state
     double seconds = 0.0; // the last generation's time (genjob, files excluded)
     std::string lastError;  // first line of the last error

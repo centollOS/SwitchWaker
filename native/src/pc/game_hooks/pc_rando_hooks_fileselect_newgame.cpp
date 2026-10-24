@@ -392,6 +392,7 @@ int pc_rando_fs_newgame_yesno(int trigA, int trigB, int cursor, char* title, cha
         sSeedLine = currentSeedLine();
         put(title, kTitleCap, msgText(PCR_FSNG_MSG_NEWQ), &sInfo.lastTitle);
         put(message, kMessageCap, sSeedLine, &sInfo.lastMessage);
+        sInfo.question2Message = sInfo.lastMessage;
         writef(STDERR_FILENO, "[cos] rando fsnewgame: Yes: asks for a new seed (current: %s)\n",
                pc_rando_slot_pending() != nullptr ? "the pending seed" : "the seed setting's name");
         return PC_RANDO_FSNG_ASK2;

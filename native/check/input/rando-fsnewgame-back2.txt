@@ -1,0 +1,21 @@
+# Controller script of the R8.3 smoke fsnewgame case back2 (docs/RANDOMIZER_PLAN.md): A (1100) on blank
+# slot 1, the stick left (1150-1155) to Yes, A (1200) answers Yes, B (1300) on the second question "Make a
+# new seed?" goes back to the slot list (the run ends there).
+600   START    0    0
+602   -        0    0
+720   START    0    0
+722   -        0    0
+880   -     -127    0
+886   -        0    0
+900   A        0    0
+902   -        0    0
+1000  A        0    0
+1002  -        0    0
+1100  A        0    0
+1102  -        0    0
+1150  -     -127    0
+1156  -        0    0
+1200  A        0    0
+1202  -        0    0
+1300  B        0    0
+1302  -        0    0
