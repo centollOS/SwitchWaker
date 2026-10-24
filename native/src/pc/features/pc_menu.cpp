@@ -74,6 +74,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <atomic>
 #include <mutex>
 #include <string>
 #include <strings.h>
@@ -2652,8 +2653,12 @@ const char* debugItemName(u8 item) {
     return "by number";
 }
 
+// inPlay() of the last frame, for the render thread (pc_in_play)
+std::atomic<bool> sPlayPublished{false};
+
 void debugFrameEnd(unsigned int frame) {
     const bool play = inPlay();
+    sPlayPublished.store(play, std::memory_order_relaxed);
     std::lock_guard<std::mutex> lk(sDebugMu);
     sDebugStatus.frame = frame;
     sDebugStatus.play = play;
@@ -2901,3 +2906,7 @@ extern "C" int pc_debug_status(char* out, size_t size) {
                     pc::sDebugStatus.play ? pc::sDebugStatus.stage : "-", pc::sDebugStatus.room,
                     pc::sDebugStatus.play ? "" : " (not playing a file)");
 }
+
+// The game proper is running (a PLAY scene exists: a file is loaded; not the logos, the title or the name entry),
+// as of the last frame; any thread. The Switch's SSAO only draws then (switch/deko/aurora/dk_present.cpp).
+extern "C" int pc_in_play(void) { return pc::sPlayPublished.load(std::memory_order_relaxed) ? 1 : 0; }

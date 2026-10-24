@@ -473,10 +473,6 @@ void dumpAllThreads(int fd) {
 using namespace pc;
 
 extern "C" {
-// The current scene's process name (f_pc_name.h; -1 before the first), for the Switch's present pass (SSAO only in
-// the PLAY scene).
-int pc_current_scene(void) { return pc::traceScene(); }
-
 
 int pc_trace_enabled(const char* channel) {
     const char* list = gConfig.trace;
