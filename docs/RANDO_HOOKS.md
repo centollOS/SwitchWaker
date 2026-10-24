@@ -911,3 +911,31 @@ both archive dispatches and the patchers' init functions in a `JKRPcHostAllocSco
 lasting state lands on an archive heap (grown files still use `file.alloc` on the archive heap); the
 palette shifts are static (`pc_rando_palettes.cpp`) and the R5.3 hints parse runs in a host scope
 (`pc_rando_hooks_hints.cpp`). Checked by `native/tools/rando/enemy_sweep.py` (smoke `enemysweep`).
+
+## R8.1
+
+File select "Normal / Randomizer" question (Phase R8, revising D6). With the setting `COS_RANDO_ASK_NEWGAME`
+on (row "Ask on New Game", order 90 of the Randomizer tab; default on, off in harness runs that do not set
+it), A on a blank slot asks "Start a Randomizer file?" with the panes of the corrupted-slot prompt (message
+pane + Yes/No, the existing `dataSelectPaneMove` -> `YesNoSelect` sequence with `field_0x392a == 4`), in
+place of the info panel and the Start menu; No is preselected, so A, A still reaches the name entry. Yes
+uses the pending seed or generates the menu settings' seed on R4.3's job (wait state in `YesNoSelect`); No
+makes a normal file and R0.7's New Game hook (`pc_rando_hooks_slot.cpp` `newGameBegin`, one check of
+`pc_rando_fs_newgame_take_choice`) leaves the pending seed pending; B and a generation error go back
+through `CmdExecPaneMove0` / `backDatSelPaneMove` as the erase prompt's No. Like R0.7's and R4.4's hooks
+they are not under `pc_rando()` (the file select runs with it off): the guard is the setting and a blank
+slot (`pc_rando_fs_newgame_ask` returns 0, `pc_rando_fs_newgame_asking` stays 0, and every hunk takes the
+vanilla branch). Texts: R3.20 overlay records 0xFF00-0xFF05 read by the hook only. Code in
+`game_hooks/pc_rando_hooks_fileselect_newgame.cpp` (API `features/rando/pc_rando_fsnewgame.h`). Checked by
+the `fsnewgame` smoke (`regress_rando/R8.1.txt`).
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/d_file_select.cpp | `dFile_select_c::dataSelect`: after A's vanilla code, `pc_rando_fs_newgame_ask(dataNew && !corrupted, ...)` writes the question title and the seed line | add | none (plan R8.1) |
+| game/src/d/d_file_select.cpp | `dFile_select_c::dataSelectPaneMove`: message + Yes/No panes and proc 0xB also while `pc_rando_fs_newgame_asking()` (two conditions) | if/else | none (plan R8.1) |
+| game/src/d/d_file_select.cpp | `dFile_select_c::YesNoSelect`: while asking, `pc_rando_fs_newgame_yesno` (START: selectEnd 1 as menuSelect's Start; BACK: as B; WAIT: generating or error shown) | add | none (plan R8.1) |
+| game/src/d/d_file_select.cpp | `dFile_select_c::CmdExecPaneMove0`: the message pane leaves (not the info panel) while asking | if/else | none (plan R8.1) |
+| game/src/d/d_file_select.cpp | `dFile_select_c::closeEnd`: the message and Yes/No panes leave (as `closeCardErr`) while asking | if/else | none (plan R8.1) |
+
+PAL: TODO with R7.6 (the PAL build compiles `game/src/pal/d/d_file_select.inc`, which has no R8.1 hunk, so
+the PAL file select never asks; the setting is refused there anyway by D16).

@@ -1752,7 +1752,7 @@ void dFile_select_c::YesNoSelect() {
             field_0x30d8.pane->hide();
             selectEnd = 1;
             g_dComIfG_gameInfo.save.setDataNum(selectNum);
-            field_0x392b = 0x26;
+            field_0x392b = 0x26; // nextModeWait, as menuSelect's Start
             return;
         }
         if(answer == PC_RANDO_FSNG_BACK) {
