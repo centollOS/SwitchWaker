@@ -38,6 +38,7 @@
 #include "pc/pc_rando_hooks.h"
 #include "pc/pc_rando.h"
 #include "pc/pc_rando_modes.h"
+#include "pc/pc_rando_player_colors.h"
 #endif
 #include "d/d_material.h"
 #include "JSystem/J3DGraphLoader/J3DAnmLoader.h"
@@ -11990,6 +11991,12 @@ BOOL daPy_lk_c::createHeap() {
     int ret;
     
     mpCLModelData = initModel(&mpCLModel, dRes_INDEX_LINK_BDL_CL_e, 0x37221222);
+#if TARGET_PC
+    // pc_rando(R7.5b): customizer.py change_player_custom_colors Link.arc cl.bdl "hitomi" (the pupils, color_exchange without a mask); original: none
+    if (pc_rando()) {
+        pc_rando_player_colors_cl_model(mpCLModelData);
+    }
+#endif
     tmp_modelData = initModel(&mpHandsModel, dRes_INDEX_LINK_BDL_HANDS_e, 0x37221222);
     tmp_modelData = initModel(&mpKatsuraModel, dRes_INDEX_LINK_BDL_KATSURA_e, 0x37221222);
     tmp_modelData = initModel(&mpYamuModel, dRes_INDEX_LINK_BDL_YAMU_e, 0x37221222);
