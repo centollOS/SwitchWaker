@@ -73,6 +73,15 @@ void pc_rando_res_hook_set(const void* info, const char* arc_path);
 void* pc_rando_res_hook_loaded(const void* info, const char* arc_name, void* archive, uint32_t type,
                                const char* file_name, void* res);
 
+/* --- R7.2c: the raw J3D hook (features/rando/pc_rando_resources.h "raw J3D patchers"; body in
+   game_hooks/pc_rando_hooks_resources.cpp) --- */
+/* dRes_info_c::loadResource under pc_rando(), right after JKRGetResource and before the J3D loaders:
+   runs the raw patchers on a BMD*, BDL*, BMT*, BSMD or BRK file `res` (other types are returned
+   unchanged) and returns the pointer the loaders then read: `res`, or a patched copy on the archive
+   heap. Arguments as pc_rando_res_hook_loaded. */
+void* pc_rando_res_hook_raw(const void* info, const char* arc_name, void* archive, uint32_t type,
+                            const char* file_name, void* res);
+
 /* --- R0.12: the message overlay (features/rando/pc_rando_msg.h; bodies in pc_rando_msg.cpp, which
    needs no game code) --- */
 /* The overlay's encoded text for msg_no (BMG bytes ending with a NUL), or NULL: keep the BMG's.

@@ -23,6 +23,8 @@ struct Patcher {
 
 Patcher sPatchers[kMaxPatchers];
 int sPatcherCount = 0;
+Patcher sRawPatchers[kMaxPatchers]; // R7.2c: before loadResource's loaders
+int sRawPatcherCount = 0;
 
 struct DirEntry {
     const void* info;
@@ -68,7 +70,38 @@ bool takes(const Patcher& p, uint32_t type) {
     if (p.type == kDzxFilter) {
         return isDzx(type);
     }
+    if (p.type == PCR_RES_J3D) {
+        return pc_rando_res_is_j3d_type(type) != 0;
+    }
     return p.type == type;
+}
+
+int addPatcher(Patcher* list, int* count, PcRandoResPatcher fn, uint32_t type, const char* what) {
+    if (fn == nullptr) {
+        return 0;
+    }
+    for (int i = 0; i < *count; i++) {
+        if (list[i].fn == fn) {
+            return 1;
+        }
+    }
+    if (*count >= kMaxPatchers) {
+        logf("[cos] rando: %s patcher list full (%d)\n", what, kMaxPatchers);
+        return 0;
+    }
+    list[(*count)++] = Patcher{fn, type};
+    return 1;
+}
+
+int removePatcher(Patcher* list, int* count, PcRandoResPatcher fn) {
+    for (int i = 0; i < *count; i++) {
+        if (list[i].fn == fn) {
+            memmove(&list[i], &list[i + 1], (size_t)(*count - i - 1) * sizeof list[0]);
+            (*count)--;
+            return 1;
+        }
+    }
+    return 0;
 }
 
 } // namespace
@@ -109,6 +142,45 @@ int pc_rando_unregister_res_patcher(PcRandoResPatcher fn) {
 
 int pc_rando_res_patcher_count(void) {
     return sPatcherCount;
+}
+
+int pc_rando_res_is_j3d_type(uint32_t type) {
+    const uint32_t head = type & 0xFFFFFF00u;
+    return head == PCR_RES_TYPE('B', 'M', 'D', 0) || head == PCR_RES_TYPE('B', 'D', 'L', 0) ||
+           head == PCR_RES_TYPE('B', 'M', 'T', 0) || type == PCR_RES_TYPE('B', 'S', 'M', 'D') ||
+           type == PCR_RES_TYPE('B', 'R', 'K', ' ');
+}
+
+int pc_rando_register_raw_patcher(PcRandoResPatcher fn, uint32_t type) {
+    return addPatcher(sRawPatchers, &sRawPatcherCount, fn, type, "raw");
+}
+
+int pc_rando_unregister_raw_patcher(PcRandoResPatcher fn) {
+    return removePatcher(sRawPatchers, &sRawPatcherCount, fn);
+}
+
+int pc_rando_raw_patcher_count(void) {
+    return sRawPatcherCount;
+}
+
+void* pc_rando_res_raw_dispatch(PcRandoResFile* file) {
+    sStats.rawDispatched++;
+    file->replaced = 0;
+    bool called = false;
+    for (int i = 0; i < sRawPatcherCount; i++) {
+        if (!takes(sRawPatchers[i], file->type)) {
+            continue;
+        }
+        called = true;
+        sRawPatchers[i].fn(file);
+    }
+    if (called) {
+        sStats.rawPatched++;
+    }
+    if (file->replaced) {
+        sStats.replaced++;
+    }
+    return file->data;
 }
 
 void pc_rando_res_describe(PcRandoResFile* file, PcRandoResNames* store, const char* arcName,

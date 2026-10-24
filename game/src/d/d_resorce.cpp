@@ -209,6 +209,12 @@ int dRes_info_c::loadResource() {
                 goto next;
             }
 
+#if TARGET_PC
+            if (pc_rando()) {
+                // pc_rando(R7.2c): wwrando recolours J3D files on disc (palettes.py shift_colors_for_file_group, tweaks.py make_rat_holes_visible_from_behind); the port patches their raw bytes before the J3D loaders; original: none
+                pRes = pc_rando_res_hook_raw(this, mArchiveName, mpArchive, *pResType, pArcFinder->mEntryName, pRes);
+            }
+#endif
             resType = *pResType;
             if (resType == 'BMD ') {
                 pRes = J3DModelLoaderDataBase::load(pRes, 0x51240020);

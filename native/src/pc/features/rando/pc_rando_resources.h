@@ -106,6 +106,28 @@ uint8_t* pc_rando_res_replace(PcRandoResFile* file, size_t newSize);
 int pc_rando_res_grow_dzx(PcRandoResFile* file, const PcRandoDzxAdd* adds, int nAdds,
                           uint32_t* firstIndex);
 
+/* --- raw J3D patchers (step R7.2c) ---
+   pc_rando_res_dispatch runs after loadResource's loaders: by then a BMD, BDL, BMT or BRK file is a
+   J3DModelData / J3DMaterialTable / animation object, not bytes. A raw patcher sees such files before
+   the loaders, right after JKRGetResource (the d_resorce.cpp hunk of R7.2c calls
+   pc_rando_res_hook_raw), while they are still the disc's big-endian bytes. The loaders keep pointers
+   into those bytes (textures, display lists), so an in-place edit is what the game then uses. Raw
+   patchers have their own list; they get the same PcRandoResFile (alloc included: a replacement copy
+   lives on the archive heap like any other). Files of other types (BTI 'TIM '/'TEX ', stage files)
+   are still raw after loadResource: they go through pc_rando_res_dispatch as before. */
+#define PCR_RES_J3D 0xFFFFFFFEu /* registration filter: BMD*, BDL*, BMT*, BSMD, BRK */
+/* 1 for the J3D types a raw patcher with the PCR_RES_J3D filter takes (and the raw hook dispatches):
+   every type starting with "BMD", "BDL" or "BMT", plus 'BSMD' and 'BRK '. */
+int pc_rando_res_is_j3d_type(uint32_t type);
+/* As pc_rando_register_res_patcher, on the raw list (64 entries). type: PCR_RES_J3D, PCR_RES_ANY or
+   one exact type. */
+int pc_rando_register_raw_patcher(PcRandoResPatcher fn, uint32_t type);
+int pc_rando_unregister_raw_patcher(PcRandoResPatcher fn);
+int pc_rando_raw_patcher_count(void);
+/* Runs every raw patcher that takes file->type, in registration order; returns file->data. Counted
+   in PcRandoResStats::raw*. */
+void* pc_rando_res_raw_dispatch(PcRandoResFile* file);
+
 /* --- the archive directory table (the dRes_info_c::set hook) --- */
 /* Records `dir` for the dRes_info_c `info` (a later call for the same info overwrites it). */
 void pc_rando_res_note_dir(const void* info, const char* dir);
@@ -120,6 +142,9 @@ typedef struct PcRandoResStats {
     uint32_t patched;    /* files at least one patcher was called for */
     uint32_t replaced;   /* files that ended as a copy */
     uint32_t failed;     /* failed replacements (no allocator, out of memory) */
+    /* R7.2c: the raw (pre-loader) dispatch */
+    uint32_t rawDispatched; /* files passed to pc_rando_res_raw_dispatch */
+    uint32_t rawPatched;    /* files at least one raw patcher was called for */
 } PcRandoResStats;
 void pc_rando_res_stats(PcRandoResStats* out);
 
