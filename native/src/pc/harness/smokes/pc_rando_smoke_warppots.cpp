@@ -416,21 +416,36 @@ struct PlayLayerScope {
 
 struct WarptFind {
     int room;
-    int n;
+    int reg;
+    int n;               // cyclic pots of `room` with event register `reg`
     daObj_Warpt_c* pot;
+    int others;          // other cyclic pots of the room (the dungeon's own cycle)
+    int othersVanilla;   // of those, with the vanilla smoke colours
 };
 
 void findWarpts(WarptFind* f) {
     f->n = 0;
     f->pot = nullptr;
+    f->others = 0;
+    f->othersVanilla = 0;
     fopAcM_Search(
         [](void* proc, void* data) -> void* {
             WarptFind* c = static_cast<WarptFind*>(data);
             if (fpcM_GetName(proc) == fpcNm_OBJ_WARPT_e) {
                 daObj_Warpt_c* w = static_cast<daObj_Warpt_c*>(proc);
-                if (fopAcM_GetRoomNo(w) == c->room && w->isSp()) {
+                if (fopAcM_GetRoomNo(w) != c->room || !w->isSp()) {
+                    return nullptr;
+                }
+                if (w->m2B8 == c->reg) {
                     c->n++;
                     c->pot = w;
+                } else {
+                    const GXColor& p = daObj_Warpt_c::m_def_smoke_prm_color[w->m2B4];
+                    const GXColor& e = daObj_Warpt_c::m_def_smoke_env_color[w->m2B4];
+                    logf("[cos] rando-smoke warppots: room %d: the dungeon's own cyclic pot params %08X (register %d)\n",
+                         c->room, (unsigned)fopAcM_GetParam(w), (int)w->m2B8);
+                    c->others++;
+                    c->othersVanilla += memcmp(&w->m86C, &p, 4) == 0 && memcmp(&w->m870, &e, 4) == 0 ? 1 : 0;
                 }
             }
             return nullptr;
@@ -507,13 +522,17 @@ void checkRoom(int i, bool viaPot) {
     check("pot %d: live SCLS count %d = disc %u + 3, the last 3 lead to the cycle", exits, i,
           scls != nullptr ? (int)scls->num : -1, (unsigned)first);
 
-    WarptFind f = {room, 0, nullptr};
+    WarptFind f = {room, pot->eventReg, 0, nullptr, 0, 0};
     findWarpts(&f);
     daObj_Warpt_c* w = f.pot;
+    if (f.others > 0) {
+        check("pot %d: the room's %d other cyclic pot(s) keep the vanilla smoke colours", f.othersVanilla == f.others, i,
+              f.others);
+    }
     const uint32_t want = pc_rando_warp_pot_params(i, first);
-    check("pot %d: one live cyclic warp pot with params %08X (is %08X), event register %d (is %d)",
+    check("pot %d: one live cyclic warp pot of the register (%d) with params %08X (is %08X), event register %d (is %d)",
           f.n == 1 && w != nullptr && fopAcM_GetParam(w) == want && w->m2B8 == pot->eventReg && w->m2B4 == pot->index + 2, i,
-          (unsigned)want, w != nullptr ? (unsigned)fopAcM_GetParam(w) : 0u, pot->eventReg, w != nullptr ? (int)w->m2B8 : -1);
+          f.n, (unsigned)want, w != nullptr ? (unsigned)fopAcM_GetParam(w) : 0u, pot->eventReg, w != nullptr ? (int)w->m2B8 : -1);
     if (w != nullptr) {
         check("pot %d: smoke colours m86C %02X%02X%02X%02X m870 %02X%02X%02X%02X are the custom E5101B80 / 3C379D80",
               rgbIs(w->m86C, PCR_WARP_POT_PRM_COLOR) && w->m86C.a == 0x80 && rgbIs(w->m870, PCR_WARP_POT_ENV_COLOR) &&
@@ -552,7 +571,7 @@ void checkVanillaRoom() {
     if (!check("vanilla: the boot room is a warp pot room (%s room %d)", i >= 0, dComIfGp_getStartStageName(), room)) {
         return;
     }
-    WarptFind f = {room, 0, nullptr};
+    WarptFind f = {room, pc_rando_warp_pot(i)->eventReg, 0, nullptr, 0, 0};
     findWarpts(&f);
     stage_scls_info_dummy_class* scls = liveScls(room);
     const int n = scls != nullptr ? (int)scls->num : 0;
