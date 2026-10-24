@@ -7,6 +7,7 @@
 
 #include "pc_rando_gen_bosses.h"
 #include "pc_rando_gen_charts.h"
+#include "pc_rando_gen_enemies.h"
 #include "pc_rando_entrances.h"
 #include "pc_rando_gen_entrances.h"
 #include "pc_rando_gen_extra.h"
@@ -82,8 +83,10 @@ std::string unsupportedOptionsError(const Options& o, bool allowMissingHints, bo
                "). Turn the option off to generate a seed.";
     };
     // In randomizer.py's order of the randomizers (entrances: ported in R6.10-R6.11).
-    if (o.randomize_enemies) {
-        return refuse("randomize_enemies", "R7.3");
+    if (o.randomize_enemies && !allowNotRuntimeReady) {
+        // R7.3c ported the generator; the game applies the enemies from R7.4a-R7.4d, so the menu
+        // keeps refusing it until R7.4d (GenRequest::allowNotRuntimeReady).
+        return refuse("randomize_enemies", "R7.4d");
     }
     if (o.randomize_enemy_palettes && !allowNotRuntimeReady) {
         // R7.2a ported the generator; the game applies the colours from R7.2c-R7.2e, so the menu
@@ -179,6 +182,9 @@ bool generate(const GenRequest& req, GenResult& out) {
     if (entranceRandoEnabled(o)) {
         prog.total += kWeightEntrances;
     }
+    if (o.randomize_enemies) {
+        prog.total += kWeightEnemies;
+    }
     prog.report("Randomizing...");
 
     // WWRandomizer.__init__: the Logic, the progress location count check, the start probes.
@@ -257,7 +263,17 @@ bool generate(const GenRequest& req, GenResult& out) {
         }
         prog.done += kWeightExtraStartItems;
     }
-    // enemies: disabled (refused above when on).
+    EnemyRandoResult enemies;
+    if (o.randomize_enemies) {
+        // EnemyRandomizer (R7.3c): after the extra starting items, before palettes and items; its
+        // logic filter probes reorder the unplaced item lists. Also the RNG part of its _save.
+        prog.report(kEnemyProgressText);
+        std::string err;
+        if (!runEnemyRandomizer(logic, out.sanitizedSeed, o, req.seedKey, enemies, &err)) {
+            return fail(err);
+        }
+        prog.done += kWeightEnemies;
+    }
     std::vector<PaletteShift> palettes;
     if (o.randomize_enemy_palettes) {
         // PaletteRandomizer (R7.2a): after enemies, before items; progress weight 0.
@@ -344,6 +360,9 @@ bool generate(const GenRequest& req, GenResult& out) {
         locations.set(logic.locationName(i), Json::string(logic.name(item)));
     }
     j.set("locations", locations);
+    if (o.randomize_enemies) {
+        j.set("enemies", enemiesToJson(enemies)); // R7.3c; kept by PcRandoSeed::extra
+    }
     if (o.randomize_enemy_palettes) {
         j.set("palettes", palettesToJson(palettes)); // R7.2a; kept by PcRandoSeed::extra
     }

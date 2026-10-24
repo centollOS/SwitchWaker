@@ -17,9 +17,8 @@
 // game applies them from R6.12-R6.13 on).
 // enemy palettes (R7.2a, pc_rando_gen_palettes.h: the "palettes" key; the game applies them from
 // R7.2c-R7.2e, so until R7.2e the option is refused unless GenRequest::allowNotRuntimeReady).
-// What is not ported yet, refused with a "not supported yet" error (GenResult::unsupported) instead
-// of a seed that would differ from wwrando's:
-//   - randomize_enemies (R7.3);
+// enemies (R7.3c, pc_rando_gen_enemies.h: the "enemies" key; the game applies them from R7.4a-R7.4d,
+// so until R7.4d the option is refused unless GenRequest::allowNotRuntimeReady).
 // Hints (R5.1, pc_rando_gen_hints.h) always run, as wwrando's HintsRandomizer is always enabled (the
 // Big Octo Great Fairy hint is generated even with every hint placement off); the placement gets a
 // "hints" value (hintsToJson). With GenRequest::allowMissingHints the seed is made without them:
@@ -54,7 +53,7 @@ struct GenRequest {
     // Generate without hints (faster; the placement is the same, the hint texts stay vanilla).
     bool allowMissingHints = false;
     // Generate options whose generator is ported but whose game side is not yet
-    // (randomize_enemy_palettes until R7.2e). The Mac CLI and the oracle batch set it; the menu
+    // (randomize_enemy_palettes until R7.2e, randomize_enemies until R7.4d). The Mac CLI and the oracle batch set it; the menu
     // leaves it false, so the option is refused there with "Not supported yet".
     bool allowNotRuntimeReady = false;
     // SEED_KEY for do_not_generate_spoiler_log (decision D2).
