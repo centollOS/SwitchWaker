@@ -1,0 +1,19 @@
+# R7.4b (docs/RANDOMIZER_PLAN.md): enemy rando added, removed and converted actors
+# (features/rando/pc_rando_enemy_actors.{h,cpp}: enemies.py add_modify_and_replace_actors_for_enemy_rando and
+# randomize_enemies_spawned_by_objects as a dzx patcher after R7.4a's). native/tools/rando/enemy_check.py runs
+# the rest of wwrando's _save on the disc after save_changed_enemies_and_randomize_their_params and compares the
+# enemies smoke's dump: every enemy record, the 21 edited records ("actor": 13 ALLdie conversions, 3 modified
+# incl. TF_01's stage.dzs TGDR, 2 removed = suppressed, 3 stone heads) and the 5 appended ones ("added").
+# The boot rooms: M_NewD2 Room1 (2 appended actors live; its MEMA block grown by 0x1000 for the copy),
+# Cave01 Room0 (Kbota_B -> ALLdie: COS_RANDO_ENEMY_ALLDIE=1 deletes the room's enemies and requires the ALLdie
+# to set switch E2), TF_01 Room1 (ALLdie + AND_SW2 appended), kaze Room10 (2 stone heads), SirenMB Room23
+# (the removed TagEv). --vanilla: no placement, nothing changes. The identity placement (enemies off): no file
+# changes, no new actors.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+script 0 python3 -I native/tools/rando/enemy_check.py --seed EnemyCheckA --run --stage M_NewD2:1:0
+script 0 python3 -I native/tools/rando/enemy_check.py --seed EnemyCheckA --run --stage Cave01:0:0 --smoke-env COS_RANDO_ENEMY_ALLDIE=1
+script 0 python3 -I native/tools/rando/enemy_check.py --seed EnemyCov19 --run --stage TF_01:1:0
+script 0 python3 -I native/tools/rando/enemy_check.py --seed EnemyCov12 --run --stage kaze:10:10
+script 0 python3 -I native/tools/rando/enemy_check.py --seed EnemyCov7 --run --stage SirenMB:23:0
+script 0 python3 -I native/tools/rando/enemy_check.py --vanilla --run --stage Cave01:0:0
+rando 0 --stage M_NewD2:1:0 --env COS_RANDO_SMOKE=enemies --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_identity.json
