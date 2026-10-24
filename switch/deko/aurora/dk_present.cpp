@@ -27,7 +27,7 @@
 #include <cmath>
 #include <cstring>
 
-extern "C" int pc_trace_scene(void);  // native/src/pc/runtime/pc_crash.cpp: the scene process name
+extern "C" int pc_current_scene(void);  // native/src/pc/runtime/pc_crash.cpp: the scene process name
 extern "C" float pc_dynres_last_3d_scale(void);  // native/src/pc/features/pc_dynres.cpp
 
 namespace aurora::gfx::dk {
@@ -107,8 +107,9 @@ bool ensure_resampled(Resampled& img, uint32_t w, uint32_t h) {
 // The light SSAO over g_resampled (see dk_ssao.wgsl): false when the depth is not there or a shader is missing,
 // the picture is then shown as it is.
 bool ssao_pass() {
-    // not on the logo scene (the intro's words: fpcNm_LOGO_SCENE_e, 5), whose 2D draws read as geometry
-    if (pc_trace_scene() == 5) return false;
+    // only in the game proper, once a file is loaded (fpcNm_PLAY_SCENE_e, 7): not the logos, the title or the name
+    // entry, whose 2D draws read as geometry; nothing is recorded for them
+    if (pc_current_scene() != 7) return false;
     Tex* depth = find_texture(webgpu::g_depthBuffer.texture.Get());
     View* depthView = find_view(webgpu::g_depthBuffer.view.Get());
     if (!depth || !depth->valid || !depthView) return false;
