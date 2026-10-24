@@ -251,7 +251,8 @@ grep -E "^(GX configs|uam:|modules with|fixed shaders|DKSH:|read back)" "$root/b
 fixed=(dk_test_pattern present_gamma clear_color clear_depth present_resample tex_copy_conv_blit tex_copy_conv_depth_snapshot)
 for f in i4 i8 ia4 ia8 rgb565 r4 ra4 ra8 a8 r8 g8 b8 rg8 gb8 z8 z16; do fixed+=("tex_copy_conv_$f"); done
 for f in direct fromfloat8 fromfloat4; do fixed+=("tex_palette_conv_$f"); done
-names=(xfb_copy.vs_main xfb_copy.fs_opaque dk_fxaa.vs_main dk_fxaa.fs_main
+names=(xfb_copy.vs_main xfb_copy.fs_opaque dk_fxaa.vs_main dk_fxaa.fs_main dk_fsr_easu.vs_main dk_fsr_easu.fs_main
+       dk_fsr_rcas.vs_main dk_fsr_rcas.fs_main
        dk_ssao.vs_main dk_ssao.fs_ao dk_ssao.fs_blur dk_ssao.fs_apply)
 for f in "${fixed[@]}"; do names+=("$f.vs_main" "$f.fs_main"); done
 "$root/native/tools/dksh_cache/build.sh" ${dksh_dawn[@]+"${dksh_dawn[@]}"} check build/dksh/initial_dksh_cache.bin "${names[@]}"

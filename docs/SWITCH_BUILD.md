@@ -140,6 +140,15 @@ scripts/switch/push.sh native                   # to sdmc:/switch/switchwaker/, 
   gamma see it; sky (depth 0) takes none and the menus are drawn after. `switch/deko/shaders/dk_ssao.wgsl`
   (`dk_ssao.vs_main`/`fs_ao`/`fs_blur`/`fs_apply`); developer variables `COS_SSAO_RADIUS` (world units, 50),
   `COS_SSAO_STRENGTH` (percent, 85), `COS_SSAO_BIAS` (1/10000 of relative depth, 100).
+- Rescaling: the options menu's Gráficos > *Reescalado* (`COS_RESCALE`: 0 Bilinear, the default and the
+  behaviour before the row; 1 Área; 2 FSR 1; live). FSR 1 is AMD's FidelityFX Super Resolution 1.0 (MIT):
+  stage 0 of the present pass draws EASU (`switch/deko/shaders/dk_fsr_easu.wgsl`, 12 taps) from the EFB into
+  the resampled image at the shown size in place of `present_resample`, and the final draw is RCAS
+  (`dk_fsr_rcas.wgsl`, sharpness 0.25 stops) in place of the copy. With FXAA on, FXAA runs on the EASU picture
+  and RCAS is skipped (no extra pass, no sharpening of what FXAA softened). If the EFB already has the shown
+  size EASU is skipped (RCAS or FXAA read the EFB); if it is larger (a downscale) FSR is not used and the
+  plain resample runs. With `COS_FB_SCALE` 1.125 (960x540) FSR 1 is the intended pairing. The DKSH of both
+  is in `initial_dksh_cache.bin` (`build_native.sh` checks their `vs_main`/`fs_main`).
 - deko3d run options (settings.ini `[dev]`, `switch/native/settings-dev.example.ini`): `COS_DK_TEST_PATTERN=1`
   draws a test pattern of deko3d's conventions under the menu (four coloured corners, two depth-tested
   squares, a depth-range check, a textured square with texture row 0 marked, a counter-clockwise and a

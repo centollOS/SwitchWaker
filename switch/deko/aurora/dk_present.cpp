@@ -11,6 +11,13 @@
 // and the final pass (switch/deko/shaders/dk_ssao.wgsl): the occlusion at half resolution, blurred, then darkened
 // into the resampled picture, so FXAA and the gamma see it.
 //
+// FSR 1 (options menu's Reescalado, aurora_switch_dk_set_rescale): when the EFB is smaller than the shown
+// size, stage 0 draws EASU (dk_fsr_easu) in place of present_resample, and the final draw is RCAS
+// (dk_fsr_rcas, the sharpening) in place of the copy. With FXAA on the final draw is FXAA alone: FXAA runs
+// on the EASU picture and RCAS is skipped (sharpening what FXAA just softened would undo it, and a pass of
+// its own would cost a full-screen draw more). An EFB of the shown size skips EASU (RCAS or FXAA read the EFB
+// itself); an EFB larger than the shown size is not FSR's case (it is a downscale): the plain resample.
+//
 // Readback (read_texture): a copy-engine copy into CPU-visible memory on a command buffer of its own,
 // after what the frame has recorded so far, and a wait for its fence (~1 ms for the picto box's
 // shutter area; COS_SHOT's frames).
@@ -51,6 +58,27 @@ struct ResampleUniforms {  // present_resample.wgsl's Uniforms (std140)
     uint32_t pad;
 };
 
+struct EasuUniforms {  // dk_fsr_easu.wgsl's Uniforms (std140)
+    float inWidth, inHeight;
+    float invInWidth, invInHeight;
+};
+
+struct RcasUniforms {  // dk_fsr_rcas.wgsl's Uniforms (std140)
+    float invWidth, invHeight;
+    float sharpness, gamma;  // sharpness: 2^-stops; the options menu's gamma exponent
+};
+
+// RCAS's strength in stops (0 sharpest; AMD's default is 0.2)
+constexpr float kRcasStops = 0.25f;
+
+// what the final draw reads: the resampled picture, or the EFB itself when FSR skipped EASU
+struct PictureIn {
+    bool valid = false;
+    bool rcas = false;  // FSR 1 is on for this frame
+    uint32_t width = 0, height = 0;
+    uint32_t slot = 0;
+} g_in;
+
 struct FxaaUniforms {  // dk_fxaa.wgsl's Uniforms (std140)
     float invWidth, invHeight;
     float minThreshold, relThreshold;  // the contrast an edge needs
@@ -66,6 +94,8 @@ constexpr FxaaPreset kFxaaPresets[] = {{0.125f, 0.25f, 0.25f}, {0.0625f, 0.166f,
 
 // FXAA in place of the plain copy (COS_FXAA); written by the game thread, read by the render worker
 std::atomic<int> g_fxaa{0};  // 0 off, else the preset + 1
+// the options menu's Reescalado (COS_RESCALE): 0 bilinear, 1 área, 2 FSR 1
+std::atomic<int> g_rescale{0};
 
 // the light SSAO (COS_SSAO), same threads
 std::atomic<bool> g_ssao{false};
@@ -163,44 +193,68 @@ bool ssao_pass() {
                       applyBinds, 2, true);
 }
 
+// a descriptor of its own for the EFB, written again when its image changes (a resize)
+uint32_t source_slot(Tex* src) {
+    static uint32_t srcSlot = 0;
+    static DkGpuAddr srcAddr = 0;
+    const DkGpuAddr addr = dkImageGetGpuAddr(&src->image);
+    if (srcAddr != addr || srcSlot == 0) {
+        if (srcSlot == 0) srcSlot = swdk::image_slot_alloc();
+        if (srcSlot == 0) return 0;
+        DkImageView srcView;
+        dkImageViewDefaults(&srcView, &src->image);
+        swdk::write_image_view_descriptor(srcSlot, srcView);
+        srcAddr = addr;
+    }
+    return srcSlot;
+}
+
 void picture(void*, int stage) {
     const auto& source = webgpu::present_source();
     Tex* src = find_texture(source.texture.Get());
     if (stage == 0) {
+        g_in.valid = false;
         g_viewport = webgpu::calculate_present_viewport(R.width, R.height, source.size.width, source.size.height);
         if (!src || !src->valid || g_viewport.width <= 0.f || g_viewport.height <= 0.f) return;
         const uint32_t w = extent(g_viewport.width), h = extent(g_viewport.height);
+        const uint32_t srcSlot = source_slot(src);
+        if (srcSlot == 0) return;
+        const bool fsr = g_rescale.load(std::memory_order_relaxed) == 2 && source.size.width <= w &&
+                         source.size.height <= h;
+        if (fsr && source.size.width == w && source.size.height == h) {
+            g_in = {true, true, w, h, srcSlot};  // nothing to upscale: RCAS (or FXAA) reads the EFB
+            return;
+        }
         if (!ensure_resampled(g_resampled, w, h)) return;
         const swdk::StreamAlloc u = swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT);
         if (!u) return;
-        const ResampleUniforms uniforms = {webgpu::get_resampler() == SAMPLER_AREA ? 1u : 0u, float(w), float(h), 0};
-        memcpy(u.cpu, &uniforms, sizeof uniforms);
-        DkImageView srcView;
-        dkImageViewDefaults(&srcView, &src->image);
-        // a descriptor of its own for the source, written again when the EFB image changes (a resize)
-        static uint32_t srcSlot = 0;
-        static DkGpuAddr srcAddr = 0;
-        const DkGpuAddr addr = dkImageGetGpuAddr(&src->image);
-        if (srcAddr != addr || srcSlot == 0) {
-            if (srcSlot == 0) srcSlot = swdk::image_slot_alloc();
-            if (srcSlot == 0) return;
-            swdk::write_image_view_descriptor(srcSlot, srcView);
-            srcAddr = addr;
-        }
         const DkResHandle h0 = dkMakeTextureHandle(srcSlot, swdk::kSamplerLinearClamp);
-        // present_resample: uniforms 0, the texture with its sampler and again for textureLoad
+        DkImageView target;
+        dkImageViewDefaults(&target, &g_resampled.image);
         const FixedBind binds[] = {
             {swdk::SlotBinding::Kind::Uniform, 0, 0, u.gpu, 256},
             {swdk::SlotBinding::Kind::Sampler, 2, h0},
         };
-        DkImageView target;
-        dkImageViewDefaults(&target, &g_resampled.image);
-        fixed_draw("present_resample", "vs_main", "fs_main", &target, w, h, true, binds, 2);
+        bool drawn;
+        if (fsr) {
+            const EasuUniforms uniforms = {float(source.size.width), float(source.size.height),
+                                           1.f / float(source.size.width), 1.f / float(source.size.height)};
+            memcpy(u.cpu, &uniforms, sizeof uniforms);
+            drawn = fixed_draw("dk_fsr_easu", "vs_main", "fs_main", &target, w, h, true, binds, 2);
+        } else {
+            const bool area = g_rescale.load(std::memory_order_relaxed) == 1 || webgpu::get_resampler() == SAMPLER_AREA;
+            const ResampleUniforms uniforms = {area ? 1u : 0u, float(w), float(h), 0};
+            memcpy(u.cpu, &uniforms, sizeof uniforms);
+            // present_resample: uniforms 0, the texture with its sampler and again for textureLoad
+            drawn = fixed_draw("present_resample", "vs_main", "fs_main", &target, w, h, true, binds, 2);
+        }
+        (void)drawn;
+        g_in = {true, fsr, w, h, g_resampled.slot};
         if (g_ssao.load(std::memory_order_relaxed) && ssao_pass()) gpu_mark(GpuWork::Other);
         return;
     }
     if (stage == 1) {
-        if (!g_resampled.valid || g_viewport.width <= 0.f) return;
+        if (!g_in.valid || g_viewport.width <= 0.f) return;
         // set_present_viewport (aurora.cpp): the viewport, and the scissor around it
         const DkViewport vp = {g_viewport.left, g_viewport.top, g_viewport.width, g_viewport.height, 0.f, 1.f};
         dkCmdBufSetViewports(R.cmd, 0, &vp, 1);
@@ -216,19 +270,21 @@ void picture(void*, int stage) {
                                       DkSwizzle_PositiveZ, DkSwizzle_PositiveW};
         dkCmdBufSetViewportSwizzles(R.cmd, 0, &sw, 1);
         const float gamma = g_gamma.load(std::memory_order_relaxed);
+        const FixedBind binds[] = {
+            {swdk::SlotBinding::Kind::Sampler, 1, dkMakeTextureHandle(g_in.slot, swdk::kSamplerLinearClamp)},
+        };
         const int fxaa = g_fxaa.load(std::memory_order_relaxed);
         if (fxaa > 0) {
             const swdk::StreamAlloc u = swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT);
             if (u) {
                 const FxaaPreset& pr = kFxaaPresets[std::min(fxaa, 3) - 1];
-                const FxaaUniforms uniforms = {1.f / float(g_resampled.width), 1.f / float(g_resampled.height),
+                const FxaaUniforms uniforms = {1.f / float(g_in.width), 1.f / float(g_in.height),
                                                pr.minThreshold, pr.relThreshold, pr.subpix, gamma};
                 memcpy(u.cpu, &uniforms, sizeof uniforms);
                 // dk_fxaa: uniforms 0, the texture with its sampler (the layout of present_resample)
                 const FixedBind fxaaBinds[] = {
                     {swdk::SlotBinding::Kind::Uniform, 0, 0, u.gpu, 256},
-                    {swdk::SlotBinding::Kind::Sampler, 2,
-                     dkMakeTextureHandle(g_resampled.slot, swdk::kSamplerLinearClamp)},
+                    {swdk::SlotBinding::Kind::Sampler, 2, dkMakeTextureHandle(g_in.slot, swdk::kSamplerLinearClamp)},
                 };
                 if (fixed_draw("dk_fxaa", "vs_main", "fs_main", nullptr, 0, 0, false, fxaaBinds, 2)) {
                     gpu_mark(GpuWork::Present);
@@ -236,7 +292,24 @@ void picture(void*, int stage) {
                 }
             }
         }
-        const DkResHandle texture = dkMakeTextureHandle(g_resampled.slot, swdk::kSamplerLinearClamp);
+        if (g_in.rcas && fxaa <= 0) {
+            const swdk::StreamAlloc u = swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT);
+            if (u) {
+                const RcasUniforms uniforms = {1.f / float(g_in.width), 1.f / float(g_in.height),
+                                               std::exp2(-kRcasStops), gamma};
+                memcpy(u.cpu, &uniforms, sizeof uniforms);
+                // dk_fsr_rcas: uniforms 0, the texture with its sampler (the layout of present_resample)
+                const FixedBind rcasBinds[] = {
+                    {swdk::SlotBinding::Kind::Uniform, 0, 0, u.gpu, 256},
+                    {swdk::SlotBinding::Kind::Sampler, 2, dkMakeTextureHandle(g_in.slot, swdk::kSamplerLinearClamp)},
+                };
+                if (fixed_draw("dk_fsr_rcas", "vs_main", "fs_main", nullptr, 0, 0, false, rcasBinds, 2)) {
+                    gpu_mark(GpuWork::Present);
+                    return;
+                }
+            }
+        }
+        const DkResHandle texture = dkMakeTextureHandle(g_in.slot, swdk::kSamplerLinearClamp);
         const swdk::StreamAlloc u = std::fabs(gamma - 1.f) > 0.001f ? swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT)
                                                                      : swdk::StreamAlloc{};
         if (u) {
@@ -271,6 +344,7 @@ extern "C" void aurora_switch_dk_set_gamma(float exponent) {
 void present_init() {
     g_fxaa.store(int(std::clamp(swdk::env_long("COS_FXAA", 0), 0L, 3L)), std::memory_order_relaxed);
     g_ssao.store(swdk::env_flag("COS_SSAO", false), std::memory_order_relaxed);
+    g_rescale.store(int(std::clamp(swdk::env_long("COS_RESCALE", 0), 0L, 2L)), std::memory_order_relaxed);
     swdk::set_picture(picture, nullptr);
 }
 
@@ -332,6 +406,8 @@ using namespace aurora::gfx::dk;
 
 extern "C" void aurora_switch_dk_set_fxaa(int level) { g_fxaa.store(std::clamp(level, 0, 3), std::memory_order_relaxed); }
 extern "C" void aurora_switch_dk_set_ssao(bool on) { g_ssao.store(on, std::memory_order_relaxed); }
+
+extern "C" void aurora_switch_dk_set_rescale(int mode) { g_rescale.store(std::clamp(mode, 0, 2), std::memory_order_relaxed); }
 
 // The perf lines' figures (cos_switch_stats.cpp, COS_SWITCH_DEKO3D): running totals in the order of
 // dk_aurora.h's AuroraSwitchDkStat

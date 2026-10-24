@@ -44,6 +44,12 @@ void aurora_switch_dk_set_ssao(bool on);
 // colour^exponent; 1 draws it as it is. Any thread.
 void aurora_switch_dk_set_gamma(float exponent);
 
+// How the present pass scales the picture to the screen (options menu, COS_RESCALE): 0 bilinear, 1 area,
+// 2 FSR 1 (EASU upscale and RCAS sharpening, dk_fsr_easu / dk_fsr_rcas; only when the picture is smaller than
+// the screen, else the bilinear/area resample). Any thread; takes effect at the next frame. At the start it
+// is the environment's COS_RESCALE (0 when unset).
+void aurora_switch_dk_set_rescale(int mode);
+
 // Waits for the GPU and releases the window (Aurora's shutdown).
 void aurora_switch_dk_shutdown(void);
 
