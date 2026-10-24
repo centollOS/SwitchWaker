@@ -18,8 +18,11 @@
 // every frame, as the combat sweep does). Must-defeat groups (enemy_locations.txt "Must defeat
 // enemies: True") of the stay room and layer: the smoke deletes the room's enemies (group
 // fopAc_ENEMY_e) every frame, as R7.4b's ALLdie check does, and requires the room to complete: every
-// live ALLdie of the room sets its switch, or (no ALLdie) fopAcM_myRoomSearchEnemy finds no enemy for
-// 70 frames in a row (what the doors and chests that open on a cleared room test), within 1200 frames.
+// live ALLdie of the room sets its switch, or (no ALLdie) none of the must-defeat groups' own enemies is
+// live for 70 frames in a row (none comes back; the room's other groups, e.g. Gyorg or Octorok spawners
+// on the sea, may go on spawning), within 1200 frames. Actors still creating are not deleted (their
+// delete would free an archive they do not hold yet). An enemy counts as created when its actor was
+// seen live in any frame from the arrival to the check (some leave on their own right away).
 // Last, the stop's count of heap allocation failures (pc_heap.cpp's "[cos] heap: cannot alloc" lines;
 // heapAllocFailures) must be 0. Every check is a "[cos] rando-smoke enemysweep: ..." line, with
 // "stop <n> (<stage> room <r>)" so the sweep can tell stops apart.
@@ -347,6 +350,7 @@ bool checkRoom(int stop, const char* stage, int stay, int layer) {
 // --- must defeat ---
 
 std::vector<fpc_ProcID> sDeleted;
+std::vector<s16> sDeletedNames; // the deleted actors' process names, for the log
 unsigned sKilled = 0;
 
 void* deleteEnemy(void* proc, void* data) {
@@ -365,6 +369,7 @@ void* deleteEnemy(void* proc, void* data) {
         }
     }
     sDeleted.push_back(id);
+    sDeletedNames.push_back(fpcM_GetName(proc));
     sKilled++;
     fopAcM_delete(ac);
     return nullptr;
@@ -450,13 +455,49 @@ void arrived() {
     sState = kHold;
 }
 
+// The must-defeat groups' records of the room (no ALLdie: what "complete" watches).
+std::vector<std::vector<uint8_t>> sMustRecs;
+
+void collectMustDefeat() {
+    sMustRecs.clear();
+    const pcr::Span<pcr::EnemyLocation> locs = pcr::enemy_locations();
+    const pcr::Span<pcr::EnemyGroup> groups = pcr::enemy_groups();
+    const int layer = dComIfG_play_c::getLayerNo(sRoom);
+    char arc[16];
+    snprintf(arc, sizeof arc, "Room%d", sRoom);
+    void* file = dComIfG_getStageRes(arc, "room.dzr");
+    for (size_t k = 0; k < locs.size && file != nullptr; k++) {
+        const pcr::EnemyLocation& loc = locs[k];
+        if (!groups[loc.group].must_defeat || loc.path.room != sRoom || strcmp(loc.path.stage, sStage) != 0 ||
+            (loc.path.layer >= 0 && loc.path.layer != layer)) {
+            continue;
+        }
+        if (const uint8_t* e = storedRecord(file, loc)) {
+            sMustRecs.emplace_back(e, e + 0x20);
+        }
+    }
+}
+
+// Some must-defeat enemy of the room is live (at its home, or with its params).
+bool mustDefeatLive() {
+    for (const std::vector<uint8_t>& r : sMustRecs) {
+        ActorFind f;
+        if (liveNow(r.data(), &f)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void startKill() {
     sDeleted.clear();
+    sDeletedNames.clear();
     sKilled = 0;
     sKillFrames = 0;
     sClear = 0;
     sAlldie = Alldie{sRoom, {}};
     fopAcM_Search(findAlldie, &sAlldie);
+    collectMustDefeat();
     logf("[cos] rando-smoke %s: stop %zu (%s room %d): must defeat: %zu live ALLdie, deleting the room's enemies\n",
          kName, sStop, sStage, sRoom, sAlldie.switches.size());
     sState = kKill;
@@ -472,12 +513,32 @@ void killStep() {
             done = done && dComIfGs_isSwitch(sw, sRoom);
         }
     } else {
-        sClear = fopAcM_myRoomSearchEnemy((s8)sRoom) == nullptr ? sClear + 1 : 0;
+        // No ALLdie: the must-defeat groups' own enemies (their death switches, or the room's door or
+        // chest, are what the game then waits for) stay gone; the room's other groups (spawners of
+        // Gyorgs or Octoroks on the sea) may go on making enemies.
+        sClear = !mustDefeatLive() ? sClear + 1 : 0;
         done = sClear >= kClearFrames;
     }
     if (done || sKillFrames >= kKillFrames) {
+        char list[256] = "";
+        size_t used = 0;
+        std::vector<s16> names = sDeletedNames;
+        for (size_t i = 0; i < names.size() && used + 16 < sizeof list; i++) {
+            int n = 0;
+            for (size_t j = i; j < names.size(); j++) {
+                n += names[j] == names[i] ? 1 : 0;
+            }
+            bool earlier = false;
+            for (size_t j = 0; j < i; j++) {
+                earlier = earlier || names[j] == names[i];
+            }
+            if (!earlier) {
+                used += (size_t)snprintf(list + used, sizeof list - used, "%s%d x%d", used ? ", " : "", (int)names[i], n);
+            }
+        }
+        logf("[cos] rando-smoke %s: stop %zu: removed by process name: %s\n", kName, sStop, list);
         check("stop %zu (%s room %d): must-defeat room complete after %u enemies removed (%s, frame %u)", done, sStop,
-              sStage, sRoom, sKilled, sAlldie.switches.empty() ? "no enemy left" : "every ALLdie switch set",
+              sStage, sRoom, sKilled, sAlldie.switches.empty() ? "its must-defeat enemies stay gone" : "every ALLdie switch set",
               sKillFrames);
         endStop();
     }
