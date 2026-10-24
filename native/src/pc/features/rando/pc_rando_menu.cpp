@@ -3,6 +3,7 @@
 #include "pc_rando_menu.h"
 
 #include "pc_rando_fileselect.h"
+#include "pc_rando_fsnewgame.h"
 #include "pc_rando_genjob.h"
 #include "pc_rando_options.h"
 #include "pc_rando_settings.h"
@@ -260,6 +261,7 @@ void randoMenuInit() {
                         "A: generates the seed; the next new game uses it. Logs in user/rando", generateValue,
                         generateActivate, 130});
     randoFileSelectMenuInit(); // R4.4: "Clean unused seed files" (order 150)
+    randoFsNewgameMenuInit();  // R8.1: "Ask on New Game" (order 90, setting COS_RANDO_ASK_NEWGAME)
 }
 
 bool randoGenBusy() {

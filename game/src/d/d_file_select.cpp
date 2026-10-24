@@ -308,8 +308,21 @@ int dFile_select_c::closeEnd() {
             break;
     }
 
+#if TARGET_PC
+    int temp4, temp5;
+    if(pc_rando_fs_newgame_asking()) {
+        // pc_rando(R8.1): plan Phase R8 (after the question, its message and Yes/No panes leave, as
+        // closeCardErr's); original: the info and menu panes
+        temp4 = MessagePaneMove(0.0f, 0.0f, g_fsHIO.field_0x46, 0.0f, 0, 0, 1);
+        temp5 = yesNoPaneMove(0.0f, g_fsHIO.field_0x42, 0, 0, 1);
+    } else {
+        temp4 = recInfoPaneMove(0.0f, 0.0f, g_fsHIO.field_0x44, 0.0f, 0, 0, 1);
+        temp5 = menuPaneMove(0.0f, g_fsHIO.field_0x42, 0, 0, 1);
+    }
+#else
     int temp4 = recInfoPaneMove(0.0f, 0.0f, g_fsHIO.field_0x44, 0.0f, 0, 0, 1);
     int temp5 = menuPaneMove(0.0f, g_fsHIO.field_0x42, 0, 0, 1);
+#endif
 
     if(temp1 == 1 && temp2 == 1 && temp3 == 1 && temp4 == 1 && temp5 == 1) {
         return true;
@@ -461,6 +474,12 @@ void dFile_select_c::dataSelect() {
         menuColorChange();
         dataSelMoveSet();
         field_0x392b = 0x2;
+#if TARGET_PC
+        // pc_rando(R8.1): plan Phase R8 (a blank slot asks "Start a Randomizer file?" with the
+        // corrupted-slot prompt's panes; writes the next title and the message pane); original: none
+        pc_rando_fs_newgame_ask(dataNew[selectNum] && !field_0x3917[selectNum], selectNum,
+                                field_0x38e8[field_0x392d ^ 1], field_0x38e8[2]);
+#endif
     }
     else if(stick2->checkUpTrigger()) {
         if(selectNum != 0) {
@@ -762,7 +781,13 @@ void dFile_select_c::dataSelectPaneMove() {
     temp4 = 1;
     temp1 = recDataPaneMove();
     temp5 = 0;
+#if TARGET_PC
+    // pc_rando(R8.1): plan Phase R8 (the question uses the message and Yes/No panes); original:
+    // field_0x3917[selectNum]
+    if(field_0x3917[selectNum] || pc_rando_fs_newgame_asking()) {
+#else
     if(field_0x3917[selectNum]) {
+#endif
         temp2 = MessagePaneMove(g_fsHIO.field_0x44, 0.0f, 0.0f, 0.0f, g_fsHIO.field_0x30 + field_0x3920, 1, 0);
         temp3 = yesNoPaneMove(g_fsHIO.field_0x42, 0.0f, g_fsHIO.field_0x38 + field_0x3920, 1, 0);
         temp4 = PaneAlphaTitleTxt(field_0x3930 - g_fsHIO.field_0x29, g_fsHIO.field_0x09);
@@ -782,7 +807,13 @@ void dFile_select_c::dataSelectPaneMove() {
         menuCursorAlphaInit();
         field_0x30d8.pane->show();
 
+#if TARGET_PC
+        // pc_rando(R8.1): plan Phase R8 (the question goes to YesNoSelect with No preselected, as the
+        // corrupted-slot prompt); original: field_0x3917[selectNum]
+        if(field_0x3917[selectNum] || pc_rando_fs_newgame_asking()) {
+#else
         if(field_0x3917[selectNum]) {
+#endif
             field_0x3928 = 1;
             yesNoCursorMove();
             field_0x3930 = 0;
@@ -1710,6 +1741,34 @@ int dFile_select_c::DataSelectPaneBackFromCopyMove(u8 param_1, u8 param_2) {
 /* 801874F4-80187720       .text YesNoSelect__14dFile_select_cFv */
 void dFile_select_c::YesNoSelect() {
     stick->checkTrigger();
+#if TARGET_PC
+    if(pc_rando_fs_newgame_asking()) {
+        // pc_rando(R8.1): plan Phase R8 (Yes: randomizer file, generating the seed if none is
+        // pending; No: the normal new file; B: back as the erase prompt's No); original: none
+        int answer = pc_rando_fs_newgame_yesno(CPad_CHECK_TRIG_A(0), CPad_CHECK_TRIG_B(0), field_0x3928,
+                                               field_0x38e8[field_0x392d], field_0x38e8[2]);
+        if(answer == PC_RANDO_FSNG_START) {
+            field_0x3930 = 0;
+            field_0x30d8.pane->hide();
+            selectEnd = 1;
+            g_dComIfG_gameInfo.save.setDataNum(selectNum);
+            field_0x392b = 0x26;
+            return;
+        }
+        if(answer == PC_RANDO_FSNG_BACK) {
+            mIconMode = 5;
+            field_0x30d8.pane->hide();
+            field_0x3928 = 1;
+            field_0x392b = 0xC;
+            field_0x38e8[field_0x392d ^ 1][0] = '\0';
+            return;
+        }
+        if(answer == PC_RANDO_FSNG_WAIT) {
+            field_0x30d8.pane->hide();
+            return;
+        }
+    }
+#endif
     if(CPad_CHECK_TRIG_A(0)) {
         if(field_0x3928 == 0) {
             mDoAud_seStart(JA_SE_MSEL_DATA_MANAGE_S);
@@ -1775,7 +1834,13 @@ void dFile_select_c::CmdExecPaneMove0() {
     }
 
     int temp2;
+#if TARGET_PC
+    // pc_rando(R8.1): plan Phase R8 (B on the question: its message pane leaves); original:
+    // field_0x3917[temp]
+    if(field_0x3917[temp] || pc_rando_fs_newgame_asking()) {
+#else
     if(field_0x3917[temp]) {
+#endif
         temp2 = MessagePaneMove(0.0f, field_0x3944, g_fsHIO.field_0x46, field_0x3944, g_fsHIO.field_0x31, 0, 1);
     }
     else {

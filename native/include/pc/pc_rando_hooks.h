@@ -478,6 +478,32 @@ const uint8_t* pc_rando_particles_common_data(uint32_t* size, int* edits);
    -1. Cached per activation. */
 int pc_rando_particles_find_any(uint16_t id);
 
+/* --- R8.1: the file select's "Normal / Randomizer" question on a blank slot (D6 as revised by
+   Phase R8; game_hooks/pc_rando_hooks_fileselect_newgame.cpp, C++ API in
+   features/rando/pc_rando_fsnewgame.h). Like R0.7's and R4.4's hooks they run whatever pc_rando() is
+   (the file select runs with it off); with the "Ask on New Game" row off (or a slot that is not
+   blank) they change nothing and the vanilla code runs. --- */
+/* The YesNoSelect answer codes. */
+#define PC_RANDO_FSNG_NONE 0  /* no A/B this frame: the game's cursor code runs */
+#define PC_RANDO_FSNG_START 1 /* start the new file (name entry), as the menu's Start does */
+#define PC_RANDO_FSNG_BACK 2  /* back to the slot list, as the erase prompt's No does */
+#define PC_RANDO_FSNG_WAIT 3  /* a seed is being generated or an error is shown: nothing else */
+/* dFile_select_c::dataSelect, A on slot `slot` (after the vanilla code chose the next proc):
+   `blank` is 1 for a blank, valid slot. Returns 1 when the question is asked: the title text
+   `title` (the file select's next title buffer, 0x30 bytes) and the message pane text `message`
+   (0x80 bytes) were written, and the panes of the corrupted-slot prompt (message + Yes/No) are used
+   in place of the info and the menu. 0 otherwise (nothing written). */
+int pc_rando_fs_newgame_ask(int blank, int slot, char* title, char* message);
+/* 1 while the panel shows the question (from the A that asked it until the next A on a slot). */
+int pc_rando_fs_newgame_asking(void);
+/* dFile_select_c::YesNoSelect while asking: the A/B triggers of this frame and the cursor (0 Yes,
+   1 No). Plays the sounds, starts or waits for the generation, writes the shown title (`title`,
+   the current title buffer) and message texts. Returns a PC_RANDO_FSNG_* code. */
+int pc_rando_fs_newgame_yesno(int trigA, int trigB, int cursor, char* title, char* message);
+/* R0.7's New Game hook: the answer of the last question (0 none: the D6 behaviour, 1 Normal: the
+   pending seed stays pending and the file is vanilla, 2 Randomizer), cleared by the call. */
+int pc_rando_fs_newgame_take_choice(void);
+
 #ifdef __cplusplus
 }
 #endif
