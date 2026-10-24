@@ -82,6 +82,7 @@ void pc_rando_config_defaults(PcRandoConfig* cfg) {
     cfg->swift_sail = 1;
     cfg->instant_text_boxes = 1;
     cfg->reveal_full_sea_chart = 1;
+    cfg->inter_dungeon_warps = 0; // R7.1c: add_shortcut_warps_between_dungeons
 }
 
 int pc_rando(void) {

@@ -62,6 +62,8 @@ typedef struct PcRandoConfig {
     uint8_t swift_sail;                /* 1 */
     uint8_t instant_text_boxes;        /* 1 */
     uint8_t reveal_full_sea_chart;     /* 1 */
+    /* R7.1c: add_shortcut_warps_between_dungeons (0): the inter-dungeon warp pots */
+    uint8_t inter_dungeon_warps;
 } PcRandoConfig;
 
 /* 1 while a randomized file is active (or COS_RANDO_FORCE=1), else 0. */

@@ -113,6 +113,7 @@ bool pc_rando_slot_config_from_seed(const PcRandoSeed& seed, PcRandoConfig* cfg,
     flag("swift_sail", &c.swift_sail);
     flag("instant_text_boxes", &c.instant_text_boxes);
     flag("reveal_full_sea_chart", &c.reveal_full_sea_chart);
+    flag("add_shortcut_warps_between_dungeons", &c.inter_dungeon_warps); // R7.1c
     flag("remove_music", &m.remove_music);
     flag("invert_sea_compass_x_axis", &m.invert_sea_compass_x_axis);
     // should_start_with_heros_clothes: 0 only with player_in_casual_clothes (custom models that
