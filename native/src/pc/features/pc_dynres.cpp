@@ -329,16 +329,23 @@ void pc_dynres_configure(const char* mode, float base) {
 
 float pc_dynres_content_scale(void) { return s.applied ? s.appliedScale : 1.f; }
 
+// The scale of the last frame's 3D drawing, kept after pc_dynres_3d_end (the depth buffer holds that scene in the
+// top-left part of the EFB until the next frame; the Switch's SSAO reads it at the present, one or two frames on).
+static volatile float sLast3dScale = 1.f;
+float pc_dynres_last_3d_scale(void) { return sLast3dScale; }
+
 void pc_dynres_3d_begin(void) {
     if (!s.init) {
         init();
     }
     s.applied = false;
+    sLast3dScale = 1.f;
     if (s.mode == Mode::Off || s.level == 0) {
         return;
     }
     s.appliedScale = s.levels[s.level] / s.base;
     s.applied = true;
+    sLast3dScale = s.appliedScale;
     AuroraSetContentScale(s.appliedScale);
 }
 
