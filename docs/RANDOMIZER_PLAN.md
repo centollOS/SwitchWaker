@@ -1209,6 +1209,35 @@ that the first Yes had stored in COS_RANDO_SEED, so a deleted file and a new Yes
 
 **Milestone R8b:** the new menu and the second question on the console (USA).
 
+## Phase R9: automated milestone checks (added 2026-10-24)
+
+The milestone audit of 2026-10-24 (`build/rando-reports/milestone-audit-2026-10-24.md`) found the automated bullets
+of Milestones R2, R3, R5 and R6 not run on current code, and two of them missing tooling. These steps need neither
+the console nor a person.
+
+**R9.1 Location sweep coverage.** *Deps: none (current HEAD).* Milestone R2's sweep covers T1 on `rotation` only:
+82 locations have no sweep kind (events, code locations, boss items, added chests) and T2 on the DRC Big Key chest
+(M_NewD2 room 12) stops because the player cannot stand in front of it. Owns `native/tools/rando/sweep_targets.json`,
+`native/tools/rando/location_sweep.py`, the sweep smoke(s) in `native/src/pc/harness/smokes/` it needs, and
+`regress_rando/R9.1.txt`. Add a kind for every location wwrando has (or an explicit, reasoned xfail with the reason),
+fix the DRC Big Key T2 placement. Verify: `location_sweep.py run --tier both` with `identity`, `rotation` and 3
+`ww_export` seeds: 0 failures apart from the listed xfails; report in `build/rando-sweep/`.
+
+**R9.2 Identity is vanilla.** *Deps: none.* Redo Milestone R2's second bullet (the rw-M2 hash log was lost): every
+archive the game loads hashed with `COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_identity.json` equals the
+vanilla hash, and `save-sweep` gives the same saves both ways. Owns a tool `native/tools/rando/identity_check.py`
+(or a smoke), `regress_rando/R9.2.txt`. Verify: 0 differing archives, identical `save-sweep` output.
+
+**R9.3 Seed batches.** *Deps: none.* Runs, no code unless a batch fails: 500 seeds of hint validity
+(`ww_verify_hints.py --n 500 --golden`, `check_seeds.py --n 500 --golden --hints`); 200 golden seeds for every preset
+`check_seeds.py --list-presets` prints and for the option sets without a preset (sword modes, charts, required-bosses
+counts, each entrance option, enemy palettes); the R1 batches again on current code; the entrance sweep again.
+Owns only fixes for what fails, and a results file `build/rando-reports/batches-<date>.md`.
+
+**R9.4 Checkpoint regress.** *Deps: R7.6d, R9.1-R9.3.* Full `native/tools/regress.sh` on USA and on EUR (with the
+R7.6d lines); every failure fixed or explained. Then Milestones R0, R2 and the automated bullets of R3, R5, R6, R7
+are marked passed in this plan.
+
 ---
 
 ---
@@ -1246,6 +1275,8 @@ integrator merges them in wave order.
 | W21 | R7.6a |
 | W22 | R7.6b, R7.6c |
 | W23 | R7.6d |
+| W24 | R9.1, R9.2, R9.3 |
+| W25 | R9.4 |
 
 \* The R7.6 steps wait for Milestone R6; if it has not passed when their wave starts, they slide to a later wave
 (nothing else depends on them). In W15/W16/W18 only one step touches `pc_rando_gen.cpp` (R7.3c, R7.2e, R7.4d).
