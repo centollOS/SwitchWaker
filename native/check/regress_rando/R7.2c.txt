@@ -1,0 +1,15 @@
+# R7.2c (docs/RANDOMIZER_PLAN.md): the raw J3D hook (d_resorce.cpp loadResource before the loaders,
+# pc_rando_register_raw_patcher), palette textures (features/rando/pc_rando_palettes.cpp,
+# pc_rando_j3d.cpp) and make_rat_holes_visible_from_behind. The smoke COS_RANDO_SMOKE=palettes
+# (native/src/pc/harness/smokes/pc_rando_smoke_palettes.cpp) loads every palette group's archive and
+# Nzg.arc through dRes_control_c and dumps every texture header's image/palette MD5 for
+# native/tools/rando/palette_check.py, which compares the dump with wwrando's own
+# shift_all_colors_in_tex1 / _bti and the rat-hole tweak run with gclib on the disc:
+#   python3 -I native/tools/rando/palette_check.py --run [--shift H,V]   and   ... --run --vanilla
+# The smoke alone checks: no read error / same-name mismatch / shared-data conflict, kana_00.bdl cull
+# none (bytes and loaded materials); without COS_RANDO_FORCE the patchers never ran and kana_00.bdl
+# is the disc's. cos_rando_test_R7_2c runs on its own.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Fairy01:0:0 --env COS_RANDO_SMOKE=palettes --env COS_RANDO_FORCE=1 --env COS_RANDO_PALETTE_TEST=120,-20
+rando 0 --stage Fairy01:0:0 --env COS_RANDO_SMOKE=palettes --env COS_RANDO_FORCE=1
+rando 0 --stage Fairy01:0:0 --env COS_RANDO_SMOKE=palettes
