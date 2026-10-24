@@ -475,7 +475,7 @@ using namespace pc;
 extern "C" {
 // The current scene's process name (f_pc_name.h; -1 before the first), for the Switch's present pass (SSAO off
 // on the logo scene).
-int pc_trace_scene(void) { return pc::traceScene(); }
+int pc_current_scene(void) { return pc::traceScene(); }
 
 
 int pc_trace_enabled(const char* channel) {
