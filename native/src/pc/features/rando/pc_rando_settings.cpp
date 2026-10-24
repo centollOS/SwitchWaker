@@ -188,6 +188,12 @@ const OptText kText[] = {
      "Si las mazmorras se mezclan solo entre ellas o con las cuevas y las fuentes.",
      "Whether dungeons stay separate from the other randomized entrances, or all types can lead into each "
      "other."},
+    // R7.4d: experimental, as upstream (hidden=True, unbeatable=True; D18); the menu allows it
+    // (ensureValidCombination's allowUnbeatable below).
+    {pcr::OPT_randomize_enemies, "Enemigos al azar (experimental, puede ser imposible)",
+     "Enemy randomizer (experimental, can be unbeatable)",
+     "Cambia de sitio los enemigos que no son jefes. Experimental: una partida puede quedar sin solución.",
+     "Randomizes the placement of non-boss enemies. Experimental: a seed can be unbeatable."},
     {pcr::OPT_randomize_enemy_palettes, "Colores de enemigos al azar", "Randomize enemy palettes",
      "Da colores aleatorios a todos los enemigos.", "Gives all the enemies in the game random colors."},
     {pcr::OPT_randomize_starting_island, "Isla inicial al azar", "Randomize starting island",
@@ -331,7 +337,7 @@ std::string getter(const char* key, void*) {
 void refresh() {
     sRaw = randoSettingsOptions(false);
     sValid = sRaw;
-    pcr::ensureValidCombination(sValid);
+    pcr::ensureValidCombination(sValid, true); // R7.4d: allowUnbeatable (the enemy randomizer row)
     sHaveCache = true;
 }
 
@@ -415,7 +421,7 @@ void randoSettingsRegister() {
 pcr::Options randoSettingsOptions(bool validated) {
     pcr::Options o = pcr::optionsFromSettings(getter, nullptr);
     if (validated) {
-        pcr::ensureValidCombination(o);
+        pcr::ensureValidCombination(o, true); // R7.4d: allowUnbeatable (the enemy randomizer row)
     }
     return o;
 }

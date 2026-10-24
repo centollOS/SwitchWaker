@@ -181,25 +181,13 @@ void testRefusals() {
         RT_CHECK(!res.unsupported && !res.hintsMissing);
         RT_CHECK(res.seed.has_hints);
     }
-    struct Case {
-        int id;
-        int value;
-        const char* step;
-    };
-    const Case cases[] = {
-        // Entrances are generated since R6.11 (test_R6_11 checks them).
-        {pcr::OPT_randomize_enemies, 1, "R7.4"}, // R7.3c: generated, refused by the menu until R7.4d
-        // randomize_enemy_palettes: live since R7.2e (test_R7_2a checks it is no longer refused)
-    };
-    for (const Case& c : cases) {
-        pcr::GenRequest req = request("TestSeed1");
-        pcr::optionSetInt(req.options, c.id, c.value);
-        pcr::GenResult res;
-        RT_CHECK(!pcr::generate(req, res));
-        if (!RT_CHECK(res.unsupported) || !RT_CHECK(res.error.find(c.step) != std::string::npos)) {
-            std::fprintf(stderr, "  option %s: %s\n", pcr::kOptionInfo[c.id].name, res.error.c_str());
-        }
-        RT_CHECK_EQ(pcr::unsupportedOptionsError(req.options, true), res.error);
+    // No option is refused any more: entrances are generated since R6.11, randomize_enemy_palettes is
+    // live since R7.2e, randomize_enemies since R7.4d (test_R7_3c checks the menu generates it).
+    {
+        pcr::Options o;
+        o.randomize_enemies = true;
+        o.randomize_enemy_palettes = true;
+        RT_CHECK(pcr::unsupportedOptionsError(o, true).empty());
     }
     RT_CHECK(pcr::unsupportedOptionsError(pcr::Options(), true).empty());
     // A seed with no allowed character.

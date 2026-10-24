@@ -5,7 +5,7 @@
 // gear) with randomize_enemies. Per seed: every done enemy location (path, new type, params, x_rot,
 // z_rot, flags after the RNG part of EnemyRandomizer._save), the 3 Homen choices and a CRC-32 of the
 // item placement (the logic filter's probes reorder the item fill's input, so it must stay golden).
-// Also: the menu refusal until R7.4d, the "enemies" JSON round trip and its errors, the seed file
+// Also: the menu's request generates it since R7.4d (it was refused until then), the "enemies" JSON round trip and its errors, the seed file
 // keeps (and hashes) the key, and the key is absent with the option off.
 #include <cstdint>
 #include <cstdio>
@@ -225,12 +225,18 @@ void testRefusalAndOff() {
     c.seed = "EnemyVec0";
     c.opts.emplace_back("randomize_enemies", "1");
     pcr::GenRequest req = request(c);
+    // R7.4d: live; the menu's request (no allowNotRuntimeReady) generates the same enemies.
+    pcr::GenResult cli;
+    RT_CHECK(pcr::generate(req, cli));
     req.allowNotRuntimeReady = false; // the menu
     pcr::GenResult res;
-    RT_CHECK(!pcr::generate(req, res));
-    RT_CHECK(res.unsupported);
-    RT_CHECK(res.error.find("Not supported yet: randomize_enemies") != std::string::npos);
-    RT_CHECK(res.error.find("R7.4d") != std::string::npos);
+    if (RT_CHECK(pcr::generate(req, res))) {
+        RT_CHECK(!res.unsupported);
+        const pcr::Json* a = res.seed.extra.find("enemies");
+        const pcr::Json* b = cli.seed.extra.find("enemies");
+        RT_CHECK(a != nullptr && b != nullptr && pcr::jsonDump(*a, -1) == pcr::jsonDump(*b, -1));
+    }
+    RT_CHECK(pcr::unsupportedOptionsError(req.options, true, false).empty());
     RT_CHECK(pcr::unsupportedOptionsError(req.options, true, true).empty());
 
     req.options.randomize_enemies = false;

@@ -38,7 +38,6 @@ bool settingExposed(int id) {
         return false;
     }
     switch (id) {
-    case OPT_randomize_enemies:
     case OPT_dry_run:
     case OPT_custom_player_model:
     case OPT_player_in_casual_clothes:
