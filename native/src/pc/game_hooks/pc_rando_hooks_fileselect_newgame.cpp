@@ -46,7 +46,7 @@ constexpr size_t kTitleCap = 0x30;   // d_file_select.cpp screenSet: the title b
 constexpr size_t kMessageCap = 0x80; // and the message pane's
 // The message pane's line width for the word wrap, in the message font's pixels (pc_rando_wrap.h);
 // measured on the file select's 'mes1' box (shots of the fsnewgame smoke).
-constexpr int kMessageLineWidth = 440;
+constexpr int kMessageLineWidth = 560;
 // An error stays on the panel this long unless A or B is pressed (frames, 30 per second).
 constexpr int kErrorFrames = 180;
 
@@ -69,7 +69,7 @@ struct MsgText {
 const MsgText kTexts[] = {
     {PCR_FSNG_MSG_QUESTION, "Start a Randomizer file?"},
     {PCR_FSNG_MSG_SEED, "Randomizer seed: %s\nHash: %s\nNo starts a normal game."},
-    {PCR_FSNG_MSG_NEWSEED, "New randomizer seed: %s\n(the Randomizer options).\nNo starts a normal game."},
+    {PCR_FSNG_MSG_NEWSEED, "New randomizer seed: %s,\nmade with the Randomizer options.\nNo starts a normal game."},
     {PCR_FSNG_MSG_WAIT, "Generating the seed... %d%%"},
     {PCR_FSNG_MSG_ERROR, "The seed could not be made."},
     {PCR_FSNG_MSG_RANDOM, "random"},
