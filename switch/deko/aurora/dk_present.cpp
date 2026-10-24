@@ -227,8 +227,11 @@ void picture(void*, int stage) {
         if (srcSlot == 0) return;
         const bool fsr = g_rescale.load(std::memory_order_relaxed) == 2 && source.size.width <= w &&
                          source.size.height <= h;
-        if (fsr && source.size.width == w && source.size.height == h) {
-            g_in = {true, true, w, h, srcSlot};  // nothing to upscale: RCAS (or FXAA) reads the EFB
+        const bool sameSize = fsr && source.size.width == w && source.size.height == h;
+        // nothing to upscale: RCAS (or FXAA) reads the EFB, unless the SSAO needs a picture of its own to darken
+        // (then the plain resample below copies it 1:1)
+        if (sameSize && g_ssao.load(std::memory_order_relaxed) <= 0) {
+            g_in = {true, true, w, h, srcSlot};
             return;
         }
         if (!ensure_resampled(g_resampled, w, h)) return;
@@ -242,7 +245,7 @@ void picture(void*, int stage) {
             {swdk::SlotBinding::Kind::Sampler, 2, h0},
         };
         bool drawn;
-        if (fsr) {
+        if (fsr && !sameSize) {
             const EasuUniforms uniforms = {float(source.size.width), float(source.size.height),
                                            1.f / float(source.size.width), 1.f / float(source.size.height)};
             memcpy(u.cpu, &uniforms, sizeof uniforms);
