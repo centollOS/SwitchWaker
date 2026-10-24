@@ -478,15 +478,55 @@ void collectMustDefeat() {
     }
 }
 
-// Some must-defeat enemy of the room is live (at its home, or with its params).
-bool mustDefeatLive() {
+// A live, created enemy-group actor (what fopAcM_myRoomSearchEnemy counts) with the record's procname
+// at its home or with its params.
+struct EnemyFind {
+    s16 proc;
+    cXyz pos;
+    uint32_t params;
+    fopAc_ac_c* found;
+};
+
+void* findEnemy(void* proc, void* data) {
+    EnemyFind* f = static_cast<EnemyFind*>(data);
+    fopAc_ac_c* ac = static_cast<fopAc_ac_c*>(proc);
+    if (fpcM_GetName(proc) != f->proc || !fopAcM_IsActor(proc) || ac->group != fopAc_ENEMY_e ||
+        fpcM_IsCreating(fopAcM_GetID(ac))) {
+        return nullptr;
+    }
+    const cXyz& h = ac->home.pos;
+    const float dx = h.x - f->pos.x, dy = h.y - f->pos.y, dz = h.z - f->pos.z;
+    if (std::sqrt(dx * dx + dy * dy + dz * dz) < 1.0f || fopAcM_GetParam(ac) == f->params) {
+        f->found = ac;
+        return proc;
+    }
+    return nullptr;
+}
+
+// Some must-defeat enemy of the room is live; logged when `why`.
+bool mustDefeatLive(bool why) {
+    bool any = false;
     for (const std::vector<uint8_t>& r : sMustRecs) {
-        ActorFind f;
-        if (liveNow(r.data(), &f)) {
-            return true;
+        char name[9] = {};
+        memcpy(name, r.data(), 8);
+        dStage_objectNameInf* inf = dStage_searchName(name);
+        if (inf == nullptr) {
+            continue;
+        }
+        EnemyFind f = {inf->procname,
+                       cXyz(pc_rando_dzx_bef32(r.data() + 0x0C), pc_rando_dzx_bef32(r.data() + 0x10),
+                            pc_rando_dzx_bef32(r.data() + 0x14)),
+                       pc_rando_dzx_be32(r.data() + 8), nullptr};
+        fopAcM_Search(findEnemy, &f);
+        if (f.found != nullptr) {
+            any = true;
+            if (why) {
+                logf("[cos] rando-smoke %s:   still live: %s (process %u, room %d)\n", kName, name,
+                     (unsigned)fopAcM_GetID(f.found), (int)fopAcM_GetRoomNo(f.found));
+            }
         }
     }
-    return false;
+    return any;
 }
 
 void startKill() {
@@ -516,7 +556,7 @@ void killStep() {
         // No ALLdie: the must-defeat groups' own enemies (their death switches, or the room's door or
         // chest, are what the game then waits for) stay gone; the room's other groups (spawners of
         // Gyorgs or Octoroks on the sea) may go on making enemies.
-        sClear = !mustDefeatLive() ? sClear + 1 : 0;
+        sClear = !mustDefeatLive(sKillFrames + 1 >= kKillFrames) ? sClear + 1 : 0;
         done = sClear >= kClearFrames;
     }
     if (done || sKillFrames >= kKillFrames) {
