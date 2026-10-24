@@ -1095,6 +1095,12 @@ byte-identical.
 
 ### R7.6 European disc (after Milestone R6)
 
+On 2026-10-24 the user asked to advance everything that needs neither the console nor them, so R7.6a-d run
+before Milestone R6's play-throughs (W21: R7.6a; W22: R7.6b, R7.6c; W23: R7.6d). A defect the play-throughs
+find later is fixed on both regions. R8.1/R8.3 already put the file-select question's hunks in the PAL file select
+and gate them with their own D16 check (`kRegionOk` in `pc_rando_hooks_fileselect_newgame.cpp`); R7.6a opens that
+gate too.
+
 **R7.6a EUR build and region gates.** *Deps: Milestone R6.* Owns the D16 gate opened for `VERSION_PAL`
 (`pc_rando_settings.cpp`, `pc_rando_menu.cpp`), the sidecar folder following the region (`EUR/Card A/`, D3), the PAL
 file-select line (`game/src/pal/d/d_file_select.inc` `_draw`, the R4.4 TODO), `rando_hook_census.py` on both builds,
@@ -1237,6 +1243,9 @@ integrator merges them in wave order.
 | W18 | R7.4d, R7.6d* |
 | W19 | R8.1 |
 | W20 | R8.2, R8.3 |
+| W21 | R7.6a |
+| W22 | R7.6b, R7.6c |
+| W23 | R7.6d |
 
 \* The R7.6 steps wait for Milestone R6; if it has not passed when their wave starts, they slide to a later wave
 (nothing else depends on them). In W15/W16/W18 only one step touches `pc_rando_gen.cpp` (R7.3c, R7.2e, R7.4d).
