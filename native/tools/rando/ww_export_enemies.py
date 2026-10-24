@@ -2,7 +2,7 @@
 """Golden placement with the enemy randomizer's decisions (docs/RANDOMIZER_PLAN.md step R7.3c).
 
     python3 -I native/tools/rando/ww_export_enemies.py <seed> <out.json> [name=<json> ...]
-    python3 -I native/tools/rando/ww_export_enemies.py --vectors [out.txt]
+    python3 -I native/tools/rando/ww_export_enemies.py --vectors [--check] [out.txt]
 
 Runs wwrando 1.10.0_9775811 in dry mode (as ww_export.py; randomize_enemies is forced on) and writes
 ww_export.py's placement plus the top-level key "enemies":
@@ -27,7 +27,8 @@ for a type without Ceiling (adjust_enemy y -500), 8 magtail (y +50), 16 a ChuChu
 Y Rotation / Y Rotation offset.
 
 --vectors writes the fixture of cos_rando_test_R7_3c (default
-native/check/rando/fixtures/R7_3c_enemies.txt); deterministic, so regenerating gives no diff:
+native/check/rando/fixtures/R7_3c_enemies.txt); deterministic, so regenerating gives no diff
+(--check compares with the file instead of writing it: exit 1 when it differs):
 
     version   <VERSION>
     case      <name> <seed>
@@ -39,7 +40,7 @@ native/check/rando/fixtures/R7_3c_enemies.txt); deterministic, so regenerating g
     endcase
     end
 
-Exit 0 written, 2 usage or setup error; a wwrando failure prints its traceback and exits 1.
+Exit 0 written (or up to date), 1 --check found a difference, 2 usage or setup error; a wwrando failure prints its traceback and exits 1.
 """
 import os
 import sys
@@ -153,7 +154,7 @@ def vector_cases():
   ]
 
 
-def write_vectors(path):
+def write_vectors(path, check=False):
   import version
   from options.wwrando_options import Options
   defaults = Options()
@@ -180,14 +181,25 @@ def write_vectors(path):
     out.append(f"locations\t{zlib.crc32(locs.encode()):08x}")
     out.append("endcase")
   out.append("end")
+  text = "\n".join(out) + "\n"
+  if check:
+    try:
+      with open(path, newline="") as f:
+        same = f.read() == text
+    except OSError:
+      same = False
+    print(f"{os.path.basename(path)}: " + ("up to date" if same else "differs from wwrando"), file=sys.stderr)
+    return same
   with open(path, "w", newline="\n") as f:
-    f.write("\n".join(out) + "\n")
+    f.write(text)
+  return True
 
 
 def main():
   ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
   ap.add_argument("args", nargs="*", help="<seed> <out.json> [name=json ...], or [out.txt] with --vectors")
   ap.add_argument("--vectors", action="store_true")
+  ap.add_argument("--check", action="store_true", help="with --vectors: compare instead of writing")
   ap.add_argument("--options", metavar="FILE")
   ap.add_argument("--seed-key", metavar="KEY")
   a = ap.parse_args()
@@ -201,8 +213,8 @@ def main():
     path = a.args[0] if a.args else os.path.join(oc.REPO_ROOT, "native", "check", "rando", "fixtures",
                                                  "R7_3c_enemies.txt")
     with contextlib.redirect_stdout(sys.stderr):
-      write_vectors(path)
-    return 0
+      ok = write_vectors(path, check=a.check)
+    return 0 if ok else 1
   if len(a.args) < 2:
     ap.error("need <seed> <out.json>")
   seed, out_path, pairs = a.args[0], a.args[1], a.args[2:]

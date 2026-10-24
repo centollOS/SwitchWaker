@@ -1,0 +1,9 @@
+# R7.3c (docs/RANDOMIZER_PLAN.md): enemy randomizer generator. 100 golden seeds with randomize_enemies:
+# the "enemies" key (EnemyRandomizer._randomize plus the RNG part of _save: params, Homen) equals
+# ww_export_enemies.py's, in order, the locations and logs stay golden (the logic filter's probes
+# reorder the item fill's input), and ww_verify passes. Then enemy rando on three other presets, and
+# the unit test fixture (cos_rando_test_R7_3c) must be up to date with wwrando.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 100 --golden --preset enemies --prefix EnemySeed
+script 0 python3 -I native/tools/rando/check_seeds.py --cli build/native-mac/cos_rando_cli --n 20 --golden --preset all_categories,keylunacy,extra_start_keys --prefix EnemyMix randomize_enemies=true
+script 0 python3 -I native/tools/rando/ww_export_enemies.py --vectors --check
