@@ -24,12 +24,17 @@ struct RandoFileSelectInfo {
     int slot = -1;          // selectNum then
     int proc = -1;          // the file select's DataSelProc index then
     pcr::FileInfoKind kind = pcr::FileInfoKind::None;
-    std::string text;       // the line shown ("" none), in the menu's language
+    std::string text;       // the line shown ("" none), in randoFileSelectSpanish()'s language
     std::string seed;       // the seed name (Rando, Pending)
     std::string words;      // its hash words (Rando, Pending)
     unsigned int shownFrames = 0; // frames the overlay drew a line (any slot)
 };
 const RandoFileSelectInfo& randoFileSelectInfo();
+
+// The line's language (R7.6a, game-screen text rule): English on the USA game; on the European game
+// the game's language (dComIfGs_getPalLanguage() 3, Spanish: Spanish; the other four: English), as the
+// file select's question (pc_rando_hooks_fileselect_newgame.cpp). The menu keeps pc_ui_spanish().
+bool randoFileSelectSpanish();
 
 // Draws the line of the file select's current frame, if any (an ImGui frame must be open).
 void randoFileSelectOverlay();
