@@ -139,7 +139,7 @@ scripts/switch/push.sh native                   # to sdmc:/switch/switchwaker/, 
   darkening of the resampled picture (alpha blend, black with alpha = strength * occlusion), so FXAA and the
   gamma see it; sky (depth 0) takes none and the menus are drawn after. `switch/deko/shaders/dk_ssao.wgsl`
   (`dk_ssao.vs_main`/`fs_ao`/`fs_blur`/`fs_apply`); developer variables `COS_SSAO_RADIUS` (world units, 50),
-  `COS_SSAO_STRENGTH` (percent, 60), `COS_SSAO_BIAS` (1/10000 of relative depth, 150).
+  `COS_SSAO_STRENGTH` (percent, 85), `COS_SSAO_BIAS` (1/10000 of relative depth, 100).
 - deko3d run options (settings.ini `[dev]`, `switch/native/settings-dev.example.ini`): `COS_DK_TEST_PATTERN=1`
   draws a test pattern of deko3d's conventions under the menu (four coloured corners, two depth-tested
   squares, a depth-range check, a textured square with texture row 0 marked, a counter-clockwise and a

@@ -114,8 +114,8 @@ bool ssao_pass() {
     // the tuning (developer variables, percent / hundredths): COS_SSAO_RADIUS the disc's world size,
     // COS_SSAO_STRENGTH the darkening at full occlusion, COS_SSAO_BIAS the depth step that counts as an occluder
     static const float radius = float(swdk::env_long("COS_SSAO_RADIUS", 50));
-    static const float strength = float(swdk::env_long("COS_SSAO_STRENGTH", 60)) * 0.01f;
-    static const float bias = float(swdk::env_long("COS_SSAO_BIAS", 150)) * 0.0001f;
+    static const float strength = float(swdk::env_long("COS_SSAO_STRENGTH", 85)) * 0.01f;
+    static const float bias = float(swdk::env_long("COS_SSAO_BIAS", 100)) * 0.0001f;
     // the depth value is about near / z (near about 10 units): a world radius R is about R * focal / z pixels,
     // so focal * R / near depth-buffer pixels per unit of depth value (focal about 650 px at 720p)
     // with the dynamic resolution the scene's depth is in the top-left part of
