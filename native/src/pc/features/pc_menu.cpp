@@ -1597,8 +1597,10 @@ void drawMenu() {
                 }
                 ImGui::SameLine(valueX);
                 const std::string value = rowValue(r);
+                // A value that cannot be changed (R8.2's rows about the game being played) gets no arrows.
+                const bool arrows = i == row && !(r.kind == RowKind::Rando && randoRowReadOnly(randoRowOf(r)));
                 ImGui::TextColored(greyed ? kDim : i == row ? kAccent : ImVec4(1, 1, 1, 1), "%s%s%s",
-                                   i == row ? "< " : "", value.c_str(), i == row ? " >" : "");
+                                   arrows ? "< " : "", value.c_str(), arrows ? " >" : "");
                 if (locked || greyed) {
                     ImGui::PopStyleColor();
                 }
