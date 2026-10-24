@@ -71,6 +71,10 @@ void pc_gpu_groups_frame_begin(unsigned int frame);
    values as the variables (COS_DOF 0/1, COS_GPU_GROUPS 0-2). Each takes effect with the next
    frame the game draws. */
 void pc_dof_set(int enabled);
+/* COS_ANISO: the anisotropic filtering level (1 off, 2, 4, 8, 16); the deko3d renderer raises its
+   mipmapped linear samplers to it (switch/deko/aurora/dk_objects.cpp). The Mac ignores it. */
+int pc_aniso_get(void);
+void pc_aniso_set(int level);
 void pc_gpu_groups_set(int level);
 
 #ifdef __cplusplus

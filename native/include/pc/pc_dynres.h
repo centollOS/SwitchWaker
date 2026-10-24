@@ -46,6 +46,8 @@ void pc_dynres_3d_end(void);
 void pc_dynres_configure(const char* mode, float base);
 /* The content scale in effect for the 3D drawing now (1 = the whole EFB). */
 float pc_dynres_content_scale(void);
+/* The scale of the last 3D drawing (1 = the whole EFB), still valid after pc_dynres_3d_end: where the scene's depth is. */
+float pc_dynres_last_3d_scale(void);
 /* 60 fps budget guard (pc_frame.cpp): 1 when the GPU's p95 per present (over at least 30 game
    frames at this level) is over budgetMs and dynres cannot go lower (off, fixed, idle, at its
    floor). The Switch only (no GPU timer elsewhere: 0). */

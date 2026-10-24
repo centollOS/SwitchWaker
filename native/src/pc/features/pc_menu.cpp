@@ -83,6 +83,7 @@
 
 #if defined(__SWITCH__)
 #include "cos_switch.h"
+#include "dk_aurora.h"  // aurora_switch_dk_set_fxaa
 #endif
 
 // Aurora's <dolphin/pad.h> (the game's own comes first on the include path).
@@ -436,6 +437,7 @@ void applyDynres(const char*, const char* v, void*) {
     pc_fps60_hold("dynamic resolution changed");
 }
 void applyDof(const char*, const char* v, void*) { pc_dof_set(strcmp(v, "0") != 0); }
+void applyAniso(const char*, const char* v, void*) { pc_aniso_set(atoi(v)); }
 void applyCameraInvertX(const char*, const char* v, void*) { pc_camera_invert_x_set(strcmp(v, "1") == 0); }
 void applyCameraInvertY(const char*, const char* v, void*) { pc_camera_invert_y_set(strcmp(v, "1") == 0); }
 void applyCameraShake(const char*, const char* v, void*) { pc_camera_shake_set(strcmp(v, "1") == 0); }
@@ -444,6 +446,27 @@ void applyQol(const char* key, const char* v, void*) { pc_qol_set(key, v); }
 void applyGpuProfile(const char*, const char* v, void*) {
 #if defined(__SWITCH__)
     cos_switch_set_gpu_profile(v);
+#else
+    (void)v;
+#endif
+}
+void applyFxaa(const char*, const char* v, void*) {
+#if defined(__SWITCH__)
+    aurora_switch_dk_set_fxaa(atoi(v));
+#else
+    (void)v;
+#endif
+}
+void applySsao(const char*, const char* v, void*) {
+#if defined(__SWITCH__)
+    aurora_switch_dk_set_ssao(atoi(v));
+#else
+    (void)v;
+#endif
+}
+void applyRescale(const char*, const char* v, void*) {
+#if defined(__SWITCH__)
+    aurora_switch_dk_set_rescale(atoi(v));
 #else
     (void)v;
 #endif
@@ -457,6 +480,16 @@ void applyPerfLog(const char*, const char* v, void*) { gConfig.perfLog = strcmp(
 void applyHitch(const char*, const char* v, void*) { perfSetHitch((unsigned int)atoi(v)); }
 void applyHdStats(const char*, const char* v, void*) { pc_hd_textures_set_stats_every((unsigned int)atoi(v)); }
 void applyGpuGroups(const char*, const char* v, void*) { pc_gpu_groups_set(atoi(v)); }
+// Gráficos > Gamma (COS_GAMMA): the points added to 2.2 (the game's colours are encoded for a GameCube TV,
+// about 2.4, and the Switch's panel shows them too bright); the present draws colour^((2.2 + change) / 2.2), see
+// switch/deko/shaders/present_gamma.wgsl. Only the deko3d NRO has the present pass.
+void applyGamma(const char*, const char* v, void*) {
+#if defined(__SWITCH__)
+    cos_switch_set_gamma((2.2f + (float)atof(v)) / 2.2f);
+#else
+    (void)v;
+#endif
+}
 void applyFps60(const char*, const char* v, void*) { pc_fps60_set(strcmp(v, "1") == 0); }
 
 #define CHOICES(name) name, (int)(sizeof(name) / sizeof(name[0]))
@@ -470,6 +503,10 @@ const PcSettingChoice kFbScale[] = {
 };
 const PcSettingChoice kAspect[] = {{"16:9", "16:9 (panorámica)", "16:9 (widescreen)"}, {"4:3", "4:3 (GameCube)"}, {"16:10", "16:10"}};
 const PcSettingChoice kOnOff[] = {{"0", "Desactivado", "Off"}, {"1", "Activado", "On"}};
+const PcSettingChoice kAniso[] = {{"1", "x1 (desactivado)", "x1 (off)"}, {"2", "x2"}, {"4", "x4"}, {"8", "x8"}, {"16", "x16"}};
+const PcSettingChoice kFxaa[] = {{"0", "Desactivado", "Off"}, {"1", "Suave", "Soft"},
+                                 {"2", "Normal", "Normal"}, {"3", "Fuerte", "Strong"}};
+const PcSettingChoice kRescale[] = {{"0", "Bilinear", "Bilinear"}, {"1", "Área", "Area"}, {"2", "FSR 1", "FSR 1"}};
 const PcSettingChoice kHdMaxSize[] = {{"auto", "Automático (512 / 1024)", "Automatic (512 / 1024)"}, {"256", "256"}, {"512", "512"},
                                       {"1024", "1024"}, {"full", "Sin límite", "No limit"}};
 // "auto" (the default): on while the 60 fps row is on (docs/FPS60_PLAN.md step E), off at 30 fps;
@@ -492,6 +529,11 @@ const PcSettingChoice kPerfEvery[] = {
 const PcSettingChoice kGpuGroups[] = {{"0", "Desactivados", "Off"}, {"1", "Por grupo", "Per group"},
                                       {"2", "Por material J3D", "Per J3D material"}};
 const PcSettingChoice kShowHide[] = {{"1", "Mostrar", "Show"}, {"0", "Ocultar", "Hide"}};
+const PcSettingChoice kSsao[] = {{"0", "Desactivada", "Off"}, {"1", "Baja (cuarto de resolución)", "Low (quarter resolution)"},
+                                 {"2", "Media", "Medium"}, {"3", "Alta", "High"}};
+const PcSettingChoice kGamma[] = {{"0", "Original (sin cambio)", "Original (no change)"},
+                                  {"0.10", "+0,10"}, {"0.20", "+0,20 (recomendado)", "+0.20 (recommended)"},
+                                  {"0.30", "+0,30"}, {"0.40", "+0,40"}};
 const PcSettingChoice kHitch[] = {{"0", "Desactivadas", "Off"}, {"33", "Más de 33 ms", "Over 33 ms"},
                                   {"40", "Más de 40 ms", "Over 40 ms"}, {"50", "Más de 50 ms", "Over 50 ms"},
                                   {"100", "Más de 100 ms", "Over 100 ms"}};
@@ -512,6 +554,15 @@ const PcSettingDesc kBuiltins[] = {
      nullptr, 10,
      "Internal resolution",
      "Resolution the game is drawn at before scaling to the screen. Lower = faster."},
+    {"COS_RESCALE", "Reescalado",
+     "Cómo se escala la imagen a la pantalla. Bilinear: el de siempre. Área: más nítido al reducir. FSR 1: "
+     "reescalado y nitidez de AMD, mejora la imagen cuando la resolución interna es menor que la pantalla "
+     "(con el suavizado FXAA activo se aplica sin el paso de nitidez).",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kRescale), "0", applyRescale, nullptr, 15,
+     "Rescaling",
+     "How the picture is scaled to the screen. Bilinear: as before. Area: sharper when shrinking. FSR 1: "
+     "AMD's upscaling and sharpening, improves the picture when the internal resolution is below the screen's "
+     "(with FXAA on it runs without the sharpening pass)."},
     {"COS_DYNRES", "Resolución dinámica",
      "Baja la resolución del 3D (hasta 2/3) cuando la GPU no llega; el HUD queda nítido. Con 60 fps: solo "
      "mientras los 60 fps están activados.",
@@ -523,6 +574,31 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "1", applyDof, nullptr, 50,
      "Depth of field",
      "Blur of the distant scenery, as on the GameCube."},
+    {"COS_FXAA", "Suavizado de bordes (FXAA)",
+     "Suaviza los bordes dentados de la imagen final con un filtro FXAA. Más fuerte = menos dientes de "
+     "sierra pero más desenfoque (también en el HUD). Cuesta algo de GPU.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kFxaa), "0", applyFxaa, nullptr, 60,
+     "Edge smoothing (FXAA)",
+     "Smooths the jagged edges of the final picture with an FXAA filter. Stronger = fewer jaggies but more "
+     "blur (the HUD too). Costs some GPU time."},
+    {"COS_SSAO", "Oclusión ambiental (SSAO)",
+     "Oscurece ligeramente las esquinas, los pliegues y el contacto entre objetos, a partir de la profundidad "
+     "de la imagen. Cuanto más alto el nivel, más cuesta de GPU: Baja es la más barata. No toca el cielo ni los menús.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kSsao), "0", applySsao, nullptr, 60,
+     "Ambient occlusion (SSAO)",
+     "Slightly darkens corners, creases and where objects touch, from the picture's depth. A higher level costs more GPU time: Low is the cheapest. Leaves the sky and the menus alone."},
+    {"COS_ANISO", "Filtrado anisotrópico",
+     "Texturas del suelo y de los edificios más nítidas en perspectiva. Más alto = más carga para la GPU.",
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kAniso), "1", applyAniso, nullptr, 61,
+     "Anisotropic filtering",
+     "Sharper ground and building textures at a slant. Higher = more GPU load."},
+    {"COS_GAMMA", "Gamma",
+     "Oscurece o deja como estaba la imagen. El juego se pensó para una tele de GameCube (gamma ~2,4) y la "
+     "pantalla de la Switch (~2,2) la muestra más clara y lavada: +0,20 la corrige. No cambia los menús.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kGamma), "0.20", applyGamma, nullptr, 60,
+     "Gamma",
+     "Darkens the picture or leaves it as it was. The game was made for a GameCube TV (gamma ~2.4) and "
+     "the Switch's panel (~2.2) shows it brighter and washed out: +0.20 corrects it. The menus do not change."},
     {"COS_CAMERA_INVERT_X", "Invertir cámara horizontal",
      "El stick C gira la cámara al revés en horizontal.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertX, nullptr, 90,
