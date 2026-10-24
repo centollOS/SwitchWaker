@@ -1,0 +1,17 @@
+# R7.4a (docs/RANDOMIZER_PLAN.md): enemy actor rewrites (features/rando/pc_rando_enemies.{h,cpp}: enemies.py
+# save_changed_enemies_and_randomize_their_params + adjust_enemy as a room.dzr patcher on the seed's "enemies"
+# key). native/tools/rando/enemy_check.py generates the seed with cos_rando_cli (randomize_enemies=true), runs
+# the smoke COS_RANDO_SMOKE=enemies (native/src/pc/harness/smokes/pc_rando_smoke_enemies.cpp: every room.dzr
+# of the enemy table read from the disc, the earlier patchers then this one; every placed record written, no
+# D9 mismatch or refusal, every other byte kept; the live boot room's records and actors) and compares its
+# dump of the 1,275 records with wwrando's own _save run with gclib on the disc (base records after the two
+# tweaks that touch them, then the rewritten records). The seeds cover ReDead/Stalfos spawn switches and
+# Floormaster paths (EnemyCov19), ChuChus snapped to pots (EnemyCov12), magtails and offsets (all).
+# --vanilla: no placement, every record is the disc's. The identity placement (enemies off): no file changes.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+script 0 python3 -I native/tools/rando/enemy_check.py --seed EnemyCheckA --run --stage M_NewD2:2:1
+script 0 python3 -I native/tools/rando/enemy_check.py --seed EnemyCov19 --run --stage Hyroom:0:0
+script 0 python3 -I native/tools/rando/enemy_check.py --seed EnemyCov12 --run --stage Cave09:1:0
+script 0 python3 -I native/tools/rando/enemy_check.py --seed EnemyCov7 --run --stage GanonJ:0:0
+script 0 python3 -I native/tools/rando/enemy_check.py --vanilla --run --stage sea:13:0
+rando 0 --stage M_NewD2:2:1 --env COS_RANDO_SMOKE=enemies --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_identity.json
