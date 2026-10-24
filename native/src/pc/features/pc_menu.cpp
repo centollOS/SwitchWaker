@@ -456,6 +456,13 @@ void applyFxaa(const char*, const char* v, void*) {
     (void)v;
 #endif
 }
+void applyRescale(const char*, const char* v, void*) {
+#if defined(__SWITCH__)
+    aurora_switch_dk_set_rescale(atoi(v));
+#else
+    (void)v;
+#endif
+}
 void applyOverlay(const char*, const char* v, void*) { gConfig.fpsOverlay = strcmp(v, "1") == 0; }
 void applyOverlayDetail(const char*, const char* v, void*) {
     gConfig.fpsOverlayCompact = strcmp(v, "compact") == 0;
@@ -480,6 +487,7 @@ const PcSettingChoice kAspect[] = {{"16:9", "16:9 (panorámica)", "16:9 (widescr
 const PcSettingChoice kOnOff[] = {{"0", "Desactivado", "Off"}, {"1", "Activado", "On"}};
 const PcSettingChoice kFxaa[] = {{"0", "Desactivado", "Off"}, {"1", "Suave", "Soft"},
                                  {"2", "Normal", "Normal"}, {"3", "Fuerte", "Strong"}};
+const PcSettingChoice kRescale[] = {{"0", "Bilinear", "Bilinear"}, {"1", "Área", "Area"}, {"2", "FSR 1", "FSR 1"}};
 const PcSettingChoice kHdMaxSize[] = {{"auto", "Automático (512 / 1024)", "Automatic (512 / 1024)"}, {"256", "256"}, {"512", "512"},
                                       {"1024", "1024"}, {"full", "Sin límite", "No limit"}};
 // "auto" (the default): on while the 60 fps row is on (docs/FPS60_PLAN.md step E), off at 30 fps;
@@ -522,6 +530,15 @@ const PcSettingDesc kBuiltins[] = {
      nullptr, 10,
      "Internal resolution",
      "Resolution the game is drawn at before scaling to the screen. Lower = faster."},
+    {"COS_RESCALE", "Reescalado",
+     "Cómo se escala la imagen a la pantalla. Bilinear: el de siempre. Área: más nítido al reducir. FSR 1: "
+     "reescalado y nitidez de AMD, mejora la imagen cuando la resolución interna es menor que la pantalla "
+     "(con el suavizado FXAA activo se aplica sin el paso de nitidez).",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kRescale), "0", applyRescale, nullptr, 15,
+     "Rescaling",
+     "How the picture is scaled to the screen. Bilinear: as before. Area: sharper when shrinking. FSR 1: "
+     "AMD's upscaling and sharpening, improves the picture when the internal resolution is below the screen's "
+     "(with FXAA on it runs without the sharpening pass)."},
     {"COS_DYNRES", "Resolución dinámica",
      "Baja la resolución del 3D (hasta 2/3) cuando la GPU no llega; el HUD queda nítido. Con 60 fps: solo "
      "mientras los 60 fps están activados.",

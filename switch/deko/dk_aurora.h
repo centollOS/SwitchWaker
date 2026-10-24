@@ -35,6 +35,12 @@ uint64_t aurora_switch_dk_imgui_texture(uint32_t width, uint32_t height, const v
 // next frame. At the start it is the environment's COS_FXAA (0 when unset).
 void aurora_switch_dk_set_fxaa(int level);
 
+// How the present pass scales the picture to the screen (options menu, COS_RESCALE): 0 bilinear, 1 area,
+// 2 FSR 1 (EASU upscale and RCAS sharpening, dk_fsr_easu / dk_fsr_rcas; only when the picture is smaller than
+// the screen, else the bilinear/area resample). Any thread; takes effect at the next frame. At the start it
+// is the environment's COS_RESCALE (0 when unset).
+void aurora_switch_dk_set_rescale(int mode);
+
 // Waits for the GPU and releases the window (Aurora's shutdown).
 void aurora_switch_dk_shutdown(void);
 
