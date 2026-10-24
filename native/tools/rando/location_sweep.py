@@ -107,6 +107,7 @@ def die(msg, code=2):
 _KEY_RE = re.compile(
     r'^\s*\{KeyKind::(\w+), (PCR_LOC_\w+), 0x([0-9A-Fa-f]+), [^,]+, (nullptr|"[^"]*"), (nullptr|"[^"]*"), '
     r'(nullptr|"[^"]*"), (\d+), DzxField::(\w+),')
+_EVENT_RE = re.compile(r'\{[^}]*\}, (?:0x[0-9A-Fa-f]+|\d+), (nullptr|"[^"]*")')
 _LOC_RE = re.compile(r"^\s*(PCR_LOC_\w+) = (\d+), /\* (.*) \[([A-Z+]+)\] \*/")
 
 
@@ -138,8 +139,12 @@ def load_keys():
             kind, loc, van, stage, arc, tag, index, field = m.groups()
             k = {"key": len(out), "kind": kind, "loc": loc, "vanilla": int(van, 16), "stage": _str(stage),
                  "arc": _str(arc), "tag": _str(tag), "index": int(index), "field": field}
+            m2 = _EVENT_RE.search(line)
+            k["event"] = _str(m2.group(1)) if m2 else None
             k["where"] = "%s/%s/%s[%d]" % (k["stage"], k["arc"], k["tag"], k["index"]) if k["tag"] else (
                 "%s/%s" % (k["stage"], k["arc"]) if k["stage"] else "code")
+            if k["kind"] == "Event" and k["event"]:
+                k["where"] += ":" + k["event"]
             out.append(k)
     if not out:
         die("%s: no keys" % KEYS_INC)
@@ -172,11 +177,24 @@ def load_targets():
     return t
 
 
-def kind_of_field(kinds, field):
+def kind_of_key(kinds, key):
+    """The first kind whose "key_kinds" (default ["Dzx"]) holds the key's KeyKind and whose "fields"
+    (when given) hold its DzxField."""
     for name, k in kinds.items():
-        if field in k.get("fields", []):
-            return name
+        if key["kind"] not in k.get("key_kinds", ["Dzx"]):
+            continue
+        if "fields" in k and key["field"] not in k["fields"]:
+            continue
+        return name
     return None
+
+
+def fixed_stop(kcfg, stage, which):
+    """A kind's hand-written stop for a key of `stage` ("stops" / "t2_stops": {stage or "*": stop})."""
+    table = kcfg.get(which)
+    if table is None:
+        return None
+    return table.get(stage or "*", table.get("*"))
 
 
 def stop_str(stage, room, point, layer):
@@ -239,10 +257,27 @@ def generate_targets(disc_path, old):
     keys = load_keys()
     out = []
     for k in keys:
-        if k["kind"] != "Dzx":
-            continue
-        kind = kind_of_field(kinds, k["field"])
+        kind = kind_of_key(kinds, k)
         if kind is None:
+            continue
+        kcfg = kinds[kind]
+        if "stops" in kcfg:
+            # Kinds whose smoke checks every key of a boot stage (or of the whole game): hand-written
+            # stops per stage (code: one stop for all).
+            row = {"key": k["key"], "loc": k["loc"], "kind": kind, "where": k["where"]}
+            if k.get("event"):
+                row["event"] = k["event"]
+            row["t1"] = fixed_stop(kcfg, k["stage"], "stops")
+            row["t2"] = fixed_stop(kcfg, k["stage"], "t2_stops") if kcfg.get("t2") else None
+            for sel in (k["where"], k["loc"]):
+                o = key_ov.get(sel)
+                if o:
+                    for f in ("t1", "t2", "events", "note", "xfail"):
+                        if f in o:
+                            row[f] = o[f]
+            if not row.get("note") and row["t1"] is None:
+                row["note"] = "no stop for stage %s in the kind's stops" % k["stage"]
+            out.append(row)
             continue
         stage, arc, tag = k["stage"], k["arc"], k["tag"]
         layer = tag_layer(tag)
@@ -268,7 +303,7 @@ def generate_targets(disc_path, old):
         for sel in (k["where"], k["loc"]):
             o = key_ov.get(sel)
             if o:
-                for f in ("t1", "t2", "events", "note"):
+                for f in ("t1", "t2", "events", "note", "xfail"):
                     if f in o:
                         row[f] = o[f]
         if not row.get("note"):
@@ -364,6 +399,7 @@ class Run:
         self.opens = []    # T2: locations to open
         self.expect = []   # locations whose chest keys are all checked by this run
         self.events = []
+        self.env = []      # exit/lines modes: (name, value) pairs of this run
 
 
 def plan_loc_runs(rows, tier, max_stops):
@@ -430,13 +466,21 @@ def plan_runs(args, targets, rows):
                 for run in plan_loc_runs(kr, tier, args.max_stops):
                     run.expect = expect_complete(run, all_chest)
                     runs.append(run)
-            elif mode == "exit":
+            elif mode in ("exit", "lines"):
+                # One run per stop (and per-row env, e.g. the event T2 plays): a stop "a,b,c" boots at
+                # a and hops to b and c (the kind's "hops_env").
                 by_stop = collections.OrderedDict()
                 for r in kr:
-                    if r.get("t1"):
-                        by_stop.setdefault(r["t1"], []).append(r)
-                for stop, rs in by_stop.items():
-                    runs.append(Run(kind, [stop], rs, tier))
+                    stop = r.get("t1") if tier == "T1" else r.get("t2")
+                    if not stop:
+                        continue
+                    env = tuple((n, v.format(**r)) for n, v in
+                                sorted(kinds[kind].get("t2_env" if tier == "T2" else "t1_env", {}).items()))
+                    by_stop.setdefault((stop, env), []).append(r)
+                for (stop, env), rs in by_stop.items():
+                    run = Run(kind, [stop], rs, tier)
+                    run.env = list(env)
+                    runs.append(run)
             elif mode == "rooms":
                 rs = [r for r in kr if r.get("t1")]
                 if rs:
@@ -444,7 +488,8 @@ def plan_runs(args, targets, rows):
             else:
                 die("kind %s: unknown mode %r" % (kind, mode))
     for i, run in enumerate(runs):
-        run.name = "%02d-%s-%s-%s" % (i, run.tier.lower(), run.kind, run.stops[0].replace(":", "_") if run.stops else "none")
+        run.name = "%02d-%s-%s-%s" % (i, run.tier.lower(), run.kind,
+                                      run.stops[0].split(",")[0].replace(":", "_") if run.stops else "none")
     return runs
 
 
@@ -466,8 +511,12 @@ def run_args(run, kinds, placement, rel_placement=False):
             env.append(("COS_RANDO_LOC_EXPECT", ",".join(l[len("PCR_LOC_"):] for l in run.expect)))
         if run.events:
             env.append(("COS_RANDO_LOC_EVENTS", ",".join(run.events)))
-    elif k["mode"] == "exit":
-        opts = ["--stage", run.stops[0]] + opts
+    elif k["mode"] in ("exit", "lines"):
+        parts = run.stops[0].split(",")
+        opts = ["--stage", parts[0]] + (["--timeout", str(k["timeout"])] if "timeout" in k else []) + opts
+        if len(parts) > 1:
+            env.append((k["hops_env"], ",".join(parts[1:])))
+        env.extend(run.env)
     elif k["mode"] == "rooms":
         env.append((k["rooms_env"], ",".join(str(parse_stop(s)[1]) for s in run.stops)))
         opts = opts + ["--timeout", str(120 + 4 * len(run.stops))]
@@ -592,7 +641,37 @@ def results_exit(run, log, rc, run_dir):
         fails = [l.split("rando-smoke ", 1)[1] for l in log.splitlines() if l.endswith(": FAIL") and "rando-smoke " in l]
         if fails:
             detail += ": " + fails[0][:160]
-    return {(r["key"], "T1"): (ok, r["t1"], detail) for r in run.rows}
+    return {(r["key"], run.tier): (ok, r["t1"] if run.tier == "T1" else r["t2"], detail) for r in run.rows}
+
+
+def results_lines(run, log, rc, run_dir, kind_cfg):
+    """Per-location check lines (kind "loc_line": groups tier, loc, result): a location's rows get FAIL
+    when any of its lines of the run's tier failed, ok when all held, else not-checked (or not-reached
+    after a crash or timeout)."""
+    rx = re.compile(kind_cfg["loc_line"])
+    per_loc = {}
+    first_fail = {}
+    for line in log.splitlines():
+        m = rx.search(line)
+        if not m or m.group("tier") != run.tier:
+            continue
+        loc, res = m.group("loc"), m.group("res")
+        if per_loc.get(loc) != "FAIL":
+            per_loc[loc] = res
+        if res == "FAIL" and loc not in first_fail:
+            first_fail[loc] = line.split("rando-smoke ", 1)[-1][:160]
+    out = {}
+    crashed = rc not in (0, 1)
+    why = crash_line(run_dir, log) if crashed else ""
+    for r in run.rows:
+        stop = r["t1"] if run.tier == "T1" else r["t2"]
+        if r["loc"] in per_loc:
+            out[(r["key"], run.tier)] = (per_loc[r["loc"]], stop, first_fail.get(r["loc"], ""))
+        elif crashed:
+            out[(r["key"], run.tier)] = ("not-reached", stop, "exit %d%s" % (rc, (": " + why) if why else ""))
+        else:
+            out[(r["key"], run.tier)] = ("not-checked", stop, "no check line for the location (exit %d)" % rc)
+    return out
 
 
 def results_rooms(run, log, rc, run_dir, kind_cfg):
@@ -628,6 +707,8 @@ def execute(run, args, kinds, placement, sweep_dir):
         res = results_loc(run, log, rc, run_dir)
     elif mode == "exit":
         res = results_exit(run, log, rc, run_dir)
+    elif mode == "lines":
+        res = results_lines(run, log, rc, run_dir, kinds[run.kind])
     else:
         res = results_rooms(run, log, rc, run_dir, kinds[run.kind])
     bad = sum(1 for v in res.values() if v[0] != "ok")
@@ -697,8 +778,8 @@ def cmd_run(args):
                 nr.name = "%s.retry%d" % (run.name, retried)
                 retried += 1
                 queue.append(nr)
-    write_report(args, targets, locs, rows, want_kinds, want_locs, want_stages, results, run_of, placement)
-    return 0 if all(v[0] == "ok" for v in results.values()) else 1
+    bad = write_report(args, targets, locs, rows, want_kinds, want_locs, want_stages, results, run_of, placement)
+    return 0 if bad == 0 else 1
 
 
 def write_report(args, targets, locs, rows, want_kinds, want_locs, want_stages, results, run_of, placement):
@@ -720,6 +801,10 @@ def write_report(args, targets, locs, rows, want_kinds, want_locs, want_stages, 
             stop = r.get("t1") if t != "T2" else r.get("t2")
             if v is None:
                 v = ("no-target", "", r.get("note", "")) if stop is None else ("not-reached", stop, "not run")
+            xf = r.get("xfail", {}).get(t[:2])
+            if xf and v[0] not in ("ok", "no-target"):
+                # A listed, reasoned expected failure (sweep_targets.json overrides.keys "xfail").
+                v = ("xfail", v[1], "%s (%s: %s)" % (xf, v[0], v[2]))
             l = loc_by_enum[r["loc"]]
             lines.append("\t".join(str(x) for x in [l["id"], r["loc"], l["class"], r["kind"], r["key"], r["where"], t,
                                                     v[1] or "", run_of.get((r["key"], t), ""), v[0], v[2]]))
@@ -746,7 +831,8 @@ def write_report(args, targets, locs, rows, want_kinds, want_locs, want_stages, 
     print("location-sweep: placement %s" % (os.path.relpath(placement, REPO) if placement else "none (vanilla)"))
     for t in sorted({t for t, _ in counts}):
         print("location-sweep:   %-9s %s" % (t, ", ".join("%s %d" % (res, counts[(t, res)])
-                                                       for res in ("ok", "FAIL", "not-reached", "not-checked", "no-target")
+                                                       for res in ("ok", "FAIL", "not-reached", "not-checked", "xfail",
+                                                                   "no-target")
                                                        if counts[(t, res)])))
     print("location-sweep: %d/%d locations ok%s; report %s" % (
         n_ok, len(per_loc), (", %d without a sweep kind" % nt) if nt else "", args.out))
@@ -755,6 +841,9 @@ def write_report(args, targets, locs, rows, want_kinds, want_locs, want_stages, 
         print("location-sweep:   %s %s %s %s: %s %s" % (v[6], v[1], v[5], v[7], v[9], v[10]))
     if len(bad) > 40:
         print("location-sweep:   ... %d more (see the report)" % (len(bad) - 40))
+    # Failures: every row not ok, not a listed xfail, and not a row without a stop (no-target rows
+    # of a kind without T2 are not selected at all); a location without any sweep kind counts too.
+    return sum(1 for _, v in bad if v[9] != "xfail") + nt
 
 
 def cmd_line(args):
