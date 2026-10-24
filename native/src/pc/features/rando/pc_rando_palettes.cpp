@@ -61,7 +61,12 @@ void readTest() {
 const PcRandoSeed* sSeed = nullptr;
 uint8_t sSeedHash[16];
 bool sSeedHas = false;
-std::vector<pcr::PaletteShift> sShifts;
+// Static storage (R7.4d audit): the first parse can run inside dRes_info_c::loadResource or an actor's
+// code, where the port's operator new takes blocks of the current JKRHeap, which a stage change frees.
+// palettesFromJson's vector is only a transient copy.
+constexpr size_t kMaxShifts = 64; // the table has 37 groups
+pcr::PaletteShift sShifts[kMaxShifts];
+size_t sNumShifts = 0;
 
 bool seedShifts() {
     const PcRandoSeed* seed = pc_rando_seed();
@@ -74,11 +79,15 @@ bool seedShifts() {
         sSeed = seed;
         memcpy(sSeedHash, seed->hash, sizeof sSeedHash);
         sSeedHas = false;
-        sShifts.clear();
+        sNumShifts = 0;
         const pcr::Json* j = seed->extra.find("palettes");
         if (j != nullptr) {
             std::string err;
-            if (pcr::palettesFromJson(*j, sShifts, &err)) {
+            std::vector<pcr::PaletteShift> shifts;
+            if (pcr::palettesFromJson(*j, shifts, &err) && shifts.size() <= kMaxShifts) {
+                for (const pcr::PaletteShift& x : shifts) {
+                    sShifts[sNumShifts++] = x;
+                }
                 sSeedHas = true;
             } else {
                 logf("[cos] rando: palettes: the seed's palettes are unusable (%s); colours stay vanilla\n",
@@ -211,7 +220,7 @@ int pc_rando_palette_shift(int group, int* h, int* v) {
     if (pc_rando_palettes_test_override(h, v)) {
         return 1;
     }
-    if (!seedShifts() || (size_t)group >= sShifts.size()) {
+    if (!seedShifts() || (size_t)group >= sNumShifts) {
         return 0;
     }
     *h = sShifts[(size_t)group].h;
