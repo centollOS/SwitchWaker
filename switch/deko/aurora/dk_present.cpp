@@ -27,6 +27,8 @@
 #include <cmath>
 #include <cstring>
 
+extern "C" float pc_dynres_last_3d_scale(void);  // native/src/pc/features/pc_dynres.cpp
+
 namespace aurora::gfx::dk {
 using swdk::dklog;
 using swdk::R;
@@ -116,8 +118,13 @@ bool ssao_pass() {
     static const float bias = float(swdk::env_long("COS_SSAO_BIAS", 150)) * 0.0001f;
     // the depth value is about near / z (near about 10 units): a world radius R is about R * focal / z pixels,
     // so focal * R / near depth-buffer pixels per unit of depth value (focal about 650 px at 720p)
-    const float scale = float(depth->height) / 720.f;
-    SsaoUniforms uniforms = {float(depth->width), float(depth->height), float(w), float(h),
+    // with the dynamic resolution the scene's depth is in the top-left part of
+    // the buffer, as the 3D drawing was (pc_dynres.h); the picture it was stretched to is the whole EFB
+    const float content = std::clamp(pc_dynres_last_3d_scale(), 0.25f, 1.f);
+    const float contentW = std::max(1.f, std::round(float(depth->width) * content));
+    const float contentH = std::max(1.f, std::round(float(depth->height) * content));
+    const float scale = contentH / 720.f;
+    SsaoUniforms uniforms = {contentW, contentH, float(w), float(h),
                              {radius * 65.f * scale, 3.f * scale, 28.f * scale, bias},
                              {strength, 0.3f, 0.f, 0.f}};
     const swdk::StreamAlloc u = swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT);
