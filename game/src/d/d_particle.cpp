@@ -29,6 +29,8 @@
 #include "stdio.h"
 #if TARGET_PC
 #include "pc/game_hooks.h"
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 #endif
 
 /* 8007A4D8-8007A514       .text __ct__18dPa_modelEmitter_cFv */
@@ -731,6 +733,10 @@ void dPa_control_c::swapFrameBufferTexture() {
 
 /* 8007CA98-8007CCC8       .text createCommon__13dPa_control_cFPCv */
 void dPa_control_c::createCommon(const void* param_1) {
+#if TARGET_PC
+    // pc_rando(R7.1b): customizer.py change_player_custom_colors edits files/res/Particle/common.jpc on disc (arrow trail particle 0x48 bsp1.color_prm); the port keeps the loaded file's address (all it does while pc_rando() is 0) and runs the common.jpc editors on it under pc_rando(); original: none
+    pc_rando_particles_common(param_1);
+#endif
     mCommonResMng = new (mHeap, 0) JPAResourceManager(param_1, mHeap);
     JUT_ASSERT(VERSION_SELECT(1312, 1312, 1313, 1314), mCommonResMng != NULL);
     mCommonResMng->swapTexture(mDoGph_gInf_c::getFrameBufferTimg(), "AK_kagerouSwap00");
@@ -757,7 +763,13 @@ void dPa_control_c::createRoomScene(const void* param_1) {
     mSceneHeap = mDoExt_createSolidHeapFromGame(0, 0);
     JUT_ASSERT(VERSION_SELECT(1360, 1360, 1369, 1370), mSceneHeap != NULL);
     mpData = param_1;
+#if TARGET_PC
+    // pc_rando(R7.1b): tweaks.py add_inter_dungeon_warp_pots and enemies.py update_loaded_particles copy particles into files/res/Particle/Pscene%03d.jpc on disc (palettes.py shifts their colours); the port builds the merged copy on mSceneHeap, freed with it in removeRoomScene (mpData keeps the loaded file, which removeRoomScene frees); original: the manager reads mpData
+    const void* pcRandoData = pc_rando() ? pc_rando_particles_scene(mSceneNo, mpData, mSceneHeap) : mpData;
+    mSceneResMng = new (mSceneHeap, 0) JPAResourceManager(pcRandoData, mSceneHeap);
+#else
     mSceneResMng = new (mSceneHeap, 0) JPAResourceManager(mpData, mSceneHeap);
+#endif
     JUT_ASSERT(VERSION_SELECT(1364, 1364, 1373, 1374), mSceneResMng != NULL);
     mSceneResMng->swapTexture(mDoGph_gInf_c::getFrameBufferTimg(), "AK_kagerouSwap00");
     mEmitterMng->pResMgrArray[1] = mSceneResMng;

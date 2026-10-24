@@ -435,6 +435,40 @@ float pc_rando_cosmetic_brk_frame(int tev_frm);
 /* 1 once the activation listener registered the item_resource[0xB8] edit without a refusal. */
 int pc_rando_cosmetic_edit_ok(void);
 
+/* --- R7.1b: the particle bank hook (game_hooks/pc_rando_hooks_particles.cpp; registry in
+   features/rando/pc_rando_jpc_scene.h, JPC library features/rando/pc_rando_jpc.h) --- */
+/* What pc_rando_particles_scene did with the last scene file it was given (scene -1: none since the
+   last deactivation). */
+typedef struct PcRandoParticleSceneStats {
+    int scene;          /* the Pscene number */
+    const void* loaded; /* the file as loaded (mpData) */
+    const void* data;   /* what the JPAResourceManager was built from (loaded, or the merged copy) */
+    uint32_t size;      /* data's size (0 when the registry had nothing for the scene) */
+    int imported;       /* particles copied in */
+    int skipped;        /* imports the file already held */
+    int failed;         /* imports that could not be made (no source, bad file, scene heap full) */
+    int edited;         /* 1 when the scene's editors ran */
+    int merged;         /* 1 when data is a merged copy on the scene heap */
+    uint32_t serial;    /* count of files built since boot (0: untouched) */
+} PcRandoParticleSceneStats;
+/* dPa_control_c::createRoomScene under pc_rando(), right before the JPAResourceManager is made on
+   `sceneHeap` (a JKRSolidHeap*) from the loaded Pscene<scene>.jpc `data`: returns the bytes to build
+   it from. With imports registered for the scene, a merged copy allocated on sceneHeap (freed with
+   it); else `data`, edited in place by the scene's editors (if any). Logged; on any failure the
+   import is skipped and the vanilla particle is kept. */
+const void* pc_rando_particles_scene(int scene, const void* data, void* sceneHeap);
+/* dPa_control_c::createCommon, before the common JPAResourceManager is made from `data` (common.jpc):
+   keeps the address (all it does while pc_rando() is 0) and, under pc_rando(), runs the common.jpc
+   editors on it. Later common editors run when registered; the file is restored at deactivation. */
+void pc_rando_particles_common(const void* data);
+const PcRandoParticleSceneStats* pc_rando_particles_last_scene(void);
+/* common.jpc as the game holds it (NULL before createCommon), its size and the number of editor
+   passes run on it in this activation (each optional). */
+const uint8_t* pc_rando_particles_common_data(uint32_t* size, int* edits);
+/* The Pscene number an "any" import of `id` takes its particle from (first of 000-254 holding it), or
+   -1. Cached per activation. */
+int pc_rando_particles_find_any(uint16_t id);
+
 #ifdef __cplusplus
 }
 #endif
