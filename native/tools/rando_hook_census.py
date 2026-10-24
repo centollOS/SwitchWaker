@@ -22,6 +22,12 @@ Checks, over every source and header under game/ (.c .cpp .h .hpp .inc):
    Allowed: inside a randomizer hunk in game/ (a guarded branch with a marker) and in the randomizer's
    own files in native/ (pc_rando*, features/rando/). Limits: a bit that reaches a call through a
    variable or a table, or that stage data (event_list.dat, dzx) sets, is not seen.
+5. Regions (step R7.6a: both builds, USA VERSION=2 and EUR VERSION=3). Each file is read twice, once
+   per build, following its `#if`/`#elif` on VERSION (other conditions count for both builds), and
+   the PAL units in game/src/pal/ are read as part of the file whose PAL branch includes them (the
+   converged units d_file_select, d_menu_window and d_a_bst; PAL_DISC_PLAN.md step 7). Every step must
+   have as many markers in a file's USA view as in its PAL view: a hunk that exists on one side of a
+   VERSION_SELECT/#if only is reported (USA-only hunks are duplicated into the PAL side).
 
 Prints each problem and a summary; exits 0 when there is none, 1 otherwise (2 on a usage error).
 --self-test runs the checks on small synthetic trees and exits 0 when each is caught as expected.
@@ -129,6 +135,96 @@ def analyse(lines):
                 host, region = False, None
         info.append((host, region))
     return code, info
+
+
+VERSIONS = {"USA": 2, "PAL": 3}
+VERSION_NAMES = {"VERSION_DEMO": 0, "VERSION_JPN": 1, "VERSION_USA": 2, "VERSION_PAL": 3}
+PAL_INCLUDE_RE = re.compile(r'^\s*#\s*include\s*"(pal/[^"]+)"')
+IDENT_RE = re.compile(r"[A-Za-z_]\w*")
+
+
+def version_value(kind, rest, version):
+    """The value of a directive's condition in a build (True/False), or None when the condition is not
+    about VERSION (or cannot be read): such a branch counts for both builds."""
+    rest = rest.strip()
+    if kind in ("ifdef", "ifndef"):
+        return None
+    idents = set(IDENT_RE.findall(rest))
+    if "VERSION" not in idents:
+        return None
+    allowed = {"VERSION", "TARGET_PC", "defined"} | set(VERSION_NAMES)
+    if not idents <= allowed:
+        return None
+    expr = re.sub(r"\bdefined\s*\(\s*(\w+)\s*\)|\bdefined\s+(\w+)", lambda m: "1", rest)
+    expr = re.sub(r"\bVERSION_\w+\b", lambda m: str(VERSION_NAMES[m.group(0)]), expr)
+    expr = re.sub(r"\bVERSION\b", str(version), expr)
+    expr = re.sub(r"\bTARGET_PC\b", "1", expr)
+    expr = expr.replace("&&", " and ").replace("||", " or ")
+    expr = re.sub(r"!(?!=)", " not ", expr)
+    try:
+        return bool(eval(expr, {"__builtins__": {}}, {}))
+    except Exception:
+        return None
+
+
+def version_views(code, version):
+    """Per line: whether it is compiled in the build of `version` (VERSION conditions only)."""
+    stack = []  # frames: [active_parent, taken (True/False/None), active]
+    active = []
+    for text in code:
+        m = DIRECTIVE_RE.match(text)
+        cur = stack[-1][2] if stack else True
+        if m:
+            kind, rest = m.group(1), m.group(2)
+            if kind in ("if", "ifdef", "ifndef"):
+                v = version_value(kind, rest, version)
+                on = v is not False
+                stack.append([cur, v if v is not None else None, cur and on])
+            elif kind == "elif" and stack:
+                parent, taken, _ = stack[-1]
+                v = version_value("elif", rest, version)
+                if taken is True:
+                    on = False
+                else:
+                    on = v is not False
+                stack[-1][1] = True if (taken is True or v is True) else (None if (taken is None or v is None) else False)
+                stack[-1][2] = parent and on
+            elif kind == "else" and stack:
+                parent, taken, _ = stack[-1]
+                stack[-1][2] = parent and taken is not True
+            elif kind == "endif" and stack:
+                stack.pop()
+            active.append(False)
+            continue
+        active.append(cur)
+    return active
+
+
+def region_markers(rel, lines, code, version, root, seen=()):
+    """Counter {step: n} of the markers a file has in one build, with the pal/ units it includes."""
+    counts = {}
+    act = version_views(code, version)
+    for i, raw in enumerate(lines):
+        if not act[i]:
+            continue
+        for m in MARKER_RE.finditer(raw):
+            if code[i].find("pc_rando(" + m.group(1) + ")") >= 0:
+                continue
+            counts[m.group(1)] = counts.get(m.group(1), 0) + 1
+    for i, text in enumerate(code):
+        m = PAL_INCLUDE_RE.match(text)
+        if not m:
+            continue
+        # a directive line: active when its enclosing branch is (the line itself reads False)
+        if not version_views(code[:i] + ["int __census_probe;"], version)[i]:
+            continue
+        inc = os.path.join(root, "game", "src", m.group(1))
+        if not os.path.exists(inc) or inc in seen:
+            continue
+        il = read_lines(inc)
+        for step, n in region_markers(m.group(1), il, strip_comments(il), version, root, seen + (inc,)).items():
+            counts[step] = counts.get(step, 0) + n
+    return counts
 
 
 def walk(root, sub, exts):
@@ -244,6 +340,13 @@ def run(root, verbose=False, out=sys.stdout):
                 problems.append(f"{rel}:{i + 1}: unguarded include of the randomizer's header")
         regions = file_markers
         event_uses(rel, code, lambda line, info=info, regions=regions: info[line - 1][0] and info[line - 1][1] in regions)
+        if not rel.startswith("game/src/pal/"):  # read with the file that includes them
+            views = {name: region_markers(rel, lines, code, v, root) for name, v in VERSIONS.items()}
+            for step in sorted(set(views["USA"]) | set(views["PAL"])):
+                nu, npal = views["USA"].get(step, 0), views["PAL"].get(step, 0)
+                if nu != npal:
+                    problems.append(f"{rel}: region: pc_rando({step}) has {nu} marker(s) in the USA build and "
+                                    f"{npal} in the PAL build (game/src/pal/ included)")
 
     for rel, path in walk(root, "native", NATIVE_EXTS):
         base = os.path.basename(rel)
@@ -312,6 +415,18 @@ def self_test():
     cases.append(("D17 native", {"native/src/pc/features/pc_x.cpp": "void g() { dComIfGs_onEventBit(0x6980); }\n",
                                  "native/src/pc/features/rando/pc_rando_y.cpp": "void g() { dComIfGs_onEventBit(0x6980); }\n",
                                  HOOKS_DOC: ""}, 1))
+    usa_only = ("#if TARGET_PC\n#include \"pc/pc_rando.h\"\n#endif\n#if VERSION == VERSION_PAL\n#include \"pal/d/a.inc\"\n"
+                "#else\nint f() {\n#if TARGET_PC\n    // pc_rando(R9.1): x.asm 0x10; original: 3\n"
+                "    return pc_rando() ? 4 : 3;\n#else\n    return 3;\n#endif\n}\n#endif\n")
+    pal_inc = ("int f() {\n#if TARGET_PC\n    // pc_rando(R9.1): x.asm 0x10; original: 3\n"
+               "    return pc_rando() ? 4 : 3;\n#else\n    return 3;\n#endif\n}\n")
+    cases.append(("region USA only", {"game/src/a.cpp": usa_only, HOOKS_DOC: ok_doc}, 1))
+    cases.append(("region pal unit", {"game/src/a.cpp": usa_only, "game/src/pal/d/a.inc": pal_inc,
+                                      HOOKS_DOC: ok_doc + "| `game/src/pal/d/a.inc` | f | `?:` | x |\n"}, 0))
+    cases.append(("region elif", {"game/src/a.cpp": good.replace("int f() {\n", "int f() {\n#if VERSION == VERSION_JPN\n"
+                                                                    "int j;\n#elif VERSION == VERSION_USA\n").replace(
+                                                                        "    return 3;\n#endif\n}\n", "    return 3;\n#endif\n#endif\n}\n"),
+                                  HOOKS_DOC: ok_doc}, 1))
     failed = 0
     for name, files, expect in cases:
         with tempfile.TemporaryDirectory() as d:

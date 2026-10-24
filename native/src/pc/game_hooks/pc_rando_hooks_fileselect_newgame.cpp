@@ -39,12 +39,9 @@ const char* const kRandoAskNewGameKey = "COS_RANDO_ASK_NEWGAME";
 
 namespace {
 
-// D16: USA only until R7.6 (as pc_rando_menu.cpp).
-#if defined(VERSION) && VERSION == 3
-constexpr bool kRegionOk = false;
-#else
+// D16: the randomizer was USA only until R7.6; R7.6a opened it for the European disc (VERSION_PAL).
+// The constant stays so a region can be closed again in one place per file.
 constexpr bool kRegionOk = true;
-#endif
 
 constexpr size_t kTitleCap = 0x30;   // d_file_select.cpp screenSet: the title boxes' strings
 constexpr size_t kMessageCap = 0x80; // and the message pane's

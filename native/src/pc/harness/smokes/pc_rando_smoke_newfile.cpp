@@ -163,7 +163,7 @@ void watchFileSelect() {
 
 void playChecks() {
     using K = pcr::FileInfoKind;
-    const bool es = pc_ui_spanish(); // the lines are in the menu's language
+    const bool es = randoFileSelectSpanish(); // R7.6a: the game's language (English on USA)
     const RandoFileSelectInfo& fs = randoFileSelectInfo();
     randoSmokeCheck(kName, "2 file select: the hook ran", sSawFileSelect);
     randoSmokeCheck(kName, "2 file select: blank slot 1 shows the pending seed's line",

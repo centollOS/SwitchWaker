@@ -1,0 +1,8 @@
+# R7.6a (docs/RANDOMIZER_PLAN.md): the European disc's build and region gates. The census's region check
+# (check 5: each step has as many markers in a file's USA view as in its PAL view, game/src/pal/ included)
+# runs in every regress through rando_hook_census; this line runs its self-test, which covers that check.
+# The step's game checks on the EUR build (the null, slot and newfile smokes, regress_rando/R0.1.txt,
+# R0.7.txt and R4.4.txt) are the same lines, run with COS_BUILD_DIR=build/native-mac-eur and the GZLP01
+# disc; R7.6d makes regress.sh run them for EUR.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+script 0 python3 -I native/tools/rando_hook_census.py --self-test
