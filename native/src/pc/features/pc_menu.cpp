@@ -741,7 +741,8 @@ enum class RowKind {
     QolOriginal,
     Remap,
     RemapRestore,
-    Rando // a row of the Randomizer tab: action = its index in randoMenuRows() (pc_rando_settings.h)
+    Rando, // a row of the Randomizer tab: action = its index in randoMenuRows() (pc_rando_settings.h)
+    PageBack // R8.2: the last row of a tab's sub page ("< Volver"): back to the tab's first page
 };
 
 struct Row {
@@ -775,6 +776,11 @@ struct Menu {
     bool warpPage = false;
     int tab = 0;
     int row[PC_SETTING_TABS] = {};
+    // R8.2: a tab's page (0: its first page; the Randomizer tab's 1 is "Next game options...") and the
+    // row of the first page that opened the sub page (B goes back to it). Pages start at 0 when the
+    // menu opens.
+    int page[PC_SETTING_TABS] = {};
+    int parentRow[PC_SETTING_TABS] = {};
     int warpRow = 0;
     bool scrollToRow = false;
     PcOperationMode editMode = PC_MODE_HANDHELD;
@@ -824,10 +830,13 @@ bool rowCycles(const Row& r) {
 std::vector<Row> rowsOf(int tab) {
     std::vector<Row> rows;
     if (tab == PC_SETTING_TAB_RANDO) {
-        // Its own rows (presets, the options, the starting gear editor, R4.3's actions).
-        const int n = (int)randoMenuRows().size();
-        for (int i = 0; i < n; i++) {
+        // Its own rows (R8.2: the page's rows of randoMenuRows: the game being played on page 0; the
+        // seed rows, the preset, the options, the starting gear editor and the actions on page 1).
+        for (int i : randoMenuPageRows(m.page[tab])) {
             rows.push_back({RowKind::Rando, nullptr, i});
+        }
+        if (m.page[tab] > 0) {
+            rows.push_back({RowKind::PageBack});
         }
         return rows;
     }
@@ -917,6 +926,9 @@ void setOpen(bool open) {
     PADBlockInput(open);
     if (open) {
         m.opened++;
+        for (int t = 0; t < PC_SETTING_TABS; t++) {
+            m.page[t] = 0; // R8.2: every tab opens on its first page
+        }
         if (inPlay()) {
             // The game is frozen while the menu is open, so a rumble running now would never get the
             // game's stop (the pad keeps a rumble until told otherwise), and a warp from the menu ends
@@ -1107,6 +1119,31 @@ void captureFrame() {
     }
 }
 
+// R8.2: a tab's sub page and back (generic; the Randomizer tab's "Next game options..." row opens
+// its page 1 through menuOpenPage).
+void openPage(int tab, int page) {
+    if (tab < 0 || tab >= PC_SETTING_TABS || page < 0 || page == m.page[tab]) {
+        return;
+    }
+    if (m.page[tab] == 0) {
+        m.parentRow[tab] = m.row[tab];
+    }
+    m.page[tab] = page;
+    m.row[tab] = 0;
+    m.scrollToRow = true;
+    writef(STDERR_FILENO, "[cos] menu: tab %s page %d\n", kTabNames[tab], page);
+}
+
+void pageBack(int tab) {
+    if (m.page[tab] == 0) {
+        return;
+    }
+    m.page[tab] = 0;
+    m.row[tab] = m.parentRow[tab];
+    m.scrollToRow = true;
+    writef(STDERR_FILENO, "[cos] menu: tab %s page 0\n", kTabNames[tab]);
+}
+
 void activate(const Row& r, int dir) {
     if (m.captureAction >= 0) {
         return;
@@ -1164,6 +1201,11 @@ void activate(const Row& r, int dir) {
         }
         break;
     }
+    case RowKind::PageBack:
+        if (dir == 0) {
+            pageBack(m.tab);
+        }
+        break;
     }
 }
 
@@ -1232,7 +1274,11 @@ void handleInput(uint32_t keys) {
         return;
     }
     if (p & kBack) {
-        setOpen(false);
+        if (m.page[m.tab] > 0) {
+            pageBack(m.tab); // R8.2: B leaves a sub page first
+        } else {
+            setOpen(false);
+        }
         return;
     }
     if (p & (kTabLeft | kTabRight)) {
@@ -1271,6 +1317,15 @@ const ImVec4 kAccent(1.00f, 0.80f, 0.30f, 1.0f);
 const ImVec4 kDim(0.62f, 0.66f, 0.72f, 1.0f);
 const ImVec4 kWarn(1.00f, 0.55f, 0.45f, 1.0f);
 
+// R8.2: the title of a tab's sub page and its first line (*sub).
+std::string pageTitle(int tab, int page, std::string* sub) {
+    if (tab == PC_SETTING_TAB_RANDO) {
+        return randoMenuPageHeader(page, pc_ui_spanish(), sub);
+    }
+    sub->clear();
+    return "";
+}
+
 std::string rowLabel(const Row& r) {
     switch (r.kind) {
     case RowKind::EditMode: return T("Perfil a editar", "Profile to edit");
@@ -1283,6 +1338,7 @@ std::string rowLabel(const Row& r) {
     case RowKind::RemapRestore: return T("Restaurar controles por defecto", "Restore default controls");
     case RowKind::Remap: return settingLabel(r.desc);
     case RowKind::Rando: return randoRowLabel(randoRowOf(r), pc_ui_spanish());
+    case RowKind::PageBack: return T("< Volver", "< Back");
     case RowKind::Setting: break;
     }
     std::string s = settingLabel(r.desc);
@@ -1316,6 +1372,7 @@ std::string rowValue(const Row& r) {
         return choiceLabel(r.desc, pc::remap::inputValue((pc::remap::Input)input));
     }
     case RowKind::Rando: return randoRowValue(randoRowOf(r), pc_ui_spanish());
+    case RowKind::PageBack: return T("A: volver", "A: back");
     case RowKind::Setting: break;
     }
     return choiceLabel(r.desc, pc_settings_get_mode(r.desc->key, rowMode(r.desc)));
@@ -1391,6 +1448,8 @@ std::string rowHelp(const Row& r) {
         }
         break;
     case RowKind::Rando: return randoRowHelp(randoRowOf(r), pc_ui_spanish());
+    case RowKind::PageBack: return T("Vuelve a la primera página de la pestaña (también con B).",
+                                     "Back to the tab's first page (B does it too).");
     case RowKind::Setting: break;
     }
     const char* descHelp = settingHelp(r.desc);
@@ -1463,6 +1522,19 @@ void drawMenu() {
 
     const float footer = ImGui::GetTextLineHeightWithSpacing() * 3.6f;
     std::string help;
+    if (!m.warpPage && !randoTextActive() && !randoSpoilerActive() && m.page[m.tab] > 0) {
+        // R8.2: a sub page's title and its first line (the Randomizer tab's: what its rows act on and
+        // the pending seed), above the rows so they stay in view while the rows scroll.
+        std::string sub;
+        const std::string title = pageTitle(m.tab, m.page[m.tab], &sub);
+        ImGui::TextColored(kAccent, "%s%s", title.c_str(), T("   (B: volver)", "   (B: back)"));
+        if (!sub.empty()) {
+            ImGui::PushTextWrapPos(0.0f);
+            ImGui::TextColored(kDim, "%s", sub.c_str());
+            ImGui::PopTextWrapPos();
+        }
+        ImGui::Separator();
+    }
     if (ImGui::BeginChild("##rows", ImVec2(0, -footer), ImGuiChildFlags_None, ImGuiWindowFlags_NoNav)) {
         // Child windows scale their text by their parent's font scale already.
         float valueX = ImGui::GetContentRegionAvail().x * 0.45f;
@@ -1570,11 +1642,16 @@ void drawMenu() {
     }
     ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetTextLineHeightWithSpacing() -
                          ImGui::GetStyle().WindowPadding.y);
+    const bool subPage = !m.warpPage && m.page[m.tab] > 0; // R8.2: B goes back to the first page
     ImGui::TextColored(kDim, "%s",
-                       kSwitch ? T("A: cambiar   B: cerrar   L/R: pestaña   Menos: cerrar",
-                                   "A: change   B: close   L/R: tab   Minus: close")
-                               : T("A/Intro: cambiar   B/Esc: cerrar   L/R, Q/E: pestaña   F1: cerrar",
-                                   "A/Enter: change   B/Esc: close   L/R, Q/E: tab   F1: close"));
+                       kSwitch ? (subPage ? T("A: cambiar   B: volver   L/R: pestaña   Menos: cerrar",
+                                              "A: change   B: back   L/R: tab   Minus: close")
+                                          : T("A: cambiar   B: cerrar   L/R: pestaña   Menos: cerrar",
+                                              "A: change   B: close   L/R: tab   Minus: close"))
+                       : subPage ? T("A/Intro: cambiar   B/Esc: volver   L/R, Q/E: pestaña   F1: cerrar",
+                                     "A/Enter: change   B/Esc: back   L/R, Q/E: tab   F1: close")
+                                 : T("A/Intro: cambiar   B/Esc: cerrar   L/R, Q/E: pestaña   F1: cerrar",
+                                     "A/Enter: change   B/Esc: close   L/R, Q/E: tab   F1: close"));
     ImGui::End();
 }
 
@@ -1917,6 +1994,22 @@ void menuSmokeState(int* tab, int* row, int* captureAction) {
     *tab = m.tab;
     *row = m.row[m.tab];
     *captureAction = m.captureAction;
+}
+
+void menuOpenPage(int tab, int page) {
+    if (page == 0) {
+        pageBack(tab);
+    } else {
+        openPage(tab, page);
+    }
+}
+
+int menuPage(int tab) {
+    return tab >= 0 && tab < PC_SETTING_TABS ? m.page[tab] : 0;
+}
+
+bool menuInPlay() {
+    return inPlay();
 }
 
 void menuFrame() {

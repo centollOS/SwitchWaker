@@ -2,8 +2,9 @@
 // "Spoiler log..." opens a page of the options menu, hosted like the text input of R4.2
 // (pc_rando_text_ui.h): while it is open the menu draws it instead of its rows and hands it its keys.
 //
-// The seed shown is the active one (pc_rando() is 1: a randomized file is played) or else the pending
-// seed (generated, not yet used by a New Game). The page opens on a confirmation (the spoilers stay
+// The seed shown is the active one (pc_rando() is 1: a randomized file is played). R8.2: the row is on
+// the tab's page about the game being played and only shown then; the pending seed (the next game's)
+// is not offered any more. The page opens on a confirmation (the spoilers stay
 // hidden until A; B goes back), then shows two sections, L / R switching between them:
 //   - Spheres: wwrando's "Playthrough progression spheres" of the seed's spoiler log
 //     (<randoUserDir()>/WW Random <seed> - Spoiler Log.txt, D5), sphere by sphere and zone by zone;
@@ -41,7 +42,7 @@ void randoSpoilerClose();
 struct RandoSpoilerInfo {
     std::string seed;    // the seed's name
     std::string hash;    // "Name1 Name2" ("" unknown: no log)
-    bool active = false; // the active seed (else the pending one)
+    bool active = false; // the active seed (R8.2: always, when the page is open)
     std::string logPath;
     bool logFound = false;   // the log was read and parsed
     bool logMatches = false; // ... and is this seed's: its spheres are shown

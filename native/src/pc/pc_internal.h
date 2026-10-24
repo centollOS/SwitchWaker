@@ -458,6 +458,13 @@ bool menuOpen();
 // pc_menu.cpp, for COS_SMOKE=button-remap: the menu's tab (PcSettingTab), the selected row of that
 // tab and the action being captured on the Controles tab (pc::remap::Action; -1: none).
 void menuSmokeState(int* tab, int* row, int* captureAction);
+// pc_menu.cpp (R8.2): a tab's page (0: its first page; the Randomizer tab's 1 is "Next game
+// options..."). menuOpenPage opens it with the cursor on its first row (page 0: back to the row that
+// opened the sub page); the menu's B does the same. Every tab opens on page 0.
+void menuOpenPage(int tab, int page);
+int menuPage(int tab);
+// pc_menu.cpp: the PLAY scene exists (a file is played; not the title, the file select or the name entry).
+bool menuInPlay();
 // pc_menu.cpp: after aurora_end_frame of game frame `frame` (the screenshot action, and
 // COS_SMOKE=options-menu's checks).
 void menuFrameEnd(unsigned int frame);

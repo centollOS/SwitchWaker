@@ -1,0 +1,18 @@
+# COS_SMOKE=rando COS_RANDO_SMOKE=rmenu COS_RANDO_RMENU_CASE=title (native/src/pc/harness/smokes/
+# pc_rando_smoke_rmenu.cpp, plan step R8.2), no --stage: the game boots to its title screen. The menu
+# reads this script (randoMenuSetScripted).
+# frame buttons stickX stickY
+# open the menu, R four times: Controles, Rendimiento, Calidad de vida, Randomizer (checked at 825)
+800 L+R+Z 0 0
+803 - 0 0
+806 R 0 0
+808 - 0 0
+810 R 0 0
+812 - 0 0
+814 R 0 0
+816 - 0 0
+818 R 0 0
+820 - 0 0
+# B closes the menu (checked at 870)
+860 B 0 0
+862 - 0 0

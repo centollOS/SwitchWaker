@@ -13,24 +13,39 @@
 416 - 0 0
 418 R 0 0
 420 - 0 0
-# the first row, "Preajuste": right (All checks, checked at 440), right (Short, 460), right (the
-# defaults, wrapping, 480), left (Short again, 500)
-430 RIGHT 0 0
+# R8.2: the tab's first page (checked at 421); DOWN A on "Next game options...", then DOWN x3 past
+# Seed..., Random seed and Paste permalink to the preset (checked at 445). Every frame below is 20
+# later than before R8.2.
+422 DOWN 0 0
+424 - 0 0
+426 A 0 0
+428 - 0 0
+430 DOWN 0 0
 432 - 0 0
+434 DOWN 0 0
+436 - 0 0
+438 DOWN 0 0
+440 - 0 0
+# the preset row, "Preajuste": right (All checks, checked at 460), right (Short, 480), right (the
+# defaults, wrapping, 500), left (Short again, 520)
 450 RIGHT 0 0
 452 - 0 0
 470 RIGHT 0 0
 472 - 0 0
-490 LEFT 0 0
+490 RIGHT 0 0
 492 - 0 0
-# down to "Categoría: mazmorras", A turns it off (checked at 520: Required bosses greyed out)
-510 DOWN 0 0
+510 LEFT 0 0
 512 - 0 0
-514 A 0 0
-516 - 0 0
-# A turns it back on (checked at 540)
+# down to "Categoría: mazmorras", A turns it off (checked at 540: Required bosses greyed out)
+530 DOWN 0 0
+532 - 0 0
 534 A 0 0
 536 - 0 0
-# B closes the menu (checked at 580)
-570 B 0 0
-572 - 0 0
+# A turns it back on (checked at 560)
+554 A 0 0
+556 - 0 0
+# B goes back to the first page (R8.2, checked at 595), B again closes the menu (checked at 610)
+590 B 0 0
+592 - 0 0
+600 B 0 0
+602 - 0 0

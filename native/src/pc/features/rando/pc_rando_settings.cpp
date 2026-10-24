@@ -487,6 +487,12 @@ std::vector<RandoRow> randoMenuRows() {
     if (!kRegionOk) {
         rows.push_back({RandoRowKind::Notice});
     }
+    // R8.2: page 0's actions and page 1's early ones (order < kRandoOrderLate) come first.
+    for (int a = 0; a < (int)sActions.size(); a++) {
+        if (sActions[a].order < kRandoOrderLate && (sActions[a].shown == nullptr || sActions[a].shown())) {
+            rows.push_back({RandoRowKind::Action, a});
+        }
+    }
     rows.push_back({RandoRowKind::Preset});
     for (int id = 0; id < pcr::OPT_COUNT; id++) {
         if (id == pcr::OPT_starting_gear) {
@@ -502,10 +508,34 @@ std::vector<RandoRow> randoMenuRows() {
         }
     }
     for (int a = 0; a < (int)sActions.size(); a++) {
-        rows.push_back({RandoRowKind::Action, a});
+        if (sActions[a].order >= kRandoOrderLate && (sActions[a].shown == nullptr || sActions[a].shown())) {
+            rows.push_back({RandoRowKind::Action, a});
+        }
     }
     sRows = rows;
     return rows;
+}
+
+int randoRowPage(const RandoRow& r) {
+    if (r.kind == RandoRowKind::Notice) {
+        return -1;
+    }
+    if (r.kind == RandoRowKind::Action && r.id >= 0 && r.id < (int)sActions.size() && sActions[r.id].order < 0) {
+        return kRandoPageGame;
+    }
+    return kRandoPageNext;
+}
+
+std::vector<int> randoMenuPageRows(int page) {
+    const std::vector<RandoRow> rows = randoMenuRows();
+    std::vector<int> out;
+    for (int i = 0; i < (int)rows.size(); i++) {
+        const int p = randoRowPage(rows[i]);
+        if (p < 0 || p == page) {
+            out.push_back(i);
+        }
+    }
+    return out;
 }
 
 std::string randoRowKey(const RandoRow& r) {

@@ -3,8 +3,10 @@
 // COS_SMOKE=options-menu:
 //   native/tools/run.sh rando --stage sea:44:206 --input native/check/input/rando-menu.txt \
 //       --env COS_RANDO_SMOKE=menu
-//   1. the script opens the menu and goes to the Randomizer tab (frame 420): its first row is the
-//      preset, which starts at wwrando's defaults (run.sh gives the run its own settings file);
+//   1. the script opens the menu and goes to the Randomizer tab (frame 420): R8.2: its first page is
+//      about the game being played (a booted stage: "Normal game"); DOWN A on "Next game options..."
+//      opens the second page, DOWN x3 past Seed..., Random seed and Paste permalink to the preset,
+//      which starts at wwrando's defaults (run.sh gives the run its own settings file);
 //   2. it cycles the preset row: All checks, Short, the defaults (wrapping), back to Short. After each
 //      the smoke checks the COS_RANDO_* settings, the settings file's lines and that the validated
 //      settings give wwrando's permalink for TestSeed1 (native/check/rando/fixtures/R4_1_presets.txt);
@@ -14,7 +16,8 @@
 //   4. the starting gear editor (rows driven by the smoke itself): the header expands the 64 item
 //      rows; Swordless greys out Progressive Sword and Hurricane Spin; an item row toggles the item in
 //      COS_RANDO_STARTING_GEAR; a sword in the gear is dropped for a Swordless seed;
-//   5. the script closes the menu with B.
+//   5. the script presses B: back to the first page (R8.2), on "Next game options..."; B again closes
+//      the menu.
 // Exit 0 when all hold, else 1.
 #include "pc_rando_smokes.h"
 
@@ -67,16 +70,22 @@ void store(const char* key, const char* value) {
     randoMenuRows();
 }
 
-// The index of the first row of that kind (and id) in the tab, or -1.
+// The index of the first row of that kind (and id) on the tab's "Next game options" page (R8.2: the
+// menu's row index there), or -1.
 int rowIndex(RandoRowKind kind, int id = -1) {
     const std::vector<RandoRow> rows = randoMenuRows();
-    for (int i = 0; i < (int)rows.size(); i++) {
-        if (rows[i].kind == kind && (id < 0 || rows[i].id == id)) {
+    const std::vector<int> page = randoMenuPageRows(kRandoPageNext);
+    for (int i = 0; i < (int)page.size(); i++) {
+        const RandoRow& r = rows[page[i]];
+        if (r.kind == kind && (id < 0 || r.id == id)) {
             return i;
         }
     }
     return -1;
 }
+
+// R8.2: the first rows of the "Next game options" page are Seed..., Random seed, Paste permalink.
+constexpr int kPresetRow = 3;
 
 RandoRow optionRow(int id) {
     return {RandoRowKind::Option, id};
@@ -91,12 +100,27 @@ int gearIndex(const char* name) {
     return -1;
 }
 
-void checkMenu(int row) {
+void checkMenu(int row, int page = kRandoPageNext) {
     int tab = -1, sel = -1, capture = -1;
     menuSmokeState(&tab, &sel, &capture);
-    char what[96];
-    snprintf(what, sizeof what, "menu open on the Randomizer tab, row %d (tab %d row %d)", row, tab, sel);
-    randoSmokeCheck(kName, what, menuOpen() && tab == PC_SETTING_TAB_RANDO && sel == row);
+    char what[128];
+    snprintf(what, sizeof what, "menu open on the Randomizer tab, page %d row %d (tab %d page %d row %d)", page, row,
+             tab, menuPage(PC_SETTING_TAB_RANDO), sel);
+    randoSmokeCheck(kName, what,
+                    menuOpen() && tab == PC_SETTING_TAB_RANDO && menuPage(PC_SETTING_TAB_RANDO) == page && sel == row);
+}
+
+// R8.2: frame 425, the tab's first page in a booted (vanilla) game.
+void stepGamePage() {
+    checkMenu(0, kRandoPageGame);
+    const std::vector<RandoRow> rows = randoMenuRows();
+    const std::vector<int> page = randoMenuPageRows(kRandoPageGame);
+    const bool two = page.size() == 2;
+    randoSmokeCheck(kName, "the first page: Current game, Next game options...",
+                    two && randoRowLabel(rows[page[0]], false) == "Current game" &&
+                        randoRowLabel(rows[page[1]], false) == "Next game options...");
+    const std::string v = two ? randoRowValue(rows[page[0]], false) : "";
+    randoSmokeCheck(kName, ("a booted stage is a normal game (\"" + v + "\")").c_str(), v == "Normal game");
 }
 
 void checkPreset(int preset, const char* permalink) {
@@ -110,16 +134,16 @@ void checkPreset(int preset, const char* permalink) {
 }
 
 void stepTab() {
-    checkMenu(0);
-    randoSmokeCheck(kName, "the first row is the preset", rowIndex(RandoRowKind::Preset) == 0);
-    randoSmokeCheck(kName, "the second row is Category: dungeons",
-                    rowIndex(RandoRowKind::Option, pcr::OPT_progression_dungeons) == 1);
+    checkMenu(kPresetRow);
+    randoSmokeCheck(kName, "the preset row follows the three seed rows", rowIndex(RandoRowKind::Preset) == kPresetRow);
+    randoSmokeCheck(kName, "then Category: dungeons",
+                    rowIndex(RandoRowKind::Option, pcr::OPT_progression_dungeons) == kPresetRow + 1);
     randoSmokeCheck(kName, "the starting gear list starts collapsed", rowIndex(RandoRowKind::Gear) < 0);
     checkPreset(pcr::kPresetDefaults, kPermaDefaults);
 }
 
 void stepAll() {
-    checkMenu(0);
+    checkMenu(kPresetRow);
     checkPreset(pcr::kPresetAllChecks, kPermaAll);
     setting("COS_RANDO_PROGRESSION_MAIL", "1");
     setting("COS_RANDO_PROGRESSION_SAVAGE_LABYRINTH", "1");
@@ -128,7 +152,7 @@ void stepAll() {
 }
 
 void stepShort() {
-    checkMenu(0);
+    checkMenu(kPresetRow);
     checkPreset(pcr::kPresetShort, kPermaShort);
     setting("COS_RANDO_PROGRESSION_DUNGEONS", "1");
     setting("COS_RANDO_PROGRESSION_FREE_GIFTS", "1");
@@ -139,19 +163,19 @@ void stepShort() {
 }
 
 void stepDefaults() {
-    checkMenu(0);
+    checkMenu(kPresetRow);
     checkPreset(pcr::kPresetDefaults, kPermaDefaults);
     setting("COS_RANDO_PROGRESSION_GREAT_FAIRIES", "1");
     setting("COS_RANDO_PROGRESSION_MAIL", "0");
 }
 
 void stepShortAgain() {
-    checkMenu(0);
+    checkMenu(kPresetRow);
     checkPreset(pcr::kPresetShort, kPermaShort);
 }
 
 void stepDungeonsOff() {
-    checkMenu(1);
+    checkMenu(kPresetRow + 1);
     setting("COS_RANDO_PROGRESSION_DUNGEONS", "0");
     randoSmokeCheck(kName, "no preset matches (Custom)", pcr::presetMatch(randoSettingsOptions(false)) < 0);
     const RandoRow req = optionRow(pcr::OPT_required_bosses);
@@ -171,7 +195,7 @@ void stepDungeonsOff() {
 }
 
 void stepDungeonsOn() {
-    checkMenu(1);
+    checkMenu(kPresetRow + 1);
     setting("COS_RANDO_PROGRESSION_DUNGEONS", "1");
     const RandoRow req = optionRow(pcr::OPT_required_bosses);
     const RandoRow num = optionRow(pcr::OPT_num_required_bosses);
@@ -196,7 +220,7 @@ void stepDungeonsOn() {
 
     // The starting gear editor.
     const int header = rowIndex(RandoRowKind::GearHeader);
-    randoSmokeCheck(kName, "the starting gear header row", header > 0);
+    randoSmokeCheck(kName, "the starting gear header row", header > kPresetRow);
     const size_t before = randoMenuRows().size();
     randoRowActivate({RandoRowKind::GearHeader}, 0, false);
     const size_t after = randoMenuRows().size();
@@ -239,6 +263,10 @@ void stepDungeonsOn() {
     randoSmokeCheck(kName, "A on the header hides the item rows", randoMenuRows().size() == before);
 }
 
+void stepBack() {
+    checkMenu(1, kRandoPageGame); // B: the first page, on the row that opened the second
+}
+
 void stepClosed() {
     randoSmokeCheck(kName, "B closed the menu", !menuOpen());
 }
@@ -247,9 +275,11 @@ struct Step {
     unsigned int frame;
     void (*fn)();
 };
+// R8.2: the frames from 445 on are 20 later than before (the second page is opened first).
 const Step kSteps[] = {
-    {425, stepTab},          {440, stepAll},         {460, stepShort},       {480, stepDefaults},
-    {500, stepShortAgain},   {520, stepDungeonsOff}, {540, stepDungeonsOn},  {580, stepClosed},
+    {421, stepGamePage},   {445, stepTab},          {460, stepAll},        {480, stepShort},
+    {500, stepDefaults},   {520, stepShortAgain},   {540, stepDungeonsOff}, {560, stepDungeonsOn},
+    {595, stepBack},       {610, stepClosed},
 };
 
 } // namespace

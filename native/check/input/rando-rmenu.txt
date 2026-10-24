@@ -1,0 +1,45 @@
+# COS_SMOKE=rando COS_RANDO_SMOKE=rmenu COS_RANDO_RMENU_CASE=play (native/src/pc/harness/smokes/
+# pc_rando_smoke_rmenu.cpp, plan step R8.2), with --stage sea:44:206 (in play from about frame 291). The
+# menu reads this script (randoMenuSetScripted); the smoke checks at fixed frames between the keys.
+# frame buttons stickX stickY
+# open the menu, R four times: Controles, Rendimiento, Calidad de vida, Randomizer (first page, 425)
+400 L+R+Z 0 0
+403 - 0 0
+406 R 0 0
+408 - 0 0
+410 R 0 0
+412 - 0 0
+414 R 0 0
+416 - 0 0
+418 R 0 0
+420 - 0 0
+# DOWN A: "Next game options..." opens the second page (450)
+440 DOWN 0 0
+442 - 0 0
+444 A 0 0
+446 - 0 0
+# UP x4 (wraps: "< Back", Clean unused seed files, Ask on New Game) to Generate (476); A generates (600)
+460 UP 0 0
+462 - 0 0
+464 UP 0 0
+466 - 0 0
+468 UP 0 0
+470 - 0 0
+472 UP 0 0
+474 - 0 0
+478 A 0 0
+480 - 0 0
+# B: back to the first page (615); the smoke activates the seed (625)
+610 B 0 0
+612 - 0 0
+# DOWN DOWN to "Spoiler log..." (648), A opens the viewer (660), B closes it (680), B closes the menu (700)
+640 DOWN 0 0
+642 - 0 0
+644 DOWN 0 0
+646 - 0 0
+650 A 0 0
+652 - 0 0
+670 B 0 0
+672 - 0 0
+690 B 0 0
+692 - 0 0

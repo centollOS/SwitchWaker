@@ -1,0 +1,12 @@
+# R8.2 (docs/RANDOMIZER_PLAN.md): the Randomizer tab in two pages, the game being played first and "Next game
+# options..." in a sub page (smoke rmenu, native/src/pc/harness/smokes/pc_rando_smoke_rmenu.cpp). Title:
+# "No game loaded". Play (a booted vanilla stage): "Normal game"; the sub page's header and rows; Generate
+# from it (TestSeed1, the header names the pending seed and hash); B back; the pending seed activated: the
+# first page shows its seed, hash and "Spoiler log...", which opens the viewer on that seed's log; B, B.
+# Shots with the menu drawn (COS_SHOT_IMGUI=1) in English and Spanish (COS_LANG): 430 the first page, 455 the
+# sub page, 605 the sub page with the pending seed, 630 the first page of the randomized file; title 840.
+# The menu smokes of R4.1 (menu), R4.3 (gen) and R4.5 (spoiler) check the new row order too.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --input native/check/input/rando-rmenu-title.txt --env COS_RANDO_SMOKE=rmenu --env COS_RANDO_RMENU_CASE=title --env COS_LANG=en --env COS_SHOT_IMGUI=1 --shot 840
+rando 0 --stage sea:44:206 --input native/check/input/rando-rmenu.txt --env COS_RANDO_SMOKE=rmenu --env COS_RANDO_RMENU_CASE=play --env COS_RANDO_SEED=TestSeed1 --env COS_LANG=en --env COS_SHOT_IMGUI=1 --shot 430,455,605,630
+rando 0 --stage sea:44:206 --input native/check/input/rando-rmenu.txt --env COS_RANDO_SMOKE=rmenu --env COS_RANDO_RMENU_CASE=play --env COS_RANDO_SEED=TestSeed1 --env COS_LANG=es --env COS_SHOT_IMGUI=1 --shot 430,455,605,630
