@@ -1,0 +1,105 @@
+# R7.6d (docs/RANDOMIZER_PLAN.md): the European disc's gate. regress.sh runs every regress_rando line on
+# the build it is given, so the EUR regress is
+#   COS_BUILD_DIR=build/native-mac-eur COS_DISC=~/Documents/windwaker/GZLP01/GZLP01.iso native/tools/regress.sh
+# and every line without a region prefix (the null, slot, newfile, jpcscene, warppots, palettes, cosmetic,
+# enemies, location-sweep sample lines and the rest) runs on EUR in English (run.sh's default language). The
+# lines below carry the prefix "eur:" (regress.sh region_filter): they run on the EUR build only.
+# 1. R7.6b's fingerprint audit on the EUR disc (every stage.dzs, room.dzr and event_list.dat through the
+#    patcher chain, rotation plus every stage-data option). The two-region comparison needs both builds:
+#      python3 -I native/tools/rando/fp_audit.py
+# 2. R7.6c's text lines (eurtext, posttext, msg, hoho, dkeys, keybag, wrap) in German, French, Spanish and
+#    Italian; English is the unprefixed lines. wwrando's texts stay English in every language.
+# Not in regress (long; run by hand, docs/RANDO_HOOKS.md "R7.6d"): the location sweep T1 and T2 on EUR,
+#   COS_BUILD_DIR=build/native-mac-eur python3 -I native/tools/rando/location_sweep.py run --tier both \
+#     --placement identity|rotation|<seed json> --disc ~/Documents/windwaker/GZLP01/GZLP01.iso
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options], here with
+# the optional region prefix "eur:" / "usa:" in front of the target.
+eur:script 0 python3 -I native/tools/rando/fp_audit.py --region eur --eur-disc "$COS_DISC" --out build/rando-fpaudit-regress
+# de
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_RANDO_EURTEXT_SHOW=3957 --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_RANDO_EURTEXT_SHOW=3443 --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=posttext --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=posttext --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=msg --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=msg --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=de
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_GAME_LANGUAGE=de
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_SEED=R5_3_Heavy5.json --env COS_GAME_LANGUAGE=de
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_ROOM=14 --env COS_GAME_LANGUAGE=de
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_ROOM=31 --env COS_GAME_LANGUAGE=de
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_VANILLA=1 --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage sea:14 --env COS_RANDO_SMOKE=hoho --env COS_HINTS_SEED=R5_3_Heavy5.json --env COS_HINTS_ROOM=14 --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=dkeys --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=dkeys --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage M_NewD2:0 --env COS_RANDO_SMOKE=dkeys --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage M_DragB:0 --env COS_RANDO_SMOKE=dkeys --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=keybag --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=keybag --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage M_NewD2:0 --env COS_RANDO_SMOKE=keybag --env COS_GAME_LANGUAGE=de
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=wrap --env COS_GAME_LANGUAGE=de
+# fr
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_RANDO_EURTEXT_SHOW=3957 --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_RANDO_EURTEXT_SHOW=3443 --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=posttext --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=posttext --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=msg --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=msg --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_SEED=R5_3_Heavy5.json --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_ROOM=14 --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_ROOM=31 --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_VANILLA=1 --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage sea:14 --env COS_RANDO_SMOKE=hoho --env COS_HINTS_SEED=R5_3_Heavy5.json --env COS_HINTS_ROOM=14 --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=dkeys --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=dkeys --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage M_NewD2:0 --env COS_RANDO_SMOKE=dkeys --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage M_DragB:0 --env COS_RANDO_SMOKE=dkeys --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=keybag --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=keybag --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage M_NewD2:0 --env COS_RANDO_SMOKE=keybag --env COS_GAME_LANGUAGE=fr
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=wrap --env COS_GAME_LANGUAGE=fr
+# es
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_RANDO_EURTEXT_SHOW=3957 --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_RANDO_EURTEXT_SHOW=3443 --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=posttext --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=posttext --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=msg --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=msg --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=es
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_GAME_LANGUAGE=es
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_SEED=R5_3_Heavy5.json --env COS_GAME_LANGUAGE=es
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_ROOM=14 --env COS_GAME_LANGUAGE=es
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_ROOM=31 --env COS_GAME_LANGUAGE=es
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_VANILLA=1 --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage sea:14 --env COS_RANDO_SMOKE=hoho --env COS_HINTS_SEED=R5_3_Heavy5.json --env COS_HINTS_ROOM=14 --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=dkeys --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=dkeys --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage M_NewD2:0 --env COS_RANDO_SMOKE=dkeys --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage M_DragB:0 --env COS_RANDO_SMOKE=dkeys --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=keybag --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=keybag --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage M_NewD2:0 --env COS_RANDO_SMOKE=keybag --env COS_GAME_LANGUAGE=es
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=wrap --env COS_GAME_LANGUAGE=es
+# it
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_RANDO_EURTEXT_SHOW=3957 --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_RANDO_EURTEXT_SHOW=3443 --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=posttext --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=posttext --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=msg --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=msg --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=it
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_GAME_LANGUAGE=it
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_SEED=R5_3_Heavy5.json --env COS_GAME_LANGUAGE=it
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_ROOM=14 --env COS_GAME_LANGUAGE=it
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_ROOM=31 --env COS_GAME_LANGUAGE=it
+eur:rando 0 --preset sailing --uncapped --env COS_RANDO_SMOKE=hoho --env COS_HINTS_VANILLA=1 --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage sea:14 --env COS_RANDO_SMOKE=hoho --env COS_HINTS_SEED=R5_3_Heavy5.json --env COS_HINTS_ROOM=14 --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=dkeys --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=dkeys --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage M_NewD2:0 --env COS_RANDO_SMOKE=dkeys --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage M_DragB:0 --env COS_RANDO_SMOKE=dkeys --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=keybag --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=keybag --env COS_RANDO_FORCE=1 --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage M_NewD2:0 --env COS_RANDO_SMOKE=keybag --env COS_GAME_LANGUAGE=it
+eur:rando 0 --stage sea:44 --env COS_RANDO_SMOKE=wrap --env COS_GAME_LANGUAGE=it
