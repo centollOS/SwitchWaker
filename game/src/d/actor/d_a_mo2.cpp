@@ -21,6 +21,7 @@
 #include "m_Do/m_Do_controller_pad.h"
 #if TARGET_PC
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_palette_code.h"
 #endif
 
 enum Action {
@@ -605,7 +606,13 @@ static void ke_disp(mo2_class* i_this) {
         ke_control(i_this, pkVar2, i);
         ke_draw(i_this, pkVar2, i);
     }
+#if TARGET_PC
+    // pc_rando(R7.2e): palettes.py shift_hardcoded_moblin_colors d_a_mo2.rel 0xD648 (spear thread); original: COMPOUND_LITERAL(GXColor){0xFF, 0x64, 0, 0xFF}
+    const GXColor pcRandoColor = {0xFF, 0x64, 0, 0xFF};
+    i_this->m3Dline.update(10, 1.25f, pc_rando() ? pc_rando_palette_rgb(PCR_PALSITE_MO2, 0, pcRandoColor) : pcRandoColor, 2, &actor->tevStr);
+#else
     i_this->m3Dline.update(10, 1.25f, COMPOUND_LITERAL(GXColor){0xFF, 0x64, 0, 0xFF}, 2, &actor->tevStr);
+#endif
     dComIfGd_set3DlineMat(&i_this->m3Dline);
 }
 

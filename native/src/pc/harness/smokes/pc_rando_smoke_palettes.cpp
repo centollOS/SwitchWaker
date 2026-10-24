@@ -26,6 +26,22 @@
 //     material of its loaded J3DModelData has cull mode GX_CULL_NONE;
 //   - without pc_rando(): the patchers never ran, kana_00.bdl keeps the disc's values (2, 0x44) and
 //     its materials cull back faces.
+//
+// R7.2e adds the particle and code colours (features/rando/pc_rando_palette_sites.h) to the dump:
+//     ptcl <scene> <id> bsp <prm> <env> pk <t:rgba;...|-> ek <...|-> ssp <prm> <env> | ssp -
+// for every particle of a palette group in each Pscene000-254 file (read from the disc, then run
+// through R7.1b's editors for that scene, as createRoomScene does: what the JPAResourceManager reads);
+//     code <site> <index> <r,g,b>      (each hardcoded colour as the actor hunks get it)
+//     mant <slot> <32 bytes hex>       (d_a_mant's cape palettes as the draw hunk gets them)
+// palette_check.py builds them with wwrando's shift_all_colors_in_particle and shift_hardcoded_*
+// on the disc's Pscene files and RELs. Checks: under pc_rando() with shifts, the particle editor is
+// registered, edited group particles with no read error or key conflict, every code site resolved
+// to its group and was shifted with the decompiled value, the 5 cape palettes were rebuilt, and the
+// boot stage's Pscene file went through the editors; without pc_rando() nothing was edited.
+// COS_RANDO_PALETTE_LIVE=1 (with a palettes seed, COS_RANDO_PLACEMENT): no archive loads and no dump;
+// once the play scene has run 60 frames, checks that the seed's shifts are active, the boot stage's
+// Pscene file was edited and group files were recoloured, then runs 300 more frames
+// (regress_rando/R7.2e.txt: 5 enemy-heavy stages).
 // Exit 0 when every check held, else 1.
 #include "pc_rando_smokes.h"
 
@@ -33,12 +49,19 @@
 #include "features/rando/pc_rando_gen_palettes.h"
 #include "features/rando/pc_rando_j3d.h"
 #include "features/rando/pc_rando_options.h"
+#include "features/rando/pc_rando_jpc.h"
+#include "features/rando/pc_rando_jpc_scene.h"
+#include "features/rando/pc_rando_palette_sites.h"
 #include "features/rando/pc_rando_palettes.h"
 #include "features/rando/pc_rando_resources.h"
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
 
 #include "JSystem/J3DGraphAnimator/J3DModelData.h"
 #include "JSystem/JKernel/JKRArchive.h"
+#include "JSystem/JKernel/JKRHeap.h"
+#include "cos_sdk/host_alloc.h"
+#include <dolphin/dvd.h>
 #include "d/d_com_inf_game.h"
 #include "d/d_resorce.h"
 
@@ -59,7 +82,7 @@ constexpr const char* kName = "palettes";
 constexpr size_t kBatch = 4;
 constexpr unsigned kMaxWait = 900;
 
-enum State { kInit, kLoad, kWait, kDone };
+enum State { kInit, kLoad, kWait, kLive, kDone };
 State sState = kInit;
 std::vector<std::string> sArcs;
 size_t sNext = 0;
@@ -69,6 +92,10 @@ FILE* sDump = nullptr;
 int sLoaded = 0, sFailed = 0, sFiles = 0, sTextures = 0, sUnreadable = 0;
 int sRatCull = -1, sRatGen = -1, sRatMatOk = -1;
 int sRatMats = 0;
+// R7.2e
+int sPtclFiles = 0, sPtclLines = 0, sPtclUnreadable = 0;
+int sCodeLines = 0, sCodeShifted = 0, sMantLines = 0, sMantShifted = 0;
+unsigned sLiveFrames = 0;
 
 void cosLogf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 void cosLogf(const char* fmt, ...) {
@@ -244,7 +271,164 @@ void dumpArchive(const char* arcName) {
     }
 }
 
+// ---- R7.2e: particles and code colours ----
+void rgbaText(char* out, size_t cap, const PcRandoJpcRgba& c) {
+    snprintf(out, cap, "%d,%d,%d,%d", c.r, c.g, c.b, c.a);
+}
+
+bool inSomeGroup(uint16_t id) {
+    for (int g = 0; g < pcr::paletteGroupCount(); g++) {
+        const pcr::PaletteGroup& grp = pcr::paletteGroup(g);
+        for (int i = 0; i < grp.numParticleIds; i++) {
+            if (grp.particleIds[i] == id) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+std::string keyList(const uint8_t* base, const PcRandoJpcParticle& p, int which) {
+    const uint32_t n = pc_rando_jpc_key_count(base, p, which);
+    if (n == 0) {
+        return "-";
+    }
+    std::string out;
+    for (uint32_t i = 0; i < n; i++) {
+        uint16_t t = 0;
+        PcRandoJpcRgba c{};
+        pc_rando_jpc_get_key(base, p, which, i, &t, &c);
+        char buf[48];
+        snprintf(buf, sizeof buf, "%s%u:%d,%d,%d,%d", i ? ";" : "", t, c.r, c.g, c.b, c.a);
+        out += buf;
+    }
+    return out;
+}
+
+// Every Pscene file of the disc, through the scene's editors (what createRoomScene builds from).
+void dumpParticles() {
+    JKRPcHostAllocScope scope;
+    for (int scene = 0; scene < 255; scene++) {
+        char path[48];
+        snprintf(path, sizeof path, "/res/Particle/Pscene%03d.jpc", scene);
+        DVDFileInfo info;
+        if (!DVDOpen(path, &info)) {
+            continue;
+        }
+        cos_sdk::HostVector<uint8_t> bytes(info.length);
+        const s32 got = DVDReadPrio(&info, bytes.data(), (s32)info.length, 0, 2);
+        DVDClose(&info);
+        if (got != (s32)info.length) {
+            sPtclUnreadable++;
+            continue;
+        }
+        if (pc_rando()) {
+            pc_rando_jpc_scene_run_editors(scene, bytes.data(), bytes.size(), 0);
+        }
+        std::vector<PcRandoJpcParticle> ps;
+        if (pc_rando_jpc_scan(bytes.data(), bytes.size(), &ps, nullptr) != PCR_JPC_OK) {
+            sPtclUnreadable++;
+            if (sDump != nullptr) {
+                fprintf(sDump, "ptcl %03d unreadable\n", scene);
+            }
+            continue;
+        }
+        sPtclFiles++;
+        for (const PcRandoJpcParticle& p : ps) {
+            if (!inSomeGroup(p.id)) {
+                continue;
+            }
+            PcRandoJpcRgba prm{}, env{};
+            pc_rando_jpc_get_color(bytes.data(), p, PCR_JPC_BSP1_PRM, &prm);
+            pc_rando_jpc_get_color(bytes.data(), p, PCR_JPC_BSP1_ENV, &env);
+            char a[24], b[24];
+            rgbaText(a, sizeof a, prm);
+            rgbaText(b, sizeof b, env);
+            std::string line = "bsp " + std::string(a) + " " + b + " pk " + keyList(bytes.data(), p, PCR_JPC_BSP1_PRM) +
+                               " ek " + keyList(bytes.data(), p, PCR_JPC_BSP1_ENV);
+            if (p.ssp1 >= 0) {
+                pc_rando_jpc_get_color(bytes.data(), p, PCR_JPC_SSP1_PRM, &prm);
+                pc_rando_jpc_get_color(bytes.data(), p, PCR_JPC_SSP1_ENV, &env);
+                rgbaText(a, sizeof a, prm);
+                rgbaText(b, sizeof b, env);
+                line += " ssp " + std::string(a) + " " + b;
+            } else {
+                line += " ssp -";
+            }
+            sPtclLines++;
+            if (sDump != nullptr) {
+                fprintf(sDump, "ptcl %03d %04x %s\n", scene, p.id, line.c_str());
+            }
+        }
+    }
+}
+
+void dumpCode() {
+    for (int site = 0; site < PCR_PALSITE_COUNT; site++) {
+        const PcRandoPaletteSiteInfo* info = pc_rando_palette_site(site);
+        for (int i = 0; i < info->count; i++) {
+            uint8_t r = info->rgb[i][0], g = info->rgb[i][1], b = info->rgb[i][2];
+            sCodeShifted += pc_rando_palette_code_rgb(site, i, &r, &g, &b);
+            sCodeLines++;
+            if (sDump != nullptr) {
+                fprintf(sDump, "code %s %d %d,%d,%d\n", info->name, i, r, g, b);
+            }
+        }
+    }
+    for (int slot = 0; slot < PCR_PALSITE_MANT_SLOTS; slot++) {
+        uint8_t* orig = pc_rando_palette_mant_orig(slot);
+        if (orig == nullptr) {
+            continue;
+        }
+        const uint8_t* pal = pc_rando() ? pc_rando_palette_mant_tlut(slot, orig) : orig;
+        sMantShifted += pal != orig ? 1 : 0;
+        sMantLines++;
+        char hex[0x20 * 2 + 1];
+        for (int i = 0; i < 0x20; i++) {
+            snprintf(hex + i * 2, 3, "%02x", pal[i]);
+        }
+        if (sDump != nullptr) {
+            fprintf(sDump, "mant %d %s\n", slot, hex);
+        }
+    }
+}
+
+void checkCodeAndParticles(bool shifting) {
+    PcRandoPaletteCodeStats cs;
+    pc_rando_palette_code_stats(&cs);
+    const PcRandoParticleSceneStats* last = pc_rando_particles_last_scene();
+    cosLogf("[cos] rando-smoke palettes: particles: %d Pscene files, %d group particle lines, %d unreadable; "
+            "editor registered %u, %u files edited, %u particles shifted, %u colours, %u bad, %u key conflicts; "
+            "boot scene Pscene%03d edited %d\n",
+            sPtclFiles, sPtclLines, sPtclUnreadable, cs.editorRegistered, cs.particleFiles, cs.particleShifted,
+            cs.particleColors, cs.particleBad, cs.particleConflicts, last->scene, last->edited);
+    cosLogf("[cos] rando-smoke palettes: code: %d colours (%d shifted), %u mismatches; %d cape palettes (%d "
+            "shifted)\n",
+            sCodeLines, sCodeShifted, cs.codeMismatch, sMantLines, sMantShifted);
+    randoSmokeCheck(kName, "every Pscene file readable", sPtclFiles > 0 && sPtclUnreadable == 0);
+    randoSmokeCheck(kName, "d_a_mant registered its 5 cape palettes", sMantLines == 5);
+    if (shifting) {
+        randoSmokeCheck(kName, "particle editor registered for every Pscene", cs.editorRegistered == 1);
+        randoSmokeCheck(kName, "group particles hue-shifted, no read error or key conflict",
+                        cs.particleShifted > 0 && cs.particleBad == 0 && cs.particleConflicts == 0);
+        randoSmokeCheck(kName, "the boot stage's Pscene file went through the editors",
+                        last->scene >= 0 && last->edited == 1);
+        randoSmokeCheck(kName, "every code colour resolved to its group and shifted",
+                        sCodeShifted == sCodeLines && cs.codeMismatch == 0);
+        randoSmokeCheck(kName, "the 5 cape palettes rebuilt", sMantShifted == 5);
+    } else {
+        randoSmokeCheck(kName, "no shift: no particle edited, code colours and capes as decompiled",
+                        cs.particleShifted == 0 && sCodeShifted == 0 && sMantShifted == 0);
+        if (!pc_rando()) {
+            randoSmokeCheck(kName, "vanilla: no particle editor, the boot scene untouched",
+                            cs.editorRegistered == 0 && last->edited == 0);
+        }
+    }
+}
+
 void finish() {
+    dumpParticles();
+    dumpCode();
     if (sDump != nullptr) {
         fclose(sDump);
         sDump = nullptr;
@@ -268,11 +452,12 @@ void finish() {
             "(%d chunks in gclib's layout, %d in place)\n",
             st.tex.matColors, st.tex.mdlEntries, st.tex.trkAnims, st.tex.trkRebuilt, st.tex.trkInPlace);
     int th = 0, tv = 0;
-    const bool test = pc_rando_palettes_test_override(&th, &tv) != 0;
+    const bool test = pc_rando_palettes_test_override(&th, &tv) != 0 || pc_rando_palette_shift(0, &th, &tv) != 0;
+    checkCodeAndParticles(pc_rando() && test);
     if (pc_rando()) {
         randoSmokeCheck(kName, "the raw J3D hook dispatched files", rs.rawDispatched > 0 && rs.rawPatched > 0);
         if (test) {
-            snprintf(what, sizeof what, "group files recoloured by (%d, %d)", th, tv);
+            snprintf(what, sizeof what, "group files recoloured (first group by (%d, %d))", th, tv);
             randoSmokeCheck(kName, what, st.j3dFiles > 0 && st.btiFiles > 0 && st.tex.shifted > 0);
             randoSmokeCheck(kName, "no read error, same-name mismatch or shared-data conflict",
                             st.tex.errors == 0 && st.tex.mismatch == 0 && st.tex.conflicts == 0);
@@ -312,6 +497,11 @@ void randoSmokePalettes(unsigned int frames) {
         const bool test = pc_rando_palettes_test_override(&h, &v) != 0;
         cosLogf("[cos] rando-smoke palettes: pc_rando() %d, stage %s, test shift %s%d,%d\n", pc_rando(),
                 dComIfGp_getStartStageName(), test ? "" : "none ", h, v);
+        const char* live = getenv("COS_RANDO_PALETTE_LIVE");
+        if (live != nullptr && strcmp(live, "1") == 0) {
+            sState = kLive;
+            return;
+        }
         buildList();
         sDump = openDump();
         randoSmokeCheck(kName, "dump opened", sDump != nullptr);
@@ -356,6 +546,34 @@ void randoSmokePalettes(unsigned int frames) {
             sState = kLoad;
         } else {
             finish();
+        }
+        return;
+    }
+    case kLive: {
+        ++sLiveFrames;
+        if (sLiveFrames == 60) {
+            int h = 0, v = 0;
+            const bool seedShifts = pc_rando_palette_shift(0, &h, &v) != 0 && pc_rando_palettes_test_override(nullptr, nullptr) == 0;
+            PcRandoPaletteStats st;
+            pc_rando_palettes_stats(&st);
+            PcRandoPaletteCodeStats cs;
+            pc_rando_palette_code_stats(&cs);
+            const PcRandoParticleSceneStats* last = pc_rando_particles_last_scene();
+            cosLogf("[cos] rando-smoke palettes live: stage %s, first group (%d, %d); %u group files recoloured "
+                    "(%u J3D, %u BTI), %d textures shifted, %d errors / %d mismatches / %d conflicts; Pscene%03d "
+                    "edited %d, %u particles shifted; %u code colours and %u cape palettes shifted by actors\n",
+                    dComIfGp_getStartStageName(), h, v, st.files, st.j3dFiles, st.btiFiles, st.tex.shifted,
+                    st.tex.errors, st.tex.mismatch, st.tex.conflicts, last->scene, last->edited, cs.particleShifted,
+                    cs.codeShifted, cs.mantShifted);
+            randoSmokeCheck(kName, "live: pc_rando() with the seed's palette shifts", pc_rando() && seedShifts);
+            randoSmokeCheck(kName, "live: the stage's Pscene file went through the editors",
+                            cs.editorRegistered == 1 && last->scene >= 0 && last->edited == 1);
+            randoSmokeCheck(kName, "live: the stage's group archives recoloured without error",
+                            st.files > 0 && st.tex.errors == 0 && st.tex.mismatch == 0 && st.tex.conflicts == 0);
+        } else if (sLiveFrames >= 360) {
+            randoSmokeCheck(kName, "live: 300 more frames ran", true);
+            sState = kDone;
+            randoSmokeEnd(kName);
         }
         return;
     }

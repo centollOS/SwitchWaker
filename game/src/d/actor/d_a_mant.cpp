@@ -21,6 +21,10 @@
 
 #include "dolphin/gf/GF.h"
 #include "JSystem/J3DGraphBase/J3DShape.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_palette_code.h"
+#endif
 
 #include "assets/l_pg_mantle1TEX__d_a_mant.h"
 #include "assets/l_pg_mantle1_palettePAL__d_a_mant.h"
@@ -213,6 +217,10 @@ static f32 l_texCoord[][2] = {
 
 static u8* tex_d[] = {l_tn_mantle1TEX, l_tn_boro1TEX, l_tn_boro_b1TEX, NULL, l_tn_boro_k1TEX, NULL, l_pg_mantle1TEX};
 static u8* pal_d[] = {l_tn_mantle1_palettePAL, l_tn_boro1_palettePAL, l_tn_boro_b1_palettePAL, NULL, l_tn_boro_k1_palettePAL, NULL, l_pg_mantle1_palettePAL};
+#if TARGET_PC
+// pc_rando(R7.2e): palettes.py shift_hardcoded_darknut_colors d_a_mant.rel 0x4540-0xC5C0 (the 5 cape palettes); the palettes smoke reads them through this registration; original: none
+[[maybe_unused]] static const int pcRandoMantPalettes = pc_rando_palette_mant_register(pal_d, ARRAY_SIZE(pal_d));
+#endif
 
 /* 000000EC-000003EC       .text draw__15daMant_packet_cFv */
 void daMant_packet_c::draw() {
@@ -224,7 +232,12 @@ void daMant_packet_c::draw() {
         {GX_VA_TEX0, GX_TEX_ST, GX_F32, 0}, {GX_VA_NULL, GX_POS_XYZ, GX_F32, 0},
     };
     u8* texture = tex_d[mTexNo];
+#if TARGET_PC
+    // pc_rando(R7.2e): palettes.py shift_hardcoded_darknut_colors d_a_mant.rel 0x4540, 0x6560, 0x8580, 0xA5A0, 0xC5C0 (RGB5A3 C4 palettes, hsv_shift_palette); original: pal_d[mTexNo]
+    u8* palette = pc_rando() ? pc_rando_palette_mant_tlut(mTexNo, pal_d[mTexNo]) : pal_d[mTexNo];
+#else
     u8* palette = pal_d[mTexNo];
+#endif
     j3dSys.reinitGX();
 #if VERSION > VERSION_JPN
     GXSetNumIndStages(0);

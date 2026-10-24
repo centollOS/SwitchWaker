@@ -19,6 +19,7 @@
 #if TARGET_PC
 #include "pc/pc_qol.h"
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_palette_code.h"
 #endif
 
 u32 daBoko_c::m_bound_se[] = {
@@ -77,7 +78,13 @@ static daBoko_HIO_c l_HIO;
 
 /* 000000EC-0000017C       .text keDraw__8daBoko_cFv */
 void daBoko_c::keDraw() {
+#if TARGET_PC
+    // pc_rando(R7.2e): palettes.py shift_hardcoded_moblin_colors d_a_boko.rel 0x4488 (Moblin spear thread); original: COMPOUND_LITERAL(GXColor){0xFF, 0x64, 0x00, 0xFF}
+    const GXColor pcRandoColor = {0xFF, 0x64, 0x00, 0xFF};
+    mpLineKe->lineMat.update(0xA, 1.25f, pc_rando() ? pc_rando_palette_rgb(PCR_PALSITE_BOKO, 0, pcRandoColor) : pcRandoColor, 2, &tevStr);
+#else
     mpLineKe->lineMat.update(0xA, 1.25f, COMPOUND_LITERAL(GXColor){0xFF, 0x64, 0x00, 0xFF}, 2, &tevStr);
+#endif
     dComIfGd_set3DlineMat(&mpLineKe->lineMat);
 }
 

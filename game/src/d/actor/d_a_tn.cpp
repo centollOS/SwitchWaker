@@ -23,6 +23,7 @@
 #include "JSystem/JUtility/JUTReport.h"
 #if TARGET_PC
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_palette_code.h"
 #endif
 
 enum Action {
@@ -2780,6 +2781,26 @@ static void yoroi_break(tn_class* i_this, cXyz* particlePos, u8 param_3) {
     dComIfGp_particle_set(dPa_name::ID_AK_JN_SIBOUBAKUEN, particlePos, NULL, &particle_scale);
     dComIfGp_particle_set(dPa_name::ID_AK_JN_SIBOUFLASH, particlePos, NULL, &particle_scale);
 
+#if TARGET_PC
+    // pc_rando(R7.2e): palettes.py shift_hardcoded_darknut_colors d_a_tn.rel 0xE2AC (12 armour-break colours: prim[6], env[6]); original: prim[i_this->mArmorColorIndex], env[i_this->mArmorColorIndex]
+    const GXColor pcPrim = pc_rando() ? pc_rando_palette_rgb(PCR_PALSITE_TN, i_this->mArmorColorIndex, prim[i_this->mArmorColorIndex]) : prim[i_this->mArmorColorIndex];
+    const GXColor pcEnv = pc_rando() ? pc_rando_palette_rgb(PCR_PALSITE_TN, 6 + i_this->mArmorColorIndex, env[i_this->mArmorColorIndex]) : env[i_this->mArmorColorIndex];
+    GXColor prmColor;
+    f32 tmp = (actor->tevStr.mColorK0.r / 255.0f);
+    prmColor.r = tmp * pcPrim.r;
+    tmp = (actor->tevStr.mColorK0.g / 255.0f);
+    prmColor.g = tmp * pcPrim.g;
+    tmp = (actor->tevStr.mColorK0.b / 255.0f);
+    prmColor.b = tmp * pcPrim.b;
+
+    GXColor envColor;
+    tmp = (actor->tevStr.mColorK0.r / 255.0f);
+    envColor.r = tmp * pcEnv.r;
+    tmp = (actor->tevStr.mColorK0.g / 255.0f);
+    envColor.g = tmp * pcEnv.g;
+    tmp = (actor->tevStr.mColorK0.b / 255.0f);
+    envColor.b = tmp * pcEnv.b;
+#else
     GXColor prmColor;
     f32 tmp = (actor->tevStr.mColorK0.r / 255.0f);
     prmColor.r = tmp * prim[i_this->mArmorColorIndex].r;
@@ -2795,6 +2816,7 @@ static void yoroi_break(tn_class* i_this, cXyz* particlePos, u8 param_3) {
     envColor.g = tmp * env[i_this->mArmorColorIndex].g;
     tmp = (actor->tevStr.mColorK0.b / 255.0f);
     envColor.b = tmp * env[i_this->mArmorColorIndex].b;
+#endif
 
     if (param_3 == 0) {
         emitter = dComIfGp_particle_set(dPa_name::ID_IT_SN_TN_YOROIHAHENL00, particlePos);

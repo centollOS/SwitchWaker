@@ -189,7 +189,7 @@ void testRefusals() {
     const Case cases[] = {
         // Entrances are generated since R6.11 (test_R6_11 checks them).
         {pcr::OPT_randomize_enemies, 1, "R7.4"}, // R7.3c: generated, refused by the menu until R7.4d
-        {pcr::OPT_randomize_enemy_palettes, 1, "R7.2"},
+        // randomize_enemy_palettes: live since R7.2e (test_R7_2a checks it is no longer refused)
     };
     for (const Case& c : cases) {
         pcr::GenRequest req = request("TestSeed1");
