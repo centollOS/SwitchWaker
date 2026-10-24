@@ -14,6 +14,7 @@
 #if TARGET_PC
 #include "pc/pc_qol.h"
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_palette_code.h"
 #endif
 
 enum BehaviorType {
@@ -226,7 +227,13 @@ static void ke_pos_set(st_class* i_this, st_ke_s* param_2, int param_3) {
 static void ke_disp(st_class* i_this) {
     fopAc_ac_c* actor = &i_this->actor;
 
+#if TARGET_PC
+    // pc_rando(R7.2e): palettes.py shift_hardcoded_stalfos_colors d_a_st.rel 0x9F30 (hat thread); original: COMPOUND_LITERAL(GXColor){0xFF, 0x64, 0, 0xFF}
+    const GXColor pcRandoColor = {0xFF, 0x64, 0, 0xFF};
+    i_this->mLineMat.update(10, 1.2f, pc_rando() ? pc_rando_palette_rgb(PCR_PALSITE_ST, 0, pcRandoColor) : pcRandoColor, 2, &actor->tevStr);
+#else
     i_this->mLineMat.update(10, 1.2f, COMPOUND_LITERAL(GXColor){0xFF, 0x64, 0, 0xFF}, 2, &actor->tevStr);
+#endif
     dComIfGd_set3DlineMat(&i_this->mLineMat);
 }
 

@@ -16,6 +16,10 @@
 #include "d/d_material.h"
 #include "f_op/f_op_actor_mng.h"
 #include "f_op/f_op_kankyo_mng.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_palette_code.h"
+#endif
 
 static u8 DEMO_COME_START_FLAG;
 static u8 DEMO_RET_START_FLAG;
@@ -232,6 +236,18 @@ void cc_eff_set(cc_class* i_this, unsigned char arg1) {
             {0xFF, 0xC3, 0x3C, 0xFF},
         };
 
+#if TARGET_PC
+        // pc_rando(R7.2e): palettes.py shift_hardcoded_chuchu_colors d_a_cc.rel 0x7F88 (5 particle colours); original: eff_color_dt[i_this->mColorType]
+        const GXColor pcEff = pc_rando() ? pc_rando_palette_rgb(PCR_PALSITE_CC, i_this->mColorType, eff_color_dt[i_this->mColorType]) : eff_color_dt[i_this->mColorType];
+        f32 tmp = (i_this->actor.tevStr.mColorK0.r / 255.0f);
+        sp18.r = tmp * pcEff.r;
+
+        tmp = (i_this->actor.tevStr.mColorK0.g / 255.0f);
+        sp18.g = tmp * pcEff.g;
+
+        tmp = (i_this->actor.tevStr.mColorK0.b / 255.0f);
+        sp18.b = tmp * pcEff.b;
+#else
         f32 tmp = (i_this->actor.tevStr.mColorK0.r / 255.0f);
         sp18.r = tmp * eff_color_dt[i_this->mColorType].r;
 
@@ -240,6 +256,7 @@ void cc_eff_set(cc_class* i_this, unsigned char arg1) {
 
         tmp = (i_this->actor.tevStr.mColorK0.b / 255.0f);
         sp18.b = tmp * eff_color_dt[i_this->mColorType].b;
+#endif
 
         pJVar6->setGlobalPrmColor(sp18.r, sp18.g, sp18.b);
     }
@@ -1314,6 +1331,21 @@ void action_damage_move(cc_class* i_this) {
 
         pJVar6 = dComIfGp_particle_set(dPa_name::ID_AK_SN_CCSPLIT00, &a_this->attention_info.position, &a_this->current.angle);
         if (pJVar6 != NULL) {
+#if TARGET_PC
+            // pc_rando(R7.2e): palettes.py shift_hardcoded_chuchu_colors d_a_cc.rel floats 0x7E9C/0x7EBC/0x7EC0 (int(), shifted, written back as floats; misc_rando_features.asm d_a_cc 0x33A4/0x3B14 moves the red one); original: 40.0f, 16.0f, 39.0f
+            GXColor pcSplit = {40, 16, 39, 0};
+            if (pc_rando()) {
+                pcSplit = pc_rando_palette_rgb(PCR_PALSITE_CC_SPLIT, 0, pcSplit);
+            }
+            f32 tmp = (a_this->tevStr.mColorK0.r / 255.0f);
+            sp18.r = tmp * (f32)pcSplit.r;
+
+            tmp = (a_this->tevStr.mColorK0.g / 255.0f);
+            sp18.g = tmp * (f32)pcSplit.g;
+
+            tmp = (a_this->tevStr.mColorK0.b / 255.0f);
+            sp18.b = tmp * (f32)pcSplit.b;
+#else
             f32 tmp = (a_this->tevStr.mColorK0.r / 255.0f);
             sp18.r = tmp * 40.0f;
 
@@ -1322,6 +1354,7 @@ void action_damage_move(cc_class* i_this) {
 
             tmp = (a_this->tevStr.mColorK0.b / 255.0f);
             sp18.b = tmp * 39.0f;
+#endif
             pJVar6->setGlobalPrmColor(sp18.r, sp18.g, sp18.b);
         }
         i_this->mStts.SetWeight(0xFE);

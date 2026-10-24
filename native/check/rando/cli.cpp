@@ -24,7 +24,7 @@
 //   --quiet                 no line per seed on stdout
 //
 // Each seed prints "ok <seed> <hash32> <json path>" or "FAIL <seed>: <first error line>".
-// Options whose game side is not ready yet (randomize_enemy_palettes until R7.2e) are generated here
+// Options whose game side is not ready yet (randomize_enemies until R7.4d) are generated here
 // (GenRequest::allowNotRuntimeReady); the menu refuses them.
 // Exit 0 all generated, 1 a seed failed (wwrando would raise), 3 an option is not supported yet,
 // 2 usage or file error.

@@ -28,6 +28,10 @@
 #include "JSystem/JParticle/JPAEmitter.h"
 #include "JSystem/JUtility/JUTReport.h"
 #include "res/Object/Gnd.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_palette_code.h"
+#endif
 
 static cXyz non_pos(-20000.0f, -20000.0f, -20000.0f);
 static bool hio_set;
@@ -427,7 +431,13 @@ static BOOL daGnd_Draw(gnd_class* i_this) {
     dSnap_RegistFig(DSNAP_TYPE_GND, actor, 1.0f, 1.0f, 1.0f);
 
     if (l_HIO.m07 != 0) {
+#if TARGET_PC
+        // pc_rando(R7.2e): palettes.py shift_hardcoded_ganondorf_colors d_a_gnd.rel 0x8F1C (threads); original: (GXColor){0xFF, 0x64, 0x00, 0xFF}
+        const GXColor pcRandoColor = {0xFF, 0x64, 0x00, 0xFF};
+        i_this->mLineMat.update(20, 2.25f + REG0_F(3), pc_rando() ? pc_rando_palette_rgb(PCR_PALSITE_GND, 0, pcRandoColor) : pcRandoColor, 2, &actor->tevStr);
+#else
         i_this->mLineMat.update(20, 2.25f + REG0_F(3), (GXColor){0xFF, 0x64, 0x00, 0xFF}, 2, &actor->tevStr);
+#endif
         dComIfGd_set3DlineMat(&i_this->mLineMat);
     }
 

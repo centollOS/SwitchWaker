@@ -19,6 +19,7 @@
 #include "res/Object/Bgn.h"
 #if TARGET_PC
 #include "pc/pc_rando.h"
+#include "pc/pc_rando_palette_code.h"
 // Aurora's dolphin/gf/GFGeometry.h lacks the TWW-only GFSetCullMode; the GF.h forwarder adds it
 // (cos_gf_extras.h).
 #include "dolphin/gf/GF.h"
@@ -749,7 +750,13 @@ static BOOL daBgn2_Draw(bgn2_class* i_this) {
             i_this->m02E4.update();
         }
     }
+#if TARGET_PC
+    // pc_rando(R7.2e): palettes.py shift_hardcoded_puppet_ganon_colors d_a_bgn.rel 0xF0A8 (daBgn2_Draw red rope); original: COMPOUND_LITERAL(GXColor){0xD2, 0x32, 0x5A, 0x00}
+    const GXColor pcRandoColor = {0xD2, 0x32, 0x5A, 0x00};
+    i_this->mRedRopeMat.update(60, pc_rando() ? pc_rando_palette_rgb(PCR_PALSITE_BGN, 0, pcRandoColor) : pcRandoColor, &actor->tevStr);
+#else
     i_this->mRedRopeMat.update(60, COMPOUND_LITERAL(GXColor){0xD2, 0x32, 0x5A, 0x00}, &actor->tevStr);
+#endif
     dComIfGd_set3DlineMat(&i_this->mRedRopeMat);
     return TRUE;
 }
@@ -872,7 +879,13 @@ static BOOL daBgn3_Draw(bgn3_class* i_this) {
 #endif
         }
     }
+#if TARGET_PC
+    // pc_rando(R7.2e): palettes.py shift_hardcoded_puppet_ganon_colors d_a_bgn.rel 0xF0B0 (daBgn3_Draw red rope); original: COMPOUND_LITERAL(GXColor){0xD2, 0x32, 0x5A, 0}
+    const GXColor pcRandoColor = {0xD2, 0x32, 0x5A, 0};
+    i_this->mRedRopeMat.update(60, pc_rando() ? pc_rando_palette_rgb(PCR_PALSITE_BGN, 1, pcRandoColor) : pcRandoColor, &actor->tevStr);
+#else
     i_this->mRedRopeMat.update(60, COMPOUND_LITERAL(GXColor){0xD2, 0x32, 0x5A, 0}, &actor->tevStr);
+#endif
     dComIfGd_set3DlineMat(&i_this->mRedRopeMat);
     return TRUE;
 }

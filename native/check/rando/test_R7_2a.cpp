@@ -7,8 +7,8 @@
 //   - the group table (generated/rando_palettes.inc): 37 groups in file order;
 //   - the generator: TestSeed1 with randomize_enemy_palettes gives wwrando's "palettes"
 //     (fixtures/R7_2a_TestSeed1_palettes.json, ww_export.py) and the same locations; the key is
-//     absent with the option off; the option is refused unless GenRequest::allowNotRuntimeReady
-//     (the menu, until R7.2e); palettesFromJson round-trips and rejects bad values; the seed file
+//     absent with the option off; the option was refused unless GenRequest::allowNotRuntimeReady
+//     until R7.2e, which made it live (the menu generates it); palettesFromJson round-trips and rejects bad values; the seed file
 //     keeps the key and hashes it.
 // The 50-seed oracle batch is regress_rando/R7.2a.txt (check_seeds.py --golden).
 #include <cstdio>
@@ -215,15 +215,14 @@ void testGenerator() {
         return;
     }
 
-    // Refused by default (the menu), with the step that makes it live.
+    // Live since R7.2e: the menu's request (no allowNotRuntimeReady) generates it, same palettes.
     {
         pcr::GenResult res;
-        RT_CHECK(!pcr::generate(request(true), res));
-        RT_CHECK(res.unsupported);
-        RT_CHECK(res.error.find("Not supported yet: randomize_enemy_palettes") != std::string::npos);
-        RT_CHECK(res.error.find("R7.2e") != std::string::npos);
-        RT_CHECK(!pcr::unsupportedOptionsError(request(true).options, true).empty());
-        RT_CHECK(pcr::unsupportedOptionsError(request(true).options, true, true).empty());
+        RT_CHECK(pcr::generate(request(true), res));
+        RT_CHECK(!res.unsupported);
+        RT_CHECK(pcr::unsupportedOptionsError(request(true).options, true).empty());
+        const pcr::Json* menuPal = res.seed.extra.find("palettes");
+        RT_CHECK(menuPal != nullptr && *menuPal == *wantPal);
     }
 
     pcr::GenRequest req = request(true);

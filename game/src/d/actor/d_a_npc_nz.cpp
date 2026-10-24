@@ -13,6 +13,10 @@
 #include "d/d_s_play.h"
 #include "res/Object/Npcnz.h"
 #include "res/Object/Nz.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_palette_code.h"
+#endif
 
 class daNpc_Nz_HIO_c : public JORReflexible {
 public:
@@ -865,7 +869,13 @@ bool daNpc_Nz_c::_draw() {
 
         GXColor unusedColor_5609 = {255, 255, 0, 128};
         GXColor unusedColor_5611 = {255, 0, 0, 128};
+#if TARGET_PC
+        // pc_rando(R7.2e): palettes.py shift_hardcoded_rat_colors d_a_npc_nz.rel 0x48C0 (tail); original: COMPOUND_LITERAL(GXColor){200, 200, 200, 255}
+        const GXColor pcRandoColor = {200, 200, 200, 255};
+        field_0x934.update(10, scale.x * 5.0f, pc_rando() ? pc_rando_palette_rgb(PCR_PALSITE_NPC_NZ, 0, pcRandoColor) : pcRandoColor, 6, &tevStr);
+#else
         field_0x934.update(10, scale.x * 5.0f, COMPOUND_LITERAL(GXColor){200, 200, 200, 255}, 6, &tevStr);
+#endif
         dComIfGd_set3DlineMat(&field_0x934);
     }
 

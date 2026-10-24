@@ -23,6 +23,10 @@
 #include "m_Do/m_Do_mtx.h"
 #include "JSystem/J3DGraphAnimator/J3DModel.h"
 #include "res/Object/Nz.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_palette_code.h"
+#endif
 
 enum Action { ACTION_NZ_MOVE = 0, ACTION_NZ2_MOVE = 1, ACTION_NZ3_MOVE = 2, ACTION_NZ4_MOVE = 3, ACTION_NZ5_MOVE = 4, ACTION_NZ6_MOVE = 5 };
 
@@ -225,7 +229,13 @@ void tail_control(nz_class* i_this) {
 
 /* 00000BF4-00000C88       .text tail_draw__FP8nz_class */
 void tail_draw(nz_class* i_this) {
+#if TARGET_PC
+    // pc_rando(R7.2e): palettes.py shift_hardcoded_rat_colors d_a_nz.rel 0x8FB8 (tail); original: (GXColor){0xC8, 0xC8, 0xC8, 0xFF}
+    const GXColor pcRandoColor = {0xC8, 0xC8, 0xC8, 0xFF};
+    i_this->mLineMat.update(10, 5.0f * i_this->scale.x, pc_rando() ? pc_rando_palette_rgb(PCR_PALSITE_NZ, 0, pcRandoColor) : pcRandoColor, 6, &i_this->tevStr);
+#else
     i_this->mLineMat.update(10, 5.0f * i_this->scale.x, (GXColor){0xC8, 0xC8, 0xC8, 0xFF}, 6, &i_this->tevStr);
+#endif
     dComIfGd_set3DlineMat(&i_this->mLineMat);
 }
 

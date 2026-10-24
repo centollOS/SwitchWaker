@@ -88,11 +88,8 @@ std::string unsupportedOptionsError(const Options& o, bool allowMissingHints, bo
         // keeps refusing it until R7.4d (GenRequest::allowNotRuntimeReady).
         return refuse("randomize_enemies", "R7.4d");
     }
-    if (o.randomize_enemy_palettes && !allowNotRuntimeReady) {
-        // R7.2a ported the generator; the game applies the colours from R7.2c-R7.2e, so the menu
-        // keeps refusing it until R7.2e (GenRequest::allowNotRuntimeReady).
-        return refuse("randomize_enemy_palettes", "R7.2e");
-    }
+    // randomize_enemy_palettes: generated since R7.2a, applied by the game since R7.2e (textures,
+    // materials and animations R7.2c-R7.2d; particles and code colours R7.2e).
     (void)allowMissingHints; // R5.1: hints are generated (allowMissingHints only skips them)
     return std::string();
 }

@@ -11,6 +11,10 @@
 #include "d/d_cc_d.h"
 #include "d/d_s_play.h"
 #include "res/Object/Bgn.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_palette_code.h"
+#endif
 
 class daBgn3_HIO_c : public JORReflexible {
 public:
@@ -1317,10 +1321,21 @@ static cPhs_State daBgn3_Create(fopAc_ac_c* a_this) {
         }
         a_this->health = 3;
         a_this->max_health = 3;
+#if TARGET_PC
+        // pc_rando(R7.2e): palettes.py shift_hardcoded_puppet_ganon_colors d_a_bgn3.rel u8 0x2CF/0x2D7/0x2DF (the li immediates of daBgn3_HIO_c's m50/m52/m54, 0xBC/0x98/0x42); original: ke_color = l_HIO.m50/m52/m54
         ke_color.r = l_HIO.m50;
         ke_color.g = l_HIO.m52;
         ke_color.b = l_HIO.m54;
         ke_color.a = 0xFF;
+        if (pc_rando()) {
+            ke_color = pc_rando_palette_rgb(PCR_PALSITE_BGN3, 0, ke_color);
+        }
+#else
+        ke_color.r = l_HIO.m50;
+        ke_color.g = l_HIO.m52;
+        ke_color.b = l_HIO.m54;
+        ke_color.a = 0xFF;
+#endif
 #if VERSION > VERSION_DEMO
         for (s32 i = 0; i < 9; i++) {
             i_this->mParts[i].mPart3TevStr = a_this->tevStr;
