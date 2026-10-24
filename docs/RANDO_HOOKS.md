@@ -854,3 +854,32 @@ back at deactivation. LkAnm.arc is an ARAM archive read with `JKRReadIdxResource
 | game/src/d/actor/d_a_boomerang.cpp | `daBoomerang_blur_c::draw`: `color0` from `pc_rando_player_trail_color` | ?: | customizer.py `change_player_custom_colors` main.dol 0x803F6268 |
 | game/src/d/actor/d_a_player_sword.inc | `daPy_lk_c::setSwordModel`: `pc_rando_player_colors_cutf_brk` on the cutfh/cutfm.brk buffer before `J3DAnmLoaderDataBase::load` | add | customizer.py `change_player_custom_colors` LkAnm.arc cutfh.brk / cutfm.brk key frames 0-2 |
 | game/src/d/actor/d_a_player_main.cpp | `daPy_lk_c::createHeap`: `pc_rando_player_colors_cl_model(mpCLModelData)` after cl.bdl's model is made | add | customizer.py `change_player_custom_colors` Link.arc cl.bdl "hitomi" (`color_exchange`, `replace_image`) |
+
+## R7.2e
+
+Particle and code colours; the `randomize_enemy_palettes` option is live (its refusal in
+`pc_rando_gen.cpp` is gone). Particles need no hunk: an activation listener
+(`features/rando/pc_rando_palette_sites.cpp`, `pc_rando_palette_code_init` in `pc_rando_patchers.def`)
+registers a colour editor on every Pscene file with R7.1b's registry, which runs in `createRoomScene`
+before the `JPAResourceManager` reads the bytes (`shift_all_colors_in_particle`: BSP1 prm / env colour and
+their key tables, SSP1 prm / env colour, hue only, per group in file order). The hardcoded colours of
+`shift_hardcoded_*_colors` are the hunks below: each takes the decompiled value through
+`pc_rando_palette_rgb` (`native/include/pc/pc_rando_palette_code.h`), which shifts it by the site's group
+(a value other than the decompiled one is logged and shifted as it is), or, for d_a_mant, a cached shifted
+copy of the cape palette (`pc_rando_palette_mant_tlut`: RGB5A3 decode, `hsv_shift_palette`, encode).
+Checked by the `palettes` smoke and `native/tools/rando/palette_check.py` (wwrando's own
+`shift_colors_for_file_group` on the disc's Pscene files and RELs), `regress_rando/R7.2e.txt`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_tn.cpp | `yoroi_break`: `prim[i]` / `env[i]` (12 armour-break colours) through `pc_rando_palette_rgb(PCR_PALSITE_TN, ...)` | #if/else | palettes.py `shift_hardcoded_darknut_colors` d_a_tn.rel 0xE2AC |
+| game/src/d/actor/d_a_mant.cpp | static registration of `pal_d` (smoke only); `daMant_packet_c::draw`: `palette = pc_rando_palette_mant_tlut(mTexNo, pal_d[mTexNo])` | #if/else | `shift_hardcoded_darknut_colors` d_a_mant.rel 0x4540, 0x6560, 0x8580, 0xA5A0, 0xC5C0 (RGB5A3 C4 palettes) |
+| game/src/d/actor/d_a_mo2.cpp | `ke_disp`: spear thread colour of `m3Dline.update` | #if/else | `shift_hardcoded_moblin_colors` d_a_mo2.rel 0xD648 |
+| game/src/d/actor/d_a_boko.cpp | `daBoko_c::keDraw`: thread colour of `lineMat.update` | #if/else | `shift_hardcoded_moblin_colors` d_a_boko.rel 0x4488 |
+| game/src/d/actor/d_a_st.cpp | `ke_disp`: hat thread colour | #if/else | `shift_hardcoded_stalfos_colors` d_a_st.rel 0x9F30 |
+| game/src/d/actor/d_a_nz.cpp | `tail_draw`: tail colour | #if/else | `shift_hardcoded_rat_colors` d_a_nz.rel 0x8FB8 |
+| game/src/d/actor/d_a_npc_nz.cpp | `daNpc_Nz_c::_draw`: tail colour | #if/else | `shift_hardcoded_rat_colors` d_a_npc_nz.rel 0x48C0 |
+| game/src/d/actor/d_a_cc.cpp | `cc_eff_set`: `eff_color_dt[mColorType]`; `action_damage_move` case 0x2D: the CCSPLIT00 multipliers 40/16/39 | #if/else | `shift_hardcoded_chuchu_colors` d_a_cc.rel 0x7F88 (5 colours) and floats 0x7E9C/0x7EBC/0x7EC0 (misc_rando_features.asm d_a_cc 0x33A4/0x3B14/0x7E9C) |
+| game/src/d/actor/d_a_bgn.cpp | `daBgn2_Draw`, `daBgn3_Draw`: red rope colours of `mRedRopeMat.update` | #if/else | `shift_hardcoded_puppet_ganon_colors` d_a_bgn.rel 0xF0A8, 0xF0B0 |
+| game/src/d/actor/d_a_bgn3.cpp | `daBgn3_Create`: `ke_color` from `l_HIO.m50/m52/m54` | #if/else | `shift_hardcoded_puppet_ganon_colors` d_a_bgn3.rel u8 0x2CF/0x2D7/0x2DF (li immediates of the HIO constructor) |
+| game/src/d/actor/d_a_gnd.cpp | `daGnd_Draw`: thread colour of `mLineMat.update` | #if/else | `shift_hardcoded_ganondorf_colors` d_a_gnd.rel 0x8F1C |

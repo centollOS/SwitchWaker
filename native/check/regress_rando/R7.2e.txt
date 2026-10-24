@@ -1,0 +1,21 @@
+# R7.2e (docs/RANDOMIZER_PLAN.md): enemy palettes on particles and code colours; the option is live
+# (the menu no longer refuses randomize_enemy_palettes). Particles: a colour editor on every Pscene
+# file through R7.1b's registry (features/rando/pc_rando_palette_sites.cpp, shift_all_colors_in_particle:
+# BSP1 prm/env and their keys, SSP1 prm/env, hue only). Code colours: the hunks in d_a_tn, d_a_mant,
+# d_a_mo2, d_a_boko, d_a_st, d_a_nz, d_a_npc_nz, d_a_cc, d_a_bgn, d_a_bgn3 and d_a_gnd
+# (docs/RANDO_HOOKS.md "R7.2e"). The palettes smoke dumps every group particle of Pscene000-254 after
+# the editors, every code colour and the 5 Darknut cape palettes; compare with wwrando's own
+# shift_colors_for_file_group (particles, shift_hardcoded_*_colors on the disc's RELs, the RARCs):
+#   python3 -I native/tools/rando/palette_check.py --run [--shift H,V | --vanilla]
+#   python3 -I native/tools/rando/palette_check.py --run --placement native/check/rando/fixtures/R7_2e_palettes_seed.json
+# (the fixture: cos_rando_cli PalettesR72e randomize_enemy_palettes=true, one shift per group).
+# The live lines boot that palettes seed on 5 enemy-heavy stages (DRC, FW, TotG, ET, WT).
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+script 0 python3 -I native/tools/rando/palette_check.py --run --placement native/check/rando/fixtures/R7_2e_palettes_seed.json
+script 0 python3 -I native/tools/rando/palette_check.py --run --shift 200,40
+script 0 python3 -I native/tools/rando/palette_check.py --run --vanilla
+rando 0 --stage M_NewD2:0:0 --env COS_RANDO_SMOKE=palettes --env COS_RANDO_PALETTE_LIVE=1 --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R7_2e_palettes_seed.json
+rando 0 --stage kindan:1:0 --env COS_RANDO_SMOKE=palettes --env COS_RANDO_PALETTE_LIVE=1 --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R7_2e_palettes_seed.json
+rando 0 --stage Siren:1:0 --env COS_RANDO_SMOKE=palettes --env COS_RANDO_PALETTE_LIVE=1 --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R7_2e_palettes_seed.json
+rando 0 --stage M_Dai:1:1 --env COS_RANDO_SMOKE=palettes --env COS_RANDO_PALETTE_LIVE=1 --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R7_2e_palettes_seed.json
+rando 0 --stage kaze:0:0 --env COS_RANDO_SMOKE=palettes --env COS_RANDO_PALETTE_LIVE=1 --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R7_2e_palettes_seed.json
