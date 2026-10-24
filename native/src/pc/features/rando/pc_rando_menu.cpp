@@ -213,10 +213,6 @@ std::string gameValue(bool es) {
     return L(es, "Ninguna partida cargada", "No game loaded");
 }
 
-std::string noAction(bool) {
-    return "";
-}
-
 std::string activeSeedValue(bool) {
     const PcRandoSeed* s = activeSeed();
     return s != nullptr ? s->seed : "";
@@ -310,13 +306,13 @@ void randoMenuInit() {
     randoMenuAddAction({"Partida actual", "Current game",
                         "La partida que se está jugando: Randomizer, normal, o ninguna (título, selección de archivo)",
                         "The game being played: Randomizer, normal, or none (title screen, file select)", gameValue,
-                        noAction, -300});
+                        nullptr, -300});
     randoMenuAddAction({"Semilla", "Seed", "El nombre de la semilla de esta partida",
-                        "The seed name of the game being played", activeSeedValue, noAction, -290, shownRando});
+                        "The seed name of the game being played", activeSeedValue, nullptr, -290, shownRando});
     randoMenuAddAction({"Hash", "Hash",
                         "El hash de la semilla de esta partida (el que muestra wwrando en la selección de archivo)",
                         "The hash of the game's seed (the one wwrando shows on the file select)", activeHashValue,
-                        noAction, -280, shownRando});
+                        nullptr, -280, shownRando});
     randoMenuAddAction({"Opciones de la siguiente partida...", "Next game options...",
                         "A: semilla, opciones y Generar: solo cuentan para la próxima partida Randomizer nueva",
                         "A: seed, options and Generate: they only act on the next new Randomizer file", nextValue,

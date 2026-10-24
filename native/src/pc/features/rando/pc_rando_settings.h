@@ -131,6 +131,9 @@ std::string randoRowHelp(const RandoRow& r, bool spanish);
 std::string randoRowDisabled(const RandoRow& r, bool spanish);
 // Left/right change the value (A cycles forward too); false: A only (an action, the gear header).
 bool randoRowCycles(const RandoRow& r);
+// Shows a value only: a notice, or an action row without activate (R8.2's rows about the game being
+// played). The menu draws no "< >" around its value.
+bool randoRowReadOnly(const RandoRow& r);
 // A (dir 0 on an action row; 1 on a cycling row) or left/right (-1 / 1). Returns a toast ("" none).
 std::string randoRowActivate(const RandoRow& r, int dir, bool spanish);
 // The COS_RANDO_* key of an Option row ("" for the others).

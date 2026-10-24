@@ -682,6 +682,11 @@ bool randoRowCycles(const RandoRow& r) {
     return r.kind == RandoRowKind::Preset || r.kind == RandoRowKind::Option || r.kind == RandoRowKind::Gear;
 }
 
+bool randoRowReadOnly(const RandoRow& r) {
+    return r.kind == RandoRowKind::Notice ||
+           (r.kind == RandoRowKind::Action && (r.id >= (int)sActions.size() || sActions[r.id].activate == nullptr));
+}
+
 std::string randoRowActivate(const RandoRow& r, int dir, bool es) {
     if (r.kind == RandoRowKind::Notice) {
         return "";
