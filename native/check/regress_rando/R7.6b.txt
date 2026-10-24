@@ -1,0 +1,18 @@
+# R7.6b (docs/RANDOMIZER_PLAN.md): the European disc's stage data and location keys.
+# 1. gen_location_keys.py --disc GZLP01 reads the EUR disc (~/Documents/windwaker/GZLP01/GZLP01.iso) with R0.5's
+#    checks (391 dzx item fingerprints, 11 event actions) and compares its 425 DZX/ADDED/EVENT keys with the
+#    checked-in table: all identical, so the EUR build uses the same rando_location_keys.inc (no _pal.inc).
+# 2. fp_audit.py runs the fpaudit smoke (native/src/pc/harness/smokes/pc_rando_smoke_fpaudit.cpp): every
+#    stage.dzs, room.dzr and event_list.dat of the disc (805 files) through the whole patcher chain with the
+#    rotation placement plus every stage-data option (fixtures/R7_6b_all_options.json's entrances, enemies,
+#    palettes, charts, required bosses, starting island, trap chests, warp pots, ...); exit 1 on any patcher
+#    line with a fingerprint mismatch, a missing entry or a refusal. regress.sh builds the USA build only, so
+#    the line below audits USA; the EUR audit and the USA/EUR comparison are
+#      python3 -I native/tools/rando/fp_audit.py              (both regions; needs build/native-mac-eur)
+#    and R7.6d adds the EUR lines to regress.sh. The location sweep T1 on EUR (rotation) is
+#      COS_BUILD_DIR=build/native-mac-eur python3 -I native/tools/rando/location_sweep.py run --placement rotation \
+#        --disc ~/Documents/windwaker/GZLP01/GZLP01.iso
+# "script" runs the rest of the line from the repository root; both need the oracle venv / the discs.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+script 0 python3 -I native/tools/rando/gen_location_keys.py --disc GZLP01
+script 0 python3 -I native/tools/rando/fp_audit.py --region usa
