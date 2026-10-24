@@ -22,6 +22,9 @@
  *      asserts that no other path of the table points at a removed entry.
  *   5. The Homen enemy_to_spawn (seed "enemies".homen, drawn by R7.3c): kaze/Room2 ACTR 0x27, kaze/Room10
  *      ACTR 0 and 9 (entries_by_type(ACTR): every ACTR-type chunk of the file in chunk order).
+ * Port-only: the file that gets new actors grows into a copy beside the archive's bytes; in a stage
+ * with room memory blocks (MEMA / MECO in stage.dzs: M_NewD2) that copy comes out of the room's block,
+ * so the patcher adds 0x1000 (GameCube bytes) to the block of each such room in stage.dzs.
  * D9 fingerprints: the entry's vanilla name (for the modified and removed entries the name the disc
  * holds there after the earlier patchers: ootubo1, Zenshut, Yswdr00 copied by R2.10, TagEv; the stone
  * heads Homen1/Homen2). A mismatch leaves that entry as it is and is logged.

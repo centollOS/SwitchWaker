@@ -422,6 +422,63 @@ bool seedActive() {
     return sSeedHas;
 }
 
+// The port grows a file into a copy next to the archive's own bytes (pc_rando_res_grow_dzx), where
+// wwrando grows the file inside the archive by the new entries only. In a stage with room memory
+// blocks (stage.dzs MEMA sizes, MECO room -> block; d_stage.cpp createMemoryBlock), the copy comes out
+// of the room's block, and daBg_c takes what is left of it: M_NewD2 Room1's bg then runs out (cBgW::Set
+// in d_a_bg.cpp createHeap). So the block of each room that gets new actors gets this much more
+// (GameCube bytes, doubled on the port like the rest of the block); a port-only change, not in wwrando.
+constexpr uint32_t kGrowBlockSlack = 0x1000;
+
+// A stage.dzs with room memory blocks: adds the slack to the block of every room of the stage that
+// gets new actors. Returns the number of blocks grown.
+int addBlockSlack(PcRandoResFile* file, const std::vector<Target>& ts) {
+    PcRandoDzx dzx;
+    if (pc_rando_dzx_open(&dzx, file->data, file->size) != PCR_DZX_OK) {
+        return 0;
+    }
+    const int mema = pc_rando_dzx_find(&dzx, "MEMA"), meco = pc_rando_dzx_find(&dzx, "MECO");
+    if (mema < 0 || meco < 0) {
+        return 0;
+    }
+    const uint8_t* memaRow = dzx.data + 4 + mema * 12;
+    const uint8_t* mecoRow = dzx.data + 4 + meco * 12;
+    const uint32_t nBlocks = pc_rando_dzx_be32(memaRow + 4), memaOff = pc_rando_dzx_be32(memaRow + 8);
+    const uint32_t nRooms = pc_rando_dzx_be32(mecoRow + 4), mecoOff = pc_rando_dzx_be32(mecoRow + 8);
+    if ((uint64_t)memaOff + 4ull * nBlocks > file->size || (uint64_t)mecoOff + 2ull * nRooms > file->size) {
+        return 0;
+    }
+    bool grown[64] = {};
+    int n = 0;
+    for (const Target& x : ts) {
+        if (x.t.kind != PCR_EACTOR_ADD || x.t.room < 0 || strcmp(x.t.stage, file->stage) != 0) {
+            continue;
+        }
+        for (uint32_t r = 0; r < nRooms; r++) {
+            const uint8_t* m = file->data + mecoOff + 2 * r;
+            if (m[0] != x.t.room || m[1] >= nBlocks || m[1] >= 64 || grown[m[1]]) {
+                continue;
+            }
+            grown[m[1]] = true;
+            uint8_t* size = file->data + memaOff + 4 * m[1];
+            put32(size, pc_rando_dzx_be32(size) + kGrowBlockSlack);
+            logf("[cos] rando: enemy actors: %s: memory block %u of room %d + 0x%X for its new actors\n",
+                 file->stage, (unsigned)m[1], x.t.room, (unsigned)kGrowBlockSlack);
+            n++;
+        }
+    }
+    return n;
+}
+
+bool stageGetsAdds(const char* stage) {
+    for (const Target& x : targets()) {
+        if (x.t.kind == PCR_EACTOR_ADD && x.t.room >= 0 && strcmp(x.t.stage, stage) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool fileMatches(const PcRandoResFile* file) {
     if (file == nullptr || file->stage == nullptr || file->name == nullptr) {
         return false;
@@ -500,6 +557,9 @@ int pc_rando_enemy_actors_apply(const int homen[3], PcRandoResFile* file, int8_t
         return 0;
     }
     const std::vector<Target>& ts = targets();
+    if (file->room < 0) {
+        addBlockSlack(file, ts);
+    }
     int h = 0, n = 0;
     std::vector<uint8_t> adds;
     std::vector<size_t> addIdx;
@@ -569,7 +629,7 @@ void pc_rando_enemy_actors_patch(PcRandoResFile* file) {
     if (sBypass || !fileMatches(file) || file->stage[0] == '\0') {
         return;
     }
-    bool any = false;
+    bool any = file->room < 0 && stageGetsAdds(file->stage);
     for (const Target& x : targets()) {
         any = any || sameFile(x.t, file->stage, file->room);
     }

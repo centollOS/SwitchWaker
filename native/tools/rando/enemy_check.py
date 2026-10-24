@@ -23,6 +23,13 @@ randomize_enemies), this tool:
          base  <path> <the 0x20-byte ACTR record, hex>
          enemy <path> <the 0x20-byte ACTR record, hex>
      (ACTR.save_changes layout; the positions written as float32, as wwrando saves the file).
+  4. (R7.4b) runs add_modify_and_replace_actors_for_enemy_rando and randomize_enemies_spawned_by_objects
+     on the same rng (as _save), then records the final enemy records and the actors R7.4b edits and
+     adds:
+         actor <label> <the 0x20/0x24-byte record>   (ALLdie conversions, modified actors, removed =
+                                                     suppressed by remove_entity, the 3 stone heads as
+                                                     kaze/Room2.arc/Homen027 ... over entries_by_type(ACTR))
+         added <file> <tag> <index> <the appended ACTR record>
 With --vanilla only the base lines are built from the plain disc (no tweak, no _save: a game whose
 seed has no enemies), and the "enemy" lines must equal them.
 
@@ -57,7 +64,7 @@ oc.bootstrap()
 from gclib import fs_helpers as fs  # noqa: E402
 from gclib.gcm import GCM  # noqa: E402
 from gclib.rarc import RARC  # noqa: E402
-from wwlib.dzx import ACTR, DZx, DZxLayer  # noqa: E402
+from wwlib.dzx import ACTR, DZx, DZxLayer, SCOB, TGDR, DOOR  # noqa: E402
 import tweaks  # noqa: E402
 import ww_export_enemies  # noqa: E402
 
@@ -66,6 +73,10 @@ import ww_export_enemies  # noqa: E402
 TWEAKS_BEFORE_SAVE = ["add_chest_in_place_of_master_sword", "remove_makar_kidnapping_event"]
 
 PATH_RE = re.compile(r"^([^/]+/[^/]+\.arc)(?:/Layer([0-9a-b]))?/Actor([0-9A-F]{3})$")
+ANY_PATH_RE = re.compile(r"^([^/]+/[^/]+\.arc)(?:/Layer([0-9a-b]))?/(Actor|ScalableObject|Door|ScalableDoor)([0-9A-F]{3})$")
+CHUNKS = {"Actor": ACTR, "ScalableObject": SCOB, "Door": DOOR, "ScalableDoor": TGDR}
+# randomize_enemies_spawned_by_objects: (room archive, entries_by_type(ACTR) index), the port's labels.
+HOMEN = [("kaze/Room2.arc", 0x27), ("kaze/Room10.arc", 0x00), ("kaze/Room10.arc", 0x09)]
 
 
 class DiscRando:
@@ -119,16 +130,76 @@ def record_hex(entry):
   return fs.read_bytes(entry.data, entry.offset, ACTR.DATA_SIZE).hex()
 
 
+def dzx_of(disc, arc):
+  arc_path = "files/res/Stage/" + arc
+  return disc.get_arc(arc_path).get_file("stage.dzs" if arc_path.endswith("Stage.arc") else "room.dzr", DZx)
+
+
+def raw_hex(entry, cls):
+  if entry is None:
+    return "00" * cls.DATA_SIZE
+  entry.save_changes()
+  return fs.read_bytes(entry.data, entry.offset, cls.DATA_SIZE).hex()
+
+
+def actor_targets():
+  """R7.4b's edited records in the port's order: (label, arc, chunk class, layer, index or None, homen
+  by-type index or None)."""
+  import logic.logic as wwlogic
+  groups = [g for _s, gs in wwlogic.Logic.load_and_parse_enemy_locations().items() for g in gs]
+  out = []
+  def from_path(path):
+    m = ANY_PATH_RE.match(path)
+    return (path, m.group(1), CHUNKS[m.group(3)], DZxLayer(m.group(2)), int(m.group(4), 16), None)
+  for key in ("Actors to replace with ALLdies",):
+    for g in groups:
+      out += [from_path(p) for p in g.get(key, [])]
+  for g in groups:
+    out += [from_path(d["Path"]) for d in g.get("Existing actors to modify", [])]
+  for g in groups:
+    out += [from_path(p) for p in g.get("Actors to remove", [])]
+  for arc, i in HOMEN:
+    out.append(("%s/Homen%03X" % (arc, i), arc, ACTR, None, None, i))
+  return groups, out
+
+
+def actor_lines(disc, targets):
+  lines = []
+  for label, arc, cls, layer, index, homen in targets:
+    dzx = dzx_of(disc, arc)
+    if homen is not None:
+      entries = dzx.entries_by_type(ACTR)
+      e = entries[homen] if homen < len(entries) else None
+    else:
+      entries = dzx.entries_by_type_and_layer(cls, layer=layer)
+      e = entries[index] if index < len(entries) else None
+    lines.append("actor %s %s" % (label, raw_hex(e, cls)))
+  return lines
+
+
+def add_sites(groups):
+  """(arc, layer, tag) of each group with "New actors to add": the layer of its first enemy."""
+  out = []
+  for g in groups:
+    if g.get("New actors to add"):
+      m = PATH_RE.match(g["Enemies"][0]["Path"])
+      layer = DZxLayer(m.group(2))
+      tag = "ACTR" if layer == DZxLayer.Default else "ACT%x" % layer.value
+      out.append((m.group(1), layer, tag))
+  return out
+
+
 def lines_for(disc, paths, kind):
   return ["%s %s %s" % (kind, p, record_hex(entry_of(disc, p))) for p in paths]
 
 
 def expected(iso, placement, vanilla):
   paths = location_paths()
+  groups, targets = actor_targets()
   if vanilla:
     disc = DiscRando(iso, None)
     base = lines_for(disc, paths, "base")
-    return base + ["enemy" + l[len("base"):] for l in base]
+    return base + ["enemy" + l[len("base"):] for l in base] + actor_lines(disc, targets)
 
   values = dict(placement.get("options", {}))
   values["randomize_enemies"] = True
@@ -151,17 +222,30 @@ def expected(iso, placement, vanilla):
     er.rando = disc
     er.reset_rng()
     er.save_changed_enemies_and_randomize_their_params()
+    # R7.4b: the rest of _save (but update_loaded_particles, R7.4c), on the same rng
+    sites = add_sites(groups)
+    before = {(arc, tag): len(dzx_of(disc, arc).entries_by_type_and_layer(ACTR, layer=layer))
+              for arc, layer, tag in sites}
+    er.add_modify_and_replace_actors_for_enemy_rando()
+    er.randomize_enemies_spawned_by_objects()
     er._rng = None
-  return base + lines_for(disc, paths, "enemy")
+  added = []
+  for arc, layer, tag in sites:
+    entries = dzx_of(disc, arc).entries_by_type_and_layer(ACTR, layer=layer)
+    for i in range(before[(arc, tag)], len(entries)):
+      added.append("added %s %s %d %s" % (arc, tag, i, raw_hex(entries[i], ACTR)))
+  return base + lines_for(disc, paths, "enemy") + actor_lines(disc, targets) + added
 
 
-def run_smoke(dump, iso, placement_path, stage):
+def run_smoke(dump, iso, placement_path, stage, extra_env=()):
   env = dict(os.environ)
   env["COS_DISC"] = os.path.abspath(iso)
   cmd = [os.path.join(oc.REPO_ROOT, "native", "tools", "run.sh"), "rando", "--stage", stage,
          "--env", "COS_RANDO_SMOKE=enemies", "--env", "COS_ENEMY_DUMP=%s" % dump]
   if placement_path:
     cmd += ["--env", "COS_RANDO_PLACEMENT=%s" % os.path.abspath(placement_path)]
+  for kv in extra_env:
+    cmd += ["--env", kv]
   print("enemy_check: " + " ".join(cmd), file=sys.stderr)
   return subprocess.run(cmd, cwd=oc.REPO_ROOT, env=env).returncode
 
@@ -175,6 +259,8 @@ def main():
   ap.add_argument("opts", nargs="*", help="--seed: extra options name=json for the CLI")
   ap.add_argument("--vanilla", action="store_true", help="no enemies: the disc's records, unchanged")
   ap.add_argument("--stage", default="M_NewD2:2:1", help="--run: the boot stage (default M_NewD2:2:1)")
+  ap.add_argument("--smoke-env", action="append", default=[], metavar="K=V",
+                  help="--run: an extra environment variable for the smoke (e.g. COS_RANDO_ENEMY_ALLDIE=1)")
   g = ap.add_mutually_exclusive_group()
   g.add_argument("--dump", help="the smoke's dump to compare")
   g.add_argument("--run", action="store_true", help="run the enemies smoke and compare its dump")
@@ -215,7 +301,7 @@ def main():
   if args.run:
     tmp = tempfile.TemporaryDirectory(dir=os.path.join(oc.REPO_ROOT, "build"))
     dump = os.path.join(tmp.name, "enemies.txt")
-    code = run_smoke(dump, args.disc, args.placement, args.stage)
+    code = run_smoke(dump, args.disc, args.placement, args.stage, args.smoke_env)
     if code != 0:
       print("enemy_check: the enemies smoke exited %d" % code, file=sys.stderr)
       return 1
@@ -234,8 +320,11 @@ def main():
     print("unexpected " + l)
   ok = got == want
   n = sum(1 for l in want if l.startswith("enemy "))
-  print("enemy_check: %d enemy records (%s), %d missing, %d unexpected lines: %s wwrando's _save on %s"
-        % (n, "vanilla" if args.vanilla else placement.get("seed"), len(missing), len(unexpected),
+  na = sum(1 for l in want if l.startswith("actor "))
+  nd = sum(1 for l in want if l.startswith("added "))
+  print("enemy_check: %d enemy records, %d edited and %d added actors (%s), %d missing, %d unexpected lines: "
+        "%s wwrando's _save on %s"
+        % (n, na, nd, "vanilla" if args.vanilla else placement.get("seed"), len(missing), len(unexpected),
            "equal to" if ok else "DIFFERENT from", os.path.basename(args.disc)))
   return 0 if ok else 1
 
