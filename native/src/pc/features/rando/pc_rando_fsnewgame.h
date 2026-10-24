@@ -26,7 +26,7 @@
 //
 // The texts are messages of the R3.20 overlay (pc_rando_msg.h, numbers PCR_FSNG_MSG_*): English on
 // the USA game; on the European game they follow the game's language (Spanish for Spanish, English for
-// the other three). D16: the PAL file select has the hunks but does not ask until R7.6a opens EUR.
+// the other three). D16: the PAL file select has the same hunks and asks too since R7.6a.
 #pragma once
 
 #include <string>

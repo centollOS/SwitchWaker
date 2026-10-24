@@ -13,6 +13,7 @@
 #include "pc/pc_rando_hooks.h"
 #include "pc_internal.h"
 
+#include "d/d_com_inf_game.h"
 #include "d/d_save.h"
 #include "m_Do/m_Do_MemCardRWmng.h"
 
@@ -99,6 +100,14 @@ std::string cleanActivate(bool es) {
 }
 
 } // namespace
+
+bool randoFileSelectSpanish() {
+#if defined(VERSION) && VERSION == 3
+    return dComIfGs_getPalLanguage() == 3; // R7.6a: the game's language on the European game
+#else
+    return false; // the USA game's own language
+#endif
+}
 
 const RandoFileSelectInfo& randoFileSelectInfo() {
     return sInfo;
@@ -211,7 +220,7 @@ extern "C" void pc_rando_file_select_draw(const uint8_t* saveData, uint8_t selec
     if (saveData == nullptr || selectNum > 2 || proc > kLastShownProc) {
         return;
     }
-    const bool es = pc_ui_spanish();
+    const bool es = randoFileSelectSpanish();
     uint8_t* slot = const_cast<uint8_t*>(saveData) + selectNum * sizeof(card_gamedata);
     const dSv_save_c_PACKED* save = (const dSv_save_c_PACKED*)slot;
     const bool used = mDoMemCdRWm_TestCheckSumGameData(slot) && save->mPlayer.mInfo.mPlayerName[0] != 0;

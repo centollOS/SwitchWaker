@@ -481,6 +481,7 @@ sea `stage.dzs` "Ship" ACTR to sea/Room44's SHIP 0 (read from the disc once) and
 | game/src/d/d_save.cpp | `dSv_player_return_place_c::init` (spawn 0 instead of 206) | `?:` | `tweaks.py` `skip_wakeup_intro_and_start_at_dock` (DOL 0x80058BAF) |
 | game/src/d/d_save.cpp | `dSv_info_c::reinit` (4 blocks: Lenzo's register, jail chest, Deluxe Picto Box, the two camera owned bits) | `if (!pc_rando())` | `make_game_nonlinear.asm` 0x8005D78C, 0x8005D7A4, 0x8005D7FC, 0x8005D81C, 0x8005D82C |
 | game/src/d/d_file_select.cpp | `dFile_select_c::makeRecInfo` (a blank slot shows the starting HP; `pc_rando_start_file_select_life` returns the saved value unless the slot is blank and `pc_rando()` or a pending seed is on) | hook returning the vanilla value | `misc_rando_features.asm` `get_current_health_for_file_select_screen` 0x80182504, `get_max_health_for_file_select_screen` 0x80182544 |
+| game/src/pal/d/d_file_select.inc | `dFile_select_c::makeRecInfo` (R7.6a): the same hook in the PAL unit, which reads the card bytes big-endian (`mMaxLife` at +0, `mLife` at +2) and the name through `dSv_save_c_PACKED` | hook returning the vanilla value | as above |
 | game/src/d/d_s_name.cpp | `dScnName_c::FileSelectMainNormal` (after R0.7's load hook: magic refilled, HP capped) | `add` | `misc_rando_features.asm` `fully_refill_magic_meter_and_cap_health_on_load_save` 0x80231B08 |
 | game/src/d/actor/d_a_player_main.cpp | `daPy_lk_c::playerInit` (casual clothes iff `heros_clothes != 1`) | `?:` | `misc_rando_features.asm` `check_player_in_casual_clothes` 0x80125AD8 |
 | game/src/d/d_gameover.cpp | `dGameover_c::_execute` (continue HP min(12, max rounded down)) | `?:` | `misc_rando_features.asm` `gameover_continue_reset_life` 0x8018E7D0 |
@@ -651,9 +652,10 @@ pure part `features/rando/pc_rando_sidecars.cpp`). Checked by the `newfile` smok
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | game/src/d/d_file_select.cpp | `dFile_select_c::_draw`: `pc_rando_file_select_draw(mSaveDataPtr, selectNum, field_0x392b)` after `dComIfGd_set2DOpa` (reads only) | add | none (plan D15) |
+| game/src/pal/d/d_file_select.inc | `dFile_select_c::_draw` (R7.6a): the same call in the PAL unit (DataSelProc 0-6 are the same states in both) | add | none (plan D15) |
 
-PAL: TODO. The PAL build compiles `game/src/pal/d/d_file_select.inc` instead (its own
-`dFile_select_c::_draw`), so PAL file selects show no line until R7.6 adds the same call there.
+PAL: the PAL build compiles `game/src/pal/d/d_file_select.inc` instead (its own `dFile_select_c::_draw`);
+R7.6a added the same call there.
 
 ## R4.5
 
@@ -912,6 +914,20 @@ lasting state lands on an archive heap (grown files still use `file.alloc` on th
 palette shifts are static (`pc_rando_palettes.cpp`) and the R5.3 hints parse runs in a host scope
 (`pc_rando_hooks_hints.cpp`). Checked by `native/tools/rando/enemy_sweep.py` (smoke `enemysweep`).
 
+## R7.6a
+
+European disc, build and region gates (plan R7.6a). D16's `kRegionOk` is true on both builds
+(`pc_rando_settings.cpp`, `pc_rando_menu.cpp`, `game_hooks/pc_rando_hooks_fileselect_newgame.cpp`), so the
+Randomizer tab, Generate and the file select's question work with the European disc. The sidecar folder already
+followed the build's ID (`pc_rando_slot_card_dir`: `<userPath>/EUR/Card A`). Its hunks in `game/` are the PAL
+copies of USA-only hunks, listed in their own steps' sections (R3.2, R4.4); `rando_hook_census.py` now reads every
+file once per build (check 5, "Regions") and reports a step whose marker count differs between the USA and the
+PAL view.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| - | no hunks of its own: the PAL copies carry their steps' markers (R3.2, R4.4) | - | - |
+
 ## R8.1
 
 File select "Normal / Randomizer" question (Phase R8, revising D6). With the setting `COS_RANDO_ASK_NEWGAME`
@@ -946,9 +962,7 @@ the `fsnewgame` smoke (`regress_rando/R8.1.txt`).
 
 Language: English on the USA build (the game's own language). On the PAL build the texts follow the game's
 language (`dComIfGs_getPalLanguage`): Spanish for Spanish, English for the other three; wwrando's error line
-stays in English. The PAL hunks are in place, but D16 keeps the question off on the PAL build until R7.6a
-opens the region (checked on the Mac with the gate opened locally, not committed: the question in Spanish and
-English, No to the name entry).
+stays in English. The PAL hunks are in place; R7.6a opened D16, so the PAL build asks too.
 
 R8.3 extends this section (its one hunk per file is in the same `YesNoSelect` branch, marked `pc_rando(R8.1)`
 with an R8.3 note). Yes on the question asks a second one, "Make a new seed?", when there is a seed (a pending

@@ -760,7 +760,17 @@ void dFile_select_c::makeRecInfo(u8 i_dataNo) {
 
     u8* saveData = &mSaveDataPtr[i_dataNo * sizeof(card_gamedata)];
 
+#if TARGET_PC
+    // pc_rando(R3.2): misc_rando_features.asm get_current_health_for_file_select_screen 0x80182504 and
+    // get_max_health_for_file_select_screen 0x80182544 (a blank slot shows the starting HP; the hook
+    // returns the saved value unless the slot is blank and pc_rando() or a pending seed is on; R7.6a:
+    // the USA hunk duplicated for the PAL unit); original: the saved mLife and mMaxLife
+    const char firstNameChar = ((dSv_save_c_PACKED*)saveData)->mPlayer.mInfo.mPlayerName[0];
+    u16 curHealth = pc_rando_start_file_select_life(firstNameChar, *(BE(u16)*)(saveData + 2), 0);
+    const u16 maxHealth = pc_rando_start_file_select_life(firstNameChar, *(BE(u16)*)saveData, 1);
+#else
     u16 curHealth = *(BE(u16)*)(saveData + 2); // the card data is big-endian (step 4.15)
+#endif
 
     int curHearts = curHealth / 4;
     int healthMod4 = curHealth % 4;
@@ -770,7 +780,11 @@ void dFile_select_c::makeRecInfo(u8 i_dataNo) {
 
     // display hearts
     for(i = 0; i < 0x14; i++) {
+#if TARGET_PC
+        if(i < maxHealth / 4) {
+#else
         if(i < *(BE(u16)*)saveData / 4) {
+#endif
             field_0x828[i].pane->show();
             field_0xc88[i].pane->show();
 
@@ -3957,6 +3971,12 @@ void dFile_select_c::changeBrokenColor(int param_1) {
 /* 8018C9D0-8018CA0C       .text _draw__14dFile_select_cFv */
 void dFile_select_c::_draw() {
     dComIfGd_set2DOpa(&fileSel);
+#if TARGET_PC
+    // pc_rando(R4.4): plan D15 (the selected slot's randomizer line, drawn by the port's overlay;
+    // reads only, nothing for a vanilla slot; R7.6a: the USA hunk duplicated for the PAL unit);
+    // original: none
+    pc_rando_file_select_draw(mSaveDataPtr, selectNum, field_0x392b);
+#endif
 }
 
 /* 8018CA0C-8018CA70       .text draw__15dDlst_FileSel_cFv */

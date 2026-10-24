@@ -58,12 +58,9 @@ const char* L(bool es, const char* s, const char* e) {
     return es ? s : e;
 }
 
-// D16: USA only until R7.6 (as pc_rando_settings.cpp).
-#if defined(VERSION) && VERSION == 3
-constexpr bool kRegionOk = false;
-#else
+// D16: the randomizer was USA only until R7.6; R7.6a opened it for the European disc (VERSION_PAL).
+// The constant stays so a region can be closed again in one place per file.
 constexpr bool kRegionOk = true;
-#endif
 
 bool sInit = false;
 bool sBusy = false;
