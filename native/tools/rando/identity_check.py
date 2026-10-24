@@ -47,10 +47,15 @@ native/check/rando/fixtures/R0_6_identity.json) and once without (vanilla). The 
   --stage       the boot stage (default Asoko:0:0:2)
 
 SAVES (`saves`): native/tools/save_sweep.py (every case, or the ones named) once without and once
-with COS_RANDO_PLACEMENT=<placement>; both must pass and every case's saved summary
-(save_expect.txt, the regions the game packed) must be equal both ways, apart from the randomizer's
-own record (D3: the 0x50-byte "WWR1" record in dSv_reserve_c, which only a randomized file has).
-`saves-compare` compares two existing sweep directories.
+with COS_RANDO_PLACEMENT=<placement>; both sweeps must pass (each save loads back equal). A
+randomized file is not a vanilla file even with vanilla items: its new game runs wwrando's
+init_save_with_tweaks / init_starting_gear / reveal_sea_chart (R3.1, R3.2, R6.4) and its slot holds
+the randomizer record (D3, "WWR1" in dSv_reserve_c). So the saves must be equal both ways apart from
+the record and from one new-file state that is the same in every case (it cannot depend on where or
+what the game saved): flag regions (event, memory, map, ...) identity = vanilla | N with no bit
+cleared; other regions identity = N at N's positions and vanilla elsewhere; the return place, the
+names and the config equal. `saves-compare` compares two existing sweep directories (the cases both
+have).
 
 Reports: <out>/identity_check.txt (archives) and <out>/saves_check.txt. <out> defaults to
 build/rando-identity/<timestamp>. Exit codes: 0 every check held, 1 a check failed, 2 usage or
@@ -645,25 +650,105 @@ def compare_saves(van_dir, id_dir):
             m.group(0)[2:] if m else f"no report {rep}")
   cases = sorted(x for x in os.listdir(van_dir) if os.path.isdir(os.path.join(van_dir, x)))
   id_cases = sorted(x for x in os.listdir(id_dir) if os.path.isdir(os.path.join(id_dir, x)))
-  c.check("same cases both ways", cases == id_cases, f"{cases} vs {id_cases}")
-  for case in cases:
+  c.check("every identity case has its vanilla case", set(id_cases) <= set(cases),
+          ", ".join(sorted(set(id_cases) - set(cases))))
+  if set(cases) - set(id_cases):
+    c.note("vanilla cases without an identity run (not compared): " + ", ".join(sorted(set(cases) - set(id_cases))))
+  pairs = {}
+  for case in sorted(set(cases) & set(id_cases)):
     a = summary(os.path.join(van_dir, case, "save", "save_expect.txt"))
     b = summary(os.path.join(id_dir, case, "save", "save_expect.txt"))
-    if a is None or b is None:
-      c.check(f"{case}: both saves wrote save_expect.txt", False)
+    if not c.check(f"{case}: both saves wrote save_expect.txt", a is not None and b is not None):
       continue
-    diffs = [k for k in sorted(set(a) | set(b)) if a.get(k) != b.get(k)]
-    allowed = [k for k in diffs if is_rando_record(k, a.get(k), b.get(k))]
-    rest = [k for k in diffs if k not in allowed]
-    c.check(f"{case}: the saves are equal both ways" + (f" (apart from {', '.join(allowed)})" if allowed else ""),
-            not rest, "; ".join(f"{k}: {a.get(k)} -> {b.get(k)}" for k in rest[:6]))
+    pairs[case] = (a, b)
+  compare_new_file_state(c, pairs)
   return c
 
 
-def is_rando_record(key, a, b):
-  # The randomizer's own slot record (D3, dSv_reserve_c::mReserve): the summary's "region reserve"
-  # line; nothing else is allowed to differ.
-  return key in ("region reserve", "rando")
+# A randomized file is not a vanilla file even with vanilla items: its new game runs wwrando's
+# init_save_with_tweaks / init_starting_gear / reveal_sea_chart (R3.1, R3.2, R6.4,
+# pc_rando_new_game_init) and the slot gets its record (D3). Under the identity placement nothing
+# else may differ, and that new-file state cannot depend on where or what the game saved: so every
+# difference must be the same state N in every case. Flag regions: identity = vanilla | N (no bit
+# cleared); other regions: at N's positions identity = N, elsewhere identity = vanilla. STRICT_KEYS
+# must be equal.
+FLAG_REGIONS = {"region event", "region memory", "region map", "region collect", "region get_item",
+                "region get_bag_item", "region ocean", "region status_c", "region priest"}
+STRICT_KEYS = {"return", "region return_place", "region info", "region config"}
+DERIVED_KEYS = {"items": "region item"}  # summary lines repeating a region
+
+
+def _hexbytes(v):
+  v = re.sub(r"\([a-z]+\)", "", v or "")
+  if len(v) % 2:
+    v += "0"  # the summary cuts a long region at an odd number of digits
+  try:
+    return bytes.fromhex(v)
+  except ValueError:
+    return None
+
+
+def compare_new_file_state(c, pairs):
+  if not pairs:
+    c.check("save cases compared", False, "none")
+    return
+  keys = sorted(set().union(*(set(a) | set(b) for a, b in pairs.values())))
+  for case, (a, b) in pairs.items():
+    rec = _hexbytes(b.get("region reserve"))
+    c.check(f"{case}: the identity save holds the randomizer record (reserve starts with WWR1)",
+            rec is not None and rec[:4] == b"WWR1", (b.get("region reserve") or "-")[:16])
+    c.check(f"{case}: the vanilla save holds no randomizer record",
+            (_hexbytes(a.get("region reserve")) or b"\0")[:4] != b"WWR1")
+  state = []
+  for key in keys:
+    if key == "region reserve" or key in DERIVED_KEYS:
+      continue
+    diff_cases = [cs for cs, (a, b) in pairs.items() if a.get(key) != b.get(key)]
+    if not diff_cases:
+      continue
+    if key in STRICT_KEYS:
+      c.check(f"{key}: equal both ways", False, "; ".join(
+        f"{cs}: {pairs[cs][0].get(key)} -> {pairs[cs][1].get(key)}" for cs in diff_cases[:4]))
+      continue
+    vals = {cs: (_hexbytes(a.get(key)), _hexbytes(b.get(key))) for cs, (a, b) in pairs.items()}
+    if any(v is None or w is None or len(v) != len(w) for v, w in vals.values()):
+      # A text line (e.g. "status life .. magic .."): token by token, as a value region.
+      vals = {cs: ((a.get(key) or "").split(), (b.get(key) or "").split()) for cs, (a, b) in pairs.items()}
+      if any(len(v) != len(w) for v, w in vals.values()):
+        c.check(f"{key}: same shape both ways", False)
+        continue
+      flag = False
+    else:
+      flag = key in FLAG_REGIONS
+    bad = []
+    if flag:
+      n = bytearray(len(next(iter(vals.values()))[0]))
+      for v, w in vals.values():
+        for i in range(len(v)):
+          n[i] |= w[i] & ~v[i] & 0xFF
+      for cs, (v, w) in vals.items():
+        cleared = [i for i in range(len(v)) if v[i] & ~w[i] & 0xFF]
+        other = [i for i in range(len(v)) if w[i] != (v[i] | n[i])]
+        if cleared or other:
+          bad.append(f"{cs}: bytes {sorted(set(cleared + other))[:8]}")
+      desc = f"{sum(bin(x).count('1') for x in n)} bits set"
+    else:
+      n = {}
+      for v, w in vals.values():
+        for i in range(len(v)):
+          if v[i] != w[i]:
+            n.setdefault(i, set()).add(w[i])
+      for i, ws in sorted(n.items()):
+        if len(ws) > 1:
+          bad.append(f"position {i}: identity values {sorted(ws)} differ between cases")
+      for cs, (v, w) in vals.items():
+        wrong = [i for i in range(len(v)) if (w[i] not in n[i] if i in n else w[i] != v[i])]
+        if wrong:
+          bad.append(f"{cs}: positions {wrong[:8]}")
+      desc = f"{len(n)} positions"
+    state.append(f"{key} ({desc}, {len(diff_cases)} of {len(pairs)} cases)")
+    c.check(f"{key}: the differences are one new-file state in every case", not bad, "; ".join(bad[:4]))
+  c.note("new-file state (the same in every case): " + (", ".join(state) or "none"))
 
 
 # ---------------------------------------------------------------------------------------------
