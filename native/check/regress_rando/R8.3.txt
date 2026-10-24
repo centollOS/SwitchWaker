@@ -1,0 +1,11 @@
+# R8.3 (docs/RANDOMIZER_PLAN.md): the file select's second question "Make a new seed?" after Yes on R8.1's
+# question, driven by input through the real boot on the run's own empty card (smoke fsnewgame, cases in
+# the header of native/src/pc/harness/smokes/pc_rando_smoke_fsnewgame.cpp). COS_RANDO_FSNG_SEED is stored
+# in COS_RANDO_SEED by the smoke (an environment COS_RANDO_SEED would lock the setting, and a new name could
+# not be stored). The R8.1 lines (regress_rando/R8.1.txt) answer the second question with No.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --input native/check/input/rando-fsnewgame-newseed.txt --env COS_RANDO_SMOKE=fsnewgame --env COS_RANDO_FSNG_CASE=newseed --env COS_RANDO_FSNG_SEED=TestSeed1 --env COS_RANDO_ASK_NEWGAME=1
+rando 0 --input native/check/input/rando-fsnewgame-yes.txt --env COS_RANDO_SMOKE=fsnewgame --env COS_RANDO_FSNG_CASE=keeppending --env COS_RANDO_FSNG_SEED=OtherSeed --env COS_RANDO_ASK_NEWGAME=1
+rando 0 --input native/check/input/rando-fsnewgame-yes.txt --env COS_RANDO_SMOKE=fsnewgame --env COS_RANDO_FSNG_CASE=keepname --env COS_RANDO_FSNG_SEED=TestSeed1 --env COS_RANDO_ASK_NEWGAME=1
+rando 0 --input native/check/input/rando-fsnewgame-yes1.txt --env COS_RANDO_SMOKE=fsnewgame --env COS_RANDO_FSNG_CASE=noseed --env COS_RANDO_ASK_NEWGAME=1
+rando 0 --input native/check/input/rando-fsnewgame-back2.txt --env COS_RANDO_SMOKE=fsnewgame --env COS_RANDO_FSNG_CASE=back2 --env COS_RANDO_FSNG_SEED=TestSeed1 --env COS_RANDO_ASK_NEWGAME=1

@@ -9,6 +9,7 @@
 #include "features/rando/pc_rando_genjob.h"
 #include "features/rando/pc_rando_menu.h"
 #include "features/rando/pc_rando_msg.h"
+#include "features/rando/pc_rando_options.h"
 #include "features/rando/pc_rando_settings.h"
 #include "features/rando/pc_rando_sidecars.h"
 #include "features/rando/pc_rando_slot.h"
@@ -28,6 +29,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <chrono>
 #include <string>
 #include <unistd.h>
 
@@ -52,7 +54,8 @@ constexpr int kMessageLineWidth = 560;
 // An error stays on the panel this long unless A or B is pressed (frames, 30 per second).
 constexpr int kErrorFrames = 180;
 
-enum class Phase { Question, Wait, Error };
+// Question: R8.1's "Start a Randomizer file?"; Second: R8.3's "Make a new seed?".
+enum class Phase { Question, Second, Wait, Error };
 
 RandoFsNewgameInfo sInfo;
 bool sMenuInit = false;
@@ -80,6 +83,10 @@ const MsgText kTexts[] = {
     {PCR_FSNG_MSG_WAIT, "Generating the seed... %d%%", "Generando la semilla... %d%%"},
     {PCR_FSNG_MSG_ERROR, "The seed could not be made.", "No se pudo crear la semilla."},
     {PCR_FSNG_MSG_RANDOM, "random", "aleatoria"},
+    {PCR_FSNG_MSG_NEWQ, "Make a new seed?", "¿Crear una semilla nueva?"},
+    {PCR_FSNG_MSG_CURPEND, "Current seed: %s\nHash: %s\nNo keeps this seed.",
+     "Semilla actual: %s\nHash: %s\nElige No para mantenerla."},
+    {PCR_FSNG_MSG_CURNAME, "Current seed: %s\nNo keeps this seed.", "Semilla actual: %s\nElige No para mantenerla."},
 };
 
 // The European game in Spanish (PAL language 3, the SDK's OS_LANGUAGE_SPANISH). Never on USA.
@@ -165,6 +172,47 @@ std::string seedLine() {
     return wrapMessage(format(PCR_FSNG_MSG_NEWSEED, seed.c_str()));
 }
 
+// R8.3: the seed the second question shows ("Current seed: ..."): the pending seed's name and hash
+// words, else the name of the seed setting. Empty when there is no seed at all.
+std::string settingSeed() {
+    return rando::textSanitize(rando::TextKind::Seed, pc_settings_get(kRandoSeedKey));
+}
+
+std::string currentSeedLine() {
+    if (const PcRandoSeed* p = pc_rando_slot_pending(); p != nullptr) {
+        return wrapMessage(format(PCR_FSNG_MSG_CURPEND, p->seed.c_str(), pcr::seedHashWords(*p).c_str()));
+    }
+    return wrapMessage(format(PCR_FSNG_MSG_CURNAME, settingSeed().c_str()));
+}
+
+uint64_t entropy() {
+    const uint64_t a = (uint64_t)std::chrono::system_clock::now().time_since_epoch().count();
+    const uint64_t b = (uint64_t)std::chrono::steady_clock::now().time_since_epoch().count();
+    return a ^ (b * 0x9E3779B97F4A7C15ull) ^ ((uint64_t)getpid() << 32) ^ (uint64_t)pc_frame_count();
+}
+
+// R8.3: a new random seed name in COS_RANDO_SEED, as the menu's "Random seed" row (so the menu shows
+// it and the generation below uses it). When the environment sets the seed it stays as it is.
+void newSeedName() {
+    if (pc_settings_locked(kRandoSeedKey)) {
+        writef(STDERR_FILENO, "[cos] rando fsnewgame: %s is set by the environment: its seed \"%s\" is kept\n",
+               kRandoSeedKey, settingSeed().c_str());
+        return;
+    }
+    const std::string old = settingSeed();
+    std::string s;
+    for (int i = 0; i < 8; i++) { // a name different from the current one
+        s = pcr::randomSeedName(entropy() + (uint64_t)i * 0x2545F4914F6CDD1Dull);
+        if (s != old) {
+            break;
+        }
+    }
+    pc_settings_set(kRandoSeedKey, s.c_str());
+    sInfo.newSeeds++;
+    sInfo.lastNewSeed = s;
+    writef(STDERR_FILENO, "[cos] rando fsnewgame: new random seed \"%s\" (was \"%s\")\n", s.c_str(), old.c_str());
+}
+
 void sound(u32 se) {
     mDoAud_seStart(se);
 }
@@ -193,6 +241,31 @@ int waitTitle(char* title) {
     const int pct = p.total > 0 ? p.done * 100 / p.total : 0;
     put(title, kTitleCap, format(PCR_FSNG_MSG_WAIT, pct), &sInfo.lastTitle);
     return PC_RANDO_FSNG_WAIT;
+}
+
+// Starts the generation of the settings' seed (or waits for the Generate row's running job) and
+// enters the wait state; an error that stops it from starting goes to the error state.
+int startGeneration(char* title, char* message) {
+    sInfo.generated++;
+    sInfo.waitFrames = 0;
+    if (!randoGenBusy()) { // else the Generate row's job is running: wait for it
+        std::string msg;
+        if (!randoGenerate(false, &msg)) {
+            return toError(msg, title, message);
+        }
+    }
+    writef(STDERR_FILENO, "[cos] rando fsnewgame: generating seed \"%s\" (frame %u)\n", randoGenLast().seed.c_str(),
+           pc_frame_count());
+    put(message, kMessageCap, seedLine(), &sInfo.lastMessage);
+    sPhase = Phase::Wait;
+    return waitTitle(title);
+}
+
+int usePending() {
+    sInfo.usedPending++;
+    sChoice = 2;
+    writef(STDERR_FILENO, "[cos] rando fsnewgame: the pending seed \"%s\"\n", pc_rando_slot_pending()->seed.c_str());
+    return PC_RANDO_FSNG_START;
 }
 
 std::string askValue(bool es) {
@@ -303,26 +376,47 @@ int pc_rando_fs_newgame_yesno(int trigA, int trigB, int cursor, char* title, cha
             return PC_RANDO_FSNG_START;
         }
         sInfo.answeredYes++;
-        if (pc_rando_slot_pending() != nullptr && !randoGenBusy()) {
-            sInfo.usedPending++;
-            sChoice = 2;
-            writef(STDERR_FILENO, "[cos] rando fsnewgame: Yes: the pending seed \"%s\"\n",
-                   pc_rando_slot_pending()->seed.c_str());
-            return PC_RANDO_FSNG_START;
+        if (randoGenBusy()) { // the Generate row's job is running: its seed is the new one
+            writef(STDERR_FILENO, "[cos] rando fsnewgame: Yes: waiting for the menu's generation\n");
+            return startGeneration(title, message);
         }
-        sInfo.generated++;
-        sInfo.waitFrames = 0;
-        if (!randoGenBusy()) { // else the Generate row's job is running: wait for it
-            std::string msg;
-            if (!randoGenerate(false, &msg)) {
-                return toError(msg, title, message);
-            }
+        if (pc_rando_slot_pending() == nullptr && settingSeed().empty()) {
+            // R8.3: no seed at all: no second question, a new seed
+            writef(STDERR_FILENO, "[cos] rando fsnewgame: Yes: no seed yet: a new one\n");
+            newSeedName();
+            return startGeneration(title, message);
         }
-        writef(STDERR_FILENO, "[cos] rando fsnewgame: Yes: generating seed \"%s\" (frame %u)\n",
-               randoGenLast().seed.c_str(), pc_frame_count());
-        put(message, kMessageCap, seedLine(), &sInfo.lastMessage);
-        sPhase = Phase::Wait;
-        return waitTitle(title);
+        // R8.3: "Make a new seed?" with the current seed, Yes preselected (the game moves the cursor)
+        sInfo.asked2++;
+        sPhase = Phase::Second;
+        sSeedLine = currentSeedLine();
+        put(title, kTitleCap, msgText(PCR_FSNG_MSG_NEWQ), &sInfo.lastTitle);
+        put(message, kMessageCap, sSeedLine, &sInfo.lastMessage);
+        sInfo.question2Message = sInfo.lastMessage;
+        writef(STDERR_FILENO, "[cos] rando fsnewgame: Yes: asks for a new seed (current: %s)\n",
+               pc_rando_slot_pending() != nullptr ? "the pending seed" : "the seed setting's name");
+        return PC_RANDO_FSNG_ASK2;
+    case Phase::Second:
+        if (trigB) {
+            writef(STDERR_FILENO, "[cos] rando fsnewgame: B on the new seed question: back\n");
+            return back();
+        }
+        if (!trigA) {
+            return PC_RANDO_FSNG_NONE;
+        }
+        sound(JA_SE_MSEL_OK_1);
+        if (cursor == 0) {
+            sInfo.answered2Yes++;
+            writef(STDERR_FILENO, "[cos] rando fsnewgame: new seed: Yes\n");
+            newSeedName();
+            return startGeneration(title, message);
+        }
+        sInfo.answered2No++;
+        writef(STDERR_FILENO, "[cos] rando fsnewgame: new seed: No (keeps the current seed)\n");
+        if (pc_rando_slot_pending() != nullptr) {
+            return usePending();
+        }
+        return startGeneration(title, message);
     case Phase::Wait: {
         sInfo.waitFrames++;
         if (randoGenBusy()) {

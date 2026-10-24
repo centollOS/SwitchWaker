@@ -1767,6 +1767,14 @@ void dFile_select_c::YesNoSelect() {
             field_0x30d8.pane->hide();
             return;
         }
+        if(answer == PC_RANDO_FSNG_ASK2) {
+            // pc_rando(R8.1): plan Phase R8, R8.3 (the second question "Make a new seed?" in the same
+            // panes preselects Yes, as the stick's left move); original: none
+            field_0x3928 = 0;
+            field_0x3930 = 0;
+            yesNoCursorMove();
+            return;
+        }
     }
 #endif
     if(CPad_CHECK_TRIG_A(0)) {
