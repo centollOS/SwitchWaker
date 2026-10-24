@@ -69,7 +69,7 @@
    "t2_env": {
     "COS_BOSSLOC_T2": "1"
    },
-   "loc_line": "rando-smoke bossloc: (?P<tier>T[12]) (?P<loc>PCR_LOC_\\w+) .*: (?P<res>ok|FAIL)$",
+   "loc_line": "rando-smoke bossloc: (?P<tier>T[12]) (?P<loc>PCR_LOC_\\w+)\\b.*: (?P<res>ok|FAIL)$",
    "comment": "R9.1: the 6 boss Heart Containers (BossItem keys). One run per boss room: Bitem for the room's stage and for stage 2 (the sea-stage Helmaroc Bitems), createItemForBoss and the disappear cloud give the seed's item (T1); T2 picks one up. Helmaroc King's sea/Room1 keys are checked from M2tower (point 16: point 0 never finishes loading)."
   },
   "event": {
@@ -135,7 +135,7 @@
    "stops": {
     "*": "sea:11"
    },
-   "loc_line": "rando-smoke codeloc: (?P<tier>T1) (?P<loc>PCR_LOC_\\w+) .*: (?P<res>ok|FAIL)$",
+   "loc_line": "rando-smoke codeloc: (?P<tier>T1) (?P<loc>PCR_LOC_\\w+)\\b.*: (?P<res>ok|FAIL)$",
    "comment": "R9.1: every Code key (codeloc smoke, one run): the lookups and storage-actor calls give the seed's item. No T2: getting these items means playing the NPC's quest or minigame (talks, letters, auctions, photos), which the sweep cannot drive; the steps' own smokes play the ones they could (codeA's Outset Great Fairy, R2.8's withered tree, R2.9's shops)."
   }
  },
@@ -143,14 +143,30 @@
   "spawn": {
    "sea:33": 0
   },
-  "keys": {},
-  "comment": "spawn: sea room 33's point 1 comes up in room 31 (location sweep, 2026-10-21)."
+  "keys": {
+   "sea/Stage:TACT_HT": {
+    "t2": "sea:13:5",
+    "note": "the Wind Shrine event plays at Dragon Roost Island (sea room 13, point 5, as the zephos smoke boots); from Windfall its staff never shows up"
+   },
+   "Ojhous/Stage:Ji1_TeachSpRollCut": {
+    "xfail": {
+     "T2": "evloc cannot play Orca's Hurricane Spin lesson: Link's 006n_talk cut waits for Orca's own message flow (his training state), which an event ordered from the player never starts, so the run times out. T1 checks the placed 011get_item action and the Ji1 code site (codeloc, evloc)"
+    }
+   },
+   "Siren/Stage:hsehi1_tact": {
+    "t2": "Siren:7:0",
+    "xfail": {
+     "T2": "evloc ends Link's 011get_item cut (cut 935) as a stuck staff after the Command Melody cuts it cannot conduct (its own-action exemption compares the cut to the key's global action 957), so execItemGet is not seen; the get-item demo item is the placed one and the save changes. Needs a driver that conducts the Command Melody (as the zephos smoke conducts the Wind's Requiem)"
+    }
+   }
+  },
+  "comment": "spawn: sea room 33's point 1 comes up in room 31 (location sweep, 2026-10-21). R9.1: event T2 stops and xfails, see each key's note/xfail."
  },
  "keys": [
   {"key": 0, "loc": "PCR_LOC_OUTSET_ISLAND_UNDERNEATH_LINKS_HOUSE", "kind": "chest", "where": "LinkUG/Stage/TRES[0]", "room": 0, "t2": "LinkUG:0:1", "t1": "LinkUG:0:1"},
   {"key": 1, "loc": "PCR_LOC_OUTSET_ISLAND_MESA_THE_GRASSCUTTERS_HOUSE", "kind": "chest", "where": "Omasao/Stage/TRES[0]", "room": 0, "t2": "Omasao:0:0", "t1": "Omasao:0:0"},
   {"key": 2, "loc": "PCR_LOC_OUTSET_ISLAND_ORCA_GIVE_10_KNIGHTS_CRESTS", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
-  {"key": 3, "loc": "PCR_LOC_OUTSET_ISLAND_ORCA_GIVE_10_KNIGHTS_CRESTS", "kind": "event", "where": "Ojhous/Stage:Ji1_TeachSpRollCut", "event": "Ji1_TeachSpRollCut", "t1": "Ojhous:0", "t2": "Ojhous:0"},
+  {"key": 3, "loc": "PCR_LOC_OUTSET_ISLAND_ORCA_GIVE_10_KNIGHTS_CRESTS", "kind": "event", "where": "Ojhous/Stage:Ji1_TeachSpRollCut", "event": "Ji1_TeachSpRollCut", "t1": "Ojhous:0", "t2": "Ojhous:0", "xfail": {"T2": "evloc cannot play Orca's Hurricane Spin lesson: Link's 006n_talk cut waits for Orca's own message flow (his training state), which an event ordered from the player never starts, so the run times out. T1 checks the placed 011get_item action and the Ji1 code site (codeloc, evloc)"}},
   {"key": 4, "loc": "PCR_LOC_OUTSET_ISLAND_ORCA_HIT_500_TIMES", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
   {"key": 5, "loc": "PCR_LOC_OUTSET_ISLAND_GREAT_FAIRY", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
   {"key": 6, "loc": "PCR_LOC_OUTSET_ISLAND_JABUNS_CAVE", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
@@ -205,7 +221,7 @@
   {"key": 55, "loc": "PCR_LOC_WINDFALL_ISLAND_KAMO_FULL_MOON_PHOTO", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
   {"key": 56, "loc": "PCR_LOC_WINDFALL_ISLAND_MINENCO_MISS_WINDFALL_PHOTO", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
   {"key": 57, "loc": "PCR_LOC_WINDFALL_ISLAND_LINDA_AND_ANTON", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
-  {"key": 58, "loc": "PCR_LOC_DRAGON_ROOST_ISLAND_WIND_SHRINE", "kind": "event", "where": "sea/Stage:TACT_HT", "event": "TACT_HT", "t1": "sea:11", "t2": "sea:11"},
+  {"key": 58, "loc": "PCR_LOC_DRAGON_ROOST_ISLAND_WIND_SHRINE", "kind": "event", "where": "sea/Stage:TACT_HT", "event": "TACT_HT", "t1": "sea:11", "t2": "sea:13:5", "note": "the Wind Shrine event plays at Dragon Roost Island (sea room 13, point 5, as the zephos smoke boots); from Windfall its staff never shows up"},
   {"key": 59, "loc": "PCR_LOC_DRAGON_ROOST_ISLAND_RITO_AERIE_GIVE_HOSKIT_20_GOLDEN_FEATHERS", "kind": "event", "where": "Atorizk/Stage:Get_Rupee", "event": "Get_Rupee", "t1": "Atorizk:0", "t2": "Atorizk:0"},
   {"key": 60, "loc": "PCR_LOC_DRAGON_ROOST_ISLAND_CHEST_ON_TOP_OF_BOULDER", "kind": "chest", "where": "sea/Room13/TRES[0]", "room": 13, "t2": "sea:13:0", "t1": "sea:13:0"},
   {"key": 61, "loc": "PCR_LOC_DRAGON_ROOST_ISLAND_FLY_ACROSS_PLATFORMS_AROUND_ISLAND", "kind": "chest", "where": "sea/Room13/TRES[1]", "room": 13, "t2": "sea:13:0", "t1": "sea:13:0"},
@@ -265,7 +281,7 @@
   {"key": 115, "loc": "PCR_LOC_TOWER_OF_THE_GODS_SHOOT_EYE_ABOVE_SKULLS_ROOM_CHEST", "kind": "chest", "where": "Siren/Stage/TRES[6]", "room": 1, "t2": "Siren:1:0", "t1": "Siren:0:0"},
   {"key": 116, "loc": "PCR_LOC_TOWER_OF_THE_GODS_TINGLE_STATUE_CHEST", "kind": "chest", "where": "Siren/Stage/TRES[10]", "room": 6, "t2": "Siren:6:0", "t1": "Siren:0:0"},
   {"key": 117, "loc": "PCR_LOC_TOWER_OF_THE_GODS_FIRST_CHEST_GUARDED_BY_ARMOS_KNIGHTS", "kind": "chest", "where": "Siren/Stage/TRES[4]", "room": 22, "t2": "Siren:22:0", "t1": "Siren:0:0"},
-  {"key": 118, "loc": "PCR_LOC_TOWER_OF_THE_GODS_STONE_TABLET", "kind": "event", "where": "Siren/Stage:hsehi1_tact", "event": "hsehi1_tact", "t1": "Siren:0", "t2": "Siren:0"},
+  {"key": 118, "loc": "PCR_LOC_TOWER_OF_THE_GODS_STONE_TABLET", "kind": "event", "where": "Siren/Stage:hsehi1_tact", "event": "hsehi1_tact", "t1": "Siren:0", "t2": "Siren:7:0", "xfail": {"T2": "evloc ends Link's 011get_item cut (cut 935) as a stuck staff after the Command Melody cuts it cannot conduct (its own-action exemption compares the cut to the key's global action 957), so execItemGet is not seen; the get-item demo item is the placed one and the save changes. Needs a driver that conducts the Command Melody (as the zephos smoke conducts the Wind's Requiem)"}},
   {"key": 119, "loc": "PCR_LOC_TOWER_OF_THE_GODS_DARKNUT_MINIBOSS_ROOM", "kind": "chest", "where": "SirenMB/Stage/TRES[0]", "room": 23, "t2": "SirenMB:23:0", "t1": "SirenMB:23:0"},
   {"key": 120, "loc": "PCR_LOC_TOWER_OF_THE_GODS_SECOND_CHEST_GUARDED_BY_ARMOS_KNIGHTS", "kind": "chest", "where": "Siren/Stage/TRES[7]", "room": 21, "t2": "Siren:21:0", "t1": "Siren:0:0"},
   {"key": 121, "loc": "PCR_LOC_TOWER_OF_THE_GODS_FLOATING_PLATFORMS_ROOM", "kind": "chest", "where": "Siren/Stage/TRES[8]", "room": 9, "t2": "Siren:9:0", "t1": "Siren:0:0"},
