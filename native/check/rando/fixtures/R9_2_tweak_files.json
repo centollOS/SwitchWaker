@@ -1,0 +1,103 @@
+{
+ "_comment": "R9.2 (identity_check.py): the files each always-applied tweak step changes under the identity placement; '<dir><arc>/<name>', ' (raw)' = the raw J3D list. Regenerate with identity_check.py run --write-tweaks (full run, no --only).",
+ "pc_rando_stages_a_init": [
+  "/res/Stage/M2tower/Room0/room.dzr",
+  "/res/Stage/M_NewD2/Room13/room.dzr",
+  "/res/Stage/M_NewD2/Room14/room.dzr",
+  "/res/Stage/M_NewD2/Room2/room.dzr",
+  "/res/Stage/PShip/Stage/stage.dzs",
+  "/res/Stage/kaze/Room3/room.dzr",
+  "/res/Stage/sea/Room1/room.dzb",
+  "/res/Stage/sea/Room1/room.dzr",
+  "/res/Stage/sea/Room15/room.dzr",
+  "/res/Stage/sea/Room22/room.dzr",
+  "/res/Stage/sea/Room24/room.dzr",
+  "/res/Stage/sea/Room25/room.dzr",
+  "/res/Stage/sea/Room26/room.dzr",
+  "/res/Stage/sea/Room37/room.dzr",
+  "/res/Stage/sea/Room46/room.dzr",
+  "/res/Stage/sea/Room8/room.dzr"
+ ],
+ "pc_rando_tweak_stages_b_init": [
+  "/res/Stage/Asoko/Room0/room.dzr",
+  "/res/Stage/I_TestM/Room0/room.dzr",
+  "/res/Stage/M_Dai/Room20/room.dzr",
+  "/res/Stage/M_Dai/Room3/room.dzr",
+  "/res/Stage/M_Dai/Stage/stage.dzs",
+  "/res/Stage/M_NewD2/Room1/room.dzr",
+  "/res/Stage/M_NewD2/Room10/room.dzr",
+  "/res/Stage/M_NewD2/Room11/room.dzr",
+  "/res/Stage/M_NewD2/Room12/room.dzr",
+  "/res/Stage/M_NewD2/Room13/room.dzr",
+  "/res/Stage/M_NewD2/Room14/room.dzr",
+  "/res/Stage/M_NewD2/Room15/room.dzr",
+  "/res/Stage/M_NewD2/Room2/room.dzr",
+  "/res/Stage/M_NewD2/Room3/room.dzr",
+  "/res/Stage/M_NewD2/Room4/room.dzr",
+  "/res/Stage/M_NewD2/Room6/room.dzr",
+  "/res/Stage/M_NewD2/Room8/room.dzr",
+  "/res/Stage/Siren/Room14/room.dzr",
+  "/res/Stage/Siren/Room18/room.dzr",
+  "/res/Stage/TF_06/Room1/room.dzr",
+  "/res/Stage/TF_06/Room2/room.dzr",
+  "/res/Stage/TF_06/Room3/room.dzr",
+  "/res/Stage/TF_06/Room4/room.dzr",
+  "/res/Stage/TF_06/Room5/room.dzr",
+  "/res/Stage/TF_06/Room6/room.dzr",
+  "/res/Stage/kaze/Stage/stage.dzs",
+  "/res/Stage/kindan/Stage/stage.dzs",
+  "/res/Stage/ma2room/Room1/room.dzr",
+  "/res/Stage/ma2room/Room2/room.dzr",
+  "/res/Stage/ma2room/Room3/room.dzr",
+  "/res/Stage/ma2room/Room4/room.dzr",
+  "/res/Stage/ma3room/Room1/room.dzr",
+  "/res/Stage/ma3room/Room2/room.dzr",
+  "/res/Stage/ma3room/Room3/room.dzr",
+  "/res/Stage/ma3room/Room4/room.dzr",
+  "/res/Stage/majroom/Room1/room.dzr",
+  "/res/Stage/majroom/Room2/room.dzr",
+  "/res/Stage/majroom/Room3/room.dzr",
+  "/res/Stage/majroom/Room4/room.dzr",
+  "/res/Stage/sea/Room1/room.dzr",
+  "/res/Stage/sea/Room13/room.dzr",
+  "/res/Stage/sea/Room41/room.dzr"
+ ],
+ "pc_rando_posttext_patchers_init": [],
+ "pc_rando_tweak_added_chests_init": [
+  "/res/Stage/M_Dra09/Stage/stage.dzs",
+  "/res/Stage/M_NewD2/Stage/stage.dzs",
+  "/res/Stage/Pjavdou/Room0/room.dzr",
+  "/res/Stage/kenroom/Room0/room.dzr",
+  "/res/Stage/sea/Room44/room.dzr",
+  "/res/Stage/sea/Room9/room.dzr",
+  "/res/Stage/sea/Stage/event_list.dat"
+ ],
+ "pc_rando_start_init": [
+  "/res/Stage/sea/Stage/stage.dzs"
+ ],
+ "pc_rando_tweak_zephos_init": [
+  "/res/Stage/Orichh/Stage/event_list.dat",
+  "/res/Stage/sea/Stage/event_list.dat"
+ ],
+ "pc_rando_pirate_ship_init": [
+  "/res/Stage/Asoko/Room0/room.dzr",
+  "/res/Stage/Asoko/Stage/event_list.dat",
+  "/res/Stage/Asoko/Stage/stage.dzs",
+  "/res/Stage/sea/Room11/room.dzr"
+ ],
+ "pc_rando_tweak_totg_init": [
+  "/res/Stage/Siren/Stage/event_list.dat",
+  "/res/Stage/Siren/Stage/stage.dzs"
+ ],
+ "pc_rando_tweak_cosmetic_init": [
+  "/res/Stage/Fairy01/Stage/stage.dzs",
+  "/res/Stage/Fairy02/Stage/stage.dzs",
+  "/res/Stage/Fairy03/Stage/stage.dzs",
+  "/res/Stage/Fairy04/Stage/stage.dzs",
+  "/res/Stage/Fairy05/Stage/stage.dzs",
+  "/res/Stage/Fairy06/Stage/stage.dzs"
+ ],
+ "pc_rando_palettes_init": [
+  "/res/Object/Nzg/kana_00.bdl (raw)"
+ ]
+}

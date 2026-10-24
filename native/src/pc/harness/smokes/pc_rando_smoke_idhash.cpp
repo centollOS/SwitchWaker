@@ -23,6 +23,10 @@
 //   COS_RANDO_IDHASH_ONLY=<a,b,...>  only archives whose path below /res/ starts with one of these
 //                                    (e.g. Stage/Asoko/,Stage/sea/Room44.arc,Object/Nzg.arc)
 //   COS_RANDO_IDHASH_OUT             the report (default $COS_RUN_DIR/idhash.txt)
+//   COS_RANDO_IDHASH_DUMP=<dir>      for every file a patcher step changed, its bytes before any patcher
+//                                    (<key>.s0) and after each changing step n (<key>.s<n>), where <key> is
+//                                    the file line's dir, arc and name joined with "~" ('/' -> '_');
+//                                    identity_check.py diffs them record by record
 //
 // The report:
 //   step <n> <init function>                   (n = 1.. in pc_rando_patchers.def order; late = after them)
@@ -103,6 +107,8 @@ State sState = kInit;
 std::vector<Rec> sRecs;
 int sCur[2] = {-1, -1};      // the record of the file each list is dispatching
 std::string sPrev[2];        // its MD5 at the previous observer
+std::vector<uint8_t> sPrevBytes[2]; // its bytes at the previous observer (with COS_RANDO_IDHASH_DUMP)
+const char* sDump = nullptr;
 size_t sPrevSize[2] = {0, 0};
 std::vector<Arc> sArcs;
 size_t sNext = 0;
@@ -158,7 +164,32 @@ std::string field(const char* s) {
     return out;
 }
 
+std::string dumpKey(const Rec& r) {
+    std::string k = r.dir + "~" + r.arc + "~" + r.name;
+    for (char& c : k) {
+        if (c == '/') {
+            c = '_';
+        }
+    }
+    return k;
+}
+
+void dumpBytes(const Rec& r, int n, const uint8_t* p, size_t size) {
+    char path[1024];
+    snprintf(path, sizeof path, "%s/%s.s%d", sDump, dumpKey(r).c_str(), n);
+    FILE* f = fopen(path, "wb");
+    if (f == nullptr) {
+        cosLogf("[cos] rando-smoke idhash: cannot write %s\n", path);
+        return;
+    }
+    if (size > 0) {
+        fwrite(p, 1, size, f);
+    }
+    fclose(f);
+}
+
 void observe(int list, int n, PcRandoResFile* f) {
+    JKRPcHostAllocScope host;
     const std::string h = md5Hex(f->data, f->size);
     if (n == 0) {
         Rec r;
@@ -173,6 +204,9 @@ void observe(int list, int n, PcRandoResFile* f) {
         sCur[list] = (int)sRecs.size() - 1;
         sPrev[list] = h;
         sPrevSize[list] = f->size;
+        if (sDump != nullptr) {
+            sPrevBytes[list].assign(f->data, f->data + f->size);
+        }
         return;
     }
     if (sCur[list] < 0) {
@@ -180,6 +214,13 @@ void observe(int list, int n, PcRandoResFile* f) {
     }
     Rec& r = sRecs[(size_t)sCur[list]];
     if (h != sPrev[list] || f->size != sPrevSize[list]) {
+        if (sDump != nullptr) {
+            if (r.steps.empty()) {
+                dumpBytes(r, 0, sPrevBytes[list].data(), sPrevBytes[list].size());
+            }
+            dumpBytes(r, n, f->data, f->size);
+            sPrevBytes[list].assign(f->data, f->data + f->size);
+        }
         r.steps.push_back(n);
     }
     sPrev[list] = h;
@@ -370,6 +411,10 @@ void randoSmokeIdhash(unsigned int frames) {
     case kInit: {
         // Before the game's first dispatch: observer 0 first, then each step's patchers and its observer.
         sFirst = pc_rando_res_patcher_count() == 0 && pc_rando_raw_patcher_count() == 0;
+        sDump = getenv("COS_RANDO_IDHASH_DUMP");
+        if (sDump != nullptr && sDump[0] == '\0') {
+            sDump = nullptr;
+        }
         sRecs.reserve(8192);
         addObservers(0);
         for (int i = 0; i < kSteps; i++) {
