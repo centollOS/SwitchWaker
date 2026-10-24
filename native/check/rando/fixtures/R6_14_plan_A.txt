@@ -1,0 +1,45 @@
+# native/check/rando/fixtures/R6_12_seed_A.json: seed 'R6.12entrA'; entrance_sweep.py plan (wwrando tables, the disc's SCLS[0])
+Dungeon Entrance on Dragon Roost Island|Master Sword Chamber|E Adanmae 0 2 2|X kenroom 0 0 0|B scls Adanmae 0 2|S Adanmae 0 2
+Dungeon Entrance in Forest Haven Sector|Dragon Roost Cavern|E sea 41 6 6|X M_NewD2 0 0 0|B scls sea 41 6|S M_NewD2 0 0
+Dungeon Entrance in Tower of the Gods Sector|Jalhalla Boss Arena|E sea 26 0 2|X M_DaiB 0 -1 0|B warp sea 26 1|S sea 26 2
+Dungeon Entrance on Headstone Island|Earth Temple Miniboss Arena|E Edaichi 0 0 1|X M_DaiMB 12 0 0|B scls Edaichi 0 1|S Edaichi 0 1
+Dungeon Entrance on Gale Isle|Earth Temple|E Ekaze 0 0 1|X M_Dai 0 0 0|B scls Ekaze 0 1|S M_Dai -1 0
+Miniboss Entrance in Forbidden Woods|Wind Temple Miniboss Arena|E kindan 9 0 1|X kazeMB 6 0 0|B scls kindan 9 1|S kindan 0 1
+Miniboss Entrance in Tower of the Gods|Gohma Boss Arena|E Siren 14 0 1|X M_DragB 0 -1 0|B warp Hyroom 0 10|S Siren 0 0
+Miniboss Entrance in Earth Temple|Wind Temple|E M_Dai 7 0 9|X kaze 15 0 15|B scls M_Dai 7 9|S kaze -1 15
+Miniboss Entrance in Wind Temple|Forbidden Woods Miniboss Arena|E kaze 2 3 20|X kinMB 10 0 0|B scls kaze 2 20|S kaze -1 15
+Miniboss Entrance in Hyrule Castle|Forbidden Woods|E Hyroom 0 2 2|X kindan 0 0 0|B scls Hyroom 0 2|S kindan 0 1
+Boss Entrance in Dragon Roost Cavern|Helmaroc King Boss Arena|E M_NewD2 10 1 27|X M2tower 0 -1 16|B helmaroc Omori 0 215|S M_NewD2 0 0
+Boss Entrance in Forbidden Woods|Tower of the Gods|E kindan 16 0 1|X Siren 0 1 0|B scls kindan 16 1|S Siren 0 0
+Boss Entrance in Tower of the Gods|Kalle Demos Boss Arena|E Siren 18 0 27|X kinBOSS 0 -1 0|B warp Hyroom 0 10|S Siren 0 0
+Boss Entrance in Forsaken Fortress|Gohdan Boss Arena|E sea 1 16 27|X SirenB 0 -1 0|B warp sea 1 0|S sea 1 100
+Boss Entrance in Earth Temple|Tower of the Gods Miniboss Arena|E M_Dai 15 0 27|X SirenMB 23 0 0|B scls M_Dai 15 27|S M_Dai -1 0
+Boss Entrance in Wind Temple|Molgera Boss Arena|E kaze 12 0 27|X kazeB 0 -1 0|B warp sea 4 232|S kaze -1 15
+Secret Cave Entrance on Outset Island|Pawprint Isle Wizzrobe Cave|E sea 44 8 10|X Cave07 0 0 0|B scls sea 44 10|S sea 44 0
+Secret Cave Entrance on Dragon Roost Island|Southern Fairy Fountain|E sea 13 2 5|X Fairy06 0 0 0|B scls sea 13 5|S sea 13 0
+Secret Cave Entrance on Fire Mountain|Rock Spire Isle Secret Cave|E sea 20 0 0|X Cave04 0 0 0|B scls sea 20 0|S sea 20 0
+Secret Cave Entrance on Ice Ring Isle|Northern Fairy Fountain|E sea 40 0 0|X Fairy01 0 0 0|B scls sea 40 0|S sea 40 0
+Secret Cave Entrance on Private Oasis|Fire Mountain Secret Cave|E Abesso 0 1 1|X MiniKaz 0 0 0|B scls Abesso 0 1|S sea 33 0
+Secret Cave Entrance on Needle Rock Isle|Thorned Fairy Fountain|E sea 29 0 5|X Fairy05 0 0 0|B scls sea 29 5|S sea 29 0
+Secret Cave Entrance on Angular Isles|Shark Island Secret Cave|E sea 47 1 5|X ITest63 0 0 0|B scls sea 47 5|S sea 47 0
+Secret Cave Entrance on Boating Course|Outset Fairy Fountain|E sea 48 0 5|X Fairy04 0 0 0|B scls sea 48 5|S sea 48 0
+Secret Cave Entrance on Stone Watcher Island|Pawprint Isle Chuchu Cave|E sea 31 0 1|X TyuTyu 0 0 0|B scls sea 31 1|S sea 31 0
+Secret Cave Entrance on Overlook Island|Boating Course Secret Cave|E sea 7 0 1|X SubD71 0 0 0|B scls sea 7 1|S sea 7 0
+Secret Cave Entrance on Bird's Peak Rock|Needle Rock Isle Secret Cave|E sea 35 0 1|X SubD42 0 0 0|B scls sea 35 1|S sea 35 0
+Secret Cave Entrance on Pawprint Isle|Stone Watcher Island Secret Cave|E sea 12 0 1|X TF_01 0 0 0|B scls sea 12 1|S sea 12 0
+Secret Cave Entrance on Pawprint Isle Side Isle|Ice Ring Isle Inner Cave|E sea 12 1 5|X ITest62 0 0 0|B scls sea 12 5|S sea 12 0
+Secret Cave Entrance on Diamond Steppe Island|Ice Ring Isle Secret Cave|E sea 36 0 1|X MiniHyo 0 0 0|B scls sea 36 1|S sea 36 0
+Secret Cave Entrance on Bomb Island|Savage Labyrinth|E sea 34 0 1|X Cave09 0 1 0|B scls sea 34 1|S sea 34 0
+Secret Cave Entrance on Rock Spire Isle|Western Fairy Fountain|E sea 16 0 1|X Fairy03 0 0 0|B scls sea 16 1|S sea 16 0
+Secret Cave Entrance on Shark Island|Star Island Secret Cave|E sea 38 0 5|X Cave02 0 0 0|B scls sea 38 5|S sea 38 0
+Secret Cave Entrance on Cliff Plateau Isles|Cliff Plateau Isles Secret Cave|E sea 42 0 2|X Cave03 0 0 0|B scls sea 42 2|S sea 42 0
+Secret Cave Entrance on Horseshoe Island|Cabana Labyrinth|E sea 43 0 5|X TF_04 0 0 0|B scls sea 43 5|S sea 43 0
+Secret Cave Entrance on Star Island|Eastern Fairy Fountain|E sea 2 0 1|X Fairy02 0 0 0|B scls sea 2 1|S sea 2 0
+Inner Entrance in Ice Ring Isle Secret Cave|Bomb Island Secret Cave|E MiniHyo 0 1 0|X Cave01 0 0 0|B scls MiniHyo 0 0|S sea 36 0
+Inner Entrance in Cliff Plateau Isles Secret Cave|Diamond Steppe Island Warp Maze Cave|E Cave03 0 1 1|X WarpD 0 0 0|B scls Cave03 0 1|S sea 42 0
+Fairy Fountain Entrance on Outset Island|Dragon Roost Island Secret Cave|E A_mori 0 1 2|X TF_06 0 0 0|B scls A_mori 0 2|S sea 44 0
+Fairy Fountain Entrance on Thorned Fairy Island|Bird's Peak Rock Secret Cave|E sea 28 0 1|X TF_03 0 0 0|B scls sea 28 1|S sea 28 0
+Fairy Fountain Entrance on Eastern Fairy Island|Horseshoe Island Secret Cave|E sea 19 0 1|X Cave05 0 0 0|B scls sea 19 1|S sea 19 0
+Fairy Fountain Entrance on Western Fairy Island|Angular Isles Secret Cave|E sea 15 0 1|X SubD43 0 0 0|B scls sea 15 1|S sea 15 0
+Fairy Fountain Entrance on Southern Fairy Island|Cliff Plateau Isles Inner Cave|E sea 39 0 1|X sea 42 1 1|B scls sea 39 1|S -
+Fairy Fountain Entrance on Northern Fairy Island|Overlook Island Secret Cave|E sea 3 0 1|X TF_02 0 0 0|B scls sea 3 1|S sea 3 0
