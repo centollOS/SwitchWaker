@@ -1,5 +1,5 @@
-// pc_rando_j3d.h - J3D and BTI files for the randomizer's recolours (docs/RANDOMIZER_PLAN.md step R7.2c;
-// R7.2d adds material and animation colours here).
+// pc_rando_j3d.h - J3D and BTI files for the randomizer's recolours (docs/RANDOMIZER_PLAN.md steps R7.2c:
+// textures; R7.2d: material (MAT3, MDL3) and animation (TRK1) colours).
 //
 // Works on the raw big-endian bytes of a .bdl/.bmd/.bmt/.brk (J3D) or .bti file, in place: the port
 // recolours them right before the game's loaders read them (the raw J3D hook,
@@ -43,6 +43,12 @@ struct PcRandoRecolorStats {
     int mismatch;  // a same-name header with another format or size than the name's first (skipped)
     int conflicts; // headers whose bytes differ from gclib's after the edit (data shared across names
                    // with different results; the in-place layout cannot hold both)
+    // R7.2d (errors, mismatch and conflicts above count these chunks too)
+    int matColors;  // MAT3 tev / konst colour list entries rewritten
+    int mdlEntries; // MDL3 entries whose TEV colour register commands were rewritten from MAT3
+    int trkAnims;   // TRK1 colour animations recoloured
+    int trkRebuilt; // TRK1 chunks rewritten in gclib's layout
+    int trkInPlace; // TRK1 chunks edited in place (gclib's layout did not fit the file)
 };
 
 // The hsv shift wwrando applies (gclib hsv_shift_color, R7.2a); alpha passes through.
@@ -57,6 +63,49 @@ int pc_rando_j3d_shift_tex1(uint8_t* data, size_t size, int hShift, int vShift, 
 
 // palettes.py shift_all_colors_in_bti on a .bti file (the header at 0). Returns 1 when shifted.
 int pc_rando_bti_shift(uint8_t* data, size_t size, int hShift, int vShift, PcRandoRecolorStats* st);
+
+// palettes.py shift_all_colors_in_mat3 on the file's MAT3 chunk (the last one; none: returns 0): every
+// tev colour (RGBA s16; skipped when r, g or b is negative) and tev konst colour (RGBA u8) a material
+// uses gets hsv_shift_color on its r, g, b (alpha kept). gclib gives each material its own copy of the
+// values and saves the distinct ones; in place, each list entry that some material uses is shifted
+// once from the disc's value, which is the same set of colours per material. Unset colours (index
+// 0xFFFF) are skipped (wwrando would fail on them; none exist in the group files). Returns the number
+// of list entries rewritten (<0: unreadable).
+int pc_rando_j3d_shift_mat3(uint8_t* data, size_t size, int hShift, int vShift, PcRandoRecolorStats* st);
+
+// What gclib's J3D.save does to MDL3 (palettes.py's own shift_all_colors_in_mdl3 is overwritten by it):
+// MDL3.generate_from_mat3 rebuilds every entry's display list from its material, so the TEV colour
+// register commands carry the MAT3 colours: tev colours 0..2 as TEV_REGISTERL/H 1..3 (r, a and g, b
+// masked to 11 bits, the H command repeated twice more: the "duplicated high command"), konst colours
+// 0..3 as TEV_REGISTERL/H 0..3 with the konst bit. In place, the disc's commands (same registers in
+// the same order, else the entry is a mismatch and left alone) get those payloads. Run after
+// pc_rando_j3d_shift_mat3. Returns the number of entries rewritten (<0: unreadable).
+int pc_rando_j3d_sync_mdl3(uint8_t* data, size_t size, PcRandoRecolorStats* st);
+
+// palettes.py shift_all_colors_in_trk1 on the file's TRK1 chunk, then gclib's TRK1 save: animations
+// grouped by material name (register ones, then konst ones), "cc.brk" animation 1 skipped; for each
+// animation, every key time of R, G or B gets the closest key's values (& 0xFF) shifted and written to
+// the keys at exactly that time. The chunk is then written in gclib's layout (gclib deduplicates track
+// data, so the result is never larger than the disc's on the group files), and when that does not fit
+// the values are written in place (conflicts counted when shared data cannot hold them). `fileName`
+// is the file's name in its archive. Returns the number of animations recoloured (<0: unreadable).
+int pc_rando_j3d_shift_trk1(uint8_t* data, size_t size, const char* fileName, int hShift, int vShift,
+                            PcRandoRecolorStats* st);
+
+// The J3D branch of palettes.py shift_colors_for_file_group: TEX1, MAT3, MDL3 and TRK1 in that order.
+// Returns 1 when something changed.
+int pc_rando_j3d_shift_file(uint8_t* data, size_t size, const char* fileName, int hShift, int vShift,
+                            PcRandoRecolorStats* st);
+
+// One text line per material, MDL3 entry and TRK1 animation of a J3D file (the palettes smoke dumps
+// them; native/tools/rando/palette_check.py builds the same lines with gclib):
+//   mat <i> tev <c0> <c1> <c2> <c3> konst <k0> <k1> <k2> <k3>      (each r,g,b,a or -)
+//   mdl <i> [<register hex2>:<payload hex6> ...]                     (TEV colour register commands)
+//   trk <reg|konst> <i> <material> <color id> r <tangent> <keys> g ... b ... a ...
+//                                                                    (keys time:value:in:out,...)
+// Returns the number of lines (<0: a chunk is unreadable; its lines are left out).
+typedef void (*PcRandoLineFn)(const char* line, void* ctx);
+int pc_rando_j3d_color_lines(const uint8_t* data, size_t size, PcRandoLineFn fn, void* ctx);
 
 // The file kinds wwrando recolours (palettes.py: .bdl .bti .bmd .bmt .brk, by extension, exact case).
 enum PcRandoRecolorKind { PCR_RECOLOR_NONE = 0, PCR_RECOLOR_J3D, PCR_RECOLOR_BTI };

@@ -811,3 +811,23 @@ the custom smoke colours under `pc_rando()` (as wwrando's always-applied asm). C
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | game/src/d/actor/d_a_obj_warpt.cpp | `daObj_Warpt_c::createInit`: `m86C`/`m870` are 0xE5101B80 / 0x3C379D80 when `m2B8` (event register index) is 2 or 5 | #if/else | misc_rando_features.asm d_a_obj_warpt.rel 0x2050/0x2080 `set_prm_color_for_warp_pot_particles`, `set_env_color_for_warp_pot_particles` |
+
+## R7.2d
+
+Material and animation colours. No new hunk in `game/`: the R7.2c raw J3D hook's palette patcher
+(`features/rando/pc_rando_palettes.cpp`) now runs the whole J3D branch of `shift_colors_for_file_group`
+(`pc_rando_j3d_shift_file`, `features/rando/pc_rando_j3d.cpp`): MAT3 tev and konst colours
+(`shift_all_colors_in_mat3`, negative tev colours skipped, each used list entry shifted once in the
+disc's layout); MDL3 TEV colour register commands rewritten from the shifted materials, which is what
+gclib's `J3D.save` leaves (it regenerates MDL3 with `generate_from_mat3`, so wwrando's own
+`shift_all_colors_in_mdl3` edit is overwritten; the duplicated high commands carry the new colour);
+TRK1 register and konst animations (`shift_all_colors_in_trk1`: grouped by material name, `cc.brk`
+animation 1 skipped, closest-time rule) written in gclib's TRK1 layout (never larger than the disc's
+chunk on the group files; an in-place fallback counts conflicts). Checked by `cos_rando_test_R7_2d`
+(byte-identical to gclib on `fixtures/R7_2d_j3d.txt`), the `palettes` smoke and
+`native/tools/rando/palette_check.py`, which now compares every J3D file's material, MDL3 and TRK1
+colours too.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| - | no hunks in `game/`: R7.2c's raw patcher (`features/rando/pc_rando_palettes.cpp`) calls `pc_rando_j3d_shift_file` (`features/rando/pc_rando_j3d.{h,cpp}`) | - | randomizers/palettes.py `shift_all_colors_in_mat3` / `_mdl3` / `_trk1`, gclib `J3D.save` |

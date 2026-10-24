@@ -3,9 +3,10 @@
 //
 // Archive patchers (pc_rando_patchers.def -> pc_rando_palettes_init):
 //   - a raw patcher (before the J3D loaders, pc_rando_resources.h) for every .bdl .bmd .bmt .brk of a
-//     palette group's /res/Object/<RARC>.arc minus the group's excluded files: TEX1 textures shifted
-//     by the group's (h_shift, v_shift) (pc_rando_j3d_shift_tex1). Materials, MDL3 and TRK1 colours
-//     come with R7.2d; particles and code colours with R7.2e;
+//     palette group's /res/Object/<RARC>.arc minus the group's excluded files: TEX1 textures, MAT3
+//     tev / konst colours, MDL3 TEV colour registers and TRK1 colour animations shifted by the
+//     group's (h_shift, v_shift) (pc_rando_j3d_shift_file; R7.2d added all but TEX1). Particles and
+//     code colours come with R7.2e;
 //   - a patcher on the post-load list for the groups' .bti files (still raw there):
 //     pc_rando_bti_shift;
 //   - make_rat_holes_visible_from_behind (tweaks.py, randomizer.py:445): Nzg.arc kana_00.bdl, cull

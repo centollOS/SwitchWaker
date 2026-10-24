@@ -1,4 +1,4 @@
-// The enemy palettes on the game's files (pc_rando_palettes.h, docs/RANDOMIZER_PLAN.md step R7.2c).
+// The enemy palettes on the game's files (pc_rando_palettes.h, docs/RANDOMIZER_PLAN.md steps R7.2c, R7.2d).
 // Pure: no game headers, no game calls.
 #include "pc_rando_palettes.h"
 
@@ -111,6 +111,11 @@ void addStats(PcRandoRecolorStats* into, const PcRandoRecolorStats& s) {
     into->errors += s.errors;
     into->mismatch += s.mismatch;
     into->conflicts += s.conflicts;
+    into->matColors += s.matColors;
+    into->mdlEntries += s.mdlEntries;
+    into->trkAnims += s.trkAnims;
+    into->trkRebuilt += s.trkRebuilt;
+    into->trkInPlace += s.trkInPlace;
 }
 
 // shift_colors_for_file_group's RARC loop, for this one file, over every group holding its archive.
@@ -139,7 +144,8 @@ void recolor(PcRandoResFile* f, int kind) {
                 pc_rando_bti_shift(f->data, f->size, h, v, &st);
                 sStats.btiFiles++;
             } else {
-                pc_rando_j3d_shift_tex1(f->data, f->size, h, v, &st);
+                // TEX1, MAT3, MDL3 (as gclib's save regenerates it) and TRK1 (R7.2d)
+                pc_rando_j3d_shift_file(f->data, f->size, f->name, h, v, &st);
                 sStats.j3dFiles++;
             }
             sStats.files++;
