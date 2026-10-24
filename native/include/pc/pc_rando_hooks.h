@@ -426,6 +426,15 @@ int pc_rando_warpout_next_stage(int staffIdx, const char** stage, int* startCode
 /* The number of warp-outs pc_rando_warpout_next_stage redirected since boot (for the smoke). */
 int pc_rando_warpout_redirects(void);
 
+/* --- R7.5a: cosmetic tweaks wwrando always applies (game_hooks/pc_rando_hooks_cosmetic.cpp, pure part in
+   features/rando/pc_rando_tweak_cosmetic.h) --- */
+/* daItemBase_c::animEntry under pc_rando(): the BRK frame for an item whose item_resource mTevFrm is
+   `tev_frm` (not -1). For 7 (the Rainbow Rupee, make_tingle_statue_reward_rupee_rainbow_colored) the
+   animated key frame of check_animate_rainbow_rupee_color, advanced by this draw; else tev_frm. */
+float pc_rando_cosmetic_brk_frame(int tev_frm);
+/* 1 once the activation listener registered the item_resource[0xB8] edit without a refusal. */
+int pc_rando_cosmetic_edit_ok(void);
+
 #ifdef __cplusplus
 }
 #endif

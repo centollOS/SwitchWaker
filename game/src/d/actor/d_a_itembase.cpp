@@ -15,6 +15,10 @@
 #include "d/d_com_inf_game.h"
 #include "d/actor/d_a_player_main.h"
 #include "dolphin/types.h"
+#if TARGET_PC
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_hooks.h"
+#endif
 
 /* 800F8A14-800F8A3C       .text DeleteBase__12daItemBase_cFPCc */
 BOOL daItemBase_c::DeleteBase(const char* resName) {
@@ -203,7 +207,13 @@ void daItemBase_c::animEntry() {
     if (mpBrkAnm1) {
         int constantFrame = dItem_data::getTevFrm(m_itemNo);
         if (constantFrame != -1) {
+#if TARGET_PC
+            // pc_rando(R7.5a): misc_rando_features.asm main.dol 0x800F93F4 check_animate_rainbow_rupee_color (colour 7 animated); original: constantFrame
+            const f32 frame = pc_rando() ? pc_rando_cosmetic_brk_frame(constantFrame) : (f32)constantFrame;
+            mpBrkAnm1->entry(mpModel->getModelData(), frame);
+#else
             mpBrkAnm1->entry(mpModel->getModelData(), constantFrame);
+#endif
         } else {
             mpBrkAnm1->entry(mpModel->getModelData());
         }
