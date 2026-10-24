@@ -169,6 +169,8 @@ struct ActorFind {
     cXyz pos;
     uint32_t params;
     bool found;
+    int same;       // live actors with the procname
+    float nearest;  // their nearest home distance
 };
 
 void* findActor(void* proc, void* data) {
@@ -179,7 +181,10 @@ void* findActor(void* proc, void* data) {
     }
     const cXyz& h = ac->home.pos;
     const float dx = h.x - f->pos.x, dy = h.y - f->pos.y, dz = h.z - f->pos.z;
-    if (std::sqrt(dx * dx + dy * dy + dz * dz) < 1.0f || fopAcM_GetParam(ac) == f->params) {
+    const float d = std::sqrt(dx * dx + dy * dy + dz * dz);
+    f->nearest = f->same == 0 || d < f->nearest ? d : f->nearest;
+    f->same++;
+    if (d < 1.0f || fopAcM_GetParam(ac) == f->params) {
         f->found = true;
         return proc;
     }
@@ -205,6 +210,66 @@ void logHeap(int stop, const char* stage, int stay) {
     logf("[cos] rando-smoke %s: heap stop %d (%s room %d): room %s; main free 0x%x largest 0x%x; game free 0x%x "
          "largest 0x%x; archive free 0x%x largest 0x%x\n",
          kName, stop, stage, stay, room, v[0][0], v[0][1], v[1][0], v[1][1], v[2][0], v[2][1]);
+}
+
+// A location's record in the game's room.dzr, or nullptr.
+const uint8_t* storedRecord(void* file, const pcr::EnemyLocation& loc) {
+    char tag[5];
+    pc_rando_dzx_tag("ACTR", loc.path.layer, tag);
+    int count = 0;
+    uint8_t* first = file != nullptr ? storedChunk(file, tag, &count) : nullptr;
+    return first != nullptr && (int)loc.path.index < count ? first + loc.path.index * 0x20 : nullptr;
+}
+
+bool liveNow(const uint8_t* e, ActorFind* f) {
+    char name[9] = {};
+    memcpy(name, e, 8);
+    dStage_objectNameInf* inf = dStage_searchName(name);
+    if (inf == nullptr) {
+        return false;
+    }
+    *f = ActorFind{inf->procname,
+                   cXyz(pc_rando_dzx_bef32(e + 0x0C), pc_rando_dzx_bef32(e + 0x10), pc_rando_dzx_bef32(e + 0x14)),
+                   pc_rando_dzx_be32(e + 8), false, 0, 0.0f};
+    fopAcM_Search(findActor, f);
+    return f->found;
+}
+
+// Per enemy location: its actor was seen live since the stop's room was entered. Some enemies leave
+// on their own soon after their creation (a rat that falls 1000 below its home deletes itself, an
+// Octorok of type 4 that dives does, d_a_nz.cpp / d_a_oq.cpp): "created" is seen in any frame from the
+// player's arrival to the check.
+std::vector<uint8_t> sSeen;
+
+void sampleRoom() {
+    const pcr::Span<pcr::EnemyLocation> locs = pcr::enemy_locations();
+    if (sSeen.size() != locs.size) {
+        sSeen.assign(locs.size, 0);
+    }
+    const char* stage = dComIfGp_getStartStageName();
+    const int stay = dComIfGp_roomControl_getStayNo();
+    if (stay < 0) {
+        return;
+    }
+    const int layer = dComIfG_play_c::getLayerNo(stay);
+    char arc[16];
+    snprintf(arc, sizeof arc, "Room%d", stay);
+    void* file = dComIfG_getStageRes(arc, "room.dzr");
+    if (file == nullptr) {
+        return;
+    }
+    for (size_t k = 0; k < locs.size; k++) {
+        const pcr::EnemyLocation& loc = locs[k];
+        if (sSeen[k] || loc.path.room != stay || strcmp(loc.path.stage, stage) != 0 ||
+            (loc.path.layer >= 0 && loc.path.layer != layer)) {
+            continue;
+        }
+        const uint8_t* e = storedRecord(file, loc);
+        ActorFind f;
+        if (e != nullptr && liveNow(e, &f)) {
+            sSeen[k] = 1;
+        }
+    }
 }
 
 // The table's locations of the stay room on its layer: live actors, and whether a must-defeat group
@@ -237,14 +302,10 @@ bool checkRoom(int stop, const char* stage, int stay, int layer) {
         if ((loc.conds & pcr::ECOND_CHECKS_CONDITION_SWITCH) != 0) {
             continue; // the spawn waits for a switch
         }
-        char tag[5];
-        pc_rando_dzx_tag("ACTR", loc.path.layer, tag);
-        int count = 0;
-        uint8_t* first = file != nullptr ? storedChunk(file, tag, &count) : nullptr;
-        const uint8_t* e = first != nullptr && (int)loc.path.index < count ? first + loc.path.index * 0x20 : nullptr;
+        const uint8_t* e = storedRecord(file, loc);
         nAct++;
         if (e == nullptr) {
-            logf("[cos] rando-smoke %s:   %s: no %s[%u] in the game's room.dzr\n", kName, loc.path.raw, tag,
+            logf("[cos] rando-smoke %s:   %s: no record %u in the game's room.dzr\n", kName, loc.path.raw,
                  (unsigned)loc.path.index);
             continue;
         }
@@ -258,12 +319,18 @@ bool checkRoom(int stop, const char* stage, int stay, int layer) {
         const uint32_t params = pc_rando_dzx_be32(e + 8);
         ActorFind f = {inf->procname,
                        cXyz(pc_rando_dzx_bef32(e + 0x0C), pc_rando_dzx_bef32(e + 0x10), pc_rando_dzx_bef32(e + 0x14)),
-                       params, false};
+                       params, false, 0, 0.0f};
         fopAcM_Search(findActor, &f);
-        actOk += f.found ? 1 : 0;
-        if (!f.found) {
-            logf("[cos] rando-smoke %s:   %s: no live %s (proc %d) at (%.0f, %.0f, %.0f) params %08X\n", kName,
-                 loc.path.raw, name, (int)inf->procname, f.pos.x, f.pos.y, f.pos.z, (unsigned)params);
+        const bool seen = k < sSeen.size() && sSeen[k] != 0;
+        actOk += f.found || seen ? 1 : 0;
+        if (!f.found && seen) {
+            logf("[cos] rando-smoke %s:   %s: %s was live after the arrival, gone by the check\n", kName,
+                 loc.path.raw, name);
+        } else if (!f.found) {
+            logf("[cos] rando-smoke %s:   %s: no live %s (proc %d) at (%.0f, %.0f, %.0f) params %08X (%d live, "
+                 "nearest home %.0f)\n",
+                 kName, loc.path.raw, name, (int)inf->procname, f.pos.x, f.pos.y, f.pos.z, (unsigned)params, f.same,
+                 f.nearest);
         }
     }
     logf("[cos] rando-smoke %s: stop %d (%s room %d layer %d): %d enemy locations, seed enemies %d%s\n", kName, stop,
@@ -289,6 +356,9 @@ void* deleteEnemy(void* proc, void* data) {
         return nullptr;
     }
     const fpc_ProcID id = fopAcM_GetID(ac);
+    if (fpcM_IsCreating(id)) {
+        return nullptr; // still loading its archive: its delete would free what it has not got yet
+    }
     for (fpc_ProcID d : sDeleted) {
         if (d == id) {
             return nullptr;
@@ -359,6 +429,7 @@ void nextStop() {
     logf("[cos] rando-smoke %s: stage change to %s room %d point %d layer %d\n", kName, h.stage, h.room, h.point,
          h.layer);
     sAllocBase = heapAllocFailures(); // the stop's count: the stage change, its loads and its frames
+    sSeen.assign(pcr::enemy_locations().size, 0);
     sOldScene = playSceneId();
     sSince = 0;
     sPresent = 0;
@@ -428,6 +499,9 @@ void randoSmokeEnemysweep(unsigned int frames) {
         return;
     }
     if (sState == kBoot) {
+        if (dComIfGp_getPlayer(0) != nullptr && playSceneId() != fpcM_ERROR_PROCESS_ID_e) {
+            sampleRoom();
+        }
         if (!randoSmokeInPlay(kSettle)) {
             return;
         }
@@ -454,6 +528,7 @@ void randoSmokeEnemysweep(unsigned int frames) {
             return;
         }
         keepAlive();
+        sampleRoom();
         if (++sPresent < kSettle) {
             return;
         }

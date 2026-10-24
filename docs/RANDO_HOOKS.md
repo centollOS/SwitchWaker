@@ -899,3 +899,15 @@ already has is skipped, as in wwrando. Imports accumulate for the activation, so
 them, as wwrando's file does; the place being loaded always has its own. Checked by the `enemyptcl` smoke and
 `native/tools/rando/enemy_particle_check.py` (wwrando's own code with gclib on the disc),
 `regress_rando/R7.4c.txt`.
+
+## R7.4d
+
+Enemy randomizer option live (experimental, D18); no new hunk in `game/`. The menu row "Enemy randomizer
+(experimental, can be unbeatable)" (`COS_RANDO_RANDOMIZE_ENEMIES`, `pc_rando_settings.cpp`; the menu
+validates with `ensureValidCombination(o, allowUnbeatable = true)`), the `randomize_enemies` refusal in
+`pc_rando_gen.cpp` removed. Heap fix (the R7.4b stage-change crash): R7.4a's results and parsed seed are
+static storage read in place (`pc_rando_enemies.cpp`), and `game_hooks/pc_rando_hooks_resources.cpp` runs
+both archive dispatches and the patchers' init functions in a `JKRPcHostAllocScope`, so no patcher's
+lasting state lands on an archive heap (grown files still use `file.alloc` on the archive heap); the
+palette shifts are static (`pc_rando_palettes.cpp`) and the R5.3 hints parse runs in a host scope
+(`pc_rando_hooks_hints.cpp`). Checked by `native/tools/rando/enemy_sweep.py` (smoke `enemysweep`).

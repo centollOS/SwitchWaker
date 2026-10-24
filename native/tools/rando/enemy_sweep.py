@@ -74,11 +74,30 @@ BLOCK_RE = re.compile(r"block \d+ size (0x[0-9a-f]+) free (0x[0-9a-f]+)")
 
 # (stage, room) -> (signature regex, reason): failures that are not the randomizer's. Each must also
 # fail vanilla (checked by the sweep) to count as xfail.
+_MINI = ("the debug boot cannot stay in this stage: about 100 frames after the room is created the game "
+         "changes to the sea (Ice Ring Isle / Fire Mountain), vanilla too, also with event bits 0x1901/0x1902; "
+         "the game only enters it from the sea's volcano or ice ring, which a debug boot skips")
 KNOWN_NON_RANDO = {
     ("kindan", 0): (r"unmapped vtx attr 9|PANIC|CRASH",
                     "Aurora fatal 'unmapped vtx attr 9' on a stage change into kindan room 0, also without "
                     "any placement (not the randomizer; reported separately, not fixed here)"),
+    ("MiniHyo", 0): (r"arrived \(is sea room", _MINI),
+    ("MiniKaz", 0): (r"arrived \(is sea room", _MINI),
 }
+
+# Heap allocation failures that are the port's own, vanilla too (the backtrace line pc_heap.cpp prints
+# after each "[cos] heap: cannot alloc"): a stop whose every failure matches one is not failed for them.
+KNOWN_HEAP_FAILURES = [
+    (r"dDoor_key2_c::keyCreate_Bkey <- daDoor12_c::CreateHeap",
+     "port, vanilla too: the boss key door's (daDoor12_c) solid heap is too small for the host-sized skin "
+     "deform buffer (J3DModel::setSkinDeform, 0xccc bytes); the door is created without it"),
+]
+
+# Every run's new file gets the Boomerang (COS_BOOT_ITEMS): the Gyorg spawner (d_a_gy_ctrl.cpp _create)
+# refuses to be created without it, as the game's own sea rooms are before the Forbidden Woods.
+BOOT_ITEMS = "2D"
+# Event bits some stages need in a debug boot (boot_sweep.py's EXPECTED_FAIL): 0x2D01 mounts LkD01.arc.
+STAGE_BOOT_EVENTS = {"GanonK": "2D01", "GTower": "2D01", "M2ganon": "2D01"}
 
 
 class Stop:
@@ -159,6 +178,9 @@ def run_batch(args, out_dir, label, stops, placement):
            "--env", "COS_CACHE_PER_RUN=1", "--env", "COS_RANDO_SWEEP_FRAMES=%d" % args.frames,
            "--disc", args.disc, "--quiet", "--run-dir", run_dir,
            "--timeout", str(120 + 60 * len(stops)), "--stall", "60"]
+    cmd += ["--env", "COS_BOOT_ITEMS=%s" % BOOT_ITEMS]
+    if stops[0].stage in STAGE_BOOT_EVENTS:
+        cmd += ["--env", "COS_BOOT_EVENTS=%s" % STAGE_BOOT_EVENTS[stops[0].stage]]
     if placement:
         cmd += ["--env", "COS_RANDO_PLACEMENT=%s" % placement]
     if len(stops) > 1:
@@ -190,6 +212,26 @@ def run_batch(args, out_dir, label, stops, placement):
         if i in per:
             bm = BLOCK_RE.search(hm.group(2))
             per[i]["block"] = (int(bm.group(1), 16), int(bm.group(2), 16)) if bm else None
+    # Heap failures the port has vanilla too: per stop, the log from its stage change on.
+    starts = [0] + [m.start() for m in re.finditer(r"^\[cos\] rando-smoke enemysweep: stage change to ", log, re.M)]
+    for i, r in per.items():
+        seg = log[starts[i]:starts[i + 1]] if i + 1 < len(starts) else log[starts[i]:] if i < len(starts) else ""
+        heap = [f for f in r["fails"] if "heap allocation failure" in f]
+        if not heap:
+            continue
+        lines = seg.splitlines()
+        froms = [lines[k + 1] if k + 1 < len(lines) and lines[k + 1].startswith("[cos] heap:   from") else ""
+                 for k, l in enumerate(lines) if l.startswith("[cos] heap: cannot alloc")]
+        notes = set()
+        for fl in froms:
+            known = next((reason for rx, reason in KNOWN_HEAP_FAILURES if re.search(rx, fl)), None)
+            if known is None:
+                notes = None
+                break
+            notes.add(known)
+        if froms and notes:
+            r["fails"] = [f for f in r["fails"] if f not in heap]
+            r.setdefault("notes", []).extend(sorted(notes))
     # A stop not done: the one where the run ended (crash, timeout) gets the run's signature.
     first_undone = next((i for i in range(len(stops)) if not per.get(i, {}).get("done")), None)
     if first_undone is not None:
@@ -219,7 +261,8 @@ def sweep_stops(args, out_dir, label, stops, placement, pool):
                     break
                 r = per.get(i, {"fails": ["no result"], "done": False, "block": None})
                 out[s.key] = {"result": "ok" if not r["fails"] else "FAIL", "fails": r["fails"],
-                              "block": r["block"], "run_dir": os.path.relpath(run_dir, out_dir), "alone": None}
+                              "block": r["block"], "run_dir": os.path.relpath(run_dir, out_dir), "alone": None,
+                              "notes": r.get("notes", [])}
             if undone is None:
                 break
             crashed = todo[undone]
@@ -348,6 +391,9 @@ def main():
                         " / alone: " + r["alone"] if r.get("alone") else "") + (
                         " / vanilla: " + r["vanilla"] if r.get("vanilla") else "") + (
                         " / " + r["reason"] if r.get("reason") else "")).replace("|", "\\|")))
+            notes = collections.Counter(n for r in res.values() for n in r.get("notes", []))
+            for n, c in notes.items():
+                f.write("Known port issue in %d stop(s), not counted: %s\n\n" % (c, n))
             f.write("\n")
     print("enemy_sweep: %d failing stop(s) over %d seed(s); report %s" % (
         nfail, len(seeds), os.path.relpath(os.path.join(out_dir, "enemy_sweep.md"), REPO)), flush=True)
