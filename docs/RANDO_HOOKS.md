@@ -736,3 +736,12 @@ unless the seed randomizes entrances. Checked by the `warpout` smoke and `cos_ra
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | game/src/d/d_event_data.cpp | `dEvDt_Next_Stage`, after it read `RoomNo`: `pc_rando_warpout_next_stage` may replace the stage name, start code and room passed to `dComIfGp_setNextStage` | add | randomizers/entrances.py `update_boss_warp_out_destination` (event_list.dat `WARP_WIND_AFTER`, DIRECTOR `NEXT`: Stage, RoomNo, StartCode) |
+
+## R6.14
+
+Entrance sweep: no hunk in `game/`. The harness smoke `entrsweep`
+(`harness/smokes/pc_rando_smoke_entrsweep.cpp`) drives the doors with the game's own calls
+(`dLib_setNextStageBySclsNum`, `dComIfGp_setNextStage`, `fopAcM_orderOtherEventId` for
+WARP_WIND_AFTER, `dComIfGs_putSave` + `dComIfGs_setGameStartStage` + `dComIfGs_gameStart` and R0.7's
+slot hooks for save-and-quit); `native/tools/rando/entrance_sweep.py` is the structure checker and the
+driver.
