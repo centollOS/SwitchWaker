@@ -132,14 +132,14 @@ scripts/switch/push.sh native                   # to sdmc:/switch/switchwaker/, 
   full-screen pass, nine bilinear taps, in place of the `xfb_copy` copy; no extra render target) before
   ImGui, so the menu and FPS panel stay sharp. Its DKSH is in `initial_dksh_cache.bin` like the test
   pattern's (`build_native.sh` checks `dk_fxaa.vs_main`/`fs_main`).
-- SSAO: the options menu's Gráficos > *Oclusión ambiental (SSAO)* (`COS_SSAO`, off by default, live) adds three
+- SSAO: the options menu's Gráficos > *Oclusión ambiental (SSAO)* (`COS_SSAO` 0-3: off, low, medium, high; off by default, live) adds three
   fixed passes between the resample and the final pass, on the EFB's Depth32Float buffer (still intact at the
   present: the pass after the last EFB copy is discardable): the occlusion at half resolution (eight taps, the
   slope of the surface taken from the depth gradient, so no normals), a depth-aware 3x3 blur, and the
   darkening of the resampled picture (alpha blend, black with alpha = strength * occlusion), so FXAA and the
   gamma see it; sky (depth 0) takes none and the menus are drawn after. `switch/deko/shaders/dk_ssao.wgsl`
   (`dk_ssao.vs_main`/`fs_ao`/`fs_blur`/`fs_apply`); developer variables `COS_SSAO_RADIUS` (world units, 50),
-  `COS_SSAO_STRENGTH` (percent, 85), `COS_SSAO_BIAS` (1/10000 of relative depth, 100).
+  `COS_SSAO_STRENGTH` (percent, 0 = the level's: 50/60/70), `COS_SSAO_BIAS` (1/10000 of relative depth, 150).
 - deko3d run options (settings.ini `[dev]`, `switch/native/settings-dev.example.ini`): `COS_DK_TEST_PATTERN=1`
   draws a test pattern of deko3d's conventions under the menu (four coloured corners, two depth-tested
   squares, a depth-range check, a textured square with texture row 0 marked, a counter-clockwise and a
