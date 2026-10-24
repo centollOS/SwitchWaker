@@ -75,6 +75,7 @@ constexpr float kRcasStops = 0.25f;
 struct PictureIn {
     bool valid = false;
     bool rcas = false;  // FSR 1 is on for this frame
+    bool fxaaDone = false;  // FXAA already ran (into g_fxaaOut) so RCAS sharpens its picture
     uint32_t width = 0, height = 0;
     uint32_t slot = 0;
 } g_in;
@@ -102,6 +103,9 @@ std::atomic<int> g_ssao{0};
 
 // the occlusion at half resolution: the raw one and the blurred one (RGBA8 images of ensure_resampled)
 Resampled g_aoRaw, g_aoBlur;
+
+// FXAA's picture when FSR 1's sharpening (RCAS) follows it
+Resampled g_fxaaOut;
 
 struct SsaoUniforms {  // dk_ssao.wgsl's Uniforms (std140)
     float depthWidth, depthHeight, outWidth, outHeight;
@@ -230,8 +234,8 @@ void picture(void*, int stage) {
         const bool sameSize = fsr && source.size.width == w && source.size.height == h;
         // nothing to upscale: RCAS (or FXAA) reads the EFB, unless the SSAO needs a picture of its own to darken
         // (then the plain resample below copies it 1:1)
-        if (sameSize && g_ssao.load(std::memory_order_relaxed) <= 0) {
-            g_in = {true, true, w, h, srcSlot};
+        if (sameSize && g_ssao.load(std::memory_order_relaxed) <= 0 && g_fxaa.load(std::memory_order_relaxed) <= 0) {
+            g_in = {true, true, false, w, h, srcSlot};
             return;
         }
         if (!ensure_resampled(g_resampled, w, h)) return;
@@ -258,8 +262,28 @@ void picture(void*, int stage) {
             drawn = fixed_draw("present_resample", "vs_main", "fs_main", &target, w, h, true, binds, 2);
         }
         (void)drawn;
-        g_in = {true, fsr, w, h, g_resampled.slot};
+        g_in = {true, fsr, false, w, h, g_resampled.slot};
         if (g_ssao.load(std::memory_order_relaxed) > 0 && ssao_pass()) gpu_mark(GpuWork::Other);
+        const int fxaaLevel = g_fxaa.load(std::memory_order_relaxed);
+        if (fsr && fxaaLevel > 0 && ensure_resampled(g_fxaaOut, w, h)) {
+            // FSR 1 and FXAA together: FXAA here, into its own image, and the final pass sharpens it (RCAS)
+            const swdk::StreamAlloc fu = swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT);
+            if (fu) {
+                const FxaaPreset& pr = kFxaaPresets[std::min(fxaaLevel, 3) - 1];
+                const FxaaUniforms uniforms = {1.f / float(w), 1.f / float(h), pr.minThreshold, pr.relThreshold,
+                                               pr.subpix, 1.f};  // gamma comes with the final pass
+                memcpy(fu.cpu, &uniforms, sizeof uniforms);
+                const FixedBind fxaaBinds[] = {
+                    {swdk::SlotBinding::Kind::Uniform, 0, 0, fu.gpu, 256},
+                    {swdk::SlotBinding::Kind::Sampler, 2,
+                     dkMakeTextureHandle(g_resampled.slot, swdk::kSamplerLinearClamp)},
+                };
+                DkImageView fxaaTarget;
+                dkImageViewDefaults(&fxaaTarget, &g_fxaaOut.image);
+                if (fixed_draw("dk_fxaa", "vs_main", "fs_main", &fxaaTarget, w, h, true, fxaaBinds, 2))
+                    g_in = {true, true, true, w, h, g_fxaaOut.slot};
+            }
+        }
         return;
     }
     if (stage == 1) {
@@ -283,7 +307,7 @@ void picture(void*, int stage) {
             {swdk::SlotBinding::Kind::Sampler, 1, dkMakeTextureHandle(g_in.slot, swdk::kSamplerLinearClamp)},
         };
         const int fxaa = g_fxaa.load(std::memory_order_relaxed);
-        if (fxaa > 0) {
+        if (fxaa > 0 && !g_in.fxaaDone) {
             const swdk::StreamAlloc u = swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT);
             if (u) {
                 const FxaaPreset& pr = kFxaaPresets[std::min(fxaa, 3) - 1];
@@ -301,7 +325,7 @@ void picture(void*, int stage) {
                 }
             }
         }
-        if (g_in.rcas && fxaa <= 0) {
+        if (g_in.rcas && (fxaa <= 0 || g_in.fxaaDone)) {
             const swdk::StreamAlloc u = swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT);
             if (u) {
                 const RcasUniforms uniforms = {1.f / float(g_in.width), 1.f / float(g_in.height),
