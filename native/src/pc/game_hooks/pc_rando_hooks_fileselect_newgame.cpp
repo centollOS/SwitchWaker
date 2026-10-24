@@ -19,6 +19,8 @@
 #include "pc/pc_settings.h"
 #include "pc_internal.h"
 
+#include "d/d_com_inf_game.h"
+
 #include "JAZelAudio/JAZelAudio_SE.h"
 #include "m_Do/m_Do_audio.h"
 
@@ -60,28 +62,43 @@ int sChoice = 0; // PC_RANDO_FSNG take_choice values
 int sErrorFrames = 0;
 std::string sSeedLine; // the message pane's seed line of the current question
 
-// The question's texts (English, as the USA game's own). The R3.20 overlay holds them while they are
-// read (pc_rando_msg.h); R7.6c gives them the EUR language rule.
+// The question's texts. English on the USA game, as its own texts; on the European game they follow
+// the game's language (the file select's language choice, dComIfGs_getPalLanguage): Spanish for
+// Spanish, English for the other three. The R3.20 overlay holds them while they are read
+// (pc_rando_msg.h; UTF-8 in, the font's cp1252 bytes out).
 struct MsgText {
     uint16_t no;
-    const char* text;
+    const char* en;
+    const char* es;
 };
 const MsgText kTexts[] = {
-    {PCR_FSNG_MSG_QUESTION, "Start a Randomizer file?"},
-    {PCR_FSNG_MSG_SEED, "Randomizer seed: %s\nHash: %s\nNo starts a normal game."},
-    {PCR_FSNG_MSG_NEWSEED, "New randomizer seed: %s,\nmade with the Randomizer options.\nNo starts a normal game."},
-    {PCR_FSNG_MSG_WAIT, "Generating the seed... %d%%"},
-    {PCR_FSNG_MSG_ERROR, "The seed could not be made."},
-    {PCR_FSNG_MSG_RANDOM, "random"},
+    {PCR_FSNG_MSG_QUESTION, "Start a Randomizer file?", "¿Empezar una partida Randomizer?"},
+    {PCR_FSNG_MSG_SEED, "Randomizer seed: %s\nHash: %s\nNo starts a normal game.",
+     "Semilla Randomizer: %s\nHash: %s\nElige No para una partida normal."},
+    {PCR_FSNG_MSG_NEWSEED, "New randomizer seed: %s,\nmade with the Randomizer options.\nNo starts a normal game.",
+     "Nueva semilla Randomizer: %s,\ncon las opciones del Randomizer.\nElige No para una partida normal."},
+    {PCR_FSNG_MSG_WAIT, "Generating the seed... %d%%", "Generando la semilla... %d%%"},
+    {PCR_FSNG_MSG_ERROR, "The seed could not be made.", "No se pudo crear la semilla."},
+    {PCR_FSNG_MSG_RANDOM, "random", "aleatoria"},
 };
+
+// The European game in Spanish (PAL language 3, the SDK's OS_LANGUAGE_SPANISH). Never on USA.
+bool textSpanish() {
+#if defined(VERSION) && VERSION == 3
+    return dComIfGs_getPalLanguage() == 3;
+#else
+    return false;
+#endif
+}
 
 // A message of the overlay as plain characters (control tags dropped), as fopMsgM_messageGet copies
 // a BMG message into a pane's string.
 std::string msgText(uint16_t no) {
     const char* src = nullptr;
+    const bool es = textSpanish();
     for (const MsgText& t : kTexts) {
         if (t.no == no) {
-            src = t.text;
+            src = es ? t.es : t.en;
         }
     }
     if (src == nullptr) {

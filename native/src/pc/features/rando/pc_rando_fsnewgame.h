@@ -17,8 +17,9 @@
 //   - B: back to the slot list (also while a seed is generated: it stays the pending seed).
 // A slot that is not blank never asks. With the setting off the file select is the R4.4 one exactly.
 //
-// The texts are messages of the R3.20 overlay (pc_rando_msg.h, numbers PCR_FSNG_MSG_*), English as
-// the USA game; R7.6c's language rule applies to them on EUR. D16: USA only (EUR never asks).
+// The texts are messages of the R3.20 overlay (pc_rando_msg.h, numbers PCR_FSNG_MSG_*): English on
+// the USA game; on the European game they follow the game's language (Spanish for Spanish, English for
+// the other three). D16: the PAL file select has the hunks but does not ask until R7.6a opens EUR.
 #pragma once
 
 #include <string>

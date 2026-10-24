@@ -936,6 +936,14 @@ the `fsnewgame` smoke (`regress_rando/R8.1.txt`).
 | game/src/d/d_file_select.cpp | `dFile_select_c::YesNoSelect`: while asking, `pc_rando_fs_newgame_yesno` (START: selectEnd 1 as menuSelect's Start; BACK: as B; WAIT: generating or error shown) | add | none (plan R8.1) |
 | game/src/d/d_file_select.cpp | `dFile_select_c::CmdExecPaneMove0`: the message pane leaves (not the info panel) while asking | if/else | none (plan R8.1) |
 | game/src/d/d_file_select.cpp | `dFile_select_c::closeEnd`: the message and Yes/No panes leave (as `closeCardErr`) while asking | if/else | none (plan R8.1) |
+| game/src/pal/d/d_file_select.inc | `dFile_select_c::dataSelect`: the same `pc_rando_fs_newgame_ask` call in the save-slot branch (not the PAL language slot, `selectNum == 3`) | add | none (plan R8.1) |
+| game/src/pal/d/d_file_select.inc | `dFile_select_c::dataSelectPaneMove`: as the USA hunk (two conditions) | if/else | none (plan R8.1) |
+| game/src/pal/d/d_file_select.inc | `dFile_select_c::YesNoSelect`: as the USA hunk; START sets PAL's nextModeWait (`VERSION_SELECT(0x26, 0x26, 0x26, 0x29)`, the language states come first) | add | none (plan R8.1) |
+| game/src/pal/d/d_file_select.inc | `dFile_select_c::CmdExecPaneMove0`: as the USA hunk | if/else | none (plan R8.1) |
+| game/src/pal/d/d_file_select.inc | `dFile_select_c::closeEnd`: as the USA hunk | if/else | none (plan R8.1) |
 
-PAL: TODO with R7.6 (the PAL build compiles `game/src/pal/d/d_file_select.inc`, which has no R8.1 hunk, so
-the PAL file select never asks; the setting is refused there anyway by D16).
+Language: English on the USA build (the game's own language). On the PAL build the texts follow the game's
+language (`dComIfGs_getPalLanguage`): Spanish for Spanish, English for the other three; wwrando's error line
+stays in English. The PAL hunks are in place, but D16 keeps the question off on the PAL build until R7.6a
+opens the region (checked on the Mac with the gate opened locally, not committed: the question in Spanish and
+English, No to the name entry).
