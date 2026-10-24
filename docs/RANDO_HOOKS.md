@@ -759,3 +759,20 @@ Checked by the `cosmetic` smoke, `cos_rando_test_R7_5a` and `native/tools/rando/
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | game/src/d/actor/d_a_itembase.cpp | `daItemBase_c::animEntry`: the constant BRK frame comes from `pc_rando_cosmetic_brk_frame` (animated for colour 7) | ?: | misc_rando_features.asm main.dol 0x800F93F4 `check_animate_rainbow_rupee_color` |
+
+## R7.2c
+
+Raw J3D hook, palette textures, rat holes. `dRes_info_c::loadResource` hands every file to
+`pc_rando_res_hook_raw` (`game_hooks/pc_rando_hooks_resources.cpp`) right after `JKRGetResource`,
+before the J3D loaders; it dispatches BMD*, BDL*, BMT*, BSMD and BRK files to the raw patcher list
+(`pc_rando_register_raw_patcher`, `features/rando/pc_rando_resources.h`), while the bytes are still the
+disc's (the R0.10 hook after the loaders sees a `J3DModelData*` for them; BTI files are still raw there
+and stay on its list). The patchers are `features/rando/pc_rando_palettes.cpp`: each palette group's
+`/res/Object/<RARC>.arc` `.bdl .bmd .bmt .brk` (TEX1, `features/rando/pc_rando_j3d.cpp`) and `.bti`
+files minus the excluded ones, shifted by the seed's `palettes` key with gclib's per-name semantics in
+the disc's layout; and `make_rat_holes_visible_from_behind` (Nzg `kana_00.bdl`, every seed). Checked by
+the `palettes` smoke, `cos_rando_test_R7_2c` and `native/tools/rando/palette_check.py`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/d_resorce.cpp | `dRes_info_c::loadResource`, after `JKRGetResource`: `pRes = pc_rando_res_hook_raw(...)` before the type's loader | add | randomizers/palettes.py `shift_colors_for_file_group` (`shift_all_colors_in_tex1` / `_bti`, `J3D.save`); tweaks.py `make_rat_holes_visible_from_behind` |

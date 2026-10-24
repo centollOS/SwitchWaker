@@ -126,13 +126,13 @@ void recolor(PcRandoResFile* f, int kind) {
             if (strcasecmp(rarc.name, f->arc) != 0) {
                 continue;
             }
+            int h = 0, v = 0;
+            if (!pc_rando_palette_shift(g, &h, &v)) {
+                return; // palettes not randomized
+            }
             if (excluded(rarc, f->name)) {
                 sStats.excluded++;
                 continue;
-            }
-            int h = 0, v = 0;
-            if (!pc_rando_palette_shift(g, &h, &v)) {
-                return;
             }
             PcRandoRecolorStats st{};
             if (kind == PCR_RECOLOR_BTI) {
