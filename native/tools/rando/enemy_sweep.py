@@ -27,6 +27,9 @@ A run that crashes or times out leaves its later stops unrun: they are run again
 the next stop, and the failing stop alone (booted directly) once, to tell a hop problem from a room
 problem; both results are reported.
 
+When the game leaves a stop's room by itself (a fall into the water from a submarine, which a debug boot
+cannot come back from), the smoke ends the run there ("run cut") and the remaining stops run from a boot.
+
 --vanilla runs the same stops without a placement (no COS_RANDO_PLACEMENT; the game's own enemies are
 checked the same way). Every failing stop of a seed is also run vanilla, alone, so the report says
 whether the failure is the randomizer's ("rando only") or the game's ("vanilla too").
@@ -234,10 +237,13 @@ def run_batch(args, out_dir, label, stops, placement):
             r.setdefault("notes", []).extend(sorted(notes))
     # A stop not done: the one where the run ended (crash, timeout) gets the run's signature.
     first_undone = next((i for i in range(len(stops)) if not per.get(i, {}).get("done")), None)
+    cut = re.search(r"^\[cos\] rando-smoke enemysweep: run cut after stop (\d+)$", log, re.M)
+    if cut and rc in (0, 1) and first_undone == int(cut.group(1)) + 1:
+        return per, first_undone, run_dir, rc, True  # the game left the room: go on from a boot
     if first_undone is not None:
         r = per.setdefault(first_undone, {"fails": [], "done": False, "block": None})
         r["fails"].append("run ended: exit %d, %s" % (rc, sig))
-    return per, first_undone, run_dir, rc
+    return per, first_undone, run_dir, rc, False
 
 
 def sweep_stops(args, out_dir, label, stops, placement, pool):
@@ -255,9 +261,9 @@ def sweep_stops(args, out_dir, label, stops, placement, pool):
         out = {}
         todo = batch
         while todo:
-            per, undone, run_dir, rc = run_batch(args, out_dir, label, todo, placement)
+            per, undone, run_dir, rc, cut = run_batch(args, out_dir, label, todo, placement)
             for i, s in enumerate(todo):
-                if undone is not None and i > undone:
+                if undone is not None and (i > undone or (cut and i == undone)):
                     break
                 r = per.get(i, {"fails": ["no result"], "done": False, "block": None})
                 out[s.key] = {"result": "ok" if not r["fails"] else "FAIL", "fails": r["fails"],
@@ -265,10 +271,13 @@ def sweep_stops(args, out_dir, label, stops, placement, pool):
                               "notes": r.get("notes", [])}
             if undone is None:
                 break
+            if cut:
+                todo = todo[undone:]
+                continue
             crashed = todo[undone]
             if len(todo) > 1:
                 # the failing stop alone, booted directly: a hop problem or the room's own
-                per1, _u, rd1, _rc = run_batch(args, out_dir, label + "-alone", [crashed], placement)
+                per1, _u, rd1, _rc, _cut = run_batch(args, out_dir, label + "-alone", [crashed], placement)
                 r1 = per1.get(0, {"fails": ["no result"]})
                 out[crashed.key]["alone"] = "ok" if not r1["fails"] else "; ".join(r1["fails"])
             todo = todo[undone + 1:]
@@ -284,7 +293,7 @@ def classify_vanilla(args, out_dir, label, stops, results, pool):
     failing = [s for s in stops if results.get(s.key, {}).get("result") == "FAIL"]
 
     def one(s):
-        per, _u, _rd, _rc = run_batch(args, out_dir, label + "-vanilla", [s], None)
+        per, _u, _rd, _rc, _cut = run_batch(args, out_dir, label + "-vanilla", [s], None)
         r = per.get(0, {"fails": ["no result"]})
         return s, ("ok" if not r["fails"] else "; ".join(r["fails"]))
 

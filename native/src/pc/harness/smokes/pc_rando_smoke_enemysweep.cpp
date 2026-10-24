@@ -420,6 +420,11 @@ void keepAlive() {
         dComIfGs_setMaxLife((u8)kMaxLife);
     }
     dComIfGs_setLife(kMaxLife);
+    // A fall into the water in a submarine (Abship) leaves for the sea room the player came from
+    // (d_stage.cpp exit 0x3D asserts it is set); a debug boot or a hop never came from one.
+    if (dComIfGp_getIkadaShipBeforeRoomId() >= 64) {
+        dComIfGp_setIkadaShipBeforeRoomId(44);
+    }
 }
 
 void endStop();
@@ -637,6 +642,20 @@ void randoSmokeEnemysweep(unsigned int frames) {
         return;
     }
     keepAlive();
+    if (dComIfGp_isEnableNextStage()) {
+        // The game leaves the room by itself (a fall into the water from a submarine, a void out, an
+        // enemy that carries the player off): the stop ends here, and so does the run, before the stage
+        // change, whose way back a debug boot may not have (the submarine's sea room and ship); the
+        // sweep runs the remaining stops again from a boot ("run cut" line).
+        logf("[cos] rando-smoke %s: stop %zu (%s room %d): the game leaves for %s after %u frames; the stop "
+             "ends here\n",
+             kName, sStop, sStage, sRoom, dComIfGp_getNextStageName(), sPresent);
+        const unsigned failures = heapAllocFailures() - sAllocBase;
+        check("stop %zu (%s room %d): %u heap allocation failure(s)", failures == 0, sStop, sStage, sRoom, failures);
+        logf("[cos] rando-smoke %s: run cut after stop %zu\n", kName, sStop);
+        sState = kDone;
+        randoSmokeEnd(kName);
+    }
     if (sState == kHold) {
         if (++sPresent < sFrames) {
             return;
