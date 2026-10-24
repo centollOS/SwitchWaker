@@ -1,0 +1,9 @@
+# R7.2d (docs/RANDOMIZER_PLAN.md): material (MAT3, MDL3) and animation (TRK1) palette colours in
+# features/rando/pc_rando_j3d.cpp, run by R7.2c's raw patcher. The palettes smoke
+# (native/src/pc/harness/smokes/pc_rando_smoke_palettes.cpp) now also dumps every J3D file's material,
+# MDL3 and TRK1 colours and checks that they were recoloured, every TRK1 in gclib's layout; compare
+# with wwrando on the disc:
+#   python3 -I native/tools/rando/palette_check.py --run [--shift H,V]   and   ... --run --vanilla
+# cos_rando_test_R7_2d runs on its own (byte-identical to gclib on fixtures/R7_2d_j3d.txt).
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Fairy01:0:0 --env COS_RANDO_SMOKE=palettes --env COS_RANDO_FORCE=1 --env COS_RANDO_PALETTE_TEST=200,40
