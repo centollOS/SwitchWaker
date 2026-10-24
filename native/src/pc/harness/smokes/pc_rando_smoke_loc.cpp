@@ -23,7 +23,9 @@
 //       the entry's position and holds the placed item (daTbox_c::getItemNo, home.angle.z >> 8).
 //   T2 (given), for each COS_RANDO_LOC_OPEN location (a PCR_LOC_* name, with or without the prefix,
 //   or its number) whose chest is live at this stop: a chest that waits for a switch (enemies
-//   defeated, a switch hit) gets its switch set; once no event runs, the player is put in front of
+//   defeated, a switch hit) gets its switch set, and so does a burning Fire actor (d_a_fire, type 0)
+//   on the chest (R9.1: the Dragon Roost Cavern Big Key chest burns until water puts it out, and
+//   the fire pushes the player back); once no event runs, the player is put in front of
 //   it on the floor (daPy_lk_c::debugPlace; a put that does not hold, e.g. on a ladder, is retried
 //   after walking at the chest), facing it, walks at it until the A button says "Open" and presses
 //   A; the chest's event must start and end, its item-get (dComIfGp_event_getGtItm) must be the placed item, and
@@ -57,6 +59,7 @@
 #include "d/d_com_inf_game.h"
 #include "d/d_event_manager.h"
 #include "d/d_stage.h"
+#include "d/actor/d_a_fire.h"
 #include "d/actor/d_a_tbox.h"
 #include "f_op/f_op_actor_mng.h"
 #include "f_pc/f_pc_manager.h"
@@ -216,6 +219,31 @@ daTbox_c* chestAt(const Chests& c, const cXyz& pos) {
         if (std::fabs(h.x - pos.x) < kPosEps && std::fabs(h.y - pos.y) < kPosEps && std::fabs(h.z - pos.z) < kPosEps) {
             return c.list[i];
         }
+    }
+    return nullptr;
+}
+
+// R9.1: a Fire actor (type 0, with a switch) burning on the chest at `pos` is put out the game's way,
+// by its switch (daFire_c::CreateInit / execute stop the fire once fopAcM_isSwitch holds).
+struct FireAt {
+    cXyz pos;
+    int put;
+};
+void* putOutFire(void* proc, void* data) {
+    FireAt* f = static_cast<FireAt*>(data);
+    if (fpcM_GetName(proc) != fpcNm_Fire_e) {
+        return nullptr;
+    }
+    daFire_c* fire = static_cast<daFire_c*>(proc);
+    if (fire->home.pos.abs(f->pos) > 60.0f || daFire_prm::getType(fire) != 0) {
+        return nullptr;
+    }
+    const u8 sw = daFire_prm::getSwitch(fire);
+    if (sw != 0xFF && !fopAcM_isSwitch(fire, sw)) {
+        writef(STDERR_FILENO, "[cos] rando-smoke loc: T2: a fire burns on the chest; set its switch 0x%02X in room %d\n",
+               sw, (int)fopAcM_GetRoomNo(fire));
+        dComIfGs_onSwitch(sw, fopAcM_GetRoomNo(fire));
+        f->put++;
     }
     return nullptr;
 }
@@ -681,6 +709,10 @@ void randoSmokeLoc(unsigned int frames) {
             if (sw < 0xFF && chest->mRoomNo >= 0) {
                 dComIfGs_onSwitch(sw, chest->mRoomNo);
             }
+        }
+        if (sSince == 1) {
+            FireAt f = {chest->home.pos, 0};
+            fopAcM_Search(putOutFire, &f);
         }
         if (dComIfGp_event_runCheck()) {
             setDrivenPad(true, sSince % 20 < 2 ? PAD_BUTTON_A : 0, 0, 0);
