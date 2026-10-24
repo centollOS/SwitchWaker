@@ -13,10 +13,10 @@
 //
 // FSR 1 (options menu's Reescalado, aurora_switch_dk_set_rescale): when the EFB is smaller than the shown
 // size, stage 0 draws EASU (dk_fsr_easu) in place of present_resample, and the final draw is RCAS
-// (dk_fsr_rcas, the sharpening) in place of the copy. With FXAA on the final draw is FXAA alone: FXAA runs
-// on the EASU picture and RCAS is skipped (sharpening what FXAA just softened would undo it, and a pass of
-// its own would cost a full-screen draw more). An EFB of the shown size skips EASU (RCAS or FXAA read the EFB
-// itself); an EFB larger than the shown size is not FSR's case (it is a downscale): the plain resample.
+// (dk_fsr_rcas, the sharpening) in place of the copy. With FXAA on, FXAA runs on the EASU picture into an
+// image of its own (g_fxaaOut) and RCAS sharpens that in the final draw. An EFB of the shown size skips EASU
+// (RCAS reads the EFB itself; with the SSAO or FXAA on, a 1:1 resample first gives them a picture of their
+// own); an EFB larger than the shown size is not FSR's case (it is a downscale): the plain resample.
 //
 // Readback (read_texture): a copy-engine copy into CPU-visible memory on a command buffer of its own,
 // after what the frame has recorded so far, and a wait for its fence (~1 ms for the picto box's
@@ -145,6 +145,13 @@ bool ensure_resampled(Resampled& img, uint32_t w, uint32_t h) {
     return true;
 }
 
+// an option's image given back while the option is off (its descriptor slot is kept for the next time)
+void release_image(Resampled& img) {
+    if (!img.valid) return;
+    swdk::image_free_later(img.mem);
+    img.valid = false;
+}
+
 // The light SSAO over g_resampled (see dk_ssao.wgsl): false when the depth is not there or a shader is missing,
 // the picture is then shown as it is.
 bool ssao_pass() {
@@ -232,6 +239,11 @@ void picture(void*, int stage) {
         const bool fsr = g_rescale.load(std::memory_order_relaxed) == 2 && source.size.width <= w &&
                          source.size.height <= h;
         const bool sameSize = fsr && source.size.width == w && source.size.height == h;
+        if (g_ssao.load(std::memory_order_relaxed) <= 0) {
+            release_image(g_aoRaw);
+            release_image(g_aoBlur);
+        }
+        if (!fsr || g_fxaa.load(std::memory_order_relaxed) <= 0) release_image(g_fxaaOut);
         // nothing to upscale: RCAS (or FXAA) reads the EFB, unless the SSAO needs a picture of its own to darken
         // (then the plain resample below copies it 1:1)
         if (sameSize && g_ssao.load(std::memory_order_relaxed) <= 0 && g_fxaa.load(std::memory_order_relaxed) <= 0) {
