@@ -34,7 +34,6 @@
 #include <cmath>
 #include <cstring>
 
-extern "C" int pc_in_play(void);  // native/src/pc/features/pc_menu.cpp: a file is loaded, the PLAY scene exists
 extern "C" float pc_dynres_last_3d_scale(void);  // native/src/pc/features/pc_dynres.cpp
 
 namespace aurora::gfx::dk {
@@ -149,10 +148,6 @@ bool ensure_resampled(Resampled& img, uint32_t w, uint32_t h) {
 // The light SSAO over g_resampled (see dk_ssao.wgsl): false when the depth is not there or a shader is missing,
 // the picture is then shown as it is.
 bool ssao_pass() {
-    // only in the game proper, with a file loaded (a PLAY scene exists): the title screen and the logos draw 2D quads
-    // (the logo's box) that write depth and read as geometry, and the title's own 3D room is a ROOM_SCENE like the
-    // game's, so the scene id cannot tell them apart; nothing is recorded for them
-    if (!pc_in_play()) return false;
     Tex* depth = find_texture(webgpu::g_depthBuffer.texture.Get());
     View* depthView = find_view(webgpu::g_depthBuffer.view.Get());
     if (!depth || !depth->valid || !depthView) return false;
