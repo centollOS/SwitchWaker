@@ -13,6 +13,7 @@ into the game or needed by players.
 | `ww_verify_hints.py` | checks our placements' hints (valid; with `--golden` identical to wwrando's) |
 | `ww_trace.py` | logs every RNG draw per randomizer, for call-by-call diffs against our generator |
 | `make_test_placement.py` | standard placements `identity`, `rotation`, `seed` for runtime tests |
+| `cosmetic_check.py` | R7.5a: fairy fountain Pale colours of the `cosmetic` smoke = wwrando on the disc (`--run`) |
 | `oracle_common.py` | shared helpers (paths, venv re-exec, options, JSON) |
 
 ## Setup

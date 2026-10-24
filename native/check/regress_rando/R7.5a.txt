@@ -1,0 +1,15 @@
+# R7.5a (docs/RANDOMIZER_PLAN.md): the cosmetic tweaks wwrando always applies
+# (features/rando/pc_rando_tweak_cosmetic.{h,cpp}, game_hooks/pc_rando_hooks_cosmetic.cpp, the
+# daItemBase_c::animEntry hunk). The smoke COS_RANDO_SMOKE=cosmetic
+# (native/src/pc/harness/smokes/pc_rando_smoke_cosmetic.cpp): the six Fairy0N stage.dzs read from the
+# disc and patched (only Pale bg0_c0/bg0_k0 change; dump for native/tools/rando/cosmetic_check.py,
+# which compares it with wwrando's give_fairy_fountains_distinct_colors on the disc: run
+# `python3 -I native/tools/rando/cosmetic_check.py --run`), the boot fountain's live Pale records,
+# item_resource[0xB8].mTevFrm 7 and the Rainbow Rupee's BRK frame 0 -> 6 -> 0 (an orange rupee stays
+# on frame 5); without COS_RANDO_FORCE everything is vanilla (disc Pale, mTevFrm 5, no rainbow draw).
+# cos_rando_test_R7_5a runs on its own.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Fairy01:0:0 --env COS_RANDO_SMOKE=cosmetic --env COS_RANDO_FORCE=1
+rando 0 --stage Fairy04:0:0 --env COS_RANDO_SMOKE=cosmetic --env COS_RANDO_FORCE=1
+rando 0 --stage Fairy01:0:0 --env COS_RANDO_SMOKE=cosmetic
+rando 0 --stage Fairy04:0:0 --env COS_RANDO_SMOKE=cosmetic

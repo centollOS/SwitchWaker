@@ -29,6 +29,7 @@
 #include "pc/pc_rando_hooks.h"
 #include "features/rando/pc_rando_field_items.h"
 #include "features/rando/pc_rando_items.h"
+#include "features/rando/pc_rando_tweak_cosmetic.h"
 
 #include "SSystem/SComponent/c_math.h"
 #include "d/actor/d_a_item.h"
@@ -176,7 +177,13 @@ void staticChecks() {
         const dItem_data_item_resource& s = dItem_data::item_resource[src];
         const bool fieldOk = f.mArc == s.mArcname && f.mBmdIdx == s.mBmdIdx && f.mSrtIdx == s.mSrtIdx &&
                              f.mSrtIdx2 == s.mSrtIdx2 && f.mTevIdx == s.mTevIdx && f.mTevIdx2 == s.mTevIdx2 &&
-                             f.mBckIdx == s.mBckIdx && f.mTevFrm == s.mTevFrm && f.mUnknown == s.mUnknown;
+                             f.mBckIdx == s.mBckIdx && f.mUnknown == s.mUnknown &&
+                             // R7.5a: wwrando copies the models (allow_all_items_to_be_field_items) before
+                             // make_tingle_statue_reward_rupee_rainbow_colored sets item_resource[0xB8]
+                             // mTevFrm to 7, so field_item_res[0xB8] keeps the vanilla 5.
+                             (f.mTevFrm == s.mTevFrm ||
+                              (src == PCR_COSMETIC_RAINBOW_ITEM && s.mTevFrm == PCR_COSMETIC_RAINBOW_TEV_FRM &&
+                               f.mTevFrm == 5));
         if (!fieldOk) {
             badField++;
             writef(STDERR_FILENO, "[cos] rando-smoke %s: field_item_res[0x%02X] is not item_resource[0x%02X]'s model\n",

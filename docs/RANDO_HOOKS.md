@@ -745,3 +745,17 @@ Entrance sweep: no hunk in `game/`. The harness smoke `entrsweep`
 WARP_WIND_AFTER, `dComIfGs_putSave` + `dComIfGs_setGameStartStage` + `dComIfGs_gameStart` and R0.7's
 slot hooks for save-and-quit); `native/tools/rando/entrance_sweep.py` is the structure checker and the
 driver.
+
+## R7.5a
+
+Cosmetic tweaks wwrando applies on every seed. `make_tingle_statue_reward_rupee_rainbow_colored`:
+`item_resource[0xB8].mTevFrm` becomes 7 through R0.8's `pc_rando_table_edit`
+(`game_hooks/pc_rando_hooks_cosmetic.cpp`, at each activation), and the hunk below animates colour 7
+(`features/rando/pc_rando_tweak_cosmetic.cpp`: the f32 key frame +0.15 per draw, -6.0 once not below
+6.0, `fabs`). `give_fairy_fountains_distinct_colors` is data: an archive patcher in the same pure
+file sets Fairy01-06 `stage.dzs` Pale `bg0_c0`/`bg0_k0` to hue k/6 (colorsys, int truncation).
+Checked by the `cosmetic` smoke, `cos_rando_test_R7_5a` and `native/tools/rando/cosmetic_check.py`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_itembase.cpp | `daItemBase_c::animEntry`: the constant BRK frame comes from `pc_rando_cosmetic_brk_frame` (animated for colour 7) | ?: | misc_rando_features.asm main.dol 0x800F93F4 `check_animate_rainbow_rupee_color` |

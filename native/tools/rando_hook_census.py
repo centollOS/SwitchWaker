@@ -38,11 +38,11 @@ HOOKS_DOC = "docs/RANDO_HOOKS.md"
 EVENT_FLAG_INC = "game/include/d/d_save_event_flag.inc"
 RESERVED = [(0x6901, 0x6980), (0x6A01, 0x6A40)]
 
-MARKER_RE = re.compile(r"\bpc_rando\((R\d+\.\d+)\)\s*:")
+MARKER_RE = re.compile(r"\bpc_rando\((R\d+\.\d+[a-z]?)\)\s*:")  # R7 split: R7.1a, R7.5a, ...
 API_RE = re.compile(r"\bpc_rando\w*\s*\(")
 INCLUDE_RE = re.compile(r'^\s*#\s*include\s*[<"]pc/pc_rando')
 DIRECTIVE_RE = re.compile(r"^\s*#\s*(if|ifdef|ifndef|elif|else|endif)\b(.*)$")
-SECTION_RE = re.compile(r"^##\s+(R\d+\.\d+)\b")
+SECTION_RE = re.compile(r"^##\s+(R\d+\.\d+[a-z]?)\b")
 EVENT_CALL_RE = re.compile(r"\b(\w*EventBit\w*)\s*\(\s*(?:\(\s*\w+\s*\)\s*)?([A-Za-z_][\w:]*|0[xX][0-9A-Fa-f]+|\d+)\s*[,)]")
 ENUM_ENTRY_RE = re.compile(r"\b(\w+)\s*=\s*(0[xX][0-9A-Fa-f]+|\d+)\s*,")
 
