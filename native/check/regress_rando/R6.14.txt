@@ -1,0 +1,17 @@
+# R6.14 (docs/RANDOMIZER_PLAN.md): the entrance sweep. The smoke COS_RANDO_SMOKE=entrsweep
+# (native/src/pc/harness/smokes/pc_rando_smoke_entrsweep.cpp) uses each entrance of a plan forward
+# (the live SCLS, the next stage, the arrival, no throw-out for 180 frames), saves and quits inside the
+# exit and reloads (dComIfGs_setGameStartStage's return place, the card round trip, the arrival), and
+# goes back (SCLS exit, boss warp-out, or Helmaroc King's door). The plan
+# native/check/rando/fixtures/R6_14_plan_A.txt is map A's (R6_12_seed_A.json), written by
+#   python3 -I native/tools/rando/entrance_sweep.py plan native/check/rando/fixtures/R6_12_seed_A.json \
+#       --out native/check/rando/fixtures/R6_14_plan_A.txt
+# from wwrando's tables and the disc's SCLS[0]. This line takes 6 of its 44 entrances: Tower of the
+# Gods Sector -> Jalhalla (warp out, save in a boss arena), Gale Isle -> Earth Temple (dungeon start
+# room -1), TotG's miniboss entrance -> Gohma (nested warp out to Hyrule, save at TotG's start), DRC's
+# boss entrance -> Helmaroc King (M2tower's door), Private Oasis -> Fire Mountain's cave (VolTag
+# removed), Stone Watcher Island -> the Chuchu cave (the stone head's switch).
+# The full sweep (structure check, then all 44 entrances of maps A, B and C; about 11 minutes):
+#   python3 -I native/tools/rando/entrance_sweep.py run native/check/rando/fixtures/R6_12_seed_{A,B,C}.json
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:26:2 --timeout 600 --stall 120 --env COS_RANDO_SMOKE=entrsweep --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R6_12_seed_A.json --env COS_ENTRSWEEP_PLAN=native/check/rando/fixtures/R6_14_plan_A.txt --env COS_ENTRSWEEP_ONLY=2,4,6,10,20,24

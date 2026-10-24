@@ -21,7 +21,8 @@
 //     stage and room;
 //  2. forward: E's live room SCLS[scls] leads to X (stage, room, spawn); the harness takes that exit
 //     as the door does (dLib_setNextStageBySclsNum) and the next stage requested is X; the play scene
-//     then runs on X's stage and room, at X's spawn;
+//     then runs on X's stage and room, at X's spawn, and no stage change comes for kStayFrames
+//     (nothing throws the player out: a Fire Mountain / Ice Ring Isle VolTag, a bad spawn);
 //  3. save-and-quit (S given): with RODE_KORL set (dComIfGs_setGameStartStage's first case; the
 //     debug boot's file may lack it), the save menu's steps (dComIfGs_putSave, then
 //     dComIfGs_setGameStartStage) put the return place at S; then the save goes through the card
@@ -30,7 +31,8 @@
 //     file select's start) reaches S's stage and room; then back to X (a hop) for 4;
 //  4. back: kind scls: X's live room SCLS[scls] leads to B and taking it reaches B; warp: the arena's
 //     WARP_WIND_AFTER (ordered from the player, stuck cuts ended as in the R6.13 smoke) requests B
-//     and reaches it; helmaroc: M2tower room 0's live SCLS[1] leads to B and taking it reaches B.
+//     and reaches it; helmaroc: M2tower room 0's live SCLS[1] leads to B and taking it reaches B;
+//     then the player stays there kStayFrames as in 2.
 // Every check line names the entrance ("[cos] rando-smoke entrsweep: <i> <entrance>: <what>: ok|FAIL"),
 // which the sweep parses. A stage that is not reached fails that check and skips the rest of the
 // entrance. Exit 0 when every check held, else 1.
@@ -73,6 +75,7 @@ constexpr unsigned int kArriveFrames = 1800;  // to reach a requested stage
 constexpr unsigned int kWarpStartFrames = 900; // WARP_WIND_AFTER to start (an arena intro may run first)
 constexpr unsigned int kWarpFrames = 3000;    // WARP_WIND_AFTER to request the next stage
 constexpr unsigned int kStuckFrames = 150;
+constexpr unsigned int kStayFrames = 180;     // after the forward and back arrivals: no stage change
 constexpr int kMaxStaff = 32;
 
 struct Place {
@@ -91,7 +94,7 @@ struct Entry {
     bool save = false;
 };
 
-enum State { kInit, kArrive, kWarpOrder, kWarpRun, kDone };
+enum State { kInit, kArrive, kStay, kWarpOrder, kWarpRun, kRecover, kDone };
 enum Step { kToE, kForward, kSaveQuit, kToX, kBack };
 
 State sState = kInit;
@@ -126,6 +129,9 @@ void line(const char* fmt, ...) {
     va_end(ap);
     writef(STDERR_FILENO, "[cos] rando-smoke entrsweep: %s\n", buf);
 }
+
+void abandon();
+bool sStayed = false;
 
 const Entry& cur() {
     return sPlan[sIdx];
@@ -369,6 +375,7 @@ void takeScls(int room, int idx, const Place& to, const char* what) {
              sclsStr(e).c_str());
     check(buf, sclsLeadsTo(e, to));
     if (e == nullptr) {
+        abandon();
         return;
     }
     {
@@ -383,9 +390,14 @@ void takeScls(int room, int idx, const Place& to, const char* what) {
 void nextEntry();
 
 // The current entrance gave up (a stage not reached, an exit missing).
+// A stage change still under way (a throw-out the stay check caught) settles first, so the next hop
+// is not raced by it (kRecover).
 void abandon() {
     sCurFailed = true;
-    nextEntry();
+    sStayed = false;
+    sState = kRecover;
+    sSince = 0;
+    sPresent = 0;
 }
 
 // --- save and quit ---
@@ -566,9 +578,21 @@ void startBack() {
     }
 }
 
+// After the forward and back arrivals the player stays kStayFrames with no stage change: nothing
+// throws them out (e.g. a Fire Mountain / Ice Ring Isle VolTag left in a cave reached from an
+// entrance without a timer, or a spawn the player cannot stand on). sStayed: declared at the top.
+
+void stayed();
+
 // The play scene runs on sWant: the step's next action.
 void arrived() {
     const Entry& en = cur();
+    if ((sStep == kForward || sStep == kBack) && !sStayed) {
+        sState = kStay;
+        sSince = 0;
+        return;
+    }
+    sStayed = false;
     switch (sStep) {
     case kToE:
         sStep = kForward;
@@ -593,6 +617,11 @@ void arrived() {
         nextEntry();
         return;
     }
+}
+
+void stayed() {
+    sStayed = true;
+    arrived();
 }
 
 const char* stepName() {
@@ -709,6 +738,38 @@ void randoSmokeEntrsweep(unsigned int frames) {
             return;
         }
         arrived();
+        return;
+    }
+    case kStay: {
+        const char* stage = dComIfGp_getStartStageName();
+        const bool same = sWant.stage == stage && (sWant.room < 0 || dComIfGp_roomControl_getStayNo() == sWant.room);
+        if (dComIfGp_isEnableNextStage() || !same || dComIfGp_getPlayer(0) == nullptr) {
+            char buf[200];
+            snprintf(buf, sizeof buf, "%s: the player stays on %s for %u frames (after %u: %s %s)", stepName(),
+                     placeStr(sWant).c_str(), kStayFrames, sSince,
+                     dComIfGp_isEnableNextStage() ? "a stage change to" : "now on",
+                     dComIfGp_isEnableNextStage() ? nextStr().c_str() : stage);
+            check(buf, false);
+            abandon();
+            return;
+        }
+        if (sSince >= kStayFrames) {
+            char buf[200];
+            snprintf(buf, sizeof buf, "%s: the player stays on %s for %u frames", stepName(), placeStr(sWant).c_str(),
+                     kStayFrames);
+            check(buf, true);
+            sState = kArrive; // (not travelling: stayed() goes on with the step)
+            stayed();
+        }
+        return;
+    }
+    case kRecover: {
+        const bool calm = !dComIfGp_isEnableNextStage() && dComIfGp_getPlayer(0) != nullptr &&
+                          playSceneId() != fpcM_ERROR_PROCESS_ID_e;
+        sPresent = calm ? sPresent + 1 : 0;
+        if (sPresent >= kSettle || sSince >= kArriveFrames) {
+            nextEntry();
+        }
         return;
     }
     case kWarpOrder: {

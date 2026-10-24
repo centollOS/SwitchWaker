@@ -168,3 +168,18 @@ python3 -I native/tools/rando/make_test_placement.py --kind seed --seed TestSeed
   Generate row with `COS_RANDO_SEED=S`), then checks the sidecar it wrote in the run's card folder and
   its logs in `<run dir>/user/rando` as `check_seeds.py --golden` does: `ww_verify.py`, the
   placement against `ww_export.py S`, and the logs (hints aside). Needs `COS_DISC`.
+- R6.14 `entrance_sweep.py` (needs `COS_DISC` for `plan` and `run`):
+  - `check <placement.json>... [--no-logic]` is the entrance structure checker: the map is a bijection
+    of the 44 entrances and exits, each entrance leads to an exit of its own entrance set
+    (`mix_entrances`), every exit's nesting chain ends on an island (no loop), a
+    dungeons-and-caves-only start has its safety entrance, a progress exit is never nested in a
+    nonprogress one (and Forsaken Fortress's boss entrance follows FF's progress), no island holds a
+    required and a banned boss, and `ww_verify.py` passes with the map.
+  - `selftest` breaks wwrando seeds in each of those ways and requires `check` to catch every break.
+  - `plan <placement.json>` writes the in-game plan from wwrando's tables and the disc's SCLS[0]
+    (where each entrance leads, the way back, where a save inside the exit reloads).
+  - `run <placement.json>... [--jobs 3] [--per-run 6]` runs the smoke `entrsweep` over the plans:
+    every entrance forward, a save-and-quit inside its exit reloaded, and back (SCLS exit, boss
+    warp-out or Helmaroc King's door). Report: `build/rando-sweep/entrance_sweep.tsv`. Only for maps
+    with entrance rando on (the plan states what wwrando's `_save` writes; an unrandomized disc
+    differs from wwrando's tables in a few SCLS rooms and the caves' save sectors).

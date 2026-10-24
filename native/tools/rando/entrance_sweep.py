@@ -623,6 +623,12 @@ def cmd_run(args):
       continue
     report.append([m.name, "-", "-", "structure", "-", "ok", ""])
     print(f"entrance-sweep: {m.name}: structure ok", flush=True)
+    if not m.er.is_enabled():
+      # The plan states what wwrando's _save writes; with entrance rando off nothing is written and the
+      # disc differs from wwrando's tables (a few SCLS rooms 255, the caves' save sectors).
+      report.append([m.name, "-", "-", "plan", "-", "not-swept", "entrance rando is off in this seed"])
+      print(f"entrance-sweep: {m.name}: entrance rando is off: not swept", flush=True)
+      continue
     plan_path = os.path.join(sweep_dir, m.name + ".plan")
     lines = write_plan(m, disc, plan_path)
     plans[m.name] = lines
