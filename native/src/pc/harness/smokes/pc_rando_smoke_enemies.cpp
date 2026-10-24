@@ -925,6 +925,8 @@ void nextHop() {
 
 void randoSmokeEnemies(unsigned int frames) {
     (void)frames;
+    // its tables (sRecs, sTargetRecs, sAdded) outlive the game's current heap, which a hop frees
+    JKRPcHostAllocScope hostAlloc;
     if (sState == kDone) {
         return;
     }

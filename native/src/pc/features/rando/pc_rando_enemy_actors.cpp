@@ -14,9 +14,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
-#include <string>
 #include <unistd.h>
-#include <vector>
 
 namespace {
 
@@ -114,19 +112,41 @@ constexpr HomenSite kHomen[pcr::kNumHomen] = {
     {"kaze", 10, 0x09, "kaze/Room10.arc/Homen009"},
 };
 
-// A target plus what the edit needs.
+// A target plus what the edit needs. Every table of this module is static storage: the patcher runs
+// while the game's current JKRHeap is an archive or room heap (operator new goes there on the port),
+// which a stage change frees.
 struct Target {
     PcRandoEnemyActorTarget t;
-    const EnemyActorData* data = nullptr; // modify / add
-    int homen = -1;                       // homen slot
-    std::string label;                    // owns t.label for adds
+    const EnemyActorData* data; // modify / add
+    int homen;                  // homen slot, or -1
+    char label[48];             // t.label of an add
 };
 
-std::vector<Target>* sTargets = nullptr;
-std::vector<PcRandoEnemyActorTarget> sPublic;
+constexpr int kMaxTargets = 64;
+struct TargetList {
+    Target items[kMaxTargets];
+    int n = 0;
+    const Target* begin() const { return items; }
+    const Target* end() const { return items + n; }
+    size_t size() const { return (size_t)n; }
+    const Target& operator[](size_t i) const { return items[i]; }
+};
+TargetList sTargets;
+bool sTargetsBuilt = false;
+PcRandoEnemyActorTarget sPublic[kMaxTargets];
 
-void setFromPath(Target& x, int kind, const EnemyActorPath& p) {
-    x.t.kind = kind;
+Target* newTarget(int kind) {
+    if (sTargets.n >= kMaxTargets) {
+        return nullptr; // the table has 26; more would be a generator change
+    }
+    Target* x = &sTargets.items[sTargets.n++];
+    memset(x, 0, sizeof *x);
+    x->t.kind = kind;
+    x->homen = -1;
+    return x;
+}
+
+void setFromPath(Target& x, const EnemyActorPath& p) {
     x.t.label = p.raw;
     x.t.stage = p.stage;
     x.t.room = p.room;
@@ -136,23 +156,25 @@ void setFromPath(Target& x, int kind, const EnemyActorPath& p) {
     x.t.index = p.index;
 }
 
-const std::vector<Target>& targets() {
-    if (sTargets != nullptr) {
-        return *sTargets;
+const TargetList& targets() {
+    if (sTargetsBuilt) {
+        return sTargets;
     }
-    std::vector<Target>* v = new std::vector<Target>();
+    sTargetsBuilt = true;
+    sTargets.n = 0;
+    Target* x;
     for (const EnemyActorPath& p : pcr::enemy_alldie_paths()) {
-        Target x;
-        setFromPath(x, PCR_EACTOR_ALLDIE, p);
-        x.t.vanilla_name = kAlldieFrom;
-        v->push_back(x);
+        if ((x = newTarget(PCR_EACTOR_ALLDIE)) != nullptr) {
+            setFromPath(*x, p);
+            x->t.vanilla_name = kAlldieFrom;
+        }
     }
     for (const EnemyActorData& d : pcr::enemy_modify_actors()) {
-        Target x;
-        setFromPath(x, PCR_EACTOR_MODIFY, d.path);
-        x.t.vanilla_name = knownName(d.path.raw);
-        x.data = &d;
-        v->push_back(x);
+        if ((x = newTarget(PCR_EACTOR_MODIFY)) != nullptr) {
+            setFromPath(*x, d.path);
+            x->t.vanilla_name = knownName(d.path.raw);
+            x->data = &d;
+        }
     }
     for (const pcr::EnemyGroup& g : pcr::enemy_groups()) {
         const pcr::Span<EnemyActorData> adds = pcr::enemy_group_adds(g);
@@ -162,51 +184,43 @@ const std::vector<Target>& targets() {
         // dzx, _, layer = get_dzx_fourcc_and_layer_by_path(enemy_group["Enemies"][0]["Path"])
         const EnemyActorPath& first = pcr::enemy_group_locations(g)[0].path;
         for (size_t k = 0; k < adds.size; k++) {
-            Target x;
-            x.t.kind = PCR_EACTOR_ADD;
-            x.t.stage = first.stage;
-            x.t.room = first.room;
-            if (!pc_rando_dzx_tag("ACTR", first.layer, x.t.tag)) {
-                memcpy(x.t.tag, "????", 5);
+            if ((x = newTarget(PCR_EACTOR_ADD)) == nullptr) {
+                continue;
             }
-            x.t.index = -1;
-            x.t.vanilla_name = nullptr;
-            x.data = &adds[k];
-            char buf[64];
-            snprintf(buf, sizeof buf, "%s/Add%zu", first.file, k);
-            x.label = buf;
-            v->push_back(x);
+            x->t.stage = first.stage;
+            x->t.room = first.room;
+            if (!pc_rando_dzx_tag("ACTR", first.layer, x->t.tag)) {
+                memcpy(x->t.tag, "????", 5);
+            }
+            x->t.index = -1;
+            x->t.vanilla_name = nullptr;
+            x->data = &adds[k];
+            snprintf(x->label, sizeof x->label, "%s/Add%zu", first.file, k);
+            x->t.label = x->label;
         }
     }
     for (const EnemyActorPath& p : pcr::enemy_remove_paths()) {
-        Target x;
-        setFromPath(x, PCR_EACTOR_REMOVE, p);
-        x.t.vanilla_name = knownName(p.raw);
-        v->push_back(x);
-    }
-    for (int h = 0; h < pcr::kNumHomen; h++) {
-        Target x;
-        x.t.kind = PCR_EACTOR_HOMEN;
-        x.t.label = kHomen[h].label;
-        x.t.stage = kHomen[h].stage;
-        x.t.room = kHomen[h].room;
-        memcpy(x.t.tag, "ACTR", 5);
-        x.t.index = kHomen[h].index;
-        x.t.vanilla_name = kHomenNames;
-        x.homen = h;
-        v->push_back(x);
-    }
-    for (Target& x : *v) {
-        if (x.t.kind == PCR_EACTOR_ADD) {
-            x.t.label = x.label.c_str();
+        if ((x = newTarget(PCR_EACTOR_REMOVE)) != nullptr) {
+            setFromPath(*x, p);
+            x->t.vanilla_name = knownName(p.raw);
         }
     }
-    sTargets = v;
-    sPublic.clear();
-    for (const Target& x : *v) {
-        sPublic.push_back(x.t);
+    for (int h = 0; h < pcr::kNumHomen; h++) {
+        if ((x = newTarget(PCR_EACTOR_HOMEN)) == nullptr) {
+            continue;
+        }
+        x->t.label = kHomen[h].label;
+        x->t.stage = kHomen[h].stage;
+        x->t.room = kHomen[h].room;
+        memcpy(x->t.tag, "ACTR", 5);
+        x->t.index = kHomen[h].index;
+        x->t.vanilla_name = kHomenNames;
+        x->homen = h;
     }
-    return *sTargets;
+    for (int i = 0; i < sTargets.n; i++) {
+        sPublic[i] = sTargets.items[i].t;
+    }
+    return sTargets;
 }
 
 bool nameIn(const uint8_t* e, const char* list) {
@@ -226,11 +240,14 @@ bool nameIn(const uint8_t* e, const char* list) {
     return false;
 }
 
-std::string nameOf(const uint8_t* e) {
-    char name[9];
-    memcpy(name, e, 8);
-    name[8] = '\0';
-    return name;
+struct Name {
+    char s[9];
+};
+Name nameOf(const uint8_t* e) {
+    Name n;
+    memcpy(n.s, e, 8);
+    n.s[8] = '\0';
+    return n;
 }
 
 // getattr / setattr of a params-bitfield (all the fields used here live in params).
@@ -279,31 +296,33 @@ bool sameFile(const PcRandoEnemyActorTarget& t, const char* stage, int room) {
 }
 
 // One in-place edit. Returns true when made; *why on a refusal, *mismatch for D9.
-bool applyInPlace(const Target& x, PcRandoDzx* dzx, const int homen[3], std::string* why, bool* mismatch) {
+// why: a buffer of kWhy bytes.
+constexpr size_t kWhy = 160;
+bool applyInPlace(const Target& x, PcRandoDzx* dzx, const int homen[3], char* why, bool* mismatch) {
     *mismatch = false;
     uint8_t* e = x.t.kind == PCR_EACTOR_HOMEN ? actrByType(dzx, x.t.index)
                                               : pc_rando_dzx_entry(dzx, x.t.tag, (uint32_t)x.t.index);
     if (e == nullptr) {
-        *why = std::string("no ") + x.t.tag + " entry there";
+        snprintf(why, kWhy, "no %s entry there", x.t.tag);
         *mismatch = true;
         return false;
     }
     if (x.t.vanilla_name != nullptr && !nameIn(e, x.t.vanilla_name)) {
-        *why = "the entry is \"" + nameOf(e) + "\", not " + x.t.vanilla_name;
+        snprintf(why, kWhy, "the entry is \"%s\", not %s", nameOf(e).s, x.t.vanilla_name);
         *mismatch = true;
         return false;
     }
     switch (x.t.kind) {
     case PCR_EACTOR_ALLDIE: {
-        const std::string orig = nameOf(e);
+        const Name orig = nameOf(e);
         uint32_t sw = 0;
-        if (!getParam(orig.c_str(), "switch_to_set", pc_rando_dzx_be32(e + 0x08), &sw)) {
-            *why = "no switch_to_set param for " + orig;
+        if (!getParam(orig.s, "switch_to_set", pc_rando_dzx_be32(e + 0x08), &sw)) {
+            snprintf(why, kWhy, "no switch_to_set param for %s", orig.s);
             return false;
         }
         uint32_t params = 0xFFFFFFFFu;
         if (!setParam("ALLdie", "switch_to_set", &params, sw)) {
-            *why = "no switch_to_set param for ALLdie";
+            snprintf(why, kWhy, "no switch_to_set param for ALLdie");
             return false;
         }
         putName(e, "ALLdie");
@@ -340,17 +359,17 @@ bool applyInPlace(const Target& x, PcRandoDzx* dzx, const int homen[3], std::str
         memset(e, 0, 8); // remove_entity: name = "" (pc_rando_dzx_suppress)
         return true;
     case PCR_EACTOR_HOMEN: {
-        const std::string orig = nameOf(e);
+        const Name orig = nameOf(e);
         uint32_t params = pc_rando_dzx_be32(e + 0x08);
-        if (!setParam(orig.c_str(), "enemy_to_spawn", &params, (uint32_t)homen[x.homen])) {
-            *why = "no enemy_to_spawn param for " + orig;
+        if (!setParam(orig.s, "enemy_to_spawn", &params, (uint32_t)homen[x.homen])) {
+            snprintf(why, kWhy, "no enemy_to_spawn param for %s", orig.s);
             return false;
         }
         put32(e + 0x08, params);
         return true;
     }
     default:
-        *why = "unknown edit";
+        snprintf(why, kWhy, "unknown edit");
         return false;
     }
 }
@@ -375,8 +394,8 @@ void buildAdd(const EnemyActorData& d, uint8_t out[kActrSize]) {
     put16(out + 0x1E, 0xFFFF);
 }
 
-int8_t* sResults = nullptr;
-size_t sResultsSize = 0;
+int8_t sResults[kMaxTargets];
+constexpr size_t sResultsSize = kMaxTargets;
 PcRandoEnemyActorStats sStats;
 bool sInit = false;
 bool sBypass = false;
@@ -386,12 +405,8 @@ bool sSeedHas = false;
 int sHomen[pcr::kNumHomen] = {0, 0, 0};
 
 void resetResults() {
-    const size_t n = targets().size();
-    if (sResults == nullptr) {
-        sResults = new int8_t[n];
-        sResultsSize = n;
-    }
-    memset(sResults, -1, sResultsSize);
+    targets();
+    memset(sResults, -1, sizeof sResults);
     sStats = PcRandoEnemyActorStats{};
 }
 
@@ -411,11 +426,14 @@ bool seedActive() {
         memcpy(sSeedHash, seed->hash, sizeof sSeedHash);
         sSeedHas = false;
         resetResults();
+        // pc_rando_enemies_active() checked the whole key (enemiesFromJson: 3 candidates); read the
+        // values in place (no allocation, see Target)
         const pcr::Json* j = seed->extra.find("enemies");
-        pcr::EnemyRandoResult r;
-        std::string err;
-        if (j != nullptr && pcr::enemiesFromJson(*j, r, &err)) {
-            memcpy(sHomen, r.homen, sizeof sHomen);
+        const pcr::Json* h = j != nullptr ? j->find("homen") : nullptr;
+        if (h != nullptr && h->isArray() && h->size() == (size_t)pcr::kNumHomen) {
+            for (int i = 0; i < pcr::kNumHomen; i++) {
+                sHomen[i] = (int)h->at((size_t)i).asInt();
+            }
             sSeedHas = true;
         }
     }
@@ -432,7 +450,7 @@ constexpr uint32_t kGrowBlockSlack = 0x1000;
 
 // A stage.dzs with room memory blocks: adds the slack to the block of every room of the stage that
 // gets new actors. Returns the number of blocks grown.
-int addBlockSlack(PcRandoResFile* file, const std::vector<Target>& ts) {
+int addBlockSlack(PcRandoResFile* file, const TargetList& ts) {
     PcRandoDzx dzx;
     if (pc_rando_dzx_open(&dzx, file->data, file->size) != PCR_DZX_OK) {
         return 0;
@@ -493,9 +511,9 @@ extern "C" {
 const PcRandoEnemyActorTarget* pc_rando_enemy_actors_targets(int* count) {
     targets();
     if (count != nullptr) {
-        *count = (int)sPublic.size();
+        *count = sTargets.n;
     }
-    return sPublic.data();
+    return sPublic;
 }
 
 void pc_rando_enemy_actors_stats(PcRandoEnemyActorStats* out) {
@@ -505,7 +523,7 @@ void pc_rando_enemy_actors_stats(PcRandoEnemyActorStats* out) {
 }
 
 int pc_rando_enemy_actors_last_result(int i) {
-    if (sResults == nullptr || i < 0 || (size_t)i >= sResultsSize) {
+    if (i < 0 || (size_t)i >= sResultsSize) {
         return -1;
     }
     return sResults[i];
@@ -556,13 +574,14 @@ int pc_rando_enemy_actors_apply(const int homen[3], PcRandoResFile* file, int8_t
     if (!fileMatches(file)) {
         return 0;
     }
-    const std::vector<Target>& ts = targets();
+    const TargetList& ts = targets();
     if (file->room < 0) {
         addBlockSlack(file, ts);
     }
     int h = 0, n = 0;
-    std::vector<uint8_t> adds;
-    std::vector<size_t> addIdx;
+    uint8_t adds[kMaxTargets * kActrSize];
+    size_t addIdx[kMaxTargets];
+    size_t nAdd = 0;
     char addTag[5] = {};
     PcRandoDzx dzx;
     bool opened = false, openFailed = false;
@@ -584,16 +603,14 @@ int pc_rando_enemy_actors_apply(const int homen[3], PcRandoResFile* file, int8_t
             continue;
         }
         if (x.t.kind == PCR_EACTOR_ADD) {
-            uint8_t rec[kActrSize];
-            buildAdd(*x.data, rec);
-            adds.insert(adds.end(), rec, rec + kActrSize);
-            addIdx.push_back(i);
+            buildAdd(*x.data, adds + nAdd * kActrSize);
+            addIdx[nAdd++] = i;
             memcpy(addTag, x.t.tag, 5); // one group per file: one tag
             continue;
         }
-        std::string why;
+        char why[kWhy] = {};
         bool mismatch = false;
-        const bool ok = applyInPlace(x, &dzx, homen, &why, &mismatch);
+        const bool ok = applyInPlace(x, &dzx, homen, why, &mismatch);
         if (results != nullptr) {
             results[i] = ok ? 1 : mismatch ? 0 : 2;
         }
@@ -601,22 +618,22 @@ int pc_rando_enemy_actors_apply(const int homen[3], PcRandoResFile* file, int8_t
             n++;
         } else {
             logf("[cos] rando: enemy actors: %s: %s, left as it is (%s)\n", x.t.label,
-                 mismatch ? "mismatch" : "refused", why.c_str());
+                 mismatch ? "mismatch" : "refused", why);
         }
     }
-    if (!adds.empty()) {
-        PcRandoDzxAdd add = {addTag, adds.data(), (uint32_t)addIdx.size()};
+    if (nAdd != 0) {
+        PcRandoDzxAdd add = {addTag, adds, (uint32_t)nAdd};
         const int r = pc_rando_res_grow_dzx(file, &add, 1, nullptr);
-        for (size_t i : addIdx) {
+        for (size_t k = 0; k < nAdd; k++) {
             if (results != nullptr) {
-                results[i] = r == PCR_DZX_OK ? 1 : 2;
+                results[addIdx[k]] = r == PCR_DZX_OK ? 1 : 2;
             }
         }
         if (r == PCR_DZX_OK) {
-            n += (int)addIdx.size();
+            n += (int)nAdd;
         } else {
             logf("[cos] rando: enemy actors: %s/Room%d: %zu new actor(s) not added (%s)\n", file->stage, file->room,
-                 addIdx.size(), pc_rando_dzx_result_name(r));
+                 nAdd, pc_rando_dzx_result_name(r));
         }
     }
     if (handled != nullptr) {
@@ -647,7 +664,7 @@ void pc_rando_enemy_actors_patch(PcRandoResFile* file) {
     }
     sStats.files++;
     sStats.done += (uint32_t)n;
-    const std::vector<Target>& ts = targets();
+    const TargetList& ts = targets();
     for (size_t i = 0; i < ts.size(); i++) {
         if (sameFile(ts[i].t, file->stage, file->room)) {
             sStats.mismatched += sResults[i] == 0 ? 1u : 0u;
