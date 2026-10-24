@@ -154,15 +154,21 @@ int main() {
 
     // ---- failure: the error log replaces the earlier logs of the seed ----------------------------
     {
+        // Every progression category off: wwrando's TooFewProgressionLocationsError (until R7.4d this
+        // case used an option the menu refused; none is left).
         pcr::GenRequest badReq = request("TestSeed1", true);
-        badReq.options.randomize_enemies = true; // refused until R7.4d (palettes were, until R7.2e)
+        for (int id = 0; id < pcr::OPT_COUNT; id++) {
+            if (strncmp(pcr::kOptionInfo[id].name, "progression_", 12) == 0) {
+                pcr::optionSetInt(badReq.options, id, 0);
+            }
+        }
         RT_CHECK(pcr::genJobStart(badReq, paths, &err));
     }
     pcr::genJobWait();
     pcr::GenJobResult bad;
     RT_CHECK(pcr::genJobTake(&bad));
     RT_CHECK(!bad.gen.ok);
-    RT_CHECK(bad.gen.unsupported);
+    RT_CHECK(!bad.gen.unsupported);
     RT_CHECK_EQ(bad.errorPath, errorLog);
     RT_CHECK_EQ(bad.sidecarPath, std::string());
     RT_CHECK_EQ(bad.spoilerPath, std::string());
@@ -170,7 +176,7 @@ int main() {
     RT_CHECK(!exists(nonSpoiler));
     {
         const std::string text = readAll(errorLog);
-        RT_CHECK(text.find("Error on seed TestSeed1:\nNot supported yet: randomize_enemies") != std::string::npos);
+        RT_CHECK(text.find("Error on seed TestSeed1:\nNot enough progress locations") != std::string::npos);
         RT_CHECK(endsWith(text, trailer));
     }
     RT_CHECK_EQ(sEnter.load(), 2);

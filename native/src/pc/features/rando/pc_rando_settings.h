@@ -11,9 +11,10 @@
 //   int    decimal, inside the option's [min, max]
 // A missing or bad value is the option's wwrando default.
 //
-// Options with no key (they keep their default; none of them is in the permalink except
-// randomize_enemies, which ensureValidCombination turns off anyway):
-//   randomize_enemies (D18: experimental, a later step), dry_run, the custom player model options
+// randomize_enemies has a key since R7.4d (D18: experimental, "can be unbeatable"; the menu validates
+// with ensureValidCombination(o, allowUnbeatable = true)).
+// Options with no key (they keep their default; none of them is in the permalink):
+//   dry_run, the custom player model options
 //   (custom_player_model, player_in_casual_clothes, disable_custom_player_voice,
 //   disable_custom_player_items, custom_color_preset, custom_colors: no custom models in the port),
 //   invert_camera_x_axis (the port's own Gráficos row COS_CAMERA_INVERT_X does it),

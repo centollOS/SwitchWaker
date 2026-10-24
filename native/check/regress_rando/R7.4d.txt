@@ -1,0 +1,16 @@
+# R7.4d (docs/RANDOMIZER_PLAN.md): enemy randomizer option live (experimental), room sweep.
+# native/tools/rando/enemy_sweep.py generates each seed with cos_rando_cli (randomize_enemies=true) and boots every
+# room of the 222 groups of enemy_locations.txt (214 stops, batched by stage through stage changes) with the smoke
+# COS_RANDO_SMOKE=enemysweep (native/src/pc/harness/smokes/pc_rando_smoke_enemysweep.cpp): room reached, every
+# table enemy of the room written and created, 300 frames, must-defeat rooms complete once their enemies are
+# removed, no heap allocation failure, the room heap's free space logged. The full verification (3 seeds,
+# about 80 minutes at 3 runs) is `python3 -I native/tools/rando/enemy_sweep.py`; these lines are a subset.
+# --vanilla (no placement) is the comparison the sweep uses for failing stops. Without a placement the rooms
+# TF_01/TF_02 1-5 (no spawn point of their own, booted with point 0) crash in their vanilla enemies' code
+# (a null player in Bk_move, daWZ_Create, daMo2_Execute), a debug-boot problem the randomized rooms do not hit;
+# the vanilla line leaves them out.
+# The first line is R7.4b's stage-change crash (R7.4a state on an archive heap): M_NewD2 room 2 -> Siren room 0.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+script 0 python3 -I native/tools/rando/enemy_check.py --seed EnemyCov19 --run --stage M_NewD2:2:1 --smoke-env COS_RANDO_ENEMY_HOPS=Siren:0:0 --smoke-env COS_CACHE_PER_RUN=1
+script 0 python3 -I native/tools/rando/enemy_sweep.py --seeds EnemySweepA --only Cave01,TF_01,M_NewD2:2,Siren:0,kaze:10
+script 0 python3 -I native/tools/rando/enemy_sweep.py --vanilla --only Cave01,M_NewD2:2,Siren:0

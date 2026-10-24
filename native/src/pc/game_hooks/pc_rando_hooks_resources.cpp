@@ -38,8 +38,15 @@ void* allocOnCurrentHeap(size_t size, void*) {
 
 } // namespace
 
+// R7.4d audit: the patchers (and their init functions, which run at the first dispatch) keep lasting
+// state per seed or per activation (parsed seed keys, plans, caches); allocated with the port's
+// global operator new during loadResource it would land on the archive's heap, which the next stage
+// change frees (R7.4b's stage-change crash). Both dispatches therefore run in a host allocation
+// scope. Grown or replaced files still come from the archive heap: file.alloc calls JKRHeap::alloc
+// on the current heap directly, which the scope does not change.
 extern "C" void* pc_rando_res_hook_loaded(const void* info, const char* arcName, void* archive,
                                           uint32_t type, const char* fileName, void* res) {
+    JKRPcHostAllocScope hostAlloc;
     initPatchers();
     if (res == nullptr || archive == nullptr || pc_rando_res_patcher_count() == 0) {
         return res;
@@ -66,6 +73,7 @@ extern "C" void* pc_rando_res_hook_loaded(const void* info, const char* arcName,
 // after the loaders and goes through pc_rando_res_hook_loaded as before.
 extern "C" void* pc_rando_res_hook_raw(const void* info, const char* arcName, void* archive, uint32_t type,
                                        const char* fileName, void* res) {
+    JKRPcHostAllocScope hostAlloc; // see pc_rando_res_hook_loaded
     initPatchers();
     if (res == nullptr || archive == nullptr || !pc_rando_res_is_j3d_type(type) ||
         pc_rando_raw_patcher_count() == 0) {

@@ -29,6 +29,7 @@
 #include "features/rando/pc_rando_wrap.h"
 
 #include "d/d_com_inf_game.h"
+#include "JSystem/JKernel/JKRHeap.h"
 #include "f_op/f_op_msg_mng.h"
 
 #include <cstdio>
@@ -69,6 +70,9 @@ const pcr::HintsResult* activeHints() {
     }
     const PcRandoSeed* seed = pc_rando_seed();
     if (!sParsed || sParsedFor != seed) {
+        // R7.4d audit: sHints lasts for the activation, but the first call can come from an archive
+        // patcher (the current JKRHeap is the archive's, which a stage change frees) or d_a_bigelf.
+        JKRPcHostAllocScope hostAlloc;
         sParsed = true;
         sParsedFor = seed;
         sHaveHints = false;

@@ -83,11 +83,10 @@ std::string unsupportedOptionsError(const Options& o, bool allowMissingHints, bo
                "). Turn the option off to generate a seed.";
     };
     // In randomizer.py's order of the randomizers (entrances: ported in R6.10-R6.11).
-    if (o.randomize_enemies && !allowNotRuntimeReady) {
-        // R7.3c ported the generator; the game applies the enemies from R7.4a-R7.4d, so the menu
-        // keeps refusing it until R7.4d (GenRequest::allowNotRuntimeReady).
-        return refuse("randomize_enemies", "R7.4d");
-    }
+    // randomize_enemies: generated since R7.3c, applied by the game since R7.4a-R7.4c, live in the
+    // menu since R7.4d (experimental, D18).
+    (void)refuse;
+    (void)allowNotRuntimeReady; // no option is generated without its game side any more
     // randomize_enemy_palettes: generated since R7.2a, applied by the game since R7.2e (textures,
     // materials and animations R7.2c-R7.2d; particles and code colours R7.2e).
     (void)allowMissingHints; // R5.1: hints are generated (allowMissingHints only skips them)

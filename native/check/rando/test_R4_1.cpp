@@ -113,9 +113,11 @@ int main() {
                           "COS_RANDO_DIR", "COS_RANDO_TRACE"}) {
         RT_CHECK(keys.count(k) == 0);
     }
-    // 77 options minus the 12 without a key of their own.
-    RT_CHECK_EQ(exposed, 65);
-    for (int id : {OPT_randomize_enemies, OPT_dry_run, OPT_custom_player_model, OPT_player_in_casual_clothes,
+    // 77 options minus the 11 without a key of their own (randomize_enemies has one since R7.4d).
+    RT_CHECK_EQ(exposed, 66);
+    RT_CHECK(settingExposed(OPT_randomize_enemies));
+    RT_CHECK(keys.count("COS_RANDO_RANDOMIZE_ENEMIES") == 1);
+    for (int id : {OPT_dry_run, OPT_custom_player_model, OPT_player_in_casual_clothes,
                    OPT_disable_custom_player_voice, OPT_disable_custom_player_items, OPT_custom_color_preset,
                    OPT_custom_colors, OPT_invert_camera_x_axis, OPT_remove_title_and_ending_videos,
                    OPT_randomized_gear, OPT_starting_gear}) {
