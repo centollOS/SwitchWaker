@@ -107,9 +107,11 @@ bool ensure_resampled(Resampled& img, uint32_t w, uint32_t h) {
 // The light SSAO over g_resampled (see dk_ssao.wgsl): false when the depth is not there or a shader is missing,
 // the picture is then shown as it is.
 bool ssao_pass() {
-    // only in the game proper, once a file is loaded (fpcNm_PLAY_SCENE_e, 7): not the logos, the title or the name
-    // entry, whose 2D draws read as geometry; nothing is recorded for them
-    if (pc_current_scene() != 7) return false;
+    // only in the game proper, once a file is loaded: the PLAY scene (fpcNm_PLAY_SCENE_e, 7) and the room scene a stage
+    // creates inside it (fpcNm_ROOM_SCENE_e, 20: the last scene created, so what the tracker holds while playing), not
+    // the logos, the title or the name entry, whose 2D draws read as geometry; nothing is recorded for them
+    const int scene = pc_current_scene();
+    if (scene != 7 && scene != 20) return false;
     Tex* depth = find_texture(webgpu::g_depthBuffer.texture.Get());
     View* depthView = find_view(webgpu::g_depthBuffer.view.Get());
     if (!depth || !depth->valid || !depthView) return false;
