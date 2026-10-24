@@ -746,6 +746,26 @@ WARP_WIND_AFTER, `dComIfGs_putSave` + `dComIfGs_setGameStartStage` + `dComIfGs_g
 slot hooks for save-and-quit); `native/tools/rando/entrance_sweep.py` is the structure checker and the
 driver.
 
+## R7.1b
+
+The particle bank hook: wwrando edits particle files on the disc (`randomizer.py` `get_jpc`, saved by
+gclib's `JPC.save()`); the port edits them as the game loads them, before the `JPAResourceManager` that
+reads their bytes in place is built. Registry of imports and colour editors:
+`features/rando/pc_rando_jpc_scene.{h,cpp}` (cleared when `pc_rando()` turns 0); hook bodies:
+`game_hooks/pc_rando_hooks_particles.cpp`. For a scene with imports, the merged copy (R7.1a's
+`pc_rando_jpc_copy_particle` + `pc_rando_jpc_save_into`, gclib's layout) is allocated on `mSceneHeap`
+before the manager, so it is freed with the heap in `removeRoomScene`; `mpData` keeps pointing at the
+loaded file, which `removeRoomScene` still frees. Sources are read synchronously from the disc into host
+memory; "any" scans Pscene000-254 in wwrando's order. common.jpc is loaded at boot, before any randomized
+file: the `createCommon` hook keeps its address in every game and only edits it under `pc_rando()`
+(editors registered later run at once; the bytes are restored at deactivation). Checked by the
+`jpcscene` smoke.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/d_particle.cpp | `dPa_control_c::createRoomScene`: the scene manager is built from `pc_rando_particles_scene` (merged copy or the loaded file, edited) | ?: | tweaks.py `add_inter_dungeon_warp_pots` (particle copy), randomizers/enemies.py `update_loaded_particles`, randomizers/palettes.py particle colours |
+| game/src/d/d_particle.cpp | `dPa_control_c::createCommon`: `pc_rando_particles_common` keeps common.jpc's address and, under `pc_rando()`, runs its editors | hook (address kept; edits only under `pc_rando()`) | customizer.py `change_player_custom_colors` (common.jpc particle 0x48 `bsp1` prm colour) |
+
 ## R7.5a
 
 Cosmetic tweaks wwrando applies on every seed. `make_tingle_statue_reward_rupee_rainbow_colored`:

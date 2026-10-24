@@ -1,0 +1,11 @@
+# R7.1b (docs/RANDOMIZER_PLAN.md): the particle bank hook (features/rando/pc_rando_jpc_scene.{h,cpp},
+# game_hooks/pc_rando_hooks_particles.cpp, the dPa_control_c::createRoomScene and createCommon hunks).
+# The smoke COS_RANDO_SMOKE=jpcscene (native/src/pc/harness/smokes/pc_rando_smoke_jpcscene.cpp) on
+# Tower of the Gods (Pscene050): forced, 0x8161 imported from Pscene035 and 0x8162 from "any"
+# (Pscene013), a scene and a common.jpc colour editor; the merged copy equals the JPC library's own
+# merge, the scene manager has both ids, emitters are created, and again after the stage is
+# re-entered (the scene heap holding the copy is destroyed and rebuilt). Without COS_RANDO_FORCE the
+# hook never runs and the manager is built from the disc's bytes.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage Siren:6 --env COS_RANDO_SMOKE=jpcscene --env COS_RANDO_FORCE=1
+rando 0 --stage Siren:6 --env COS_RANDO_SMOKE=jpcscene
