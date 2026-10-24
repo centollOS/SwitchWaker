@@ -1,7 +1,7 @@
 // Light screen-space ambient occlusion of the present pass (switch/deko/aurora/dk_present.cpp; options menu:
 // Gráficos > Oclusión ambiental, COS_SSAO). Three fixed shaders of this file, all one full-screen triangle:
 //
-//   fs_ao    half resolution: eight depth taps in a disc round the pixel, rotated per pixel (interleaved
+//   fs_ao    reduced resolution (half or quarter, by the level): four to eight depth taps in a disc round the pixel, rotated per pixel (interleaved
 //            gradient noise), on the EFB depth buffer (Depth32Float, reversed Z: 1 at the near plane, 0 at
 //            the far plane and for the sky). No normals: with the perspective projection the depth value is
 //            an affine function of 1/z, so it is an affine function of the screen position on a plane. The
@@ -10,7 +10,7 @@
 //            to the camera) occludes by how much, relative to the pixel's own depth, and no longer counts when
 //            it is much nearer (a foreground object: no halo). The disc's radius is a world size
 //            (proportional to the depth value, about the pixel size of 1 / z), clamped in pixels.
-//   fs_blur  half resolution: 3x3 blur of that, each texel weighted by how near its depth is to the pixel's
+//   fs_blur  reduced resolution: 3x3 blur of that, each texel weighted by how near its depth is to the pixel's
 //            (the sky and other objects do not bleed into it).
 //   fs_apply the present resolution: the occlusion upsampled (bilinear) and drawn over the resampled picture
 //            with the standard blend (colour 0, alpha = strength * occlusion): picture * (1 - alpha).
@@ -24,7 +24,8 @@ struct Uniforms {
     // x: tap radius in depth-buffer pixels per unit of depth value (the depth value is about near / z),
     // y, z: the radius' minimum and maximum in depth-buffer pixels, w: occlusion bias (relative depth)
     radius: vec4<f32>,
-    // x: strength of the final darkening (fs_apply), y: range where the occlusion fades out (relative depth)
+    // x: strength of the final darkening (fs_apply), y: range where the occlusion fades out (relative depth),
+    // z: the number of taps of fs_ao (4 to 8)
     apply: vec4<f32>,
 };
 
@@ -83,16 +84,18 @@ fn fs_ao(in: VertexOutput) -> @location(0) vec4<f32> {
     let noise = fract(52.9829189 * fract(dot(in.position.xy, vec2<f32>(0.06711056, 0.00583715))));
     let bias = u.radius.w;
     var occ = 0.0;
-    for (var i = 0; i < 8; i = i + 1) {
+    let taps = i32(u.apply.z);
+    let inv_taps = 1.0 / u.apply.z;
+    for (var i = 0; i < taps; i = i + 1) {
         let a = f32(i) * 2.39996323 + noise * 6.2831853;
-        let rad = sqrt((f32(i) + 0.5) * 0.125) * r;
+        let rad = sqrt((f32(i) + 0.5) * inv_taps) * r;
         let o = vec2<i32>(round(vec2<f32>(cos(a), sin(a)) * rad));
         let ds = load_depth(c + o);
         let dp = dc + gx * f32(o.x) + gy * f32(o.y);
         let dz = (ds - dp) / dc;
         occ = occ + smoothstep(bias, bias * 4.0, dz) * (1.0 - smoothstep(u.apply.y, u.apply.y * 2.4, dz));
     }
-    return vec4<f32>(occ * 0.125, 0.0, 0.0, 1.0);
+    return vec4<f32>(occ * inv_taps, 0.0, 0.0, 1.0);
 }
 
 @fragment

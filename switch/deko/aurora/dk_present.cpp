@@ -97,8 +97,8 @@ std::atomic<int> g_fxaa{0};  // 0 off, else the preset + 1
 // the options menu's Reescalado (COS_RESCALE): 0 bilinear, 1 área, 2 FSR 1
 std::atomic<int> g_rescale{0};
 
-// the light SSAO (COS_SSAO), same threads
-std::atomic<bool> g_ssao{false};
+// the light SSAO's level (COS_SSAO: 0 off, 1 low, 2 medium, 3 high), same threads
+std::atomic<int> g_ssao{0};
 
 // the occlusion at half resolution: the raw one and the blurred one (RGBA8 images of ensure_resampled)
 Resampled g_aoRaw, g_aoBlur;
@@ -147,13 +147,19 @@ bool ssao_pass() {
     Tex* depth = find_texture(webgpu::g_depthBuffer.texture.Get());
     View* depthView = find_view(webgpu::g_depthBuffer.view.Get());
     if (!depth || !depth->valid || !depthView) return false;
-    const uint32_t w = std::max(g_resampled.width / 2, 1u), h = std::max(g_resampled.height / 2, 1u);
+    // the level: the occlusion's resolution (1/4, 1/2, 1/2 of the picture), taps (4, 6, 8) and strength
+    const int level = std::clamp(g_ssao.load(std::memory_order_relaxed), 1, 3);
+    static const uint32_t kDivisor[4] = {2, 4, 2, 2};
+    static const float kTaps[4] = {8.f, 4.f, 6.f, 8.f};
+    static const float kStrength[4] = {0.6f, 0.5f, 0.6f, 0.7f};
+    const uint32_t w = std::max(g_resampled.width / kDivisor[level], 1u),
+                   h = std::max(g_resampled.height / kDivisor[level], 1u);
     if (!ensure_resampled(g_aoRaw, w, h) || !ensure_resampled(g_aoBlur, w, h)) return false;
     // the tuning (developer variables, percent / hundredths): COS_SSAO_RADIUS the disc's world size,
-    // COS_SSAO_STRENGTH the darkening at full occlusion, COS_SSAO_BIAS the depth step that counts as an occluder
+    // COS_SSAO_STRENGTH the darkening at full occlusion (percent; 0 = the level's), COS_SSAO_BIAS the depth step that counts as an occluder
     static const float radius = float(swdk::env_long("COS_SSAO_RADIUS", 50));
-    static const float strength = float(swdk::env_long("COS_SSAO_STRENGTH", 85)) * 0.01f;
-    static const float bias = float(swdk::env_long("COS_SSAO_BIAS", 100)) * 0.0001f;
+    static const float strength = float(swdk::env_long("COS_SSAO_STRENGTH", 0)) * 0.01f;
+    static const float bias = float(swdk::env_long("COS_SSAO_BIAS", 150)) * 0.0001f;
     // the depth value is about near / z (near about 10 units): a world radius R is about R * focal / z pixels,
     // so focal * R / near depth-buffer pixels per unit of depth value (focal about 650 px at 720p)
     // with the dynamic resolution the scene's depth is in the top-left part of
@@ -164,7 +170,7 @@ bool ssao_pass() {
     const float scale = contentH / 720.f;
     SsaoUniforms uniforms = {contentW, contentH, float(w), float(h),
                              {radius * 65.f * scale, 3.f * scale, 28.f * scale, bias},
-                             {strength, 0.3f, 0.f, 0.f}};
+                             {strength > 0.f ? strength : kStrength[level], 0.3f, kTaps[level], 0.f}};
     const swdk::StreamAlloc u = swdk::stream_alloc(256, DK_UNIFORM_BUF_ALIGNMENT);
     if (!u) return false;
     memcpy(u.cpu, &uniforms, sizeof uniforms);
@@ -250,7 +256,7 @@ void picture(void*, int stage) {
         }
         (void)drawn;
         g_in = {true, fsr, w, h, g_resampled.slot};
-        if (g_ssao.load(std::memory_order_relaxed) && ssao_pass()) gpu_mark(GpuWork::Other);
+        if (g_ssao.load(std::memory_order_relaxed) > 0 && ssao_pass()) gpu_mark(GpuWork::Other);
         return;
     }
     if (stage == 1) {
@@ -343,7 +349,7 @@ extern "C" void aurora_switch_dk_set_gamma(float exponent) {
 
 void present_init() {
     g_fxaa.store(int(std::clamp(swdk::env_long("COS_FXAA", 0), 0L, 3L)), std::memory_order_relaxed);
-    g_ssao.store(swdk::env_flag("COS_SSAO", false), std::memory_order_relaxed);
+    g_ssao.store(int(swdk::env_long("COS_SSAO", 0)), std::memory_order_relaxed);
     g_rescale.store(int(std::clamp(swdk::env_long("COS_RESCALE", 0), 0L, 2L)), std::memory_order_relaxed);
     swdk::set_picture(picture, nullptr);
 }
@@ -405,7 +411,7 @@ bool read_texture(WGPUTexture texture, std::vector<uint8_t>& pixels, uint32_t& w
 using namespace aurora::gfx::dk;
 
 extern "C" void aurora_switch_dk_set_fxaa(int level) { g_fxaa.store(std::clamp(level, 0, 3), std::memory_order_relaxed); }
-extern "C" void aurora_switch_dk_set_ssao(bool on) { g_ssao.store(on, std::memory_order_relaxed); }
+extern "C" void aurora_switch_dk_set_ssao(int level) { g_ssao.store(level, std::memory_order_relaxed); }
 
 extern "C" void aurora_switch_dk_set_rescale(int mode) { g_rescale.store(std::clamp(mode, 0, 2), std::memory_order_relaxed); }
 

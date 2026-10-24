@@ -459,7 +459,7 @@ void applyFxaa(const char*, const char* v, void*) {
 }
 void applySsao(const char*, const char* v, void*) {
 #if defined(__SWITCH__)
-    aurora_switch_dk_set_ssao(strcmp(v, "1") == 0);
+    aurora_switch_dk_set_ssao(atoi(v));
 #else
     (void)v;
 #endif
@@ -529,6 +529,8 @@ const PcSettingChoice kPerfEvery[] = {
 const PcSettingChoice kGpuGroups[] = {{"0", "Desactivados", "Off"}, {"1", "Por grupo", "Per group"},
                                       {"2", "Por material J3D", "Per J3D material"}};
 const PcSettingChoice kShowHide[] = {{"1", "Mostrar", "Show"}, {"0", "Ocultar", "Hide"}};
+const PcSettingChoice kSsao[] = {{"0", "Desactivada", "Off"}, {"1", "Baja (cuarto de resolución)", "Low (quarter resolution)"},
+                                 {"2", "Media", "Medium"}, {"3", "Alta", "High"}};
 const PcSettingChoice kGamma[] = {{"0", "Original (sin cambio)", "Original (no change)"},
                                   {"0.10", "+0,10"}, {"0.20", "+0,20 (recomendado)", "+0.20 (recommended)"},
                                   {"0.30", "+0,30"}, {"0.40", "+0,40"}};
@@ -581,11 +583,10 @@ const PcSettingDesc kBuiltins[] = {
      "blur (the HUD too). Costs some GPU time."},
     {"COS_SSAO", "Oclusión ambiental (SSAO)",
      "Oscurece ligeramente las esquinas, los pliegues y el contacto entre objetos, a partir de la profundidad "
-     "de la imagen. Suave y barato (resolución media). No toca el cielo ni los menús.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kOnOff), "0", applySsao, nullptr, 60,
+     "de la imagen. Cuanto más alto el nivel, más cuesta de GPU: Baja es la más barata. No toca el cielo ni los menús.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kSsao), "0", applySsao, nullptr, 60,
      "Ambient occlusion (SSAO)",
-     "Slightly darkens corners, creases and where objects touch, from the picture's depth. Light and cheap "
-     "(half resolution). Leaves the sky and the menus alone."},
+     "Slightly darkens corners, creases and where objects touch, from the picture's depth. A higher level costs more GPU time: Low is the cheapest. Leaves the sky and the menus alone."},
     {"COS_ANISO", "Filtrado anisotrópico",
      "Texturas del suelo y de los edificios más nítidas en perspectiva. Más alto = más carga para la GPU.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kAniso), "1", applyAniso, nullptr, 61,
