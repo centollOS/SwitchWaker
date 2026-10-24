@@ -934,11 +934,13 @@ the `fsnewgame` smoke (`regress_rando/R8.1.txt`).
 | game/src/d/d_file_select.cpp | `dFile_select_c::dataSelect`: after A's vanilla code, `pc_rando_fs_newgame_ask(dataNew && !corrupted, ...)` writes the question title and the seed line | add | none (plan R8.1) |
 | game/src/d/d_file_select.cpp | `dFile_select_c::dataSelectPaneMove`: message + Yes/No panes and proc 0xB also while `pc_rando_fs_newgame_asking()` (two conditions) | if/else | none (plan R8.1) |
 | game/src/d/d_file_select.cpp | `dFile_select_c::YesNoSelect`: while asking, `pc_rando_fs_newgame_yesno` (START: selectEnd 1 as menuSelect's Start; BACK: as B; WAIT: generating or error shown) | add | none (plan R8.1) |
+| game/src/d/d_file_select.cpp | `dFile_select_c::YesNoSelect` (R8.3, marker R8.1): ASK2, the second question: cursor to Yes (`field_0x3928 = 0`, `yesNoCursorMove`) | add | none (plan R8.3) |
 | game/src/d/d_file_select.cpp | `dFile_select_c::CmdExecPaneMove0`: the message pane leaves (not the info panel) while asking | if/else | none (plan R8.1) |
 | game/src/d/d_file_select.cpp | `dFile_select_c::closeEnd`: the message and Yes/No panes leave (as `closeCardErr`) while asking | if/else | none (plan R8.1) |
 | game/src/pal/d/d_file_select.inc | `dFile_select_c::dataSelect`: the same `pc_rando_fs_newgame_ask` call in the save-slot branch (not the PAL language slot, `selectNum == 3`) | add | none (plan R8.1) |
 | game/src/pal/d/d_file_select.inc | `dFile_select_c::dataSelectPaneMove`: as the USA hunk (two conditions) | if/else | none (plan R8.1) |
 | game/src/pal/d/d_file_select.inc | `dFile_select_c::YesNoSelect`: as the USA hunk; START sets PAL's nextModeWait (`VERSION_SELECT(0x26, 0x26, 0x26, 0x29)`, the language states come first) | add | none (plan R8.1) |
+| game/src/pal/d/d_file_select.inc | `dFile_select_c::YesNoSelect` (R8.3, marker R8.1): as the USA hunk | add | none (plan R8.3) |
 | game/src/pal/d/d_file_select.inc | `dFile_select_c::CmdExecPaneMove0`: as the USA hunk | if/else | none (plan R8.1) |
 | game/src/pal/d/d_file_select.inc | `dFile_select_c::closeEnd`: as the USA hunk | if/else | none (plan R8.1) |
 
@@ -947,3 +949,13 @@ language (`dComIfGs_getPalLanguage`): Spanish for Spanish, English for the other
 stays in English. The PAL hunks are in place, but D16 keeps the question off on the PAL build until R7.6a
 opens the region (checked on the Mac with the gate opened locally, not committed: the question in Spanish and
 English, No to the name entry).
+
+R8.3 extends this section (its one hunk per file is in the same `YesNoSelect` branch, marked `pc_rando(R8.1)`
+with an R8.3 note). Yes on the question asks a second one, "Make a new seed?", when there is a seed (a pending
+one, or a name in `COS_RANDO_SEED`): the hook writes the new title and "Current seed: <name>" (plus "Hash:
+<words>" for a pending seed) into the same buffers and returns `PC_RANDO_FSNG_ASK2`, and the game moves the
+cursor to Yes. Yes stores a new random name in `COS_RANDO_SEED` (as the menu's "Random seed" row; kept when the
+environment sets it) and generates it; No uses the pending seed, else generates the setting's name; B goes back
+as on the first question. With no seed at all the second question is skipped and a new random name is
+generated. Texts: overlay records 0xFF06-0xFF08 (English; Spanish on the PAL build in Spanish). Checked by the
+`fsnewgame` smoke (`regress_rando/R8.3.txt`; the R8.1 lines answer No through `rando-fsnewgame-yes.txt`).
