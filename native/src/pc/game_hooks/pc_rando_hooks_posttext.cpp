@@ -46,20 +46,33 @@ bool bmgText(void*, uint16_t msg_no, std::string* text, uint8_t* type) {
     if (dComIfGp_getMsgDtArchive() == nullptr) {
         return false; // before the logo scene loads the message archive (a COS_RANDO_FORCE static init)
     }
-    fopMsgM_msgGet_c get;
-    mesg_header* head = get.getMesgHeader(msg_no);
-    if (head == nullptr) {
-        return false;
+    const char* bytes = nullptr;
+    size_t max = 0x10000; // a BMG string ends with a NUL outside any tag; 0x10000 bounds a damaged one
+    // R7.6c: a European game in German, French, Spanish or Italian builds these texts from the English
+    // BMG, so they stay English as wwrando's (plan R7.6c's language rule).
+    const uint8_t* en = nullptr;
+    uint8_t enEntry[PCR_MSG_ENTRY_SIZE];
+    if (pc_rando_en_bmg_message(msg_no, &en, &max, enEntry)) {
+        bytes = (const char*)en;
+        PcRandoMsgEntry e;
+        pc_rando_msg_entry_unpack(enEntry, &e);
+        *type = e.text_box_type;
+    } else {
+        max = 0x10000;
+        fopMsgM_msgGet_c get;
+        mesg_header* head = get.getMesgHeader(msg_no);
+        if (head == nullptr) {
+            return false;
+        }
+        bytes = get.getMessage(head);
+        if (bytes == nullptr || get.getMesgNumber() != msg_no) {
+            return false;
+        }
+        *type = get.getMesgEntry(head).mTextboxType;
     }
-    const char* bytes = get.getMessage(head);
-    if (bytes == nullptr || get.getMesgNumber() != msg_no) {
-        return false;
-    }
-    *type = get.getMesgEntry(head).mTextboxType;
     std::vector<char> buf(1024);
     for (;;) {
-        // A BMG string ends with a NUL outside any tag; 0x10000 bounds a damaged one.
-        const size_t n = pc_rando_msg_decode((const uint8_t*)bytes, 0x10000, buf.data(), buf.size());
+        const size_t n = pc_rando_msg_decode((const uint8_t*)bytes, max, buf.data(), buf.size());
         if (n < buf.size()) {
             text->assign(buf.data(), n);
             return true;

@@ -508,6 +508,18 @@ int pc_rando_fs_newgame_take_choice(void);
    question; pc_rando_hooks_fileselect_newgame.cpp) ------------------------------------------- */
 #define PC_RANDO_FSNG_ASK2 4 /* the texts now ask the second question: the cursor goes to Yes */
 
+/* --- R7.6c: the European disc's languages (game_hooks/pc_rando_hooks_paltext.cpp; pure lookup in
+   features/rando/pc_rando_bmg.h). wwrando's texts stay English in all five PAL languages. --- */
+/* The European game's language (dComIfGs_getPalLanguage: 0 English, 1 German, 2 French, 3 Spanish,
+   4 Italian); 0 on the USA build. */
+int pc_rando_eur_text_language(void);
+/* In a European game in another language than English: msg_no's text and INF1 entry in the English
+   BMG (/res/Msg/data0/bmgres.arc zel_00.bmg, read from the disc into host memory once per activation),
+   so texts built from vanilla text start from English. *text is valid until pc_rando() turns 0;
+   *text_max bounds it (pc_rando_msg_decode). Returns 0 (nothing written) on the USA build, in English
+   (the loaded BMG is the English one), or when the file or the message cannot be read. */
+int pc_rando_en_bmg_message(uint16_t msg_no, const uint8_t** text, size_t* text_max, uint8_t entry[0x18]);
+
 #ifdef __cplusplus
 }
 #endif
