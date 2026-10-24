@@ -973,3 +973,37 @@ environment sets it) and generates it; No uses the pending seed, else generates 
 as on the first question. With no seed at all the second question is skipped and a new random name is
 generated. Texts: overlay records 0xFF06-0xFF08 (English; Spanish on the PAL build in Spanish). Checked by the
 `fsnewgame` smoke (`regress_rando/R8.3.txt`; the R8.1 lines answer No through `rando-fsnewgame-yes.txt`).
+
+## R7.6c
+
+European disc, messages and text (plan R7.6c). Findings on GZLP01 (gclib over the five
+`/res/Msg/data<N>/bmgres.arc`, N = 0 English, 1 German, 2 French, 3 Spanish, 4 Italian):
+- **Message numbers:** every language's `zel_00.bmg` has USA's 4327 message numbers, no more and no less, so
+  the overlay's numbers (R0.12) are the same on both discs. The INF1 fields are USA's too, apart from
+  `unknown_1` of 27-34, 40 and 78-81, and the language menu's own entries 14500-14507, which no step edits.
+  The English BMG differs from USA's in 7 texts (3308, 4454, 5289, 10016 and three language names), none of
+  them a text wwrando reads or edits.
+- **Font:** `fontres.arc`'s `rock_24_20_4i_usa.bfn` is the same file on both discs (same SHA-1), and the
+  European game uses it in every language (`mDoExt_initFont0`). So R3.4's 22 pre-wrapped item-get texts
+  (wrapped by `gen_dungeon_item_msgs.py` with the USA font) break where a run-time wrap with the PAL font
+  breaks; the `eurtext` smoke checks this at run time, and no run-time wrap was added.
+- **Language rule:** wwrando's texts stay English in all five languages (logged as a deviation of R7.6c).
+  The overlay texts are built from wwrando's English strings and need no change; the R3.21 texts built from
+  vanilla text (chart numbers in the chart item-get texts, line 3 of Beedle's refusal 3957, the Rock Spire
+  letter 3325) read the English BMG in German, French, Spanish and Italian:
+  `game_hooks/pc_rando_hooks_paltext.cpp` reads `/res/Msg/data0/bmgres.arc`'s `zel_00.bmg` from the disc
+  into host memory (about 640 KB) the first time such a text is built in an activation, finds messages in it
+  with `features/rando/pc_rando_bmg.cpp` (`pcr::bmgFind`), and frees it when `pc_rando()` turns 0. On the
+  USA build and in English the loaded BMG is used, as before. Without this, those texts mixed German (etc.)
+  vanilla lines with English ones, and the chart numbers were missing.
+- **Display:** in German, French, Spanish and Italian the European game centres every line whose entry has
+  text alignment 0 (`fopMsgM_msgDataProc_c::stringShift`), wwrando's new messages included, as it does for
+  the game's own texts in those languages; the lines keep the widths wwrando wraps them to.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| - | no hunks in `game/`: `pc_rando_hooks_posttext.cpp`'s `bmgText` asks `pc_rando_en_bmg_message` first (native code, only under `pc_rando()`) | - | tweaks.py `add_chart_number_to_item_get_messages`, `update_beedle_spoil_selling_text`, `update_item_names_in_letter_advertising_rock_spire_shop` |
+
+Checked by the `eurtext` smoke (`regress_rando/R7.6c.txt`) and `cos_rando_test_R7_6c`; on the EUR build, in
+each of the five languages, the `eurtext`, `posttext`, `msg`, `hoho`, `dkeys`, `keybag` and `wrap` smokes pass
+and the `eurtext` dump of every overlay record is byte-identical to USA's.
