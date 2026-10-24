@@ -504,6 +504,10 @@ int pc_rando_fs_newgame_yesno(int trigA, int trigB, int cursor, char* title, cha
    pending seed stays pending and the file is vanilla, 2 Randomizer), cleared by the call. */
 int pc_rando_fs_newgame_take_choice(void);
 
+/* --- R8.3: the second question "Make a new seed?" (same panes and YesNoSelect state as R8.1's
+   question; pc_rando_hooks_fileselect_newgame.cpp) ------------------------------------------- */
+#define PC_RANDO_FSNG_ASK2 4 /* the texts now ask the second question: the cursor goes to Yes */
+
 #ifdef __cplusplus
 }
 #endif

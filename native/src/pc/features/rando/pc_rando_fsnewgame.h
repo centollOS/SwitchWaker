@@ -9,7 +9,14 @@
 // words, or the seed the menu's settings will generate. The same number of presses as before reaches
 // the name entry (A on the slot, A on the preselected No):
 //   - No: the vanilla new file; a pending seed stays pending (R0.7's New Game hook skips it);
-//   - Yes: the pending seed if there is one; otherwise the seed of the current menu settings is
+//   - Yes: when there is a seed (a pending one, or a name in COS_RANDO_SEED), a second question
+//     (R8.3) replaces the texts in the same panes: "Make a new seed?" with the current seed below
+//     (the pending seed's name and hash words, else the setting's name), Yes preselected:
+//       - Yes: a new random seed name (as the menu's "Random seed" row, stored in COS_RANDO_SEED so
+//         the menu shows it; kept as it is when the environment sets it) is generated;
+//       - No: the pending seed if there is one, else the seed of the settings as they are;
+//       - B: back to the slot list.
+//     With no seed at all the second question is skipped and a new seed is generated. A seed is
 //     generated on the worker job (pc_rando_menu.h randoGenerate, as the Generate row does) while
 //     the panel shows "Generating the seed..." and its progress, then the name entry follows and the
 //     New Game hook consumes the new pending seed (R4.4); a generation error shows a one-line message
@@ -31,6 +38,9 @@
 #define PCR_FSNG_MSG_WAIT 0xFF03     // title while generating (%d percent)
 #define PCR_FSNG_MSG_ERROR 0xFF04    // title after a generation error
 #define PCR_FSNG_MSG_RANDOM 0xFF05   // the seed name shown for an empty seed setting
+#define PCR_FSNG_MSG_NEWQ 0xFF06     // R8.3 title: the second question ("Make a new seed?")
+#define PCR_FSNG_MSG_CURPEND 0xFF07  // R8.3 message pane: the pending seed (%s name, %s hash words)
+#define PCR_FSNG_MSG_CURNAME 0xFF08  // R8.3 message pane: the setting's seed name (%s)
 
 namespace pc {
 
@@ -51,6 +61,11 @@ struct RandoFsNewgameInfo {
     int usedPending = 0; // Yes with a pending seed
     int generated = 0;   // Yes that started a generation (or waited for the menu's)
     int errors = 0;      // generations that failed
+    int asked2 = 0;      // R8.3: second questions asked ("Make a new seed?")
+    int answered2Yes = 0;
+    int answered2No = 0;
+    int newSeeds = 0;    // R8.3: new random seed names made (second question Yes, or no seed at all)
+    std::string lastNewSeed; // the last new random seed name
     int waitFrames = 0;  // frames of the last wait state
     double seconds = 0.0; // the last generation's time (genjob, files excluded)
     std::string lastError;  // first line of the last error
