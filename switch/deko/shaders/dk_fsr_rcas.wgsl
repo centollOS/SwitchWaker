@@ -1,7 +1,7 @@
 // FSR 1 RCAS (robust contrast-adaptive sharpening) of the present pass (switch/deko/aurora/dk_present.cpp,
-// options menu: Gráficos > Reescalado > FSR 1). Replaces xfb_copy in the final draw when FSR 1 is on and
-// FXAA is off: it reads the EASU picture (or the EFB itself when it already has the shown size) and writes
-// the swapchain image in the picture's viewport. A port of AMD FidelityFX FSR 1.0's FsrRcasF (ffx_fsr1.h,
+// options menu: Gráficos > Reescalado > FSR 1). Replaces xfb_copy in the final draw when FSR 1 is on: it
+// reads the EASU picture, FXAA's picture when FXAA is on too, or the EFB itself when it already has the
+// shown size, and writes the swapchain image in the picture's viewport. A port of AMD FidelityFX FSR 1.0's FsrRcasF (ffx_fsr1.h,
 // MIT license, Copyright (c) 2021 Advanced Micro Devices, Inc.), without the optional noise removal and with
 // exact divisions. Compiled into initial_dksh_cache.bin as the named records dk_fsr_rcas.vs_main and
 // dk_fsr_rcas.fs_main. Same bindings as present_resample.wgsl: uniforms 0, sampler 1, texture 2.

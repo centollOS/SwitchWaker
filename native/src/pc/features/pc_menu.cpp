@@ -556,13 +556,13 @@ const PcSettingDesc kBuiltins[] = {
      "Resolution the game is drawn at before scaling to the screen. Lower = faster."},
     {"COS_RESCALE", "Reescalado",
      "Cómo se escala la imagen a la pantalla. Bilinear: el de siempre. Área: más nítido al reducir. FSR 1: "
-     "reescalado y nitidez de AMD, mejora la imagen cuando la resolución interna es menor que la pantalla "
-     "(con el suavizado FXAA activo se aplica sin el paso de nitidez).",
+     "reescalado y nitidez de AMD; reescala cuando la resolución interna es menor que la pantalla, y si es "
+     "la misma solo aplica la nitidez (con el suavizado FXAA, la nitidez va después de él).",
      PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kRescale), "0", applyRescale, nullptr, 15,
      "Rescaling",
      "How the picture is scaled to the screen. Bilinear: as before. Area: sharper when shrinking. FSR 1: "
-     "AMD's upscaling and sharpening, improves the picture when the internal resolution is below the screen's "
-     "(with FXAA on it runs without the sharpening pass)."},
+     "AMD's upscaling and sharpening; it upscales when the internal resolution is below the screen's, and at "
+     "the same size it only sharpens (with FXAA on, the sharpening comes after it)."},
     {"COS_DYNRES", "Resolución dinámica",
      "Baja la resolución del 3D (hasta 2/3) cuando la GPU no llega; el HUD queda nítido. Con 60 fps: solo "
      "mientras los 60 fps están activados.",
@@ -584,21 +584,21 @@ const PcSettingDesc kBuiltins[] = {
     {"COS_SSAO", "Oclusión ambiental (SSAO)",
      "Oscurece ligeramente las esquinas, los pliegues y el contacto entre objetos, a partir de la profundidad "
      "de la imagen. Cuanto más alto el nivel, más cuesta de GPU: Baja es la más barata. No toca el cielo ni los menús.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kSsao), "0", applySsao, nullptr, 60,
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kSsao), "0", applySsao, nullptr, 61,
      "Ambient occlusion (SSAO)",
      "Slightly darkens corners, creases and where objects touch, from the picture's depth. A higher level costs more GPU time: Low is the cheapest. Leaves the sky and the menus alone."},
     {"COS_ANISO", "Filtrado anisotrópico",
      "Texturas del suelo y de los edificios más nítidas en perspectiva. Más alto = más carga para la GPU.",
-     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kAniso), "1", applyAniso, nullptr, 61,
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kAniso), "1", applyAniso, nullptr, 62,
      "Anisotropic filtering",
      "Sharper ground and building textures at a slant. Higher = more GPU load."},
     {"COS_GAMMA", "Gamma",
      "Oscurece o deja como estaba la imagen. El juego se pensó para una tele de GameCube (gamma ~2,4) y la "
-     "pantalla de la Switch (~2,2) la muestra más clara y lavada: +0,20 la corrige. No cambia los menús.",
-     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kGamma), "0.20", applyGamma, nullptr, 60,
+     "pantalla de la Switch (~2,2) la muestra más clara y lavada: +0,20 la corrige. No cambia este menú.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kGamma), "0.20", applyGamma, nullptr, 63,
      "Gamma",
      "Darkens the picture or leaves it as it was. The game was made for a GameCube TV (gamma ~2.4) and "
-     "the Switch's panel (~2.2) shows it brighter and washed out: +0.20 corrects it. The menus do not change."},
+     "the Switch's panel (~2.2) shows it brighter and washed out: +0.20 corrects it. This menu does not change."},
     {"COS_CAMERA_INVERT_X", "Invertir cámara horizontal",
      "El stick C gira la cámara al revés en horizontal.",
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertX, nullptr, 90,
