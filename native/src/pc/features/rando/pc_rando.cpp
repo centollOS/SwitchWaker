@@ -13,7 +13,7 @@
 
 namespace {
 
-constexpr int kMaxListeners = 16;
+constexpr int kMaxListeners = 32; // 16 until R7.5b (the list was full)
 
 bool sInit = false;
 bool sForced = false;

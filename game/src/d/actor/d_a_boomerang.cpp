@@ -6,6 +6,8 @@
 #include "d/dolzel.h" // IWYU pragma: keep
 #if TARGET_PC
 #include "pc/pc_aspect.h"
+#include "pc/pc_rando.h"
+#include "pc/pc_rando_player_colors.h"
 #endif
 #include "d/actor/d_a_boomerang.h"
 #include "d/d_camera.h"
@@ -129,7 +131,12 @@ void daBoomerang_blur_c::draw() {
 
     // Light yellow color for the trail.
     static GXColor color0 = {0xFF, 0xFF, 0x7B, 0x96};
+#if TARGET_PC
+    // pc_rando(R7.5b): customizer.py change_player_custom_colors main.dol 0x803F6268 boomerang_trail_color; original: color0
+    GFSetTevColor(GX_TEVREG0, pc_rando() ? pc_rando_player_trail_color(PCR_HOOK_TRAIL_BOOMERANG, color0) : color0);
+#else
     GFSetTevColor(GX_TEVREG0, color0);
+#endif
 
     const s32 uCoordStep = 0xFF / ((numTrailSegments >> 1) + 1);
     s16 uCoord1 = uCoordStep;

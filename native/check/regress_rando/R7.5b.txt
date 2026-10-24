@@ -1,0 +1,19 @@
+# R7.5b (docs/RANDOMIZER_PLAN.md): player trail and eye colours, the mask-free part of
+# customizer.change_player_custom_colors (features/rando/pc_rando_player_colors.{h,cpp},
+# game_hooks/pc_rando_hooks_player_colors.cpp, hunks in daPy_swBlur_c::draw, daBoomerang_blur_c::draw,
+# daPy_lk_c::setSwordModel and daPy_lk_c::createHeap). The smoke COS_RANDO_SMOKE=colors
+# (native/src/pc/harness/smokes/pc_rando_smoke_colors.cpp) checks the live cl.bdl hitomi, common.jpc
+# particle 0x48 and the cutfh/cutfm.brk key frames against the disc's bytes edited by the pure code,
+# then slashes and throws the boomerang with a driven pad and checks the colours the hunks drew with;
+# its dump is compared with wwrando's own customizer on the disc by
+# `python3 -I native/tools/rando/player_colors_check.py --run` (or --dump <run dir>/player_colors.txt).
+# Line 1: every colour chosen; line 2: COS_RANDO_FORCE with {} (byte-identical, vanilla colours drawn);
+# line 3: vanilla (no hunk calls a hook), then an activation cycle with colours (applied, then the
+# disc's bytes put back at deactivation); line 4: the colours from a seed's custom_colors option
+# (fixtures/R7_5b_seed_colors.json: R0_6_identity.json with custom_colors and casual clothes). cos_rando_test_R7_5b runs on its own.
+# The colours are hex strings: regress.sh splits the options unquoted, where [..] would be a glob.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage M_NewD2:0:0 --env COS_RANDO_SMOKE=colors --env COS_RANDO_FORCE=1 --env COS_BOOT_ITEMS=2D,38 --env COS_RANDO_CUSTOM_COLORS={"Eyes":"FF0000","sword_slash_trail_color":"FF0000C0","elixir_soup_sword_trail_color":"00FF00","parrying_sword_trail_color":"0000FF80","boomerang_trail_color":"00FFFF","arrow_trail_color":"FF00FFC8"}
+rando 0 --stage M_NewD2:0:0 --env COS_RANDO_SMOKE=colors --env COS_RANDO_FORCE=1 --env COS_BOOT_ITEMS=2D,38
+rando 0 --stage M_NewD2:0:0 --env COS_RANDO_SMOKE=colors --env COS_BOOT_ITEMS=2D,38 --env COS_RANDO_CUSTOM_COLORS={"Eyes":"FF0000","arrow_trail_color":"FF00FF"}
+rando 0 --stage M_NewD2:0:0 --env COS_RANDO_SMOKE=colors --env COS_BOOT_ITEMS=2D,38 --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R7_5b_seed_colors.json

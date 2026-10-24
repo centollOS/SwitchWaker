@@ -290,15 +290,30 @@ void daPy_swBlur_c::draw() {
     if (mBlurColorType == NORMAL_SLASH_BLUR) {
         // Normal color.
         static GXColor n_color0 = {0xFF, 0xFF, 0xFF, 0x96};
+#if TARGET_PC
+        // pc_rando(R7.5b): customizer.py change_player_custom_colors main.dol 0x803F62AC sword_slash_trail_color; original: n_color0
+        GXSetTevColor(GX_TEVREG0, pc_rando() ? pc_rando_player_trail_color(PCR_HOOK_TRAIL_SWORD_SLASH, n_color0) : n_color0);
+#else
         GXSetTevColor(GX_TEVREG0, n_color0);
+#endif
     } else if (mBlurColorType == ELIXIR_SOUP_SLASH_BLUR) {
         // Elixir Soup color.
         static GXColor y_color0 = {0xFF, 0xFF, 0x7B, 0x96};
+#if TARGET_PC
+        // pc_rando(R7.5b): customizer.py change_player_custom_colors main.dol 0x803F62B0 elixir_soup_sword_trail_color; original: y_color0
+        GXSetTevColor(GX_TEVREG0, pc_rando() ? pc_rando_player_trail_color(PCR_HOOK_TRAIL_ELIXIR_SOUP, y_color0) : y_color0);
+#else
         GXSetTevColor(GX_TEVREG0, y_color0);
+#endif
     } else {
         // Parrying color.
         static GXColor g_color0 = {0x5A, 0xFF, 0x5A, 0x96};
+#if TARGET_PC
+        // pc_rando(R7.5b): customizer.py change_player_custom_colors main.dol 0x803F62B4 parrying_sword_trail_color; original: g_color0
+        GXSetTevColor(GX_TEVREG0, pc_rando() ? pc_rando_player_trail_color(PCR_HOOK_TRAIL_PARRYING, g_color0) : g_color0);
+#else
         GXSetTevColor(GX_TEVREG0, g_color0);
+#endif
     }
 
     GXSetNumTexGens(1);

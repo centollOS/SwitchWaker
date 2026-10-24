@@ -796,3 +796,26 @@ the `palettes` smoke, `cos_rando_test_R7_2c` and `native/tools/rando/palette_che
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | game/src/d/d_resorce.cpp | `dRes_info_c::loadResource`, after `JKRGetResource`: `pRes = pc_rando_res_hook_raw(...)` before the type's loader | add | randomizers/palettes.py `shift_colors_for_file_group` (`shift_all_colors_in_tex1` / `_bti`, `J3D.save`); tweaks.py `make_rat_holes_visible_from_behind` |
+
+## R7.5b
+
+Player trail and eye colours, the part of `customizer.change_player_custom_colors` that needs no
+wwrando asset (pure part `features/rando/pc_rando_player_colors.{h,cpp}`, hook bodies
+`game_hooks/pc_rando_hooks_player_colors.cpp`, declared in `pc/pc_rando_player_colors.h`). The colours
+come from the seed's `custom_colors` option (or `COS_RANDO_CUSTOM_COLORS`), read at the first hook call
+after each activation; with none chosen every hook leaves the vanilla value and bytes. The trail keys
+(`sword_slash_trail_color`, ...) are read from `custom_colors` (wwrando reads them from a custom model's
+metadata, which the port does not have); the pupils (`Eyes`) are recoloured with `color_exchange`
+without a mask (`ignore_bright`), every other body colour needs a mask and is skipped. The arrow trail
+is a common.jpc editor of R7.1b's registry (registered at each activation; R7.1b restores the file). The
+hitomi texture of the resident Link.arc cl.bdl is recoloured in place at the player's createHeap and put
+back at deactivation. LkAnm.arc is an ARAM archive read with `JKRReadIdxResource` (not through
+`loadResource`), so the cutf BRK hunk edits setSwordModel's buffer itself. Checked by the `colors` smoke,
+`cos_rando_test_R7_5b` and `native/tools/rando/player_colors_check.py`.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| game/src/d/actor/d_a_player_particle.inc | `daPy_swBlur_c::draw`: the TEV colour of each slash type (`n_color0`, `y_color0`, `g_color0`) from `pc_rando_player_trail_color` | ?: | customizer.py `change_player_custom_colors` main.dol 0x803F62AC / 0x803F62B0 / 0x803F62B4 |
+| game/src/d/actor/d_a_boomerang.cpp | `daBoomerang_blur_c::draw`: `color0` from `pc_rando_player_trail_color` | ?: | customizer.py `change_player_custom_colors` main.dol 0x803F6268 |
+| game/src/d/actor/d_a_player_sword.inc | `daPy_lk_c::setSwordModel`: `pc_rando_player_colors_cutf_brk` on the cutfh/cutfm.brk buffer before `J3DAnmLoaderDataBase::load` | add | customizer.py `change_player_custom_colors` LkAnm.arc cutfh.brk / cutfm.brk key frames 0-2 |
+| game/src/d/actor/d_a_player_main.cpp | `daPy_lk_c::createHeap`: `pc_rando_player_colors_cl_model(mpCLModelData)` after cl.bdl's model is made | add | customizer.py `change_player_custom_colors` Link.arc cl.bdl "hitomi" (`color_exchange`, `replace_image`) |

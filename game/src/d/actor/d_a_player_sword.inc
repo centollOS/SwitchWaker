@@ -107,6 +107,12 @@ void daPy_lk_c::setSwordModel(BOOL r28)
 
     buffer = new (0x20) u8[0x400];
     JKRReadIdxResource(buffer, 0x400, model_tbl.tipStabBrk, dComIfGp_getAnmArchive());
+#if TARGET_PC
+    // pc_rando(R7.5b): customizer.py change_player_custom_colors LkAnm.arc cutfh.brk / cutfm.brk key frames 0-2 (the sword trail colours); original: none
+    if (pc_rando()) {
+        pc_rando_player_colors_cutf_brk(buffer, 0x400);
+    }
+#endif
     mpCutfBrk = static_cast<J3DAnmTevRegKey*>(J3DAnmLoaderDataBase::load(buffer));
     mpCutfBrk->setFrame(0.0f);
     mpCutfBrk->searchUpdateMaterialID(modelData);
