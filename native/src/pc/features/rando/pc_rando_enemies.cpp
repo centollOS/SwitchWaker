@@ -139,6 +139,7 @@ int8_t* sResults = nullptr; // per enemy location, -1 = not seen
 size_t sResultsSize = 0;
 PcRandoEnemyStats sStats;
 bool sInit = false;
+bool sBypass = false;
 
 // The active seed's enemies, parsed once per seed.
 const PcRandoSeed* sSeed = nullptr;
@@ -459,8 +460,12 @@ int pc_rando_enemies_last_result(int loc) {
     return sResults[loc];
 }
 
+void pc_rando_enemies_set_bypass(int on) {
+    sBypass = on != 0;
+}
+
 void pc_rando_enemies_patch(PcRandoResFile* file) {
-    if (file == nullptr || file->stage == nullptr || file->stage[0] == '\0' || file->name == nullptr ||
+    if (sBypass || file == nullptr || file->stage == nullptr || file->stage[0] == '\0' || file->name == nullptr ||
         file->room < 0 || strcmp(file->name, "room.dzr") != 0) {
         return;
     }

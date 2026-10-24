@@ -77,6 +77,10 @@ int pc_rando_enemies_active(void);
 void pc_rando_enemies_patch(PcRandoResFile* file);
 void pc_rando_enemies_init(void);
 
+/* Smokes: while 1, pc_rando_enemies_patch does nothing (so a smoke can run the other patchers of the
+   chain alone, then this one, without changing the registration order). */
+void pc_rando_enemies_set_bypass(int on);
+
 /* The last result of enemy location `loc` (enemy_locations() index) since the activation, or -1
    when no file holding it was patched. */
 int pc_rando_enemies_last_result(int loc);
