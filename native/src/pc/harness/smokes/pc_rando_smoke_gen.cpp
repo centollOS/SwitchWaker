@@ -96,7 +96,10 @@ void start() {
     randoSmokeCheck(kName, "the four seed rows, in order, after the options",
                     seedRow > 0 && randomRow == seedRow + 1 && permalinkRow == seedRow + 2 && genRow == seedRow + 3 &&
                         spoilerRow == genRow + 1 && cleanRow == spoilerRow + 1 && cleanRow == (int)rows.size() - 1 &&
-                        rows[seedRow - 1].kind == RandoRowKind::Option);
+                        // R8.1: the "Ask on New Game" row sits between the options and Seed...
+                        rows[seedRow - 1].kind == RandoRowKind::Action && seedRow > 1 &&
+                        rows[seedRow - 2].kind == RandoRowKind::Option &&
+                        randoRowLabel(rows[seedRow - 1], false) == "Ask on New Game");
     if (genRow < 0) {
         randoSmokeEnd(kName);
     }
