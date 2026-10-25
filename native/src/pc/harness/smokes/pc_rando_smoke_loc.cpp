@@ -25,8 +25,9 @@
 //   or its number) whose chest is live at this stop: a chest that waits for a switch (enemies
 //   defeated, a switch hit) gets its switch set, and so does a burning Fire actor (d_a_fire, type 0)
 //   on the chest (R9.1: the Dragon Roost Cavern Big Key chest burns until water puts it out, and
-//   the fire pushes the player back); a chest that appears once its room's enemies are gone (func 2)
-//   gets the stage's enemies deleted until it shows (R9.1); once no event runs, the player is put in front of
+//   the fire pushes the player back); the stage's enemies are deleted while T2 prepares and walks
+//   (R9.1: a func 2 chest appears only once they are gone, and they knock the player back); once
+//   no event runs, the player is put in front of
 //   it on the floor (daPy_lk_c::debugPlace; a put that does not hold, e.g. on a ladder, is retried
 //   after walking at the chest), facing it, walks at it until the A button says "Open" and presses
 //   A; the chest's event must start and end, its item-get (dComIfGp_event_getGtItm) must be the placed item, and
@@ -249,10 +250,12 @@ void* putOutFire(void* proc, void* data) {
     return nullptr;
 }
 
-// R9.1: a chest that appears once the room's enemies are gone (func 2, daTbox_c::actionGenocide, which
-// waits for fopAcM_myRoomSearchEnemy to find none; its switch is often 0xFF, so setting it does
-// nothing) gets them removed: every enemy-group actor of the stage is deleted, each once, every frame
-// until the chest shows (spawners that send waves are emptied the same way).
+// R9.1: T2 opens chests with no enemies about. A chest that appears once the room's enemies are gone
+// (func 2, daTbox_c::actionGenocide, which waits for fopAcM_myRoomSearchEnemy to find none; its switch
+// is often 0xFF, so setting it does nothing) needs them gone, and an enemy that knocks the player back
+// (the Bomb Island submarine) spoils the driven walk to the chest. So while T2 prepares and walks
+// (outside events), every enemy-group actor of the stage is deleted, each once, every frame
+// (spawners that send waves are emptied the same way).
 std::vector<fpc_ProcID> sKilled;
 void* killEnemy(void* proc, void* data) {
     fopAc_ac_c* a = static_cast<fopAc_ac_c*>(proc);
@@ -269,6 +272,13 @@ void* killEnemy(void* proc, void* data) {
     ++*static_cast<int*>(data);
     fopAcM_delete(a);
     return nullptr;
+}
+void clearEnemies(unsigned int frames) {
+    int n = 0;
+    fopAcM_Search(killEnemy, &n);
+    if (n > 0) {
+        writef(STDERR_FILENO, "[cos] rando-smoke loc: frame %u: T2: %d enemies deleted\n", frames, n);
+    }
 }
 
 // Where T2 puts the player: in front of the chest (a chest opens only from its front), on the floor.
@@ -744,14 +754,9 @@ void randoSmokeLoc(unsigned int frames) {
             }
             return;
         }
+        clearEnemies(frames);
         if (chest->getFuncType() == 2 && chest->flagCheck(daTbox_c::daTboxFlg_UNK_01)) {
-            // R9.1: hidden until the room's enemies are gone (killEnemy); its appear event runs above.
-            int n = 0;
-            fopAcM_Search(killEnemy, &n);
-            if (n > 0) {
-                writef(STDERR_FILENO, "[cos] rando-smoke loc: frame %u: T2: the chest waits for its room's enemies; "
-                       "%d deleted\n", frames, n);
-            }
+            // R9.1: hidden until the room's enemies are gone (clearEnemies); its appear event runs above.
             setDrivenPad(true, 0, 0, 0);
             if (sSince >= kQuietFrames) {
                 finishOpen(false, "the chest did not appear after its room's enemies were deleted");
@@ -801,6 +806,7 @@ void randoSmokeLoc(unsigned int frames) {
             sOpenStartNs = monotonicNs();
             return;
         }
+        clearEnemies(frames);
         if (sSince == 3 && player->current.pos.abs(sOpenTarget) > 60.0f && sOpenTries < 4) {
             sOpenTries++;
             writef(STDERR_FILENO, "[cos] rando-smoke loc: frame %u: T2: the put did not hold (the player at (%.0f, %.0f, "

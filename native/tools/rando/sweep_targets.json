@@ -141,6 +141,7 @@
  },
  "overrides": {
   "spawn": {
+   "LinkUG:0": 0,
    "sea:33": 0
   },
   "keys": {
@@ -160,10 +161,10 @@
     }
    }
   },
-  "comment": "spawn: sea room 33's point 1 comes up in room 31 (location sweep, 2026-10-21). R9.1: event T2 stops and xfails, see each key's note/xfail."
+  "comment": "spawn: sea room 33's point 1 comes up in room 31 (location sweep, 2026-10-21). R9.1: event T2 stops and xfails, see each key's note/xfail. R9.1: LinkUG point 1 (the ladder from the house) keeps reloading the stage while the player stands there, so T2 lost the chest; point 0 holds."
  },
  "keys": [
-  {"key": 0, "loc": "PCR_LOC_OUTSET_ISLAND_UNDERNEATH_LINKS_HOUSE", "kind": "chest", "where": "LinkUG/Stage/TRES[0]", "room": 0, "t2": "LinkUG:0:1", "t1": "LinkUG:0:1"},
+  {"key": 0, "loc": "PCR_LOC_OUTSET_ISLAND_UNDERNEATH_LINKS_HOUSE", "kind": "chest", "where": "LinkUG/Stage/TRES[0]", "room": 0, "t2": "LinkUG:0:0", "t1": "LinkUG:0:0"},
   {"key": 1, "loc": "PCR_LOC_OUTSET_ISLAND_MESA_THE_GRASSCUTTERS_HOUSE", "kind": "chest", "where": "Omasao/Stage/TRES[0]", "room": 0, "t2": "Omasao:0:0", "t1": "Omasao:0:0"},
   {"key": 2, "loc": "PCR_LOC_OUTSET_ISLAND_ORCA_GIVE_10_KNIGHTS_CRESTS", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
   {"key": 3, "loc": "PCR_LOC_OUTSET_ISLAND_ORCA_GIVE_10_KNIGHTS_CRESTS", "kind": "event", "where": "Ojhous/Stage:Ji1_TeachSpRollCut", "event": "Ji1_TeachSpRollCut", "t1": "Ojhous:0", "t2": "Ojhous:0", "xfail": {"T2": "evloc cannot play Orca's Hurricane Spin lesson: Link's 006n_talk cut waits for Orca's own message flow (his training state), which an event ordered from the player never starts, so the run times out. T1 checks the placed 011get_item action and the Ji1 code site (codeloc, evloc)"}},
