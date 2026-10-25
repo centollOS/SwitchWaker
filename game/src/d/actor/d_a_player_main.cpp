@@ -2337,6 +2337,7 @@ void daPy_lk_c::setNormalSpeedF(f32 param_1, f32 param_2, f32 param_3, f32 param
     } else {
         dVar10 = mStickDistance * (mMaxNormalSpeed * mStickDistance);
     }
+    dVar10 *= pc_qol_ganon_walk(); // Ganon mod (pc_qol.h): Ganondorf's slow stalk
     if (mDemo.getDemoMode() == daPy_demo_c::DEMO_KEEP_e || getSlidePolygon() != NULL) {
         return;
     }
@@ -5844,7 +5845,7 @@ BOOL daPy_lk_c::commonProcInit(daPy_PROC proc) {
     dComIfGp_clearPlayerStatus0(0, ~(daPyStts0_BOOMERANG_WAIT_e | daPyStts0_UNK10_e));
     dComIfGp_clearPlayerStatus1(0, ~(daPyStts1_SAIL_e | daPyStts1_UNK8000_e | daPyStts1_UNK40000_e) & 0x000FFFFF);
     
-    gravity = m_HIO->mAutoJump.m.field_0xC;
+    gravity = m_HIO->mAutoJump.m.field_0xC * pc_qol_ganon_gravity(); // Ganon mod (pc_qol.h)
     m34F2 = 0;
     m34F4 = 0;
     onResetFlg0(daPyRFlg0_NOT_ATTACKING);
@@ -7197,7 +7198,7 @@ BOOL daPy_lk_c::procAutoJump() {
             mProcVar0.m34D0 = 0;
         }
         if (mProcVar0.m34D0 == 0) {
-            gravity = m_HIO->mAutoJump.m.field_0xC;
+            gravity = m_HIO->mAutoJump.m.field_0xC * pc_qol_ganon_gravity(); // Ganon mod (pc_qol.h)
         }
         if (speed.y > 0.0f) {
             speed.y -= 0.5f;
@@ -12267,7 +12268,7 @@ void daPy_lk_c::playerInit() {
     mAcch.ClrRoofNone();
     mAcch.SetRoofCrrHeight(125.0f);
     mMaxNormalSpeed = m_HIO->mMove.m.field_0x18;
-    gravity = m_HIO->mAutoJump.m.field_0xC;
+    gravity = m_HIO->mAutoJump.m.field_0xC * pc_qol_ganon_gravity(); // Ganon mod (pc_qol.h)
     maxFallSpeed = m_HIO->mAutoJump.m.field_0x10;
     mAcchCir[0].SetWall(30.1f, 35.0f);
     mAcchCir[1].SetWall(89.9f, 35.0f);

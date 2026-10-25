@@ -19,6 +19,8 @@
  * COS_QOL_SKIP_INTRO=1       a new game starts on Outset without the opening legend
  * COS_QOL_FIX_BUGS=1         fixes for bugs of the original game (docs/QOL_PLAN.md, "Bugs of the
  *                            original game")
+ * COS_QOL_GANON=1           mod: the player moves like the Ganondorf boss (slow stalk, charging sword
+ *                            lunges, heavy leaps and falls); the model stays Link's
  *
  * All off by default (0: the original game). Each value is read from the environment (the settings
  * file's value, pc_settings.h) the first time the game asks; the menu's apply function sets it
@@ -46,6 +48,7 @@ typedef enum PcQol {
     PC_QOL_FREE_BOAT,
     PC_QOL_SKIP_INTRO,
     PC_QOL_FIX_BUGS,
+    PC_QOL_GANON,
     PC_QOLS
 } PcQol;
 
@@ -58,6 +61,12 @@ typedef enum PcQol {
 int pc_qol(PcQol which);
 /* PC_QOL_SAIL's speed part: PC_QOL_SAIL_SWIFT or PC_QOL_SAIL_BRISK, else 0 (off or the wind only). */
 int pc_qol_fast_sail(void);
+/* The Ganon mod's factors (1.0 when it is off): the walk/run top speed, the sword swings' forward
+   lunge, and the gravity while airborne. Ganondorf (d_a_gnd.cpp) stalks at 5 and charges at 15, and
+   falls with a gravity of -2. */
+float pc_qol_ganon_walk(void);
+float pc_qol_ganon_lunge(void);
+float pc_qol_ganon_gravity(void);
 /* The settings key of an option (COS_QOL_...). */
 const char* pc_qol_key(PcQol which);
 /* The options menu: a new value of the setting `key` ("0", "1", "swift", "brisk"); 0 if the key is

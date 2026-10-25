@@ -761,6 +761,13 @@ const PcSettingDesc kBuiltins[] = {
      "Beedle buying Blue Chu Jelly, the Deluxe Picto Box on a button, Morths out of the map, enemies "
      "killed with Light Arrows (Stalfos, Miniblins, Jalhalla's Poes, Magtails) and Phantom Ganon's "
      "trigger."},
+    {"COS_QOL_GANON", "Mod: jugar como Ganondorf",
+     "Link se mueve como el jefe Ganondorf: paso lento y pesado, estocadas de espada que cargan hacia "
+     "delante y caídas más pesadas. El modelo sigue siendo el de Link.",
+     PC_SETTING_TAB_QOL, 0, CHOICES(kOnOff), "0", applyQol, nullptr, 140,
+     "Mod: play as Ganondorf",
+     "Link moves like the Ganondorf boss: a slow, heavy stalk, sword swings that charge forward and "
+     "heavier falls. The model stays Link's."},
     // Depuración
     {"COS_PERF_EVERY", "Intervalo del registro perf",
      "Cada cuántos cuadros se escribe una línea [cos] perf en el registro (native/logs/).",
@@ -1092,6 +1099,7 @@ const QolPresetValue kQolPreset[] = {
     {PC_QOL_SKIP_INTRO, "1"},   {PC_QOL_REVEAL_CHART, "0"},
     {PC_QOL_TINGLE_CHESTS, "1"}, {PC_QOL_SAIL, "swift"},      {PC_QOL_FREE_BOAT, "0"},
     {PC_QOL_SWING_TURN, "1"},   {PC_QOL_NO_SONG_REPLAY, "1"}, {PC_QOL_FIX_BUGS, "1"},
+    {PC_QOL_GANON, "0"},
 };
 static_assert(sizeof(kQolPreset) / sizeof(kQolPreset[0]) == PC_QOLS, "a QoL option without a preset value");
 

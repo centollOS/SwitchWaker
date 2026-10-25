@@ -640,7 +640,7 @@ BOOL daPy_lk_c::procCutA() {
     }
     current.angle.y = shape_angle.y;
     if (frameCtrl.checkPass(m_HIO->mCut.mCutA.m.field_0x28)) {
-        mNormalSpeed = std::fabsf(speedF) * m_HIO->mCut.mCutA.m.field_0x10 + m_HIO->mCut.mCutA.m.field_0x14;
+        mNormalSpeed = (std::fabsf(speedF) * m_HIO->mCut.mCutA.m.field_0x10 + m_HIO->mCut.mCutA.m.field_0x14) * pc_qol_ganon_lunge();
     }
     if (frameCtrl.getFrame() >= m_HIO->mCut.mCutA.m.field_0x2C && frameCtrl.getFrame() < m_HIO->mCut.mCutA.m.field_0x30)
     {
@@ -743,7 +743,7 @@ BOOL daPy_lk_c::procCutF() {
     }
     current.angle.y = shape_angle.y;
     if (frameCtrl.checkPass(m_HIO->mCut.mCutF.m.field_0x28)) {
-        mNormalSpeed = std::fabsf(speedF) * m_HIO->mCut.mCutF.m.field_0x10 + m_HIO->mCut.mCutF.m.field_0x14;
+        mNormalSpeed = (std::fabsf(speedF) * m_HIO->mCut.mCutF.m.field_0x10 + m_HIO->mCut.mCutF.m.field_0x14) * pc_qol_ganon_lunge();
     }
     if (frameCtrl.getFrame() >= m_HIO->mCut.mCutF.m.field_0x2C && frameCtrl.getFrame() < m_HIO->mCut.mCutF.m.field_0x30)
     {
@@ -844,7 +844,7 @@ BOOL daPy_lk_c::procCutR() {
     }
     current.angle.y = shape_angle.y;
     if (frameCtrl.checkPass(m_HIO->mCut.mCutR.m.field_0x28)) {
-        mNormalSpeed = std::fabsf(speedF) * m_HIO->mCut.mCutR.m.field_0x10 + m_HIO->mCut.mCutR.m.field_0x14;
+        mNormalSpeed = (std::fabsf(speedF) * m_HIO->mCut.mCutR.m.field_0x10 + m_HIO->mCut.mCutR.m.field_0x14) * pc_qol_ganon_lunge();
     }
     if (frameCtrl.getFrame() >= m_HIO->mCut.mCutR.m.field_0x2C && frameCtrl.getFrame() < m_HIO->mCut.mCutR.m.field_0x30)
     {
@@ -943,7 +943,7 @@ BOOL daPy_lk_c::procCutL() {
     }
     current.angle.y = shape_angle.y;
     if (frameCtrl.checkPass(m_HIO->mCut.mCutL.m.field_0x28)) {
-        mNormalSpeed = std::fabsf(speedF) * m_HIO->mCut.mCutL.m.field_0x10 + m_HIO->mCut.mCutL.m.field_0x14;
+        mNormalSpeed = (std::fabsf(speedF) * m_HIO->mCut.mCutL.m.field_0x10 + m_HIO->mCut.mCutL.m.field_0x14) * pc_qol_ganon_lunge();
     }
     if (frameCtrl.getFrame() >= m_HIO->mCut.mCutL.m.field_0x2C && frameCtrl.getFrame() < m_HIO->mCut.mCutL.m.field_0x30)
     {
@@ -1021,7 +1021,7 @@ BOOL daPy_lk_c::procCutEA() {
     }
 
     if (frameCtrl.checkPass(m_HIO->mCut.mCutEA.m.field_0x24)) {
-        mNormalSpeed = std::fabsf(speedF) * m_HIO->mCut.mCutEA.m.field_0xC + m_HIO->mCut.mCutEA.m.field_0x10;
+        mNormalSpeed = (std::fabsf(speedF) * m_HIO->mCut.mCutEA.m.field_0xC + m_HIO->mCut.mCutEA.m.field_0x10) * pc_qol_ganon_lunge();
     }
     if (frameCtrl.getFrame() >= m_HIO->mCut.mCutEA.m.field_0x28 &&
         frameCtrl.getFrame() < m_HIO->mCut.mCutEA.m.field_0x2C)
@@ -1102,7 +1102,7 @@ BOOL daPy_lk_c::procCutEB() {
     }
 
     if (frameCtrl.checkPass(m_HIO->mCut.mCutEB.m.field_0x24)) {
-        mNormalSpeed = std::fabsf(speedF) * m_HIO->mCut.mCutEB.m.field_0xC + m_HIO->mCut.mCutEB.m.field_0x10;
+        mNormalSpeed = (std::fabsf(speedF) * m_HIO->mCut.mCutEB.m.field_0xC + m_HIO->mCut.mCutEB.m.field_0x10) * pc_qol_ganon_lunge();
     }
     if (frameCtrl.getFrame() >= m_HIO->mCut.mCutEB.m.field_0x28 &&
         frameCtrl.getFrame() < m_HIO->mCut.mCutEB.m.field_0x2C)

@@ -21,6 +21,7 @@ Option sOptions[PC_QOLS] = {
     {"COS_QOL_REVEAL_CHART", -1},  {"COS_QOL_TINGLE_CHESTS", -1},
     {"COS_QOL_SAIL", -1},          {"COS_QOL_SWING_TURN", -1},    {"COS_QOL_NO_SONG_REPLAY", -1},
     {"COS_QOL_FREE_BOAT", -1},     {"COS_QOL_SKIP_INTRO", -1},    {"COS_QOL_FIX_BUGS", -1},
+    {"COS_QOL_GANON", -1},
 };
 
 int parse(int which, const char* v) {
@@ -61,6 +62,18 @@ int pc_qol(PcQol which) {
 int pc_qol_fast_sail(void) {
     const int sail = pc_qol(PC_QOL_SAIL);
     return sail == PC_QOL_SAIL_SWIFT || sail == PC_QOL_SAIL_BRISK ? sail : 0;
+}
+
+float pc_qol_ganon_walk(void) {
+    return pc_qol(PC_QOL_GANON) ? 0.8f : 1.0f;
+}
+
+float pc_qol_ganon_lunge(void) {
+    return pc_qol(PC_QOL_GANON) ? 2.0f : 1.0f;
+}
+
+float pc_qol_ganon_gravity(void) {
+    return pc_qol(PC_QOL_GANON) ? 1.5f : 1.0f;
 }
 
 const char* pc_qol_key(PcQol which) {
