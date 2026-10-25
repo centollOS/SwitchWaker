@@ -798,6 +798,19 @@ void randoSmokeLoc(unsigned int frames) {
             return;
         }
         if (dComIfGp_event_runCheck()) {
+            const char* ev = eventName();
+            if ((strncmp(ev, "DEFAULT_TREASURE", 16) != 0 || strcmp(ev, "DEFAULT_TREASURE_APPEAR") == 0) &&
+                sOpenTries < 4) {
+                // R9.1: another actor's event (a shutter opening or a chest appearing once the deleted
+                // enemies are gone, a map camera): wait it out as before the open and put again.
+                sOpenTries++;
+                writef(STDERR_FILENO, "[cos] rando-smoke loc: frame %u: T2: event \"%s\" is not the chest's; wait it "
+                       "out and put again (%d)\n", frames, ev, sOpenTries);
+                removeOverride();
+                sState = kOpenPrep;
+                sSince = 2; // past the switch step
+                return;
+            }
             snprintf(sOpenEvent, sizeof sOpenEvent, "%s", eventName());
             writef(STDERR_FILENO, "[cos] rando-smoke loc: frame %u: T2: event \"%s\" after %u frames\n", frames, sOpenEvent,
                    sSince);

@@ -145,6 +145,21 @@
    "sea:33": 0
   },
   "keys": {
+   "PCR_LOC_ICE_RING_ISLE_CAVE_CHEST": {
+    "xfail": {
+     "T2": "R9.1: MiniHyo's only spawn point (room 0, point 0) does not keep the player: about 90 frames after the debug boot (its arrival event ends) the game itself goes back to sea room 40, with no input at all (run.sh run --stage MiniHyo:0:0), so the chest is gone before T2 can walk to it. T1 checks the record and the live chest before that"
+    }
+   },
+   "PCR_LOC_FIRE_MOUNTAIN_CAVE_CHEST": {
+    "xfail": {
+     "T2": "R9.1: as Ice Ring Isle's cave: MiniKaz's only spawn point (room 0, point 0) sends the player back to sea room 20 by itself about 90 frames after the boot, so the chest is gone before T2 can walk to it. T1 checks the record and the live chest"
+    }
+   },
+   "PCR_LOC_TOWER_OF_THE_GODS_LIGHT_TWO_TORCHES": {
+    "xfail": {
+     "T2": "R9.1: Siren room 0's only spawn point (point 0) is the boat arrival in the flooded entrance: every put in front of the chest is undone (the player stays at the spawn, (0, -2094, 1597), five puts), and from rooms 1, 3 and 22 the chest is not live. T1 checks the record and the live chest; the loc smoke would need to get the player off the boat"
+    }
+   },
    "sea/Stage:TACT_HT": {
     "t2": "sea:13:5",
     "note": "the Wind Shrine event plays at Dragon Roost Island (sea room 13, point 5, as the zephos smoke boots); from Windfall its staff never shows up"
@@ -277,7 +292,7 @@
   {"key": 110, "loc": "PCR_LOC_TOWER_OF_THE_GODS_CHEST_BEHIND_BOMBABLE_WALLS", "kind": "chest", "where": "Siren/Stage/TRES[1]", "room": 3, "t2": "Siren:3:0", "t1": "Siren:0:0"},
   {"key": 111, "loc": "PCR_LOC_TOWER_OF_THE_GODS_POT_BEHIND_BOMBABLE_WALLS", "kind": "actr", "where": "Siren/Room3/ACTR[4]", "room": 3, "t2": null, "t1": "Siren:3:0"},
   {"key": 112, "loc": "PCR_LOC_TOWER_OF_THE_GODS_HOP_ACROSS_FLOATING_BOXES", "kind": "chest", "where": "Siren/Stage/TRES[0]", "room": 5, "t2": "Siren:5:0", "t1": "Siren:0:0"},
-  {"key": 113, "loc": "PCR_LOC_TOWER_OF_THE_GODS_LIGHT_TWO_TORCHES", "kind": "chest", "where": "Siren/Stage/TRES[5]", "room": 0, "t2": "Siren:0:0", "t1": "Siren:0:0"},
+  {"key": 113, "loc": "PCR_LOC_TOWER_OF_THE_GODS_LIGHT_TWO_TORCHES", "kind": "chest", "where": "Siren/Stage/TRES[5]", "room": 0, "t2": "Siren:0:0", "t1": "Siren:0:0", "xfail": {"T2": "R9.1: Siren room 0's only spawn point (point 0) is the boat arrival in the flooded entrance: every put in front of the chest is undone (the player stays at the spawn, (0, -2094, 1597), five puts), and from rooms 1, 3 and 22 the chest is not live. T1 checks the record and the live chest; the loc smoke would need to get the player off the boat"}},
   {"key": 114, "loc": "PCR_LOC_TOWER_OF_THE_GODS_SKULLS_ROOM_CHEST", "kind": "chest", "where": "Siren/Stage/TRES[2]", "room": 1, "t2": "Siren:1:0", "t1": "Siren:0:0"},
   {"key": 115, "loc": "PCR_LOC_TOWER_OF_THE_GODS_SHOOT_EYE_ABOVE_SKULLS_ROOM_CHEST", "kind": "chest", "where": "Siren/Stage/TRES[6]", "room": 1, "t2": "Siren:1:0", "t1": "Siren:0:0"},
   {"key": 116, "loc": "PCR_LOC_TOWER_OF_THE_GODS_TINGLE_STATUE_CHEST", "kind": "chest", "where": "Siren/Stage/TRES[10]", "room": 6, "t2": "Siren:6:0", "t1": "Siren:0:0"},
@@ -312,12 +327,12 @@
   {"key": 145, "loc": "PCR_LOC_FORSAKEN_FORTRESS_HELMAROC_KING_HEART_CONTAINER", "kind": "boss", "where": "sea/Room1/ACT3[1]", "t1": "M2tower:0:16", "t2": "M2tower:0:16"},
   {"key": 146, "loc": "PCR_LOC_MOTHER_AND_CHILD_ISLES_INSIDE_MOTHER_ISLE", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
   {"key": 147, "loc": "PCR_LOC_MOTHER_AND_CHILD_ISLES_INSIDE_MOTHER_ISLE", "kind": "added", "where": "sea/Room9/TRES[0]", "t1": "sea:9:0", "t2": "sea:9:0"},
-  {"key": 148, "loc": "PCR_LOC_FIRE_MOUNTAIN_CAVE_CHEST", "kind": "chest", "where": "MiniKaz/Stage/TRES[0]", "room": 0, "t2": "MiniKaz:0:0", "t1": "MiniKaz:0:0"},
+  {"key": 148, "loc": "PCR_LOC_FIRE_MOUNTAIN_CAVE_CHEST", "kind": "chest", "where": "MiniKaz/Stage/TRES[0]", "room": 0, "t2": "MiniKaz:0:0", "t1": "MiniKaz:0:0", "xfail": {"T2": "R9.1: as Ice Ring Isle's cave: MiniKaz's only spawn point (room 0, point 0) sends the player back to sea room 20 by itself about 90 frames after the boot, so the chest is gone before T2 can walk to it. T1 checks the record and the live chest"}},
   {"key": 149, "loc": "PCR_LOC_FIRE_MOUNTAIN_LOOKOUT_PLATFORM_CHEST", "kind": "chest", "where": "sea/Room20/TRES[1]", "room": 20, "t2": "sea:20:1", "t1": "sea:20:1"},
   {"key": 150, "loc": "PCR_LOC_FIRE_MOUNTAIN_LOOKOUT_PLATFORM_DESTROY_THE_CANNONS", "kind": "chest", "where": "sea/Room20/TRES[0]", "room": 20, "t2": "sea:20:1", "t1": "sea:20:1"},
   {"key": 151, "loc": "PCR_LOC_FIRE_MOUNTAIN_BIG_OCTO", "kind": "scob", "where": "sea/Room20/SCOB[1]", "room": 20, "t2": null, "t1": "sea:20:1"},
   {"key": 152, "loc": "PCR_LOC_ICE_RING_ISLE_FROZEN_CHEST", "kind": "chest", "where": "sea/Room40/TRES[0]", "room": 40, "t2": "sea:40:1", "t1": "sea:40:1"},
-  {"key": 153, "loc": "PCR_LOC_ICE_RING_ISLE_CAVE_CHEST", "kind": "chest", "where": "MiniHyo/Stage/TRES[0]", "room": 0, "t2": "MiniHyo:0:0", "t1": "MiniHyo:0:0"},
+  {"key": 153, "loc": "PCR_LOC_ICE_RING_ISLE_CAVE_CHEST", "kind": "chest", "where": "MiniHyo/Stage/TRES[0]", "room": 0, "t2": "MiniHyo:0:0", "t1": "MiniHyo:0:0", "xfail": {"T2": "R9.1: MiniHyo's only spawn point (room 0, point 0) does not keep the player: about 90 frames after the debug boot (its arrival event ends) the game itself goes back to sea room 40, with no input at all (run.sh run --stage MiniHyo:0:0), so the chest is gone before T2 can walk to it. T1 checks the record and the live chest before that"}},
   {"key": 154, "loc": "PCR_LOC_ICE_RING_ISLE_INNER_CAVE_CHEST", "kind": "chest", "where": "ITest62/Stage/TRES[0]", "room": 0, "t2": "ITest62:0:0", "t1": "ITest62:0:0"},
   {"key": 155, "loc": "PCR_LOC_HEADSTONE_ISLAND_TOP_OF_THE_ISLAND", "kind": "actr", "where": "sea/Room45/ACTR[19]", "room": 45, "t2": null, "t1": "sea:45:1"},
   {"key": 156, "loc": "PCR_LOC_HEADSTONE_ISLAND_SUBMARINE", "kind": "chest", "where": "Abship/Room3/TRES[0]", "room": 3, "t2": "Abship:3:0", "t1": "Abship:3:0"},
