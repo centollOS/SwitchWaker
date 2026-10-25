@@ -753,7 +753,48 @@ def compare_new_file_state(c, pairs):
 
 # ---------------------------------------------------------------------------------------------
 
+def load_save_sweep():
+  import importlib.util
+  spec = importlib.util.spec_from_file_location("save_sweep", SAVE_SWEEP)
+  mod = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(mod)
+  return mod
+
+
+# save_sweep.py's cases, run the same way both ways, adapted to states a randomized file reaches.
+# A randomized new file always has RODE_KORL (0x2A08, pc_rando_new_game_init: wwrando's
+# init_save_with_tweaks) and starts on Outset's dock, spawn 0 (R3.2 skip_wakeup_intro_and_start_at_dock),
+# never at spawn 206 (Aryll's lookout and the "awake" event, whose demo archive the randomized file's
+# Outset layer does not load: booting a randomized file there stops at d_event_data.cpp:1070). So:
+# outset boots the dock with RODE_KORL (the vanilla "new file returns to Outset" case has no
+# randomized counterpart), outset-rode is dropped (the same state now), and items gets RODE_KORL so
+# both ways take the same return-place branch (dComIfGs_setGameStartStage).
+def rando_cases(ss):
+  cases = {}
+  for name, (desc, smoke, env) in ss.CASES.items():
+    env = dict(env)
+    if name == "outset-rode":
+      continue
+    if name == "outset":
+      desc = "Outset's dock (spawn 0, the randomizer's new-game start) with RODE_KORL"
+      env.update({"COS_BOOT_STAGE": "sea:44:0", "COS_BOOT_EVENTS": ss.RODE_KORL})
+    if name == "items":
+      env["COS_BOOT_EVENTS"] = ss.RODE_KORL
+    cases[name] = (desc, smoke, env)
+  return cases
+
+
+def sweep_main(argv):
+  ss = load_save_sweep()
+  ss.CASES = rando_cases(ss)
+  sys.argv = [SAVE_SWEEP] + argv
+  return ss.main()
+
+
 def main(argv=None):
+  argv = sys.argv[1:] if argv is None else argv
+  if argv[:1] == ["_sweep"]:  # internal: save_sweep.py with rando_cases()
+    return sweep_main(argv[1:])
   ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
   ap.add_argument("mode", choices=["run", "check", "saves", "saves-compare"])
   ap.add_argument("cases", nargs="*", help="saves: save_sweep.py cases (default all)")
@@ -807,7 +848,8 @@ def main(argv=None):
       env = dict(os.environ, COS_DISC=args.disc)
       env.pop("COS_RANDO_PLACEMENT", None)
       env.update(extra)
-      cmd = ["python3", "-I", SAVE_SWEEP, "--out", d] + (["--exe", args.exe] if args.exe else []) + args.cases
+      cmd = (["python3", "-I", os.path.abspath(__file__), "_sweep", "--out", d]
+             + (["--exe", args.exe] if args.exe else []) + args.cases)
       log("identity_check: " + " ".join(cmd[2:]) + (" (identity)" if extra else " (vanilla)"))
       subprocess.run(cmd, env=env, cwd=REPO, stdout=subprocess.DEVNULL)
   else:
