@@ -745,7 +745,9 @@ void randoSmokeLoc(unsigned int frames) {
             finishOpen(false, "the chest is gone");
             return;
         }
-        if (sSince == 1 && !chest->checkOpen() && !chest->checkNormal()) {
+        // R9.1: func 3 (switch visible) counts as normal but stays shut, in actionSwOnWait2, until its switch.
+        if (sSince == 1 && !chest->checkOpen() &&
+            (!chest->checkNormal() || (chest->getFuncType() == 3 && !dComIfGs_isSwitch(chest->getSwNo(), chest->mRoomNo)))) {
             const int sw = chest->getSwNo();
             writef(STDERR_FILENO, "[cos] rando-smoke loc: T2: chest func %d waits for switch 0x%02X in room %d; set it\n",
                    (int)chest->getFuncType(), sw, (int)chest->mRoomNo);
