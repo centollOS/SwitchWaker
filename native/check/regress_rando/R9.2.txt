@@ -9,6 +9,7 @@
 # identity_check.py saves: native/tools/save_sweep.py both ways (two cases here; the full sweep is
 # `identity_check.py saves`, about 25 minutes): every case passes and the saves are equal both ways apart
 # from the randomizer's own record (D3, region reserve).
-# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
-script 0 python3 -I native/tools/rando/identity_check.py run
-script 0 python3 -I native/tools/rando/identity_check.py saves drc windfall
+# USA build only (the "usa:" prefix, R7.6d). Format of native/check/regress_targets.txt: <target> <expected
+# exit> [extra run.sh options].
+usa:script 0 python3 -I native/tools/rando/identity_check.py run
+usa:script 0 python3 -I native/tools/rando/identity_check.py saves drc windfall

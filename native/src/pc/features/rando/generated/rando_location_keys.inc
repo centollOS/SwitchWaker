@@ -2,7 +2,7 @@
 // Source: wwrando 1.10.0_9775811 (MIT), commit 9775811b6fd039992822fbaf30ea6259b339f4b0: logic/item_locations.txt
 //   sha1 32b1a68bee57ac46358b5374de2485661d61bc60, data/actor_parameters.txt classes;
 //   disc GZLE01 (offsets, actor names and item ids only), files read sha1 b071aca890ae6b2f3a51f8b4e3fd3daf8f01dfe1
-// Generator: native/tools/rando/gen_location_keys.py sha1 7e62e7a3f5a97eb1729bfa77a91fafc452672edc
+// Generator: native/tools/rando/gen_location_keys.py sha1 718460f54e330504fede577fa4276b7817ce6841
 // Included once, by pc_rando_lockeys.cpp (inside namespace pcr::gen).
 // 320 locations, 511 keys (key i is loc_paths()[i]); classes: CHEST 166, SCOB 57, ACTR 14, ACTR+CODE 7, EVENT 10, EVENT+CODE 1, CODE 58, CODE+CUSTOM 1, CUSTOM 2, ADDED+CODE 4.
 // Fingerprints checked on the disc: 391 dzx items, 11 event actions, 77 code bytes; 0 mismatches.

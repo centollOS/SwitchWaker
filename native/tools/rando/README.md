@@ -16,6 +16,7 @@ into the game or needed by players.
 | `make_test_placement.py` | standard placements `identity`, `rotation`, `seed` for runtime tests |
 | `cosmetic_check.py` | R7.5a: fairy fountain Pale colours of the `cosmetic` smoke = wwrando on the disc (`--run`) |
 | `enemy_check.py` | R7.4a: the 1,275 enemy records of the `enemies` smoke = wwrando's own `_save` on the disc (`--seed S --run`, `--vanilla`) |
+| `fp_audit.py` | R7.6b: fingerprint audit: every stage.dzs, room.dzr and event_list.dat of the disc through the whole patcher chain (`fpaudit` smoke), rotation + every option, USA and EUR (`--region`) |
 | `identity_check.py` | R9.2: the identity placement is vanilla (`run`: every archive's files vs. the disc, the placement steps = wwrando's `change_*_item` with vanilla items, tweak steps = `fixtures/R9_2_tweak_files.json`; `saves`: `save_sweep.py` both ways) |
 | `oracle_common.py` | shared helpers (paths, venv re-exec, options, JSON) |
 
