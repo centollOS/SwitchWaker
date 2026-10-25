@@ -78,6 +78,50 @@ APFS copy of an existing build directory, `cp -cR`, reuses its Dawn objects).
 - Output: `build/switch-native/switchwaker.nro` (about 21 MB) and `build/switch-native/switchwaker.elf`, the
   same program with its symbols, for `addr2line`. Keep the ELF of the NRO you test.
 
+## Build without a container (macOS, devkitPro installed)
+
+`build_native.sh` always compiles inside a container. With devkitPro installed on the Mac
+(`/opt/devkitpro`, from the devkitPro pacman with the `switch-dev` group) and no Docker or Podman,
+the same configure can run directly. This reproduces the script's `cmake` call by hand, so it is
+**not** a supported path: check the script's `cmake` line (the "bash -lc" block) when it changes.
+
+What was checked this way: the configure, Dawn and the game units compile (for example
+`d_a_player_main.cpp`, `pc_qol.cpp`, `pc_menu.cpp`). The pipeline cache and DKSH cache
+(`native/tools/dksh_cache`, which has its own Debian container) are **not** built, so the result is
+not the `deploy`-ready set of files; use the container build for that.
+
+Needs: the inputs of "Build" above (`build/aurora-3227d76`, `ref/recompcore`, the Dawn source in
+`build/switch-dawn-src/<key>`, which an earlier `build_native.sh` run or the script's
+`prepare_dawn_src` leaves there), and `brew install llvm cmake ninja`. With no disc, make the stub
+headers first (they need PyYAML: `python3 -m venv v && v/bin/pip install pyyaml`, then run
+`native/tools/gen_assets.sh --stubs --version GZLE01 --decomp build/decomp --out build/assets-stubs/GZLE01`
+with that venv's `bin` on `PATH`).
+
+```sh
+mkdir -p ~/bin-clang19
+ln -sf "$(brew --prefix llvm)/bin/clang"   ~/bin-clang19/clang-19     # the launcher asks for clang 19
+ln -sf "$(brew --prefix llvm)/bin/clang++" ~/bin-clang19/clang++-19   # Homebrew's is newer; it worked
+export DEVKITPRO=/opt/devkitpro
+export PATH=~/bin-clang19:$DEVKITPRO/devkitA64/bin:$DEVKITPRO/tools/bin:$PATH
+
+cmake -S switch/native -B build/switch-native-local -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/Switch.cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DDKP_USE_DOUBLE_OBJECT_FILE_EXTENSIONS=ON -DCOS_SWITCH_NRO_NAME=switchwaker -DCOS_SWITCH_VERSION=dev \
+  -DCOS_SWITCH_AURORA_SOURCE=$PWD/build/aurora-3227d76 -DCOS_ASSETS_DIR=$PWD/build/assets-stubs/GZLE01 \
+  -DCOS_RECOMPCORE_DIR=$PWD/ref/recompcore -DCOS_VERSION=2 -DCOS_GAME_ID=GZLE01 \
+  -DFETCHCONTENT_SOURCE_DIR_DAWN=$PWD/build/switch-dawn-src/<key> -DCOS_RUNTIME_ASSETS=ON
+
+ninja -C build/switch-native-local switchwaker.elf    # or one object, to check a change
+```
+
+- `COS_VERSION` is a number (0 D44J01, 1 GZLJ01, 2 GZLE01, 3 GZLP01), not the game id.
+- `-DCOS_RUNTIME_ASSETS=ON` is for the stub headers (the arrays come from the disc at start-up);
+  with real asset headers from `build/native-mac/assets/GZLE01`, point `COS_ASSETS_DIR` there and use `OFF`.
+- Use a build directory of its own (`build/switch-native-local`), not `build/switch-native`, whose
+  cache expects the container's paths.
+- A full build is long (the first one compiles Dawn and ~1,400 units). CMake's note "only clang is
+  tested (got GNU)" is expected: the game units go through the clang launcher.
+
 ## Copy to the console
 
 ```sh
