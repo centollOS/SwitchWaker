@@ -2658,6 +2658,8 @@ static BOOL gnd_player_body(gnd_class* i_this) {
     case daPy_lk_c::daPyProc_BT_SLIDE_e: body_anm(i_this, dRes_INDEX_GND_BCK_KERI1_e, once, 3.0f, 1.0f, -1); break;
     case daPy_lk_c::daPyProc_AUTO_JUMP_e:
     case daPy_lk_c::daPyProc_BACK_JUMP_e:
+    case daPy_lk_c::daPyProc_SIDE_STEP_e: // the targeted side jump matches the back jump
+    case daPy_lk_c::daPyProc_SIDE_STEP_LAND_e:
     case daPy_lk_c::daPyProc_SMALL_JUMP_e:
     case daPy_lk_c::daPyProc_VERTICAL_JUMP_e: body_anm(i_this, dRes_INDEX_GND_BCK_HI_JUMP_LOOP_e, loop, 5.0f, 1.0f, -1); break;
     case daPy_lk_c::daPyProc_DAMAGE_e:
