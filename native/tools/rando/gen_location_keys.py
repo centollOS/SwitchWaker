@@ -3,6 +3,7 @@
 
     python3 -I native/tools/rando/gen_location_keys.py [--iso GZLE01.iso]           # (re)write
     python3 -I native/tools/rando/gen_location_keys.py [--iso GZLE01.iso] --check   # exit 1 if stale
+    python3 -I native/tools/rando/gen_location_keys.py --disc GZLP01 [--iso GZLP01.iso]   # EUR compare (R7.6b)
 
 wwrando addresses a location's item by a path (logic/item_locations.txt "Paths", parsed by
 randomizers/items.py change_item). The port patches the same data at run time, so it needs each path
@@ -37,6 +38,17 @@ Output (checked in; the build never runs this script, D11):
                                                              order) and PCR_ADDED_*; C, game-includable
   native/src/pc/features/rando/generated/rando_location_keys.inc   the key table (pc_rando_lockeys.cpp)
 
+European disc (plan step R7.6b): --disc GZLP01 reads the PAL disc (default
+~/Documents/windwaker/GZLP01/GZLP01.iso) with the same checks and compares its keys with the checked-in
+table instead of writing it. Every DZX, ADDED and EVENT key (the data the runtime matches while an
+archive loads: chunk, index, field, fingerprint name and byte, event and action indices, prm0) must be
+the USA key, field for field; then the EUR build uses the same table and the script exits 0. A
+differing key is printed and the script exits 1: the fix is a generated rando_location_keys_pal.inc
+selected by VERSION (none is needed for GZLP01, which matches). CODE keys only record where wwrando
+patches its REL/DOL (USA offsets): the port changes those values in decompiled code, under VERSION
+where the PAL code differs, so their PAL bytes are not checked; the script reports how many of the
+USA offsets still hold the item on the PAL disc, for information.
+
 Only item ids, actor names and offsets come from the disc (the same facts as the locations report);
 no disc bytes are copied. Needs the oracle venv and gclib (native/tools/rando/setup_oracle.sh).
 """
@@ -56,6 +68,8 @@ OUT_INC = os.path.join(REPO_ROOT, "native", "src", "pc", "features", "rando", "g
                        "rando_location_keys.inc")
 OUT_H = os.path.join(REPO_ROOT, "native", "include", "pc", "pc_rando_locs.h")
 DEFAULT_ISO = os.path.expanduser("~/Documents/windwaker/GZLE01.iso")
+DEFAULT_ISO_PAL = os.path.expanduser("~/Documents/windwaker/GZLP01/GZLP01.iso")  # R7.6b
+DISCS = ("GZLE01", "GZLP01")
 
 # Item field of each actor class that holds a location's item (wwrando data/actor_parameters.txt,
 # item_id; d_a_deku_item is first turned into an "item" actor by tweaks.py
@@ -111,7 +125,7 @@ def enum_name(loc_name):
 
 
 class Disc:
-  def __init__(self, iso):
+  def __init__(self, iso, want="GZLE01"):
     from gclib.gcm import GCM
     from gclib import fs_helpers as fs
     self.fs = fs
@@ -119,8 +133,8 @@ class Disc:
     self.gcm.read_entire_disc()
     boot = self.gcm.read_file_data("sys/boot.bin").getvalue()
     self.game_id = boot[:6].decode("latin1")
-    if self.game_id != "GZLE01":
-      fail(f"{iso}: game id {self.game_id}, expected GZLE01 (USA)")
+    if self.game_id != want:
+      fail(f"{iso}: game id {self.game_id}, expected {want} ({'USA' if want == 'GZLE01' else 'EUR'})")
     self.arcs = {}
     self.rels = {}
     self.dol = None
@@ -192,9 +206,14 @@ def field_value(entry, word_off, width, mask):
 
 def main(argv):
   ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-  ap.add_argument("--iso", default=os.environ.get("COS_DISC") or DEFAULT_ISO)
+  ap.add_argument("--iso")
+  ap.add_argument("--disc", default="GZLE01", choices=DISCS,
+                  help="GZLP01: compare the European disc's keys with the table (R7.6b); writes nothing")
   ap.add_argument("--check", action="store_true")
   args = ap.parse_args(argv)
+  pal = args.disc == "GZLP01"
+  if args.iso is None:
+    args.iso = DEFAULT_ISO_PAL if pal else (os.environ.get("COS_DISC") or DEFAULT_ISO)
   if not os.path.isfile(args.iso):
     oc.die(f"disc not found: {args.iso} (pass --iso or set COS_DISC)")
   oc.bootstrap()
@@ -204,7 +223,7 @@ def main(argv):
 
   locs = gd.yaml_load("logic/item_locations.txt")
   item_ids = {name: iid for iid, name in gd.load_item_names()}
-  disc = Disc(args.iso)
+  disc = Disc(args.iso, args.disc)
   chunk_types = {"TRE": TRES, "SCO": SCOB, "ACT": ACTR}
 
   keys = []          # one per path, loc_paths() order
@@ -213,6 +232,7 @@ def main(argv):
   n_item_fp = 0
   n_event_fp = 0
   n_code_fp = 0
+  n_code_pal_item = 0  # PAL: USA code offsets that still hold the item (information only)
   for loc_index, (name, v) in enumerate(locs.items()):
     orig = item_ids.get(v["Original item"])
     if orig is None:
@@ -315,9 +335,12 @@ def main(argv):
           classes.add("CUSTOM")
         if byte is not None:
           is_item = path not in CODE_BYTE_NOT_ITEM
-          if is_item and byte != orig:
+          if pal:
+            # USA offsets: not checked on the PAL disc (see the module doc).
+            n_code_pal_item += is_item and byte == orig
+          elif is_item and byte != orig:
             fail(f"{path}: code byte {byte:#04x} != original {orig:#04x}")
-          if not is_item and byte == orig:
+          if not pal and not is_item and byte == orig:
             fail(f"{path}: listed in CODE_BYTE_NOT_ITEM but holds the item")
           n_code_fp += is_item
           k["is_item"] = is_item
@@ -336,6 +359,8 @@ def main(argv):
     fail(f"{len(loc_rows)} locations, {len(keys)} keys")
 
   inc, hdr = render(gd, keys, loc_rows, disc, n_item_fp, n_event_fp, n_code_fp, got)
+  if pal:
+    return compare_pal(inc, hdr, keys, loc_rows, n_item_fp, n_event_fp, n_code_pal_item, n_code_fp)
   changed = []
   for path, text in ((OUT_INC, inc), (OUT_H, hdr)):
     old = None
@@ -358,6 +383,62 @@ def main(argv):
     print("up to date")
     return 0
   print(("wrote " + ", ".join(changed)) if changed else "no changes")
+  return 0
+
+
+def _table_lines(text, start):
+  """The entry lines of the C array that starts at the line `start` (comments dropped)."""
+  lines = text.split("\n")
+  i = lines.index(start) + 1
+  out = []
+  while lines[i] != "};":
+    if not lines[i].lstrip().startswith("//"):
+      out.append(lines[i])
+    i += 1
+  return out
+
+
+def compare_pal(inc, hdr, keys, loc_rows, n_item_fp, n_event_fp, n_code_pal_item, n_code_fp):
+  """R7.6b: the PAL disc's keys against the checked-in (USA) table. Exit 0 when every data key and
+  the location list are the same."""
+  with open(OUT_INC, encoding="utf-8") as f:
+    usa_inc = f.read()
+  with open(OUT_H, encoding="utf-8") as f:
+    usa_h = f.read()
+  usa_keys = _table_lines(usa_inc, "static const LocKey kLocKeys[] = {")
+  pal_keys = _table_lines(inc, "static const LocKey kLocKeys[] = {")
+  bad = []
+  if len(usa_keys) != len(pal_keys):
+    bad.append(f"{len(pal_keys)} keys, the table has {len(usa_keys)}")
+  n_data = n_code = 0
+  for k, u, p in zip(keys, usa_keys, pal_keys):
+    if k["kind"] == "Code":
+      n_code += 1
+      # Same location, class and source; the disc byte (the field after "{}, ") is not compared.
+      strip = lambda line: re.sub(r"\{\}, 0x[0-9A-F]{2}, ", "{}, _, ", line)
+      if strip(u) != strip(p):
+        bad.append(f"{k['path']}: code key differs:\n  USA {u.strip()}\n  EUR {p.strip()}")
+      continue
+    n_data += 1
+    if u != p:
+      bad.append(f"{k['path']}: key differs:\n  USA {u.strip()}\n  EUR {p.strip()}")
+  if _table_lines(usa_inc, "static const LocInfo kLocInfo[] = {") != \
+     _table_lines(inc, "static const LocInfo kLocInfo[] = {"):
+    bad.append("the per-location classes differ")
+  body = lambda t: [l for l in t.split("\n") if not l.startswith("// ")]
+  if body(usa_h) != body(hdr):
+    bad.append("pc_rando_locs.h differs (location list)")
+  print(f"GZLP01: {len(loc_rows)} locations, {len(keys)} keys; fingerprints on the EUR disc: {n_item_fp} dzx "
+        f"items, {n_event_fp} events, 0 mismatches")
+  print(f"GZLP01: {n_data} DZX/ADDED/EVENT keys compared with the table: {n_data - sum(1 for b in bad if 'code key' not in b)} "
+        f"identical; {n_code} CODE keys not compared ({n_code_pal_item} of the {n_code_fp} USA item offsets "
+        f"hold the item on the EUR disc; the port patches decompiled code, not these bytes)")
+  for b in bad:
+    print("GZLP01: " + b)
+  if bad:
+    print(f"GZLP01: {len(bad)} difference(s): the EUR build needs generated/rando_location_keys_pal.inc")
+    return 1
+  print("GZLP01: same keys as the USA table (no rando_location_keys_pal.inc needed)")
   return 0
 
 

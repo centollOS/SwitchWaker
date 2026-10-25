@@ -2,7 +2,7 @@
 // Source: wwrando 1.10.0_9775811 (MIT), commit 9775811b6fd039992822fbaf30ea6259b339f4b0: logic/item_locations.txt
 //   sha1 32b1a68bee57ac46358b5374de2485661d61bc60, data/actor_parameters.txt classes;
 //   disc GZLE01 (offsets, actor names and item ids only), files read sha1 b071aca890ae6b2f3a51f8b4e3fd3daf8f01dfe1
-// Generator: native/tools/rando/gen_location_keys.py sha1 7e62e7a3f5a97eb1729bfa77a91fafc452672edc
+// Generator: native/tools/rando/gen_location_keys.py sha1 718460f54e330504fede577fa4276b7817ce6841
 /*
  * pc_rando_locs.h - one id per randomizer item location (docs/RANDOMIZER_PLAN.md, step R0.5).
  *

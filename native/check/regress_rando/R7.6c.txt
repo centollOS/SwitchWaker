@@ -1,0 +1,12 @@
+# R7.6c (docs/RANDOMIZER_PLAN.md): the randomizer's texts on the European disc. The smoke
+# COS_RANDO_SMOKE=eurtext (native/src/pc/harness/smokes/pc_rando_smoke_eurtext.cpp) boots with a hint seed
+# (R5_3_Heavy5.json), builds its texts again and checks they are English, fit their boxes with the loaded
+# font, that R3.4's pre-wrapped texts equal a run-time wrap, and shows one message through d_msg. On the
+# USA build these lines are the reference; R7.6d runs them on the EUR build (COS_BUILD_DIR=build/native-mac-eur,
+# the GZLP01 disc) once per language, COS_GAME_LANGUAGE=en|de|fr|es|it, together with the posttext, msg,
+# hoho, dkeys, keybag and wrap lines, which compare with wwrando's USA output and must pass in every language.
+# The unit test cos_rando_test_R7_6c (the BMG lookup) runs on its own.
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_RANDO_EURTEXT_SHOW=3957
+rando 0 --stage sea:44 --env COS_RANDO_SMOKE=eurtext --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R5_3_Heavy5.json --env COS_RANDO_EURTEXT_SHOW=3443

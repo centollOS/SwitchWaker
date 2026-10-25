@@ -15,7 +15,9 @@
 #   4. runs every target listed in native/check/regress_targets.txt and in
 #      native/check/regress_rando/*.txt (one file per randomizer step, same format) through run.sh,
 #      N at a time (default 4), uncapped unless --capped, and compares each exit code with the
-#      expected one in that file.
+#      expected one in that file. A line whose target has the prefix "eur:" (or "usa:") runs only on
+#      that region's build (R7.6d: the European build, COS_BUILD_DIR=build/native-mac-eur with the
+#      GZLP01 disc, runs its regress_rando/R7.6d.txt lines; every other line runs on both builds).
 #
 #   --rando-only   only the randomizer's part: build switchwaker and cos_rando_tests, run the
 #                  rando unit tests and the regress_rando/*.txt lines (no static checks, no
@@ -35,6 +37,10 @@ repo="$(cd "$script_dir/../.." && pwd)"
 build="${COS_BUILD_DIR:-$repo/build/native-mac}"
 case "$build" in /*) ;; *) build="$repo/$build" ;; esac
 export COS_BUILD_DIR="$build"
+# The disc the build runs from (native/cmake/GameConfig.cmake: GZLE01, or GZLP01 for COS_VERSION=3,
+# docs/PAL_DISC_PLAN.md); it also selects the run lines' region prefix (region_filter).
+game_id="$(sed -n 's/^COS_GAME_ID:STRING=//p' "$build/CMakeCache.txt" 2>/dev/null)"
+game_id="${game_id:-GZLE01}"
 targets_file="$repo/native/check/regress_targets.txt"
 rando_dir="$repo/native/check/regress_rando"
 rando_tests_dir="$repo/native/check/rando"
@@ -67,8 +73,16 @@ run_lines() { # with_sources
     done
     for f in "${files[@]}"; do
         [ "$1" = 1 ] && echo "# ${f#"$repo"/}"
-        grep -v '^\s*#' "$f" | grep -v '^\s*$'
+        grep -v '^\s*#' "$f" | grep -v '^\s*$' | region_filter
     done
+}
+# Region prefix (R7.6d): a line whose target starts with "eur:" runs only on the European build
+# (COS_GAME_ID GZLP01, e.g. COS_BUILD_DIR=build/native-mac-eur), one starting with "usa:" only on
+# the USA build; the prefix is dropped before the line runs. Lines without a prefix run on both.
+region_filter() {
+    local keep drop
+    if [ "$game_id" = GZLP01 ]; then keep=eur; drop=usa; else keep=usa; drop=eur; fi
+    grep -v "^[[:space:]]*$drop:" | sed "s/^\([[:space:]]*\)$keep:/\1/"
 }
 # The randomizer's unit tests: the step name of every native/check/rando/test_<step>.cpp.
 rando_test_steps() {
@@ -152,10 +166,7 @@ done
 check rando_hook_census python3 -I "$script_dir/rando_hook_census.py"
 
 # The disc manifest is written once here, so parallel runs never race to create it.
-# The disc the build runs from (native/cmake/GameConfig.cmake: GZLE01, or GZLP01 for COS_VERSION=3,
-# docs/PAL_DISC_PLAN.md).
-game_id="$(sed -n 's/^COS_GAME_ID:STRING=//p' "$build/CMakeCache.txt" 2>/dev/null)"
-game_id="${game_id:-GZLE01}"
+# The disc image of the build's ID (game_id, read above).
 disc="${COS_DISC:-}"
 if [ -z "$disc" ]; then
     echo "regress: no disc image: set COS_DISC (the $game_id revision 0 .iso)" >&2
