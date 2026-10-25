@@ -6,8 +6,9 @@
 #    stage.dzs, room.dzr and event_list.dat of the disc (805 files) through the whole patcher chain with the
 #    rotation placement plus every stage-data option (fixtures/R7_6b_all_options.json's entrances, enemies,
 #    palettes, charts, required bosses, starting island, trap chests, warp pots, ...); exit 1 on any patcher
-#    line with a fingerprint mismatch, a missing entry or a refusal. regress.sh builds the USA build only, so
-#    the line below audits USA; the EUR audit and the USA/EUR comparison are
+#    line with a fingerprint mismatch, a missing entry or a refusal. The line below audits USA and carries the
+#    prefix "usa:" (R7.6d: on the EUR build COS_DISC is the EUR disc; regress_rando/R7.6d.txt audits EUR
+#    there); the USA/EUR comparison is
 #      python3 -I native/tools/rando/fp_audit.py              (both regions; needs build/native-mac-eur)
 #    and R7.6d adds the EUR lines to regress.sh. The location sweep T1 on EUR (rotation) is
 #      COS_BUILD_DIR=build/native-mac-eur python3 -I native/tools/rando/location_sweep.py run --placement rotation \
@@ -15,4 +16,4 @@
 # "script" runs the rest of the line from the repository root; both need the oracle venv / the discs.
 # Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
 script 0 python3 -I native/tools/rando/gen_location_keys.py --disc GZLP01
-script 0 python3 -I native/tools/rando/fp_audit.py --region usa
+usa:script 0 python3 -I native/tools/rando/fp_audit.py --region usa

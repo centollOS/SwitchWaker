@@ -940,8 +940,9 @@ for every randomizer patch.
   `rando_location_keys_pal.inc`). The 86 CODE keys only record wwrando's USA REL/DOL offsets; the port patches
   decompiled code there, so their PAL bytes are not compared (60 of the 77 USA item offsets happen to hold the
   item on the EUR disc too).
-- `native/tools/rando/location_sweep.py targets --check --disc GZLP01`: the sweep's stops (rooms, spawn points,
-  layers) are the same on the EUR disc.
+- `native/tools/rando/location_sweep.py targets --check --disc ~/Documents/windwaker/GZLP01/GZLP01.iso` (`--disc`
+  takes the .iso, not a game ID): the sweep's stops (rooms, spawn points, layers) are the same on the EUR disc
+  (402 keys). It writes the disc manifest of `build/native-mac`; run it again with the USA disc afterwards.
 - Fingerprint audit: the `fpaudit` smoke (`harness/smokes/pc_rando_smoke_fpaudit.cpp`) runs every stage.dzs,
   room.dzr and event_list.dat of the disc (805 files) through the whole patcher chain of `pc_rando_patchers.def`
   with the active seed; `native/tools/rando/fp_audit.py` runs it with the rotation placement plus every
