@@ -267,7 +267,9 @@ static void attack_eff_set(gnd_class* i_this, int param_2) {
     for (int i = 0; i < 6; i++) {
         if (attack_eff_id[param_2 * 6 + i] != 0) {
             i_this->mpAttackEff[i] = dComIfGp_particle_set(attack_eff_id[param_2 * 6 + i], &actor->current.pos);
-            if (i <= 3) {
+            // The Ganon mod plays these outside Ganon's Tower, where the particle data is not loaded and
+            // the emitter is NULL.
+            if (i <= 3 && i_this->mpAttackEff[i] != NULL) {
                 i_this->mpAttackEff[i]->setGlobalPrmColor(i_this->mTevStr2.mColorC0.r, i_this->mTevStr2.mColorC0.g, i_this->mTevStr2.mColorC0.b);
             }
         }
