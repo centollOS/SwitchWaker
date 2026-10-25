@@ -942,7 +942,8 @@ for every randomizer patch.
   item on the EUR disc too).
 - `native/tools/rando/location_sweep.py targets --check --disc ~/Documents/windwaker/GZLP01/GZLP01.iso` (`--disc`
   takes the .iso, not a game ID): the sweep's stops (rooms, spawn points, layers) are the same on the EUR disc
-  (402 keys). It writes the disc manifest of `build/native-mac`; run it again with the USA disc afterwards.
+  (402 keys). It reads (and, for another disc, rewrites) the disc manifest of `$COS_BUILD_DIR` (default
+  `build/native-mac`): run it with `COS_BUILD_DIR=build/native-mac-eur`, or again with the USA disc afterwards.
 - Fingerprint audit: the `fpaudit` smoke (`harness/smokes/pc_rando_smoke_fpaudit.cpp`) runs every stage.dzs,
   room.dzr and event_list.dat of the disc (805 files) through the whole patcher chain of `pc_rando_patchers.def`
   with the active seed; `native/tools/rando/fp_audit.py` runs it with the rotation placement plus every
@@ -1034,3 +1035,41 @@ European disc, messages and text (plan R7.6c). Findings on GZLP01 (gclib over th
 Checked by the `eurtext` smoke (`regress_rando/R7.6c.txt`) and `cos_rando_test_R7_6c`; on the EUR build, in
 each of the five languages, the `eurtext`, `posttext`, `msg`, `hoho`, `dkeys`, `keybag` and `wrap` smokes pass
 and the `eurtext` dump of every overlay record is byte-identical to USA's.
+
+## R7.6d
+
+European build's gate (plan R7.6d). No hunks; tooling and runs only.
+
+- **regress.sh on EUR:** `COS_BUILD_DIR=build/native-mac-eur COS_DISC=~/Documents/windwaker/GZLP01/GZLP01.iso
+  native/tools/regress.sh` (the build configured with `-DCOS_VERSION=3`, `COS_GAME_ID` GZLP01). regress.sh reads
+  the build's game ID before it lists the run lines (`region_filter`): a target prefixed `eur:` runs only on the
+  EUR build, `usa:` only on the USA build, the prefix is dropped before the line runs, and an unprefixed line
+  runs on both (in English on EUR, run.sh's default language). The USA list is unchanged (`--list` identical to
+  feature/randomizer's). `regress_rando/R7.6d.txt` holds the EUR-only lines: the EUR fingerprint audit and
+  R7.6c's `eurtext`, `posttext`, `msg`, `hoho`, `dkeys`, `keybag` and `wrap` lines in German, French, Spanish
+  and Italian. R7.6b's `fp_audit.py --region usa` line got the prefix `usa:` (on EUR `COS_DISC` is the EUR disc,
+  which that line would boot the USA build with).
+- **Location sweep on EUR** (by hand; long):
+  `COS_BUILD_DIR=build/native-mac-eur python3 -I native/tools/rando/location_sweep.py run --tier both
+  --placement <identity|rotation|fixture.json> --disc ~/Documents/windwaker/GZLP01/GZLP01.iso`. `--disc` takes
+  the .iso. `targets --check` on EUR: `COS_BUILD_DIR=build/native-mac-eur ... targets --check --disc <EUR .iso>`
+  (402 keys up to date; the manifest it reads is `$COS_BUILD_DIR`'s, so the USA one stays).
+- **Results (2026-10-25, feature/randomizer 8a015342 + this step, no code change):**
+  - T1 on EUR with `identity`, `rotation`, `R0_6_TestSeed1.json`, `R5_3_Heavy5.json` and
+    `R1_6_CheckSeed11_dungeons_only.json`: 0 failures each (220 actr/scob rows, 182 chest keys record and live;
+    the sea_1_0 run's last stop is retried in its own boot, `.boot0`, on USA too).
+  - T2 is not at 0 failures on either region: the T2 driver of the `loc` smoke (R9.1's, in progress) fails about
+    50 of the 182 chest keys on USA as well (the put of the player does not hold, the chest is gone or is not
+    the chest's event at the stop, A does not open it). Region comparison, key by key: `identity` 182/182 rows
+    the same result on both (127 ok, 53 FAIL, 2 no-target); `rotation` 181/182 the same, the one difference
+    (Six Eye Reef TRES[1]) a put-retry case that passes on EUR and fails TRES[0] on USA when rerun alone;
+    TestSeed1 SEED1_RESULT.
+  - The `jpcscene`, `warppots`, `palettes`, `cosmetic` and `enemies` lines (the R7.1c, R7.2e, R7.4d, R7.5a regress
+    lines with their `enemy_check` / `palette_check` / `enemy_sweep` scripts, 46 lines) and every other game line
+    of `regress_rando/` (197 lines) pass on EUR in English; the R7.6 lines (112, with English) pass in all five
+    languages; `fp_audit.py` (both regions): 0 problem lines on either disc, the 1594 patcher lines identical.
+  - Left for the user (console): Milestone R4's console list again with the EUR NRO.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| - | no hunks in `game/` | - | - |
