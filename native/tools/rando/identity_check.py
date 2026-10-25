@@ -784,9 +784,31 @@ def rando_cases(ss):
   return cases
 
 
+# The identity placement's file starts with the Hero's Sword and a Progressive Shield (its sword_mode
+# and starting_gear, R3.1). The randomizer makes the sword and shield progressive (wwrando's
+# progressive item patches), so the items case giving Hero's Sword 0x38 and Hero's Shield 0x3B again
+# upgrades them to the Master Sword and the Mirror Shield, with their collect bits and events: a
+# state that depends on the case, not the new file. Both ways therefore sweep the items without the
+# two (no identity seed has either in a chest, they are starting gear).
+def rando_items(ss):
+  out = []
+  for part in ss.DEFAULT_ITEMS.split(","):
+    a, _, b = part.partition("-")
+    lo, hi = int(a, 0), int(b or a, 0)
+    ids = [i for i in range(lo, hi + 1) if i not in (0x38, 0x3B)]
+    while ids:  # re-pack consecutive runs
+      j = 0
+      while j + 1 < len(ids) and ids[j + 1] == ids[j] + 1:
+        j += 1
+      out.append(f"0x{ids[0]:02X}" if j == 0 else f"0x{ids[0]:02X}-0x{ids[j]:02X}")
+      ids = ids[j + 1:]
+  return ",".join(out)
+
+
 def sweep_main(argv):
   ss = load_save_sweep()
   ss.CASES = rando_cases(ss)
+  ss.DEFAULT_ITEMS = rando_items(ss)
   sys.argv = [SAVE_SWEEP] + argv
   return ss.main()
 
