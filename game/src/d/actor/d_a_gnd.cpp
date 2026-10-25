@@ -2597,10 +2597,13 @@ void daGnd_playerBodyTick(fopAc_ac_c* i_player) {
     sBodyId = fopAcM_create(fpcNm_GND_e, 0xF, &i_player->current.pos, fopAcM_GetRoomNo(i_player), &angle);
 }
 
-static void body_anm(gnd_class* i_this, int bck, u8 loop, f32 morf, f32 speed, int snd) {
+static void body_anm(gnd_class* i_this, int bck, u8 loop, f32 morf, f32 speed, int snd, u32 voice = 0) {
     if (i_this->m2D0 != bck) {
         i_this->m2D0 = bck;
         anm_init(i_this, bck, morf, loop, speed, snd);
+        if (voice != 0) {
+            fopAcM_monsSeStart(i_this, voice, 0); // Ganondorf's voice for this move
+        }
     } else {
         i_this->mpMorf->setPlaySpeed(speed);
     }
@@ -2627,35 +2630,54 @@ static BOOL gnd_player_body(gnd_class* i_this) {
     const u8 loop = J3DFrameCtrl::EMode_LOOP;
     const u8 once = J3DFrameCtrl::EMode_NONE;
     const f32 move = lk->speedF;
+    const int cur = i_this->m2D0; // the animation playing (a Gnd BCK index)
     switch (lk->getCurProc()) {
-    case daPy_lk_c::daPyProc_CUT_A_e: body_anm(i_this, dRes_INDEX_GND_BCK_AATTACK1_e, once, 3.0f, 1.0f, -1); break;
-    case daPy_lk_c::daPyProc_CUT_F_e: body_anm(i_this, dRes_INDEX_GND_BCK_AATTACK2_e, once, 3.0f, 1.0f, -1); break;
-    case daPy_lk_c::daPyProc_CUT_R_e: body_anm(i_this, dRes_INDEX_GND_BCK_NOM_ATTACK1_e, once, 3.0f, 1.0f, -1); break;
-    case daPy_lk_c::daPyProc_CUT_L_e: body_anm(i_this, dRes_INDEX_GND_BCK_NOM_ATTACK2_e, once, 3.0f, 1.0f, -1); break;
-    case daPy_lk_c::daPyProc_CUT_EA_e: body_anm(i_this, dRes_INDEX_GND_BCK_AATTACK3_e, once, 3.0f, 1.0f, -1); break;
-    case daPy_lk_c::daPyProc_CUT_EB_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK1_e, once, 3.0f, 1.0f, -1); break;
-    case daPy_lk_c::daPyProc_CUT_EX_A_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK2_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_A_e: body_anm(i_this, dRes_INDEX_GND_BCK_AATTACK1_e, once, 3.0f, 1.0f, dRes_INDEX_GND_BAS_AATTACK1_e, JA_SE_CV_GN_ATTACK_1); break;
+    case daPy_lk_c::daPyProc_CUT_F_e: body_anm(i_this, dRes_INDEX_GND_BCK_AATTACK2_e, once, 3.0f, 1.0f, dRes_INDEX_GND_BAS_AATTACK2_e, JA_SE_CV_GN_ATTACK_2); break;
+    case daPy_lk_c::daPyProc_CUT_R_e: body_anm(i_this, dRes_INDEX_GND_BCK_NOM_ATTACK1_e, once, 3.0f, 1.0f, dRes_INDEX_GND_BAS_NOM_ATTACK1_e, JA_SE_CV_GN_ATTACK_3); break;
+    case daPy_lk_c::daPyProc_CUT_L_e: body_anm(i_this, dRes_INDEX_GND_BCK_NOM_ATTACK2_e, once, 3.0f, 1.0f, dRes_INDEX_GND_BAS_NOM_ATTACK2_e, JA_SE_CV_GN_ATTACK_2); break;
+    case daPy_lk_c::daPyProc_CUT_EA_e: body_anm(i_this, dRes_INDEX_GND_BCK_AATTACK3_e, once, 3.0f, 1.0f, dRes_INDEX_GND_BAS_AATTACK3_e, JA_SE_CV_GN_ATTACK_3); break;
+    case daPy_lk_c::daPyProc_CUT_EB_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK1_e, once, 3.0f, 1.0f, dRes_INDEX_GND_BAS_BATTACK1_e, JA_SE_CV_GN_ATTACK_4); break;
+    case daPy_lk_c::daPyProc_CUT_EX_A_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK2_e, once, 3.0f, 1.0f, dRes_INDEX_GND_BAS_BATTACK2_e, JA_SE_CV_GN_ATTACK_5); break;
     case daPy_lk_c::daPyProc_CUT_EX_B_e:
     case daPy_lk_c::daPyProc_CUT_EX_MJ_e:
-    case daPy_lk_c::daPyProc_CUT_KESA_e: body_anm(i_this, dRes_INDEX_GND_BCK_COMBO_GANON_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_KESA_e: body_anm(i_this, dRes_INDEX_GND_BCK_COMBO_GANON_e, once, 3.0f, 1.0f, -1, JA_SE_CV_GN_ATTACK_6); break;
     case daPy_lk_c::daPyProc_CUT_TURN_CHARGE_e:
-    case daPy_lk_c::daPyProc_CUT_TURN_MOVE_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK3_TAME_e, once, 5.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_TURN_MOVE_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK3_TAME_e, once, 5.0f, 1.0f, dRes_INDEX_GND_BAS_BATTACK3_TAME_e); break;
     case daPy_lk_c::daPyProc_CUT_TURN_e:
-    case daPy_lk_c::daPyProc_CUT_ROLL_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK3_ATTACK_e, once, 2.0f, 1.0f, -1); break;
-    case daPy_lk_c::daPyProc_CUT_ROLL_END_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK3_END_e, once, 2.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_ROLL_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK3_ATTACK_e, once, 2.0f, 1.0f, dRes_INDEX_GND_BAS_BATTACK3_ATTACK_e, JA_SE_CV_GN_ATTACK_7); break;
+    case daPy_lk_c::daPyProc_CUT_ROLL_END_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK3_END_e, once, 2.0f, 1.0f, dRes_INDEX_GND_BAS_BATTACK3_END_e); break;
     case daPy_lk_c::daPyProc_BT_JUMP_e:
-    case daPy_lk_c::daPyProc_BT_VERTICAL_JUMP_e: body_anm(i_this, dRes_INDEX_GND_BCK_JATTACK_JUMP_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_BT_VERTICAL_JUMP_e: body_anm(i_this, dRes_INDEX_GND_BCK_JATTACK_JUMP_e, once, 3.0f, 1.0f, -1, JA_SE_CV_GN_ATTACK_4); break;
     case daPy_lk_c::daPyProc_JUMP_CUT_e:
     case daPy_lk_c::daPyProc_BT_JUMP_CUT_e:
-    case daPy_lk_c::daPyProc_BT_VERTICAL_JUMP_CUT_e: body_anm(i_this, dRes_INDEX_GND_BCK_JATTACK_ATTACK_e, once, 2.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_BT_VERTICAL_JUMP_CUT_e: body_anm(i_this, dRes_INDEX_GND_BCK_JATTACK_ATTACK_e, once, 2.0f, 1.0f, dRes_INDEX_GND_BAS_JATTACK_ATTACK_e); break;
     case daPy_lk_c::daPyProc_JUMP_CUT_LAND_e:
-    case daPy_lk_c::daPyProc_BT_VERTICAL_JUMP_LAND_e: body_anm(i_this, dRes_INDEX_GND_BCK_JATTACK_END_e, once, 2.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_BT_VERTICAL_JUMP_LAND_e: body_anm(i_this, dRes_INDEX_GND_BCK_JATTACK_END_e, once, 2.0f, 1.0f, dRes_INDEX_GND_BAS_JATTACK_END_e); break;
     case daPy_lk_c::daPyProc_CUT_REVERSE_e:
-    case daPy_lk_c::daPyProc_BT_ROLL_CUT_e: body_anm(i_this, dRes_INDEX_GND_BCK_COUNTERL_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_BT_ROLL_CUT_e: body_anm(i_this, dRes_INDEX_GND_BCK_COUNTERL_e, once, 3.0f, 1.0f, dRes_INDEX_GND_BAS_COUNTERL_e, JA_SE_CV_GN_DEFENCE_1); break;
     case daPy_lk_c::daPyProc_FRONT_ROLL_e:
     case daPy_lk_c::daPyProc_SIDE_ROLL_e:
     case daPy_lk_c::daPyProc_BT_ROLL_e:
-    case daPy_lk_c::daPyProc_BT_SLIDE_e: body_anm(i_this, dRes_INDEX_GND_BCK_KERI1_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_BT_SLIDE_e:
+        // Ganondorf's big leap: the take-off, held while Link rolls; the landing plays when the roll ends.
+        if (cur == dRes_INDEX_GND_BCK_HI_JUMP_LOOP_e ||
+            (cur == dRes_INDEX_GND_BCK_HI_JUMP_START_e && i_this->mpMorf->isStop()))
+        {
+            body_anm(i_this, dRes_INDEX_GND_BCK_HI_JUMP_LOOP_e, loop, 3.0f, 1.0f, -1);
+        } else {
+            body_anm(i_this, dRes_INDEX_GND_BCK_HI_JUMP_START_e, once, 3.0f, 2.5f, dRes_INDEX_GND_BAS_HI_JUMP_START_e);
+        }
+        break;
+    // The shield: his guard poses.
+    case daPy_lk_c::daPyProc_CROUCH_DEFENSE_e:
+    case daPy_lk_c::daPyProc_CROUCH_DEFENSE_SLIP_e:
+        body_anm(i_this, dRes_INDEX_GND_BCK_BOUGYO3_e, once, 3.0f, 1.0f, dRes_INDEX_GND_BAS_BOUGYO3_e, JA_SE_CV_GN_DEFENCE_2);
+        break;
+    case daPy_lk_c::daPyProc_GUARD_SLIP_e:
+    case daPy_lk_c::daPyProc_GUARD_CRASH_e:
+        body_anm(i_this, dRes_INDEX_GND_BCK_BOUGYO4_e, once, 3.0f, 1.0f, -1, JA_SE_CV_GN_DEFENCE_1);
+        break;
     case daPy_lk_c::daPyProc_AUTO_JUMP_e:
     case daPy_lk_c::daPyProc_BACK_JUMP_e:
     case daPy_lk_c::daPyProc_SIDE_STEP_e: // the targeted side jump matches the back jump
@@ -2666,9 +2688,13 @@ static BOOL gnd_player_body(gnd_class* i_this) {
     case daPy_lk_c::daPyProc_POLY_DAMAGE_e:
     case daPy_lk_c::daPyProc_LARGE_DAMAGE_e:
     case daPy_lk_c::daPyProc_LARGE_DAMAGE_UP_e:
-    case daPy_lk_c::daPyProc_LARGE_DAMAGE_WALL_e: body_anm(i_this, dRes_INDEX_GND_BCK_DAMAGEA_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_LARGE_DAMAGE_WALL_e: body_anm(i_this, dRes_INDEX_GND_BCK_DAMAGEA_e, once, 3.0f, 1.0f, -1, JA_SE_CV_GN_DAMAGE_1); break;
     default:
-        if (move > 1.0f) {
+        if (cur == dRes_INDEX_GND_BCK_HI_JUMP_LOOP_e || cur == dRes_INDEX_GND_BCK_HI_JUMP_START_e) {
+            body_anm(i_this, dRes_INDEX_GND_BCK_HI_JUMP_END1_e, once, 3.0f, 1.5f, dRes_INDEX_GND_BAS_HI_JUMP_END_1_e); // landing
+        } else if (cur == dRes_INDEX_GND_BCK_HI_JUMP_END1_e && !i_this->mpMorf->isStop()) {
+            // the landing plays out
+        } else if (move > 1.0f) {
             body_anm(i_this, dRes_INDEX_GND_BCK_WALK_e, loop, 8.0f, cLib_maxLimit(move / 8.0f + 0.4f, 2.5f), dRes_INDEX_GND_BAS_WALK_e);
         } else {
             body_anm(i_this, dRes_INDEX_GND_BCK_WAIT2_e, loop, 8.0f, 1.0f, -1);

@@ -173,6 +173,9 @@ void daPy_lk_c::seStartSwordCut(u32 i_seNum) {
 
 /* 8010314C-801031A4       .text voiceStart__9daPy_lk_cFUl */
 void daPy_lk_c::voiceStart(u32 i_soundID) {
+    if (daGnd_isPlayerBody()) {
+        return; // Ganon mod (pc_qol.h): Ganondorf's own voice plays instead of Link's
+    }
     mDoAud_linkVoiceStart(i_soundID, &eyePos, mDoAud_getLinkVoiceVowel(i_soundID), mReverb);
 }
 
