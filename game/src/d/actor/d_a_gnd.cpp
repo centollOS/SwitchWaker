@@ -28,6 +28,7 @@
 #include "JSystem/JParticle/JPAEmitter.h"
 #include "JSystem/JUtility/JUTReport.h"
 #include "res/Object/Gnd.h"
+#include "pc/pc_qol.h"
 
 static cXyz non_pos(-20000.0f, -20000.0f, -20000.0f);
 static bool hio_set;
@@ -2557,6 +2558,147 @@ static void body_flash(gnd_class* i_this) {
 }
 #endif
 
+// ---- Ganon mod (pc_qol.h, PC_QOL_GANON): the player's body ----------------------------------------
+// A gnd_class with parameter 0xF does not fight: it stands where Link stands (Link keeps the controls,
+// the sword, the collisions and the camera, and is not drawn) and plays Ganondorf's animations for the
+// procedure Link is in: his walk and stance, his sword combos for Link's swings, his charged spin, his
+// jump attack, damage, and so on.
+static fpc_ProcID sBodyId = fpcM_ERROR_PROCESS_ID_e;
+static bool sBodyReady;
+static int sBodyRetry;
+static const f32 kBodyScale = 0.6f; // Ganondorf is bigger than Link; this keeps doors and Link's reach sane
+
+bool daGnd_isPlayerBody() {
+    return sBodyReady;
+}
+
+void daGnd_playerBodyTick(fopAc_ac_c* i_player) {
+    if (!pc_qol(PC_QOL_GANON)) {
+        if (sBodyId != fpcM_ERROR_PROCESS_ID_e) {
+            fopAcM_delete(sBodyId);
+            sBodyId = fpcM_ERROR_PROCESS_ID_e;
+        }
+        sBodyReady = false;
+        return;
+    }
+    fopAc_ac_c* body;
+    if (sBodyId != fpcM_ERROR_PROCESS_ID_e && fopAcM_SearchByID(sBodyId, &body)) {
+        return;
+    }
+    sBodyReady = false;
+    if (sBodyRetry > 0) {
+        sBodyRetry--; // a failed creation (no Gnd archive) is not retried every frame
+        return;
+    }
+    sBodyRetry = 120;
+    csXyz angle = i_player->shape_angle;
+    sBodyId = fopAcM_create(fpcNm_GND_e, 0xF, &i_player->current.pos, fopAcM_GetRoomNo(i_player), &angle);
+}
+
+static void body_anm(gnd_class* i_this, int bck, u8 loop, f32 morf, f32 speed, int snd) {
+    if (i_this->m2D0 != bck) {
+        i_this->m2D0 = bck;
+        anm_init(i_this, bck, morf, loop, speed, snd);
+    } else {
+        i_this->mpMorf->setPlaySpeed(speed);
+    }
+}
+
+static BOOL gnd_player_body(gnd_class* i_this) {
+    fopAc_ac_c* actor = i_this;
+    daPy_lk_c* lk = (daPy_lk_c*)dComIfGp_getPlayer(0);
+    if (lk == NULL || !pc_qol(PC_QOL_GANON)) {
+        sBodyReady = false;
+        fopAcM_delete(actor);
+        return TRUE;
+    }
+
+    actor->current.pos = lk->current.pos;
+    actor->old.pos = lk->old.pos;
+    actor->current.angle.y = lk->shape_angle.y;
+    actor->shape_angle.y = lk->shape_angle.y;
+    actor->scale.setall(kBodyScale);
+    actor->attention_info.flags = 0;
+    i_this->mAcch.CrrPos(*dComIfG_Bgsp()); // only for the shadow's ground; the position stays Link's
+    actor->current.pos = lk->current.pos;
+
+    const u8 loop = J3DFrameCtrl::EMode_LOOP;
+    const u8 once = J3DFrameCtrl::EMode_NONE;
+    const f32 move = lk->speedF;
+    switch (lk->getCurProc()) {
+    case daPy_lk_c::daPyProc_CUT_A_e: body_anm(i_this, dRes_INDEX_GND_BCK_AATTACK1_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_F_e: body_anm(i_this, dRes_INDEX_GND_BCK_AATTACK2_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_R_e: body_anm(i_this, dRes_INDEX_GND_BCK_NOM_ATTACK1_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_L_e: body_anm(i_this, dRes_INDEX_GND_BCK_NOM_ATTACK2_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_EA_e: body_anm(i_this, dRes_INDEX_GND_BCK_AATTACK3_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_EB_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK1_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_EX_A_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK2_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_EX_B_e:
+    case daPy_lk_c::daPyProc_CUT_EX_MJ_e:
+    case daPy_lk_c::daPyProc_CUT_KESA_e: body_anm(i_this, dRes_INDEX_GND_BCK_COMBO_GANON_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_TURN_CHARGE_e:
+    case daPy_lk_c::daPyProc_CUT_TURN_MOVE_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK3_TAME_e, once, 5.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_TURN_e:
+    case daPy_lk_c::daPyProc_CUT_ROLL_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK3_ATTACK_e, once, 2.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_ROLL_END_e: body_anm(i_this, dRes_INDEX_GND_BCK_BATTACK3_END_e, once, 2.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_BT_JUMP_e:
+    case daPy_lk_c::daPyProc_BT_VERTICAL_JUMP_e: body_anm(i_this, dRes_INDEX_GND_BCK_JATTACK_JUMP_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_JUMP_CUT_e:
+    case daPy_lk_c::daPyProc_BT_JUMP_CUT_e:
+    case daPy_lk_c::daPyProc_BT_VERTICAL_JUMP_CUT_e: body_anm(i_this, dRes_INDEX_GND_BCK_JATTACK_ATTACK_e, once, 2.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_JUMP_CUT_LAND_e:
+    case daPy_lk_c::daPyProc_BT_VERTICAL_JUMP_LAND_e: body_anm(i_this, dRes_INDEX_GND_BCK_JATTACK_END_e, once, 2.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_CUT_REVERSE_e:
+    case daPy_lk_c::daPyProc_BT_ROLL_CUT_e: body_anm(i_this, dRes_INDEX_GND_BCK_COUNTERL_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_FRONT_ROLL_e:
+    case daPy_lk_c::daPyProc_SIDE_ROLL_e:
+    case daPy_lk_c::daPyProc_BT_ROLL_e:
+    case daPy_lk_c::daPyProc_BT_SLIDE_e: body_anm(i_this, dRes_INDEX_GND_BCK_KERI1_e, once, 3.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_AUTO_JUMP_e:
+    case daPy_lk_c::daPyProc_BACK_JUMP_e:
+    case daPy_lk_c::daPyProc_SMALL_JUMP_e:
+    case daPy_lk_c::daPyProc_VERTICAL_JUMP_e: body_anm(i_this, dRes_INDEX_GND_BCK_HI_JUMP_LOOP_e, loop, 5.0f, 1.0f, -1); break;
+    case daPy_lk_c::daPyProc_DAMAGE_e:
+    case daPy_lk_c::daPyProc_POLY_DAMAGE_e:
+    case daPy_lk_c::daPyProc_LARGE_DAMAGE_e:
+    case daPy_lk_c::daPyProc_LARGE_DAMAGE_UP_e:
+    case daPy_lk_c::daPyProc_LARGE_DAMAGE_WALL_e: body_anm(i_this, dRes_INDEX_GND_BCK_DAMAGEA_e, once, 3.0f, 1.0f, -1); break;
+    default:
+        if (move > 1.0f) {
+            body_anm(i_this, dRes_INDEX_GND_BCK_WALK_e, loop, 8.0f, cLib_maxLimit(move / 8.0f + 0.4f, 2.5f), dRes_INDEX_GND_BAS_WALK_e);
+        } else {
+            body_anm(i_this, dRes_INDEX_GND_BCK_WAIT2_e, loop, 8.0f, 1.0f, -1);
+        }
+        break;
+    }
+
+    i_this->m2CC++;
+    g_env_light.settingTevStruct(2, &actor->current.pos, &i_this->mTevStr2);
+    i_this->mpMorf->play(&actor->eyePos, 0, 0);
+    if (i_this->mpMorf->isStop()) {
+        attack_eff_remove(i_this);
+    }
+    i_this->mpBrkAnm->play();
+    i_this->mpBtkAnm->play();
+    i_this->mpBtpAnm->play();
+
+    J3DModel* model = i_this->mpMorf->getModel();
+    model->setBaseScale(actor->scale);
+    mDoMtx_stack_c::transS(actor->current.pos.x, actor->current.pos.y, actor->current.pos.z);
+    mDoMtx_stack_c::YrotM(actor->shape_angle.y);
+    model->setBaseTRMtx(mDoMtx_stack_c::now);
+    i_this->mpMorf->calc();
+
+    cXyz offset(0.0f, 0.0f, 0.0f);
+    MTXCopy(model->getAnmMtx(0x30), *calc_mtx);
+    MtxPosition(&offset, &actor->eyePos);
+
+    ke_move(i_this);
+    attack_eff_move(i_this);
+    sBodyReady = true;
+    return TRUE;
+}
+
 /* 00006D0C-000076B8       .text daGnd_Execute__FP9gnd_class */
 static BOOL daGnd_Execute(gnd_class* i_this) {
     static u32 w_d[] = {0x1B, 0x2D};
@@ -2567,6 +2709,10 @@ static BOOL daGnd_Execute(gnd_class* i_this) {
     daPy_py_c* player = (daPy_py_c*)dComIfGp_getPlayer(0);
     cXyz offset;
     cXyz pos;
+
+    if (i_this->m2B4 == 0xF) {
+        return gnd_player_body(i_this);
+    }
 
     if (i_this->m2B4 == 0) {
         i_this->m2CE = 20;
@@ -2834,6 +2980,9 @@ static BOOL daGnd_IsDelete(gnd_class*) {
 /* 000076C0-00007738       .text daGnd_Delete__FP9gnd_class */
 static BOOL daGnd_Delete(gnd_class* i_this) {
     dComIfG_resDeleteDemo(&i_this->mPhase, "Gnd");
+    if (i_this->m2B4 == 0xF) {
+        sBodyReady = false;
+    }
     i_this->mRippleCb.end();
     if (i_this->mHioSet != 0) {
         hio_set = false;
@@ -3088,7 +3237,7 @@ static cPhs_State daGnd_Create(fopAc_ac_c* a_this) {
         daGnd_Execute(i_this);
         a_this->max_health = DEMO_SELECT(90, 0x4B);
         a_this->health = DEMO_SELECT(90, 0x4B);
-        if (i_this->m2B4 != 0) {
+        if (i_this->m2B4 != 0 && i_this->m2B4 != 0xF) {
             mDoAud_bgmStart(JA_BGM_GANON_BATTLE);
         }
     }

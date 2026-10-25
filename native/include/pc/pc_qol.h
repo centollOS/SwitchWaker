@@ -19,8 +19,9 @@
  * COS_QOL_SKIP_INTRO=1       a new game starts on Outset without the opening legend
  * COS_QOL_FIX_BUGS=1         fixes for bugs of the original game (docs/QOL_PLAN.md, "Bugs of the
  *                            original game")
- * COS_QOL_GANON=1           mod: the player moves like the Ganondorf boss (slow stalk, charging sword
- *                            lunges, heavy leaps and falls); the model stays Link's
+ * COS_QOL_GANON=1           mod: the player is Ganondorf: his model and boss animations (d_a_gnd.cpp,
+ *                            parameter 0xF) follow Link, who is not drawn and keeps the controls and the
+ *                            sword; his slow stalk, longer sword lunges and heavier falls
  *
  * All off by default (0: the original game). Each value is read from the environment (the settings
  * file's value, pc_settings.h) the first time the game asks; the menu's apply function sets it

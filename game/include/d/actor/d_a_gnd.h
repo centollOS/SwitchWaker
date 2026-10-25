@@ -181,4 +181,10 @@ public:
 
 STATIC_ASSERT(sizeof(daGnd_HIO_c) == 0x8C);
 
+// Ganon mod (pc_qol.h, PC_QOL_GANON): a gnd_class created with parameter 0xF is the player's body. It
+// follows the player (Link, who is not drawn and keeps the controls, the sword and the collisions) and
+// plays Ganondorf's own animations for what Link is doing.
+void daGnd_playerBodyTick(fopAc_ac_c* i_player); // called every frame by the player: creates or removes the body
+bool daGnd_isPlayerBody();                      // the body exists and is drawn, so the player hides Link
+
 #endif /* D_A_GND_H */

@@ -35,6 +35,7 @@
 #if TARGET_PC
 #include "helpers/endian.h"
 #include "pc/pc_qol.h"
+#include "d/actor/d_a_gnd.h"
 #endif
 #include "d/d_material.h"
 #include "JSystem/J3DGraphLoader/J3DAnmLoader.h"
@@ -11209,6 +11210,7 @@ void daPy_lk_c::checkRoofRestart() {
 
 /* 80121870-80122D30       .text execute__9daPy_lk_cFv */
 BOOL daPy_lk_c::execute() {
+    daGnd_playerBodyTick(this); // Ganon mod (pc_qol.h)
 #if VERSION > VERSION_DEMO
     if (setGetDemo()) {
         return TRUE;

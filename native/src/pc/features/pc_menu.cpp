@@ -762,12 +762,12 @@ const PcSettingDesc kBuiltins[] = {
      "killed with Light Arrows (Stalfos, Miniblins, Jalhalla's Poes, Magtails) and Phantom Ganon's "
      "trigger."},
     {"COS_QOL_GANON", "Mod: jugar como Ganondorf",
-     "Link se mueve como el jefe Ganondorf: paso lento y pesado, estocadas de espada que cargan hacia "
-     "delante y caídas más pesadas. El modelo sigue siendo el de Link.",
+     "Juegas como Ganondorf: su modelo y sus animaciones de jefe (andar, combos de espada, giro cargado, "
+     "ataque saltando, daño). Los controles, los golpes y las colisiones siguen siendo los de Link.",
      PC_SETTING_TAB_QOL, 0, CHOICES(kOnOff), "0", applyQol, nullptr, 140,
      "Mod: play as Ganondorf",
-     "Link moves like the Ganondorf boss: a slow, heavy stalk, sword swings that charge forward and "
-     "heavier falls. The model stays Link's."},
+     "You play as Ganondorf: his model and his boss animations (walk, sword combos, charged spin, jump "
+     "attack, damage). The controls, the hits and the collisions stay Link's."},
     // Depuración
     {"COS_PERF_EVERY", "Intervalo del registro perf",
      "Cada cuántos cuadros se escribe una línea [cos] perf en el registro (native/logs/).",

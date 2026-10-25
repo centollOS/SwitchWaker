@@ -413,6 +413,8 @@ public:
     u8 pad[0x3F - 0x22];
 };  // Size: 0x3F
 
+bool daGnd_isPlayerBody(); // d_a_gnd.cpp, Ganon mod (pc_qol.h)
+
 class daPy_lk_c : public daPy_py_c {
 public:
     enum daPy_PROC {
@@ -1987,7 +1989,8 @@ public:
     virtual fpc_ProcID getThrowBoomerangID() const { return mActorKeepThrow.getID(); }
     virtual fpc_ProcID getGrabActorID() const { return mActorKeepGrab.getID(); }
     virtual BOOL checkGrabBarrel() { return checkGrabBarrelSearch(1); }
-    virtual u32 checkPlayerNoDraw() { return dComIfGp_checkCameraAttentionStatus(mCameraInfoIdx, dCamAttnStts_SUBJECT_e) || checkNoResetFlg0(daPyFlg0_NO_DRAW); }
+    virtual u32 checkPlayerNoDraw() { return dComIfGp_checkCameraAttentionStatus(mCameraInfoIdx, dCamAttnStts_SUBJECT_e) || checkNoResetFlg0(daPyFlg0_NO_DRAW) || daGnd_isPlayerBody(); }
+    int getCurProc() const { return mCurProc; }
     virtual BOOL checkRopeTag() { return mActorKeepEquip.getActor() == NULL; }
     virtual BOOL checkRopeReadyAnime() const { return checkUpperAnime(dRes_INDEX_LKANM_BCK_ROPETHROWWAIT_e); }
     virtual void voiceStart(u32);
