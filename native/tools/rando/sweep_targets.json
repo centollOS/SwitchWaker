@@ -142,9 +142,35 @@
  "overrides": {
   "spawn": {
    "LinkUG:0": 0,
+   "sea:31": 0,
    "sea:33": 0
   },
   "keys": {
+   "PCR_LOC_THE_GREAT_SEA_GHOST_SHIP": {
+    "xfail": {
+     "T2": "R9.1: the floor in front of the Ghost Ship's chest is not there for the put: the player falls from y -540 to -1630, voids out and the stage reloads (and with the stage's enemies deleted it plays a camera event and reloads too), so the chest is gone. T1 checks the records and the live chests"
+    }
+   },
+   "PCR_LOC_DRAGON_ROOST_ISLAND_CHEST_ON_TOP_OF_BOULDER": {
+    "xfail": {
+     "T2": "R9.1: the chest stands on a boulder whose top has no floor where the put stands the player (frontOf finds no ground near the chest's height), so he falls to the beach (y 3426 to 334) and A never says Open. T1 checks the record and the live chest"
+    }
+   },
+   "PCR_LOC_FIRE_MOUNTAIN_LOOKOUT_PLATFORM_CHEST": {
+    "xfail": {
+     "T2": "R9.1: sea room 20 (Fire Mountain) reloads itself about 50 frames after the arrival at point 1 (the room's own respawn), so the chest is gone; from the boat point 100 the put on the lookout platform does not hold (the player drops from y 2500 to 2331). T1 checks the record and the live chest"
+    }
+   },
+   "PCR_LOC_FIRE_MOUNTAIN_LOOKOUT_PLATFORM_DESTROY_THE_CANNONS": {
+    "xfail": {
+     "T2": "R9.1: as the other Fire Mountain lookout chest: sea room 20 reloads itself after the arrival at point 1, so the chest is gone. T1 checks the record and the live chest"
+    }
+   },
+   "PCR_LOC_ICE_RING_ISLE_FROZEN_CHEST": {
+    "xfail": {
+     "T2": "R9.1: the chest is frozen in ice that only Fire Arrows melt, and Ice Ring Isle (sea room 40) reloads the room soon after the player stands on it (from points 1, 0 and 100, after an unnamed event), so the chest is gone. T1 checks the record and the live chest"
+    }
+   },
    "PCR_LOC_ICE_RING_ISLE_CAVE_CHEST": {
     "xfail": {
      "T2": "R9.1: MiniHyo's only spawn point (room 0, point 0) does not keep the player: about 90 frames after the debug boot (its arrival event ends) the game itself goes back to sea room 40, with no input at all (run.sh run --stage MiniHyo:0:0), so the chest is gone before T2 can walk to it. T1 checks the record and the live chest before that"
@@ -153,11 +179,6 @@
    "PCR_LOC_FIRE_MOUNTAIN_CAVE_CHEST": {
     "xfail": {
      "T2": "R9.1: as Ice Ring Isle's cave: MiniKaz's only spawn point (room 0, point 0) sends the player back to sea room 20 by itself about 90 frames after the boot, so the chest is gone before T2 can walk to it. T1 checks the record and the live chest"
-    }
-   },
-   "PCR_LOC_TOWER_OF_THE_GODS_LIGHT_TWO_TORCHES": {
-    "xfail": {
-     "T2": "R9.1: Siren room 0's only spawn point (point 0) is the boat arrival in the flooded entrance: every put in front of the chest is undone (the player stays at the spawn, (0, -2094, 1597), five puts), and from rooms 1, 3 and 22 the chest is not live. T1 checks the record and the live chest; the loc smoke would need to get the player off the boat"
     }
    },
    "sea/Stage:TACT_HT": {
@@ -176,7 +197,7 @@
     }
    }
   },
-  "comment": "spawn: sea room 33's point 1 comes up in room 31 (location sweep, 2026-10-21). R9.1: event T2 stops and xfails, see each key's note/xfail. R9.1: LinkUG point 1 (the ladder from the house) keeps reloading the stage while the player stands there, so T2 lost the chest; point 0 holds."
+  "comment": "spawn: sea room 33's point 1 comes up in room 31 (location sweep, 2026-10-21). R9.1: event T2 stops and xfails, see each key's note/xfail. R9.1: LinkUG point 1 (the ladder from the house) keeps reloading the stage while the player stands there, so T2 lost the chest; point 0 holds. R9.1: sea room 31's point 1 reloads the room before T2 can open Stone Watcher's lookout chests; point 0 holds."
  },
  "keys": [
   {"key": 0, "loc": "PCR_LOC_OUTSET_ISLAND_UNDERNEATH_LINKS_HOUSE", "kind": "chest", "where": "LinkUG/Stage/TRES[0]", "room": 0, "t2": "LinkUG:0:0", "t1": "LinkUG:0:0"},
@@ -239,7 +260,7 @@
   {"key": 57, "loc": "PCR_LOC_WINDFALL_ISLAND_LINDA_AND_ANTON", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
   {"key": 58, "loc": "PCR_LOC_DRAGON_ROOST_ISLAND_WIND_SHRINE", "kind": "event", "where": "sea/Stage:TACT_HT", "event": "TACT_HT", "t1": "sea:11", "t2": "sea:13:5", "note": "the Wind Shrine event plays at Dragon Roost Island (sea room 13, point 5, as the zephos smoke boots); from Windfall its staff never shows up"},
   {"key": 59, "loc": "PCR_LOC_DRAGON_ROOST_ISLAND_RITO_AERIE_GIVE_HOSKIT_20_GOLDEN_FEATHERS", "kind": "event", "where": "Atorizk/Stage:Get_Rupee", "event": "Get_Rupee", "t1": "Atorizk:0", "t2": "Atorizk:0"},
-  {"key": 60, "loc": "PCR_LOC_DRAGON_ROOST_ISLAND_CHEST_ON_TOP_OF_BOULDER", "kind": "chest", "where": "sea/Room13/TRES[0]", "room": 13, "t2": "sea:13:0", "t1": "sea:13:0"},
+  {"key": 60, "loc": "PCR_LOC_DRAGON_ROOST_ISLAND_CHEST_ON_TOP_OF_BOULDER", "kind": "chest", "where": "sea/Room13/TRES[0]", "room": 13, "t2": "sea:13:0", "t1": "sea:13:0", "xfail": {"T2": "R9.1: the chest stands on a boulder whose top has no floor where the put stands the player (frontOf finds no ground near the chest's height), so he falls to the beach (y 3426 to 334) and A never says Open. T1 checks the record and the live chest"}},
   {"key": 61, "loc": "PCR_LOC_DRAGON_ROOST_ISLAND_FLY_ACROSS_PLATFORMS_AROUND_ISLAND", "kind": "chest", "where": "sea/Room13/TRES[1]", "room": 13, "t2": "sea:13:0", "t1": "sea:13:0"},
   {"key": 62, "loc": "PCR_LOC_DRAGON_ROOST_ISLAND_RITO_AERIE_MAIL_SORTING", "kind": "event", "where": "Atorizk/Stage:GETMOTHERLETTER", "event": "GETMOTHERLETTER", "t1": "Atorizk:0", "t2": "Atorizk:0"},
   {"key": 63, "loc": "PCR_LOC_DRAGON_ROOST_ISLAND_SECRET_CAVE", "kind": "chest", "where": "TF_06/Stage/TRES[0]", "room": 6, "t2": "TF_06:6:6", "t1": "TF_06:0:0"},
@@ -292,7 +313,7 @@
   {"key": 110, "loc": "PCR_LOC_TOWER_OF_THE_GODS_CHEST_BEHIND_BOMBABLE_WALLS", "kind": "chest", "where": "Siren/Stage/TRES[1]", "room": 3, "t2": "Siren:3:0", "t1": "Siren:0:0"},
   {"key": 111, "loc": "PCR_LOC_TOWER_OF_THE_GODS_POT_BEHIND_BOMBABLE_WALLS", "kind": "actr", "where": "Siren/Room3/ACTR[4]", "room": 3, "t2": null, "t1": "Siren:3:0"},
   {"key": 112, "loc": "PCR_LOC_TOWER_OF_THE_GODS_HOP_ACROSS_FLOATING_BOXES", "kind": "chest", "where": "Siren/Stage/TRES[0]", "room": 5, "t2": "Siren:5:0", "t1": "Siren:0:0"},
-  {"key": 113, "loc": "PCR_LOC_TOWER_OF_THE_GODS_LIGHT_TWO_TORCHES", "kind": "chest", "where": "Siren/Stage/TRES[5]", "room": 0, "t2": "Siren:0:0", "t1": "Siren:0:0", "xfail": {"T2": "R9.1: Siren room 0's only spawn point (point 0) is the boat arrival in the flooded entrance: every put in front of the chest is undone (the player stays at the spawn, (0, -2094, 1597), five puts), and from rooms 1, 3 and 22 the chest is not live. T1 checks the record and the live chest; the loc smoke would need to get the player off the boat"}},
+  {"key": 113, "loc": "PCR_LOC_TOWER_OF_THE_GODS_LIGHT_TWO_TORCHES", "kind": "chest", "where": "Siren/Stage/TRES[5]", "room": 0, "t2": "Siren:0:0", "t1": "Siren:0:0"},
   {"key": 114, "loc": "PCR_LOC_TOWER_OF_THE_GODS_SKULLS_ROOM_CHEST", "kind": "chest", "where": "Siren/Stage/TRES[2]", "room": 1, "t2": "Siren:1:0", "t1": "Siren:0:0"},
   {"key": 115, "loc": "PCR_LOC_TOWER_OF_THE_GODS_SHOOT_EYE_ABOVE_SKULLS_ROOM_CHEST", "kind": "chest", "where": "Siren/Stage/TRES[6]", "room": 1, "t2": "Siren:1:0", "t1": "Siren:0:0"},
   {"key": 116, "loc": "PCR_LOC_TOWER_OF_THE_GODS_TINGLE_STATUE_CHEST", "kind": "chest", "where": "Siren/Stage/TRES[10]", "room": 6, "t2": "Siren:6:0", "t1": "Siren:0:0"},
@@ -328,10 +349,10 @@
   {"key": 146, "loc": "PCR_LOC_MOTHER_AND_CHILD_ISLES_INSIDE_MOTHER_ISLE", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
   {"key": 147, "loc": "PCR_LOC_MOTHER_AND_CHILD_ISLES_INSIDE_MOTHER_ISLE", "kind": "added", "where": "sea/Room9/TRES[0]", "t1": "sea:9:0", "t2": "sea:9:0"},
   {"key": 148, "loc": "PCR_LOC_FIRE_MOUNTAIN_CAVE_CHEST", "kind": "chest", "where": "MiniKaz/Stage/TRES[0]", "room": 0, "t2": "MiniKaz:0:0", "t1": "MiniKaz:0:0", "xfail": {"T2": "R9.1: as Ice Ring Isle's cave: MiniKaz's only spawn point (room 0, point 0) sends the player back to sea room 20 by itself about 90 frames after the boot, so the chest is gone before T2 can walk to it. T1 checks the record and the live chest"}},
-  {"key": 149, "loc": "PCR_LOC_FIRE_MOUNTAIN_LOOKOUT_PLATFORM_CHEST", "kind": "chest", "where": "sea/Room20/TRES[1]", "room": 20, "t2": "sea:20:1", "t1": "sea:20:1"},
-  {"key": 150, "loc": "PCR_LOC_FIRE_MOUNTAIN_LOOKOUT_PLATFORM_DESTROY_THE_CANNONS", "kind": "chest", "where": "sea/Room20/TRES[0]", "room": 20, "t2": "sea:20:1", "t1": "sea:20:1"},
+  {"key": 149, "loc": "PCR_LOC_FIRE_MOUNTAIN_LOOKOUT_PLATFORM_CHEST", "kind": "chest", "where": "sea/Room20/TRES[1]", "room": 20, "t2": "sea:20:1", "t1": "sea:20:1", "xfail": {"T2": "R9.1: sea room 20 (Fire Mountain) reloads itself about 50 frames after the arrival at point 1 (the room's own respawn), so the chest is gone; from the boat point 100 the put on the lookout platform does not hold (the player drops from y 2500 to 2331). T1 checks the record and the live chest"}},
+  {"key": 150, "loc": "PCR_LOC_FIRE_MOUNTAIN_LOOKOUT_PLATFORM_DESTROY_THE_CANNONS", "kind": "chest", "where": "sea/Room20/TRES[0]", "room": 20, "t2": "sea:20:1", "t1": "sea:20:1", "xfail": {"T2": "R9.1: as the other Fire Mountain lookout chest: sea room 20 reloads itself after the arrival at point 1, so the chest is gone. T1 checks the record and the live chest"}},
   {"key": 151, "loc": "PCR_LOC_FIRE_MOUNTAIN_BIG_OCTO", "kind": "scob", "where": "sea/Room20/SCOB[1]", "room": 20, "t2": null, "t1": "sea:20:1"},
-  {"key": 152, "loc": "PCR_LOC_ICE_RING_ISLE_FROZEN_CHEST", "kind": "chest", "where": "sea/Room40/TRES[0]", "room": 40, "t2": "sea:40:1", "t1": "sea:40:1"},
+  {"key": 152, "loc": "PCR_LOC_ICE_RING_ISLE_FROZEN_CHEST", "kind": "chest", "where": "sea/Room40/TRES[0]", "room": 40, "t2": "sea:40:1", "t1": "sea:40:1", "xfail": {"T2": "R9.1: the chest is frozen in ice that only Fire Arrows melt, and Ice Ring Isle (sea room 40) reloads the room soon after the player stands on it (from points 1, 0 and 100, after an unnamed event), so the chest is gone. T1 checks the record and the live chest"}},
   {"key": 153, "loc": "PCR_LOC_ICE_RING_ISLE_CAVE_CHEST", "kind": "chest", "where": "MiniHyo/Stage/TRES[0]", "room": 0, "t2": "MiniHyo:0:0", "t1": "MiniHyo:0:0", "xfail": {"T2": "R9.1: MiniHyo's only spawn point (room 0, point 0) does not keep the player: about 90 frames after the debug boot (its arrival event ends) the game itself goes back to sea room 40, with no input at all (run.sh run --stage MiniHyo:0:0), so the chest is gone before T2 can walk to it. T1 checks the record and the live chest before that"}},
   {"key": 154, "loc": "PCR_LOC_ICE_RING_ISLE_INNER_CAVE_CHEST", "kind": "chest", "where": "ITest62/Stage/TRES[0]", "room": 0, "t2": "ITest62:0:0", "t1": "ITest62:0:0"},
   {"key": 155, "loc": "PCR_LOC_HEADSTONE_ISLAND_TOP_OF_THE_ISLAND", "kind": "actr", "where": "sea/Room45/ACTR[19]", "room": 45, "t2": null, "t1": "sea:45:1"},
@@ -395,11 +416,11 @@
   {"key": 213, "loc": "PCR_LOC_THE_GREAT_SEA_GORON_TRADING_REWARD", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
   {"key": 214, "loc": "PCR_LOC_THE_GREAT_SEA_WITHERED_TREES", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
   {"key": 215, "loc": "PCR_LOC_THE_GREAT_SEA_WITHERED_TREES", "kind": "code", "where": "code", "t1": "sea:11", "t2": null},
-  {"key": 216, "loc": "PCR_LOC_THE_GREAT_SEA_GHOST_SHIP", "kind": "chest", "where": "PShip/Stage/TRES[0]", "room": 0, "t2": "PShip:0:0", "t1": "PShip:0:0"},
-  {"key": 217, "loc": "PCR_LOC_THE_GREAT_SEA_GHOST_SHIP", "kind": "chest", "where": "PShip/Stage/TRES[1]", "room": 1, "t2": "PShip:1:0", "t1": "PShip:0:0"},
-  {"key": 218, "loc": "PCR_LOC_THE_GREAT_SEA_GHOST_SHIP", "kind": "chest", "where": "PShip/Stage/TRES[2]", "room": 2, "t2": "PShip:2:0", "t1": "PShip:0:0"},
-  {"key": 219, "loc": "PCR_LOC_THE_GREAT_SEA_GHOST_SHIP", "kind": "chest", "where": "PShip2/Stage/TRES[0]", "room": 0, "t2": "PShip2:0:0", "t1": "PShip2:0:0"},
-  {"key": 220, "loc": "PCR_LOC_THE_GREAT_SEA_GHOST_SHIP", "kind": "chest", "where": "PShip3/Stage/TRES[0]", "room": 0, "t2": "PShip3:0:0", "t1": "PShip3:0:0"},
+  {"key": 216, "loc": "PCR_LOC_THE_GREAT_SEA_GHOST_SHIP", "kind": "chest", "where": "PShip/Stage/TRES[0]", "room": 0, "t2": "PShip:0:0", "t1": "PShip:0:0", "xfail": {"T2": "R9.1: the floor in front of the Ghost Ship's chest is not there for the put: the player falls from y -540 to -1630, voids out and the stage reloads (and with the stage's enemies deleted it plays a camera event and reloads too), so the chest is gone. T1 checks the records and the live chests"}},
+  {"key": 217, "loc": "PCR_LOC_THE_GREAT_SEA_GHOST_SHIP", "kind": "chest", "where": "PShip/Stage/TRES[1]", "room": 1, "t2": "PShip:1:0", "t1": "PShip:0:0", "xfail": {"T2": "R9.1: the floor in front of the Ghost Ship's chest is not there for the put: the player falls from y -540 to -1630, voids out and the stage reloads (and with the stage's enemies deleted it plays a camera event and reloads too), so the chest is gone. T1 checks the records and the live chests"}},
+  {"key": 218, "loc": "PCR_LOC_THE_GREAT_SEA_GHOST_SHIP", "kind": "chest", "where": "PShip/Stage/TRES[2]", "room": 2, "t2": "PShip:2:0", "t1": "PShip:0:0", "xfail": {"T2": "R9.1: the floor in front of the Ghost Ship's chest is not there for the put: the player falls from y -540 to -1630, voids out and the stage reloads (and with the stage's enemies deleted it plays a camera event and reloads too), so the chest is gone. T1 checks the records and the live chests"}},
+  {"key": 219, "loc": "PCR_LOC_THE_GREAT_SEA_GHOST_SHIP", "kind": "chest", "where": "PShip2/Stage/TRES[0]", "room": 0, "t2": "PShip2:0:0", "t1": "PShip2:0:0", "xfail": {"T2": "R9.1: the floor in front of the Ghost Ship's chest is not there for the put: the player falls from y -540 to -1630, voids out and the stage reloads (and with the stage's enemies deleted it plays a camera event and reloads too), so the chest is gone. T1 checks the records and the live chests"}},
+  {"key": 220, "loc": "PCR_LOC_THE_GREAT_SEA_GHOST_SHIP", "kind": "chest", "where": "PShip3/Stage/TRES[0]", "room": 0, "t2": "PShip3:0:0", "t1": "PShip3:0:0", "xfail": {"T2": "R9.1: the floor in front of the Ghost Ship's chest is not there for the put: the player falls from y -540 to -1630, voids out and the stage reloads (and with the stage's enemies deleted it plays a camera event and reloads too), so the chest is gone. T1 checks the records and the live chests"}},
   {"key": 221, "loc": "PCR_LOC_PRIVATE_OASIS_CHEST_AT_TOP_OF_WATERFALL", "kind": "chest", "where": "sea/Room33/TRES[0]", "room": 33, "t2": "sea:33:0", "t1": "sea:33:0"},
   {"key": 222, "loc": "PCR_LOC_PRIVATE_OASIS_CABANA_LABYRINTH_LOWER_FLOOR_CHEST", "kind": "chest", "where": "TF_04/Stage/TRES[1]", "room": 0, "t2": "TF_04:0:0", "t1": "TF_04:0:0"},
   {"key": 223, "loc": "PCR_LOC_PRIVATE_OASIS_CABANA_LABYRINTH_UPPER_FLOOR_CHEST", "kind": "chest", "where": "TF_04/Stage/TRES[0]", "room": 0, "t2": "TF_04:0:0", "t1": "TF_04:0:0"},
@@ -414,8 +435,8 @@
   {"key": 232, "loc": "PCR_LOC_BOATING_COURSE_RAFT", "kind": "chest", "where": "sea/Room48/TRES[0]", "room": 48, "t2": "sea:48:5", "t1": "sea:48:5"},
   {"key": 233, "loc": "PCR_LOC_BOATING_COURSE_CAVE", "kind": "chest", "where": "SubD71/Stage/TRES[0]", "room": 0, "t2": "SubD71:0:0", "t1": "SubD71:0:0"},
   {"key": 234, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_CAVE", "kind": "chest", "where": "TF_01/Stage/TRES[0]", "room": 6, "t2": null, "t1": "TF_01:0:0", "note": "no spawn point in room 6: no T2 stop"},
-  {"key": 235, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_LOOKOUT_PLATFORM_CHEST", "kind": "chest", "where": "sea/Room31/TRES[1]", "room": 31, "t2": "sea:31:1", "t1": "sea:31:1"},
-  {"key": 236, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_LOOKOUT_PLATFORM_DESTROY_THE_CANNONS", "kind": "chest", "where": "sea/Room31/TRES[0]", "room": 31, "t2": "sea:31:1", "t1": "sea:31:1"},
+  {"key": 235, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_LOOKOUT_PLATFORM_CHEST", "kind": "chest", "where": "sea/Room31/TRES[1]", "room": 31, "t2": "sea:31:0", "t1": "sea:31:0"},
+  {"key": 236, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_LOOKOUT_PLATFORM_DESTROY_THE_CANNONS", "kind": "chest", "where": "sea/Room31/TRES[0]", "room": 31, "t2": "sea:31:0", "t1": "sea:31:0"},
   {"key": 237, "loc": "PCR_LOC_ISLET_OF_STEEL_INTERIOR", "kind": "chest", "where": "ShipD/Stage/TRES[0]", "room": 0, "t2": "ShipD:0:0", "t1": "ShipD:0:0"},
   {"key": 238, "loc": "PCR_LOC_ISLET_OF_STEEL_LOOKOUT_PLATFORM_DEFEAT_THE_ENEMIES", "kind": "chest", "where": "sea/Room30/TRES[0]", "room": 30, "t2": "sea:30:1", "t1": "sea:30:1"},
   {"key": 239, "loc": "PCR_LOC_OVERLOOK_ISLAND_CAVE", "kind": "chest", "where": "TF_02/Stage/TRES[0]", "room": 6, "t2": null, "t1": "TF_02:0:0", "note": "no spawn point in room 6: no T2 stop"},
@@ -614,10 +635,10 @@
   {"key": 432, "loc": "PCR_LOC_ISLET_OF_STEEL_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room30/SCOB[8]", "room": 30, "t2": null, "t1": "sea:30:1"},
   {"key": 433, "loc": "PCR_LOC_ISLET_OF_STEEL_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room30/SCOB[9]", "room": 30, "t2": null, "t1": "sea:30:1"},
   {"key": 434, "loc": "PCR_LOC_ISLET_OF_STEEL_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room30/SCOB[10]", "room": 30, "t2": null, "t1": "sea:30:1"},
-  {"key": 435, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room31/SCOB[6]", "room": 31, "t2": null, "t1": "sea:31:1"},
-  {"key": 436, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room31/SCOB[7]", "room": 31, "t2": null, "t1": "sea:31:1"},
-  {"key": 437, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room31/SCOB[8]", "room": 31, "t2": null, "t1": "sea:31:1"},
-  {"key": 438, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room31/SCOB[9]", "room": 31, "t2": null, "t1": "sea:31:1"},
+  {"key": 435, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room31/SCOB[6]", "room": 31, "t2": null, "t1": "sea:31:0"},
+  {"key": 436, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room31/SCOB[7]", "room": 31, "t2": null, "t1": "sea:31:0"},
+  {"key": 437, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room31/SCOB[8]", "room": 31, "t2": null, "t1": "sea:31:0"},
+  {"key": 438, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room31/SCOB[9]", "room": 31, "t2": null, "t1": "sea:31:0"},
   {"key": 439, "loc": "PCR_LOC_SOUTHERN_TRIANGLE_ISLAND_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room32/SCOB[6]", "room": 32, "t2": null, "t1": "sea:32:100"},
   {"key": 440, "loc": "PCR_LOC_SOUTHERN_TRIANGLE_ISLAND_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room32/SCOB[7]", "room": 32, "t2": null, "t1": "sea:32:100"},
   {"key": 441, "loc": "PCR_LOC_SOUTHERN_TRIANGLE_ISLAND_SUNKEN_TREASURE", "kind": "scob", "where": "sea/Room32/SCOB[8]", "room": 32, "t2": null, "t1": "sea:32:100"},

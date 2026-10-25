@@ -125,6 +125,7 @@ char sOpenEvent[48] = "";
 uint64_t sOpenStartNs = 0;
 cXyz sOpenTarget;   // where the player was put
 int sOpenTries = 0; // puts that did not hold (the player on a ladder, in a climb)
+int sGetOffTries = 0; // R9.1: boat get-offs before a put
 PcRandoItemFunc sPrevOverride = nullptr;
 
 struct PendingOpen {
@@ -273,7 +274,15 @@ void* killEnemy(void* proc, void* data) {
     fopAcM_delete(a);
     return nullptr;
 }
-void clearEnemies(unsigned int frames) {
+// On two stages enemies are deleted only for a hidden func 2 chest (`needed`): on the sea, deleting a
+// lookout platform's cannons and gunboats left another actor at a NaN position (f_op_actor.cpp:693
+// panic); on the Ghost Ship (PShip), with its enemies gone the stage plays a camera event and
+// reloads, so the chest is lost.
+void clearEnemies(unsigned int frames, bool needed) {
+    const char* stage = dComIfGp_getStartStageName();
+    if (!needed && (strcmp(stage, "sea") == 0 || strcmp(stage, "PShip") == 0)) {
+        return;
+    }
     int n = 0;
     fopAcM_Search(killEnemy, &n);
     if (n > 0) {
@@ -718,6 +727,7 @@ void randoSmokeLoc(unsigned int frames) {
                locName(sOpen[sOpenIdx]), (unsigned)sOpenChest, (void*)fopAcM_SearchByID(sOpenChest), (void*)player,
                (unsigned)scene);
         sOpenTries = 0;
+        sGetOffTries = 0;
         sState = kOpenPrep;
         sSince = 0;
         return;
@@ -754,8 +764,9 @@ void randoSmokeLoc(unsigned int frames) {
             }
             return;
         }
-        clearEnemies(frames);
-        if (chest->getFuncType() == 2 && chest->flagCheck(daTbox_c::daTboxFlg_UNK_01)) {
+        const bool hidden2 = chest->getFuncType() == 2 && chest->flagCheck(daTbox_c::daTboxFlg_UNK_01);
+        clearEnemies(frames, hidden2);
+        if (hidden2) {
             // R9.1: hidden until the room's enemies are gone (clearEnemies); its appear event runs above.
             setDrivenPad(true, 0, 0, 0);
             if (sSince >= kQuietFrames) {
@@ -773,6 +784,17 @@ void randoSmokeLoc(unsigned int frames) {
             return;
         }
         setDrivenPad(true, 0, 0, 0);
+        if (dComIfGp_checkPlayerStatus0(0, daPyStts0_SHIP_RIDE_e) && sGetOffTries < 3) {
+            // R9.1: a stop that starts on the boat (sea points 100+, the Tower of the Gods' entrance):
+            // the ride puts the player back on the boat every frame, so no put holds. Get him off it
+            // the game's way (the ledge jump, daPy_lk_c::procShipGetOff) and put him afterwards.
+            sGetOffTries++;
+            const BOOL ok = static_cast<daPy_lk_c*>(player)->procShipGetOff_init();
+            writef(STDERR_FILENO, "[cos] rando-smoke loc: frame %u: T2: the player rides the boat; get off (%d, %s)\n",
+                   frames, sGetOffTries, ok ? "started" : "not started");
+            sSince = 0;
+            return;
+        }
         const s16 yaw = chest->home.angle.y;
         const cXyz pos = frontOf(chest->home.pos, yaw);
         sOpenTarget = pos;
@@ -819,7 +841,7 @@ void randoSmokeLoc(unsigned int frames) {
             sOpenStartNs = monotonicNs();
             return;
         }
-        clearEnemies(frames);
+        clearEnemies(frames, false);
         if (sSince == 3 && player->current.pos.abs(sOpenTarget) > 60.0f && sOpenTries < 4) {
             sOpenTries++;
             writef(STDERR_FILENO, "[cos] rando-smoke loc: frame %u: T2: the put did not hold (the player at (%.0f, %.0f, "
