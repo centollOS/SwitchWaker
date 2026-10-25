@@ -1063,7 +1063,7 @@ European build's gate (plan R7.6d). No hunks; tooling and runs only.
     the chest's event at the stop, A does not open it). Region comparison, key by key: `identity` 182/182 rows
     the same result on both (127 ok, 53 FAIL, 2 no-target); `rotation` 181/182 the same, the one difference
     (Six Eye Reef TRES[1]) a put-retry case that passes on EUR and fails TRES[0] on USA when rerun alone;
-    TestSeed1 SEED1_RESULT.
+    `R0_6_TestSeed1.json` 182/182 the same (128 ok, 52 FAIL, 2 no-target). Heavy5 and CheckSeed11 got T1 only (time).
   - The `jpcscene`, `warppots`, `palettes`, `cosmetic` and `enemies` lines (the R7.1c, R7.2e, R7.4d, R7.5a regress
     lines with their `enemy_check` / `palette_check` / `enemy_sweep` scripts, 46 lines) and every other game line
     of `regress_rando/` (197 lines) pass on EUR in English; the R7.6 lines (112, with English) pass in all five
