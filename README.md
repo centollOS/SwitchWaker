@@ -280,8 +280,9 @@ The previous renderer, OpenGL ES on Mesa (`switchwaker_gl.nro`, "SwitchWaker (GL
 
 - Saves (the memory card): `sdmc:/switch/switchwaker/native/user/USA/Card A`. Back up this folder.
 - Settings from the options menu: `native/user/settings.ini`.
-- To update, replace `switchwaker.nro`, `initial_pipeline_cache.db` and `initial_dksh_cache.bin`. Saves,
-  settings and caches stay.
+- To update: the game offers a new release at start and installs it itself (options menu > *Sistema*,
+  [INSTALL.md](INSTALL.md), "Updating"), or by hand replace `switchwaker.nro`, `initial_pipeline_cache.db`
+  and `initial_dksh_cache.bin`. Saves, settings and caches stay.
 - Logs, if something goes wrong: `native/logs/`, one file per session named by its date and time
   (`switchwaker_<date>_<time>.log`); the newest is this run. Only the 10 most recent sessions are kept.
 - If you used this port's earlier SD folder (`sdmc:/switch/centollos/`), rename it to
@@ -296,6 +297,14 @@ The previous renderer, OpenGL ES on Mesa (`switchwaker_gl.nro`, "SwitchWaker (GL
   "Restaurar controles por defecto" puts them all back, as does deleting the `COS_PAD_` lines of
   `native/user/settings.ini`. On the Mac and Linux, Xbox controllers and GameCube adapters keep their
   usual mapping.
+- Camera and aiming, same tab: invert the camera's axes, aim with the right stick too (the bow, the
+  hookshot, the boomerang, the telescope, the Picto Box, the first-person view) and invert aiming
+  up/down (on the GameCube, up aims down). In the telescope and the Picto Box the right stick's
+  up/down still zooms.
+- Gyro aiming, same tab (off by default): in the same views, turning and tilting the controller (a
+  Pro Controller, the Joy-Cons, the console held in handheld mode; on the Mac and Linux, any
+  controller SDL reads a gyroscope from) moves the view, with a sensitivity from x0.5 to x3, always
+  in its natural direction: the invert options only change the sticks. The sticks still aim.
 - Language: the options menu and the shader loading screen are in Spanish or English, following the
   console's language (on the Mac and Linux, `LANG`); `COS_LANG=es` or `COS_LANG=en` forces one.
 - `COS_*` variables (environment on the Mac and Linux; on the Switch the options menu, and for

@@ -160,6 +160,7 @@ static void pcBootStage(dScnLogo_c* i_this) {
     // bag only once the bag, 2C, is given too); the bags count too, as the item menu's bag pages
     // put a bait or a spoil on a button.
     bool onX = false;
+    u8 xSlot = 0;
     for (int i = 0; i <= nitems; i++) {
         if (i < nitems) {
             execItemGet((u8)items[i]);
@@ -171,6 +172,7 @@ static void pcBootStage(dScnLogo_c* i_this) {
             if (dComIfGs_getItem(slot) == items[0]) {
                 dComIfGs_setSelectItem(dItemBtn_X_e, (u8)slot);
                 onX = true;
+                xSlot = (u8)slot;
                 break;
             }
         }
@@ -178,6 +180,11 @@ static void pcBootStage(dScnLogo_c* i_this) {
     // COS_BOOT_PRESET (pc_preset.cpp): a story preset, e.g. sailing (the boat, its sail, the wind
     // baton and song).
     pc_boot_preset_apply();
+    // The first COS_BOOT_ITEMS item keeps X over a preset's (bombs for the boat's cannon with the
+    // sailing preset; the sail then has no button).
+    if (onX) {
+        dComIfGs_setSelectItem(dItemBtn_X_e, xSlot);
+    }
     // COS_BOOT_EVENTS_OFF: event bits cleared after the preset (a preset earlier in the story).
     nbits = pc_boot_event_bits_off(bits, 16);
     for (int i = 0; i < nbits; i++) {

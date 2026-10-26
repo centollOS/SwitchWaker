@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 # dksh_cache (host): native/data/initial_pipeline_cache.db -> initial_dksh_cache.bin, the offline DKSH
 # cache of the deko3d renderer (docs/DEKO3D_MIGRATION_PLAN.md, phase 1 and section 6). Links:
 #   - Aurora's GX shader generator (lib/gx/shader.cpp, shader_info.cpp) from a copy of Aurora at

@@ -6,7 +6,7 @@
 #
 #   1. builds every check target of build/native-mac (of the worktree this script lives in), or
 #      of $COS_BUILD_DIR (e.g. build/native-linux);
-#   2. runs the static checks: cos_sdk_smoke, cos_pc_tests, the link census against
+#   2. runs the static checks: cos_sdk_smoke, cos_pc_tests, cos_update_tests, the link census against
 #      native/check/expected_unresolved_phase2.txt and symbol_census --all --dups (both on the
 #      Mac only: they read Mach-O objects), the phase 4 inventory against
 #      native/check/phase4_baseline.txt;
@@ -117,7 +117,7 @@ census_target=""
 [ "$census" = 1 ] && census_target=cos_link_census
 
 if [ "$do_build" = 1 ]; then
-    build_targets="all switchwaker cos_sdk_smoke cos_pc_tests cos_rando_tests cos_layout_check cos_sdk_shadow_check $census_target"
+    build_targets="all switchwaker cos_sdk_smoke cos_pc_tests cos_update_tests cos_rando_tests cos_layout_check cos_sdk_shadow_check $census_target"
     [ "$rando_only" = 1 ] && build_targets="switchwaker cos_rando_tests"
     # shellcheck disable=SC2086
     if ninja -C "$build" $build_targets > "$out/build.log" 2>&1; then
@@ -136,6 +136,7 @@ check() { # name command...
 if [ "$rando_only" = 0 ]; then
 check sdk_smoke "$build/cos_sdk_smoke"
 check pc_tests "$build/cos_pc_tests"
+check update_tests "$build/cos_update_tests"
 if [ "$census" = 1 ]; then
     check link_census diff -u "$repo/native/check/expected_unresolved_phase2.txt" \
         "$build/link_census_unresolved.txt"
@@ -191,8 +192,9 @@ fi
 run_one() { # line
     local target expect opts rc
     read -r target expect opts <<< "$1"
+    # Upper case kept: --env COS_AIM_RIGHT_STICK=1 and --env COS_CAMERA_INVERT_Y=1 shared a log.
     local tag
-    tag="$(echo "$opts" | tr -c 'a-z0-9' '_')"
+    tag="$(echo "$opts" | tr -c 'a-zA-Z0-9' '_')"
     # A file name holds 255 bytes: a long line keeps its head plus a checksum of the whole.
     [ "${#tag}" -gt 160 ] && tag="${tag:0:120}_$(echo "$opts" | cksum | cut -d' ' -f1)"
     local log="$out/run-$target-$tag.log"

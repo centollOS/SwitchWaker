@@ -21,7 +21,7 @@
  *   COS_BOOT_PRESET sailing: a story preset on the debug boot's new file (pc_preset.cpp)
  *   COS_PERF_EVERY every this many frames, one line of game-thread frame times (pc_frame.cpp)
  *   COS_PERF       file that gets one CSV row of game-thread times per game frame (step 6.7)
- *   COS_ASPECT     4:3 (default), 16:9 or 16:10: the widescreen option (pc_aspect.h)
+ *   COS_ASPECT     4:3 (default) or 16:9: the widescreen option (pc_aspect.h)
  *
  * Exit codes: see PC_EXIT_* below.
  */
@@ -211,6 +211,17 @@ void pc_trace_resource(const char* path, int entryNum);
 const char* pc_env_disc(void);
 int pc_env_uncapped(void);
 int pc_env_audio(void);
+
+/* d_vibration.cpp and JUTGamePad.cpp: a rumble pattern of length 0 (or longer than 32 bits)
+   reached one of their host guards (PC_VIB_GUARD_*). Counted for COS_SMOKE=vibration
+   (pc_vibration.cpp), which checks that each of its cases went through its guard. */
+enum {
+    PC_VIB_GUARD_ROLLSHIFT = 0,  /* d_vibration.cpp rollshift: a 0-bit loop (division by 0) */
+    PC_VIB_GUARD_MAKEBITS = 1,   /* d_vibration.cpp makebits: 0 bits (endless loop) or more than 32 */
+    PC_VIB_GUARD_RUMBLE = 2,     /* JUTGamePad::CRumble::stopPatternedRumbleAtThePeriod: 0 frames */
+    PC_VIB_GUARD_COUNT = 3,
+};
+void pc_vibration_guard(int site);
 
 /* OSPanic on PC: prints the state and the host backtrace, exits 12. */
 __attribute__((noreturn)) void pc_panic(const char* file, int line);

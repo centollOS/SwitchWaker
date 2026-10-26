@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # Builds native/tools/dksh_cache in a Debian container (Containerfile here; image
 # localhost/centollos-dksh-cache:<hash of it>) into build/dksh_cache, then runs it there with the
 # given arguments, if any. Paths given to the tool are relative to the repository root (mounted at

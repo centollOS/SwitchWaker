@@ -8,7 +8,12 @@
 // Switch A is SDL "south", which Aurora's PAD maps to GameCube A, B to B, X to
 // X and Y to Y. ZL/ZR are the analog-trigger axes (GameCube L/R) and R is the
 // right shoulder (GameCube Z).
+//
+// Motion: the gyroscope and the accelerometer of the controller in use (the
+// handheld Joy-Cons, the right Joy-Con of a pair, or a Pro Controller), in SDL's
+// units and axes, once the game enables them.
 #include <SDL3/SDL.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <switch.h>
@@ -39,6 +44,16 @@ static HidAnalogStickState g_sticks[2];
 static HidVibrationDeviceHandle g_vibration[VIBRATION_TARGETS][2];
 static int g_vibration_count[VIBRATION_TARGETS];
 static u64 g_rumble_until;  // system tick; 0 when not rumbling
+
+// Six-axis sensors, per style: handheld, paired Joy-Cons (left, right) and Pro
+// Controller. Started when the game enables the gyroscope or the accelerometer.
+enum { MOTION_HANDHELD, MOTION_JOY_DUAL, MOTION_FULL_KEY, MOTION_TARGETS };
+static HidSixAxisSensorHandle g_motion[MOTION_TARGETS][2];
+static int g_motion_count[MOTION_TARGETS];
+static bool g_motion_started;
+static bool g_motion_enabled[2];  // accelerometer, gyroscope
+static float g_accel[3];          // SDL: m/s^2
+static float g_gyro[3];           // SDL: rad/s
 
 // The native port's debug server (switch/native/source/cos_debug.cpp): its presses and sticks as if
 // from the controller; while it runs the controller counts as connected even with none attached
@@ -88,10 +103,57 @@ void sdl3_shim_gamepad_init(void) {
             rumble = true;
         }
     }
+    static const struct {
+        HidNpadIdType id;
+        HidNpadStyleTag style;
+        int handles;
+    } kMotion[MOTION_TARGETS] = {
+        [MOTION_HANDHELD] = {HidNpadIdType_Handheld, HidNpadStyleTag_NpadHandheld, 1},
+        [MOTION_JOY_DUAL] = {HidNpadIdType_No1, HidNpadStyleTag_NpadJoyDual, 2},
+        [MOTION_FULL_KEY] = {HidNpadIdType_No1, HidNpadStyleTag_NpadFullKey, 1},
+    };
+    for (int i = 0; i < MOTION_TARGETS; ++i) {
+        if (R_SUCCEEDED(hidGetSixAxisSensorHandles(g_motion[i], kMotion[i].handles, kMotion[i].id,
+                                                   kMotion[i].style)))
+            g_motion_count[i] = kMotion[i].handles;
+    }
     g_gamepad.properties = SDL_CreateProperties();
     SDL_SetBooleanProperty(g_gamepad.properties, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, rumble);
     SDL_SetBooleanProperty(g_gamepad.properties, SDL_PROP_GAMEPAD_CAP_RGB_LED_BOOLEAN, false);
     g_initialized = true;
+}
+
+// HOS reports the six-axis sensors with x right, y forward (away from the
+// player) and z out of the controller's face, the angular velocity in turns per
+// second and the acceleration in G as gravity (lying flat at rest: 0, 0, -1);
+// SDL has x right, y out of the face and z towards the player, in rad/s and
+// m/s^2 as the reaction to gravity (up positive). As SwitchWakerHD's
+// input_switch.cpp.
+static void sample_motion(void) {
+    if (!g_motion_started)
+        return;
+    const u32 style = padGetStyleSet(&g_pad);
+    const HidSixAxisSensorHandle* handle = NULL;
+    if ((style & HidNpadStyleTag_NpadHandheld) && g_motion_count[MOTION_HANDHELD] > 0)
+        handle = &g_motion[MOTION_HANDHELD][0];
+    else if ((style & HidNpadStyleTag_NpadJoyDual) && g_motion_count[MOTION_JOY_DUAL] > 0)
+        // The right Joy-Con when there is one (it aims), else the left.
+        handle = &g_motion[MOTION_JOY_DUAL][(padGetAttributes(&g_pad) & HidNpadAttribute_IsRightConnected) ? 1 : 0];
+    else if ((style & HidNpadStyleTag_NpadFullKey) && g_motion_count[MOTION_FULL_KEY] > 0)
+        handle = &g_motion[MOTION_FULL_KEY][0];
+    HidSixAxisSensorState state;
+    if (handle == NULL || hidGetSixAxisSensorStates(*handle, &state, 1) == 0) {
+        memset(g_accel, 0, sizeof g_accel);
+        memset(g_gyro, 0, sizeof g_gyro);
+        return;
+    }
+    const float turn = 2.0f * (float)M_PI;
+    g_gyro[0] = state.angular_velocity.x * turn;
+    g_gyro[1] = state.angular_velocity.z * turn;
+    g_gyro[2] = -state.angular_velocity.y * turn;
+    g_accel[0] = -state.acceleration.x * SDL_STANDARD_GRAVITY;
+    g_accel[1] = -state.acceleration.z * SDL_STANDARD_GRAVITY;
+    g_accel[2] = state.acceleration.y * SDL_STANDARD_GRAVITY;
 }
 
 static void queue_device_event(Uint32 type) {
@@ -136,6 +198,7 @@ void sdl3_shim_gamepad_pump(void) {
     g_buttons = attached ? padGetButtons(&g_pad) : 0;
     g_sticks[0] = padGetStickPos(&g_pad, 0);
     g_sticks[1] = padGetStickPos(&g_pad, 1);
+    sample_motion();
     if (cos_switch_debug_input) {
         int32_t sticks[4] = {g_sticks[0].x, g_sticks[0].y, g_sticks[1].x, g_sticks[1].y};
         if (cos_switch_debug_input(&g_buttons, sticks))
@@ -352,7 +415,7 @@ bool SDL_RumbleGamepad(SDL_Gamepad* gamepad, Uint16 low_frequency_rumble,
     return true;
 }
 
-// No LEDs or motion sensors yet.
+// No LEDs.
 
 bool SDL_SetGamepadLED(SDL_Gamepad* gamepad, Uint8 red, Uint8 green, Uint8 blue) {
     (void)gamepad;
@@ -362,24 +425,42 @@ bool SDL_SetGamepadLED(SDL_Gamepad* gamepad, Uint8 red, Uint8 green, Uint8 blue)
     return false;
 }
 
+static int motion_index(SDL_SensorType type) {
+    return type == SDL_SENSOR_ACCEL ? 0 : type == SDL_SENSOR_GYRO ? 1 : -1;
+}
+
 bool SDL_GamepadHasSensor(SDL_Gamepad* gamepad, SDL_SensorType type) {
-    (void)gamepad;
-    (void)type;
-    return false;
+    return gamepad == &g_gamepad && motion_index(type) >= 0;
 }
 
 bool SDL_SetGamepadSensorEnabled(SDL_Gamepad* gamepad, SDL_SensorType type, bool enabled) {
-    (void)gamepad;
-    (void)type;
-    (void)enabled;
-    return false;
+    const int index = motion_index(type);
+    if (gamepad != &g_gamepad || index < 0)
+        return false;
+    mutexLock(&g_lock);
+    g_motion_enabled[index] = enabled;
+    // Started once, on first use; stopping them again is not worth the churn.
+    if (enabled && !g_motion_started) {
+        for (int i = 0; i < MOTION_TARGETS; ++i) {
+            for (int j = 0; j < g_motion_count[i]; ++j)
+                hidStartSixAxisSensor(g_motion[i][j]);
+        }
+        g_motion_started = true;
+    }
+    mutexUnlock(&g_lock);
+    return true;
 }
 
 bool SDL_GetGamepadSensorData(SDL_Gamepad* gamepad, SDL_SensorType type, float* data,
                               int num_values) {
-    (void)gamepad;
-    (void)type;
-    (void)data;
-    (void)num_values;
-    return false;
+    const int index = motion_index(type);
+    if (gamepad != &g_gamepad || index < 0 || data == NULL)
+        return false;
+    mutexLock(&g_lock);
+    const bool enabled = g_motion_enabled[index];
+    const float* values = index == 0 ? g_accel : g_gyro;
+    for (int i = 0; i < num_values; ++i)
+        data[i] = enabled && i < 3 ? values[i] : 0.0f;
+    mutexUnlock(&g_lock);
+    return enabled;
 }

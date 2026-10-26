@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // The deko3d renderer's C entry points (docs/DEKO3D_MIGRATION_PLAN.md, phases 2-3). The deko3d NRO
 // (COS_SWITCH_RENDERER=deko3d) builds Aurora with AURORA_GFX_DEKO3D: Aurora records every frame as
 // for WebGPU, Dawn's Null device keeps its object model without GPU work, and switch/deko owns the
@@ -29,6 +30,26 @@ void aurora_switch_dk_present(const struct ImDrawData* ui);
 // An RGBA8 texture for ImGui (the font atlas, aurora_imgui_add_texture): the ImTextureID to draw it
 // with. Any thread; the pixels are copied now and reach the GPU at the next frame.
 uint64_t aurora_switch_dk_imgui_texture(uint32_t width, uint32_t height, const void* rgba8);
+
+// FXAA on the final picture (options menu, COS_FXAA): the present pass draws it with the dk_fxaa shader
+// instead of the plain copy. level: 0 off, 1 Suave, 2 Normal, 3 Fuerte. Any thread; takes effect at the
+// next frame. At the start it is the environment's COS_FXAA (0 when unset).
+void aurora_switch_dk_set_fxaa(int level);
+
+// Light SSAO on the final picture (options menu, COS_SSAO; level 0 off, 1 low, 2 medium, 3 high): the present pass darkens it from the EFB depth with
+// the dk_ssao shaders, before the FXAA / gamma pass. Any thread; takes effect at the next frame. At the start it
+// is the environment's COS_SSAO (0 when unset).
+void aurora_switch_dk_set_ssao(int level);
+
+// The present pass's gamma exponent (options menu, Gráficos > Gamma): the game's picture is drawn as
+// colour^exponent; 1 draws it as it is. Any thread.
+void aurora_switch_dk_set_gamma(float exponent);
+
+// How the present pass scales the picture to the screen (options menu, COS_RESCALE): 0 bilinear, 1 area,
+// 2 FSR 1 (EASU upscale and RCAS sharpening, dk_fsr_easu / dk_fsr_rcas; only when the picture is smaller than
+// the screen, else the bilinear/area resample). Any thread; takes effect at the next frame. At the start it
+// is the environment's COS_RESCALE (0 when unset).
+void aurora_switch_dk_set_rescale(int mode);
 
 // Waits for the GPU and releases the window (Aurora's shutdown).
 void aurora_switch_dk_shutdown(void);

@@ -7,8 +7,9 @@
 // and gets no controller input (Aurora's PADBlockInput; the buttons still held when it closes are
 // ignored until released). Other scenes (title, name entry) keep running behind it, without input.
 //
-// One ImGui window with six tabs, Gráficos, Controles, Rendimiento, Calidad de vida, Randomizer and
-// Depuración (in that order on screen, kTabOrder; Randomizer: features/rando/pc_rando_settings.h), navigated by the controller (D-pad or stick: row and value;
+// One ImGui window with seven tabs, Gráficos, Controles, Rendimiento, Calidad de vida, Randomizer,
+// Sistema and Depuración (in that order on screen, kTabOrder; Randomizer: features/rando/pc_rando_settings.h;
+// the developer's tab last), navigated by the controller (D-pad or stick: row and value;
 // A: change / confirm; B: back / close; L/R: tab), the keyboard (arrows, Enter, Esc, Q/E) or the mouse
 // (click a tab, a row, a value). The menu reads the controllers itself (SDL gamepads, labels of the
 // face buttons respected, so A is A on a Switch-style layout too), plus the COS_INPUT script in
@@ -22,6 +23,13 @@
 // marked per mode keep one value for handheld and one for docked; the "Perfil a editar" row picks
 // which one the rows show and change, and pc_settings_poll_mode applies the other mode's values when
 // the console is docked or undocked.
+//
+// Updates (pc_update.h, issues #27/#28; docs/AUTO_UPDATE_PLAN.md): with Sistema > "Buscar actualizaciones al
+// arrancar" on, the first frame asks GitHub for the latest release in the background. A newer one the
+// player was not told to forget brings up a popup outside the PLAY scene (title, file select): update now,
+// later, or not about this version (COS_UPDATE_SKIP, a setting without a row). Found during play, it is a
+// short notice instead. The Sistema tab's "Actualización" row checks, installs and restarts. A short
+// notice also says what the start found (the first start of an installed version, a rollback).
 //
 // COS_SMOKE=options-menu (with COS_INPUT and usually COS_BOOT_STAGE): drives the menu through the
 // script and checks the "#expect" lines of the script file (see smokeParse below): the menu opened,
@@ -38,6 +46,7 @@
 #include "pc/pc_button_remap.h"
 #include "pc/pc_controls.h"
 #include "pc/pc_qol.h"
+#include "pc/pc_update.h"
 #include "features/pc_button_remap_map.h"
 #include "features/rando/pc_rando_text_ui.h"
 #include "features/rando/pc_rando_settings.h"
@@ -73,11 +82,13 @@
 #include <mutex>
 #include <string>
 #include <strings.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <vector>
 
 #if defined(__SWITCH__)
 #include "cos_switch.h"
+#include "dk_aurora.h"  // aurora_switch_dk_set_fxaa
 #endif
 
 // Aurora's <dolphin/pad.h> (the game's own comes first on the include path).
@@ -434,14 +445,40 @@ void applyDynres(const char*, const char* v, void*) {
     pc_fps60_hold("dynamic resolution changed");
 }
 void applyDof(const char*, const char* v, void*) { pc_dof_set(strcmp(v, "0") != 0); }
+void applyAniso(const char*, const char* v, void*) { pc_aniso_set(atoi(v)); }
 void applyCameraInvertX(const char*, const char* v, void*) { pc_camera_invert_x_set(strcmp(v, "1") == 0); }
 void applyCameraInvertY(const char*, const char* v, void*) { pc_camera_invert_y_set(strcmp(v, "1") == 0); }
+void applyAimRightStick(const char*, const char* v, void*) { pc_aim_right_stick_set(strcmp(v, "1") == 0); }
+void applyAimInvertY(const char*, const char* v, void*) { pc_aim_invert_y_set(strcmp(v, "1") == 0); }
+void applyAimGyro(const char*, const char* v, void*) { pc_aim_gyro_set(strcmp(v, "1") == 0); }
+void applyAimGyroSens(const char*, const char* v, void*) { pc_aim_gyro_sens_set((float)atof(v)); }
 void applyCameraShake(const char*, const char* v, void*) { pc_camera_shake_set(strcmp(v, "1") == 0); }
 void applyHeatHaze(const char*, const char* v, void*) { pc_heat_haze_set(strcmp(v, "1") == 0); }
 void applyQol(const char* key, const char* v, void*) { pc_qol_set(key, v); }
 void applyGpuProfile(const char*, const char* v, void*) {
 #if defined(__SWITCH__)
     cos_switch_set_gpu_profile(v);
+#else
+    (void)v;
+#endif
+}
+void applyFxaa(const char*, const char* v, void*) {
+#if defined(__SWITCH__)
+    aurora_switch_dk_set_fxaa(atoi(v));
+#else
+    (void)v;
+#endif
+}
+void applySsao(const char*, const char* v, void*) {
+#if defined(__SWITCH__)
+    aurora_switch_dk_set_ssao(atoi(v));
+#else
+    (void)v;
+#endif
+}
+void applyRescale(const char*, const char* v, void*) {
+#if defined(__SWITCH__)
+    aurora_switch_dk_set_rescale(atoi(v));
 #else
     (void)v;
 #endif
@@ -455,6 +492,16 @@ void applyPerfLog(const char*, const char* v, void*) { gConfig.perfLog = strcmp(
 void applyHitch(const char*, const char* v, void*) { perfSetHitch((unsigned int)atoi(v)); }
 void applyHdStats(const char*, const char* v, void*) { pc_hd_textures_set_stats_every((unsigned int)atoi(v)); }
 void applyGpuGroups(const char*, const char* v, void*) { pc_gpu_groups_set(atoi(v)); }
+// Gráficos > Gamma (COS_GAMMA): the points added to 2.2 (the game's colours are encoded for a GameCube TV,
+// about 2.4, and the Switch's panel shows them too bright); the present draws colour^((2.2 + change) / 2.2), see
+// switch/deko/shaders/present_gamma.wgsl. Only the deko3d NRO has the present pass.
+void applyGamma(const char*, const char* v, void*) {
+#if defined(__SWITCH__)
+    cos_switch_set_gamma((2.2f + (float)atof(v)) / 2.2f);
+#else
+    (void)v;
+#endif
+}
 void applyFps60(const char*, const char* v, void*) { pc_fps60_set(strcmp(v, "1") == 0); }
 
 #define CHOICES(name) name, (int)(sizeof(name) / sizeof(name[0]))
@@ -466,8 +513,13 @@ const PcSettingChoice kFbScale[] = {
     {"1.0", "854x480 (1.0)"},  {"1.125", "960x540 (1.125)"}, {"1.25", "1067x600 (1.25)"},
     {"1.5", "1280x720 (1.5)"}, {"2.0", "1707x960 (2.0)"},    {"2.25", "1920x1080 (2.25)"},
 };
-const PcSettingChoice kAspect[] = {{"16:9", "16:9 (panorámica)", "16:9 (widescreen)"}, {"4:3", "4:3 (GameCube)"}, {"16:10", "16:10"}};
+const PcSettingChoice kAspect[] = {{"16:9", "16:9 (panorámica)", "16:9 (widescreen)"}, {"4:3", "4:3 (GameCube)"}};
 const PcSettingChoice kOnOff[] = {{"0", "Desactivado", "Off"}, {"1", "Activado", "On"}};
+const PcSettingChoice kGyroSens[] = {{"0.5", "x0,5", "x0.5"}, {"1", "x1"}, {"1.5", "x1,5", "x1.5"}, {"2", "x2"}, {"3", "x3"}};
+const PcSettingChoice kAniso[] = {{"1", "x1 (desactivado)", "x1 (off)"}, {"2", "x2"}, {"4", "x4"}, {"8", "x8"}, {"16", "x16"}};
+const PcSettingChoice kFxaa[] = {{"0", "Desactivado", "Off"}, {"1", "Suave", "Soft"},
+                                 {"2", "Normal", "Normal"}, {"3", "Fuerte", "Strong"}};
+const PcSettingChoice kRescale[] = {{"0", "Bilinear", "Bilinear"}, {"1", "Área", "Area"}, {"2", "FSR 1", "FSR 1"}};
 const PcSettingChoice kHdMaxSize[] = {{"auto", "Automático (512 / 1024)", "Automatic (512 / 1024)"}, {"256", "256"}, {"512", "512"},
                                       {"1024", "1024"}, {"full", "Sin límite", "No limit"}};
 // "auto" (the default): on while the 60 fps row is on (docs/FPS60_PLAN.md step E), off at 30 fps;
@@ -490,6 +542,11 @@ const PcSettingChoice kPerfEvery[] = {
 const PcSettingChoice kGpuGroups[] = {{"0", "Desactivados", "Off"}, {"1", "Por grupo", "Per group"},
                                       {"2", "Por material J3D", "Per J3D material"}};
 const PcSettingChoice kShowHide[] = {{"1", "Mostrar", "Show"}, {"0", "Ocultar", "Hide"}};
+const PcSettingChoice kSsao[] = {{"0", "Desactivada", "Off"}, {"1", "Baja (cuarto de resolución)", "Low (quarter resolution)"},
+                                 {"2", "Media", "Medium"}, {"3", "Alta", "High"}};
+const PcSettingChoice kGamma[] = {{"0", "Original (sin cambio)", "Original (no change)"},
+                                  {"0.10", "+0,10"}, {"0.20", "+0,20 (recomendado)", "+0.20 (recommended)"},
+                                  {"0.30", "+0,30"}, {"0.40", "+0,40"}};
 const PcSettingChoice kHitch[] = {{"0", "Desactivadas", "Off"}, {"33", "Más de 33 ms", "Over 33 ms"},
                                   {"40", "Más de 40 ms", "Over 40 ms"}, {"50", "Más de 50 ms", "Over 50 ms"},
                                   {"100", "Más de 100 ms", "Over 100 ms"}};
@@ -510,6 +567,15 @@ const PcSettingDesc kBuiltins[] = {
      nullptr, 10,
      "Internal resolution",
      "Resolution the game is drawn at before scaling to the screen. Lower = faster."},
+    {"COS_RESCALE", "Reescalado",
+     "Cómo se escala la imagen a la pantalla. Bilinear: el de siempre. Área: más nítido al reducir. FSR 1: "
+     "reescalado y nitidez de AMD; reescala cuando la resolución interna es menor que la pantalla, y si es "
+     "la misma solo aplica la nitidez (con el suavizado FXAA, la nitidez va después de él).",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kRescale), "0", applyRescale, nullptr, 15,
+     "Rescaling",
+     "How the picture is scaled to the screen. Bilinear: as before. Area: sharper when shrinking. FSR 1: "
+     "AMD's upscaling and sharpening; it upscales when the internal resolution is below the screen's, and at "
+     "the same size it only sharpens (with FXAA on, the sharpening comes after it)."},
     {"COS_DYNRES", "Resolución dinámica",
      "Baja la resolución del 3D (hasta 2/3) cuando la GPU no llega; el HUD queda nítido. Con 60 fps: solo "
      "mientras los 60 fps están activados.",
@@ -521,16 +587,69 @@ const PcSettingDesc kBuiltins[] = {
      PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "1", applyDof, nullptr, 50,
      "Depth of field",
      "Blur of the distant scenery, as on the GameCube."},
+    {"COS_FXAA", "Suavizado de bordes (FXAA)",
+     "Suaviza los bordes dentados de la imagen final con un filtro FXAA. Más fuerte = menos dientes de "
+     "sierra pero más desenfoque (también en el HUD). Cuesta algo de GPU.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kFxaa), "0", applyFxaa, nullptr, 60,
+     "Edge smoothing (FXAA)",
+     "Smooths the jagged edges of the final picture with an FXAA filter. Stronger = fewer jaggies but more "
+     "blur (the HUD too). Costs some GPU time."},
+    {"COS_SSAO", "Oclusión ambiental (SSAO)",
+     "Oscurece ligeramente las esquinas, los pliegues y el contacto entre objetos, a partir de la profundidad "
+     "de la imagen. Cuanto más alto el nivel, más cuesta de GPU: Baja es la más barata. No toca el cielo ni los menús.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kSsao), "0", applySsao, nullptr, 61,
+     "Ambient occlusion (SSAO)",
+     "Slightly darkens corners, creases and where objects touch, from the picture's depth. A higher level costs more GPU time: Low is the cheapest. Leaves the sky and the menus alone."},
+    {"COS_ANISO", "Filtrado anisotrópico",
+     "Texturas del suelo y de los edificios más nítidas en perspectiva. Más alto = más carga para la GPU.",
+     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kAniso), "1", applyAniso, nullptr, 62,
+     "Anisotropic filtering",
+     "Sharper ground and building textures at a slant. Higher = more GPU load."},
+    {"COS_GAMMA", "Gamma",
+     "Oscurece o deja como estaba la imagen. El juego se pensó para una tele de GameCube (gamma ~2,4) y la "
+     "pantalla de la Switch (~2,2) la muestra más clara y lavada: +0,20 la corrige. No cambia este menú.",
+     PC_SETTING_TAB_GRAPHICS, PC_SETTING_SWITCH_ONLY, CHOICES(kGamma), "0.20", applyGamma, nullptr, 63,
+     "Gamma",
+     "Darkens the picture or leaves it as it was. The game was made for a GameCube TV (gamma ~2.4) and "
+     "the Switch's panel (~2.2) shows it brighter and washed out: +0.20 corrects it. This menu does not change."},
     {"COS_CAMERA_INVERT_X", "Invertir cámara horizontal",
      "El stick C gira la cámara al revés en horizontal.",
-     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertX, nullptr, 90,
+     PC_SETTING_TAB_CONTROLS, 0, CHOICES(kOnOff), "0", applyCameraInvertX, nullptr, 1,
      "Invert camera horizontally",
      "The C stick turns the camera the other way horizontally."},
     {"COS_CAMERA_INVERT_Y", "Invertir cámara vertical",
      "El stick C inclina la cámara al revés en vertical.",
-     PC_SETTING_TAB_GRAPHICS, 0, CHOICES(kOnOff), "0", applyCameraInvertY, nullptr, 91,
+     PC_SETTING_TAB_CONTROLS, 0, CHOICES(kOnOff), "0", applyCameraInvertY, nullptr, 2,
      "Invert camera vertically",
      "The C stick tilts the camera the other way vertically."},
+    // Issue #23 (pc_controls.h): the button remap rows follow (orders 10-120).
+    {"COS_AIM_RIGHT_STICK", "Apuntar con el stick derecho",
+     "El stick C también apunta el arco, el gancho, el bumerán, el catalejo, la cámara y la vista en primera "
+     "persona. En el catalejo y la cámara, arriba y abajo siguen haciendo zoom.",
+     PC_SETTING_TAB_CONTROLS, 0, CHOICES(kOnOff), "0", applyAimRightStick, nullptr, 3,
+     "Aim with the right stick",
+     "The C stick also aims the bow, the hookshot, the boomerang, the telescope, the Picto Box and the "
+     "first-person view. In the telescope and the Picto Box, up and down still zoom."},
+    {"COS_AIM_INVERT_Y", "Invertir apuntado vertical",
+     "Al apuntar, arriba apunta hacia arriba (en la GameCube, hacia abajo). Vale para los dos sticks.",
+     PC_SETTING_TAB_CONTROLS, 0, CHOICES(kOnOff), "0", applyAimInvertY, nullptr, 4,
+     "Invert aiming vertically",
+     "When aiming, up aims up (on the GameCube, down). Applies to both sticks."},
+    // Issue #25 (pc_controls.h, pc_gyro.cpp).
+    {"COS_AIM_GYRO", "Apuntar con giroscopio",
+     "Al apuntar (arco, gancho, bumerán, catalejo, cámara, primera persona), girar e inclinar el mando o la "
+     "consola mueve la vista, siempre en su sentido natural (las opciones de invertir no le afectan). Los "
+     "sticks siguen funcionando.",
+     PC_SETTING_TAB_CONTROLS, 0, CHOICES(kOnOff), "0", applyAimGyro, nullptr, 5,
+     "Gyro aiming",
+     "When aiming (bow, hookshot, boomerang, telescope, Picto Box, first person), turning and tilting the "
+     "controller or the console moves the view, always in its natural direction (the invert options do not "
+     "change it). The sticks still work."},
+    {"COS_AIM_GYRO_SENS", "Sensibilidad del giroscopio",
+     "Cuánto gira la vista por cada grado que gira el mando. x1: lo mismo.",
+     PC_SETTING_TAB_CONTROLS, 0, CHOICES(kGyroSens), "1", applyAimGyroSens, nullptr, 6,
+     "Gyro sensitivity",
+     "How far the view turns for each degree the controller turns. x1: the same."},
     {"COS_CAMERA_SHAKE", "Temblor de cámara",
      "La cámara tiembla con terremotos, golpes, explosiones y cinemáticas, como en la GameCube. La vibración "
      "del mando no cambia.",
@@ -724,6 +843,17 @@ const PcSettingDesc kBuiltins[] = {
      "Debug server (network)",
      "For development only: opens a port on the local network, without a password, for scripts/switch/"
      "switchwaker_debug.py (log, screenshots, warps, files). See docs/DEBUG_SERVER.md."},
+    // Sistema (pc_update.h, issues #27/#28)
+    {"COS_UPDATE_CHECK", "Buscar actualizaciones al arrancar",
+     "Al arrancar pregunta a GitHub si hay una versión nueva de SwitchWaker y avisa (necesita internet). No "
+     "retrasa el arranque.",
+     PC_SETTING_TAB_SYSTEM, PC_SETTING_SWITCH_ONLY, CHOICES(kOnOff), "1", nullptr, nullptr, 10,
+     "Check for updates at start",
+     "At start, asks GitHub whether there is a new SwitchWaker version and says so (needs the internet). It "
+     "does not delay the start."},
+    {"COS_UPDATE_SKIP", "Versión que no avisar", "La versión nueva de la que el jugador no quiere aviso al arrancar.",
+     PC_SETTING_TAB_SYSTEM, PC_SETTING_HIDDEN, nullptr, 0, "", nullptr, nullptr, 900,
+     "Version not to announce", "The new version the player does not want to be told about at start."},
 };
 
 // ---- menu state ----------------------------------------------------------------------------------
@@ -742,7 +872,9 @@ enum class RowKind {
     Remap,
     RemapRestore,
     Rando, // a row of the Randomizer tab: action = its index in randoMenuRows() (pc_rando_settings.h)
-    PageBack // R8.2: the last row of a tab's sub page ("< Volver"): back to the tab's first page
+    PageBack, // R8.2: the last row of a tab's sub page ("< Volver"): back to the tab's first page
+    Update,
+    Notes
 };
 
 struct Row {
@@ -754,11 +886,12 @@ struct Row {
 // Indexed by PcSettingTab; kTabOrder is the order on screen (and of L/R).
 // Depuración stays last (input scripts press L from Gráficos to reach it).
 const char* const kTabNames[PC_SETTING_TABS] = {"Gráficos", "Rendimiento", "Calidad de vida", "Depuración",
-                                                "Controles", "Randomizer"};
+                                                "Controles", "Randomizer", "Sistema"};
 const char* const kTabNamesEn[PC_SETTING_TABS] = {"Graphics", "Performance", "Quality of life", "Debug",
-                                                  "Controls", "Randomizer"};
+                                                  "Controls", "Randomizer", "System"};
 const int kTabOrder[PC_SETTING_TABS] = {PC_SETTING_TAB_GRAPHICS, PC_SETTING_TAB_CONTROLS, PC_SETTING_TAB_PERFORMANCE,
-                                        PC_SETTING_TAB_QOL, PC_SETTING_TAB_RANDO, PC_SETTING_TAB_DEBUG};
+                                        PC_SETTING_TAB_QOL, PC_SETTING_TAB_RANDO, PC_SETTING_TAB_SYSTEM,
+                                        PC_SETTING_TAB_DEBUG};
 
 // The position on screen of a tab.
 int tabPosition(int tab) {
@@ -799,6 +932,22 @@ struct Menu {
     bool captureArmed = false;
     uint64_t captureStartMs = 0;
     bool captureRelease = false;
+    // Updates (pc_update.h): the check at start was asked; the popup (open, its row, shown once per
+    // start); a short notice outside the menu; the restart's second A in the PLAY scene.
+    bool updateChecked = false;
+    bool popup = false;
+    int popupRow = 0;
+    bool popupDone = false;
+    // The release notes page (Sistema > "Notas de la versión", or the popup): its scroll step this frame
+    // in lines (a page is kNotesPage lines) and a jump to the top.
+    bool notesPage = false;
+    int notesScroll = 0;
+    bool notesTop = false;
+    bool playNoticeDone = false;
+    PcUpdateBootResult bootShown = PC_UPDATE_BOOT_NONE;
+    std::string notice;
+    unsigned int noticeUntil = 0;
+    unsigned int restartArmedUntil = 0;
 } m;
 
 void toast(const std::string& text) {
@@ -847,6 +996,10 @@ std::vector<Row> rowsOf(int tab) {
         rows.push_back({RowKind::QolBetterWW});
         rows.push_back({RowKind::QolOriginal});
     }
+    if (tab == PC_SETTING_TAB_SYSTEM) {
+        rows.push_back({RowKind::Update});
+        rows.push_back({RowKind::Notes});
+    }
     if (tab == PC_SETTING_TAB_DEBUG) {
         rows.push_back({RowKind::Warp});
         rows.push_back({RowKind::Sailing});
@@ -855,7 +1008,7 @@ std::vector<Row> rowsOf(int tab) {
     }
     for (int i = 0; i < pc_settings_count(); i++) {
         const PcSettingDesc* d = pc_settings_at(i);
-        if (d == nullptr || d->tab != tab) {
+        if (d == nullptr || d->tab != tab || (d->flags & PC_SETTING_HIDDEN)) {
             continue;
         }
         if (d->flags & PC_SETTING_REMAP) {
@@ -921,6 +1074,7 @@ void setOpen(bool open) {
         randoTextCancel(); // the randomizer's text input ends with the menu
         randoSpoilerClose(); // and so does its spoiler viewer (R4.5)
     }
+    m.notesPage = false;
     m.waitRelease = true;
     m.captureAction = -1;
     PADBlockInput(open);
@@ -1144,6 +1298,339 @@ void pageBack(int tab) {
     writef(STDERR_FILENO, "[cos] menu: tab %s page 0\n", kTabNames[tab]);
 }
 
+// ---- updates (pc_update.h) -----------------------------------------------------------------------
+
+uint32_t pressed(uint32_t keys);
+void openNotes();
+
+void* isAfterLogoScene(void* proc, void*) {
+    switch (fpcM_GetName(proc)) {
+    case fpcNm_MENU_SCENE_e:
+    case fpcNm_PLAY_SCENE_e:
+    case fpcNm_OPENING_SCENE_e:
+    case fpcNm_OPENING2_SCENE_e:
+    case fpcNm_TITLE_SCENE_e:
+    case fpcNm_ENDING_SCENE_e:
+    case fpcNm_NAME_SCENE_e:
+    case fpcNm_NAMEEX_SCENE_e:
+    case fpcNm_OPEN_SCENE_e:
+    case fpcNm_OPEN2_SCENE_e:
+        return proc;
+    default:
+        return nullptr;
+    }
+}
+
+// A scene after the logo runs: the shader preload is over and the game got going (it confirms a
+// version the game installed, pc_update_frame).
+bool afterLogo() {
+    return fpcM_Search(isAfterLogoScene, nullptr) != nullptr;
+}
+
+void notice(const std::string& text) {
+    m.notice = text;
+    m.noticeUntil = pc_frame_count() + 300;
+    writef(STDERR_FILENO, "[cos] menu: notice: %s\n", text.c_str());
+}
+
+const char* updateErrorText(PcUpdateError e) {
+    switch (e) {
+    case PC_UPDATE_ERR_NETWORK: return T("sin conexión con GitHub", "no connection to GitHub");
+    case PC_UPDATE_ERR_SERVER: return T("GitHub no dio una respuesta válida", "GitHub gave no usable answer");
+    case PC_UPDATE_ERR_NO_ASSET: return T("la versión no trae el zip de esta región", "the release has no zip for this region");
+    case PC_UPDATE_ERR_NOT_HERE:
+        return T("el juego no está en /switch/switchwaker/switchwaker.nro", "the game is not in /switch/switchwaker/switchwaker.nro");
+    case PC_UPDATE_ERR_NO_SPACE: return T("no hay espacio en la tarjeta SD", "not enough space on the SD card");
+    case PC_UPDATE_ERR_CHECKSUM: return T("la descarga llegó dañada (SHA-256)", "the download arrived damaged (SHA-256)");
+    case PC_UPDATE_ERR_BAD_ZIP: return T("el zip de la versión no es válido", "the release's zip is not valid");
+    case PC_UPDATE_ERR_WRITE: return T("no se pudo escribir en la tarjeta SD", "could not write to the SD card");
+    case PC_UPDATE_OK: break;
+    }
+    return T("error", "error");
+}
+
+void checkForUpdates(bool atStart) {
+    pc_update_check(atStart ? 1 : 0, pc_settings_get("COS_UPDATE_SKIP"));
+}
+
+void requestRestart() {
+    if (!mDoMemCd_isCardCommNone()) {
+        toast(T("Espera: se está guardando la partida", "Wait: the game is being saved"));
+        return;
+    }
+    if (inPlay() && pc_frame_count() >= m.restartArmedUntil) {
+        m.restartArmedUntil = pc_frame_count() + 150;
+        toast(T("Pulsa A otra vez para reiniciar: se pierde lo que no hayas guardado",
+                "Press A again to restart: anything not saved is lost"));
+        return;
+    }
+    if (!pc_update_restart()) {
+        toast(T("Cierra el juego y vuelve a abrirlo para usar la versión nueva",
+                "Close the game and open it again to run the new version"));
+    }
+}
+
+// The Sistema tab's "Notas de la versión" row: the notes page, once a check found a newer release.
+void activateNotes() {
+    if (pc_update_get_notes(nullptr, 0) == 0) {
+        toast(T("No hay notas: busca antes una versión nueva (Actualización)",
+                "No notes: check for a new version first (Update)"));
+        return;
+    }
+    openNotes();
+}
+
+// The Sistema tab's "Actualización" row: A checks, installs or restarts, by the state.
+void activateUpdate() {
+    PcUpdateInfo info;
+    pc_update_get_info(&info);
+    switch (info.status) {
+    case PC_UPDATE_AVAILABLE:
+    case PC_UPDATE_INSTALL_FAILED:
+        if (!info.canInstall) {
+            toast(std::string(T("No se puede actualizar desde aquí: ", "Cannot update from here: ")) +
+                  updateErrorText(PC_UPDATE_ERR_NOT_HERE));
+        } else if (pc_update_install()) {
+            writef(STDERR_FILENO, "[cos] menu: installing %s\n", info.latest);
+        }
+        break;
+    case PC_UPDATE_INSTALLED:
+        requestRestart();
+        break;
+    case PC_UPDATE_CHECKING:
+    case PC_UPDATE_DOWNLOADING:
+    case PC_UPDATE_INSTALLING:
+        break;
+    case PC_UPDATE_DISABLED:
+        toast(T("Esta es una versión de desarrollo: no busca actualizaciones",
+                "This is a development build: it does not check for updates"));
+        break;
+    default:
+        checkForUpdates(false);
+        break;
+    }
+}
+
+std::string updateValue() {
+    PcUpdateInfo info;
+    pc_update_get_info(&info);
+    char text[128];
+    switch (info.status) {
+    case PC_UPDATE_IDLE: return T("A: buscar", "A: check");
+    case PC_UPDATE_DISABLED: return T("versión de desarrollo", "development build");
+    case PC_UPDATE_CHECKING: return T("Buscando...", "Checking...");
+    case PC_UPDATE_UP_TO_DATE:
+        snprintf(text, sizeof(text), T("Al día (%s)", "Up to date (%s)"), info.current);
+        return text;
+    case PC_UPDATE_CHECK_FAILED: return T("No se pudo buscar (A: reintentar)", "Check failed (A: retry)");
+    case PC_UPDATE_AVAILABLE:
+        snprintf(text, sizeof(text), info.canInstall ? T("A: instalar %s", "A: install %s") : T("%s disponible", "%s available"),
+                 info.latest);
+        return text;
+    case PC_UPDATE_DOWNLOADING:
+        if (info.total > 0) {
+            snprintf(text, sizeof(text), T("Descargando %d %%", "Downloading %d%%"),
+                     (int)(std::min<uint64_t>(info.done, info.total) * 100 / info.total));
+            return text;
+        }
+        return T("Descargando...", "Downloading...");
+    case PC_UPDATE_INSTALLING: return T("Instalando...", "Installing...");
+    case PC_UPDATE_INSTALLED:
+        return pc_update_can_restart() ? T("Instalada (A: reiniciar)", "Installed (A: restart)")
+                                       : T("Instalada: reinicia el juego", "Installed: restart the game");
+    case PC_UPDATE_INSTALL_FAILED: return T("Falló (A: reintentar)", "Failed (A: retry)");
+    }
+    return "";
+}
+
+std::string updateHelp() {
+    PcUpdateInfo info;
+    pc_update_get_info(&info);
+    char text[512];
+    switch (info.status) {
+    case PC_UPDATE_AVAILABLE:
+        if (info.canInstall) {
+            snprintf(text, sizeof(text),
+                     T("%s (tienes la %s). A la descarga (unos 10 MB), la comprueba y cambia los archivos del juego; "
+                       "partidas, ajustes y disco no se tocan. Si la versión nueva no arranca, vuelve sola la anterior.",
+                       "%s (you have %s). A downloads it (about 10 MB), checks it and replaces the game's files; saves, "
+                       "settings and disc are untouched. If the new version does not start, the old one comes back by itself."),
+                     info.title[0] != '\0' ? info.title : info.latest, info.current);
+        } else {
+            snprintf(text, sizeof(text),
+                     T("%s (tienes la %s). Esta copia no puede actualizarse sola (%s): copia la carpeta switch del zip de "
+                       "la versión sobre la tarjeta SD.",
+                       "%s (you have %s). This copy cannot update itself (%s): copy the release zip's switch folder onto "
+                       "the SD card."),
+                     info.title[0] != '\0' ? info.title : info.latest, info.current, updateErrorText(PC_UPDATE_ERR_NOT_HERE));
+        }
+        return text;
+    case PC_UPDATE_INSTALLED:
+        snprintf(text, sizeof(text),
+                 pc_update_can_restart()
+                     ? T("%s está instalada. A reinicia el juego con ella (guarda antes la partida).",
+                         "%s is installed. A restarts the game with it (save your game first).")
+                 : kSwitch ? T("%s está instalada. Cierra el juego y ábrelo de nuevo desde el Homebrew Menu.",
+                               "%s is installed. Close the game and open it again from the Homebrew Menu.")
+                           : T("%s está instalada. Cierra el juego y ábrelo de nuevo.",
+                               "%s is installed. Close the game and open it again."),
+                 info.latest);
+        return text;
+    case PC_UPDATE_CHECK_FAILED:
+    case PC_UPDATE_INSTALL_FAILED:
+        snprintf(text, sizeof(text), "%s: %s (%s)", T("No se pudo", "It failed"), updateErrorText(info.error), info.detail);
+        return text;
+    case PC_UPDATE_DISABLED:
+        return T("Las versiones de desarrollo no buscan actualizaciones.", "Development builds do not check for updates.");
+    default:
+        snprintf(text, sizeof(text),
+                 T("Versión instalada: %s. A pregunta a GitHub si hay una nueva (necesita internet).",
+                   "Installed version: %s. A asks GitHub whether there is a new one (needs the internet)."),
+                 info.current);
+        return text;
+    }
+}
+
+std::string updateNotes() {
+    const size_t n = pc_update_get_notes(nullptr, 0);
+    std::string text(n + 1, '\0');
+    pc_update_get_notes(text.data(), text.size());
+    text.resize(n);
+    return text;
+}
+
+constexpr int kNotesPage = 10; // lines a page step scrolls
+
+void openNotes() {
+    m.notesPage = true;
+    m.notesTop = true;
+    m.notesScroll = 0;
+}
+
+void openUpdateRow() {
+    m.tab = PC_SETTING_TAB_SYSTEM;
+    m.row[PC_SETTING_TAB_SYSTEM] = 0; // "Actualización"
+    setOpen(true);
+}
+
+// Once per frame, menu open or not: the check at start, the confirmation of an installed version, the
+// popup and the notices.
+void updateFrame() {
+    pc_update_frame(afterLogo() ? 1 : 0);
+    if (!m.updateChecked) {
+        m.updateChecked = true;
+        if (strcmp(pc_settings_get("COS_UPDATE_CHECK"), "0") != 0) {
+            checkForUpdates(true);
+        }
+    }
+    PcUpdateInfo info;
+    pc_update_get_info(&info);
+    if (info.boot != m.bootShown) {
+        m.bootShown = info.boot;
+        char text[160];
+        switch (info.boot) {
+        case PC_UPDATE_BOOT_FIRST_START:
+            snprintf(text, sizeof(text), T("SwitchWaker actualizado a %s", "SwitchWaker updated to %s"), info.bootTag);
+            notice(text);
+            break;
+        case PC_UPDATE_BOOT_FAILED_BACK:
+            snprintf(text, sizeof(text), T("%s no llegó a arrancar: vuelve a estar la versión anterior",
+                                           "%s did not start: the previous version is back"),
+                     info.bootTag);
+            notice(text);
+            break;
+        case PC_UPDATE_BOOT_ROLLED_BACK:
+            snprintf(text, sizeof(text), T("La instalación de %s no terminó y se ha deshecho",
+                                           "The install of %s did not finish and was undone"),
+                     info.bootTag);
+            notice(text);
+            break;
+        case PC_UPDATE_BOOT_NONE: break;
+        }
+    }
+    const bool announce = info.status == PC_UPDATE_AVAILABLE && info.fromStart && !info.skipped;
+    if (announce && !m.popupDone && !m.open && !m.popup && !inPlay() && afterLogo()) {
+        m.popup = true;
+        m.popupDone = true;
+        m.popupRow = info.canInstall ? 0 : pc_update_get_notes(nullptr, 0) > 0 ? 1 : 2;
+        m.waitRelease = true;
+        PADBlockInput(true);
+        writef(STDERR_FILENO, "[cos] menu: update popup for %s\n", info.latest);
+    } else if (announce && !m.popupDone && !m.playNoticeDone && inPlay()) {
+        // found during play: no popup over the game, a notice that points at the menu
+        m.playNoticeDone = true;
+        char text[160];
+        snprintf(text, sizeof(text), T("Hay una versión nueva, %s: Menos > Sistema", "A new version, %s: Minus > System"),
+                 info.latest);
+        notice(text);
+    }
+}
+
+void closePopup() {
+    m.popup = false;
+    m.waitRelease = true;
+    PADBlockInput(m.open);
+}
+
+// The popup's choices: update now (opens the Sistema tab and starts), the release notes (the Sistema tab's
+// notes page), later, not this version. The first two only when they can be had.
+constexpr int kPopupChoices = 4;
+
+bool popupUsable(int row, const PcUpdateInfo& info) {
+    return row == 0 ? info.canInstall != 0 : row == 1 ? pc_update_get_notes(nullptr, 0) > 0 : true;
+}
+
+void popupInput(uint32_t keys) {
+    const uint32_t p = pressed(keys);
+    if (m.waitRelease) {
+        if (keys == 0) {
+            m.waitRelease = false;
+        }
+        return;
+    }
+    PcUpdateInfo info;
+    pc_update_get_info(&info);
+    if (p & (kUp | kDown)) {
+        // the next usable choice that way (popupUsable), staying put at either end
+        const int step = (p & kUp) ? -1 : 1;
+        for (int r = m.popupRow + step; r >= 0 && r < kPopupChoices; r += step) {
+            if (popupUsable(r, info)) {
+                m.popupRow = r;
+                break;
+            }
+        }
+    }
+    if (p & (kBack | kCombo)) {
+        writef(STDERR_FILENO, "[cos] menu: update popup: later\n");
+        closePopup();
+        return;
+    }
+    if (!(p & kConfirm)) {
+        return;
+    }
+    if (!popupUsable(m.popupRow, info)) {
+        return;
+    }
+    if (m.popupRow == 0) {
+        writef(STDERR_FILENO, "[cos] menu: update popup: update now\n");
+        closePopup();
+        openUpdateRow();
+        pc_update_install();
+    } else if (m.popupRow == 1) {
+        writef(STDERR_FILENO, "[cos] menu: update popup: release notes\n");
+        closePopup();
+        openUpdateRow();
+        openNotes();
+    } else if (m.popupRow == 3) {
+        writef(STDERR_FILENO, "[cos] menu: update popup: not about %s\n", info.latest);
+        pc_settings_set("COS_UPDATE_SKIP", info.latest);
+        closePopup();
+    } else {
+        writef(STDERR_FILENO, "[cos] menu: update popup: later\n");
+        closePopup();
+    }
+}
+
 void activate(const Row& r, int dir) {
     if (m.captureAction >= 0) {
         return;
@@ -1206,6 +1693,16 @@ void activate(const Row& r, int dir) {
             pageBack(m.tab);
         }
         break;
+    case RowKind::Update:
+        if (dir == 0) {
+            activateUpdate();
+        }
+        break;
+    case RowKind::Notes:
+        if (dir == 0) {
+            activateNotes();
+        }
+        break;
     }
 }
 
@@ -1254,6 +1751,24 @@ void handleInput(uint32_t keys) {
     }
     if (randoSpoilerActive()) {
         randoSpoilerKeys(p); // R4.5: the spoiler viewer has the keys (same bits as pcr::SpoilerKey)
+        return;
+    }
+    if (m.notesPage) {
+        if (p & kBack) {
+            m.notesPage = false;
+            m.scrollToRow = true;
+            return;
+        }
+        m.notesScroll += (p & kUp) ? -1 : (p & kDown) ? 1 : (p & kLeft) ? -kNotesPage : (p & kRight) ? kNotesPage : 0;
+        if (p & kConfirm) {
+            PcUpdateInfo info;
+            pc_update_get_info(&info);
+            if ((info.status == PC_UPDATE_AVAILABLE || info.status == PC_UPDATE_INSTALL_FAILED) && info.canInstall) {
+                m.notesPage = false; // back on the Actualización row, which shows the download
+                m.row[PC_SETTING_TAB_SYSTEM] = 0;
+                activateUpdate();
+            }
+        }
         return;
     }
     if (m.warpPage) {
@@ -1339,6 +1854,8 @@ std::string rowLabel(const Row& r) {
     case RowKind::Remap: return settingLabel(r.desc);
     case RowKind::Rando: return randoRowLabel(randoRowOf(r), pc_ui_spanish());
     case RowKind::PageBack: return T("< Volver", "< Back");
+    case RowKind::Update: return T("Actualización", "Update");
+    case RowKind::Notes: return T("Notas de la versión", "Release notes");
     case RowKind::Setting: break;
     }
     std::string s = settingLabel(r.desc);
@@ -1359,6 +1876,17 @@ std::string rowValue(const Row& r) {
     case RowKind::QolBetterWW:
     case RowKind::QolOriginal: return T("A: aplicar", "A: apply");
     case RowKind::RemapRestore: return T("A: restaurar", "A: restore");
+    case RowKind::Update: return updateValue();
+    case RowKind::Notes: {
+        PcUpdateInfo info;
+        pc_update_get_info(&info);
+        if (pc_update_get_notes(nullptr, 0) == 0) {
+            return "-";
+        }
+        char text[64];
+        snprintf(text, sizeof(text), T("A: ver (%s)", "A: read (%s)"), info.latest);
+        return text;
+    }
     case RowKind::Remap: {
         if (r.action == m.captureAction) {
             const uint64_t elapsed = std::min<uint64_t>(nowMs() - m.captureStartMs, kCaptureMs);
@@ -1440,6 +1968,12 @@ std::string rowHelp(const Row& r) {
                  "de settings.ini hace lo mismo.",
                  "Puts every action back on its usual button. Outside the game: deleting the COS_PAD_ lines of "
                  "settings.ini does the same.");
+    case RowKind::Update:
+        return updateHelp();
+    case RowKind::Notes:
+        return T("Lo que trae la versión nueva, de su página en GitHub (en inglés). Aparece cuando la búsqueda "
+                 "encuentra una.",
+                 "What the new version brings, from its GitHub page. It shows up once a check finds one.");
     case RowKind::Remap:
         if (r.action == m.captureAction) {
             return T("Pulsa el botón que hará esta acción; si ya hacía otra, se intercambian. Menos cancela.",
@@ -1512,7 +2046,7 @@ void drawMenu() {
         const bool sel = t == m.tab;
         const char* name = T(kTabNames[t], kTabNamesEn[t]);
         ImGui::PushStyleColor(ImGuiCol_Button, sel ? ImVec4(0.20f, 0.42f, 0.70f, 1.0f) : ImVec4(0.16f, 0.18f, 0.22f, 1.0f));
-        if (ImGui::Button(name, ImVec2(ImGui::CalcTextSize(name).x + tabSpare, 0)) && !m.warpPage &&
+        if (ImGui::Button(name, ImVec2(ImGui::CalcTextSize(name).x + tabSpare, 0)) && !m.warpPage && !m.notesPage &&
             m.captureAction < 0 && !randoTextActive() && !randoSpoilerActive()) {
             m.tab = t;
         }
@@ -1542,6 +2076,54 @@ void drawMenu() {
             randoTextDraw(&help); // the randomizer's text input instead of the rows
         } else if (randoSpoilerActive()) {
             randoSpoilerDraw(&help); // R4.5: the spoiler viewer instead of the rows
+        } else if (m.notesPage) {
+            PcUpdateInfo info;
+            pc_update_get_info(&info);
+            ImGui::TextColored(kAccent, T("Notas de %s   (B: volver)", "Notes of %s   (B: back)"),
+                               info.title[0] != '\0' ? info.title : info.latest);
+            ImGui::Separator();
+            const std::string notes = updateNotes();
+            ImGui::PushTextWrapPos(0.0f);
+            size_t at = 0;
+            while (at < notes.size()) {
+                size_t nl = notes.find('\n', at);
+                if (nl == std::string::npos) {
+                    nl = notes.size();
+                }
+                const std::string line = notes.substr(at, nl - at);
+                at = nl + 1;
+                if (line.rfind("# ", 0) == 0) {
+                    ImGui::Spacing();
+                    ImGui::TextColored(kAccent, "%s", line.c_str() + 2);
+                    continue;
+                }
+                size_t indent = 0;
+                while (indent < line.size() && line[indent] == ' ') {
+                    indent++;
+                }
+                const float x = ImGui::GetFontSize() * 0.6f * (float)indent;
+                if (x > 0.0f) {
+                    ImGui::Indent(x);
+                }
+                ImGui::TextUnformatted(line.empty() ? " " : line.c_str() + indent);
+                if (x > 0.0f) {
+                    ImGui::Unindent(x);
+                }
+            }
+            ImGui::PopTextWrapPos();
+            if (m.notesTop) {
+                ImGui::SetScrollY(0.0f);
+                m.notesTop = false;
+            } else if (m.notesScroll != 0) {
+                ImGui::SetScrollY(std::max(0.0f, ImGui::GetScrollY() + m.notesScroll * ImGui::GetTextLineHeightWithSpacing()));
+            }
+            m.notesScroll = 0;
+            const bool canInstall =
+                (info.status == PC_UPDATE_AVAILABLE || info.status == PC_UPDATE_INSTALL_FAILED) && info.canInstall;
+            help = canInstall ? T("Arriba/abajo: desplazar (izquierda/derecha: de 10 en 10). A: instalar. B: volver.",
+                                  "Up/down: scroll (left/right: 10 lines). A: install. B: back.")
+                              : T("Arriba/abajo: desplazar (izquierda/derecha: de 10 en 10). B: volver.",
+                                  "Up/down: scroll (left/right: 10 lines). B: back.");
         } else if (m.warpPage) {
             ImGui::TextColored(kAccent, "%s", T("Viajar a...   (B: volver)", "Travel to...   (B: back)"));
             const int count = kMainWarpCount + kAllWarpCount;
@@ -1657,6 +2239,71 @@ void drawMenu() {
     ImGui::End();
 }
 
+// The update popup (updateFrame): a small window over the title or the file select.
+void drawPopup() {
+    PcUpdateInfo info;
+    pc_update_get_info(&info);
+    ImGuiIO& io = ImGui::GetIO();
+    const float scale = std::max(1.0f, io.DisplaySize.y / 720.0f * 1.7f);
+    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(std::min(io.DisplaySize.x * 0.9f, 560.0f * scale), 0.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowBgAlpha(0.92f);
+    constexpr ImGuiWindowFlags kFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings |
+                                        ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize;
+    if (!ImGui::Begin("##cos_update_popup", nullptr, kFlags)) {
+        ImGui::End();
+        return;
+    }
+    ImGui::SetWindowFontScale(scale);
+    ImGui::SetWindowFocus();
+    ImGui::TextColored(kAccent, "%s", T("Hay una versión nueva de SwitchWaker", "A new SwitchWaker version is out"));
+    ImGui::Separator();
+    ImGui::PushTextWrapPos(0.0f);
+    ImGui::Text("%s", info.title[0] != '\0' ? info.title : info.latest);
+    ImGui::TextColored(kDim, T("Tienes la %s. La nueva es la %s.", "You have %s. The new one is %s."), info.current,
+                       info.latest[0] == 'v' ? info.latest + 1 : info.latest);
+    if (!info.canInstall) {
+        ImGui::TextColored(kWarn, "%s", T("Esta copia no puede actualizarse sola: copia la carpeta switch del zip de la "
+                                          "versión sobre la tarjeta SD.",
+                                          "This copy cannot update itself: copy the release zip's switch folder onto the "
+                                          "SD card."));
+    }
+    ImGui::PopTextWrapPos();
+    ImGui::Spacing();
+    const char* choices[kPopupChoices] = {T("Actualizar ahora", "Update now"),
+                                          T("Ver notas de la versión", "Read the release notes"), T("Más tarde", "Later"),
+                                          T("No avisar de esta versión", "Don't tell me about this version")};
+    for (int i = 0; i < kPopupChoices; i++) {
+        const bool sel = i == m.popupRow;
+        const bool usable = popupUsable(i, info);
+        ImGui::TextColored(!usable ? kDim : sel ? kAccent : ImVec4(1, 1, 1, 1), "%s%s%s", sel ? "> " : "  ", choices[i],
+                           sel ? " <" : "");
+    }
+    ImGui::Spacing();
+    ImGui::TextColored(kDim, "%s", kSwitch ? T("A: elegir   B: más tarde", "A: choose   B: later")
+                                           : T("A/Intro: elegir   B/Esc: más tarde", "A/Enter: choose   B/Esc: later"));
+    ImGui::End();
+}
+
+// A short line at the top of the screen (updateFrame's notices), menu open or not.
+void drawNotice() {
+    if (m.notice.empty() || pc_frame_count() >= m.noticeUntil) {
+        return;
+    }
+    ImGuiIO& io = ImGui::GetIO();
+    const float scale = std::max(1.0f, io.DisplaySize.y / 720.0f * 1.5f);
+    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.04f), ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.85f);
+    constexpr ImGuiWindowFlags kFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings |
+                                        ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs |
+                                        ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing;
+    if (ImGui::Begin("##cos_update_notice", nullptr, kFlags)) {
+        ImGui::SetWindowFontScale(scale);
+        ImGui::TextColored(kAccent, "%s", m.notice.c_str());
+    }
+    ImGui::End();
+}
+
 // ---- COS_SMOKE=options-menu ----------------------------------------------------------------------
 
 struct Expect {
@@ -1675,6 +2322,7 @@ struct Smoke {
     unsigned int openFrames = 0;
     unsigned int pausedChecks = 0;
     bool runCard = false; // "#card run"
+    bool title = false;   // "#title"
 } sSmoke;
 
 void smokeError(const char* fmt, const std::string& a, const std::string& b = "") {
@@ -1723,12 +2371,38 @@ void smokeParse() {
             sSmoke.runCard = true;
             continue;
         }
+        if (strncmp(line, "#title", 6) == 0) {
+            sSmoke.title = true; // the menu is only used outside the PLAY scene: no pause to check
+            continue;
+        }
+        char rel[256] = {};
+        if (sscanf(line, "#update-release %255s", rel) == 1) {
+            // pc_update.h: the release fixture next to the script (native/check/update), checked as
+            // version 0.4.2, installed into the run directory
+            std::string dir = gConfig.input;
+            dir = dir.substr(0, dir.rfind('/') + 1) + rel;
+            setenv("COS_UPDATE_URL", ("file://" + dir + "/latest.json").c_str(), 1);
+            setenv("COS_UPDATE_VERSION", "0.4.2", 1);
+            const char* run = getenv("COS_RUN_DIR");
+            std::string sd = std::string(run != nullptr ? run : ".") + "/sd";
+            for (const char* part : {"", "/switch", "/switch/switchwaker"}) {
+                mkdir((sd + part).c_str(), 0777);
+            }
+            setenv("COS_UPDATE_DIR", (sd + "/switch/switchwaker").c_str(), 1);
+            continue;
+        }
         if (strncmp(line, "#expect ", 8) != 0) {
             continue;
         }
         char kind[64] = {}, a[256] = {}, b[256] = {};
-        if (sscanf(line + 8, "%63s %255s %255s", kind, a, b) < 2) {
+        int bAt = 0;
+        if (sscanf(line + 8, "%63s %255s %n", kind, a, &bAt) < 2) {
             continue;
+        }
+        // the rest of the line (update-file's text may hold spaces)
+        snprintf(b, sizeof(b), "%s", bAt > 0 ? line + 8 + bAt : "");
+        for (size_t n = strlen(b); n > 0 && (b[n - 1] == '\n' || b[n - 1] == '\r' || b[n - 1] == ' '); n--) {
+            b[n - 1] = '\0';
         }
         if (strcmp(kind, "end") == 0) {
             sSmoke.endFrame = (unsigned int)atoi(a);
@@ -1930,11 +2604,57 @@ void smokeFrame(unsigned int frame) {
                 }
                 p = *end == ',' ? end + 1 : end;
             }
+        } else if (e.kind == "update") {
+            // pc_update.h's state by name: available, installed, install-failed, up-to-date, ...
+            static const char* const kNames[] = {"idle",        "disabled",   "checking",  "up-to-date",
+                                                 "available",   "check-failed", "downloading", "installing",
+                                                 "installed",   "install-failed"};
+            PcUpdateInfo info;
+            pc_update_get_info(&info);
+            const char* name = (unsigned)info.status < sizeof(kNames) / sizeof(kNames[0]) ? kNames[info.status] : "?";
+            if (e.a != name) {
+                smokeError("update %s, expected %s", std::string(name) + " (" + info.detail + ")", e.a);
+            } else {
+                writef(STDERR_FILENO, "[cos] options-menu: ok update %s %s\n", name, info.latest);
+            }
+        } else if (e.kind == "notes-page") {
+            // the release notes page is open (1) or not (0), with these notes' first heading
+            const std::string notes = updateNotes();
+            const bool ok = (m.notesPage ? 1 : 0) == atoi(e.a.c_str()) && (e.b.empty() || notes.find("# " + e.b) != std::string::npos);
+            if (!ok) {
+                smokeError("notes page %s, expected %s", std::string(m.notesPage ? "1" : "0") + " notes=" + notes, e.a + " " + e.b);
+            } else {
+                writef(STDERR_FILENO, "[cos] options-menu: ok notes page %s\n", e.a.c_str());
+            }
+        } else if (e.kind == "update-file") {
+            // a file of the install directory (COS_UPDATE_DIR) whose text starts with this ("-": absent)
+            const char* dir = getenv("COS_UPDATE_DIR");
+            const std::string path = std::string(dir != nullptr ? dir : "") + "/" + e.a;
+            std::string text;
+            bool present = false;
+            if (FILE* f = fopen(path.c_str(), "rb")) {
+                present = true;
+                char buf[256];
+                size_t n;
+                while ((n = fread(buf, 1, sizeof(buf), f)) > 0) {
+                    text.append(buf, n);
+                }
+                fclose(f);
+            }
+            while (!text.empty() && (text.back() == '\n' || text.back() == '\r')) {
+                text.pop_back();
+            }
+            const bool ok = e.b == "-" ? !present : present && text.rfind(e.b, 0) == 0;
+            if (!ok) {
+                smokeError("update file %s, expected %s", e.a + (present ? " = " + text : " absent"), e.b);
+            } else {
+                writef(STDERR_FILENO, "[cos] options-menu: ok update file %s %s\n", e.a.c_str(), e.b.c_str());
+            }
         } else {
             smokeError("unknown #expect %s%s", e.kind);
         }
     }
-    if (sSmoke.pausedChecks == 0 && m.opened > 0) {
+    if (sSmoke.pausedChecks == 0 && m.opened > 0 && !sSmoke.title) {
         smokeError("no frame with the menu open in the PLAY scene was checked%s%s", "");
     }
     writef(STDERR_FILENO, "[cos] options-menu: %s at frame %u (%u errors, %u paused frames checked)\n",
@@ -2041,7 +2761,16 @@ void menuFrame() {
     const uint32_t keys =
         (sSmoke.on || randoTextScripted() || randoMenuScripted() ? readScript() : 0) | readGamepads() | readKeyboard();
     captureFrame();
-    handleInput(keys);
+    updateFrame();
+    if (m.popup) {
+        popupInput(keys);
+    } else {
+        handleInput(keys);
+    }
+    drawNotice();
+    if (m.popup) {
+        drawPopup();
+    }
     if (!m.open) {
         return;
     }

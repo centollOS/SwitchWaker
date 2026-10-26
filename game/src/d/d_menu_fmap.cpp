@@ -1794,8 +1794,8 @@ void dMenu_Fmap_c::dispEndSalvageHugeMark(f32 i_x, f32 i_y) {
     if (!dComIfGs_isCompleteCollectMap(pnt->collectMapNo)) {
         mStl1Pane.pane->hide();
     } else {
-        f32 dx = pnt->salvagePnt[mSalvagePntIdx].x - i_x;
-        f32 dy = pnt->salvagePnt[mSalvagePntIdx].y - i_y;
+        f32 dx = BE_HOST(pnt->salvagePnt[mSalvagePntIdx].x) - i_x;
+        f32 dy = BE_HOST(pnt->salvagePnt[mSalvagePntIdx].y) - i_y;
         if (dx <= 10000.0f && dx >= -10000.0f && dy <= 10000.0f && dy >= -10000.0f) {
             mStl1Pane.mPosCenterOrig.x = mR01gPane.mPosTopLeftOrig.x + mR01gPane.mSizeOrig.x / 2.0f + dx * (mR01gPane.mSizeOrig.x / 20000.0f);
             mStl1Pane.mPosCenterOrig.y = mR01gPane.mPosTopLeftOrig.y + mR01gPane.mSizeOrig.y / 2.0f + dy * (mR01gPane.mSizeOrig.y / 20000.0f);

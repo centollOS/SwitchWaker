@@ -168,6 +168,33 @@ CASES = {
     "hookshot-target": ("2F,38", "tool-hookshot-target.txt",
                         [runs_proc(PROC_HOOKSHOT_FLY), reaches(500, -2400, 150)],
                         {"stage": "K_Teste:0:0", "place": "500,0,-1500,180"}),
+    # Issue #23: the same aimed with the C stick (pc_controls.h), and with aiming's vertical axis inverted.
+    "hookshot-target-cstick": ("2F,38", "tool-hookshot-target-cstick.txt",
+                               [runs_proc(PROC_HOOKSHOT_FLY), reaches(500, -2400, 150)],
+                               {"stage": "K_Teste:0:0", "place": "500,0,-1500,180",
+                                "env": {"COS_AIM_RIGHT_STICK": "1"}}),
+    "hookshot-target-invert": ("2F,38", "tool-hookshot-target-invert.txt",
+                               [runs_proc(PROC_HOOKSHOT_FLY), reaches(500, -2400, 150)],
+                               {"stage": "K_Teste:0:0", "place": "500,0,-1500,180",
+                                "env": {"COS_AIM_INVERT_Y": "1"}}),
+    # Issue #25: aimed with the gyroscope alone (COS_GYRO_FAKE: 10 degrees up over the view's first
+    # 15 frames; the option off, a turn down or no turn left misses), and placed 20 degrees to the
+    # left of the target, turned 20 degrees right as well.
+    "hookshot-target-gyro": ("2F,38", "tool-hookshot-target-gyro.txt",
+                             [runs_proc(PROC_HOOKSHOT_FLY), reaches(500, -2400, 150)],
+                             {"stage": "K_Teste:0:0", "place": "500,0,-1500,180",
+                              "env": {"COS_AIM_GYRO": "1", "COS_GYRO_FAKE": "0,20,15"}}),
+    "hookshot-target-gyro-yaw": ("2F,38", "tool-hookshot-target-gyro.txt",
+                                 [runs_proc(PROC_HOOKSHOT_FLY), reaches(500, -2400, 150)],
+                                 {"stage": "K_Teste:0:0", "place": "500,0,-1500,200",
+                                  "env": {"COS_AIM_GYRO": "1", "COS_GYRO_FAKE": "-40,20,15"}}),
+    # The gyroscope keeps its natural directions with every invert option on (camera and aiming).
+    "hookshot-target-gyro-inverts": ("2F,38", "tool-hookshot-target-gyro.txt",
+                                     [runs_proc(PROC_HOOKSHOT_FLY), reaches(500, -2400, 150)],
+                                     {"stage": "K_Teste:0:0", "place": "500,0,-1500,200",
+                                      "env": {"COS_AIM_GYRO": "1", "COS_GYRO_FAKE": "-40,20,15",
+                                              "COS_AIM_INVERT_Y": "1", "COS_CAMERA_INVERT_X": "1",
+                                              "COS_CAMERA_INVERT_Y": "1"}}),
     "red-potion": ("50,51,38", ITEMS, [runs_proc(PROC_BOTTLE_DRINK)]),
     "empty-bottle": ("50,38", ITEMS, [runs_proc(PROC_BOTTLE_SWING)]),
 }
@@ -181,6 +208,7 @@ def run_case(name: str, out: str, disc: str | None) -> tuple[str, bool, list[str
     env = dict(os.environ, COS_TOOL_WATCH="1", COS_BOOT_ITEMS=items)
     if "place" in opts:
         env["COS_TOOL_PLACE"] = opts["place"]
+    env.update(opts.get("env", {}))
     cmd = [COS_RUN, "run", "--uncapped", "--frames", "1500", "--stage", opts.get("stage", "sea:44:0"),
            "--input", f"{INPUT}/{script}", "--shot", SHOTS, "--run-dir", run_dir, "--quiet"]
     if disc:

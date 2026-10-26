@@ -3,6 +3,7 @@
 #include "pc_internal.h"
 #include "pc/pc_settings.h"
 #include "pc/pc_aspect.h"
+#include "pc/pc_update.h"
 
 #include <atomic>
 #include <cerrno>
@@ -11,6 +12,8 @@
 #include <cstring>
 #include <ctime>
 #include <unistd.h>
+
+#include <aurora/pipeline_cache_save.h>
 
 #if defined(__SWITCH__)
 #include "cos_switch.h"
@@ -146,6 +149,9 @@ void pc_harness_init(int argc, char* argv[]) {
     // The options menu's settings file (pc_settings.h) into the environment before anything reads
     // it (on the Switch cos_switch_start did it already, before its defaults).
     pc_settings_load_early();
+    // An install the last session left half done, or a new version's first start (pc_update.h): as
+    // early as the settings allow (on the Switch cos_switch_start did it already).
+    pc_update_boot();
 
     // Line-buffered stdout: the game reports with printf/OSReport into a pipe or file; a watchdog
     // or crash exit must not lose the last lines in a full buffer.
@@ -271,6 +277,12 @@ void pc_exit(int code) {
     // which assume a booted game (~dComIfG_inf_c reaches dVibration_c::Kill, which stops the motor
     // of a JUTGamePad that does not exist; found in step 3.9).
     // TODO(native phase 6): decide how the PC executable exits once the game boots (quit event).
+    // Aurora writes a GX pipeline first used in the run once its build has returned (Aurora patch 0023,
+    // issue #39) and _Exit skips its shutdown, so a clean exit writes the ones still waiting for theirs.
+    // Not after a stall, panic or crash: the pipeline being built may be the cause.
+    if (code != PC_EXIT_STALL && code != PC_EXIT_PANIC && code != PC_EXIT_SIGNAL) {
+        aurora_save_unbuilt_pipelines();
+    }
     // The COS_PERF rows still buffered (step 6.7).
     perfFlush();
     // Flush stdio without blocking on a lock some other (now frozen) thread may hold.

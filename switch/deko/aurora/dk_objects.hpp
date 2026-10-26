@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 #pragma once
 // The deko3d side of Aurora's WebGPU objects (docs/DEKO3D_MIGRATION_PLAN.md phase 3). The deko3d NRO
 // keeps Dawn's Null device as Aurora's object model (textures, views, samplers, bind groups are

@@ -1867,7 +1867,17 @@ void Act_c::mode_walk() {
         noGradeCos = fVar2;
     }
 
+#if TARGET_PC
+    // pNorm2 is NULL when the floor polygon has no plane (cBgS::GetTriPla returns NULL for an
+    // unset or unused collision element). MWCC puts cM3dGPla's vtable pointer after mNormal
+    // (offset 0x10), so NULL->GetNP() was NULL and posMoveF_grade_acc skipped the slope. The
+    // host ABI puts the vtable pointer first: the same expression gives (cXyz*)8, which
+    // posMoveF_grade_acc then reads as a normal. Pass the NULL the console passed.
+    daObj::posMoveF_grade(this, mStts.GetCCMoveP(), &m7F4, sp0C, sp08, pNorm2 != NULL ? pNorm2->GetNP() : NULL,
+                          fVar2, noGradeCos, &m6F0);
+#else
     daObj::posMoveF_grade(this, mStts.GetCCMoveP(), &m7F4, sp0C, sp08, pNorm2->GetNP(), fVar2, noGradeCos, &m6F0);
+#endif
 
     if (mAcch.ChkGroundHit()) {
         cLib_onBit<u32>(attention_info.flags, fopAc_Attn_ACTION_CARRY_e);

@@ -1,0 +1,6 @@
+{"tag_name":"v9.9.9","name":"SwitchWaker v9.9.9 (test fixture)","html_url":"https://github.com/centollOS/SwitchWaker/releases",
+"body":"A test release.\r\n\r\n## New\r\n\r\n- **Fixture** notes ([#28](https://github.com/centollOS/SwitchWaker/issues/28))\r\n\r\n## Install / update\r\n\r\n- not shown\r\n","assets":[
+{"name":"SwitchWaker-v9.9.9-switch.zip","size":753,"browser_download_url":"SwitchWaker-v9.9.9-switch.zip"},
+{"name":"SwitchWaker-v9.9.9-switch.zip.sha256","size":96,"browser_download_url":"SwitchWaker-v9.9.9-switch.zip.sha256"},
+{"name":"SwitchWaker-v9.9.9-switch-eur.zip","size":753,"browser_download_url":"SwitchWaker-v9.9.9-switch-eur.zip"},
+{"name":"SwitchWaker-v9.9.9-switch-eur.zip.sha256","size":100,"browser_download_url":"SwitchWaker-v9.9.9-switch-eur.zip.sha256"}]}

@@ -1,0 +1,8 @@
+# Tool sweep (native/tools/tool_sweep.py), issue #23: tool-hookshot-target.txt with aiming inverted
+# (COS_AIM_INVERT_Y=1): the main stick up, not down, raises the aim to the target; X fires.
+400 X 0 0
+402 - 0 0
+420 - 0 60
+440 - 0 0
+460 X 0 0
+462 - 0 0

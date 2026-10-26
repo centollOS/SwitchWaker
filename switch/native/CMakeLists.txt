@@ -81,6 +81,10 @@ cos_switch_portlib(ZLIB::ZLIB)
 target_link_libraries(ZLIB::ZLIB INTERFACE z)
 cos_switch_portlib(PNG::PNG)
 target_link_libraries(PNG::PNG INTERFACE png16 z)
+# The update's HTTPS (native/src/pc/features/pc_update.cpp, issues #27/#28): switch-curl, whose TLS is
+# libnx's ssl service (the console's CA store); native/cmake/executable.cmake links it into cos_pc.
+cos_switch_portlib(CURL::libcurl)
+target_link_libraries(CURL::libcurl INTERFACE curl z nx)
 
 # ---- Tracy: Aurora's profiler stays off; headers only (its client does not build for Horizon) ------
 FetchContent_Declare(tracy

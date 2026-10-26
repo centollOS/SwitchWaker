@@ -1,7 +1,7 @@
 /*
  * pc_aspect.h - the widescreen option of the native port (COS_ASPECT, native/src/pc/features/pc_aspect.cpp).
  *
- * COS_ASPECT=4:3 | 16:9 | 16:10 (default 4:3; the Switch harness sets 16:9). At 4:3 the game runs
+ * COS_ASPECT=4:3 | 16:9 (default 4:3; the Switch harness sets 16:9). At 4:3 the game runs
  * as on the GameCube. A wider aspect does in C what the community 16:9 Gecko code does to the
  * GameCube executable (Dolphin's GZLE01.ini "$16:9 Widescreen"; each of its lines is decoded in
  * docs/WIDESCREEN.md): the camera's aspect (projection and view culling), the
@@ -10,7 +10,8 @@
  * shows the console's anamorphic output.
  *
  * Each number the 16:9 code changes is interpolated between the game's 4:3 value and the code's
- * 16:9 value with t = (A - 4/3) / (16/9 - 4/3): 0 at 4:3, 1 at 16:9, 0.6 at 16:10, the same
+ * 16:9 value with t = (A - 4/3) / (16/9 - 4/3): 0 at 4:3, 1 at 16:9 (16:10, t = 0.6, was removed
+ * with issue #31: on the Switch's 16:9 screen it was stretched), the same
  * interpolation as the upstream recompilation project's scripts/mods/widescreen_aspect.py.
  *
  * The first call reads COS_ASPECT; pc_harness_init makes that call (and exits 2 on a malformed
@@ -27,16 +28,15 @@ extern "C" {
 enum {
     PC_ASPECT_4_3 = 0,
     PC_ASPECT_16_9 = 1,
-    PC_ASPECT_16_10 = 2,
 };
 
 /* PC_ASPECT_*: the COS_ASPECT the process runs with. */
 int pc_aspect(void);
-/* "4:3", "16:9" or "16:10". */
+/* "4:3" or "16:9". */
 const char* pc_aspect_name(void);
-/* Width / height of the presented picture: 4/3, 16/9 or 16/10. */
+/* Width / height of the presented picture: 4/3 or 16/9. */
 float pc_aspect_ratio(void);
-/* t of the interpolation: 0 at 4:3, 1 at 16:9, 0.6 at 16:10. */
+/* t of the interpolation: 0 at 4:3, 1 at 16:9. */
 float pc_aspect_t(void);
 /* Reads and checks COS_ASPECT (pc_harness_init): exits 2 (PC_EXIT_USAGE) on an unknown value. */
 void pc_aspect_init(void);

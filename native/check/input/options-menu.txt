@@ -2,7 +2,7 @@
 # the room from about frame 291). Opens the menu with L+R+Z, changes the internal resolution
 # (handheld) from the window's size to 1.5 (1280x720 at 16:9, 960x720 at 4:3) and turns the depth of
 # field off (Gráficos), turns the FPS overlay on (Rendimiento, past Controles), looks at Depuración (past
-# Randomizer), closes it with B;
+# Randomizer and Sistema), closes it with B;
 # then opens it again and warps to Windfall (Depuración > Viajar > 3rd entry). The menu must pause
 # the game while it is open; the run checks the "#expect" lines at frame 900.
 #expect opened 2
@@ -30,11 +30,13 @@
 420 - 0 0
 422 RIGHT 0 0
 424 - 0 0
-# down twice to "Profundidad de campo", A turns it off
+# down three times (past Reescalado, Resolución dinámica) to "Profundidad de campo", A turns it off
 426 DOWN 0 0
 428 - 0 0
 430 DOWN 0 0
 432 - 0 0
+434 DOWN 0 0
+436 - 0 0
 442 A 0 0
 444 - 0 0
 # R, R: Controles, Rendimiento; down to "Contador de FPS", A turns it on
@@ -46,15 +48,17 @@
 456 - 0 0
 458 A 0 0
 460 - 0 0
-# R, R, R: Calidad de vida, Randomizer, Depuración; B closes the menu
+# R, R, R, R: Calidad de vida, Randomizer, Sistema, Depuración; B closes the menu
 466 R 0 0
 468 - 0 0
 470 R 0 0
 472 - 0 0
 474 R 0 0
 476 - 0 0
-478 B 0 0
+478 R 0 0
 480 - 0 0
+482 B 0 0
+484 - 0 0
 # open again (Depuración is still the tab): A on "Viajar", down twice to Windfall, A
 540 L+R+Z 0 0
 543 - 0 0

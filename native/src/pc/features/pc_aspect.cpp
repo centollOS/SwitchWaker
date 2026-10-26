@@ -17,7 +17,6 @@ struct Aspect {
 constexpr Aspect kAspects[] = {
     {"4:3", 4.0f / 3.0f},
     {"16:9", 16.0f / 9.0f},
-    {"16:10", 16.0f / 10.0f},
 };
 
 // -1 until the first call reads COS_ASPECT (pc_harness_init, before any game thread starts).
@@ -66,7 +65,7 @@ float pc_aspect_t(void) {
 void pc_aspect_init(void) {
     pc_aspect();
     if (sBadValue != nullptr) {
-        pc::writef(STDERR_FILENO, "[cos] COS_ASPECT=\"%s\" is not 4:3, 16:9 or 16:10\n", sBadValue);
+        pc::writef(STDERR_FILENO, "[cos] COS_ASPECT=\"%s\" is not 4:3 or 16:9\n", sBadValue);
         pc_exit(PC_EXIT_USAGE);
     }
     if (pc_aspect_wide()) {

@@ -1,0 +1,7 @@
+# Tool sweep (native/tools/tool_sweep.py), issue #25: tool-hookshot-target.txt aimed with the
+# gyroscope (COS_AIM_GYRO=1, COS_GYRO_FAKE turning it up for a while once the view opens). X readies
+# the hookshot; the sticks stay centred; X fires: the hook sticks and pulls the player to the target.
+400 X 0 0
+402 - 0 0
+460 X 0 0
+462 - 0 0

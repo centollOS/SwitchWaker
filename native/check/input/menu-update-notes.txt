@@ -1,0 +1,17 @@
+# COS_SMOKE=options-menu without --stage (issues #27/#28): the popup for the fixture release v9.9.9
+# (native/check/update), down to "Ver notas de la versión", A: the Sistema tab's notes page opens with the
+# release's notes (its "New" heading; the "Install / update" section left out), nothing installed.
+#update-release ../update
+#title
+#expect opened 1
+#expect notes-page 1 New
+#expect update available
+#expect update-file switchwaker.nro -
+#expect end 640
+# frame buttons stickX stickY
+520 DOWN 0 0
+523 - 0 0
+526 A 0 0
+529 - 0 0
+560 DOWN 0 0
+563 - 0 0

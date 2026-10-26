@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """Writes the WGSL of the renderer's fixed shaders (the ones Aurora does not generate per GX config)
 as one .wgsl file per module, for `dksh_cache wgsl` (docs/DEKO3D_MIGRATION_PLAN.md, phase 1):
 

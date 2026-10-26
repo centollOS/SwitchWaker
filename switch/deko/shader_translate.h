@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 #pragma once
 // WGSL -> GLSL for uam (deko3d's shader compiler), docs/DEKO3D_MIGRATION_PLAN.md section 3.3:
 //

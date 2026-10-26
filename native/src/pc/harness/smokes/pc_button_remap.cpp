@@ -21,7 +21,8 @@
 //   7. gc adapter untouched: the GameCube adapter's mappings still equal the copy of step 0;
 //   8. restore: pc_button_remap_restore_defaults leaves no COS_PAD_ line in the file; East gives B.
 // Then the options menu (pc_menu.cpp), driven by the same Pro Controller (SDL's labels are the
-// Switch's: East = A, South = B): ZL+ZR+Minus opens it, R moves to Controles (the A row), and:
+// Switch's: East = A, South = B): ZL+ZR+Minus opens it, R moves to Controles, D-pad Down past the
+// camera and aiming rows above the remap (kRowsAbove, issues #23 and #25) to the A row, and:
 //   9. confirm not captured: East (confirm) held 30 frames opens the capture of A and is not taken;
 //      West then gives A the Y button (A = y), and X takes A's old input (b);
 //  10. capture swallows navigation: on row B, confirm, then D-pad Down: B = down (Down takes B's old
@@ -33,7 +34,7 @@
 //  13. other pads ignored: START held on the GameCube adapter (a pad the remap does not cover) through
 //      a capture of B: the capture still arms and takes the Pro Controller's North (B = x, Y takes
 //      B's old input, down), not the adapter's button;
-//  14. restore row: up twice to the last row, "Restaurar controles por defecto", confirm: the default
+//  14. restore row: up past the first row to the last one, "Restaurar controles por defecto", confirm: the default
 //      map and no COS_PAD_ line; South (B) closes the menu.
 // Started with an invalid set (e.g. --env COS_PAD_A=b --env COS_PAD_B=b) the remap applies the
 // default map with one log line: the smoke runs check 1 only (the environment locks the keys, so
@@ -308,6 +309,14 @@ constexpr size_t kStepCount = sizeof(kSteps) / sizeof(kSteps[0]);
 
 remap::Map sSnapshot; // the map before a capture that must change nothing
 
+// The Controles rows above the remap's (pc_menu.cpp, issues #23 and #25): the camera's inverted axes,
+// aiming with the right stick and its inverted vertical axis, the gyroscope and its sensitivity.
+// menuOpened checks the count.
+constexpr int kRowsAbove = 6;
+constexpr int kRowA = kRowsAbove;
+constexpr int kRowB = kRowsAbove + 1;
+constexpr int kRowRestore = kRowsAbove + (int)remap::Action::Count;
+
 // The menu's state: open, its tab, the selected row and the action being captured (-1: none).
 struct MenuSeen {
     bool open;
@@ -361,13 +370,23 @@ bool menuOpened() {
     if (!ok) {
         failNote("ZL+ZR+Minus did not open the menu");
     }
-    return ok;
+    int above = 0;
+    for (int i = 0; i < pc_settings_count(); i++) {
+        const PcSettingDesc* d = pc_settings_at(i);
+        if (d != nullptr && d->tab == PC_SETTING_TAB_CONTROLS && !(d->flags & (PC_SETTING_REMAP | PC_SETTING_HIDDEN))) {
+            above++;
+        }
+    }
+    if (above != kRowsAbove) {
+        failNote("the Controles tab has another number of rows above the remap's (kRowsAbove)");
+    }
+    return ok && above == kRowsAbove;
 }
 bool onRowA() {
-    return expectMenu(true, 0, -1);
+    return expectMenu(true, kRowA, -1);
 }
 bool capturingA() {
-    return expectMenu(true, 0, (int)remap::Action::A) &&
+    return expectMenu(true, kRowA, (int)remap::Action::A) &&
            expectMap(remap::defaultMap(), "the confirm press was taken by the capture");
 }
 bool confirmNotCaptured() {
@@ -375,23 +394,23 @@ bool confirmNotCaptured() {
     if (!ok) {
         failNote("A is not on y with X on b");
     }
-    return expectMenu(true, 0, -1) && ok;
+    return expectMenu(true, kRowA, -1) && ok;
 }
 bool onRowB() {
-    return expectMenu(true, 1, -1);
+    return expectMenu(true, kRowB, -1);
 }
 bool capturingB() {
-    return expectMenu(true, 1, (int)remap::Action::B);
+    return expectMenu(true, kRowB, (int)remap::Action::B);
 }
 bool swallowed() {
     const bool ok = inputOf(remap::Action::B) == Input::Down && inputOf(remap::Action::Down) == Input::A;
     if (!ok) {
         failNote("B is not on down with Down on a");
     }
-    return expectMenu(true, 1, -1) && ok;
+    return expectMenu(true, kRowB, -1) && ok;
 }
 bool unchanged() {
-    return expectMenu(true, 1, -1) && expectMap(sSnapshot, "a cancelled capture changed the map");
+    return expectMenu(true, kRowB, -1) && expectMap(sSnapshot, "a cancelled capture changed the map");
 }
 void holdAdapterStart() {
     SDL_SetJoystickVirtualButton(sGc.joy, sGc.button[SDL_GAMEPAD_BUTTON_START], true);
@@ -402,17 +421,17 @@ bool otherPadsIgnored() {
     if (!ok) {
         failNote("B is not on x with Y on down (the adapter's held button kept the capture from arming?)");
     }
-    return expectMenu(true, 1, -1) && ok;
+    return expectMenu(true, kRowB, -1) && ok;
 }
 bool onRestoreRow() {
-    return expectMenu(true, (int)remap::Action::Count, -1);
+    return expectMenu(true, kRowRestore, -1);
 }
 bool restored() {
     const bool ok = !fileHasRemapLine();
     if (!ok) {
         failNote("a COS_PAD_ line is still in the settings file");
     }
-    return expectMenu(true, (int)remap::Action::Count, -1) && expectMap(remap::defaultMap(), "not the default map") &&
+    return expectMenu(true, kRowRestore, -1) && expectMap(remap::defaultMap(), "not the default map") &&
            ok;
 }
 bool closed() {
@@ -440,7 +459,13 @@ uint64_t sOpStartNs = 0;      // the press of the current op
 uint64_t sCaptureSeenNs = 0;  // the first frame of the current op with the capture open (0: not yet)
 const MenuOp kMenuOps[] = {
     {"confirm not captured", nullptr, -1, true, 4, 8, menuOpened, false},
-    {"confirm not captured", nullptr, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER, false, 4, 8, onRowA, false},
+    {"confirm not captured", nullptr, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER, false, 4, 8, nullptr, false},
+    {"confirm not captured", nullptr, SDL_GAMEPAD_BUTTON_DPAD_DOWN, false, 4, 8, nullptr, false},
+    {"confirm not captured", nullptr, SDL_GAMEPAD_BUTTON_DPAD_DOWN, false, 4, 8, nullptr, false},
+    {"confirm not captured", nullptr, SDL_GAMEPAD_BUTTON_DPAD_DOWN, false, 4, 8, nullptr, false},
+    {"confirm not captured", nullptr, SDL_GAMEPAD_BUTTON_DPAD_DOWN, false, 4, 8, nullptr, false},
+    {"confirm not captured", nullptr, SDL_GAMEPAD_BUTTON_DPAD_DOWN, false, 4, 8, nullptr, false},
+    {"confirm not captured", nullptr, SDL_GAMEPAD_BUTTON_DPAD_DOWN, false, 4, 8, onRowA, false},
     {"confirm not captured", nullptr, SDL_GAMEPAD_BUTTON_EAST, false, 30, 8, capturingA, false},
     {"confirm not captured", nullptr, SDL_GAMEPAD_BUTTON_WEST, false, 4, 8, confirmNotCaptured, true},
     {"capture swallows navigation", nullptr, SDL_GAMEPAD_BUTTON_DPAD_DOWN, false, 4, 8, onRowB, false},
@@ -451,6 +476,12 @@ const MenuOp kMenuOps[] = {
     {"cancel timeout", snapshot, SDL_GAMEPAD_BUTTON_EAST, false, 4, 8, unchanged, true, true},
     {"other pads ignored", holdAdapterStart, SDL_GAMEPAD_BUTTON_EAST, false, 4, 8, capturingB, false},
     {"other pads ignored", nullptr, SDL_GAMEPAD_BUTTON_NORTH, false, 4, 8, otherPadsIgnored, true},
+    {"restore row", nullptr, SDL_GAMEPAD_BUTTON_DPAD_UP, false, 4, 8, nullptr, false},
+    {"restore row", nullptr, SDL_GAMEPAD_BUTTON_DPAD_UP, false, 4, 8, nullptr, false},
+    {"restore row", nullptr, SDL_GAMEPAD_BUTTON_DPAD_UP, false, 4, 8, nullptr, false},
+    {"restore row", nullptr, SDL_GAMEPAD_BUTTON_DPAD_UP, false, 4, 8, nullptr, false},
+    {"restore row", nullptr, SDL_GAMEPAD_BUTTON_DPAD_UP, false, 4, 8, nullptr, false},
+    {"restore row", nullptr, SDL_GAMEPAD_BUTTON_DPAD_UP, false, 4, 8, nullptr, false},
     {"restore row", nullptr, SDL_GAMEPAD_BUTTON_DPAD_UP, false, 4, 8, nullptr, false},
     {"restore row", nullptr, SDL_GAMEPAD_BUTTON_DPAD_UP, false, 4, 8, onRestoreRow, false},
     {"restore row", nullptr, SDL_GAMEPAD_BUTTON_EAST, false, 4, 8, restored, false},

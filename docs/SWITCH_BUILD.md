@@ -127,6 +127,29 @@ scripts/switch/push.sh native                   # to sdmc:/switch/switchwaker/, 
   rebuilt with each NRO. The NRO loads it whole at start (`[dk] shader cache:` line). Pipelines it lacks
   are compiled on the console (Tint and uam in the NRO, one worker thread) and kept in
   `switch/switchwaker/native/user/cache/dksh_local.bin` for the next start.
+- FXAA: the options menu's Gráficos > *Suavizado de bordes (FXAA)* (`COS_FXAA`: 0 off, the default; 1 Suave, 2 Normal, 3 Fuerte, which set the contrast an edge needs and the sub-pixel blend; live)
+  makes the present pass draw the resampled picture with `switch/deko/shaders/dk_fxaa.wgsl` (one
+  full-screen pass, FXAA 3.11 with an edge search, in place of the `xfb_copy` copy; no extra render target) before
+  ImGui, so the menu and FPS panel stay sharp (the game's own HUD is in the picture, so FXAA filters it). Its DKSH is in `initial_dksh_cache.bin` like the test
+  pattern's (`build_native.sh` checks `dk_fxaa.vs_main`/`fs_main`).
+- SSAO: the options menu's Gráficos > *Oclusión ambiental (SSAO)* (`COS_SSAO` 0-3: off, low, medium, high; off by default, live) adds three
+  fixed passes between the resample and the final pass, on the EFB's Depth32Float buffer (still intact at the
+  present: the pass after the last EFB copy is discardable): the occlusion at reduced resolution (Baja: a quarter,
+  four taps; Media: half, six taps; Alta: half, eight taps; the slope of the surface taken from the depth
+  gradient, so no normals), a depth-aware 3x3 blur, and the
+  darkening of the resampled picture (alpha blend, black with alpha = strength * occlusion), so FXAA and the
+  gamma see it; sky (depth 0) takes none and the menus are drawn after. `switch/deko/shaders/dk_ssao.wgsl`
+  (`dk_ssao.vs_main`/`fs_ao`/`fs_blur`/`fs_apply`); developer variables `COS_SSAO_RADIUS` (world units, 50),
+  `COS_SSAO_STRENGTH` (percent, 0 = the level's: 50/60/70), `COS_SSAO_BIAS` (1/10000 of relative depth, 150).
+- Rescaling: the options menu's Gráficos > *Reescalado* (`COS_RESCALE`: 0 Bilinear, the default and the
+  behaviour before the row; 1 Área; 2 FSR 1; live). FSR 1 is AMD's FidelityFX Super Resolution 1.0 (MIT):
+  stage 0 of the present pass draws EASU (`switch/deko/shaders/dk_fsr_easu.wgsl`, 12 taps) from the EFB into
+  the resampled image at the shown size in place of `present_resample`, and the final draw is RCAS
+  (`dk_fsr_rcas.wgsl`, sharpness 0.25 stops) in place of the copy. With FXAA on, FXAA runs on the EASU picture into
+  its own image and RCAS sharpens the result (one extra pass). If the EFB already has the shown
+  size EASU is skipped (RCAS or FXAA read the EFB); if it is larger (a downscale) FSR is not used and the
+  plain resample runs. With `COS_FB_SCALE` 1.125 (960x540) FSR 1 is the intended pairing. The DKSH of both
+  is in `initial_dksh_cache.bin` (`build_native.sh` checks their `vs_main`/`fs_main`).
 - deko3d run options (settings.ini `[dev]`, `switch/native/settings-dev.example.ini`): `COS_DK_TEST_PATTERN=1`
   draws a test pattern of deko3d's conventions under the menu (four coloured corners, two depth-tested
   squares, a depth-range check, a textured square with texture row 0 marked, a counter-clockwise and a

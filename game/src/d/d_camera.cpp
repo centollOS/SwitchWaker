@@ -60,10 +60,61 @@ static inline f32 dCamera_cStickY(int padId) {
     }
     return CPad_GET_SUBSTICK_POS_Y(padId);
 }
+
+// The C stick's vertical axis as a command, not a camera tilt: up enters the look-around view,
+// down ends it, up/down zoom the telescope and the Picto Box. These keep the stick's real
+// direction with the camera's vertical axis inverted (mStickCPosYLast holds the inverted one).
+#define dCamera_cStickYCmd(y) (pc_camera_invert_y() ? -(y) : (y))
+
+// Issue #23: aiming (CalcSubjectAngle, every first-person view) with the C stick too, and its
+// vertical axis inverted (pc_controls.h). The C stick's real position, added to the main stick's
+// once it has been centred since the view opened (dCamera_aimLatch, cleared by subjectCamera's
+// set-up); with `zoom` (the telescope, the Picto Box) its vertical axis stays the zoom's.
+static bool dCamera_aimLatch[4];
+
+static inline f32 dCamera_aimClamp(f32 v) {
+    return v > 1.0f ? 1.0f : v < -1.0f ? -1.0f : v;
+}
+
+static void dCamera_aimStick(int padId, bool zoom, f32* x, f32* y) {
+    if (pc_aim_right_stick()) {
+        const f32 cx = CPad_GET_SUBSTICK_POS_X(padId);
+        const f32 cy = zoom ? 0.0f : CPad_GET_SUBSTICK_POS_Y(padId);
+        if (!dCamera_aimLatch[padId & 3]) {
+            dCamera_aimLatch[padId & 3] = CPad_GET_SUBSTICK_VALUE(padId) < 0.1f;
+        } else {
+            *x = dCamera_aimClamp(*x + cx);
+            *y = dCamera_aimClamp(*y + cy);
+        }
+    }
+    if (pc_aim_invert_y()) {
+        *y = -*y;
+    }
+}
+
+// Issue #25: the gyroscope's turn since the last frame (pc_controls.h), in the view's own units:
+// *yaw in degrees to the left, added to the body's yaw; the pitch into m388 (fVar1 degrees per
+// unit, positive down), where the game's limits hold it. `pitchDownBlocked`: the eye is at the
+// floor and m388 already points down, as when the main stick may not tilt further.
+static f32 dCamera_aimGyro(int padId, f32 degPerUnit, bool pitchDownBlocked, bool noPitch, f32* m388) {
+    f32 yaw, pitch;
+    if (!pc_aim_gyro_turn(padId, &yaw, &pitch)) {
+        return 0.0f;
+    }
+    if (!noPitch && degPerUnit > 0.0f) {
+        const f32 add = -pitch / degPerUnit;
+        if (!(pitchDownBlocked && add > 0.0f)) {
+            *m388 = dCamera_aimClamp(*m388 + add);
+        }
+    }
+    return yaw;
+}
 #undef CPad_GET_SUBSTICK_POS_X
 #undef CPad_GET_SUBSTICK_POS_Y
 #define CPad_GET_SUBSTICK_POS_X(padNo) dCamera_cStickX(padNo)
 #define CPad_GET_SUBSTICK_POS_Y(padNo) dCamera_cStickY(padNo)
+#else
+#define dCamera_cStickYCmd(y) (y)
 #endif
 
 namespace {  
@@ -1261,7 +1312,7 @@ int dCamera_c::nextMode(s32 i_curMode) {
                     m144 = 1;
                     m184 = 0;
                 }
-                else if (mStickCPosYLast <= 0.0f && mStickCValueLast > mCamSetup.CStickReleaseThreshold()) {
+                else if (dCamera_cStickYCmd(mStickCPosYLast) <= 0.0f && mStickCValueLast > mCamSetup.CStickReleaseThreshold()) {
                     m144 = 0;
                 }
                 else if (i_curMode == 0 || i_curMode == 0x13) {
@@ -1278,11 +1329,11 @@ int dCamera_c::nextMode(s32 i_curMode) {
                         )
                     ) {
                         if (m184 == 1) {
-                            if (mStickCPosYLast < mCamSetup.mCstick.SwTHL()) {
+                            if (dCamera_cStickYCmd(mStickCPosYLast) < mCamSetup.mCstick.SwTHL()) {
                                 m184 = 0;
                             }
                         }
-                        else if (mStickCPosYLast > mCamSetup.mCstick.SwTHH()) {
+                        else if (dCamera_cStickYCmd(mStickCPosYLast) > mCamSetup.mCstick.SwTHH()) {
                             // C-stick up.
                             setComStat(dCamAttnStts_00001000_e);
                             m184 = 1;
@@ -4641,6 +4692,10 @@ bool dCamera_c::CalcSubjectAngle(s16* param_1, s16* param_2) {
 #endif
 
     bool bVar9 = true;
+#if TARGET_PC
+    f32 gyroYaw = 0.0f;  // issue #25
+    bool gyroDownBlocked = false;
+#endif
     
     if (dComIfGp_evmng_cameraPlay() && dComIfGp_getMiniGameType() != 8) {
         return false;
@@ -4673,6 +4728,9 @@ bool dCamera_c::CalcSubjectAngle(s16* param_1, s16* param_2) {
     
     fVar6 = CPad_GET_STICK_POS_X(mPadId);
     fVar5 = CPad_GET_STICK_POS_Y(mPadId);
+#if TARGET_PC
+    dCamera_aimStick(mPadId, mCamParam.Flag(mWork.subject.m380, dCamPrmFlg_UNK010), &fVar6, &fVar5);
+#endif
 
     if (is_player(mpPlayerActor)) {
         mWork.subject.m3B8 = ((daPy_py_c*)mpPlayerActor)->getBodyAngleX();
@@ -4715,6 +4773,9 @@ bool dCamera_c::CalcSubjectAngle(s16* param_1, s16* param_2) {
 
     f32 f2 = 5.0f;
     f32 eyeY = mEye.y;
+#if TARGET_PC
+    gyroDownBlocked = (eyeY <= m354 + f2 || eyeY <= mBG.m5C.m58 + f2) && mWork.subject.m388 >= 0.0f;
+#endif
     if ((eyeY <= m354 + f2 || eyeY <= mBG.m5C.m58 + f2) && ((mWork.subject.m388 >= 0.0f && f3 > 0.0f) || (mWork.subject.m388 < 0.0f && f3 <= 0.0f))) {
 #endif
         fVar5 = 0.0f;
@@ -4759,6 +4820,10 @@ bool dCamera_c::CalcSubjectAngle(s16* param_1, s16* param_2) {
             if (mWork.subject.m388 < -1.0f) {
                 mWork.subject.m388 = -1.0f;
             }
+#if TARGET_PC
+            gyroYaw = dCamera_aimGyro(mPadId, fVar1, gyroDownBlocked,
+                                      check_owner_action(mPadId, daPyStts0_CRAWL_e), &mWork.subject.m388);
+#endif
         }
     }
     else {
@@ -4769,6 +4834,9 @@ bool dCamera_c::CalcSubjectAngle(s16* param_1, s16* param_2) {
     cSAngle local_94(fVar1 * mWork.subject.m388);
     
     s16 local_a8 = local_90.Val() + mWork.subject.m3BA;
+#if TARGET_PC
+    local_a8 += cSAngle(gyroYaw).Val();
+#endif
     *param_2 = local_a8;
     *param_1 = local_94.Val();
     mWork.subject.m37D = 0;
@@ -4792,6 +4860,10 @@ bool dCamera_c::subjectCamera(s32 param_1) {
     cSGlobe desired;
 
     if (m108 == 0) {
+#if TARGET_PC
+        dCamera_aimLatch[mPadId & 3] = false;
+        pc_aim_gyro_reset();
+#endif
         mWork.subject.m378 = 'SUBJ';
         mWork.subject.m37C = 0;
         mWork.subject.m37D = 1;
@@ -4817,7 +4889,7 @@ bool dCamera_c::subjectCamera(s32 param_1) {
             mWork.subject.m3BD = 0;
         }
 
-        if (mStickCPosYLast < -0.74f) {
+        if (dCamera_cStickYCmd(mStickCPosYLast) < -0.74f) {
             mWork.subject.m3C4 = 2;
         } else {
             mWork.subject.m3C4 = 0;
@@ -5062,10 +5134,10 @@ bool dCamera_c::subjectCamera(s32 param_1) {
         // zoom control block
         f32 a = 0.0f;
         f32 b = 0.0f;
-        if (mStickCPosYLast > 0.0f) {
-            a = dCamMath::rationalBezierRatio(mStickCPosYLast, mCamSetup.CurveWeight());
+        if (dCamera_cStickYCmd(mStickCPosYLast) > 0.0f) {
+            a = dCamMath::rationalBezierRatio(dCamera_cStickYCmd(mStickCPosYLast), mCamSetup.CurveWeight());
         } else {
-            b = dCamMath::rationalBezierRatio(-mStickCPosYLast, mCamSetup.CurveWeight());
+            b = dCamMath::rationalBezierRatio(-dCamera_cStickYCmd(mStickCPosYLast), mCamSetup.CurveWeight());
         }
 
         f32 next = mWork.subject.m38C + p26 * (a - b) * 0.1f;
@@ -5109,17 +5181,22 @@ bool dCamera_c::subjectCamera(s32 param_1) {
     mWork.subject.m37D = 1;
 
     // "C-stick down" behavior block
+#if TARGET_PC
+    // Issue #23: with the C stick aiming, its down no longer ends the look-around view.
+    if (check_owner_action(mPadId, daPyStts0_SUBJECT_e) && !pc_aim_right_stick()) {
+#else
     if (check_owner_action(mPadId, daPyStts0_SUBJECT_e)) {
+#endif
         if (mWork.subject.m3C4 == 2) {
-            if (mStickCPosYLast >= -0.001f) {
+            if (dCamera_cStickYCmd(mStickCPosYLast) >= -0.001f) {
                 mWork.subject.m3C4 = 0;
             }
         }
-        else if (mWork.subject.m3C4 == 1 && mStickCPosYLast < -0.74f) {
+        else if (mWork.subject.m3C4 == 1 && dCamera_cStickYCmd(mStickCPosYLast) < -0.74f) {
             mWork.subject.m3C4 = 2;
             setComStat(dCamAttnStts_00002000_e);
         }
-        else if (mStickCPosYLast < -0.001f) {
+        else if (dCamera_cStickYCmd(mStickCPosYLast) < -0.001f) {
             mWork.subject.m3C4 = 1;
         }
         else {

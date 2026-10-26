@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 #pragma once
 // dksh_cache's view of Aurora (aurora_host.cpp): kept free of Aurora's headers so that the tool's
 // other units do not see WebGPU or Aurora types.

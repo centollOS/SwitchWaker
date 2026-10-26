@@ -1732,6 +1732,7 @@ void pc_frame_end(void) {
     eventWatchFrame(frames);
     stageHopFrame(frames);
     cameraInvertFrame(frames);
+    vibrationFrame(frames);
     pictoBoxFrame(frames);
     randoSmokeFrame(frames); // COS_SMOKE=rando (smokes/pc_rando_smokes.cpp)
     fileSelectFrame(frames);

@@ -1,0 +1,9 @@
+# Tool sweep (native/tools/tool_sweep.py), issue #23: tool-hookshot-target.txt aimed with the C stick
+# (COS_AIM_RIGHT_STICK=1). X readies the hookshot; the C stick down raises the aim (the main stick's
+# convention) to the target; X fires: the hook sticks and pulls the player to the target.
+400 X 0 0
+402 - 0 0
+420 - 0 0 0 -60
+440 - 0 0
+460 X 0 0
+462 - 0 0

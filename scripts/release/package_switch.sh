@@ -5,11 +5,16 @@
 #
 #   scripts/release/package_switch.sh TAG [--with-eur]
 #     -> build/release/SwitchWaker-TAG-switch.zip and .sha256, for the USA disc ("SwitchWaker" in hbmenu):
-#          switch/switchwaker/switchwaker.nro, initial_pipeline_cache.db, initial_dksh_cache.bin
+#          switch/switchwaker/switchwaker.nro, initial_pipeline_cache.db, initial_dksh_cache.bin,
+#          LICENSE.txt and THIRD_PARTY.md (the cache holds third-party shaders: THIRD_PARTY.md)
 #     --with-eur: also build/release/SwitchWaker-TAG-switch-eur.zip and .sha256, for the European disc
 #        ("SwitchWaker EUR", docs/PAL_DISC_PLAN.md), the same layout:
 #          switch/switchwaker/switchwaker.nro (build/switch-native-eur/switchwaker-eur.nro, renamed),
-#          initial_pipeline_cache.db, initial_dksh_cache.bin
+#          initial_pipeline_cache.db, initial_dksh_cache.bin, LICENSE.txt, THIRD_PARTY.md
+#
+# The in-game update (native/src/pc/features/pc_update.cpp, issues #27/#28) finds these zips on the GitHub
+# release by name (SwitchWaker-<tag>-switch.zip / -switch-eur.zip with their .sha256) and installs every
+# file under switch/switchwaker/ in them: keep the names, the .sha256 and the layout.
 #
 # One region per SD card: both zips install switch/switchwaker/switchwaker.nro, the path the HOME-menu
 # forwarder starts, so they conflict on purpose (INSTALL.md: to change region, the other zip's
@@ -66,7 +71,7 @@ for n in "${nros[@]}"; do
         fail "$n does not carry version $version (built from another commit?)"
 done
 
-# zip NAME BUILD_DIR NRO: the NRO as switch/switchwaker/switchwaker.nro, the caches next to it
+# zip NAME BUILD_DIR NRO: the NRO as switch/switchwaker/switchwaker.nro, the caches and the license files next to it
 package() {
     local name=$1 dir=$2 nro=$3 stage
     stage=build/release/$name
@@ -74,6 +79,8 @@ package() {
     mkdir -p "$stage/switch/switchwaker"
     cp "$dir/$nro" "$stage/switch/switchwaker/switchwaker.nro"
     for f in "${caches[@]}"; do cp "$dir/$f" "$stage/switch/switchwaker/"; done
+    cp LICENSE "$stage/switch/switchwaker/LICENSE.txt"
+    cp THIRD_PARTY.md "$stage/switch/switchwaker/"
     (cd "$stage" && zip -qr "../$name.zip" switch)
     rm -rf "$stage"
     (cd build/release && shasum -a 256 "$name.zip" > "$name.zip.sha256" && cat "$name.zip.sha256")

@@ -402,6 +402,16 @@ void pc_settings_load_early(void) {
     }
 #endif
     readFile();
+    // Issue #31: the 16:10 aspect is gone. A file that still has it runs at 16:9 (saved at the next
+    // write) instead of stopping at pc_aspect_init's check.
+    if (auto it = s.entries.find("COS_ASPECT"); it != s.entries.end()) {
+        for (std::string& v : it->second.stored) {
+            if (v == "16:10") {
+                v = "16:9";
+                pc::writef(STDERR_FILENO, "[cos] settings: COS_ASPECT 16:10 is no longer an option, using 16:9\n");
+            }
+        }
+    }
     s.lastMode = queryMode();
     s.haveLastMode = true;
     // Every value the file gives that the environment does not: into the environment, for code

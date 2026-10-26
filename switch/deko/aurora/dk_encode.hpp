@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 #pragma once
 // What the encoder (dk_encode.cpp) shares with the present and the readback (dk_present.cpp): the
 // fixed passes (a full-target draw with one of the cache's fixed shaders), the state cache's reset,
@@ -22,9 +23,10 @@ struct FixedBind {
 
 // One fullscreen-triangle draw of a fixed shader into a colour target (w x h, cleared to 0 first when
 // clear), blending off, depth off; a barrier after it. Null target: into what is bound (the present).
+// blend: the standard alpha blend over what the target holds (colour * a + target * (1 - a)).
 // False (logged once per module) when the shaders are missing.
 bool fixed_draw(const char* module, const char* vsEntry, const char* fsEntry, const DkImageView* target, uint32_t w,
-                uint32_t h, bool clear, const FixedBind* binds, uint32_t bindCount);
+                uint32_t h, bool clear, const FixedBind* binds, uint32_t bindCount, bool blend = false);
 
 // the encoder's view of the command buffer state is lost (another pass bound its own state)
 void invalidate_state();

@@ -8,6 +8,9 @@
 #include "JSystem/JUtility/JUTGamePad.h"
 #include "math.h"
 #include "dolphin/os/OS.h"
+#if TARGET_PC
+#include "pc/pc_harness.h"
+#endif
 
 u32 channel_mask[4] = {0x80000000, 0x40000000, 0x20000000, 0x10000000};
 JSUList<JUTGamePad> JUTGamePad::mPadList(false);
@@ -465,6 +468,19 @@ void JUTGamePad::CRumble::stopPatternedRumble(s16 port) {
 
 /* 802C479C-802C47C0       .text stopPatternedRumbleAtThePeriod__Q210JUTGamePad7CRumbleFv */
 void JUTGamePad::CRumble::stopPatternedRumbleAtThePeriod() {
+#if TARGET_PC
+    // mFrameCount is 0 after startPatternedRumble got a 0-frame pattern (dVibration_c::Run's motor
+    // cases with MS_patt[0] or MQ_patt[0], or a motor quake started on a motor shock's last frame)
+    // and after update() on a port that is not enabled. The console's divwu by 0 does not trap and
+    // its remainder (mullw, subf) leaves the dividend, mFrame - 1, so update() stops the motor on
+    // its next call; an x86-64 div raises SIGFPE. Give the console's value, but 0 rather than its
+    // 0xFFFFFFFF on frame 0, which would keep the motor running for good.
+    if (mFrameCount == 0) {
+        pc_vibration_guard(PC_VIB_GUARD_RUMBLE);
+        mLength = mFrame != 0 ? mFrame - 1 : 0;
+        return;
+    }
+#endif
     mLength = (mFrame + mFrameCount - 1) % mFrameCount;
 }
 

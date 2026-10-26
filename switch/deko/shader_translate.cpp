@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // WGSL -> uam GLSL (shader_translate.h). The post-pass follows the pattern of SwitchWakerHD's
 // runtime/src/gfx/deko/glsl_convert.cpp (MPL-2.0): fix the source line by line where uam's dialect
 // differs, keep everything else byte for byte. No code of it is copied; the rules are this

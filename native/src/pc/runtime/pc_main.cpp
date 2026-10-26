@@ -233,7 +233,7 @@ void pc_aurora_init(int argc, char* argv[]) {
     config.vsync = !gConfig.uncapped;
     config.windowPosX = -1;
     config.windowPosY = -1;
-    // 960x720, or as wide as COS_ASPECT at that height (1280x720 at 16:9, 1152x720 at 16:10).
+    // 960x720, or as wide as COS_ASPECT at that height (1280x720 at 16:9).
     config.windowWidth = (int)(480 * 3 / 2 * pc_aspect_ratio() + 0.5f);
     config.windowHeight = 480 * 3 / 2;
     // COS_FULLSCREEN=1: open fullscreen (borderless at the desktop's resolution). F11 or Alt+Enter
@@ -260,6 +260,10 @@ void pc_aurora_init(int argc, char* argv[]) {
     });
 #endif
     applyFrameBufferScale(info.windowSize);
+    // Issue #31: Aurora's policy is FIT, but its window starts with the aspect fit off until a
+    // policy is set, so the framebuffer took the whole window and 4:3 was stretched on a 16:9
+    // screen (the Switch, a fullscreen Mac). Setting FIT turns the fit on (pillarbox at 4:3).
+    AuroraSetViewportPolicy(AURORA_VIEWPORT_FIT);
     if (pc_aspect_wide()) {
         // The game draws an anamorphic picture into the 640x480 EFB (pc_aspect.h): Aurora presents
         // it at the wider aspect, letterboxed or pillarboxed in a window of another shape (patch

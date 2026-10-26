@@ -58,6 +58,7 @@
 
 #include "cos_switch_internal.h"
 #include "debug_server.h"
+#include "pc/pc_update.h"
 #include "usb_log.h"
 
 extern "C" void pc_settings_load_early(void); // native/src/pc/features/pc_settings.cpp
@@ -73,6 +74,7 @@ constexpr const char* kLogDir = COS_SWITCH_ROOT "/logs";
 constexpr size_t kMaxSessionLogs = 10; // the current session's included
 constexpr size_t kRingSize = 1u << 20;
 char gLogPath[128];                     // this session's log
+char gNroPath[256];                     // argv[0] (cos_switch_nro_path)
 
 // ---- SD card log ---------------------------------------------------------------------------------
 uint8_t gRing[kRingSize];
@@ -733,6 +735,9 @@ void cos_switch_start(int argc, char** argv) {
     startReaper();
     sayf("[switch] SwitchWaker, native port (phase 7); argv[0]=%s\n",
          argc > 0 && argv != nullptr && argv[0] != nullptr ? argv[0] : "-");
+    if (argc > 0 && argv != nullptr && argv[0] != nullptr) {
+        snprintf(gNroPath, sizeof(gNroPath), "%s", argv[0]);
+    }
     reportSystem();
     // The env.txt of earlier builds: its lines move into the settings file (menu settings as such,
     // the rest into [dev]) before it is read, so they apply in this session already.
@@ -740,6 +745,10 @@ void cos_switch_start(int argc, char** argv) {
     // The options menu's settings file (native/include/pc/pc_settings.h), [dev] included: before
     // the Switch defaults below, which it overrides.
     pc_settings_load_early();
+    // An update the last session left half done, or the first start of an installed version
+    // (native/include/pc/pc_update.h): before anything else could crash. A new version whose first
+    // start never got past the logo is undone here, and the restart goes to the old one.
+    pc_update_boot();
     // COS_DEBUG_SERVER (Depuración > "Servidor de depuración", at the next start): the debug server
     // for development (cos_debug.cpp), off by default.
     cos_switch_debug_start();
@@ -952,17 +961,49 @@ void cos_switch_exit(int code) {
 // 0 at run time too, whatever the load address: the crash reports of the first console run said
 // "image base=0x0". The base is the start of the mapping that holds this function: hbloader maps
 // the NRO's text segment, which begins at offset 0 (crt0), as one read-execute block.
-void cos_switch_restart(void) {
+void cos_switch_restart(void) { cos_switch_restart_program("debug server reload"); }
+
+extern "C" void cos_switch_restart_program(const char* why) {
     restoreGpuProfile();
     reportMemory();
-    sayf("[switch] restart (debug server reload): the forwarder loads the NRO again\n");
+    sayf("[switch] restart (%s): the forwarder loads the NRO again\n", why);
     cos_switch_flush_logs();
     usb_log_stop(1000);
-    static const char kArg[] = "switchwaker debug reload";
+    static const char kArg[] = "switchwaker restart";
     const Result rc = appletRestartProgram(kArg, sizeof(kArg));
     // (on success the system ends this process)
     applyGpuProfile();
     sayf("[switch] restart failed: appletRestartProgram rc 0x%x\n", rc);
+}
+
+extern "C" const char* cos_switch_nro_path(void) { return gNroPath[0] != '\0' ? gNroPath : nullptr; }
+
+extern "C" int cos_switch_from_forwarder(void) {
+    if (appletGetAppletType() != AppletType_Application) {
+        return 0;
+    }
+    u64 id = 0;
+    // the forwarder's title ID (scripts/switch/build_forwarder.sh); an hbmenu started over a game is
+    // an application too, but with that game's ID, whose restart would start the game itself
+    return R_SUCCEEDED(svcGetInfo(&id, InfoType_ProgramId, CUR_PROCESS_HANDLE, 0)) && id == 0x01FF43454E540000ULL;
+}
+
+extern "C" int cos_switch_network_up(void) {
+    static Mutex sMu;
+    static int sState = 0; // 0 not tried, 1 up, -1 failed
+    mutexLock(&sMu);
+    if (sState == 0) {
+        if (debugsrv::running()) {
+            sState = 1; // the debug server initialised the socket service at start
+        } else {
+            const Result rc = socketInitializeDefault();
+            sState = R_SUCCEEDED(rc) ? 1 : -1;
+            sayf("[switch] socket service for the update: rc 0x%x\n", rc);
+        }
+    }
+    const int up = sState == 1;
+    mutexUnlock(&sMu);
+    return up;
 }
 
 uintptr_t cos_switch_image_base(void) {

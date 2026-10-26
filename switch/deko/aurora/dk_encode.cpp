@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Aurora's recorded frame to deko3d commands (dk_gfx.hpp; docs/DEKO3D_MIGRATION_PLAN.md phase 3), on
 // the render worker: the work encoding.cpp gives Dawn, op by op as Aurora seals them.
 //
@@ -982,7 +983,7 @@ bool depth_peek_read(uint16_t x, uint16_t y, uint32_t& z) {
 }
 
 bool fixed_draw(const char* module, const char* vsEntry, const char* fsEntry, const DkImageView* target, uint32_t w,
-                uint32_t h, bool clear, const FixedBind* binds, uint32_t bindCount) {
+                uint32_t h, bool clear, const FixedBind* binds, uint32_t bindCount, bool blend) {
     const FixedShader sh = fixed_shader(module, vsEntry, fsEntry);
     if (!sh) {
         char what[160];
@@ -999,7 +1000,7 @@ bool fixed_draw(const char* module, const char* vsEntry, const char* fsEntry, co
     }
     const DkShader* shaders[] = {&sh.vs->shader, &sh.fs->shader};
     dkCmdBufBindShaders(R.cmd, DkStageFlag_GraphicsMask, shaders, 2);
-    swdk::bind_2d_state(false);
+    swdk::bind_2d_state(blend);
     for (const swdk::NamedShader* stage : {sh.vs, sh.fs}) {
         const DkStage dkStage = stage == sh.vs ? DkStage_Vertex : DkStage_Fragment;
         for (const swdk::SlotBinding& b : stage->bindings) {

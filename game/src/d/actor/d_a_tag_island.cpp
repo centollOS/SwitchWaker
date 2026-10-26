@@ -307,9 +307,30 @@ void daTag_Island_c::demoInitCom() {
 void daTag_Island_c::demoProcCom() {
 }
 
+#if TARGET_PC
+// fopAcM_searchFromName returns the first "ikada_h" of the stage, which can be a raft without a path
+// (daObj_Ikada_c::createInit only sets mpPath for types 1, 3 and 4 with a path id): the retail game
+// then reads the path points through a NULL mpPath (low memory on the console, a fault on the host)
+// and the event never drives the raft that has one. Search for the first "ikada_h" whose path can
+// be followed (two points at least: the event reads the first two).
+static void* pc_ikadaWithPathCB(void* proc, void*) {
+    fopAc_ac_c* actor = (fopAc_ac_c*)proc;
+    dStage_objectNameInf* inf = dStage_searchName("ikada_h");
+    if (inf == NULL || inf->procname != fopAcM_GetProfName(actor) || inf->argument != actor->argument) {
+        return NULL;
+    }
+    daObj_Ikada_c* ikada = (daObj_Ikada_c*)actor;
+    return ikada->mpPath != NULL && ikada->mpPath->m_num >= 2 ? actor : NULL;
+}
+#endif
+
 /* 00000BE8-00000CFC       .text demoProcCom_ikada__14daTag_Island_cFv */
 void daTag_Island_c::demoProcCom_ikada() {
+#if TARGET_PC
+    daObj_Ikada_c* ikada = (daObj_Ikada_c*)fopAcM_Search((fopAcIt_JudgeFunc)pc_ikadaWithPathCB, NULL);
+#else
     daObj_Ikada_c* ikada = (daObj_Ikada_c*)fopAcM_searchFromName("ikada_h", 0, 0);
+#endif
     if (ikada != NULL) {
         ikada->mCurPathP0 = ikada->mInitPos;
         ikada->current.pos = ikada->mCurPathP0;

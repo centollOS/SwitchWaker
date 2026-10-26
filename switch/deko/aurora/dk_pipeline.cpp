@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // deko3d pipelines for Aurora (dk_pipeline.hpp; docs/DEKO3D_MIGRATION_PLAN.md sections 3.3 and 6), on
 // Aurora's compile thread. A GX pass of a config is Aurora's shader module (its hash: xxh3 of the
 // destination alpha mode, the normal attachment and the ShaderConfig, as gx/shader.cpp computes it)

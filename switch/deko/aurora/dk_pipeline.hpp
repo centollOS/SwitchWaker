@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 #pragma once
 // A deko3d pipeline of the Aurora side (dk_gfx.hpp build_gx_pipeline, build_clear_pipeline): the two
 // stages' registry entries (shaders.cpp) and the fixed state that dkCmdBufBind*State takes, made on

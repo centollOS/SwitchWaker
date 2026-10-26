@@ -1,0 +1,18 @@
+# COS_SMOKE=options-menu without --stage (the title screen; issues #27/#28, pc_update.h): the update check
+# at start finds the fixture release v9.9.9 (native/check/update) as version 0.4.2, the popup comes up
+# over the title, A on "Actualizar ahora" opens the Sistema tab and installs it into the run directory
+# (sd/switch/switchwaker); A on the row then asks for a restart (the desktop: "close and open the game").
+#update-release ../update
+#title
+#expect opened 1
+#expect update installed
+#expect update-file switchwaker.nro fixture nro v9.9.9
+#expect update-file initial_pipeline_cache.db fixture pipeline cache
+#expect update-file initial_dksh_cache.bin fixture dksh cache
+#expect update-file native/update/state.txt state=installed
+#expect end 700
+# frame buttons stickX stickY
+520 A 0 0
+523 - 0 0
+600 A 0 0
+603 - 0 0

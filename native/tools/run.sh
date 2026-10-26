@@ -63,7 +63,7 @@
 #                    n-th frame; COS_SHOT_DIR: another directory). A run with shots compiles each
 #                    pipeline before its first draw (COS_SYNC_PIPELINES, default on with shots), so
 #                    a shot never misses a draw whose pipeline was still compiling
-#   --aspect A       COS_ASPECT: 4:3, 16:9 or 16:10 (the widescreen option, docs/WIDESCREEN.md)
+#   --aspect A       COS_ASPECT: 4:3 or 16:9 (the widescreen option, docs/WIDESCREEN.md)
 #   --heap-check N   COS_HEAP_CHECK: every N game frames check() every JKR heap (and, on the
 #                    Switch, walk newlib's free lists); a damaged heap ends the run as exit 1
 #                    (COS_HEAP_REPORT=N in the environment: every N frames one line with each game
@@ -73,6 +73,10 @@
 #                    allocations exits 1 (bug B13: a heap too small that the game survives)
 #   --env N=V        export the COS_* variable N with value V for the run (a regress_targets.txt
 #                    line can set one so), e.g. --env COS_ITEM_SWEEP=0x22,0x38
+#   --pipeline-cache FILE  the run gets its own Aurora caches (COS_CACHE_DIR=<run dir>/cache, as
+#                    COS_CACHE_PER_RUN=1) with pipeline_cache.db made from FILE, an SQL dump
+#                    (sqlite3 .dump), e.g. native/check/pipeline-cache/frozen-mothula.sql: Aurora's
+#                    warm-up builds its rows at start (issue #39)
 #   --build          run `ninja -C build/native-mac switchwaker` first
 #   --exe PATH       the executable (default build/native-mac/switchwaker)
 #   --run-dir DIR    put the run in DIR (created; must not exist yet) instead of
@@ -151,6 +155,7 @@ do_build=0
 exe="$build/switchwaker"
 quiet=0
 run_dir_opt=""
+pipeline_cache=""
 extra=()
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -181,6 +186,7 @@ while [ $# -gt 0 ]; do
         --exe) exe="$2"; shift 2 ;;
         --quiet) quiet=1; shift ;;
         --run-dir) run_dir_opt="$2"; shift 2 ;;
+        --pipeline-cache) pipeline_cache="$2"; shift 2 ;;
         --) shift; extra=("$@"); break ;;
         *) echo "run: unknown option $1" >&2; usage ;;
     esac
@@ -258,6 +264,16 @@ export COS_STALL_S="$stall_s"
 export COS_AUDIO="$audio"
 export COS_RUN_DIR="$run_dir"
 [ "${COS_CACHE_PER_RUN:-}" = 1 ] && export COS_CACHE_DIR="$run_dir/cache"
+if [ -n "$pipeline_cache" ]; then
+    case "$pipeline_cache" in
+        /*) ;;
+        *) [ -f "$pipeline_cache" ] || pipeline_cache="$repo/$pipeline_cache" ;;
+    esac
+    export COS_CACHE_DIR="$run_dir/cache"
+    mkdir -p "$COS_CACHE_DIR"
+    sqlite3 "$COS_CACHE_DIR/pipeline_cache.db" < "$pipeline_cache" ||
+        { echo "run: cannot make a pipeline cache from $pipeline_cache" >&2; exit 2; }
+fi
 # The options menu's settings file (native/include/pc/pc_settings.h): each run its own, empty at
 # start, so the user's build/native-mac/user/settings.ini never changes what a test does (an
 # explicit COS_SETTINGS in the environment is kept).

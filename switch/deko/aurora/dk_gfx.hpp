@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 #pragma once
 // The deko3d renderer's side of Aurora's gfx layer (docs/DEKO3D_MIGRATION_PLAN.md phase 3): what
 // Aurora's Switch patches 0013-0014 call with AURORA_GFX_DEKO3D (the deko3d NRO). Aurora still

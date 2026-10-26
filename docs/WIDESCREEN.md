@@ -10,15 +10,16 @@ whose translated build applies that code as a mod (`mods/widescreen/GZLE01.gecko
 
 The native port (`native/`, the decompilation built for the Mac and the Switch) has no executable to
 patch: the 16:9 code is done in C under `#if TARGET_PC`, as a run option, and the GameCube build of the
-decompilation is unchanged. `COS_ASPECT=4:3` (the default on the Mac), `16:9` (the default on the
-Switch, set by `switch/native/source/cos_switch.cpp`) or `16:10` selects it
-(`native/include/pc/pc_aspect.h`). A wider aspect makes the window that wide at 720 points (1280x720,
-1152x720) and Aurora presents the 640x480 picture stretched to the aspect, letterboxed or pillarboxed in
-a window of another shape (`AuroraSetFitAspect`, Aurora patch 0006): the game draws an anamorphic
-picture into its EFB, as on a widescreen TV with the Gecko code. Each value the code changes is
-interpolated with `t = (A - 4/3) / (16/9 - 4/3)`, as `widescreen_aspect.py` does (t = 0.6 at 16:10);
-the native port uses the exact interpolated value where the Gecko code can only load the nearest
-pool constant (the HUD shift is 68.4 at 16:10, not 68).
+decompilation is unchanged. `COS_ASPECT=4:3` (the default on the Mac), or `16:9` (the default on the
+Switch, set by `switch/native/source/cos_switch.cpp`) selects it
+(`native/include/pc/pc_aspect.h`). 16:9 makes the window that wide at 720 points (1280x720) and Aurora
+presents the 640x480 picture stretched to 16:9, letterboxed or pillarboxed in a window of another shape
+(`AuroraSetFitAspect`, Aurora patch 0006): the game draws an anamorphic picture into its EFB, as on a
+widescreen TV with the Gecko code. 4:3 is pillarboxed on a wider screen (the Switch, a fullscreen Mac;
+issue #31: `AuroraSetViewportPolicy(AURORA_VIEWPORT_FIT)` turns Aurora's fit on, which it otherwise
+leaves off). Each value the code changes is interpolated with `t = (A - 4/3) / (16/9 - 4/3)`, as
+`widescreen_aspect.py` does; with 16:9 the only wide aspect (16:10 was removed with issue #31: it was
+stretched on the Switch's 16:9 screen) t is 1, the code's own values.
 
 ### What each line of the 16:9 code patches
 
@@ -76,7 +77,7 @@ are the new 2D screen left and right.
 Where the native port differs from the Gecko code: the HUD tuning fields are set when the meter is
 created (`dMeter_Create`), not rewritten every frame; the minimap scissor converts the map's 2D
 position to EFB pixels with the wider 2D screen's span (the same scissor as the code's 153/32 at
-16:9 within a pixel, and right at 16:10, where the interpolated immediates are 16 pixels off);
+16:9 within a pixel);
 the telescope's black bars (0x802375E4) are drawn only while its wipe panels are visible, so
 the cinemascope part of the prologue's telescope demo (`telescope_demo`, panels hidden from demo frame
 425 to 1120) keeps the full width (bug B6; with the Gecko code it shows as a 4:3 window);

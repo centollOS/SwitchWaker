@@ -3,6 +3,7 @@
 
 #include "JSystem/JUtility/JUTAssert.h"
 #include "global.h"
+#include "helpers/endian.h"
 
 enum dMf_ZoomLevel {
     FMAP_ZOOM_WORLD  = 0,
@@ -10,11 +11,14 @@ enum dMf_ZoomLevel {
     FMAP_ZOOM_DETAIL = 2,
 };
 
+// The treasure and Triforce charts' salvage points, read as they are from /res/FmapDat's CmapDat.bin
+// (issue #40): TARGET_PC the count and the points are BE(T). Read in host order the count was
+// 0x3D000000 and every X mark landed off its chart or nowhere. On the GameCube BE(T) is T.
 struct aramCmapSalvagePnt_t {
-    /* 0x0 */ s16 field_0x0;
-    /* 0x2 */ s16 field_0x2;
-    /* 0x4 */ s16 x;
-    /* 0x6 */ s16 y;
+    /* 0x0 */ BE(s16) field_0x0;
+    /* 0x2 */ BE(s16) field_0x2;
+    /* 0x4 */ BE(s16) x;
+    /* 0x6 */ BE(s16) y;
 }; // Size: 0x8
 
 struct aramCmapDatPnt_t {
@@ -29,7 +33,7 @@ struct aramCmapDatPnt_t {
 STATIC_ASSERT(sizeof(aramCmapDatPnt_t) == 0x26);
 
 struct aramCmapDatPat_t {
-    /* 0x00 */ int num;
+    /* 0x00 */ BE(int) num;
     /* 0x04 */ aramCmapDatPnt_t pnt[];
 }; // Size: 0x4+
 

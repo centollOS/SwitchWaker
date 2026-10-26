@@ -19,6 +19,9 @@ logo-res 0
 opening 0
 title-stage 0
 title 0
+# issue #39: a pipeline cache holding the frozen Mothula's GX pipeline (a stage reading an ungenerated
+# texture coordinate) aborted Aurora's warm-up at every start; Aurora patch 0023 resolves the stage
+title 0 --pipeline-cache native/check/pipeline-cache/frozen-mothula.sql
 file-select 0 --input native/check/input/file-select.txt
 
 # smoke tests and format sweeps
@@ -68,11 +71,12 @@ outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.tx
 outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.txt --uncapped
 
 # widescreen option (lane wide, docs/WIDESCREEN.md): M13 with the 16:9 code's changes (camera aspect,
-# 2D bounds, HUD and minimap moved) and the title to the name scene at 16:10 (the interpolated
-# values, the wipe and the full-screen masks)
+# 2D bounds, HUD and minimap moved) and the title to the name scene at 16:9 (the wipe and the
+# full-screen masks)
 outset-control 0 --stage sea:44:206 --input native/check/input/outset-control.txt --aspect 16:9
-file-select 0 --input native/check/input/file-select.txt --aspect 16:10
-# a malformed COS_ASPECT is a usage error
+file-select 0 --input native/check/input/file-select.txt --aspect 16:9
+# a malformed COS_ASPECT is a usage error (16:10 too: removed with issue #31)
+static-init 2 --aspect 16:10
 static-init 2 --aspect 21:9
 
 # M11 new-game (lane audio): title -> name scene on a clean card -> save file made -> name entry
@@ -92,6 +96,12 @@ telescope-demo 0 --stage sea:44:206 --input native/check/input/telescope-demo.tx
 # issue #10: the same with the QoL "Texto instantáneo": the scope messages still close by themselves, so
 # Aryll's postbox lines move on when Quill is in view (they stayed up for good)
 telescope-demo 0 --stage sea:44:206 --input native/check/input/telescope-demo.txt --aspect 16:9 --env COS_QOL_INSTANT_TEXT=1
+# Issue #23: with the C stick aiming (Controles > "Apuntar con el stick derecho"), its up/down still
+# zooms the telescope (the x9 zoom that locks the view on Quill)
+telescope-demo 0 --stage sea:44:206 --input native/check/input/telescope-demo.txt --aspect 16:9 --env COS_AIM_RIGHT_STICK=1
+# The camera's vertical axis inverted (Controles > "Invertir cámara vertical") tilts the camera only: the
+# C stick up still zooms the telescope in (it zoomed out, and the view never locked on Quill)
+telescope-demo 0 --stage sea:44:206 --input native/check/input/telescope-demo.txt --aspect 16:9 --env COS_CAMERA_INVERT_Y=1
 # bug B7 (lane b7-shore): Outset's shore foam and sea shadow decals (room model1.bdl, about one unit
 # above the island's water) with a fixed camera moving over the cliffs under the rope bridge: no
 # frame may lose the foam against its neighbours (the Switch's GL depth precision flicker)
@@ -142,6 +152,13 @@ options-menu 0 --preset sailing --input native/check/input/menu-warp-conducting.
 # "Valores originales" (every row off)
 options-menu 0 --stage sea:11:0 --input native/check/input/menu-qol-preset.txt
 options-menu 0 --stage sea:11:0 --input native/check/input/menu-qol-original.txt
+# issues #27/#28 (pc_update.h): the update check at start on the title screen with the fixture release
+# native/check/update (v9.9.9, as version 0.4.2): the popup's "Actualizar ahora" installs it into the
+# run directory; "No avisar de esta versión" saves COS_UPDATE_SKIP and installs nothing; "Ver notas de la
+# versión" opens the notes page.
+options-menu 0 --input native/check/input/menu-update.txt
+options-menu 0 --input native/check/input/menu-update-skip.txt
+options-menu 0 --input native/check/input/menu-update-notes.txt
 # QoL "Barco sin restricciones" (COS_QOL_FREE_BOAT): the sailing smoke before Dragon Roost's arrival (0x0902
 # cleared) crosses into room 18, which the boat's story path 0 forbids then (it fails with the option off), and
 # with neither 0x1980 nor 0x0A80 the boat still offers "get in" (the reboard fails with the option off)
@@ -193,10 +210,15 @@ item-sweep 0 --stage Asoko:0:0:2 --env COS_ITEM_SWEEP=0x22,0x38,0x78 --env COS_I
 # COS_SMOKE=save-sweep (native/tools/save_sweep.py also loads each save back): a save in Dragon Roost
 # Cavern through the save screen's steps; the card must hold what the game packed, return place its entrance
 save-sweep 0 --stage M_NewD2:0:0 --env COS_BOOT_EVENTS=2A08
-# COS_SMOKE=camera-invert: the options' inverted camera axes (Gráficos > "Invertir cámara horizontal" /
+# COS_SMOKE=camera-invert: the options' inverted camera axes (Controles > "Invertir cámara horizontal" /
 # "vertical"): the C stick turns the camera's yaw and pitch the opposite way with the axis inverted,
 # and the wind baton's left hand still reads the C stick's real direction
 camera-invert 0 --stage sea:11:9
+# COS_SMOKE=vibration: rumble patterns of 0 bits or more than 32 (a camera quake started on a camera
+# shock's last frame, the 0-frame CQ_patt[0] alone and under a shock, a 40-bit quake pattern, a 0-frame
+# motor wave); rollshift and CRumble::stopPatternedRumbleAtThePeriod divided by 0 (SIGFPE on x86-64),
+# makebits never left its loop or took the host's mask; each case must go through its guard
+vibration 0 --stage sea:11:9
 # COS_SMOKE=stage-hop (bug B23): Adanmae -> Atorizk -> Adanmae three times with every JKR heap checked
 # every frame; Dragon Roost's settled ash wrote one SNOW_EFF past its array into the next heap block's
 # header (caught by the ASan build: native/CMakeLists.txt, "AddressSanitizer variant")
@@ -223,7 +245,8 @@ event-sweep 0 --stage Pjavdou:0:1:8 --preset sailing --env COS_EVENT_SWEEP=64 --
 dmap 0 --stage M_NewD2:0:0
 # COS_SMOKE=sea-chart (issue #14): the sea chart's island check points (FmapDat.bin) were read in host order
 # (count 0) with char sectors (unsigned on ARM), so no sector found its island: every zoom showed an empty
-# sector, then Forsaken Fortress
+# sector, then Forsaken Fortress; issue #40: the charts' X marks (CmapDat.bin) too were read in host order
+# (count 0x3D000000, the salvage points' bytes swapped), so the marks were drawn off the chart or not at all
 sea-chart 0 --stage sea:44:206
 # COS_SMOKE=mail-sort (issue #19): the draw buffer merged the sorting game's letters, one material with
 # six images, by a hash slot the host's image addresses share, so a letter showed another letter's image

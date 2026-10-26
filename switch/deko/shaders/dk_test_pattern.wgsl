@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // The deko3d test pattern (switch/deko/pattern.cpp, COS_DK_TEST_PATTERN=1). Written in WGSL with
 // WebGPU's conventions (clip-space y up, z from 0 to 1, texture row 0 at v = 0) and compiled the way
 // Aurora's shaders are: native/tools/dksh_cache (Tint's GLSL writer with the deko3d options and the

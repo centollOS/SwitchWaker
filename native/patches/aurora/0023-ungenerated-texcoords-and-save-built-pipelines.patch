@@ -1,0 +1,290 @@
+GX: stages that name an ungenerated texture coordinate; new pipelines saved once built
+
+Issue #39 (SwitchWaker): an ice arrow on a Mothula crashed the game, and from then on every start
+crashed in the "Preparing shaders" screen at the same count, also after reinstalling. The frozen
+Mothula draws with two texgens (GXSetNumTexGens(2)) and a TEV stage reading GX_TEXCOORD2. The
+hardware then reads texture coordinate 0 (Dolphin, PixelShaderGen.cpp: "tex coord 0 is used");
+Aurora's shader generator found no texgen for coordinate 2 (src GX_MAX_TEXGENSRC) and aborted with
+"unhandled tcg src 21" on the pipeline thread. The config had already been written to
+pipeline_cache.db when the draw asked for it, so every later start's warm-up built it again and
+aborted before the game started. Reinstalling keeps native/user/cache/.
+
+lib/gx/shader_info.cpp, gx.cpp:
+- resolve_ungenerated_texcoords points TEV and indirect stages whose texture coordinate has no
+  texgen at GX_TEXCOORD0, as the hardware does (nothing changes when there is no texgen at all).
+  populate_pipeline_config calls it, so the shader info, the uniforms and the shader agree.
+
+lib/gfx/pipeline_cache.cpp:
+- GX rows read from the cache file get the same resolution, so a cache that already holds such a
+  row (the reporter's) builds it instead of aborting: the game starts again without deleting it.
+- a GX pipeline first seen in a run is written to the cache file once its build has returned
+  (g_unsavedPipelines, persist_built_pipeline), no longer when a draw first asks for it: a
+  pipeline whose build crashes the process crashes that run only, not every later start. A clean
+  shutdown writes the ones still waiting for their build, and so does
+  aurora_save_unbuilt_pipelines (include/aurora/pipeline_cache_save.h) for a clean exit that
+  skips the shutdown (SwitchWaker's harness ends with _Exit): without it a pipeline first used
+  just before the exit never reached the file, and the next run found it cold again. Clear and
+  RmlUi pipelines (no GX shader) are written as before.
+
+diff --git a/include/aurora/pipeline_cache_save.h b/include/aurora/pipeline_cache_save.h
+new file mode 100644
+index 0000000..50d3b21
+--- /dev/null
++++ b/include/aurora/pipeline_cache_save.h
+@@ -0,0 +1,20 @@
++#ifndef AURORA_PIPELINE_CACHE_SAVE_H
++#define AURORA_PIPELINE_CACHE_SAVE_H
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/**
++ * SwitchWaker patch 0023: a GX pipeline first used in a run is written to the pipeline cache file once its build has
++ * returned, so a build that crashes the process never reaches the file. This writes the ones still waiting for their
++ * build and waits for every queued write, for a clean exit that skips aurora_shutdown (the harness's _Exit). Not after
++ * a crash: the pipeline being built then may be the cause.
++ */
++void aurora_save_unbuilt_pipelines(void);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
+diff --git a/lib/gfx/pipeline_cache.cpp b/lib/gfx/pipeline_cache.cpp
+index 388bd4a..5081608 100644
+--- a/lib/gfx/pipeline_cache.cpp
++++ b/lib/gfx/pipeline_cache.cpp
+@@ -5,6 +5,8 @@
+ #include "resources.hpp"
+ #include "hash.hpp"
+ #include "../gx/pipeline.hpp"
++#include "../gx/shader_info.hpp"
++#include <aurora/pipeline_cache_save.h>
+ #include "../io.hpp"
+ #ifdef AURORA_ENABLE_RMLUI
+ #include "../rmlui/pipeline.hpp"
+@@ -86,6 +88,12 @@ static std::condition_variable g_pipelineQueueCv;
+ static std::condition_variable g_pipelineReadyCv;
+ static absl::flat_hash_map<PipelineRef, CompiledPipeline> g_pipelines;
+ static absl::flat_hash_map<HashType, KnownPipeline> g_knownPipelines;
++// Pipelines first seen this run and not built yet (cache key -> first frame used): each is written
++// to the cache file only once its build returns (persist_built_pipeline), so a pipeline whose build
++// crashes the process never reaches the file, where every later start's warm-up would build it
++// again and crash before the game starts. Locked after g_pipelineMutex when both are held.
++static std::mutex g_unsavedPipelinesMutex;
++static absl::flat_hash_map<HashType, uint32_t> g_unsavedPipelines;
+ static std::optional<uint64_t> g_pipelineLayoutKey;
+ static std::deque<PendingPipeline> g_pipelineQueue;
+ static std::deque<PendingPipeline> g_backgroundPipelineQueue;
+@@ -435,8 +443,11 @@ static void notify_pipeline_ready(bool queued, uint32_t pipelineCount) {
+   g_pipelineReadyCv.notify_all();
+ }
+ 
++// persist: write a new or earlier-used pipeline to the cache file; with saveWhenBuilt (GX pipelines,
++// whose shaders the GX generator builds) a new one waits for its build (g_unsavedPipelines).
+ template <typename Config>
+-static void remember_pipeline_config(ShaderType type, const Config& config, uint32_t firstFrameUsed, bool persist) {
++static void remember_pipeline_config(ShaderType type, const Config& config, uint32_t firstFrameUsed, bool persist,
++                                     bool saveWhenBuilt = false) {
+   const auto cacheKey = xxh3_hash(config, static_cast<HashType>(type));
+   bool changed = false;
+   {
+@@ -444,12 +455,40 @@ static void remember_pipeline_config(ShaderType type, const Config& config, uint
+     auto [it, inserted] = g_knownPipelines.try_emplace(cacheKey, KnownPipeline{type, config, firstFrameUsed});
+     changed = inserted || firstFrameUsed < it->second.firstFrameUsed;
+     it->second.firstFrameUsed = std::min(it->second.firstFrameUsed, firstFrameUsed);
++    if (persist && changed && saveWhenBuilt) {
++      std::lock_guard unsavedLock{g_unsavedPipelinesMutex};
++      if (inserted) {
++        g_unsavedPipelines.emplace(cacheKey, firstFrameUsed);
++        return;
++      }
++      if (auto unsaved = g_unsavedPipelines.find(cacheKey); unsaved != g_unsavedPipelines.end()) {
++        unsaved->second = std::min(unsaved->second, firstFrameUsed);
++        return;
++      }
++    }
+   }
+   if (persist && changed) {
+     enqueue_pipeline_cache_write(make_pipeline_cache_write(type, cacheKey, config, firstFrameUsed));
+   }
+ }
+ 
++// Writes a pipeline first seen this run once its build has returned (g_unsavedPipelines).
++template <typename Config>
++static void persist_built_pipeline(ShaderType type, const Config& config) {
++  const auto cacheKey = xxh3_hash(config, static_cast<HashType>(type));
++  uint32_t firstFrameUsed = 0;
++  {
++    std::lock_guard lock{g_unsavedPipelinesMutex};
++    auto it = g_unsavedPipelines.find(cacheKey);
++    if (it == g_unsavedPipelines.end()) {
++      return;
++    }
++    firstFrameUsed = it->second;
++    g_unsavedPipelines.erase(it);
++  }
++  enqueue_pipeline_cache_write(make_pipeline_cache_write(type, cacheKey, config, firstFrameUsed));
++}
++
+ static PipelineRef find_pipeline_impl(PipelineRef runtimeKey, NewPipelineCallback&& cb,
+                                       PipelinePriority priority = PipelinePriority::Normal) {
+   ZoneScoped;
+@@ -528,7 +567,14 @@ static PipelineRef find_pipeline_impl(PipelineRef runtimeKey, NewPipelineCallbac
+ static PipelineRef resolve_pipeline(ShaderType type, const gx::PipelineConfig& config, const RenderTargetLayout& layout,
+                                     PipelinePriority priority) {
+   const auto runtimeKey = xxh3_hash(layout.key, xxh3_hash(config, static_cast<HashType>(type)));
+-  return find_pipeline_impl(runtimeKey, [config, layout] { return create_pipeline(config, layout); }, priority);
++  return find_pipeline_impl(
++      runtimeKey,
++      [type, config, layout] {
++        auto pipeline = create_pipeline(config, layout);
++        persist_built_pipeline(type, config);
++        return pipeline;
++      },
++      priority);
+ }
+ 
+ static PipelineRef resolve_pipeline(ShaderType type, const clear::PipelineConfig& config,
+@@ -1145,6 +1191,10 @@ static size_t load_pipeline_cache_entries(ShaderType type, uint32_t configVersio
+     if (config.version != configVersion) {
+       continue;
+     }
++    if constexpr (std::is_same_v<PipelineConfig, gx::PipelineConfig>) {
++      // rows written before stages were resolved (a frozen Mothula's crashed every warm-up)
++      gx::resolve_ungenerated_texcoords(config.shaderConfig);
++    }
+ 
+     remember_pipeline_config(type, config, firstFrameUsed, false);
+     ++acceptedRows;
+@@ -1235,7 +1285,7 @@ PipelineRef find_pipeline(const clear::PipelineConfig& config, const RenderTarge
+ }
+ 
+ PipelineRef find_pipeline(const gx::PipelineConfig& config, const RenderTargetLayout& layout) {
+-  remember_pipeline_config(ShaderType::GX, config, current_frame(), true);
++  remember_pipeline_config(ShaderType::GX, config, current_frame(), true, true);
+   return resolve_pipeline(ShaderType::GX, config, layout, draw_pipeline_priority());
+ }
+ 
+@@ -1300,6 +1350,31 @@ void initialize_pipeline_cache() {
+   }
+ }
+ 
++// The pipelines still waiting for their build (g_unsavedPipelines), queued for the cache file as a
++// draw's request queued them before patch 0023: for a clean exit, where none of them crashed.
++static void enqueue_unbuilt_pipeline_writes() {
++  std::scoped_lock lock{g_pipelineMutex, g_unsavedPipelinesMutex};
++  for (const auto& [cacheKey, firstFrameUsed] : g_unsavedPipelines) {
++    const auto known = g_knownPipelines.find(cacheKey);
++    if (known != g_knownPipelines.end()) {
++      std::visit(
++          [&](const auto& config) {
++            enqueue_pipeline_cache_write(make_pipeline_cache_write(known->second.type, cacheKey, config, firstFrameUsed));
++          },
++          known->second.config);
++    }
++  }
++  g_unsavedPipelines.clear();
++}
++
++void save_unbuilt_pipelines() {
++  enqueue_unbuilt_pipeline_writes();
++  stop_pipeline_cache_writer(); // drains the queue; later writes wait for a writer that never comes
++}
++
++// C linkage: the same function as include/aurora/pipeline_cache_save.h's global declaration
++extern "C" void aurora_save_unbuilt_pipelines(void) { save_unbuilt_pipelines(); }
++
+ void shutdown_pipeline_cache() {
+   if (g_hasPipelineThread) {
+     g_pipelineThreadEnd = true;
+@@ -1309,6 +1384,8 @@ void shutdown_pipeline_cache() {
+   }
+   g_hasPipelineThread = false;
+ 
++  // A clean shutdown: the pipelines still waiting for their build crashed nothing
++  enqueue_unbuilt_pipeline_writes();
+   stop_pipeline_cache_writer();
+   pipeline_cache_abort();
+   g_pipelineCacheBroken = false;
+diff --git a/lib/gfx/pipeline_cache.hpp b/lib/gfx/pipeline_cache.hpp
+index 0801a22..21208e9 100644
+--- a/lib/gfx/pipeline_cache.hpp
++++ b/lib/gfx/pipeline_cache.hpp
+@@ -33,6 +33,8 @@ struct CompiledPipeline {
+ 
+ void initialize_pipeline_cache();
+ void shutdown_pipeline_cache();
++// aurora_save_unbuilt_pipelines (include/aurora/pipeline_cache_save.h)
++void save_unbuilt_pipelines();
+ void begin_pipeline_frame();
+ void end_pipeline_frame();
+ void rebuild_pipeline_cache();
+diff --git a/lib/gx/gx.cpp b/lib/gx/gx.cpp
+index 5348586..03294db 100644
+--- a/lib/gx/gx.cpp
++++ b/lib/gx/gx.cpp
+@@ -1,6 +1,7 @@
+ #include "gx.hpp"
+ 
+ #include "pipeline.hpp"
++#include "shader_info.hpp"
+ #include "texture.hpp"
+ #include "../dolphin/vi/vi_internal.hpp"
+ #include "../webgpu/gpu.hpp"
+@@ -462,6 +463,7 @@ void populate_pipeline_config(PipelineConfig& config, GXPrimitive primitive, GXV
+   for (u8 i = 0; i < g_gxState.numTexGens; ++i) {
+     config.shaderConfig.tcgs[i] = g_gxState.tcgs[i];
+   }
++  resolve_ungenerated_texcoords(config.shaderConfig);
+   if (g_gxState.alphaCompare) {
+     config.shaderConfig.alphaCompare = g_gxState.alphaCompare;
+   }
+diff --git a/lib/gx/shader_info.cpp b/lib/gx/shader_info.cpp
+index 53015b4..802e104 100644
+--- a/lib/gx/shader_info.cpp
++++ b/lib/gx/shader_info.cpp
+@@ -215,6 +215,28 @@ u32 line_texcoord_mask() noexcept {
+ }
+ } // namespace
+ 
++// A stage may name a texture coordinate past the texgens set up (GXSetNumTexGens): the hardware then
++// reads texture coordinate 0 (Dolphin, PixelShaderGen.cpp, "tex coord 0 is used"). The shader
++// generator has no source for such a coordinate and aborts ("unhandled tcg src"), so stages are
++// pointed at GX_TEXCOORD0 here, as the hardware does. Wind Waker's frozen Mothula samples
++// GX_TEXCOORD2 with two texgens. With no texgen at all there is nothing to fall back to.
++void resolve_ungenerated_texcoords(ShaderConfig& config) noexcept {
++  if (config.tcgs[0].src == GX_MAX_TEXGENSRC) {
++    return;
++  }
++  const auto resolve = [&](GXTexCoordID& id) {
++    if (id != GX_TEXCOORD_NULL && (id >= MaxTexCoord || config.tcgs[id].src == GX_MAX_TEXGENSRC)) {
++      id = GX_TEXCOORD0;
++    }
++  };
++  for (u32 i = 0; i < config.tevStageCount && i < MaxTevStages; ++i) {
++    resolve(config.tevStages[i].texCoordId);
++  }
++  for (u32 i = 0; i < config.numIndStages && i < MaxIndStages; ++i) {
++    resolve(config.indStages[i].texCoordId);
++  }
++}
++
+ ShaderInfo build_shader_info(const ShaderConfig& config) noexcept {
+   ZoneScoped;
+ 
+diff --git a/lib/gx/shader_info.hpp b/lib/gx/shader_info.hpp
+index 24d431b..06d8e9b 100644
+--- a/lib/gx/shader_info.hpp
++++ b/lib/gx/shader_info.hpp
+@@ -4,6 +4,8 @@
+ 
+ namespace aurora::gx {
+ ShaderInfo build_shader_info(const ShaderConfig& config) noexcept;
++// Points TEV and indirect stages that name a texture coordinate no texgen produces at GX_TEXCOORD0.
++void resolve_ungenerated_texcoords(ShaderConfig& config) noexcept;
+ gfx::Range build_uniform(const ShaderInfo& info) noexcept;
+ u8 color_channel(GXChannelID id) noexcept;
+ }; // namespace aurora::gx

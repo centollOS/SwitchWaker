@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // The DKSH cache at start (dk.h; docs/DEKO3D_MIGRATION_PLAN.md section 6): initial_dksh_cache.bin,
 // written at build time by native/tools/dksh_cache from native/data/initial_pipeline_cache.db and put
 // next to the NRO (COS_SWITCH_NRO_DIR) by scripts/switch/build_native.sh, push.sh and make_sd.sh, is

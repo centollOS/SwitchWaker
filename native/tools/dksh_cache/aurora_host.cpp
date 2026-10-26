@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // The Aurora side of dksh_cache: GX pipeline configs from the pipeline cache database to WGSL
 // modules, with what gx/shader.cpp and gx/shader_info.cpp need from the rest of Aurora replaced by
 // host stand-ins (logging to stderr, no census, no device).
@@ -14,6 +15,7 @@
 #include "gfx/recording.hpp"
 #include "gx/gx.hpp"
 #include "gx/pipeline.hpp"
+#include "gx/shader_info.hpp"
 #include "webgpu/gpu.hpp"
 
 // ---- what the two Aurora units reference outside themselves ----------------------------------------
@@ -105,6 +107,10 @@ bool read_gx_configs(const std::string& dbPath, std::vector<GxConfigRow>* out, s
             wrongHash++;
             continue;
         }
+        // as Aurora's load_pipeline_cache_entries does (patch 0023), so the modules are the ones the
+        // NRO asks for
+        gx::resolve_ungenerated_texcoords(config.shaderConfig);
+        memcpy(row.config.data(), &config, sizeof config);
         out->push_back(std::move(row));
     }
     sqlite3_finalize(st);

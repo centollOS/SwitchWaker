@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // The shadows of Aurora's WebGPU textures, views, samplers and bind groups (dk_objects.hpp;
 // docs/DEKO3D_MIGRATION_PLAN.md phase 3). The __wrap_ functions below take the place of Dawn's for
 // every caller in the NRO (switch/native/CMakeLists.txt: -Wl,--wrap=wgpuDeviceCreateTexture ...):
@@ -11,6 +12,7 @@
 #include <unordered_map>
 
 extern "C" {
+int pc_aniso_get(void);  // native/src/pc/features/pc_gpu_opts.cpp: 1, 2, 4, 8 or 16
 WGPUTexture __real_wgpuDeviceCreateTexture(WGPUDevice device, WGPUTextureDescriptor const* descriptor);
 void __real_wgpuTextureAddRef(WGPUTexture texture);
 void __real_wgpuTextureRelease(WGPUTexture texture);
@@ -334,9 +336,23 @@ uint32_t view_slot(View* v) {
     return v->slot;
 }
 
+// The options menu's anisotropic filtering (COS_ANISO, 1 = off): raised onto the samplers that filter
+// linearly over a mip chain (world textures). Applied here, not when the sampler is made, so a change
+// reaches the next frame's handles; the cache key carries the level so slots are never shared across it.
+uint32_t sampler_for(const Samp* s) {
+    const int level = pc_aniso_get();
+    const DkSampler& base = s->sampler;
+    if (level <= 1 || base.compareEnable || base.minFilter != DkFilter_Linear || base.magFilter != DkFilter_Linear ||
+        base.lodClampMax <= 0.0f || base.maxAnisotropy >= float(level))
+        return swdk::sampler_slot(base, s->key);
+    DkSampler k = base;
+    k.maxAnisotropy = float(level);
+    return swdk::sampler_slot(k, s->key ^ (uint64_t(level) * 0x9E3779B97F4A7C15ull));
+}
+
 DkResHandle texture_handle(View* v, Samp* s) {
     const uint32_t image = view_slot(v);
-    const uint32_t sampler = s ? swdk::sampler_slot(s->sampler, s->key) : uint32_t(swdk::kSamplerNearestClamp);
+    const uint32_t sampler = s ? sampler_for(s) : uint32_t(swdk::kSamplerNearestClamp);
     return dkMakeTextureHandle(image, sampler);
 }
 

@@ -84,7 +84,15 @@ kept apart (`native/user/USA/Card A`, `native/user/EUR/Card A`), so each version
 
 ## Updating
 
-Download the new release for your disc and copy its `switch` folder over the old one
+From the game (releases after v0.5.0): when a new release is out, a window says so at the title screen
+(with *Sistema > Buscar actualizaciones al arrancar*, on by default; it needs the console online).
+**Actualizar ahora** downloads the zip for your disc (about 10 MB), checks it and puts its files in
+place; then restart the game (from the HOME menu icon it restarts by itself, from the Homebrew Menu
+close it and open it again). The options menu (Minus) > *Sistema* > *Actualización* does the same at
+any time. If the new version does not get past the logo on its first start, the next start puts the
+previous one back. It updates the copy in `sdmc:/switch/switchwaker/switchwaker.nro` only.
+
+By hand: download the new release for your disc and copy its `switch` folder over the old one
 (`switchwaker.nro`, `initial_pipeline_cache.db` and `initial_dksh_cache.bin`). Your disc, saves
 (`native/user/USA/Card A`, `native/user/EUR/Card A` for the European disc) and settings stay.
 

@@ -6,6 +6,7 @@
 #include "pc_internal.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cerrno>
 #include <cmath>
 #include <cstdio>
@@ -261,6 +262,25 @@ int pc_dof_enabled(void) {
         }
     }
     return sDof;
+}
+
+static std::atomic<int> sAniso{-1};
+
+// COS_ANISO: 1 (off, the default), 2, 4, 8 or 16. Read by the render thread; the file's value reaches
+// the environment before the first read (pc_settings_load_early).
+int pc_aniso_get(void) {
+    int v = sAniso.load(std::memory_order_relaxed);
+    if (v < 0) {
+        const char* e = getenv("COS_ANISO");
+        v = e ? atoi(e) : 1;
+        if (v != 2 && v != 4 && v != 8 && v != 16) v = 1;
+        sAniso.store(v, std::memory_order_relaxed);
+    }
+    return v;
+}
+
+void pc_aniso_set(int level) {
+    sAniso.store(level == 2 || level == 4 || level == 8 || level == 16 ? level : 1, std::memory_order_relaxed);
 }
 
 void pc_dof_set(int enabled) {

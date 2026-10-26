@@ -168,10 +168,25 @@ int cos_switch_docked(void);
 /* The NRO's version, as the Homebrew Menu and the debug server's "info" show it (git describe at
    build time, e.g. "0.2.0" for a release, "0.2.0-13" 13 commits after it): the options menu's title. */
 const char* cos_switch_version(void);
+/* The update (native/include/pc/pc_update.h, issues #27/#28): */
+/* the NRO's path as hbloader passed it (argv[0], e.g. "sdmc:/switch/switchwaker/switchwaker.nro"); NULL if none. */
+const char* cos_switch_nro_path(void);
+/* 1 when the program runs as the HOME menu forwarder's application (program ID 0x01FF43454E540000), whose
+ * restart (appletRestartProgram) loads the NRO from the SD card again; 0 from hbmenu. */
+int cos_switch_from_forwarder(void);
+/* The socket service for the update's HTTPS, initialised once (or already, by the debug server). 1 if usable. */
+int cos_switch_network_up(void);
+/* The debug server's reload and the update's restart: the GPU profile restored and the logs written as at
+ * an exit, then appletRestartProgram (the forwarder loads the NRO again). `why` goes in the log. Returns
+ * only on failure. */
+void cos_switch_restart_program(const char* why);
 /* The options menu (pc_menu.cpp, "Perfil de GPU"): applies a COS_SWITCH_GPU_PROFILE value now
  * ("460", "384", "default" or "0x<configuration id>") through apm, as at start; "default" restores
  * the configuration the system had. 1 if apm accepted it (or nothing had to change). */
 int cos_switch_set_gpu_profile(const char* profile);
+/* The options menu (pc_menu.cpp, "Gamma"): the exponent the game's picture is drawn with at the present
+ * (colour^exponent; 1 = as it is). */
+void cos_switch_set_gamma(float exponent);
 /* CPU time (ns, svcGetInfo ThreadTickCount) of the registered threads per role, running totals;
  * a thread that ended keeps its last value. */
 void cos_switch_thread_cpu_ns(uint64_t out[COS_SWITCH_THREAD_ROLES]);

@@ -1,5 +1,5 @@
-// Control options (native/include/pc/pc_controls.h): the camera's inverted axes and its shake, and
-// the heat haze.
+// Control options (native/include/pc/pc_controls.h): the camera's inverted axes and its shake,
+// aiming with the C stick and its inverted vertical axis, and the heat haze.
 #include "pc_internal.h"
 
 #include "pc/pc_controls.h"
@@ -12,6 +12,8 @@ namespace {
 
 int sInvertX = -1; // -1: not read yet
 int sInvertY = -1;
+int sAimRightStick = -1;
+int sAimInvertY = -1;
 int sShake = -1;
 int sHeatHaze = -1;
 
@@ -48,6 +50,30 @@ void pc_camera_invert_x_set(int on) {
 
 void pc_camera_invert_y_set(int on) {
     sInvertY = on ? 1 : 0;
+}
+
+int pc_aim_right_stick(void) {
+    if (sAimRightStick < 0) {
+        const char* v = getenv("COS_AIM_RIGHT_STICK");
+        sAimRightStick = v != nullptr && strcmp(v, "1") == 0;
+    }
+    return sAimRightStick;
+}
+
+void pc_aim_right_stick_set(int on) {
+    sAimRightStick = on ? 1 : 0;
+}
+
+int pc_aim_invert_y(void) {
+    if (sAimInvertY < 0) {
+        const char* v = getenv("COS_AIM_INVERT_Y");
+        sAimInvertY = v != nullptr && strcmp(v, "1") == 0;
+    }
+    return sAimInvertY;
+}
+
+void pc_aim_invert_y_set(int on) {
+    sAimInvertY = on ? 1 : 0;
 }
 
 int pc_camera_shake(void) {
