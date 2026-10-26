@@ -802,8 +802,9 @@ def write_report(args, targets, locs, rows, want_kinds, want_locs, want_stages, 
             if v is None:
                 v = ("no-target", "", r.get("note", "")) if stop is None else ("not-reached", stop, "not run")
             xf = r.get("xfail", {}).get(t[:2])
-            if xf and v[0] not in ("ok", "no-target"):
-                # A listed, reasoned expected failure (sweep_targets.json overrides.keys "xfail").
+            if xf and v[0] != "ok":
+                # A listed, reasoned expected failure (sweep_targets.json overrides.keys "xfail"), also
+                # for a key without a stop for that tier (no-target).
                 v = ("xfail", v[1], "%s (%s: %s)" % (xf, v[0], v[2]))
             l = loc_by_enum[r["loc"]]
             lines.append("\t".join(str(x) for x in [l["id"], r["loc"], l["class"], r["kind"], r["key"], r["where"], t,

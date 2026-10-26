@@ -176,6 +176,16 @@
      "T2": "R9.1: MiniHyo's only spawn point (room 0, point 0) does not keep the player: about 90 frames after the debug boot (its arrival event ends) the game itself goes back to sea room 40, with no input at all (run.sh run --stage MiniHyo:0:0), so the chest is gone before T2 can walk to it. T1 checks the record and the live chest before that"
     }
    },
+   "PCR_LOC_STONE_WATCHER_ISLAND_CAVE": {
+    "xfail": {
+     "T2": "R9.1: the chest is in room 6 of the cave, which has no spawn point to boot or warp into, and T2 has no driver that walks the cave's rooms from room 0 (needs a stage driver). T1 checks the record and the live chest"
+    }
+   },
+   "PCR_LOC_OVERLOOK_ISLAND_CAVE": {
+    "xfail": {
+     "T2": "R9.1: the chest is in room 6 of the cave, which has no spawn point to boot or warp into, and T2 has no driver that walks the cave's rooms from room 0 (needs a stage driver). T1 checks the record and the live chest"
+    }
+   },
    "PCR_LOC_FIRE_MOUNTAIN_CAVE_CHEST": {
     "xfail": {
      "T2": "R9.1: as Ice Ring Isle's cave: MiniKaz's only spawn point (room 0, point 0) sends the player back to sea room 20 by itself about 90 frames after the boot, so the chest is gone before T2 can walk to it. T1 checks the record and the live chest"
@@ -434,12 +444,12 @@
   {"key": 231, "loc": "PCR_LOC_ANGULAR_ISLES_CAVE", "kind": "chest", "where": "SubD43/Stage/TRES[0]", "room": 0, "t2": "SubD43:0:0", "t1": "SubD43:0:0"},
   {"key": 232, "loc": "PCR_LOC_BOATING_COURSE_RAFT", "kind": "chest", "where": "sea/Room48/TRES[0]", "room": 48, "t2": "sea:48:5", "t1": "sea:48:5"},
   {"key": 233, "loc": "PCR_LOC_BOATING_COURSE_CAVE", "kind": "chest", "where": "SubD71/Stage/TRES[0]", "room": 0, "t2": "SubD71:0:0", "t1": "SubD71:0:0"},
-  {"key": 234, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_CAVE", "kind": "chest", "where": "TF_01/Stage/TRES[0]", "room": 6, "t2": null, "t1": "TF_01:0:0", "note": "no spawn point in room 6: no T2 stop"},
+  {"key": 234, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_CAVE", "kind": "chest", "where": "TF_01/Stage/TRES[0]", "room": 6, "t2": null, "t1": "TF_01:0:0", "xfail": {"T2": "R9.1: the chest is in room 6 of the cave, which has no spawn point to boot or warp into, and T2 has no driver that walks the cave's rooms from room 0 (needs a stage driver). T1 checks the record and the live chest"}, "note": "no spawn point in room 6: no T2 stop"},
   {"key": 235, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_LOOKOUT_PLATFORM_CHEST", "kind": "chest", "where": "sea/Room31/TRES[1]", "room": 31, "t2": "sea:31:0", "t1": "sea:31:0"},
   {"key": 236, "loc": "PCR_LOC_STONE_WATCHER_ISLAND_LOOKOUT_PLATFORM_DESTROY_THE_CANNONS", "kind": "chest", "where": "sea/Room31/TRES[0]", "room": 31, "t2": "sea:31:0", "t1": "sea:31:0"},
   {"key": 237, "loc": "PCR_LOC_ISLET_OF_STEEL_INTERIOR", "kind": "chest", "where": "ShipD/Stage/TRES[0]", "room": 0, "t2": "ShipD:0:0", "t1": "ShipD:0:0"},
   {"key": 238, "loc": "PCR_LOC_ISLET_OF_STEEL_LOOKOUT_PLATFORM_DEFEAT_THE_ENEMIES", "kind": "chest", "where": "sea/Room30/TRES[0]", "room": 30, "t2": "sea:30:1", "t1": "sea:30:1"},
-  {"key": 239, "loc": "PCR_LOC_OVERLOOK_ISLAND_CAVE", "kind": "chest", "where": "TF_02/Stage/TRES[0]", "room": 6, "t2": null, "t1": "TF_02:0:0", "note": "no spawn point in room 6: no T2 stop"},
+  {"key": 239, "loc": "PCR_LOC_OVERLOOK_ISLAND_CAVE", "kind": "chest", "where": "TF_02/Stage/TRES[0]", "room": 6, "t2": null, "t1": "TF_02:0:0", "xfail": {"T2": "R9.1: the chest is in room 6 of the cave, which has no spawn point to boot or warp into, and T2 has no driver that walks the cave's rooms from room 0 (needs a stage driver). T1 checks the record and the live chest"}, "note": "no spawn point in room 6: no T2 stop"},
   {"key": 240, "loc": "PCR_LOC_BIRDS_PEAK_ROCK_CAVE", "kind": "chest", "where": "TF_03/Stage/TRES[0]", "room": 0, "t2": "TF_03:0:0", "t1": "TF_03:0:0"},
   {"key": 241, "loc": "PCR_LOC_PAWPRINT_ISLE_CHUCHU_CAVE_CHEST", "kind": "chest", "where": "TyuTyu/Stage/TRES[3]", "room": 0, "t2": "TyuTyu:0:0", "t1": "TyuTyu:0:0"},
   {"key": 242, "loc": "PCR_LOC_PAWPRINT_ISLE_CHUCHU_CAVE_BEHIND_LEFT_BOULDER", "kind": "chest", "where": "TyuTyu/Stage/TRES[1]", "room": 0, "t2": "TyuTyu:0:0", "t1": "TyuTyu:0:0"},
