@@ -1,0 +1,17 @@
+# R9.2 (docs/RANDOMIZER_PLAN.md): the identity placement is vanilla (Milestone R2's second bullet).
+# identity_check.py run: the idhash smoke (native/src/pc/harness/smokes/pc_rando_smoke_idhash.cpp) loads all
+# 1,282 /res/Stage and /res/Object archives through dRes_control_c, once with
+# COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_identity.json and once without (about 2.5 minutes):
+# vanilla dispatches nothing; every file the hook gets is the disc's; the placement steps R2.1-R2.4 leave
+# exactly the bytes wwrando's own change_*_item gives with the vanilla items (and every record keeps its
+# item); seed-dependent steps change nothing; always-applied tweak steps change exactly the files of
+# native/check/rando/fixtures/R9_2_tweak_files.json. Needs the oracle venv (setup_oracle.sh) and the disc.
+# identity_check.py saves: native/tools/save_sweep.py both ways (two cases here; the full sweep is
+# `identity_check.py saves`, about 25 minutes): every case passes and the saves are equal both ways apart
+# from the randomizer's own record (D3, region reserve), one new-file state the same in every case (R3.1,
+# R3.2, R6.4) and the item gets the randomizer changes on purpose (R3.11 pearl placing, R2.5 Heart
+# Containers; the items case leaves out the starting Hero's Sword and Shield).
+# USA build only (the "usa:" prefix, R7.6d). Format of native/check/regress_targets.txt: <target> <expected
+# exit> [extra run.sh options].
+usa:script 0 python3 -I native/tools/rando/identity_check.py run
+usa:script 0 python3 -I native/tools/rando/identity_check.py saves drc windfall
