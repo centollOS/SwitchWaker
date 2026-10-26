@@ -2030,14 +2030,20 @@ void drawMenu() {
     ImGui::TextColored(kDim, "%s", mode.c_str());
 
     // Tabs.
-    // Each tab as wide as its name, the rest of the row shared out evenly (five names in a narrow 4:3 window).
+    // Each tab as wide as its name, the rest of the row shared out evenly. When the seven names do not
+    // fit (Spanish in a narrow 4:3 window), the row's text shrinks until they do.
     float namesW = 0.0f;
     for (int t = 0; t < PC_SETTING_TABS; t++) {
         namesW += ImGui::CalcTextSize(T(kTabNames[t], kTabNamesEn[t])).x;
     }
-    const float tabSpare = std::max(0.0f, (ImGui::GetContentRegionAvail().x - namesW -
-                                           (PC_SETTING_TABS - 1) * ImGui::GetStyle().ItemSpacing.x) /
-                                              PC_SETTING_TABS);
+    const float tabRoom = ImGui::GetContentRegionAvail().x - (PC_SETTING_TABS - 1) * ImGui::GetStyle().ItemSpacing.x -
+                          PC_SETTING_TABS * 2.0f * ImGui::GetStyle().FramePadding.x;
+    const float tabScale = namesW > tabRoom && namesW > 0.0f ? tabRoom / namesW : 1.0f;
+    if (tabScale < 1.0f) {
+        ImGui::SetWindowFontScale(scale * tabScale);
+        namesW *= tabScale;
+    }
+    const float tabSpare = std::max(0.0f, tabRoom - namesW) / PC_SETTING_TABS + 2.0f * ImGui::GetStyle().FramePadding.x;
     for (int pos = 0; pos < PC_SETTING_TABS; pos++) {
         const int t = kTabOrder[pos];
         if (pos > 0) {
@@ -2051,6 +2057,9 @@ void drawMenu() {
             m.tab = t;
         }
         ImGui::PopStyleColor();
+    }
+    if (tabScale < 1.0f) {
+        ImGui::SetWindowFontScale(scale);
     }
     ImGui::Separator();
 
