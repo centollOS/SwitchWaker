@@ -23,7 +23,11 @@
 //       the entry's position and holds the placed item (daTbox_c::getItemNo, home.angle.z >> 8).
 //   T2 (given), for each COS_RANDO_LOC_OPEN location (a PCR_LOC_* name, with or without the prefix,
 //   or its number) whose chest is live at this stop: a chest that waits for a switch (enemies
-//   defeated, a switch hit) gets its switch set; once no event runs, the player is put in front of
+//   defeated, a switch hit) gets its switch set, and so does a burning Fire actor (d_a_fire, type 0)
+//   on the chest (R9.1: the Dragon Roost Cavern Big Key chest burns until water puts it out, and
+//   the fire pushes the player back); the stage's enemies are deleted while T2 prepares and walks
+//   (R9.1: a func 2 chest appears only once they are gone, and they knock the player back); once
+//   no event runs, the player is put in front of
 //   it on the floor (daPy_lk_c::debugPlace; a put that does not hold, e.g. on a ladder, is retried
 //   after walking at the chest), facing it, walks at it until the A button says "Open" and presses
 //   A; the chest's event must start and end, its item-get (dComIfGp_event_getGtItm) must be the placed item, and
@@ -57,6 +61,7 @@
 #include "d/d_com_inf_game.h"
 #include "d/d_event_manager.h"
 #include "d/d_stage.h"
+#include "d/actor/d_a_fire.h"
 #include "d/actor/d_a_tbox.h"
 #include "f_op/f_op_actor_mng.h"
 #include "f_pc/f_pc_manager.h"
@@ -120,6 +125,7 @@ char sOpenEvent[48] = "";
 uint64_t sOpenStartNs = 0;
 cXyz sOpenTarget;   // where the player was put
 int sOpenTries = 0; // puts that did not hold (the player on a ladder, in a climb)
+int sGetOffTries = 0; // R9.1: boat get-offs before a put
 PcRandoItemFunc sPrevOverride = nullptr;
 
 struct PendingOpen {
@@ -218,6 +224,70 @@ daTbox_c* chestAt(const Chests& c, const cXyz& pos) {
         }
     }
     return nullptr;
+}
+
+// R9.1: a Fire actor (type 0, with a switch) burning on the chest at `pos` is put out the game's way,
+// by its switch (daFire_c::CreateInit / execute stop the fire once fopAcM_isSwitch holds).
+struct FireAt {
+    cXyz pos;
+    int put;
+};
+void* putOutFire(void* proc, void* data) {
+    FireAt* f = static_cast<FireAt*>(data);
+    if (fpcM_GetName(proc) != fpcNm_Fire_e) {
+        return nullptr;
+    }
+    daFire_c* fire = static_cast<daFire_c*>(proc);
+    if (fire->home.pos.abs(f->pos) > 60.0f || daFire_prm::getType(fire) != 0) {
+        return nullptr;
+    }
+    const u8 sw = daFire_prm::getSwitch(fire);
+    if (sw != 0xFF && !fopAcM_isSwitch(fire, sw)) {
+        writef(STDERR_FILENO, "[cos] rando-smoke loc: T2: a fire burns on the chest; set its switch 0x%02X in room %d\n",
+               sw, (int)fopAcM_GetRoomNo(fire));
+        dComIfGs_onSwitch(sw, fopAcM_GetRoomNo(fire));
+        f->put++;
+    }
+    return nullptr;
+}
+
+// R9.1: T2 opens chests with no enemies about. A chest that appears once the room's enemies are gone
+// (func 2, daTbox_c::actionGenocide, which waits for fopAcM_myRoomSearchEnemy to find none; its switch
+// is often 0xFF, so setting it does nothing) needs them gone, and an enemy that knocks the player back
+// (the Bomb Island submarine) spoils the driven walk to the chest. So while T2 prepares and walks
+// (outside events), every enemy-group actor of the stage is deleted, each once, every frame
+// (spawners that send waves are emptied the same way).
+std::vector<fpc_ProcID> sKilled;
+void* killEnemy(void* proc, void* data) {
+    fopAc_ac_c* a = static_cast<fopAc_ac_c*>(proc);
+    if (!fopAcM_IsActor(a) || fopAcM_GetGroup(a) != fopAc_ENEMY_e) {
+        return nullptr;
+    }
+    const fpc_ProcID id = fopAcM_GetID(a);
+    for (fpc_ProcID k : sKilled) {
+        if (k == id) {
+            return nullptr;
+        }
+    }
+    sKilled.push_back(id);
+    ++*static_cast<int*>(data);
+    fopAcM_delete(a);
+    return nullptr;
+}
+// On two stages enemies are deleted only for a hidden func 2 chest (`needed`): on the sea, deleting a
+// lookout platform's cannons and gunboats left another actor at a NaN position (f_op_actor.cpp:693
+// panic); on the Ghost Ship (PShip), with its enemies gone the stage plays a camera event and
+// reloads, so the chest is lost.
+void clearEnemies(unsigned int frames, bool needed) {
+    const char* stage = dComIfGp_getStartStageName();
+    if (!needed && (strcmp(stage, "sea") == 0 || strcmp(stage, "PShip") == 0)) {
+        return;
+    }
+    int n = 0;
+    fopAcM_Search(killEnemy, &n);
+    if (n > 0) {
+        writef(STDERR_FILENO, "[cos] rando-smoke loc: frame %u: T2: %d enemies deleted\n", frames, n);
+    }
 }
 
 // Where T2 puts the player: in front of the chest (a chest opens only from its front), on the floor.
@@ -657,6 +727,7 @@ void randoSmokeLoc(unsigned int frames) {
                locName(sOpen[sOpenIdx]), (unsigned)sOpenChest, (void*)fopAcM_SearchByID(sOpenChest), (void*)player,
                (unsigned)scene);
         sOpenTries = 0;
+        sGetOffTries = 0;
         sState = kOpenPrep;
         sSince = 0;
         return;
@@ -674,7 +745,9 @@ void randoSmokeLoc(unsigned int frames) {
             finishOpen(false, "the chest is gone");
             return;
         }
-        if (sSince == 1 && !chest->checkOpen() && !chest->checkNormal()) {
+        // R9.1: func 3 (switch visible) counts as normal but stays shut, in actionSwOnWait2, until its switch.
+        if (sSince == 1 && !chest->checkOpen() &&
+            (!chest->checkNormal() || (chest->getFuncType() == 3 && !dComIfGs_isSwitch(chest->getSwNo(), chest->mRoomNo)))) {
             const int sw = chest->getSwNo();
             writef(STDERR_FILENO, "[cos] rando-smoke loc: T2: chest func %d waits for switch 0x%02X in room %d; set it\n",
                    (int)chest->getFuncType(), sw, (int)chest->mRoomNo);
@@ -682,10 +755,24 @@ void randoSmokeLoc(unsigned int frames) {
                 dComIfGs_onSwitch(sw, chest->mRoomNo);
             }
         }
+        if (sSince == 1) {
+            FireAt f = {chest->home.pos, 0};
+            fopAcM_Search(putOutFire, &f);
+        }
         if (dComIfGp_event_runCheck()) {
             setDrivenPad(true, sSince % 20 < 2 ? PAD_BUTTON_A : 0, 0, 0);
             if (sSince >= kQuietFrames) {
                 finishOpen(false, "an event kept running before the open");
+            }
+            return;
+        }
+        const bool hidden2 = chest->getFuncType() == 2 && chest->flagCheck(daTbox_c::daTboxFlg_UNK_01);
+        clearEnemies(frames, hidden2);
+        if (hidden2) {
+            // R9.1: hidden until the room's enemies are gone (clearEnemies); its appear event runs above.
+            setDrivenPad(true, 0, 0, 0);
+            if (sSince >= kQuietFrames) {
+                finishOpen(false, "the chest did not appear after its room's enemies were deleted");
             }
             return;
         }
@@ -699,6 +786,17 @@ void randoSmokeLoc(unsigned int frames) {
             return;
         }
         setDrivenPad(true, 0, 0, 0);
+        if (dComIfGp_checkPlayerStatus0(0, daPyStts0_SHIP_RIDE_e) && sGetOffTries < 3) {
+            // R9.1: a stop that starts on the boat (sea points 100+, the Tower of the Gods' entrance):
+            // the ride puts the player back on the boat every frame, so no put holds. Get him off it
+            // the game's way (the ledge jump, daPy_lk_c::procShipGetOff) and put him afterwards.
+            sGetOffTries++;
+            const BOOL ok = static_cast<daPy_lk_c*>(player)->procShipGetOff_init();
+            writef(STDERR_FILENO, "[cos] rando-smoke loc: frame %u: T2: the player rides the boat; get off (%d, %s)\n",
+                   frames, sGetOffTries, ok ? "started" : "not started");
+            sSince = 0;
+            return;
+        }
         const s16 yaw = chest->home.angle.y;
         const cXyz pos = frontOf(chest->home.pos, yaw);
         sOpenTarget = pos;
@@ -724,6 +822,19 @@ void randoSmokeLoc(unsigned int frames) {
             return;
         }
         if (dComIfGp_event_runCheck()) {
+            const char* ev = eventName();
+            if ((strncmp(ev, "DEFAULT_TREASURE", 16) != 0 || strcmp(ev, "DEFAULT_TREASURE_APPEAR") == 0) &&
+                sOpenTries < 4) {
+                // R9.1: another actor's event (a shutter opening or a chest appearing once the deleted
+                // enemies are gone, a map camera): wait it out as before the open and put again.
+                sOpenTries++;
+                writef(STDERR_FILENO, "[cos] rando-smoke loc: frame %u: T2: event \"%s\" is not the chest's; wait it "
+                       "out and put again (%d)\n", frames, ev, sOpenTries);
+                removeOverride();
+                sState = kOpenPrep;
+                sSince = 2; // past the switch step
+                return;
+            }
             snprintf(sOpenEvent, sizeof sOpenEvent, "%s", eventName());
             writef(STDERR_FILENO, "[cos] rando-smoke loc: frame %u: T2: event \"%s\" after %u frames\n", frames, sOpenEvent,
                    sSince);
@@ -732,6 +843,7 @@ void randoSmokeLoc(unsigned int frames) {
             sOpenStartNs = monotonicNs();
             return;
         }
+        clearEnemies(frames, false);
         if (sSince == 3 && player->current.pos.abs(sOpenTarget) > 60.0f && sOpenTries < 4) {
             sOpenTries++;
             writef(STDERR_FILENO, "[cos] rando-smoke loc: frame %u: T2: the put did not hold (the player at (%.0f, %.0f, "
