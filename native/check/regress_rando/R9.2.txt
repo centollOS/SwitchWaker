@@ -8,7 +8,9 @@
 # native/check/rando/fixtures/R9_2_tweak_files.json. Needs the oracle venv (setup_oracle.sh) and the disc.
 # identity_check.py saves: native/tools/save_sweep.py both ways (two cases here; the full sweep is
 # `identity_check.py saves`, about 25 minutes): every case passes and the saves are equal both ways apart
-# from the randomizer's own record (D3, region reserve).
+# from the randomizer's own record (D3, region reserve), one new-file state the same in every case (R3.1,
+# R3.2, R6.4) and the item gets the randomizer changes on purpose (R3.11 pearl placing, R2.5 Heart
+# Containers; the items case leaves out the starting Hero's Sword and Shield).
 # USA build only (the "usa:" prefix, R7.6d). Format of native/check/regress_targets.txt: <target> <expected
 # exit> [extra run.sh options].
 usa:script 0 python3 -I native/tools/rando/identity_check.py run
