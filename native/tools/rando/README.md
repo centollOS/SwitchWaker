@@ -19,6 +19,8 @@ into the game or needed by players.
 | `fp_audit.py` | R7.6b: fingerprint audit: every stage.dzs, room.dzr and event_list.dat of the disc through the whole patcher chain (`fpaudit` smoke), rotation + every option, USA and EUR (`--region`) |
 | `identity_check.py` | R9.2: the identity placement is vanilla (`run`: every archive's files vs. the disc, the placement steps = wwrando's `change_*_item` with vanilla items, tweak steps = `fixtures/R9_2_tweak_files.json`; `saves`: `save_sweep.py` both ways) |
 | `oracle_common.py` | shared helpers (paths, venv re-exec, options, JSON) |
+| `batches/run_batches.sh` | R9.3: runs the seed-batch lists `batches/list_{core,options,matrix}.txt` (check_seeds / ww_verify_hints lines) into a resumable TSV |
+| `batches/error_parity.py` | R9.3: our whole error message (Error Log) = wwrando's exception text on 10 failing/passing option combos |
 
 ## Setup
 
