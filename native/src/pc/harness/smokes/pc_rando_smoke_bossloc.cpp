@@ -17,7 +17,9 @@
 //   under the randomizer (0xFF without);
 //   T2 (COS_BOSSLOC_T2=1): a last Bitem for S; its field item is moved onto the player, the item-get
 //   event must start with dComIfGp_event_getGtItm() the field item's id, A goes through it, and the
-//   save must have changed when it ends (the item's item_func ran; the clock is left out).
+//   save must have changed when it ends (the item's item_func ran; the clock is left out). An item the
+//   game gives without that event (rupees, hearts, ammo, a spoil or bait already seen) must be picked
+//   up with the save changed instead.
 // The save bits the setup touches are restored at the end.
 // Exit 0 when every check held, else 1.
 #include "pc_rando_smokes.h"
@@ -110,6 +112,46 @@ void* nearItem(void* proc, void*) {
 void* judgeById(void* proc, void* id) {
     return fpcM_GetID(proc) == *(fpc_ProcID*)id ? proc : nullptr;
 }
+
+// daItem_c::itemGetExecute gives these field items without a get-item event (execItemGet at once):
+// hearts, rupees, magic, bombs and arrows, and a spoil or bait whose first get the save already holds
+// (R9.1: SweepSeedTwo puts a Knight's Crest on Kalle Demos, and the debug save has seen every spoil).
+bool directGet(int itemNo) {
+    switch (itemNo) {
+    case dItemNo_HEART_e:
+    case dItemNo_GREEN_RUPEE_e:
+    case dItemNo_BLUE_RUPEE_e:
+    case dItemNo_YELLOW_RUPEE_e:
+    case dItemNo_RED_RUPEE_e:
+    case dItemNo_PURPLE_RUPEE_e:
+    case dItemNo_ORANGE_RUPEE_e:
+    case dItemNo_SILVER_RUPEE_e:
+    case dItemNo_SMALL_MAGIC_e:
+    case dItemNo_LARGE_MAGIC_e:
+    case dItemNo_BOMB_5_e:
+    case dItemNo_BOMB_10_e:
+    case dItemNo_BOMB_20_e:
+    case dItemNo_BOMB_30_e:
+    case dItemNo_ARROW_10_e:
+    case dItemNo_ARROW_20_e:
+    case dItemNo_ARROW_30_e:
+    case dItemNo_TRIPLE_HEART_e:
+        return true;
+    case dItemNo_SKULL_NECKLACE_e: return dComIfGs_isGetItemBeast(dBeastIdx_SKULL_NECKLACE_e);
+    case dItemNo_BOKOBABA_SEED_e: return dComIfGs_isGetItemBeast(dBeastIdx_BOKOBABA_SEED_e);
+    case dItemNo_GOLDEN_FEATHER_e: return dComIfGs_isGetItemBeast(dBeastIdx_GOLDEN_FEATHER_e);
+    case dItemNo_KNIGHTS_CREST_e: return dComIfGs_isGetItemBeast(dBeastIdx_KNIGHTS_CREST_e);
+    case dItemNo_RED_JELLY_e: return dComIfGs_isGetItemBeast(dBeastIdx_RED_JELLY_e);
+    case dItemNo_GREEN_JELLY_e: return dComIfGs_isGetItemBeast(dBeastIdx_GREEN_JELLY_e);
+    case dItemNo_BLUE_JELLY_e: return dComIfGs_isGetItemBeast(dBeastIdx_BLUE_JELLY_e);
+    case dItemNo_JOY_PENDANT_e: return dComIfGs_isGetItemBeast(dBeastIdx_JOY_PENDANT_e);
+    case dItemNo_BIRD_BAIT_5_e: return dComIfGs_isGetItemBait(0);
+    case dItemNo_HYOI_PEAR_e: return dComIfGs_isGetItemBait(1);
+    default:
+        return false;
+    }
+}
+bool sDirect = false;
 
 struct SaveSnap {
     u8 save[sizeof(dSv_save_c)];
@@ -262,6 +304,7 @@ void randoSmokeBossloc(unsigned int frames) {
                 return;
             }
             dComIfGp_event_setGtItm(dItemNo_NONE_e);
+            sDirect = directGet(sItemNo);
             snapSave(sSnap);
             sState = kT2Start;
             sSince = 0;
@@ -284,7 +327,20 @@ void randoSmokeBossloc(unsigned int frames) {
             sSince = 0;
             return;
         }
-        if (daItem_c* item = (daItem_c*)fpcM_Search(judgeById, &sItemId)) {
+        daItem_c* item = (daItem_c*)fpcM_Search(judgeById, &sItemId);
+        if (item == nullptr && sDirect && sSince >= 10) {
+            // picked up and given at once, as the game gives this item (no get-item event)
+            SaveSnap now;
+            snapSave(now);
+            const bool changed = memcmp(&now, &sSnap, sizeof now) != 0;
+            char what[200];
+            snprintf(what, sizeof what, "T2 %s: picked up without a get-item event (the game gives 0x%02X directly), save changed %d",
+                     locName(jobLoc()), (unsigned)sItemNo, changed ? 1 : 0);
+            randoSmokeCheck(kName, what, changed);
+            finish();
+            return;
+        }
+        if (item != nullptr) {
             if (sSince >= 10) {
                 item->current.pos = player->current.pos;
                 item->old.pos = player->current.pos;

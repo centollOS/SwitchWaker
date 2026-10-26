@@ -1,19 +1,26 @@
 # R9.1 (docs/RANDOMIZER_PLAN.md): location sweep coverage. The sweep's new kinds on samples (the full
 # sweep is the tool below): the code kind's codeloc smoke on rotation and without a placement (every
 # Code key's lookup and site calls); the boss kind's bossloc smoke in Gohma's room with T2 (pick up the
-# placed item) and in Helmaroc King's tower (point 16); the DRC Big Key chest's T2, whose fire the loc
-# smoke now puts out; T2 samples of the loc smoke's R9.1 drivers: an enemy-kill chest (Star Island's
+# placed item), in Kalle Demos' room with T2 on R0_6_TestSeed1's Joy Pendant (a spoil: the game gives
+# it without a get-item event) and in Helmaroc King's tower (point 16); the DRC Big Key chest's T2, whose
+# fire the loc smoke now puts out; T2 samples of the loc smoke's R9.1 drivers: an enemy-kill chest (Star Island's
 # cave: the enemies are deleted), a boat stop (Crescent Moon Island, sea room 5 point 100: the player
 # gets off the boat) and a switch-visible chest (Forbidden Woods' locked tree trunk).
 # Placement paths are relative to the repository root, where regress.sh runs.
 # The full sweep (every kind: chest, actr, scob, boss, event, added, code):
 #   python3 -I native/tools/rando/location_sweep.py run --tier both --placement identity|rotation|<ww_export json>
-# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options].
-rando 0 --stage sea:11 --env COS_RANDO_SMOKE=codeloc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json
-rando 0 --stage sea:11 --env COS_RANDO_SMOKE=codeloc
-rando 0 --stage M_DragB:0 --env COS_RANDO_SMOKE=bossloc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_BOSSLOC_T2=1
-rando 0 --stage M2tower:0:16 --env COS_RANDO_SMOKE=bossloc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_identity.json
-rando 0 --stage M_NewD2:12:3 --timeout 216 --stall 120 --env COS_RANDO_SMOKE=loc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_RANDO_LOC_OPEN=DRAGON_ROOST_CAVERN_BIG_KEY_CHEST
-rando 0 --stage Cave02:0:0 --timeout 300 --env COS_RANDO_SMOKE=loc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_RANDO_LOC_OPEN=STAR_ISLAND_CAVE
-rando 0 --stage sea:5:100 --timeout 300 --env COS_RANDO_SMOKE=loc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_RANDO_LOC_OPEN=CRESCENT_MOON_ISLAND_CHEST
-rando 0 --stage kindan:14:0 --timeout 300 --env COS_RANDO_SMOKE=loc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_RANDO_LOC_OPEN=FORBIDDEN_WOODS_CHEST_IN_LOCKED_TREE_TRUNK
+# The listed T2 xfails (sweep_targets.json overrides, a reason each) are the Ghost Ship, Dragon Roost's
+# boulder chest, Fire Mountain's lookout chests and cave, Ice Ring Isle's frozen chest and cave, the
+# Stone Watcher and Overlook caves, Orca's lesson and the Tower of the Gods' stone tablet.
+# R9 runs on the USA build only: the lines carry the prefix "usa:" (R7.6d's region_filter).
+# Format of native/check/regress_targets.txt: <target> <expected exit> [extra run.sh options], with the
+# optional region prefix "usa:" / "eur:" in front of the target.
+usa:rando 0 --stage sea:11 --env COS_RANDO_SMOKE=codeloc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json
+usa:rando 0 --stage sea:11 --env COS_RANDO_SMOKE=codeloc
+usa:rando 0 --stage M_DragB:0 --env COS_RANDO_SMOKE=bossloc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_BOSSLOC_T2=1
+usa:rando 0 --stage kinBOSS:0 --env COS_RANDO_SMOKE=bossloc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_TestSeed1.json --env COS_BOSSLOC_T2=1
+usa:rando 0 --stage M2tower:0:16 --env COS_RANDO_SMOKE=bossloc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_identity.json
+usa:rando 0 --stage M_NewD2:12:3 --timeout 216 --stall 120 --env COS_RANDO_SMOKE=loc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_RANDO_LOC_OPEN=DRAGON_ROOST_CAVERN_BIG_KEY_CHEST
+usa:rando 0 --stage Cave02:0:0 --timeout 300 --env COS_RANDO_SMOKE=loc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_RANDO_LOC_OPEN=STAR_ISLAND_CAVE
+usa:rando 0 --stage sea:5:100 --timeout 300 --env COS_RANDO_SMOKE=loc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_RANDO_LOC_OPEN=CRESCENT_MOON_ISLAND_CHEST
+usa:rando 0 --stage kindan:14:0 --timeout 300 --env COS_RANDO_SMOKE=loc --env COS_RANDO_PLACEMENT=native/check/rando/fixtures/R0_6_rotation.json --env COS_RANDO_LOC_OPEN=FORBIDDEN_WOODS_CHEST_IN_LOCKED_TREE_TRUNK
