@@ -1073,3 +1073,41 @@ European build's gate (plan R7.6d). No hunks; tooling and runs only.
 | File | Function | Guard | wwrando |
 |---|---|---|---|
 | - | no hunks in `game/` | - | - |
+
+## R9.1
+
+Location sweep coverage (plan R9.1). No hunks in `game/`; the sweep tool, its targets and smokes only.
+
+- **Kinds:** `native/tools/rando/location_sweep.py` covers every location wwrando has (320 on USA, none
+  without a kind): `chest` (loc smoke, T1 record + live and T2 open), `actr` and `scob` (R2.2/R2.3 smokes),
+  `boss` (`bossloc`: Bitem for the stage and for stage 2, `createItemForBoss`, the disappear cloud; T2 picks
+  up a Bitem), `event` (`evloc`, T2 per event name), `added` (`addchest`, T2 opens it) and `code` (`codeloc`:
+  every Code key's lookup, the code-C/people/Kane/boss/added-chest/shop tables and the storage-actor calls).
+  Kinds live in `sweep_targets.json` "kinds"; a kind with hand-written per-stage `stops` and a `lines` parser
+  reads per-location check lines.
+- **loc smoke T2 drivers:** a type-0 Fire actor burning on the chest gets its switch set (DRC Big Key chest);
+  the stage's enemies are deleted while T2 prepares (an enemy-kill chest, function 2, then appears by its own
+  event), except on the sea and the Ghost Ship; another actor's event (a shutter, a camera) sends T2 back to
+  its preparation, up to four times; a stop on the boat starts the game's get-off first; a switch-visible
+  chest (function 3) gets its switch set. `bossloc` T2 accepts an item `daItem_c::itemGetExecute` gives without
+  a get-item event (rupees, hearts, ammo, a spoil or bait already seen: wwrando marks them all seen) when the
+  field item is picked up and the save changed.
+- **xfails:** each listed in `sweep_targets.json` overrides with a one-line reason; `location_sweep.py` counts
+  a listed xfail (now also on a key without a stop for that tier) apart from failures. T2 only: the Ghost
+  Ship (5 keys), Dragon Roost's boulder chest, Fire Mountain's two lookout chests, Ice Ring Isle's frozen
+  chest, the Ice Ring Isle and Fire Mountain caves, the Stone Watcher and Overlook caves (room 6, no spawn
+  point: needs a stage driver), Orca's Hurricane Spin lesson and the Tower of the Gods' stone tablet (needs a
+  Command Melody driver).
+- **Results (2026-10-26, rando/R9.1 on feature/randomizer c1dfc8f8, USA):** T1 on `identity`, `rotation` and
+  the ww_export seeds SweepSeedOne/Two/Three: 0 failures each (T1 ok 329, T1-record ok 182, T1-live ok 182,
+  320/320 locations). T2 (every kind) on `rotation` and SweepSeedOne: ok 190, xfail 15, 0 failures each.
+  T2 boss, event and added on `identity`, SweepSeedTwo and SweepSeedThree: 0 failures apart from the listed
+  xfails (boss rerun with the bossloc fix: ok 8 on all five). Not run (time, about 45 min each): T2 chest on
+  `identity`, SweepSeedTwo and SweepSeedThree; command:
+  `python3 -I native/tools/rando/location_sweep.py run --tier t2 --kinds chest --placement <identity|seed json>`.
+- `regress_rando/R9.1.txt` (prefix `usa:`): codeloc (rotation, none), bossloc T2 (Gohma rotation, Kalle Demos
+  with R0_6_TestSeed1's Joy Pendant), bossloc in Helmaroc King's tower, and loc T2 samples of each driver.
+
+| File | Function | Guard | wwrando |
+|---|---|---|---|
+| - | no hunks in `game/` | - | - |
