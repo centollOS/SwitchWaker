@@ -54,8 +54,11 @@ the randomizer record (D3, "WWR1" in dSv_reserve_c). So the saves must be equal 
 the record and from one new-file state that is the same in every case (it cannot depend on where or
 what the game saved): flag regions (event, memory, map, ...) identity = vanilla | N with no bit
 cleared; other regions identity = N at N's positions and vanilla elsewhere; the return place, the
-names and the config equal. `saves-compare` compares two existing sweep directories (the cases both
-have).
+names and the config equal. Item gets the randomizer changes on purpose are allowed where the case's
+saves show them (noted in the report): the pearl-placing events of R3.11 for the pearls the file
+holds, no Heart Container stage-life flag (R2.5). The items case sweeps its list without the Hero's
+Sword and Hero's Shield, which the identity file starts with and the randomizer makes progressive.
+`saves-compare` compares two existing sweep directories (the cases both have).
 
 Reports: <out>/identity_check.txt (archives) and <out>/saves_check.txt. <out> defaults to
 build/rando-identity/<timestamp>. Exit codes: 0 every check held, 1 a check failed, 2 usage or
@@ -661,8 +664,56 @@ def compare_saves(van_dir, id_dir):
     if not c.check(f"{case}: both saves wrote save_expect.txt", a is not None and b is not None):
       continue
     pairs[case] = (a, b)
+  allow_by_design(c, pairs)
   compare_new_file_state(c, pairs)
   return c
+
+
+# Item gets the randomizer changes on purpose, so their save state depends on what the case got,
+# not on the new file. Each is allowed only where its condition holds in that case's saves, and
+# noted in the report:
+#   - pearls (R3.11, wwrando remove_cutscenes.asm give_pearl_and_raise_totg_if_necessary): getting a
+#     pearl places it on its statue, event 0x1410 Nayru / 0x1480 Din / 0x1440 Farore, and the third
+#     raises the Tower of the Gods, 0x1E40 and 0x2E80; allowed in the identity save for the pearls
+#     it holds (collect mSymbol, byte 0xB, bit 1 << dSymbol).
+#   - Heart Containers (R2.5, wwrando flexible_item_locations.asm nops 0x800C2FAC/0x800C2FC4): no
+#     stage-life flag (dSv_memBit_c mDungeonItem bit 4) for the stage the container is got on;
+#     allowed clear in the identity save where the vanilla save has it.
+PEARL_EVENTS = {0: [0x1410], 1: [0x1480], 2: [0x1440]}
+TOTG_EVENTS = [0x1E40, 0x2E80]
+MEMBIT_SIZE, MEMBIT_DUNGEON_ITEM, STAGE_LIFE_BIT = 0x24, 0x21, 1 << 4
+
+
+def allow_by_design(c, pairs):
+  for case, (a, b) in pairs.items():
+    col = _hexbytes(b.get("region collect"))
+    ev_a, ev_b = _hexbytes(a.get("region event")), _hexbytes(b.get("region event"))
+    if col is not None and len(col) > 0xB and ev_a is not None and ev_b is not None and len(ev_a) == len(ev_b):
+      sym = col[0xB]
+      flags = [f for i, fs in PEARL_EVENTS.items() if sym & (1 << i) for f in fs]
+      if sym & 7 == 7:
+        flags += TOTG_EVENTS
+      ev_b = bytearray(ev_b)
+      used = []
+      for f in flags:
+        i, m = f >> 8, f & 0xFF
+        if i < len(ev_b) and ev_b[i] & m and not ev_a[i] & m:
+          ev_b[i] &= ~m & 0xFF
+          used.append(f"0x{f:04X}")
+      if used:
+        b["region event"] = ev_b.hex()
+        c.note(f"{case}: pearl events of the randomizer's pearl placing allowed (R3.11): {', '.join(used)}")
+    mem_a, mem_b = _hexbytes(a.get("region memory")), _hexbytes(b.get("region memory"))
+    if mem_a is not None and mem_b is not None and len(mem_a) == len(mem_b):
+      mem_a = bytearray(mem_a)
+      used = []
+      for i in range(MEMBIT_DUNGEON_ITEM, len(mem_a), MEMBIT_SIZE):
+        if mem_a[i] & STAGE_LIFE_BIT and not mem_b[i] & STAGE_LIFE_BIT:
+          mem_a[i] &= ~STAGE_LIFE_BIT & 0xFF
+          used.append(f"stage {i // MEMBIT_SIZE}")
+      if used:
+        a["region memory"] = mem_a.hex()
+        c.note(f"{case}: no Heart Container stage-life flag in the randomized file allowed (R2.5): {', '.join(used)}")
 
 
 # A randomized file is not a vanilla file even with vanilla items: its new game runs wwrando's
@@ -790,12 +841,15 @@ def rando_cases(ss):
 # upgrades them to the Master Sword and the Mirror Shield, with their collect bits and events: a
 # state that depends on the case, not the new file. Both ways therefore sweep the items without the
 # two (no identity seed has either in a chest, they are starting gear).
+RANDO_SKIP_ITEMS = (0x38, 0x3B)
+
+
 def rando_items(ss):
   out = []
   for part in ss.DEFAULT_ITEMS.split(","):
     a, _, b = part.partition("-")
     lo, hi = int(a, 0), int(b or a, 0)
-    ids = [i for i in range(lo, hi + 1) if i not in (0x38, 0x3B)]
+    ids = [i for i in range(lo, hi + 1) if i not in RANDO_SKIP_ITEMS]
     while ids:  # re-pack consecutive runs
       j = 0
       while j + 1 < len(ids) and ids[j + 1] == ids[j] + 1:
