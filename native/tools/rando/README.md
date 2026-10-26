@@ -18,6 +18,8 @@ into the game or needed by players.
 | `enemy_check.py` | R7.4a: the 1,275 enemy records of the `enemies` smoke = wwrando's own `_save` on the disc (`--seed S --run`, `--vanilla`) |
 | `fp_audit.py` | R7.6b: fingerprint audit: every stage.dzs, room.dzr and event_list.dat of the disc through the whole patcher chain (`fpaudit` smoke), rotation + every option, USA and EUR (`--region`) |
 | `oracle_common.py` | shared helpers (paths, venv re-exec, options, JSON) |
+| `batches/run_batches.sh` | R9.3: runs the seed-batch lists `batches/list_{core,options,matrix}.txt` (check_seeds / ww_verify_hints lines) into a resumable TSV |
+| `batches/error_parity.py` | R9.3: our whole error message (Error Log) = wwrando's exception text on 10 failing/passing option combos |
 
 ## Setup
 

@@ -1,0 +1,17 @@
+# R9.3 core batches: hint validity (R5), the R1 golden reruns, 200 golden seeds per preset (R6).
+hints_verify_500	ww_verify_hints.py --n 500 --golden --prefix HintSeed
+hints_check_500	check_seeds.py --n 500 --golden --hints --prefix HintSeed
+default_2000	check_seeds.py --n 2000 --golden
+default	check_seeds.py --n 200 --golden --preset default
+dungeons_only	check_seeds.py --n 200 --golden --preset dungeons_only
+no_dungeons	check_seeds.py --n 200 --golden --preset no_dungeons
+all_categories	check_seeds.py --n 200 --golden --preset all_categories
+keylunacy	check_seeds.py --n 200 --golden --preset keylunacy
+keylunacy_all	check_seeds.py --n 200 --golden --preset keylunacy_all
+keylunacy_dungeons_only	check_seeds.py --n 200 --golden --preset keylunacy_dungeons_only
+keylunacy_no_dungeons	check_seeds.py --n 200 --golden --preset keylunacy_no_dungeons
+extra_start	check_seeds.py --n 200 --golden --preset extra_start
+extra_start_all	check_seeds.py --n 200 --golden --preset extra_start_all
+extra_start_keys	check_seeds.py --n 200 --golden --preset extra_start_keys
+starting_island	check_seeds.py --n 200 --golden --preset starting_island
+enemies	check_seeds.py --n 200 --golden --preset enemies

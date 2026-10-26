@@ -1,0 +1,29 @@
+# R9.3 option sets without a preset: 200 golden seeds each on the default preset.
+sword_swordless	check_seeds.py --n 200 --golden sword_mode=Swordless
+sword_no_starting	check_seeds.py --n 200 --golden sword_mode="No Starting Sword"
+charts	check_seeds.py --n 200 --golden randomize_charts=true
+required_bosses_1	check_seeds.py --n 200 --golden required_bosses=true num_required_bosses=1
+required_bosses_2	check_seeds.py --n 200 --golden required_bosses=true num_required_bosses=2
+required_bosses_3	check_seeds.py --n 200 --golden required_bosses=true num_required_bosses=3
+required_bosses_4	check_seeds.py --n 200 --golden required_bosses=true num_required_bosses=4
+required_bosses_5	check_seeds.py --n 200 --golden required_bosses=true num_required_bosses=5
+required_bosses_6	check_seeds.py --n 200 --golden required_bosses=true num_required_bosses=6
+entr_dungeon	check_seeds.py --n 200 --golden randomize_dungeon_entrances=true
+entr_secret_cave	check_seeds.py --n 200 --golden randomize_secret_cave_entrances=true
+entr_miniboss	check_seeds.py --n 200 --golden randomize_miniboss_entrances=true
+entr_boss	check_seeds.py --n 200 --golden randomize_boss_entrances=true
+entr_dungeon_miniboss_boss	check_seeds.py --n 200 --golden randomize_dungeon_entrances=true randomize_miniboss_entrances=true randomize_boss_entrances=true
+entr_cave_inner	check_seeds.py --n 200 --golden randomize_secret_cave_entrances=true randomize_secret_cave_inner_entrances=true
+entr_inner_only	check_seeds.py --n 200 --golden randomize_secret_cave_inner_entrances=true
+entr_fairy	check_seeds.py --n 200 --golden randomize_fairy_fountain_entrances=true
+entr_all_separate	check_seeds.py --n 200 --golden randomize_dungeon_entrances=true randomize_secret_cave_entrances=true randomize_miniboss_entrances=true randomize_boss_entrances=true randomize_secret_cave_inner_entrances=true randomize_fairy_fountain_entrances=true
+entr_all_mixed	check_seeds.py --n 200 --golden randomize_dungeon_entrances=true randomize_secret_cave_entrances=true randomize_miniboss_entrances=true randomize_boss_entrances=true randomize_secret_cave_inner_entrances=true randomize_fairy_fountain_entrances=true mix_entrances="Mix Dungeons & Caves & Fountains"
+entr_mixed_dungeon_cave	check_seeds.py --n 200 --golden randomize_dungeon_entrances=true randomize_secret_cave_entrances=true mix_entrances="Mix Dungeons & Caves & Fountains"
+entr_all_required_bosses	check_seeds.py --n 200 --golden randomize_dungeon_entrances=true randomize_miniboss_entrances=true randomize_boss_entrances=true required_bosses=true num_required_bosses=3
+palettes	check_seeds.py --n 200 --golden randomize_enemy_palettes=true
+enemies_palettes	check_seeds.py --n 200 --golden randomize_enemies=true randomize_enemy_palettes=true
+starting_island_entr	check_seeds.py --n 200 --golden randomize_starting_island=true randomize_dungeon_entrances=true randomize_secret_cave_entrances=true
+keylunacy_entr_all	check_seeds.py --n 200 --golden keylunacy=true randomize_dungeon_entrances=true randomize_secret_cave_entrances=true randomize_miniboss_entrances=true randomize_boss_entrances=true
+swordless_required_bosses	check_seeds.py --n 200 --golden sword_mode=Swordless required_bosses=true num_required_bosses=2
+charts_all_categories	check_seeds.py --n 200 --golden --preset all_categories randomize_charts=true
+hints_entr_all_mixed	check_seeds.py --n 200 --golden --hints --prefix HintEntr randomize_dungeon_entrances=true randomize_secret_cave_entrances=true randomize_miniboss_entrances=true randomize_boss_entrances=true mix_entrances="Mix Dungeons & Caves & Fountains"
