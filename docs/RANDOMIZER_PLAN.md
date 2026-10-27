@@ -340,6 +340,8 @@ class), and three real `ww_export` seeds.
 - `regress.sh` is fully green with no rando (vanilla unchanged);
 - `rando_hook_census.py` is clean;
 - `GAME_DIVERGENCE.md` is regenerated and shows only marked, guarded hunks.
+Passed 2026-10-27 (R9.4) on `aa36bace` (feature/randomizer after merging main v1.0.1): `regress.sh` USA all checks passed; `rando_hook_census` ok;
+`GAME_DIVERGENCE.md` regenerated (`e1e7ce0f`): the only new unguarded section is main's `d_camera.cpp` (inverted camera Y).
 
 ## Phase R1: seed generator (pure C++, checked against the oracle)
 
@@ -530,6 +532,11 @@ sweep subset.
 **Milestone R2:**
 - the location sweep, T1 on 320 and T2 on every eligible location, with `identity`, `rotation` and 3 `ww_export` seeds: 0 failures;
 - `identity` is indistinguishable from vanilla (archive hashes equal; `save-sweep` equal).
+Passed 2026-10-27 (R9.4) on `aa36bace` (feature/randomizer after merging main v1.0.1): `location_sweep.py run --tier both` on `identity`, `rotation` and
+`SweepSeedOne/Two/Three` (`ww_export`): T1 329 + 182 live + 182 records ok each, T2 190-191 ok, 0 failures apart
+from R9.1's 14-15 reasoned xfails (`sweep_targets.json`); `identity_check.py run` (archive hashes) ok and
+`identity_check.py saves` PASS (the only difference is the new-file state, the same in every case). Reports in
+`build/r94/sweep/` and `build/rando-identity/`.
 
 ## Phase R3: game patches wwrando always applies (default preset)
 
@@ -753,6 +760,8 @@ G-numbers refer to the asm report's groups; `#n` refers to the tweaks report's s
 - Full vanilla `regress.sh` green.
 - Location sweep repeated.
 - `GAME_DIVERGENCE.md` regenerated.
+Automated bullets passed 2026-10-27 (R9.4): full vanilla `regress.sh` green (USA), location sweep repeated (see
+Milestone R2), `GAME_DIVERGENCE.md` regenerated. The play-throughs (Mac, Switch) remain for the user.
 
 ## Phase R4: player flow (menu, seeds on the console, files, logs)
 
@@ -821,6 +830,8 @@ G-numbers refer to the asm report's groups; `#n` refers to the tweaks report's s
 - **Verify:** the `msg` smoke on a seed shows the overlay texts; smoke `hoho` checks the `Ah` rotation in sea/Room44.
 
 **Milestone R5:** play one default seed (hints on) and read the Savage, fishmen and Ho Ho hints; 500 seeds pass hint validity.
+Automated part passed 2026-10-26 (R9.3): `ww_verify_hints.py --n 500 --golden` 500/500 and
+`check_seeds.py --n 500 --golden --hints` 500/500. Reading the hints in a play-through remains for the user.
 
 ## Phase R6: main options
 
@@ -893,6 +904,9 @@ Verify: smoke asserts per hunk.
 - the entrance sweep;
 - one play-through with entrances, required bosses, key-lunacy and swordless together;
 - one with charts, starting island and trap chests.
+Automated bullets passed 2026-10-26 (R9.3, `build/rando-reports/batches-2026-10-26.md`): 200 golden seeds for every
+preset and option set (99/99 batches); entrance sweep maps A/B/C 1707 rows, 0 failures. The two play-throughs remain
+for the user.
 
 ## Phase R7: last options, cosmetics and the European disc
 
@@ -1125,6 +1139,9 @@ EUR NRO. Verify: location sweep T1 and T2 on EUR with `identity`, `rotation` and
 
 **Milestone R7:** one palettes seed through 2 dungeons; both warp-pot cycles used; one enemy-rando seed through 3
 dungeons (experimental); one EUR default seed to Dragon Roost Cavern; `regress.sh` green for USA and EUR.
+`regress.sh` part passed 2026-10-27 (R9.4) on `aa36bace` (feature/randomizer after merging main v1.0.1): USA all checks passed; EUR all but `menu-backdrop` and
+`picto-box`, which are load flakes of main too (EUR, 4 runs in parallel, 10 each: main 3 and 4 failures, this branch
+2 and 0; alone both pass). The play-throughs and the EUR seed to Dragon Roost Cavern remain for the user.
 
 ## Phase R8: in-game New Game choice (last)
 
