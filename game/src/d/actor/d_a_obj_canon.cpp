@@ -576,10 +576,21 @@ void daObj_Canon_c::createInit() {
 /* 00001804-00001880       .text getArg__13daObj_Canon_cFv */
 void daObj_Canon_c::getArg() {
     u32 param = fopAcM_GetParam(this);
+#if TARGET_PC
+    // The original passes 0xFF as the bit count: (1 << 0xFF) - 1 is 0xFFFFFFFF on PowerPC (shifts of
+    // 32 or more give 0), but undefined behaviour on the host, where clang folds the mask to 0. Every
+    // cannon then read switch 0, a sea-wide memory switch, so once it was set all Eye Reef and lookout
+    // platform cannons spawned destroyed and their chests never appeared (issue #42).
+    field_0x297 = fopAcM_GetParamBit(param, 0, 8);
+    field_0x296 = fopAcM_GetParamBit(param, 8, 8);
+    field_0x294 = fopAcM_GetParamBit(param, 16, 8);
+    field_0x295 = fopAcM_GetParamBit(param, 24, 8);
+#else
     field_0x297 = fopAcM_GetParamBit(param, 0, 0xFF);
     field_0x296 = fopAcM_GetParamBit(param, 8, 0xFF);
     field_0x294 = fopAcM_GetParamBit(param, 16, 0xFF);
     field_0x295 = fopAcM_GetParamBit(param, 24, 0xFF);
+#endif
     if(field_0x297 != 0xFF) {
         scale.set(1.0 + field_0x297 * 0.1, 1.0 + field_0x297 * 0.1, 1.0 + field_0x297 * 0.1);
     }
