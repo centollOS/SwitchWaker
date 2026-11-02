@@ -67,6 +67,7 @@ instruction, matched to the source line below.
 | 15 | Fixes of the original game's bugs | `COS_QOL_FIX_BUGS` (two fixes always on) | `fix_vanilla_bugs.asm` (part of BetterWW's "remove intro video" toggle) and the vanilla parts of `necessary_fixes.asm` / `misc_rando_features.asm` | Fix by fix in "Bugs of the original game" below |
 | 16 | Normal sail, wind at your back | `COS_QOL_SAIL=wind` | `normal_sail_wind.asm` (BetterWW's `normal_sail2`: the swift/brisk sails' `set_wind_dir_to_ship_dir` at d_a_ship.rel 0xB9FC, without their speed changes). BetterWW's `randomizer.py` calls `tweaks.normal_sail_wind`, which its `tweaks.py` at `4501481` does not define; the asm patch is taken as the intent | Item 10's `dKyw_tact_wind_set` in `daShip_c::execute` for every non-zero value; the speed changes now ask `pc_qol_fast_sail()` (swift or brisk only) |
 | - | BetterWW preset | (action rows) | BetterWW's UI defaults (`wwr_ui/randomizer_window.ui`): Swift Sail, instant text, faster roll / grapple / blocks / crawling, Tingle chests, no song replays, swing turn, fast Ballad, remove intro video (here items 14 and 15) on; invert camera, full sea chart, unrestricted boat, random enemy colours off | `pc_menu.cpp`: "Experiencia BetterWW" sets every QoL row to those values, "Valores originales" sets every row to 0, both through `pc_settings_set_mode` (saved, each row still editable; a row locked by the environment is kept). Invert camera stays with the menu's existing camera rows |
+| - | Complete the Nintendo Gallery (issue #44) | (action row) | SwitchWakerHD's figurine cheat (not BetterWW): all 134 figurines Carlov makes | `pc_figurines.cpp`: the bits of `l_figure_comp`'s 17 event registers and setFigure's 0x3A01, on the file in memory; only on a gallery member (0x3401), else nothing (a complete collection makes Carlov leave, event 0x3D08, so membership could not be had afterwards). Not part of either preset |
 
 ## Saves
 
@@ -187,6 +188,7 @@ show a message, grab a rope and order the Ballad of Gales warp) or shots; the re
 | 16 | sailing smoke heading west with the wind set north (crosswind) | 41.2 units/frame | `wind` 54.8 (the wind turned behind, normal speed); `swift` 109.6 |
 | - | `menu-qol-preset.txt`: "Experiencia BetterWW", then Voltereta off by hand | - | all 15 values as BetterWW's, saved; the hand change kept |
 | - | `menu-qol-original.txt`: BetterWW, then "Valores originales" | - | every row 0, saved |
+| - | `menu-figurines.txt` (COS_BOOT_EVENTS=3401) / `menu-figurines-not-member.txt` | - | 134 figurines / 0 (nothing set); on Pfigure with all of them Carlov is gone and his own figurine stands on the counter |
 
 European build (`-DCOS_VERSION=3`, `build/native-mac-eur`, GZLP01): the item 13 sailing smoke with
 0x0902 cleared fails off and passes on, M14 with item 14 passes (the player free at frame 4449),

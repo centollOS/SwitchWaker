@@ -45,6 +45,7 @@
 #include "pc/pc_button_remap.h"
 #include "pc/pc_controls.h"
 #include "pc/pc_qol.h"
+#include "pc/pc_figurines.h"
 #include "pc/pc_update.h"
 #include "features/pc_button_remap_map.h"
 
@@ -861,6 +862,7 @@ enum class RowKind {
     Reload,
     QolBetterWW,
     QolOriginal,
+    Figurines,
     Remap,
     RemapRestore,
     Update,
@@ -986,6 +988,9 @@ std::vector<Row> rowsOf(int tab) {
     if (tab == PC_SETTING_TAB_CONTROLS) {
         rows.push_back({RowKind::RemapRestore});
     }
+    if (tab == PC_SETTING_TAB_QOL) {
+        rows.push_back({RowKind::Figurines});
+    }
     return rows;
 }
 
@@ -1108,6 +1113,28 @@ void doSailing() {
     writef(STDERR_FILENO, "[cos] menu: sailing preset, warp to %s room %d point %d\n", kSailingSpawn.stage,
            kSailingSpawn.room, kSailingSpawn.point);
     dComIfGp_setNextStage(kSailingSpawn.stage, (s16)kSailingSpawn.point, (s8)kSailingSpawn.room, -1);
+}
+
+// Calidad de vida > "Completar la Galería Nintendo" (issue #44, pc_figurines.h): every figurine on the
+// file being played, in memory only (the game's own save screen keeps it).
+void doFigurines() {
+    if (!inPlay()) {
+        toast(T("Solo funciona durante la partida", "Only works in the game"));
+        return;
+    }
+    switch (pc_figurines_complete()) {
+    case PC_FIGURINES_DONE:
+        toast(T("Galería Nintendo completa: guarda la partida para conservarla",
+                "Nintendo Gallery complete: save the game to keep it"));
+        break;
+    case PC_FIGURINES_NOT_MEMBER:
+        toast(T("Primero hazte socio de la galería: dale a Carlov una foto en color",
+                "Become a gallery member first: give Carlov a color picto"));
+        break;
+    case PC_FIGURINES_ALREADY:
+        toast(T("Esta partida ya tiene todas las figuras", "This game already has every figurine"));
+        break;
+    }
 }
 
 // Calidad de vida > "Experiencia BetterWW" / "Valores originales": every QoL row set at once, as if
@@ -1620,6 +1647,11 @@ void activate(const Row& r, int dir) {
             activateNotes();
         }
         break;
+    case RowKind::Figurines:
+        if (dir == 0) {
+            doFigurines();
+        }
+        break;
     }
 }
 
@@ -1750,6 +1782,7 @@ std::string rowLabel(const Row& r) {
     case RowKind::Remap: return settingLabel(r.desc);
     case RowKind::Update: return T("Actualización", "Update");
     case RowKind::Notes: return T("Notas de la versión", "Release notes");
+    case RowKind::Figurines: return T("Completar la Galería Nintendo", "Complete the Nintendo Gallery");
     case RowKind::Setting: break;
     }
     std::string s = settingLabel(r.desc);
@@ -1770,6 +1803,14 @@ std::string rowValue(const Row& r) {
     case RowKind::QolBetterWW:
     case RowKind::QolOriginal: return T("A: aplicar", "A: apply");
     case RowKind::RemapRestore: return T("A: restaurar", "A: restore");
+    case RowKind::Figurines: {
+        if (!inPlay()) {
+            return T("solo en partida", "in game only");
+        }
+        char text[64];
+        snprintf(text, sizeof(text), T("A: completar (%d/134)", "A: complete (%d/134)"), pc_figurines_made());
+        return text;
+    }
     case RowKind::Update: return updateValue();
     case RowKind::Notes: {
         PcUpdateInfo info;
@@ -1863,6 +1904,13 @@ std::string rowHelp(const Row& r) {
         return T("Lo que trae la versión nueva, de su página en GitHub (en inglés). Aparece cuando la búsqueda "
                  "encuentra una.",
                  "What the new version brings, from its GitHub page. It shows up once a check finds one.");
+    case RowKind::Figurines:
+        return T("Da a esta partida las 134 figuras de Carlov. Hace falta ser socio de la galería (haberle dado a "
+                 "Carlov una foto en color). Al volver a su taller, Carlov se va como al completar la colección "
+                 "en el juego. Solo en memoria: se guarda únicamente si guardas la partida.",
+                 "Gives this game all 134 of Carlov's figurines. The file must be a gallery member (Carlov was "
+                 "given a color picto). Back in his workshop, Carlov leaves as when the collection is completed "
+                 "in the game. In memory only: kept only if you save the game.");
     case RowKind::Remap:
         if (r.action == m.captureAction) {
             return T("Pulsa el botón que hará esta acción; si ya hacía otra, se intercambian. Menos cancela.",
@@ -2199,6 +2247,8 @@ void smokeError(const char* fmt, const std::string& a, const std::string& b = ""
 //   overlay <0|1>            the FPS overlay is shown
 //   alloc-failures <n>       JKR allocations that failed since the start (bug B8: 0)
 //   riding <0|1>             the player rides the boat with the sail on X (Depuración > Navegar)
+//   figurines <n>            the file being played has n of the 134 figurines (Calidad de vida >
+//                            Completar la Galería Nintendo, issue #44)
 //   no-se <id>[,<id>...]     JAudio has none of these sound effects (hex ids) registered (pc_audio_state.cpp)
 //   card-roundtrip <stage> [<room>]  the game saved through its save screen: the card's save file (the
 //                            run's own card, "#card run") loads back (mDoMemCd_Load, checksum of
@@ -2416,6 +2466,11 @@ void smokeFrame(unsigned int frame) {
                 smokeError("stage %s, expected %s", std::string(name) + " " + std::to_string(room), e.a + " " + e.b);
             } else {
                 writef(STDERR_FILENO, "[cos] options-menu: ok stage %s room %d\n", name, room);
+            }
+        } else if (e.kind == "figurines") {
+            const int made = inPlay() ? pc_figurines_made() : -1;
+            if (made != atoi(e.a.c_str())) {
+                smokeError("figurines %s, expected %s", std::to_string(made), e.a);
             }
         } else if (e.kind == "riding") {
             // The sailing preset (Navegar): the player on the boat, the sail on X.

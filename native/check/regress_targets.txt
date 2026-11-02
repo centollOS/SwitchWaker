@@ -152,6 +152,10 @@ options-menu 0 --preset sailing --input native/check/input/menu-warp-conducting.
 # "Valores originales" (every row off)
 options-menu 0 --stage sea:11:0 --input native/check/input/menu-qol-preset.txt
 options-menu 0 --stage sea:11:0 --input native/check/input/menu-qol-original.txt
+# issue #44: Calidad de vida's "Completar la Galería Nintendo" gives the file all 134 figurines (the
+# bits Carlov's daNpcMt_c::setFigure sets), only on a gallery member (event 3401): on a new file nothing
+options-menu 0 --stage sea:11:0 --env COS_BOOT_EVENTS=3401 --input native/check/input/menu-figurines.txt
+options-menu 0 --stage sea:11:0 --input native/check/input/menu-figurines-not-member.txt
 # issues #27/#28 (pc_update.h): the update check at start on the title screen with the fixture release
 # native/check/update (v9.9.9, as version 0.4.2): the popup's "Actualizar ahora" installs it into the
 # run directory; "No avisar de esta versión" saves COS_UPDATE_SKIP and installs nothing; "Ver notas de la

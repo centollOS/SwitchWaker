@@ -1,0 +1,25 @@
+# COS_SMOKE=options-menu (native/src/pc/features/pc_menu.cpp), with --stage sea:11:0 (Windfall) and
+# --env COS_BOOT_EVENTS=3401 (the new file is a Nintendo Gallery member: Carlov took a picto). Opens the
+# menu with L+R+Z, R three times (past Controles and Rendimiento) to Calidad de vida, up once (the rows
+# wrap) to its last row, "Completar la Galería Nintendo" (issue #44), A: the file in memory gets all 134
+# figurines; A again only says it has them already. B closes.
+#expect opened 1
+#expect figurines 134
+#expect end 560
+# frame buttons stickX stickY
+400 L+R+Z 0 0
+403 - 0 0
+406 R 0 0
+408 - 0 0
+410 R 0 0
+412 - 0 0
+416 R 0 0
+418 - 0 0
+422 UP 0 0
+424 - 0 0
+430 A 0 0
+432 - 0 0
+440 A 0 0
+442 - 0 0
+456 B 0 0
+458 - 0 0
